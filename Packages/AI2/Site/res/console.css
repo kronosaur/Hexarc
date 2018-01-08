@@ -1,0 +1,187 @@
+p {
+	margin: 0;
+}
+
+.cmdEcho {
+	font-family: "Lucida Console", "Courier New", Courier, monospace;
+	font-size: 10pt;
+	color: #133764;
+	margin-top: 8pt;
+}
+
+.consoleInput {
+	border-top: solid 1px #C0C0C0;
+	margin-top: 16pt;
+	padding-top: 8pt;
+	
+	font-family: 'Trebuchet MS', sans-serif;
+}
+
+.ctrlButton {
+	height: 24px;
+	margin: 0;
+	padding: 1px 12px 1px 12px;
+	
+	background-color: #78a01b;
+	border: solid 2px #598000;
+	
+	font-family: 'Trebuchet MS', sans-serif;
+	font-size: 16pt;
+	color: #eaf1f4;
+	
+	text-align: center;
+	line-height: 24px;
+	
+	cursor: pointer;
+}
+
+.ctrlInput {
+	margin: 0 12px 12px 0;
+}
+
+.ctrlLabel {
+	color: #000000;
+	font-family: 'Trebuchet MS', sans-serif;
+	font-size: 10pt;
+}
+
+.ctrlLink {
+	cursor:pointer;
+}
+
+.dialogCommandBar {
+	background-color: #d6dcdf;
+	height: 30px;
+	padding: 9px 24px 9px 24px;
+	text-align: right;
+}
+
+.dialogContent {
+	padding: 24px 24px 24px 24px;
+}
+
+.dialogErrorBar {
+	height: 20px;
+	margin: 0;
+	padding: 6px 24px 6px 24px;
+	
+	background-color: #ffe88e;
+	
+	font-family: 'Trebuchet MS', sans-serif;
+	font-size: 12pt;
+	color: #000000;
+	
+	text-align: left;
+	line-height: 20px;
+	
+	display: none;
+}
+
+.dialogFrame {
+	position:absolute;
+	margin: 0;
+	padding: 2px 2px 2px 2px;
+	
+	background-color: #eaf1f4;
+	border: solid 2px #808080;
+	
+	z-index: 100;
+	display: none;
+}
+
+.dialogTitle {
+	background-color: #292320;
+	height: 32px;
+	margin: 0;
+	padding: 0 24px 0 24px;	
+	
+	font-family: 'Trebuchet MS', sans-serif;
+	font-size: 16pt;
+	color: #eaf1f4;
+	
+	text-align: left;
+	line-height: 32px;
+}
+
+.outputObjKey {
+	background-color: #e0e0e0;
+	border: solid 1px #c0c0c0;
+	padding: 0 24px 0 8px;
+}
+
+.outputObjValue {
+	border: solid 1px #c0c0c0;
+	padding: 0 8px 0 8px;
+}
+
+#accountControls {
+	font-family: 'Trebuchet MS', sans-serif;
+	font-weight: bold;
+	font-size: 8pt;
+	color: white;
+}
+
+#accountIcon {
+	float: left;
+	width: 48px;
+	height: 48px;
+	margin: 0 8px 0 0;
+	
+	background-color: #808080;
+}
+
+#accountName {
+	font-family: 'Trebuchet MS', sans-serif;
+	font-size: 12pt;
+	color: white;
+	
+	margin: 6px 0 0 0;
+}
+
+#accountSignIn {
+	font-family: 'Trebuchet MS', sans-serif;
+	font-size: 12pt;
+	color: white;
+
+	cursor:pointer;
+}
+
+#console {
+	display:block;
+	background-color: white;
+	margin: 0 20pt 8pt 20pt;
+	padding:16pt; 
+	border-radius: 0 0 6pt 6pt; 
+}
+
+#consoleOutput {
+	font-family: 'Trebuchet MS', sans-serif;
+	font-size: 10pt;
+}
+
+#consoleOutput table {
+	border-collapse: collapse;
+	border-spacing: 0;
+	margin: 2pt 0 10pt 0;
+}
+
+#consoleTitle {
+	float: right;
+	
+	font-family: 'Trebuchet MS', sans-serif;
+	font-size: 14pt;
+	font-weight: bold;
+	color: #C0C0C0;
+}
+
+#fieldInput {
+	width: 500px;
+}
+
+#header {
+	background-color: #004c69;
+	margin: 8pt 20pt 0 20pt;
+	height: 48px;
+	padding: 8pt 16pt 8pt 16pt;
+	border-radius: 6pt 6pt 0 0;
+}

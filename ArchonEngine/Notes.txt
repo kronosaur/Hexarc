@@ -1,0 +1,28 @@
+MNEMOSYNTH TREE
+---------------
+
+arc.arcology
+	definition
+		name (name of arcology)
+
+arc.machines
+	{machineName}
+		hostAddress
+		
+arc.modules
+	{machineName/moduleName}
+		status [launched, running]
+		
+arc.storage
+	{machineName/resourceName}
+		type [fixed, network, portable, removable]
+		status [offline, online]
+		quota (in gigabytes)
+
+MNEMOSYNTH REPLICATION
+----------------------
+
+1.	When a module modified the db, is sends the changes to CentralModule
+2.	When CentralModule modified the db, it sends to all modules and all other Exarchs
+3.	When CentralModule assimilates changes from a module, it sends to all modules and all other Exarchs
+4.	When CentralModule assimilates changes from another Exarch, it sends to all modules

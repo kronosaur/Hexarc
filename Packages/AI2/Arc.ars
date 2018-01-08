@@ -1,0 +1,471 @@
+//	Arc.ars
+//
+//	Hexarc Command Line Package
+//	Copyright (c) 2017 Kronosaur Productions, LLC. All Rights Reserved.
+
+/* -----------------------------------------------------------------------------
+	AI2.CONSOLE INTERFACE
+----------------------------------------------------------------------------- */
+
+function arc.log
+		{
+		attributes: (AI2.console AI2.authAdminOnly)
+		export: public
+		help: "Displays arcology log entries."
+		}
+
+//	SYNTAX
+//
+//	arc.log
+//	arc.log lineCount
+//	arc.log textToSearch [lineCount]
+//	arc.log options
+
+	(lambda (params)
+		(block (
+			(p0 (@ params 0))
+			(p0Type (typeof p0))
+
+			//	Convert all inputs into an options block
+
+			(options (switch
+
+				//	If no parameters we just read the last 10 lines.
+
+				(not p0)
+					{
+						maxLines: 10
+						}
+
+				//	If we have an integer, then this is the max number of lines to read
+				//	(within limits)
+
+				(= p0Type 'int32)
+					(block (
+						(moreOptions (@ params 1))
+						)
+						{
+							maxLines: (max 10 (min p0 10000))
+							after: (@ moreOptions 'after)
+							before: (@ moreOptions 'before)
+							case: (@ moreOptions 'case)
+							}
+						)
+
+				//	If we have string, this is a search string.
+
+				(= p0Type 'string)
+					(block (
+						(p1 (@ params 1))
+						(p2 (@ params 2))
+						(moreOptions (switch
+							p2
+								p2
+							(= (typeof p1) 'struct)
+								p1
+							))
+						(maxLines (switch
+							(= (typeof p1) 'int32)
+								p1
+							(@ moreOptions 'maxLines)
+								(@ moreOptions 'maxLines)
+							10
+							))
+						)
+						{
+							search: p0
+							maxLines: (max 10 (min maxLines 10000))
+							after: (@ moreOptions 'after)
+							before: (@ moreOptions 'before)
+							case: (@ moreOptions 'case)
+							}
+						)
+
+				//	Otherwise, we assume this is an options structure
+
+				{
+					id: (@ p0 'id)
+					search: (@ p0 'search)
+					maxLines: (max 10 (min (@ p0 'maxLines) 10000))
+					after: (@ p0 'after)
+					before: (@ p0 'before)
+					case: (@ p0 'case)
+					}
+				))
+			)
+
+			//	Process
+
+			(switch
+				//	If we have an ID, then it means that we need to query for
+				//	search results.
+
+				(@ options 'id)
+					(block (
+						(results (invoke 'Diagnostics.getLogSearch (@ options 'id)))
+						(progressText (cat
+							(if (@ options 'search) "Searched " "Accessed ")
+							(format (@ results 'linesSearched))
+							" lines."
+							(if (@ results 'complete) "\n" "..")
+							))
+						)
+						(if (@ results 'complete)
+
+							//	We've got complete results, so show them
+
+							(cat progressText
+								(if (@ results 'results)
+									(join (@ results 'results) "\n")
+									"No log entries found."
+									)
+								)
+
+							//	We're not done yet, so show progress and continue.
+
+							{
+								ai2Directive: 'partialResult
+								partialResult: progressText
+								continueCommand: (cat 
+									"arc.log {"
+									" id:" (@ options 'id)
+									(if (@ options 'search) " search:True")
+									"}"
+									)
+								}
+							)
+						)
+
+				//	Otherwise, we create a session and continue
+
+				(block (
+					(id (invoke 'Diagnostics.createLogSearch (@ options 'search) {
+						maxResults: (@ options 'maxLines)
+						after: (@ options 'after)
+						before: (@ options 'before)
+						case: (@ options 'case)
+						}))
+					)
+					{
+						ai2Directive: 'partialResult
+						partialResult: (if (@ options 'search) "Searching log..." "Accessing log...")
+						continueCommand: (cat 
+							"arc.log {"
+							" id:" id 
+							(if (@ options 'search) " search:True")
+							"}"
+							)
+						}
+					)
+				)
+			)
+		)
+
+function arc.machines
+		{
+		attributes: (AI2.console AI2.authAdminOnly)
+		export: public
+		help: "Manages machines in the arcology. HELP: arc.machines help"
+		}
+
+	(lambda (params)
+		(block (
+			(command (@ params 0))
+			(p1 (@ params 1))
+			)
+
+			(switch
+				(= command "")
+					(invoke 'Exarch.getMachineStatus)
+
+				(&& (= command 'add) (!= p1 ""))
+					(invoke 'Exarch.addMachine p1)
+
+				(cat
+					"USAGE\n\n"
+
+					"arc.machines\n"
+					"arc.machine add {machineAddress}"
+					)
+				)
+			)
+		)
+
+function arc.modules
+		{
+		attributes: (AI2.console AI2.authAdminOnly)
+		export: public
+		help: "Manages modules in the arcology. HELP: arc.modules help"
+		}
+
+	(lambda (params)
+		(block (
+			(command (@ params 0))
+			(p1 (@ params 1))
+			(p2 (@ params 2))
+			(p3 (@ params 3))
+			)
+
+			(switch
+				(= command "")
+					(invoke 'Exarch.getModuleList)
+
+				(&& (= command 'add) (!= p1 ""))
+					(switch
+						(&& p2 p3)
+							(invoke 'Exarch.addModule p1 p2 p3)
+
+						p2
+							(invoke 'Exarch.addModule p1 p2)
+
+						(invoke 'Exarch.addModule p1)
+						)
+
+				(&& (= command 'remove) (!= p1 ""))
+					(invoke 'Exarch.removeModule p1)
+
+				(&& (= command 'restart) (!= p1 ""))
+					(block ()
+						(invoke 'Exarch.restartModule p1)
+						(cat "Restarted " p1 ".")
+						)
+
+				(cat
+					"USAGE\n\n"
+
+					"arc.modules\n"
+					"arc.modules add [{machineName}] {module} [{debug}]\n"
+					"arc.modules remove {[machineName/]module}\n"
+					"arc.modules restart {module}"
+					)
+				)
+			)
+		)
+
+function arc.packages
+		{
+		attributes: (AI2.console AI2.authAdminOnly)
+		export: public
+		help: "Manages packages in the arcology. HELP: arc.packages help"
+		}
+
+	(lambda (params)
+		(block (
+			(command (@ params 0))
+			)
+
+			(switch
+				(= command "")
+					(invoke 'Hyperion.getPackageList)
+
+				(cat
+					"USAGE\n\n"
+
+					"arc.packages"
+					)
+				)
+			)
+		)
+
+function arc.sessions
+		{
+		attributes: (AI2.console AI2.authAdminOnly)
+		export: public
+		help: "Manages sessions in the arcology. HELP: arc.sessions help"
+		}
+
+	(lambda (params)
+		(block (
+			(command (@ params 0))
+			)
+
+			(switch
+				(= command "")
+					(invoke 'Hyperion.getSessionList)
+
+				(cat
+					"USAGE\n\n"
+
+					"arc.sessions"
+					)
+				)
+			)
+		)
+
+function arc.status
+		{
+		attributes: (AI2.console AI2.authAdminOnly)
+		export: public
+		help: "Displays overall arcology status."
+		}
+
+	(lambda (params)
+		(block (
+			(domain (@ params 0))
+			)
+
+			(invoke 'Exarch.getStatus)
+			)
+		)
+
+function arc.storage
+		{
+		attributes: (AI2.console AI2.authAdminOnly)
+		export: public
+		help: "Manages storage in the arcology. HELP: arc.storage help"
+		}
+
+	(lambda (params)
+		(block (
+			(command (@ params 0))
+			(p1 (@ params 1))
+			)
+
+			(switch
+				(= command "")
+					(map (invoke 'Exarch.getStorageList) Nil theVol {
+						localPath: (@ theVol 'localPath)
+						machineName: (@ theVol 'machineName)
+						spaceFree: (format "%.1f GB" (@ theVol 'spaceFreeGB))
+						status: (@ theVol 'status)
+						name: (@ theVol 'volumeName)
+						})
+
+				(&& (= command 'add) (!= p1 ""))
+					(invoke 'Exarch.addVolume p1)
+
+				(&& (= command 'remove) (!= p1 ""))
+					(invoke 'Exarch.removeVolume p1)
+
+				(cat
+					"USAGE\n\n"
+
+					"arc.storage\n"
+					"arc.storage add {localPath}\n"
+					"arc.storage remove {volume}\n"
+					)
+				)
+			)
+		)
+
+function arc.tables
+		{
+		attributes: (AI2.console AI2.authAdminOnly)
+		export: public
+		help: "Manages Aeon tables in the arcology. HELP: arc.tables help"
+		}
+
+	(lambda (params)
+		(block (
+			(command (@ params 0))
+			(p1 (@ params 1))
+			)
+
+			(switch
+				(= command "")
+					(map (invoke 'Aeon.getTables) Nil theTable {
+						backupVolumes: (@ theTable 'backupVolumes)
+						name: (@ theTable 'name)
+						primaryVolume: (@ theTable 'primaryVolume)
+						secondaryViews: (count (@ theTable 'secondaryViews))
+						type: (@ theTable 'type)
+						})
+
+				(= command 'segments)
+					(block (
+						(allViews (apply append
+							(map (invoke 'Aeon.getTables) Nil theTable
+								(append
+									(list (@ theTable 'name))
+									(map (@ theTable 'secondaryViews) Nil theView
+										(list (@ theTable 'name) (@ theView 'name))
+										)
+									)
+								)
+							))
+						(allSegments (apply append
+							(map allViews Nil theView
+								(block (
+									(segments (@ (invoke 'Aeon.getViewInfo theView) 'segments))
+									)
+									(map segments 'excludeNil theSegment 
+										(if (not (@ theSegment 'markedForDelete))
+											{
+											blockIndex: (@ theSegment 'blockIndex)
+											fileSize: 
+												(switch
+													(< (@ theSegment 'fileSize) 100000)
+														(format "%.1f KB" (/ (@ theSegment 'fileSize) 1000))
+
+													(format "%.1f MB" (/ (@ theSegment 'fileSize) 1000000))
+													)
+											filespec: (@ theSegment 'filespec)
+											sequence: (@ theSegment 'sequence)
+											viewName:
+												(if (> (count theView) 1)
+													(cat (@ theView 0) "/" (@ theView 1))
+													theView
+													)
+											}
+											)
+										)
+									)
+								)
+							))
+						(sum (lambda (x)
+							(block (
+								(total 0)
+								)
+								(enum x val
+									(set! total (+ total val))
+									)
+								total
+								)
+							))
+						)
+						(map allSegments Nil theSegment
+							(block (
+								(totalRows 
+									(sum 
+										(map (@ theSegment 'blockIndex) Nil theBlock (@ theBlock 'rowCount))
+										)
+									)
+								)
+								{
+								blockCount: (format (count (@ theSegment 'blockIndex)))
+								fileSize: (@ theSegment 'fileSize)
+								filespec: (@ theSegment 'filespec)
+								rowCount: (format totalRows)
+								sequence: (@ theSegment 'sequence)
+								viewName: (@ theSegment 'viewName)
+								})
+							)
+						)
+
+				(= command 'views)
+					(apply append 
+						(map (invoke 'Aeon.getTables) Nil theTable
+							(append 
+								(list {
+									name: (@ theTable 'name)
+									type: "primary"
+									})
+								(map (@ theTable 'secondaryViews) Nil theView {
+									name: (cat (@ theTable 'name) "/" (@ theView 'name))
+									type: "secondary"
+									})
+								)
+							)
+						)
+
+				(cat
+					"USAGE\n\n"
+
+					"arc.tables\n"
+					"arc.tables segments\n"
+					"arc.tables views"
+					)
+				)
+			)
+		)
+

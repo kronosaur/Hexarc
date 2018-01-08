@@ -1,0 +1,88 @@
+AEON NAMESPACE
+--------------
+
+Aeon.command (virtual command port)
+
+	Aeon.createTable
+	
+	Aeon.delete
+	
+	Aeon.get
+	
+	Aeon.insert
+
+
+Aeon.notify (virtual notification port)
+
+	Aeon.onStart
+	
+ARC NAMESPACE
+-------------
+
+	
+ESPER NAMESPACE
+---------------
+
+Esper.command (command port)
+	
+	Esper.startListener
+	
+	Esper.read
+	
+	Esper.write
+	
+Esper.command (replies)
+
+	Esper.onConnect
+	
+	Esper.onDisconnect
+	
+	Esper.onRead
+	
+	Esper.onWrite
+	
+
+EXARCH NAMESPACE
+----------------
+
+Exarch.notify (virtual notification port)
+
+	Exarch.onMachineStart
+	
+		Notes: This is sent out when the machine has finished booting.
+
+Exarch.log (command port)
+
+	{msg} {text}
+	
+Exarch.command (internal command port)
+
+	Exarch.onLog {originalMsg} {payload}
+
+	Exarch.onModuleStart {moduleName} {mnemosynthSeq}
+	
+	Exarch.onModuleStop
+
+
+MNEMOSYNTH NAMESPACE
+--------------------
+
+Mnemosynth.command (command port)
+
+	Mnemosynth.notifyOnArcologyUpdate {replyMsg:} {watermark: (({endpoint} {sequence}) (...))}
+	
+	Mnemosynth.notifyOnEndpointUpdate {replyMsg:} {watermark: (({endpoint} {sequence}) (...))}
+	
+Mnemosynth.command (replies)
+
+	Mnemosynth.onArcologyUpdated (({endpoint} {sequence}) (...))
+
+	Mnemosynth.onEndpointUpdated (({endpoint} {sequence}) (...))
+
+Mnemosynth.command (internal command port)
+
+	Exarch.shutdown
+
+	Mnemosynth.onModified
+	
+	Mnemosynth.update

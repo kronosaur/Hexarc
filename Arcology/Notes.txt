@@ -1,0 +1,342 @@
+BACKLOG
+-------
+
+AEON
+
+[ ] BUG: Create a secondary view with a single dimension. Add some entries so that they
+	are in the row cache. Now add a second dimension to the view, deleting and re-adding
+	as normal. Because there are old rows in the row cache, the new view will have some
+	spurious rows (from the original view). The way to fix it is to flush the database
+	before deleting and rebuilding the view.
+[ ] Probably should make the recovery file be a single global file (for performance).
+[ ] getRows fails if the content of each row is too big (e.g., crash reports)
+[ ] Need a way for getRows to return only keys (or select fields).
+[ ] Need to re-think 2D and 3D tables so that it is efficient to iterate over a single dimension.
+	One possibility is to add an additional column to the key which is the key depth. We index
+	2D keys at depth 1 and 2. And 3D keys at depth 1, 2, and 3. (E.g., when saving 2D key "foo:bar"
+	we save the row at "xy:foo:bar" and also save nil at "x:foo". By iterating "x" we should find
+	all the keys of the first dimension. NOTE: Under certain circumstances we might also want to
+	index "y:bar" so that we can iterate all values of y).
+[ ] Test backup integrity. During housekeeping, we should periodically make sure that a backup is
+	readable and complete.
+[ ] Need to tell if a Hexe function depends only on its inputs (e.g., is NOT time-dependent).
+[ ] File paths should be case insensitive.
+[ ] API to get rows by ranges (start/end) instead of by counts.
+	
+AI1
+
+[ ] Do not echo password
+[ ] AI1 times-out after inactivity (it should reconnect automatically or something).
+[ ] Version command
+[ ] After an upgrade, wait for arcology to return and reconnect
+[ ] Escape "%" properly when printf output from server. [Same for debug output of log.]
+
+AI2
+
+[ ] Show parameter help for commands.
+[ ] List volumes
+
+BUGS
+
+[ ] Fix urlParseQuery to support escaped ? and &.
+[ ] Esper needs more robust logic dealing with concurrent access to IIOCPEntry objects.
+[ ] Timeouts don't always seem to work (Try changing Exarch.addVolume so it never replies).
+
+CRYPTOSAUR
+
+[ ] When resetting a password, clear last login failure.
+[ ] Code to generate password hashes/challenges should all live in CCryptosaurInterface, not in
+	AI1Protocol.
+
+EXARCH
+
+[ ] Do not try to map the entire file when reading a log file.
+
+GENERAL
+
+[ ] IPC serialization should be more efficient. Instead of serializing to Aeon, serialize to
+	a binary format (and make sure we can efficiently create arrays of the proper size so we
+	don't constantly resize them).
+[ ] Do not log errors when AI1 disconnects.
+[ ] All message port interfaces should come from Transporter (so that we can insert filters, etc.)
+[ ] When the port collection changes, we need to flush the CMessageTransporter cache of all virtual ports
+[ ] Shutdown process (during which engines should still be able to send messages).
+
+HEXE
+
+[ ] Need execution time-out to prevent infinite loops. Eventually we should return runStopCheck
+	every so often to give the user a chance to abort. For now we can return runError if we
+	compute for more than a certain number of instructions.
+
+HYPERION
+
+[ ] Global environment of loaded package should be marked read-only. (Multiple threads
+	will try to access it. Also, we can't guarantee the lifetime of a session so we should
+	not support globals.)
+[ ] It should be possible to refer to sandbox objects with a relative name. E.g., instead of
+	referring to the "Trans.highScores" table it should be possible to say "Table.highScores"
+	where "Table" gets automatically replaced by the package name (or something).
+[ ] Ability to have wildcards in URLs (so a single function can handle a family of URLs).
+[ ] .hexm parser should handle CDATA tag.
+[ ] .hexm parser should handle <script...> with attributes (i.e., recognize it as CDATA).
+[ ] HexeCode RPC service should accept application/x-www-form-urlencoded
+[ ] Ability for macros and repeated code in hexm files.
+[ ] Chrome does not like application/x-font-otf for .otf fonts.
+[ ] SessionLib function: (httpSetStatus statusCode statusText)
+[ ] SessionLib function: (httpSetHeader ...)
+[ ] SessionLib function: (httpSetMediaType ...) In an RPC message the result will be interpreted as this media type.
+	This also works in a HEXM file; the entire output is interpreted as the given format.
+[ ] Ability to redirect arbitrary files, not just hexm files. [Alternatively, filename syntax for a fallback hexm file.
+	E.g., @image.jpg.hexm means that we invoke that file if looking for image.jpg.]
+
+INSTALLATION
+
+[ ] Add code to punch through Windows Firewall.
+
+OPERATIONS
+
+[ ] Track server performance
+[x] Run Arcology.exe with a special command line to:
+	1. Stop the Hexarc service.
+	2. Copy files over the installation (from a well-known directory)
+	3. Start the Hexarc service.
+	4. Clean up.
+[x] Upgrade in-place. Admin should be able to upgrade the arcology.
+[ ] AI1 REDIRECT
+
+TESTING: DRIVE FAILURE
+
+In all cases, assume that drive failure happens right before the message is
+invoked (i.e., the first disk access in the message will fail). Assume that
+only a single drive failed (primary drive in the case of table access).
+
+Make sure that (1) the message recovers/fails gracefully; (2) the drive is
+reported.
+
+[x] Aeon.createTable
+[ ] Aeon.deleteTable
+[ ] Aeon.fileDirectory
+[ ] Aeon.fileDownload
+[ ] Aeon.fileGetDesc
+[ ] Aeon.fileUpload
+[x]	Aeon.flushDb
+[x]	Aeon.getValue
+[ ]	Aeon.getKeyRange
+[ ]	Aeon.getTables
+[ ]	Aeon.insert
+[ ]	Aeon.insertNew
+[ ] Arc.housekeeping (save)
+[ ] Arc.housekeeping (merge)
+[ ] Arc.housekeeping (backup)
+
+ARCOLOGY BOOT SEQUENCE
+----------------------
+
+1.	[Arcology.exe] starts up
+2.	[Arcology.exe] CArchonProcess::Boot
+	a.	Set "CentralModuleRunning" semaphore
+	b.	Boot all engines and systems
+	
+3.	[Arcology.exe] CArchonProcess::Run
+	a.	Call StartRunning for all engines
+		i	Exarch starts listening on AI1 TCP port
+		ii	Exarch sets arc.modules info for central module
+		
+4.	User: Exarch.createArcology {arcologyName}
+	a.	Sets arc.arcology definition
+	b.	Sets arc.machines info for this machine
+	
+5.	User: Exarch.addModule "Module1"
+	a.	Launch Module1.exe with machine name as parameter.
+	
+6.	[Module1.exe] starts up
+7.	[Module1.exe] CArchonProcess::Boot
+8.	[Module1.exe] CArchonProcess::Run
+	a.	Exarch.command@~/CentralModule: Exarch.onModuleStart "Module1"
+	
+9.	[Arcology.exe] Exarch.onModuleStart
+	a.	Module added to Mnemosynth
+	b.	Sets arc.modules info for new module.
+	c.	Replication with new module is triggered by above action.
+	d.	Register for an event when all modules have replicated.
+	
+10.	[Arcology.exe] Mnemosynth.onArcologyUpdated
+	a.	Send Exarch.onMachineStart to all modules
+
+MNEMOSYNTH TREE
+---------------
+
+arc.arcology
+	definition
+		name (name of arcology)
+
+arc.machines
+	{machineName}
+		hostAddress
+		status [booting, running]
+		
+arc.modules
+	{machineName/moduleName}
+		machineName
+		status [launched, running, stopped]
+		
+arc.ports
+	{machineName/moduleName}
+		portListDesc
+		
+arc.storage
+	{machineName/resourceName}
+		localPath
+		machineName
+		quota (in megabytes)
+		status [offline, online]
+		type [fixed, network, portable, removable]
+
+MNEMOSYNTH REPLICATION
+----------------------
+
+1.	When a module modified the db, is sends the changes to CentralModule
+2.	When CentralModule modified the db, it sends to all modules and all other Exarchs
+3.	When CentralModule assimilates changes from a module, it sends to all modules and all other Exarchs
+4.	When CentralModule assimilates changes from another Exarch, it sends to all modules
+
+AEON DB
+-------
+
+A ROW is a single value in a table (without the KEY).
+A BLOCK is a contiguous set of KEY and ROWS.
+A SEGMENT is a single file that contains a set of BLOCKS. The blocks are ordered.
+	A segment has an index at the beginning that locates all the blocks in the file (by range).
+A TABLEINDEX is a single file that points to all the SEGMENTS for the table
+	(Plus metadata information for the table).
+An AEONINDEX is a single file that points to all TABLEINDEX files.
+	
+*	At table-open time we load the TABLEINDEX to read the table name and dimensions.
+	Next we load all .aseq file for the given table name (we use the director structure
+	instead of keeping our own list). We load each segment file and keep track of the
+	highest sequence number.
+*	To read, we look for the proper block in the loaded list of indices (we search from most
+	recent to oldest). We load the entire block into memory.
+*	To write a record we store a key-value pair in memory (plus also write to the log)
+*	When we want to flush the records in memory, we sort all the record by block.
+	Then we iterate over blocks and write them out (reading the remainder of the block
+	from disk, if necessary). At the point that we write out a block, if the block is
+	above a certain size, we split it.
+*	A background task combines containers.
+
+SYNTAX
+
+Table names: Any char except: 
+	0x20 or lower
+	Symbols: '<', '>', ':', '"', '\', '/', '|', '?', '*'
+	Symbols: '!', '@', '#', '$', '%', '^', '=', '[', ']'
+	
+	Valid symbols: '&', ''', '(', ')', '+', ',', '.', '-', '_', ';', '^', '{', '}', '~', '`'
+
+ALGORITHMS
+
+At runtime we have an array of segment indices. Each segment index has:
+
+A.	The name of the segment file.
+B.	A sequence number.
+C.	A list of keys, with each key pointing to either a block or the last key.
+D.	A cache of loaded blocks.
+
+We also have:
+
+E.	An in-memory set of key-value pairs.
+
+Opening a Table:
+
+1.	Load the table index file to load the dimensions and other metadata.
+
+2.	Iterate over all files for the table (files with the table name as prefix).
+
+3.	For each segment file, load [A], [B], and [C].
+
+Reading a Row:
+
+1.	Search for the key in [E]. If found, return it.
+
+2.	Iterate over all segment indices in reverse sequence order; look for the first
+	segment that has the given key (by doing a binary search on [B]). If not found,
+	then the key does not exist in the table.
+
+3.	Look for the block in [D]. If not found, load it from disk.
+
+4.	Search for the key in the given block. Return it. [Note that a value could be NULL,
+	in which case we treat it as a deleted record.]
+
+Writing a Row:
+
+1.	Add the row to [E].
+
+Deleting a Row:
+
+1.	Add a deleted stub to [E].
+
+Flushing the Table:
+
+1.	If the number of rows in [E] grows beyond a certain point, write the rows
+	into a new segment. Then empty [E].
+
+AEONINDEX (AeonIndex.ars)
+
+({name: 'tableName' filespec: 'tableIndexFilename'} {...})
+
+TABLEINDEX (%TableName%.ars)
+
+{
+name: 'tableName'
+x: %x-dimension desc%
+y: %y-dimension desc%
+z: %z-dimension desc%
+}
+
+VISUAL STUDIO 2005 NOTES
+------------------------
+
+*	All/Configuration/C++/General/AdditionalIncludeDirectories: ..\Include;..\Etherium\Include
+*	All/Configurations/C++/CodeGeneration/EnableC++Exceptions: Yes with SEH (/EHa)
+*	All/Configurations/Linker/Input: version.lib ws2_32.lib
+*	Debug/Configuration/C++/CodeGeneration/RuntimeLibrary: Multithreaded Debug (/MTd)
+*	Release/Configuration/C++/CodeGeneration/RuntimeLibrary: Multithreaded (/MT)
+
+DEPLOYMENT CHECKLIST
+--------------------
+
+[ ] Notify Anacreon players that server is going down
+[ ] Run unitTest in Debug mode
+[ ] Increment product version for:
+	[ ] Arcology.exe
+	[ ] AeonDB.exe
+	[ ] AI1.exe
+[ ] Build solution for Release
+[ ] Run unitTest in Release mode
+[ ] Upgrade arcology (from release directory)
+[ ] Copy to Archives
+
+INSTALLATION CHECKLIST
+----------------------
+
+
+
+
+NOTES 3/26/13
+-------------
+
+[ ] Trade would still work with small numbers; but could expand
+
+Balancing circles
+Counters
+Power scoring
+Ratios
+
+Easy and powerful (but many counters)
+Hard to use (but no counters)
+Reaction to above
+
+Don't over model
+
+Progression systems; meta-game.
+

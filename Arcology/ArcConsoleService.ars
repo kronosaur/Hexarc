@@ -1,0 +1,37 @@
+//	ArcConsoleService.ars
+//
+//	Implements the arcology administrator console
+
+define ArcService ArcConsole
+	{
+	name:		"Arcology Console Service"
+	
+	protocol:	ai1
+	port:		7399
+	interface:	"Arc.console"
+	}
+
+//(define cmd_createTable (lambda (thePayload)
+//	(invoke 'Aeon.createTable thePayload)
+//	))
+	
+(define cmd_help (lambda (thePayload)
+	(list
+		"AI/1.00 HELP"
+		"createTable {tableDesc}"
+		"deleteTable {tableName}"
+		"dir {filePath} [{fieldList}]"
+		"flushDb"
+		"getKeyRange {tableName} {count}"
+		"getTables"
+		"getValue {tableName} {path}"
+		"insertRow {tableName} {path} {data}"
+		"mnemosynthDump"
+		"unitTest [{unitTest} ...]"
+		"upload {filePath} {filespec}"
+		)
+	))
+	
+(define cmd_unitTest (lambda (thePayload)
+	(apply invoke 'DrHouse.unitTest thePayload)
+	))

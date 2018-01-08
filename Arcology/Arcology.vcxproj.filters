@@ -1,0 +1,83 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Source Files\DrHouse">
+      <UniqueIdentifier>{6470d1f4-3141-468c-9ab7-170d784433db}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
+    </Filter>
+    <Filter Include="Test Package Files">
+      <UniqueIdentifier>{8d1af224-5869-400c-a726-27b07a77ed2c}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Arcology.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CDrHouseEngine.cpp">
+      <Filter>Source Files\DrHouse</Filter>
+    </ClCompile>
+    <ClCompile Include="MsgCreateTestTable.cpp">
+      <Filter>Source Files\DrHouse</Filter>
+    </ClCompile>
+    <ClCompile Include="MsgUnitTest.cpp">
+      <Filter>Source Files\DrHouse</Filter>
+    </ClCompile>
+    <ClCompile Include="TransporterDiags.cpp">
+      <Filter>Source Files\DrHouse</Filter>
+    </ClCompile>
+    <ClCompile Include="LogSearch.cpp">
+      <Filter>Source Files\DrHouse</Filter>
+    </ClCompile>
+    <ClCompile Include="CBlackBoxProcessor.cpp">
+      <Filter>Source Files\DrHouse</Filter>
+    </ClCompile>
+    <ClCompile Include="CBBRLogFiles.cpp">
+      <Filter>Source Files\DrHouse</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="AI1.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DrHouse.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stdafx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BlackBoxReader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Arcology.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="TestPackage\TestPackage.ars">
+      <Filter>Test Package Files</Filter>
+    </None>
+    <None Include="ArcologyPackage.ars" />
+    <None Include="Notes.txt" />
+    <None Include="PortsAndMessages.txt" />
+    <None Include="..\.gitignore" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,74 @@
+//	Diag.ars
+//
+//	Hexarc Command Line Package
+//	Copyright (c) 2017 Kronosaur Productions, LLC. All Rights Reserved.
+
+/* -----------------------------------------------------------------------------
+	AI2.CONSOLE INTERFACE
+----------------------------------------------------------------------------- */
+
+function diag.view
+		{
+		attributes: (AI2.console AI2.authAdminOnly)
+		export: public
+		help: "Displays information."
+		}
+	(lambda (params)
+		(block (
+			(topic (lowercase (@ params 0)))
+
+			(fMB (lambda (n)
+				(block (
+					(wn (convertTo 'int32 n))
+					(fn (convertTo 'int32 (mod (* 10 n) 10)))
+					)
+					(cat (format wn) "." fn " MB")
+					)
+				))
+
+			(fKBs (lambda (n)
+				(block (
+					(wn (convertTo 'int32 (/ n 1000)))
+					(fn (mod
+							(convertTo 'int32 (round (/ n 100)))
+							10
+							)
+						)
+					)
+					(cat (format wn) "." fn " KB/s")
+					)
+				))
+			)
+
+			(switch
+				(not topic)
+					(cat
+						"USAGE\n\n"
+
+						"diag.view [{topic}]\n\n"
+
+						"topic:\n\n"
+
+						"netUsage\n"
+						"portCache"
+						)
+
+				(= topic 'netUsage)
+					(map (invoke 'Esper.getUsageHistory) 'excludeNil theRecord {
+						date: (dateTimeFormat (@ theRecord 'date) 'shortDateTime24)
+						totalConnections: (format (@ theRecord 'totalConnections))
+						peakConnections: (format (@ theRecord 'peakConnections))
+						totalReceived: (fMB (/ (@ theRecord 'totalReceived) 10))
+						peakReceived: (fKBs (@ theRecord 'peakReceived))
+						totalSent: (fMB (/ (@ theRecord 'totalSent) 10))
+						peakSent: (fKBs (@ theRecord 'peakSent))
+						})
+
+				(= topic 'portcache)
+					(invoke 'Diagnostics.portCacheDump)
+
+				(cat "Unknown topic: " (@ params 0))
+				)
+			)
+		)
+

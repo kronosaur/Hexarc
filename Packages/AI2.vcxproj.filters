@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Site">
+      <UniqueIdentifier>{6603a53a-65e0-4e2b-b46e-fcab59236fa7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Site\res">
+      <UniqueIdentifier>{b97e0f30-1c8d-4b8e-8de0-b63cfcc4b8c9}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="AI2\AI2Package.ars" />
+    <None Include="AI2\Arc.ars" />
+    <None Include="AI2\Diag.ars" />
+    <None Include="AI2\Utilities.ars" />
+    <None Include="AI2\Site\index.hexm">
+      <Filter>Site</Filter>
+    </None>
+    <None Include="AI2\Site\res\console.css">
+      <Filter>Site\res</Filter>
+    </None>
+    <None Include="AI2\Site\res\console.js">
+      <Filter>Site\res</Filter>
+    </None>
+    <None Include="AI2\Site\res\core.css">
+      <Filter>Site\res</Filter>
+    </None>
+    <None Include="AI2\Site\res\core.js">
+      <Filter>Site\res</Filter>
+    </None>
+  </ItemGroup>
+</Project>

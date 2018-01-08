@@ -1,0 +1,186 @@
+HEXE
+
+; Compile-time turns a stream of text into CHexeCode datum.
+; Note that this is different from a function, which is a different
+; datum (which has a pointer to a CHexeCode and to an environment).
+;
+; At load time we create functions for each CHexeCode datum in
+; the AEONDoc (passing a global environment). Then we execute each function
+; (e.g., we execute a define function.)
+
+; Global definition
+
+	(define large-number 123456)
+	
+						pushInt			123456
+						define			string001
+						halt
+						
+		string001 ->	-12
+						"large-number"
+
+; Global function call and invocation
+
+	(define times-two (lambda (a)
+		(+ a a)
+		))
+		
+						makeFunc		func001				; Creates a function datum out of current env and offset.
+															;	pushes the datum on the top of the stack
+															;
+						define			string001			; Pops the created function and assigns it (in the current env)
+						halt								; Done
+						
+		func001 ->		enterEnv							; Links the environment to function's args
+						defineArg		string002			; 
+														
+						pushVar			0,0					; Pushes 0th var in 0th environment
+						pushVar			0,0
+						add									; Pops 2 and pushes result
+						
+						exitEnv								; Ends environment
+						ret
+						
+		string001 ->	-9									; Length (negative because it is not allocated)
+						"times-two"							; string (null-terminated and padded to DWORD)
+
+	(times-two 10)
+						pushGlobal		string001
+						push			10
+						makeEnv			1					; Pops n args and makes an environment
+						call								; Calls function on stack (pushes return pointer on different stack)
+						
+		string001 ->	-9
+						"times-two"
+	
+; Nested invocation
+
+	(setq times-three (lambda (a)
+		(+ a (times-two a))
+		))
+		
+						push		anon_func001
+						pushEnv
+						makeFunc
+						popVar		"times-three"
+						halt
+						
+		anon_func001 ->	beginEnv
+		
+						pushVar		0,0
+		
+						pushVar		0,0
+						makeEnv		1
+						pushVar		"times-two"
+						call
+						
+						add
+						
+						endEnv
+						ret
+		
+	(times-three 10)
+						push		10
+						makeEnv		1
+						pushVar		"times-three"
+						call
+	
+; Recursion
+
+	(setq times-n (lambda (a b)
+		(if (eq b 1)
+			a
+			(+ a (times-n a (- b 1)))
+			)
+		))
+		
+	(times-n 10 3)
+	
+; Mutual recursion
+
+	(setq foo (lambda (a)
+		(if (eq a 1)
+			(+ a 1)
+			(bar a)
+			)
+		))
+		
+	(setq bar (lambda (b)
+		(foo (* b 2))
+		))
+		
+	(foo 10)
+	
+; Nested definition
+
+	(setq foo (lambda (a)
+		(block (bar)
+			(setq bar (lambda (b)
+				(+ a b)
+				))
+				
+			(bar 10)
+			)
+		))
+		
+						push		anon_func001
+						pushEnv
+						makeFunc
+						setq		"foo"
+						halt
+		
+		anon_func001	beginEnv
+		
+						push		Nil
+						makeEnv		1
+						beginEnv						; Start env for block
+		
+						push		anon_func002
+						pushEnv							; anon_func002 get the block's environment
+						makeFunc
+						popVar		0,0					; bar, inside block
+						pop								; The result of setq is ignored, so we pop-it off
+						
+						push		10
+						makeEnv		1
+						pushVar		0,0					; Pushes value of bar, which is a function
+						call
+						
+						endEnv							; Block ends
+						endEnv							; foo ends
+						ret
+		
+	(foo 10)
+						push		10
+						makeEnv		1
+						pushVar		"foo"
+						call
+	
+; Function return (closures)
+
+	(setq foo (lambda (a)
+		(block (bar)
+			(setq bar (lambda (b) (+ a b)))
+			bar
+			)
+		))
+		
+	((foo 1) 1) -> 2
+	((foo 2) 1) -> 3
+	
+	(setq f5 (foo 5))
+	(f5 5) -> 10
+	
+	(setq f10 (foo 10))
+	(f10 10) -> 20
+	
+	(setq fooX (lambda (a)
+	    (block (bar)
+	        (setq bar (lambda (b) (+ a b)))
+	        (setq a (+ a 1))
+	        bar
+	        )
+	    ))
+	    
+	((foo 1) 1) -> 3
+	

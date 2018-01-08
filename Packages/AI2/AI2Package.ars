@@ -1,0 +1,551 @@
+//	AI2Package.ars
+//
+//	Hexarc Command Line Package
+//	Copyright (c) 2012 by Kronosaur Productions, LLC. All Rights Reserved.
+
+Arc.package AI2
+	{
+	version:	"1.2.0 (2017.11.27)"
+	rights:		Arc.admin		//	Package requires Arc.admin rights
+	}
+
+Include "Arc.ars"
+Include "Diag.ars"
+Include "Utilities.ars"
+
+/* -----------------------------------------------------------------------------
+	AI2.WEB SERVICE
+----------------------------------------------------------------------------- */
+
+Arc.service AI2.web
+	{
+	name:		"AI2"
+	
+	protocol:	http
+	port:		80
+	tls:		optional
+	hosts:		(ai2.dev.com ai2.benedict.com ai2.hexarc.com)
+	urlPaths:	"/"
+	
+	service:	www
+	filePaths:	"/Site/"
+	defaultFile:	"index.hexm"
+	}
+	
+/* -----------------------------------------------------------------------------
+	AI2.API SERVICE
+----------------------------------------------------------------------------- */
+
+Arc.service AI2.api
+	{
+	name:		"AI2 API"
+	
+	protocol:	http
+	port:		80
+	tls:		optional
+	hosts:		(ai2.dev.com ai2.benedict.com ai2.hexarc.com)
+	urlPaths:	"/api/"
+	rights:		Arc.admin		//	Service requires Arc.admin rights
+	
+	service:	hexcode
+	output:		"application/json"
+	}
+	
+//	/api/changePassword --------------------------------------------------------
+
+function AI2.api+changePassword (lambda (URL method headers message)
+	(block (actualAuthToken scopedCredentials basicUserRecord)
+	
+		//	Let Cryptosaur change the password
+		
+		(set! actualAuthToken 
+			(invoke 'Cryptosaur.changePassword 
+				(@ message 'username)
+				{	type:					'SHA1
+					actual:					true
+					password:				(@ message 'oldPassword)
+					}
+				{	type:					'SHA1
+					actual:					true
+					password:				(@ message 'newPassword)
+					}
+				))
+
+		actualAuthToken
+		)
+	)
+	
+//	/api/execute ---------------------------------------------------------------
+
+function AI2.api+execute (lambda (URL method headers message)
+	(block (
+		//	Validate the authtoken
+
+		(authToken (invoke 'Cryptosaur.validateAuthToken (httpGetCookie 'ai2_authToken)))
+
+		//	Parse command line
+
+		(parsedCmdLine (srvParseCommandLine (@ message 'cmdLine)))
+		(theCommand (@ parsedCmdLine 0))
+		(theParams (@ parsedCmdLine 1))
+
+		//	Get the command (either globally or in the default namespace).
+
+		(theCommandInfo (|| 
+			(srvFindCommand theCommand 'AI2.console)
+			(srvFindCommand (cat "AI2." theCommand) 'AI2.console)
+			))
+
+		(theCommandAttribs (@ theCommandInfo 'attributes))
+		)
+
+		//	Execute
+
+		(switch
+			//	All commands require authentication
+
+			(&& (not authToken) 
+					(not (find theCommandAttribs 'AI2.noAuth)))
+				(error 'errorAuth "Command requires authentication. Please sign in.")
+
+			//	Requires Hexarcology admin
+
+			(&& (find theCommandAttribs 'AI2.authAdminOnly)
+					(not (utlIsAdmin authToken)))
+				(error 'errorAuth (cat "You are not authorized to execute command: " theCommand))
+
+			//	Command not found
+
+			(not theCommandInfo)
+				(cat "Unknown command: " theCommand)
+
+			//	Execute
+
+			(block ()
+
+				//	Set our security context so that the calling function can
+				//	check authentication. We guarantee that the user and rights
+				//	are set properly.
+
+				(userSet (@ authToken 'username) (@ authToken 'rights))
+
+				//	Call the function and return result
+
+				((@ theCommandInfo 'code) theParams)
+				)
+			)
+		)
+	)
+
+//	/api/login -----------------------------------------------------------------
+
+function AI2.api+login (lambda (URL method headers message)
+	(block (basicUserRecord)
+	
+		//	Log in with whatever credentials the user supplied
+		
+		(if (@ message 'challengeCredentials)
+			(set! basicUserRecord
+				(invoke 'Cryptosaur.loginUser 
+					(@ message 'username)
+					{	type:					'SHA1
+						actual:					(@ message 'actual)
+						challengeCredentials:	(@ message 'challengeCredentials)
+						}
+					))
+			(set! basicUserRecord
+				(invoke 'Cryptosaur.loginUser 
+					(@ message 'username)
+					{	type:					'SHA1
+						actual:					(@ message 'actual)
+						password:				(@ message 'password)
+						}
+					))
+			)
+				
+		//	Return the basicUserRecord
+		
+		basicUserRecord
+		)
+	)
+	
+/* -----------------------------------------------------------------------------
+	AI2.CONSOLE INTERFACE
+----------------------------------------------------------------------------- */
+
+function AI2.help
+		{
+		attributes: (AI2.console AI2.noAuth)
+		export: public
+		help: "Displays a list of valid commands."
+		}
+
+	(lambda (params)
+		(block (
+			(search (@ params 0))
+			results
+			)
+
+			(switch
+				//	If no search term, then return all commands
+
+				(not search)
+					(apply struct
+						(map (srvFindCommand nil 'AI2.console) nil theCommandInfo
+							(list (@ theCommandInfo 'name) (@ theCommandInfo 'help))
+							)
+						)
+
+				//	Generate a list of commands that match the search term. If 
+				//	no results are found, then we're done
+
+				(not (set! results
+						(apply struct
+							(map (srvFindCommand nil 'AI2.console) 'exludeNil theCommandInfo
+								(if (|| (find (@ theCommandInfo 'name) search)
+										(find (@ theCommandInfo 'help) search)
+										)
+									(list (@ theCommandInfo 'name) (@ theCommandInfo 'help))
+									)
+								)
+							)
+						))
+					(cat "No commands containing \"" search "\".")
+
+				//	Otherwise, return results
+
+				results
+				)
+			)
+		)
+		
+function AI2.http
+		{
+		attributes: (AI2.console)
+		export: public
+		help: "Connects to a server and returns results."
+		}
+
+	(lambda (params)
+		(block (
+			(url (@ params 0))
+			)
+
+			(switch
+				(not url)
+					"USAGE\n\nhttp {url}"
+
+				(block (headers response)
+					(set! headers {
+						User-Agent: "HexarcAI2"
+						})
+
+					(set! response
+						(invoke 'Esper.http 'GET url headers)
+						)
+
+					(switch
+						(!= (@ response 0) 200)
+							(cat (@ response 0) " " (@ response 1))
+
+						(@ response '3)
+						)
+					)
+				)
+			)
+		)
+
+function AI2.user
+		{
+		attributes: (AI2.console)
+		export: public
+		help: "Displays information about the given user."
+		}
+
+	(lambda (params)
+		(block (
+			(username (@ params 0))
+			(userRecord (if username (invoke 'Aeon.getValue 'Arc.users username)))
+			)
+
+			(switch
+				(= username "")
+					"USAGE\n\nuser {username}"
+
+				(not userRecord)
+					(error 'input (cat "Unable to find username: " username))
+
+				//	Sanitize the record
+
+				(struct					
+					{
+						username: (@ userRecord 'username)
+						created: (utlFormatDateTime (@ userRecord 'createdOn) 'shortDateOnly)
+						}
+					(if (userHasRight 'arc.admin)
+						{
+							email: (@ (@ userRecord 'userContact) 'email)
+							rights: (@ userRecord 'rights)
+							}
+						)
+					)
+				)
+			)
+		)
+
+function debug.viewSegment
+		{
+		attributes: (AI2.console AI2.authAdminOnly)
+		export: public
+		help: "Displays information about the given segment."
+		}
+	(lambda (params)
+		(block (
+			(tableAndView (@ params 0))
+			(segment (@ params 1))
+
+			(viewInfo (invoke 'Aeon.getViewInfo tableAndView))
+			)
+
+			(if segment
+				(map (@ (@ (@ viewInfo 'segments) segment) 'blockIndex) nil theEntry
+					{
+						key: (@ theEntry 'key)
+						offset: (@ theEntry 'offset)
+						rowCount: (@ theEntry 'rowCount)
+						size: (@ theEntry 'size)
+						}
+					)
+
+				(map (@ viewInfo 'segments) nil theSegment
+					{
+						filespec: (@ theSegment 'filespec)
+						}
+					)
+				)
+			)
+		)
+
+function mnemosynth.list
+		{
+		attributes: (AI2.console AI2.authAdminOnly)
+		export: public
+		help: "Displays information from Mnemosynth."
+		}
+
+	(lambda (params)
+		(block (
+			(collection (@ params 0))
+			(key (@ params 1))
+			(module (@ params 2))
+			)
+
+			(invoke 'Exarch.mnemosynthRead collection key module)
+			)
+		)
+
+function mnemosynth.listEndpoints
+		{
+		attributes: (AI2.console AI2.authAdminOnly)
+		export: public
+		help: "Displays endpoints from Mnemosynth."
+		}
+
+	(lambda (params)
+		(block (
+			(module (@ params 0))
+			)
+
+			(invoke 'Exarch.mnemosynthEndpointList module)
+			)
+		)
+
+function table.list
+		{
+		attributes: (AI2.console AI2.authAdminOnly)
+		export: public
+		help: "Displays a list of rows in the given table."
+		}
+
+	(lambda (params)
+		(block (
+			(tableDesc (@ params 0))
+			(startKey (@ params 1))
+			(rowCount (@ params 2))
+			(options (@ params 3))
+			)
+
+			(if (not rowCount)
+				(set! rowCount 1)
+				)
+
+			(switch
+				(not tableDesc)
+					"USAGE\n\ntable.list {table/view} [{startKey}] [{count}] [{options}]"
+
+				(block (rawResult aeonOptions)
+
+					//	Compose options
+
+					(set! aeonOptions 
+						(map 
+							(list
+								(if (find (@ options 'fields) 'primaryKey) 'includeKey 'noKey)
+								)
+							'excludeNil
+							theOption
+							theOption
+							)
+						)
+
+					//	Read database
+
+					(set! rawResult (invoke 'Aeon.getRows tableDesc startKey rowCount aeonOptions))
+
+					//	If we specify fields, then filter
+
+					(if (@ options 'fields)
+						(set! rawResult
+							(map rawResult nil theRow
+								(apply struct
+									(map (@ options 'fields) nil theField
+										(list theField (@ theRow theField))
+										)
+									)
+								)
+							)
+						)
+
+					//	If we have a single row, then output it as a structure
+					//	(Otherwise we have a list of structures).
+
+					(switch
+						(= rowCount 1)
+							(@ rawResult 0)
+
+						rawResult
+						)
+					)
+				)
+			)
+		)
+
+function task.list
+		{
+		attributes: (AI2.console AI2.authAdminOnly)
+		export: public
+		help: "Displays a list of scheduled tasks."
+		}
+
+	(lambda (params)
+		(invoke 'Hyperion.getTaskList)
+		)
+
+function task.setRunOn
+		{
+		attributes: (AI2.console AI2.authAdminOnly)
+		export: public
+		help: "Sets the run time for a task."
+		}
+
+	(lambda (params)
+		(block (
+			(taskName (@ params 0))
+			(runOn (@ params 1))
+			)
+
+			(switch
+				(not taskName)
+					"USAGE\n\ntask.setRunOn {taskName} [{runOn}]"
+
+				(invoke 'Hyperion.setTaskRunOn taskName runOn)
+				)
+			)
+		)
+
+function task.stop
+		{
+		attributes: (AI2.console AI2.authAdminOnly)
+		export: public
+		help: "Stops a currently running task."
+		}
+
+	(lambda (params)
+		(block (
+			(taskName (@ params 0))
+			(runOn (@ params 1))
+			)
+
+			(switch
+				(not taskName)
+					"USAGE\n\ntask.stop {taskName}"
+
+				(invoke 'Hyperion.stopTask taskName)
+				)
+			)
+		)
+
+function user.find
+		{
+		attributes: (AI2.console AI2.authAdminOnly)
+		export: public
+		help: "Finds a user by email."
+		}
+
+	(lambda (params)
+		(block (
+			(findType (lowercase (@ params 0)))
+			)
+
+			(switch
+				(= findType "email")
+					(block (
+						(emailToFind (lowercase (@ params 1)))
+						(rows (invoke 'Aeon.getRows '(Arc.users byEmail) emailToFind 10 'noKey))
+						(found (map rows 'excludeNil theRow
+							(if (= emailToFind (@ (@ theRow 'userContact) 'email))
+								{
+									username:(@ theRow 'primaryKey)
+									email:emailToFind
+									}
+								)
+							))
+						)
+
+						(if found
+							found
+							(cat "Unable to find user with email: " emailToFind ".")
+							)
+						)
+
+				"USAGE\n\nuser.find email {email}"
+				)
+			)
+		)
+
+function user.resetPassword
+		{
+		attributes: (AI2.console AI2.authAdminOnly)
+		export: public
+		help: "Resets a user's password."
+		}
+
+	(lambda (params)
+		(block (
+			(userInfo (invoke 'Cryptosaur.validateAuthToken (httpGetCookie 'authToken)))
+			
+			(targetUser (lowercase (@ params 0)))
+			)
+
+			(switch
+				(= targetUser "")
+					"USAGE\n\nuser.resetPassword {username}"
+
+				//	Reset
+				
+				(block nil
+					(invoke 'Cryptosaur.resetPasswordManual targetUser)
+					)
+				)
+			)
+		)

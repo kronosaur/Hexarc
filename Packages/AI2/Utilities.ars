@@ -1,0 +1,51 @@
+//	Utilities.ars
+//
+//	AI2 Utilities
+//	Copyright (c) 2014 by Kronosaur Productions, LLC. All Rights Reserved.
+
+/* -----------------------------------------------------------------------------
+	HELPER FUNCTIONS
+----------------------------------------------------------------------------- */
+
+(define utlIsAdmin (lambda (userInfo)
+	(find (@ userInfo 'rights) 'arc.admin)
+	))
+
+(define utlFormatDateTime (lambda (dateTime format)
+
+//	format:	The format the return the datetime in. One of:
+//
+//		(default): 1 January 2012 9:05 PM GMT
+//		dateOnly: 1 January 2012
+//		short: 1 Jan 2012 9:05 PM GMT
+//		shortDateOnly: 1 Jan 2012
+
+	(block (
+		(fullMonths (list 'Zero 'January 'February 'March 'April 'May 'June 'July 'August 'September 'October 'November 'December))
+		(shortMonths (list 'Zero 'Jan 'Feb 'Mar 'Apr 'May 'Jun 'Jul 'Aug 'Sep 'Oct 'Nov 'Dec))
+		(year (@ dateTime 0))
+		(month (@ dateTime 1))
+		(day (@ dateTime 2))
+		(hour (@ dateTime 3))
+		(hour12 (if (> hour 12) (- hour 12) hour))
+		(ampm (if (> hour 12) "PM" "AM"))
+		(minute (@ dateTime 4))
+		(minuteText (if (< minute 10) (cat "0" minute) minute))
+		(second (@ dateTime 5))
+		)
+
+		(switch
+			(= format 'dateOnly)
+				(cat day " " (@ fullMonths month) " " year)
+
+			(= format 'short)
+				(cat day " " (@ shortMonths month) " " year " " hour12 ":" minuteText " " ampm " GMT")
+
+			(= format 'shortDateOnly)
+				(cat day " " (@ shortMonths month) " " year)
+
+			(cat day " " (@ fullMonths month) " " year " " hour12 ":" minuteText " " ampm " GMT")
+			)
+		)
+	))
+	

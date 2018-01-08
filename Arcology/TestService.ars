@@ -1,0 +1,56 @@
+//	TestService.ars
+//
+//	This is a test service
+//
+//	FORMATS
+//
+//	(define ...)
+//
+//	define abc xyz datum
+//		defines a typed piece of static data, which can be used
+//		as a read-only variable. abc is the type. xyz is the name.
+//
+//	function xyz () { }
+//		defines new function xyz.
+//
+//	include "filename"
+//		includes file module "filename".
+//
+//	var xyz = expression;
+//		defines new global variable xyz. Accessible only
+//		at run-time.
+//
+//	xyz : datum
+//		defines a piece of static data, which can be used as
+//		a read-only variable. It is accessible internally and
+//		externally (outside of run-time).
+
+define ArcService TestService
+	{
+	name:		"Test service"
+	
+	protocol:	http
+	port:		80
+	hosts:		localhost
+	urlPaths:	"/test"
+	
+	service:	hexcode
+	format:		json
+	
+	entryPoints:
+		(
+			{ urlPath:"/test/ep1"	method:GET		code:EP1Handler }
+			{ urlPath:"/test/ep2"	method:GET		code:EP2Handler }
+		)
+	}
+	
+(define EP1Handler (lambda (request)
+	(cat 
+		"<h1>Hello, World!</h1>"
+		"<p>The URL is: " request "</p>"
+		)
+	))
+
+(define EP2Handler (lambda (request)
+	(cat "Tables: " (invoke 'Aeon.getTables))
+	))

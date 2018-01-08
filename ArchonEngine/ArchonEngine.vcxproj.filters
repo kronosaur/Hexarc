@@ -1,0 +1,216 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Source Files\Mnemosynth">
+      <UniqueIdentifier>{f2b97ac0-9a11-451c-8352-9c190ff7817e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Utilities">
+      <UniqueIdentifier>{8424b513-4e2e-4060-a177-74df6e97fb55}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Messages">
+      <UniqueIdentifier>{200cc9f1-74e2-4ca7-9e66-14f4082d4225}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
+    </Filter>
+    <Filter Include="Source Files\Esper">
+      <UniqueIdentifier>{f0969ddd-bc63-4642-bf21-2694f03636fc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Exarch">
+      <UniqueIdentifier>{6026ae20-dff9-4313-9c50-e551dfc6fb59}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="CArchonProcess.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CMnemosynthDb.cpp">
+      <Filter>Source Files\Mnemosynth</Filter>
+    </ClCompile>
+    <ClCompile Include="CMnemosynthEngine.cpp">
+      <Filter>Source Files\Mnemosynth</Filter>
+    </ClCompile>
+    <ClCompile Include="CAeonInsertSession.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="CAeonMutateSession.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="CBlackBox.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="CEventProcessingThread.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="CMachineStorage.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="CMessageSerializerSession.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="CSessionManager.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="CSessionManagerOld.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="CSimpleEngine.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="CTimedMessageQueue.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="CInterprocessMessageQueue.cpp">
+      <Filter>Source Files\Messages</Filter>
+    </ClCompile>
+    <ClCompile Include="CInterprocessMessageThread.cpp">
+      <Filter>Source Files\Messages</Filter>
+    </ClCompile>
+    <ClCompile Include="CMessagePortMap.cpp">
+      <Filter>Source Files\Messages</Filter>
+    </ClCompile>
+    <ClCompile Include="CMessagePortSplitter.cpp">
+      <Filter>Source Files\Messages</Filter>
+    </ClCompile>
+    <ClCompile Include="CMessageQueue.cpp">
+      <Filter>Source Files\Messages</Filter>
+    </ClCompile>
+    <ClCompile Include="CMessageTransporter.cpp">
+      <Filter>Source Files\Messages</Filter>
+    </ClCompile>
+    <ClCompile Include="CProxyPort.cpp">
+      <Filter>Source Files\Messages</Filter>
+    </ClCompile>
+    <ClCompile Include="ISessionHandler.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="CEsperEngine.cpp">
+      <Filter>Source Files\Esper</Filter>
+    </ClCompile>
+    <ClCompile Include="CEsperListenerThread.cpp">
+      <Filter>Source Files\Esper</Filter>
+    </ClCompile>
+    <ClCompile Include="CEsperProcessingThread.cpp">
+      <Filter>Source Files\Esper</Filter>
+    </ClCompile>
+    <ClCompile Include="CExarchEngine.cpp">
+      <Filter>Source Files\Exarch</Filter>
+    </ClCompile>
+    <ClCompile Include="CMecharcologyDb.cpp">
+      <Filter>Source Files\Exarch</Filter>
+    </ClCompile>
+    <ClCompile Include="CEsperConnectionManager.cpp">
+      <Filter>Source Files\Esper</Filter>
+    </ClCompile>
+    <ClCompile Include="CEsperSimpleConnection.cpp">
+      <Filter>Source Files\Esper</Filter>
+    </ClCompile>
+    <ClCompile Include="CEsperHTTPOutConnection.cpp">
+      <Filter>Source Files\Esper</Filter>
+    </ClCompile>
+    <ClCompile Include="CEsperAMP1ConnectionIn.cpp">
+      <Filter>Source Files\Esper</Filter>
+    </ClCompile>
+    <ClCompile Include="CEsperAMP1ConnectionOut.cpp">
+      <Filter>Source Files\Esper</Filter>
+    </ClCompile>
+    <ClCompile Include="MsgAddMachine.cpp">
+      <Filter>Source Files\Exarch</Filter>
+    </ClCompile>
+    <ClCompile Include="AMP1.cpp">
+      <Filter>Source Files\Exarch</Filter>
+    </ClCompile>
+    <ClCompile Include="CInterprocessPort.cpp">
+      <Filter>Source Files\Messages</Filter>
+    </ClCompile>
+    <ClCompile Include="CIntermachinePort.cpp">
+      <Filter>Source Files\Messages</Filter>
+    </ClCompile>
+    <ClCompile Include="MsgAddModule.cpp">
+      <Filter>Source Files\Exarch</Filter>
+    </ClCompile>
+    <ClCompile Include="CMsgProcessKeepAlive.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="MsgRemoveModule.cpp">
+      <Filter>Source Files\Exarch</Filter>
+    </ClCompile>
+    <ClCompile Include="CMessageDispatchSession.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="CEsperTLSConnectionIn.cpp">
+      <Filter>Source Files\Esper</Filter>
+    </ClCompile>
+    <ClCompile Include="CEsperCertificateCache.cpp">
+      <Filter>Source Files\Esper</Filter>
+    </ClCompile>
+    <ClCompile Include="CMessagePort.cpp">
+      <Filter>Source Files\Messages</Filter>
+    </ClCompile>
+    <ClCompile Include="CEsperStats.cpp">
+      <Filter>Source Files\Esper</Filter>
+    </ClCompile>
+    <ClCompile Include="CEsperMsgProcessingThread.cpp">
+      <Filter>Source Files\Esper</Filter>
+    </ClCompile>
+    <ClCompile Include="CAeonFileDownloadSession.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="MsgGetStatus.cpp">
+      <Filter>Source Files\Exarch</Filter>
+    </ClCompile>
+    <ClCompile Include="MsgGetStorageList.cpp">
+      <Filter>Source Files\Exarch</Filter>
+    </ClCompile>
+    <ClCompile Include="CConsoleThread.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\Include\ArchonEngine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\ArchonEngineImpl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\ArchonFilterImpl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\ArchonSessionImpl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\ArchonUtilities.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\Mnemosynth.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stdafx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\Esper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\Exarch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="EsperImpl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\.gitignore" />
+  </ItemGroup>
+</Project>

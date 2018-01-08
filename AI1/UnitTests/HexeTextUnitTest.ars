@@ -1,0 +1,216 @@
+//	HexeTextUnitTest.ars
+//
+//	Unit test for HexeText
+//	Copyright (c) 2015 by Kronosaur Productions, LLC. All Rights Reserved.
+
+//	Unit Test
+
+(define UNIT_TEST (list
+	{	input:"Hello, //World//!"			output:"<p>Hello, <i>World</i>!</p>"	}
+
+	//	Basic paragraphs
+
+	{	input:""							output:"<p></p>"	}
+	{	input:"   "							output:"<p></p>"	}
+	{	input:"aaa"							output:"<p>aaa</p>"	}
+	{	input:"aaa\r\nbbb"					output:"<p>aaa<br/>bbb</p>"	}
+	{	input:"aaa\r\n\r\nbbb"				output:"<p>aaa</p><p>bbb</p>"	}
+	{	input:"aaa\r\n\r\n\r\nbbb"			output:"<p>aaa</p><p>bbb</p>"	}
+
+	//	Escape codes
+
+	{	input:"\\**foo**"					output:"<p>**foo**</p>"	}
+	{	input:"\\test\\"					output:"<p>test</p>"	}
+	{	input:"\\\\test\\\\"				output:"<p>\\test\\</p>"	}
+
+	//	Leading and trailing space is stripped.
+
+	{	input:"   aaa\r\n bbb   "			output:"<p>aaa<br/>bbb</p>"	}
+	{	input:"   aaa\r\n bbb   \r\nccc"	output:"<p>aaa<br/>bbb<br/>ccc</p>"	}
+	{	input:"   \r\naaa\r\n  \r\n== bbb\r\n   "		output:"<p>aaa</p><h1>bbb</h1>"	}
+
+	//	Character styles
+
+	{	input:"//foo//"						output:"<p><i>foo</i></p>"	}
+	{	input:"**foo**"						output:"<p><b>foo</b></p>"	}
+	{	input:"** foo**"					output:"<ul><ul><li>foo**</li></ul></ul>"	}
+	{	input:"foo**bar**"					output:"<p>foo<b>bar</b></p>"	}
+	{	input:"foo**bar"					output:"<p>foo**bar</p>"	}
+	{	input:"foo bar**"					output:"<p>foo bar**</p>"	}
+	{	input:"foo//bar**"					output:"<p>foo//bar**</p>"	}
+	{	input:"**foo\r\nbar**"				output:"<p>**foo<br/>bar**</p>"	}
+	{	input:"**foo\r\n\r\nbar**"			output:"<p>**foo</p><p>bar**</p>"	}
+	{	input:"~~foobar~~"					output:"<p><code>foobar</code></p>"	}
+	{	input:"~~~foobar~~~"				output:"<p><code>~foobar~</code></p>"	}
+	{	input:"~~//foobar//~~"				output:"<p><code>//foobar//</code></p>"	}
+	{	input:"~~**foobar**~~"				output:"<p><code>**foobar**</code></p>"	}
+	{	input:"**//foobar//**"				output:"<p><b><i>foobar</i></b></p>"	}
+	{	input:"**~~foobar~~**"				output:"<p><b><code>foobar</code></b></p>"	}
+	{	input:"**foo//bar**baz//"			output:"<p><b>foo<i>bar**baz</i></b></p>"	}
+
+	{	input:"``foobar``"					output:"<p><strike>foobar</strike></p>"	}
+	{	input:"```foobar```"				output:"<p><strike>`foobar`</strike></p>"	}
+	{	input:"``//foobar//``"				output:"<p><strike><i>foobar</i></strike></p>"	}
+	{	input:"``**foobar**``"				output:"<p><strike><b>foobar</b></strike></p>"	}
+	{	input:"**``foobar``**"				output:"<p><b><strike>foobar</strike></b></p>"	}
+
+	//	Headers.
+
+	{	input:"= foo"						output:"<p>= foo</p>"	}
+	{	input:"foo == bar"					output:"<p>foo == bar</p>"	}
+	{	input:"== foo"						output:"<h1>foo</h1>"	}
+	{	input:"== foo =="					output:"<h1>foo</h1>"	}
+	{	input:"==     foo     ==    "		output:"<h1>foo</h1>"	}
+	{	input:"==foo"						output:"<h1>foo</h1>"	}
+	{	input:"\\==foo"						output:"<p>==foo</p>"	}
+	{	input:"== foo **bar**"				output:"<h1>foo <b>bar</b></h1>"	}
+	{	input:"== foo == bar"				output:"<h1>foo == bar</h1>"	}
+	{	input:"== foo \\=="					output:"<h1>foo ==</h1>"	}
+	{	input:"== foo =\\="					output:"<h1>foo ==</h1>"	}
+	{	input:"== foo=="					output:"<h1>foo</h1>"	}
+	{	input:"=="							output:"<h1></h1>"	}
+	{	input:"=== "						output:"<h2></h2>"	}
+	{	input:"==      =="					output:"<h1></h1>"	}
+	{	input:"== foo ======="				output:"<h1>foo</h1>"	}
+	{	input:"== foo ="					output:"<h1>foo =</h1>"	}
+	{	input:"=== foo"						output:"<h2>foo</h2>"	}
+	{	input:"==== foo"					output:"<h3>foo</h3>"	}
+	{	input:"===== foo"					output:"<h4>foo</h4>"	}
+	{	input:"====== foo"					output:"<h5>foo</h5>"	}
+	{	input:"======= foo"					output:"<h6>foo</h6>"	}
+	{	input:"======== foo"				output:"<p>======== foo</p>"	}
+	{	input:"=== foo =="					output:"<h2>foo</h2>"	}
+	{	input:"Foo bar\r\n== foo\r\nMore"	output:"<p>Foo bar</p><h1>foo</h1><p>More</p>"	}
+
+	//	Entities
+
+	{	input:"&foo;"						output:"<p>&foo;</p>"	}
+	{	input:"& foo;"						output:"<p>&amp; foo;</p>"	}
+	{	input:"bar&foo;baz"					output:"<p>bar&foo;baz</p>"	}
+	{	input:"bar&grill"					output:"<p>bar&amp;grill</p>"	}
+	{	input:"bar&&grill"					output:"<p>bar&amp;&amp;grill</p>"	}
+	{	input:"http&foo;://test"			output:"<p>http&foo;://test</p>"	}
+	{	input:"bar &foo; baz"				output:"<p>bar &foo; baz</p>"	}
+
+	//	URLs.
+
+	{	input:"[test]"						output:"<p>[test]</p>"	}
+	{	input:"[[test]]"					output:"<p><a href='test'>test</a></p>"	}
+	{	input:"[[foo|bar]]"					output:"<p><a href='foo'>bar</a></p>"	}
+	{	input:"[[]]"						output:"<p>[[]]</p>"	}
+	{	input:"[[http://example.com]]"		output:"<p><a href='http://example.com'>http://example.com</a></p>"	}
+	{	input:"[[http://example.com|test]]"	output:"<p><a href='http://example.com'>test</a></p>"	}
+	{	input:"[[https://example.com|test]]"	output:"<p><a href='https://example.com'>test</a></p>"	}
+	{	input:"[[http://example.com|//test//]]"		output:"<p><a href='http://example.com'><i>test</i></a></p>"	}
+	{	input:"foo http://example.com bar"	output:"<p>foo <a href='http://example.com'>http://example.com</a> bar</p>"	}
+	{	input:"foo https://example.com bar"	output:"<p>foo <a href='https://example.com'>https://example.com</a> bar</p>"	}
+	{	input:"foo htp://example.com bar"	output:"<p>foo htp://example.com bar</p>"	}
+	{	input:"foo htt://example.com bar"	output:"<p>foo htt://example.com bar</p>"	}
+	{	input:"foo http//example.com bar"	output:"<p>foo http//example.com bar</p>"	}
+	{	input:"foo http:example.com bar"	output:"<p>foo http:example.com bar</p>"	}
+	{	input:"foo \\http://example.com bar"	output:"<p>foo http://example.com bar</p>"	}
+	{	input:"foo //http://example.com// bar"	output:"<p>foo //<a href='http://example.com//'>http://example.com//</a> bar</p>"	}
+	{	input:"foo \thttp://example.com bar"	output:"<p>foo \t<a href='http://example.com'>http://example.com</a> bar</p>"	}
+	{	input:"foo //\thttp://example.com bar"	output:"<p>foo //\t<a href='http://example.com'>http://example.com</a> bar</p>"	}
+	{	input:"//[[http://example.com|test]]//"		output:"<p><i><a href='http://example.com'>test</a></i></p>"	}
+	{	input:"foo (http://example.com)"	output:"<p>foo (<a href='http://example.com'>http://example.com</a>)</p>"	}
+	{	input:"foo [http://example.com]"	output:"<p>foo [<a href='http://example.com'>http://example.com</a>]</p>"	}
+	{	input:"foo http://example.com."	output:"<p>foo <a href='http://example.com'>http://example.com</a>.</p>"	}
+	{	input:"foo http://example.com,"	output:"<p>foo <a href='http://example.com'>http://example.com</a>,</p>"	}
+	{	input:"foo http://example.com!"	output:"<p>foo <a href='http://example.com'>http://example.com</a>!</p>"	}
+	{	input:"foo http://example.com?"	output:"<p>foo <a href='http://example.com'>http://example.com</a>?</p>"	}
+	{	input:"foo http://example.com???a"	output:"<p>foo <a href='http://example.com???a'>http://example.com???a</a></p>"	}
+	{	input:"foo http://example.com???"	output:"<p>foo <a href='http://example.com'>http://example.com</a>???</p>"	}
+	{	input:"foo http://example.com>"	output:"<p>foo <a href='http://example.com'>http://example.com</a>&gt;</p>"	}
+	{	input:"foo <http://example.com>"	output:"<p>foo &lt;<a href='http://example.com'>http://example.com</a>&gt;</p>"	}
+	{	input:"foo (http://example.com?test=1)"	output:"<p>foo (<a href='http://example.com?test=1'>http://example.com?test=1</a>)</p>"	}
+
+	//	Unordered lists.
+
+	{	input:"foo\r\n* line 1\r\n* line 2\r\nbar"		output:"<p>foo</p><ul><li>line 1</li><li>line 2</li></ul><p>bar</p>"	}
+	{	input:"foo\r\n\r\n* line 1\r\n* line 2\r\n\r\nbar"		output:"<p>foo</p><ul><li>line 1</li><li>line 2</li></ul><p>bar</p>"	}
+	{	input:"* line 1\r\n* line 2"		output:"<ul><li>line 1</li><li>line 2</li></ul>"	}
+	{	input:"*    line 1\r\n*\t\tline 2"		output:"<ul><li>line 1</li><li>line 2</li></ul>"	}
+	{	input:"*line 1\r\n*line 2"			output:"<p>*line 1<br/>*line 2</p>"	}
+	{	input:"* line 1\r\n\r\n* line 2"	output:"<ul><li>line 1</li><li>line 2</li></ul>"	}
+	{	input:"* line 1\r\n** line 2"		output:"<ul><li>line 1</li><ul><li>line 2</li></ul></ul>"	}
+	{	input:"* line 1\r\n  test 1\r\n* line 2"		output:"<ul><li>line 1</li><p>test 1</p><li>line 2</li></ul>"	}
+	{	input:"* line 1\r\n  ~~~\r\n  code 1\r\n  ~~~\r\n* line 2"		output:"<ul><li>line 1</li><pre><code>code 1\r\n</code></pre><li>line 2</li></ul>"	}
+
+	//	Ordered lists.
+
+	{	input:"# line 1\r\n# line 2"		output:"<ol><li>line 1</li><li>line 2</li></ol>"	}
+	{	input:"# line 1\r\n* line 2"		output:"<ol><li>line 1</li></ol><ul><li>line 2</li></ul>"	}
+	{	input:"# "							output:"<p>#</p>"	}
+
+	//	Code blocks.
+
+	{	input:"~~\r\ntest\r\n~~"			output:"<p>~~<br/>test<br/>~~</p>"	}
+	{	input:"test~~~\r\n"					output:"<p>test~~~</p>"	}
+	{	input:"test//a//~~~\r\n"			output:"<p>test<i>a</i>~~~</p>"	}
+	{	input:"~~~ ~~~"						output:"<p>~~~ ~~~</p>"	}
+	{	input:"~~~~~~"						output:"<pre><code></code></pre>"	}
+	{	input:"~~~\r\n~~~"					output:"<pre><code></code></pre>"	}
+	{	input:"~~~\r\nfoo~~~"				output:"<pre><code>foo~~~</code></pre>"	}
+	{	input:"~~~cpp\r\nfoo\r\n~~~"		output:"<pre><code>foo\r\n</code></pre>"	}
+	{	input:"~~~\r\ntest\r\n~~~"			output:"<pre><code>test\r\n</code></pre>"	}
+	{	input:"~~~\r\nline 1\r\nline 2\r\n~~~"			output:"<pre><code>line 1\r\nline 2\r\n</code></pre>"	}
+	{	input:"~~~\r\nline 1\r\nline 2\r\n~~~foo"		output:"<pre><code>line 1\r\nline 2\r\n</code></pre><p>foo</p>"	}
+	{	input:"~~~\r\nline 1\r\nline 2\r\n~~~\r\nfoo"	output:"<pre><code>line 1\r\nline 2\r\n</code></pre><p>foo</p>"	}
+	{	input:"foo\r\n~~~\r\nline 1\r\nline 2\r\n~~~\r\nbar"	output:"<p>foo</p><pre><code>line 1\r\nline 2\r\n</code></pre><p>bar</p>"	}
+	{	input:"foo\r\n\r\n~~~\r\nline 1\r\nline 2\r\n~~~\r\n\r\nbar"	output:"<p>foo</p><pre><code>line 1\r\nline 2\r\n</code></pre><p>bar</p>"	}
+	{	input:"~~~\r\n> foo\r\n~~~"			output:"<pre><code>&gt; foo\r\n</code></pre>"	}
+	{	input:"~~~\r\nc:\\foo\\bar\r\n~~~"	output:"<pre><code>c:\\foo\\bar\r\n</code></pre>"	}
+	{	input:"~~~\r\nhttp://foo.bar\r\n~~~"	output:"<pre><code>http://foo.bar\r\n</code></pre>"	}
+
+	//	Block Quotes
+
+	{	input:">"							output:"<p>&gt;</p>"	}
+	{	input:">>>>"						output:"<p>&gt;&gt;&gt;&gt;</p>"	}
+	{	input:" >"							output:"<p>&gt;</p>"	}
+	{	input:"> "							output:"<p>&gt;</p>"	}
+	{	input:"> test"						output:"<blockquote><p>test</p></blockquote>"	}
+	{	input:"foo\r\n> line 1\r\nbar"		output:"<p>foo</p><blockquote><p>line 1</p></blockquote><p>bar</p>"	}
+	{	input:"> line 1\r\n> line 2"		output:"<blockquote><p>line 1<br/>line 2</p></blockquote>"	}
+	{	input:"> line 1\r\n\r\n> line 2"	output:"<blockquote><p>line 1</p><p>line 2</p></blockquote>"	}
+	{	input:"> line 1\r\n>> line 2"		output:"<blockquote><p>line 1</p><blockquote><p>line 2</p></blockquote></blockquote>"	}
+	{	input:">> line 1\r\n> line 2"		output:"<blockquote><blockquote><p>line 1</p></blockquote><p>line 2</p></blockquote>"	}
+	{	input:"> line 1\r\n> ~~~\r\n> foo\r\n> ~~~\r\nbar"		output:"<blockquote><p>line 1</p><pre><code>foo\r\n</code></pre></blockquote><p>bar</p>"	}
+	{	input:"> ~~~\r\n> foo\r\n> ~~~"		output:"<blockquote><pre><code>foo\r\n</code></pre></blockquote>"	}
+	{	input:"> line 1\r\n>> ~~~\r\n>> foo\r\n>> ~~~"		output:"<blockquote><p>line 1</p><blockquote><pre><code>foo\r\n</code></pre></blockquote></blockquote>"	}
+	))
+
+(define TEMPLATE_DEF {
+	})
+
+//	Main Procedure                                                           
+
+procedure Main
+	{
+	code:
+		(lambda ()
+			(block (
+				(failCount 0)
+				)
+
+				(enum UNIT_TEST theTest
+					(block (
+						(result (html (@ theTest 'input) 'hexeText TEMPLATE_DEF))
+						)
+						(if (= result (@ theTest 'output))
+							(print (+ $i 1) ": PASS")
+							(block Nil
+								(print (+ $i 1) ": " (@ theTest 'input) " -> " result " (Expected " (@ theTest 'output) ")")
+								(set! failCount (+ failCount 1))
+								)
+							)
+						)
+					)
+
+				//	Result
+
+				(cat (- (count UNIT_TEST) failCount) " succeeded, " failCount " failed.")
+				)
+			)
+	}
+

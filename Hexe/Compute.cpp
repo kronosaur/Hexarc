@@ -1,0 +1,1514 @@
+//	Compute.cpp
+//
+//	Compute
+//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+
+#include "stdafx.h"
+
+const int MAX_ARRAY_SIZE =								10000000;
+
+DECLARE_CONST_STRING(ERR_COLON_EXPECTED,				"':' expected: %s.")
+DECLARE_CONST_STRING(ERR_DIVISION_BY_ZERO,				"Divide by zero error.")
+DECLARE_CONST_STRING(ERR_INVALID_KEY,					"Invalid key: %s.")
+DECLARE_CONST_STRING(ERR_INVALID_OP_CODE,				"Invalid opcode.")
+DECLARE_CONST_STRING(ERR_INVALID_PRIMITIVE_SUB,			"Invalid primitive subroutine: not a function.")
+DECLARE_CONST_STRING(ERR_NOT_A_FUNCTION,				"Not a function: %s.")
+DECLARE_CONST_STRING(ERR_OUT_OF_MEMORY,					"Out of memory.")
+DECLARE_CONST_STRING(ERR_NOT_ARRAY_OR_STRUCT,			"Unable to set item: not an array or structure.")
+DECLARE_CONST_STRING(ERR_UNBOUND_VARIABLE,				"Undefined identifier: %s.")
+
+CHexeProcess::ERunCodes CHexeProcess::Execute (CDatum *retResult)
+
+//	Execute
+//
+//	Continues execution
+
+	{
+	int i;
+	CDatum dValue;
+	int iCount;
+	bool bCondition;
+	CComplexArray *pArray;
+	CComplexStruct *pStruct;
+
+	while (true)
+		{
+		switch (GetOpCode(*m_pIP))
+			{
+			case opNoOp:
+				m_pIP++;
+				break;
+
+			case opDefine:
+				//	NOTE: We leave the value of the definition on the stack
+				m_pCurGlobalEnv->SetAt(m_pCodeBank->GetString(GetOperand(*m_pIP)), m_Stack.Get());
+				m_pIP++;
+				break;
+
+			case opPushNil:
+				m_Stack.Push(CDatum());
+				m_pIP++;
+				break;
+
+			case opPushTrue:
+				m_Stack.Push(CDatum(CDatum::constTrue));
+				m_pIP++;
+				break;
+
+			case opPushIntShort:
+				m_Stack.Push(CDatum(CHexeCode::GetOperandInt(*m_pIP)));
+				m_pIP++;
+				break;
+
+			case opPushInt:
+				m_pIP++;
+				m_Stack.Push(CDatum((int)*m_pIP));
+				m_pIP++;
+				break;
+
+			case opPushDatum:
+				m_Stack.Push(m_pCodeBank->GetDatum(GetOperand(*m_pIP)));
+				m_pIP++;
+				break;
+
+			case opPushStr:
+				m_Stack.Push(m_pCodeBank->GetString(GetOperand(*m_pIP)));
+				m_pIP++;
+				break;
+
+			case opPushStrNull:
+				m_Stack.Push(CDatum(NULL_STR));
+				m_pIP++;
+				break;
+
+			case opPushGlobal:
+				if (!m_pCurGlobalEnv->Find(m_pCodeBank->GetStringLiteral(GetOperand(*m_pIP)), &dValue))
+					{
+					CHexeError::Create(NULL_STR, strPattern(ERR_UNBOUND_VARIABLE, m_pCodeBank->GetStringLiteral(GetOperand(*m_pIP))), retResult);
+					return runError;
+					}
+				m_Stack.Push(dValue);
+				m_pIP++;
+				break;
+
+			case opSetGlobal:
+				{
+				int iPos;
+				if (!m_pCurGlobalEnv->FindPos(m_pCodeBank->GetStringLiteral(GetOperand(*m_pIP)), &iPos))
+					{
+					CHexeError::Create(NULL_STR, strPattern(ERR_UNBOUND_VARIABLE, m_pCodeBank->GetStringLiteral(GetOperand(*m_pIP))), retResult);
+					return runError;
+					}
+				m_pCurGlobalEnv->SetAt(iPos, m_Stack.Get());
+				m_pIP++;
+				break;
+				}
+
+			case opSetGlobalItem:
+				{
+				int iPos;
+				if (!m_pCurGlobalEnv->FindPos(m_pCodeBank->GetStringLiteral(GetOperand(*m_pIP)), &iPos))
+					{
+					CHexeError::Create(NULL_STR, strPattern(ERR_UNBOUND_VARIABLE, m_pCodeBank->GetStringLiteral(GetOperand(*m_pIP))), retResult);
+					return runError;
+					}
+
+				CDatum dValue = m_Stack.Pop();
+				CDatum dKey = m_Stack.Pop();
+				CDatum dResult;
+				if (!ExecuteSetAt(m_pCurGlobalEnv->GetAt(iPos), dKey, dValue, &dResult))
+					{
+					*retResult = dResult;
+					return runError;
+					}
+
+				m_pCurGlobalEnv->SetAt(iPos, dResult);
+				m_Stack.Push(dResult);
+
+				m_pIP++;
+				break;
+				}
+
+			case opJump:
+				m_pIP += CHexeCode::GetOperandInt(*m_pIP);
+				break;
+
+			case opJumpIfNil:
+				if (m_Stack.Pop().IsNil())
+					m_pIP += CHexeCode::GetOperandInt(*m_pIP);
+				else
+					m_pIP++;
+				break;
+
+			case opJumpIfNilNoPop:
+				if (m_Stack.Get().IsNil())
+					m_pIP += CHexeCode::GetOperandInt(*m_pIP);
+				else
+					m_pIP++;
+				break;
+
+			case opJumpIfNotNilNoPop:
+				if (!m_Stack.Get().IsNil())
+					m_pIP += CHexeCode::GetOperandInt(*m_pIP);
+				else
+					m_pIP++;
+				break;
+
+			case opMakeArray:
+				iCount = GetOperand(*m_pIP);
+				if (iCount == 0)
+					m_Stack.Push(CDatum());
+				else
+					{
+					pArray = new CComplexArray;
+					pArray->InsertEmpty(iCount);
+					for (i = 0; i < iCount; i++)
+						pArray->SetElement(iCount - 1 - i, m_Stack.Pop());
+
+					m_Stack.Push(CDatum(pArray));
+					}
+
+				m_pIP++;
+				break;
+
+			case opMakeStruct:
+				pStruct = new CComplexStruct;
+				iCount = GetOperand(*m_pIP);
+				if (iCount > 0)
+					{
+					for (i = 0; i < iCount; i++)
+						{
+						CDatum dValue = m_Stack.Pop();
+						CDatum dKey = m_Stack.Pop();
+
+						pStruct->SetElement(dKey, dValue);
+						}
+					}
+
+				m_Stack.Push(CDatum(pStruct));
+				m_pIP++;
+				break;
+
+			case opNot:
+				if (m_Stack.Pop().IsNil())
+					m_Stack.Push(CDatum::constTrue);
+				else
+					m_Stack.Push(CDatum());
+				m_pIP++;
+				break;
+
+			case opIsEqual:
+				iCount = GetOperand(*m_pIP);
+				if (iCount == 0)
+					bCondition = true;
+				else
+					{
+					bCondition = true;
+					dValue = m_Stack.Pop();
+
+					for (i = 1; i < iCount; i++)
+						{
+						CDatum dValue2 = m_Stack.Pop();
+						if (bCondition && !ExecuteIsEquivalent(dValue, dValue2))
+							bCondition = false;
+						}
+					}
+
+				if (bCondition)
+					m_Stack.Push(CDatum(CDatum::constTrue));
+				else
+					m_Stack.Push(CDatum());
+
+				m_pIP++;
+				break;
+
+			case opIsNotEqual:
+				iCount = GetOperand(*m_pIP);
+				if (iCount == 0)
+					bCondition = true;
+				else
+					{
+					bCondition = true;
+					dValue = m_Stack.Pop();
+
+					for (i = 1; i < iCount; i++)
+						{
+						CDatum dValue2 = m_Stack.Pop();
+						if (bCondition && !ExecuteIsEquivalent(dValue, dValue2))
+							bCondition = false;
+						}
+					}
+
+				if (!bCondition)
+					m_Stack.Push(CDatum(CDatum::constTrue));
+				else
+					m_Stack.Push(CDatum());
+
+				m_pIP++;
+				break;
+
+			case opIsLess:
+				iCount = GetOperand(*m_pIP);
+				if (iCount == 0)
+					bCondition = false;
+				else if (iCount == 1)
+					bCondition = (ExecuteCompare(m_Stack.Pop(), CDatum()) == -1);
+				else
+					{
+					bCondition = true;
+					dValue = m_Stack.Pop();
+
+					for (i = 1; i < iCount; i++)
+						{
+						CDatum dValue2 = m_Stack.Pop();
+						if (bCondition && ExecuteCompare(dValue, dValue2) != 1)
+							bCondition = false;
+
+						dValue = dValue2;
+						}
+					}
+
+				if (bCondition)
+					m_Stack.Push(CDatum(CDatum::constTrue));
+				else
+					m_Stack.Push(CDatum());
+
+				m_pIP++;
+				break;
+
+			case opIsGreater:
+				iCount = GetOperand(*m_pIP);
+				if (iCount == 0)
+					bCondition = false;
+				else if (iCount == 1)
+					bCondition = (ExecuteCompare(m_Stack.Pop(), CDatum()) == 1);
+				else
+					{
+					bCondition = true;
+					dValue = m_Stack.Pop();
+
+					for (i = 1; i < iCount; i++)
+						{
+						CDatum dValue2 = m_Stack.Pop();
+						if (bCondition && ExecuteCompare(dValue, dValue2) != -1)
+							bCondition = false;
+
+						dValue = dValue2;
+						}
+					}
+
+				if (bCondition)
+					m_Stack.Push(CDatum(CDatum::constTrue));
+				else
+					m_Stack.Push(CDatum());
+
+				m_pIP++;
+				break;
+
+			case opIsLessOrEqual:
+				iCount = GetOperand(*m_pIP);
+				if (iCount == 0)
+					bCondition = true;
+				else if (iCount == 1)
+					bCondition = (ExecuteCompare(m_Stack.Pop(), CDatum()) != 1);
+				else
+					{
+					bCondition = true;
+					dValue = m_Stack.Pop();
+
+					for (i = 1; i < iCount; i++)
+						{
+						CDatum dValue2 = m_Stack.Pop();
+						if (bCondition && ExecuteCompare(dValue, dValue2) == -1)
+							bCondition = false;
+
+						dValue = dValue2;
+						}
+					}
+
+				if (bCondition)
+					m_Stack.Push(CDatum(CDatum::constTrue));
+				else
+					m_Stack.Push(CDatum());
+
+				m_pIP++;
+				break;
+
+			case opIsGreaterOrEqual:
+				iCount = GetOperand(*m_pIP);
+				if (iCount == 0)
+					bCondition = true;
+				else if (iCount == 1)
+					bCondition = (ExecuteCompare(m_Stack.Pop(), CDatum()) != -1);
+				else
+					{
+					bCondition = true;
+					dValue = m_Stack.Pop();
+
+					for (i = 1; i < iCount; i++)
+						{
+						CDatum dValue2 = m_Stack.Pop();
+						if (bCondition && ExecuteCompare(dValue, dValue2) == 1)
+							bCondition = false;
+
+						dValue = dValue2;
+						}
+					}
+
+				if (bCondition)
+					m_Stack.Push(CDatum(CDatum::constTrue));
+				else
+					m_Stack.Push(CDatum());
+
+				m_pIP++;
+				break;
+
+			case opMakeFunc:
+				CHexeFunction::Create(m_dCodeBank, GetOperand(*m_pIP), m_dCurGlobalEnv, m_dLocalEnv, &dValue);
+				m_Stack.Push(dValue);
+				m_pIP++;
+				break;
+
+			case opMakePrimitive:
+				CHexePrimitive::Create((CDatum::ECallTypes)GetOperand(*m_pIP), &dValue);
+				m_Stack.Push(dValue);
+				m_pIP++;
+				break;
+
+			case opMakeApplyEnv:
+				{
+				m_LocalEnvStack.Save(m_dCurGlobalEnv, m_pCurGlobalEnv, m_dLocalEnv, m_pLocalEnv);
+				m_pLocalEnv = new CHexeLocalEnvironment;
+				m_dLocalEnv = CDatum(m_pLocalEnv);
+
+				//	The top of the stack is a list of arguments
+
+				CDatum dArgList = m_Stack.Pop();
+
+				//	Add the remaining args to the environment
+
+				int iFixedArgCount = GetOperand(*m_pIP) - 1;
+				for (i = 0; i < iFixedArgCount; i++)
+					m_pLocalEnv->SetArgumentValue(0, (iFixedArgCount - 1) - i, m_Stack.Pop());
+
+				//	Now add the args in the list
+
+				for (i = 0; i < dArgList.GetCount(); i++)
+					m_pLocalEnv->SetArgumentValue(0, iFixedArgCount + i, dArgList.GetElement(i));
+
+				m_pIP++;
+				break;
+				}
+
+			case opMakeEnv:
+				{
+				m_LocalEnvStack.Save(m_dCurGlobalEnv, m_pCurGlobalEnv, m_dLocalEnv, m_pLocalEnv);
+				m_pLocalEnv = new CHexeLocalEnvironment;
+				m_dLocalEnv = CDatum(m_pLocalEnv);
+
+				int iArgCount = GetOperand(*m_pIP);
+				for (i = 0; i < iArgCount; i++)
+					m_pLocalEnv->SetArgumentValue(0, (iArgCount - 1) - i, m_Stack.Pop());
+
+				m_pIP++;
+				break;
+				}
+
+			case opMakeBlockEnv:
+				{
+				CDatum dPrevEnv = m_dLocalEnv;
+
+				m_LocalEnvStack.Save(m_dCurGlobalEnv, m_pCurGlobalEnv, m_dLocalEnv, m_pLocalEnv);
+				m_pLocalEnv = new CHexeLocalEnvironment;
+				m_dLocalEnv = CDatum(m_pLocalEnv);
+
+				m_pLocalEnv->SetParentEnv(dPrevEnv);
+				m_pLocalEnv->ResetNextArg();
+
+				m_pIP++;
+				break;
+				}
+
+			case opEnterEnv:
+				{
+				CHexeFunction *pFunction = CHexeFunction::Upconvert(m_dExpression);
+
+				//	Set the global environment to match the function
+
+				CHexeGlobalEnvironment *pGlobalEnv = pFunction->GetGlobalEnvPointer();
+				if (pGlobalEnv)
+					{
+					m_dCurGlobalEnv = pFunction->GetGlobalEnv();
+					m_pCurGlobalEnv = pGlobalEnv;
+					}
+
+				//	Set the local environment of the function
+
+				m_pLocalEnv->SetParentEnv(pFunction->GetLocalEnv());
+				m_pLocalEnv->ResetNextArg();
+
+				m_pIP++;
+				break;
+				}
+
+			case opDefineArg:
+				m_pLocalEnv->SetNextArgKey(m_pCodeBank->GetString(GetOperand(*m_pIP)));
+				m_pIP++;
+				break;
+
+			case opExitEnv:
+				m_LocalEnvStack.Restore(&m_dCurGlobalEnv, &m_pCurGlobalEnv, &m_dLocalEnv, &m_pLocalEnv);
+				m_pIP++;
+				break;
+
+			case opCall:
+				{
+				CDatum dNewExpression = m_Stack.Pop();
+				
+				//	If the function changes the instruction pointer, then set up 
+				//	the call context here.
+
+				DWORD *pNewIP;
+				CDatum dNewCodeBank;
+				CDatum::ECallTypes iCallType = dNewExpression.GetCallInfo(&dNewCodeBank, &pNewIP);
+
+				//	Handle it
+
+				switch (iCallType)
+					{
+					case CDatum::funcCall:
+						{
+						m_CallStack.Save(m_dExpression, m_dCodeBank, ++m_pIP);
+						m_dExpression = dNewExpression;
+						m_dCodeBank = dNewCodeBank;
+						m_pCodeBank = CHexeCode::Upconvert(m_dCodeBank);
+
+						m_pIP = pNewIP;
+						break;
+						}
+
+					case CDatum::funcLibrary:
+						{
+						CDatum dResult;
+						if (!dNewExpression.Invoke(this, m_dLocalEnv, &dResult))
+							{
+							if (ExecuteHandleInvokeResult(dNewExpression, dResult, retResult))
+								break;
+
+							return runError;
+							}
+
+						//	Restore the environment
+
+						m_LocalEnvStack.Restore(&m_dCurGlobalEnv, &m_pCurGlobalEnv, &m_dLocalEnv, &m_pLocalEnv);
+
+						//	Done
+
+						m_Stack.Push(dResult);
+						m_pIP++;
+						break;
+						}
+
+					case CDatum::primitiveInvoke:
+						{
+						//	The first argument is the message
+
+						CDatum dMsg = m_dLocalEnv.GetElement(0);
+
+						//	Make a payload out of the arguments
+
+						CComplexArray *pArray = new CComplexArray;
+						for (i = 1; i < m_dLocalEnv.GetCount(); i++)
+							pArray->Insert(m_dLocalEnv.GetElement(i));
+
+						//	Restore the environment and advance IP
+
+						m_LocalEnvStack.Restore(&m_dCurGlobalEnv, &m_pCurGlobalEnv, &m_dLocalEnv, &m_pLocalEnv);
+						m_pIP++;
+
+						//	Send the message
+
+						if (!SendHexarcMessage(dMsg, CDatum(pArray), &dValue))
+							{
+							*retResult = dValue;
+							return runError;
+							}
+
+						//	Async request
+
+						*retResult = dValue;
+						return runAsyncRequest;
+						}
+
+					default:
+						CHexeError::Create(NULL_STR, strPattern(ERR_NOT_A_FUNCTION, dNewExpression.AsString()), retResult);
+						return runError;
+					}
+
+				break;
+				}
+
+			case opHexarcMsg:
+				{
+				CDatum dPayload = m_Stack.Pop();
+				CDatum dMsg = m_Stack.Pop();
+
+				m_pIP++;
+
+				if (!SendHexarcMessage(dMsg, dPayload, &dValue))
+					{
+					*retResult = dValue;
+					return runError;
+					}
+
+				//	Async request
+
+				*retResult = dValue;
+				return runAsyncRequest;
+				}
+
+			case opReturn:
+				{
+				m_CallStack.Restore(&m_dExpression, &m_dCodeBank, &m_pIP, &m_pCodeBank);
+
+				//	If we have a NULL codebank then it means that need to return
+				//	to a library invocation.
+
+				if (m_pCodeBank == NULL)
+					{
+					//	Restore the call stack
+
+					CDatum dPrimitive = m_dExpression;
+					CDatum dContext = m_dCodeBank.GetElement(0);
+					m_dExpression = m_dCodeBank.GetElement(1);
+					m_dCodeBank = m_dCodeBank.GetElement(2);
+					m_pCodeBank = CHexeCode::Upconvert(m_dCodeBank);
+
+					//	Pop the result
+
+					CDatum dSubResult = m_Stack.Pop();
+
+					//	Continue library invocation
+
+					CDatum dResult;
+					if (!dPrimitive.InvokeContinues(this, dContext, dSubResult, &dResult))
+						{
+						if (ExecuteHandleInvokeResult(dPrimitive, dResult, retResult))
+							break;
+
+						return runError;
+						}
+
+					m_LocalEnvStack.Restore(&m_dCurGlobalEnv, &m_pCurGlobalEnv, &m_dLocalEnv, &m_pLocalEnv);
+
+					//	Done
+
+					m_Stack.Push(dResult);
+					m_pIP++;
+					}
+
+				break;
+				}
+
+			case opPushLocal:
+				{
+				DWORD dwOperand = GetOperand(*m_pIP);
+				m_Stack.Push(m_pLocalEnv->GetArgument((dwOperand >> 8), (dwOperand & 0xff)));
+				m_pIP++;
+				break;
+				}
+
+			case opPushLocalItem:
+				{
+				DWORD dwOperand = GetOperand(*m_pIP);
+				int iIndex = (int)m_Stack.Pop();
+				CDatum dList = m_pLocalEnv->GetArgument((dwOperand >> 8), (dwOperand & 0xff));
+
+				//	For structs we push a tuple of key, value
+
+				if (dList.GetBasicType() == CDatum::typeStruct)
+					{
+					CComplexArray *pTuple = new CComplexArray;
+					pTuple->Append(dList.GetKey(iIndex));
+					pTuple->Append(dList.GetElement(this, iIndex));
+					m_Stack.Push(CDatum(pTuple));
+					}
+
+				//	Otherwise, just the value
+
+				else
+					m_Stack.Push(dList.GetElement(this, iIndex));
+
+				m_pIP++;
+				break;
+				}
+
+			case opPushLocalLength:
+				{
+				DWORD dwOperand = GetOperand(*m_pIP);
+				m_Stack.Push(m_pLocalEnv->GetArgument((dwOperand >> 8), (dwOperand & 0xff)).GetCount());
+				m_pIP++;
+				break;
+				}
+
+			case opPopLocal:
+				{
+				DWORD dwOperand = GetOperand(*m_pIP);
+				m_pLocalEnv->SetArgumentValue((dwOperand >> 8), (dwOperand & 0xff), m_Stack.Pop());
+				m_pIP++;
+				break;
+				}
+
+			case opSetLocal:
+				{
+				DWORD dwOperand = GetOperand(*m_pIP);
+				m_pLocalEnv->SetArgumentValue((dwOperand >> 8), (dwOperand & 0xff), m_Stack.Get());
+				m_pIP++;
+				break;
+				}
+
+			case opIncLocalInt:
+				{
+				DWORD dwOperand = GetOperand(*m_pIP);
+				CDatum dValue = m_pLocalEnv->GetArgument((dwOperand >> 8), (dwOperand & 0xff));
+
+				m_pLocalEnv->SetArgumentValue((dwOperand >> 8), (dwOperand & 0xff), CDatum((int)dValue + 1));
+				m_pIP++;
+				break;
+				}
+
+			case opSetLocalItem:
+				{
+				DWORD dwOperand = GetOperand(*m_pIP);
+
+				CDatum dValue = m_Stack.Pop();
+				CDatum dKey = m_Stack.Pop();
+				CDatum dResult;
+				if (!ExecuteSetAt(m_pLocalEnv->GetArgument((dwOperand >> 8), (dwOperand & 0xff)), dKey, dValue, &dResult))
+					{
+					*retResult = dResult;
+					return runError;
+					}
+
+				m_pLocalEnv->SetArgumentValue((dwOperand >> 8), (dwOperand & 0xff), dResult);
+				m_Stack.Push(dResult);
+
+				m_pIP++;
+				break;
+				}
+
+			case opAppendLocalItem:
+				{
+				DWORD dwOperand = GetOperand(*m_pIP);
+
+				CDatum dValue = m_Stack.Pop();
+				CDatum dArray = m_pLocalEnv->GetArgument((dwOperand >> 8), (dwOperand & 0xff));
+				if (dArray.IsNil())
+					{
+					CComplexArray *pArray = new CComplexArray;
+					pArray->Insert(dValue);
+					m_pLocalEnv->SetArgumentValue((dwOperand >> 8), (dwOperand & 0xff), CDatum(pArray));
+					}
+				else
+					{
+					//	Append in place.
+					//
+					//	NOTE: We can do this because this opcode is only used 
+					//	when we have control over the local variable that we're
+					//	manipulating.
+					//
+					//	If we cannot determine the provenance of the variable
+					//	(i.e., we don't know who else has a pointer to the
+					//	array) then we need to make a copy.
+
+					dArray.Append(dValue);
+					}
+
+				m_pIP++;
+				break;
+				}
+
+			case opAdd:
+				{
+				iCount = GetOperand(*m_pIP);
+
+				if (iCount == 2)
+					{
+					CDatum dB = m_Stack.Pop();
+					CDatum dA = m_Stack.Pop();
+
+					int iValue1;
+					int iValue2;
+					if ((dA.GetNumberType(&iValue1) == CDatum::typeInteger32)
+							&& (dB.GetNumberType(&iValue2) == CDatum::typeInteger32))
+						{
+#ifdef _WIN64
+						LONGLONG iResult = (LONGLONG)iValue1 + (LONGLONG)iValue2;
+						if (iResult >= INT_MIN && iResult <= INT_MAX)
+							m_Stack.Push(CDatum((int)iResult));
+						else
+							{
+							CNumberValue Result(dA);
+							Result.ConvertToIPInteger();
+							Result.Add(dB);
+							m_Stack.Push(Result.GetDatum());
+							}
+#else
+						int iResult;
+						bool bOverflow = false;
+
+						//	Add the integers, making sure that we keep track if
+						//	we overflow.
+
+						__asm
+							{
+							mov eax,iValue1
+							mov ebx,iValue2
+							add eax,ebx
+							mov iResult,eax
+							jno exitAdd
+							mov bOverflow,1
+							exitAdd:
+							}
+
+						//	If we overflow, we do it with big integers
+
+						if (bOverflow)
+							{
+							CNumberValue Result(dA);
+							Result.ConvertToIPInteger();
+							Result.Add(dB);
+							m_Stack.Push(Result.GetDatum());
+							}
+
+						//	Otherwise, we're done
+
+						else
+							m_Stack.Push(CDatum(iResult));
+#endif
+						}
+					else
+						{
+						CNumberValue Result(dA);
+						Result.Add(dB);
+						m_Stack.Push(Result.GetDatum());
+						}
+					}
+				else if (iCount == 0)
+					m_Stack.Push(CDatum(0));
+				else
+					{
+					CNumberValue Result(m_Stack.Pop());
+
+					for (i = 1; i < iCount; i++)
+						Result.Add(m_Stack.Pop());
+
+					m_Stack.Push(Result.GetDatum());
+					}
+
+				m_pIP++;
+				break;
+				}
+
+			case opDivide:
+				iCount = GetOperand(*m_pIP);
+
+				if (iCount == 2)
+					{
+					CDatum dDivisor = m_Stack.Pop();
+					CNumberValue Dividend(m_Stack.Pop());
+					if (!Dividend.Divide(dDivisor))
+						{
+						CHexeError::Create(NULL_STR, ERR_DIVISION_BY_ZERO, retResult);
+						return runError;
+						}
+
+					m_Stack.Push(Dividend.GetDatum());
+					}
+				else if (iCount == 1)
+					{
+					CDatum dDivisor = m_Stack.Pop();
+					CNumberValue Dividend(1.0);
+					if (!Dividend.Divide(dDivisor))
+						{
+						CHexeError::Create(NULL_STR, ERR_DIVISION_BY_ZERO, retResult);
+						return runError;
+						}
+
+					m_Stack.Push(Dividend.GetDatum());
+					}
+				else if (iCount < 1)
+					m_Stack.Push(0);
+				else
+					{
+					CNumberValue Result(m_Stack.Pop());
+					for (i = 2; i < iCount; i++)
+						Result.Multiply(m_Stack.Pop());
+
+					if (!Result.DivideReversed(m_Stack.Pop()))
+						{
+						CHexeError::Create(NULL_STR, ERR_DIVISION_BY_ZERO, retResult);
+						return runError;
+						}
+
+					m_Stack.Push(Result.GetDatum());
+					}
+
+				m_pIP++;
+				break;
+
+			case opMultiply:
+				iCount = GetOperand(*m_pIP);
+
+				if (iCount < 1)
+					m_Stack.Push(0);
+				else
+					{
+					CNumberValue Result(m_Stack.Pop());
+
+					for (i = 1; i < iCount; i++)
+						Result.Multiply(m_Stack.Pop());
+
+					m_Stack.Push(Result.GetDatum());
+					}
+
+				m_pIP++;
+				break;
+
+			case opSubtract:
+				iCount = GetOperand(*m_pIP);
+
+				if (iCount == 2)
+					{
+					CDatum dB = m_Stack.Pop();
+					CDatum dA = m_Stack.Pop();
+
+					int iValue1;
+					int iValue2;
+					if ((dA.GetNumberType(&iValue1) == CDatum::typeInteger32)
+							&& (dB.GetNumberType(&iValue2) == CDatum::typeInteger32))
+						{
+#ifdef _WIN64
+						LONGLONG iResult = (LONGLONG)iValue1 - (LONGLONG)iValue2;
+						if (iResult >= INT_MIN && iResult <= INT_MAX)
+							m_Stack.Push(CDatum((int)iResult));
+						else
+							{
+							CNumberValue Result(dA);
+							Result.ConvertToIPInteger();
+							Result.Add(dB);
+							m_Stack.Push(Result.GetDatum());
+							}
+#else
+						int iResult;
+						bool bOverflow = false;
+
+						//	Subtract the integers, making sure that we keep track if
+						//	we overflow.
+
+						__asm
+							{
+							mov eax,iValue1
+							mov ebx,iValue2
+							sub eax,ebx
+							mov iResult,eax
+							jno exitSub
+							mov bOverflow,1
+							exitSub:
+							}
+
+						//	If we overflow, we do it with big integers
+
+						if (bOverflow)
+							{
+							CNumberValue Result(dA);
+							Result.ConvertToIPInteger();
+							Result.Subtract(dB);
+							m_Stack.Push(Result.GetDatum());
+							}
+
+						//	Otherwise, we're done
+
+						else
+							m_Stack.Push(CDatum(iResult));
+#endif
+						}
+					else
+						{
+						CNumberValue Result(dA);
+						Result.Subtract(dB);
+						m_Stack.Push(Result.GetDatum());
+						}
+					}
+				else if (iCount == 0)
+					m_Stack.Push(CDatum(0));
+				else if (iCount == 1)
+					{
+					CNumberValue Result(CDatum(0));
+					Result.Subtract(m_Stack.Pop());
+					m_Stack.Push(Result.GetDatum());
+					}
+				else
+					{
+					CNumberValue Result(CDatum(0));
+
+					for (i = 0; i < iCount - 1; i++)
+						Result.Subtract(m_Stack.Pop());
+
+					Result.Add(m_Stack.Pop());
+					m_Stack.Push(Result.GetDatum());
+					}
+
+				m_pIP++;
+				break;
+
+			case opPop:
+				m_Stack.Pop(GetOperand(*m_pIP));
+				m_pIP++;
+				break;
+
+			case opMakeFlagsFromArray:
+				{
+				CDatum dMap = m_Stack.Pop();
+				CDatum dArray = m_Stack.Pop();
+				CDatum dResult;
+				if (!ExecuteMakeFlagsFromArray(dArray, dMap, &dResult))
+					{
+					*retResult = dResult;
+					return runError;
+					}
+
+				m_Stack.Push(dResult);
+				m_pIP++;
+				break;
+				}
+
+			case opMapResult:
+				{
+				DWORD dwOperand = GetOperand(*m_pIP);
+				DWORD dwFlags = (DWORD)(int)m_Stack.Pop();
+				CDatum dOriginal = m_Stack.Pop();
+				CDatum dValue = m_Stack.Pop();
+				CDatum dArray = m_pLocalEnv->GetArgument((dwOperand >> 8), (dwOperand & 0xff));
+
+				//	If we're excluding nil and the value is Nil, then nothing to do
+
+				if ((dwFlags & FLAG_MAP_EXCLUDE_NIL) && dValue.IsNil())
+					;
+
+				//	Otherwise, append the value to the array
+
+				else
+					{
+					if (dwFlags & FLAG_MAP_ORIGINAL)
+						dValue = dOriginal;
+
+					if (dArray.IsNil())
+						{
+						CComplexArray *pArray = new CComplexArray;
+						pArray->Insert(dValue);
+						m_pLocalEnv->SetArgumentValue((dwOperand >> 8), (dwOperand & 0xff), CDatum(pArray));
+						}
+					else
+						dArray.Append(dValue);
+					}
+
+				m_pIP++;
+				break;
+				}
+
+			case opError:
+				{
+				iCount = GetOperand(*m_pIP);
+
+				CDatum dErrorDesc = (iCount > 1 ? m_Stack.Pop() : CDatum());
+				CDatum dErrorCode = (iCount > 0 ? m_Stack.Pop() : CDatum());
+				CHexeError::Create(dErrorCode.AsString(), dErrorDesc.AsString(), retResult);
+				return runError;
+				}
+
+			case opHalt:
+				*retResult = m_Stack.Pop();
+				return runOK;
+
+			default:
+				CHexeError::Create(NULL_STR, ERR_INVALID_OP_CODE, retResult);
+				return runError;
+			}
+		}
+
+	return runOK;
+	}
+
+int CHexeProcess::ExecuteCompare (CDatum dValue1, CDatum dValue2)
+
+//	ExecuteCompare
+//
+//	Compares dValue1 and dValue2 and returns:
+//
+//	0	If dValue1 is equivalent to dValue2 (same as ExecuteIsEquivalent)
+//	1	If dValue1 is GREATER THAN dValue2
+//	-1	If dValue1 is LESS THAN dValue2
+
+	{
+	int i;
+	CDatum::Types iType1 = dValue1.GetBasicType();
+	CDatum::Types iType2 = dValue2.GetBasicType();
+
+	//	If both types are equal, then compare
+
+	if (iType1 == iType2)
+		{
+		switch (iType1)
+			{
+			case CDatum::typeNil:
+			case CDatum::typeTrue:
+				return 0;
+
+			case CDatum::typeInteger32:
+				return KeyCompare((int)dValue1, (int)dValue2);
+
+			case CDatum::typeInteger64:
+				return KeyCompare((DWORDLONG)dValue1, (DWORDLONG)dValue2);
+
+			case CDatum::typeDouble:
+				return KeyCompare((double)dValue1, (double)dValue2);
+
+			case CDatum::typeIntegerIP:
+				return KeyCompare((const CIPInteger &)dValue1, (const CIPInteger &)dValue2);
+
+			case CDatum::typeString:
+				return KeyCompare(strToLower(dValue1), strToLower(dValue2));
+
+			case CDatum::typeDateTime:
+				return KeyCompare((const CDateTime &)dValue1,  (const CDateTime &)dValue2);
+
+			case CDatum::typeArray:
+				{
+				int iCount = Min(dValue1.GetCount(), dValue2.GetCount());
+				for (i = 0; i < iCount; i++)
+					{
+					int iCompare = ExecuteCompare(dValue1.GetElement(i), dValue2.GetElement(i));
+					if (iCompare != 0)
+						return iCompare;
+					}
+
+				return KeyCompare(dValue1.GetCount(), dValue2.GetCount());
+				}
+
+			case CDatum::typeStruct:
+				{
+				int iCount = Min(dValue1.GetCount(), dValue2.GetCount());
+				for (i = 0; i < iCount; i++)
+					{
+					int iCompare = KeyCompare(strToLower(dValue1.GetKey(i)), strToLower(dValue2.GetKey(i)));
+					if (iCompare != 0)
+						return iCompare;
+
+					iCompare = ExecuteCompare(dValue1.GetElement(i), dValue2.GetElement(i));
+					if (iCompare != 0)
+						return iCompare;
+					}
+
+				return KeyCompare(dValue1.GetCount(), dValue2.GetCount());
+				}
+
+			default:
+				return KeyCompare(dValue1.AsString(), dValue2.AsString());
+			}
+		}
+
+	//	If one of the types is a number, then compare as numbers
+
+	else if (dValue1.IsNumber() || dValue2.IsNumber())
+		{
+		CNumberValue Number1(dValue1);
+		CNumberValue Number2(dValue2);
+
+		//	If either number is invalid, then it counts as 0
+
+		if (Number1.IsValidNumber()
+				&& Number2.IsValidNumber())
+			return Number1.Compare(Number2);
+		else if (Number1.IsValidNumber())
+			return Number1.Compare(CDatum(0));
+		else if (Number2.IsValidNumber())
+			return CNumberValue(CDatum(0)).Compare(Number2);
+		else
+			return 0;
+		}
+
+	//	If iType1 is nil then everything is greater than it, except nil.
+
+	else if (iType1 == CDatum::typeNil)
+		{
+		switch (iType2)
+			{
+			case CDatum::typeString:
+				return (((const CString &)dValue2).IsEmpty() ? 0 : -1);
+
+			case CDatum::typeArray:
+			case CDatum::typeStruct:
+				return (dValue2.GetCount() == 0 ? 0 : -1);
+
+			default:
+				return -1;
+			}
+		}
+
+	//	If iType2 is nil then everything is greater than it, except nil.
+
+	else if (iType2 == CDatum::typeNil)
+		{
+		switch (iType1)
+			{
+			case CDatum::typeString:
+				return (((const CString &)dValue1).IsEmpty() ? 0 : 1);
+
+			case CDatum::typeArray:
+			case CDatum::typeStruct:
+				return (dValue1.GetCount() == 0 ? 0 : 1);
+
+			default:
+				return 1;
+			}
+		}
+
+	//	Otherwise, compare as strings
+
+	else
+		return KeyCompare(dValue1.AsString(), dValue2.AsString());
+	}
+
+bool CHexeProcess::ExecuteHandleInvokeResult (CDatum dExpression, CDatum dInvokeResult, CDatum *retResult)
+
+//	ExecuteHandleInvokeResult
+//
+//	Process the result of a primitive invoke when FALSE is returned.
+//	We return FALSE if an error should be returned.
+
+	{
+	int i;
+
+	if (dInvokeResult.IsError())
+		{
+		*retResult = dInvokeResult;
+		return false;
+		}
+
+	//	If the primitive returns FALSE with an array then it means
+	//	that we are calling a subroutine. The array has the following 
+	//	elements:
+	//
+	//	0.	Function to call
+	//	1.	Array of parameters to function
+	//	2.	Context data for InvokeContinues
+
+	else if (dInvokeResult.GetBasicType() == CDatum::typeArray)
+		{
+		CDatum dFunction = dInvokeResult.GetElement(0);
+		CDatum dArgs = dInvokeResult.GetElement(1);
+		CDatum dContext = dInvokeResult.GetElement(2);
+
+		//	Validate function
+
+		CDatum dNewCodeBank;
+		DWORD *pNewIP;
+		if (dFunction.GetCallInfo(&dNewCodeBank, &pNewIP) != CDatum::funcCall)
+			{
+			CHexeError::Create(NULL_STR, ERR_INVALID_PRIMITIVE_SUB, retResult);
+			return false;
+			}
+
+		//	Encode everything we need to save into the code bank
+		//	datum (we unpack it in opReturn).
+
+		CComplexArray *pSaved = new CComplexArray;
+		pSaved->Insert(dContext);
+		pSaved->Insert(m_dExpression);
+		pSaved->Insert(m_dCodeBank);
+
+		//	Save the library function in the call stack so we return to it 
+		//	when we're done
+
+		m_CallStack.Save(dExpression, CDatum(pSaved), m_pIP);
+
+		//	Set up environment
+
+		m_LocalEnvStack.Save(m_dCurGlobalEnv, m_pCurGlobalEnv, m_dLocalEnv, m_pLocalEnv);
+		m_pLocalEnv = new CHexeLocalEnvironment;
+		m_dLocalEnv = CDatum(m_pLocalEnv);
+
+		int iArgCount = dArgs.GetCount();
+		for (i = 0; i < iArgCount; i++)
+			m_pLocalEnv->SetArgumentValue(0, i, dArgs.GetElement(i));
+
+		//	Make the call
+
+		m_dExpression = dFunction;
+		m_dCodeBank = dNewCodeBank;
+		m_pCodeBank = CHexeCode::Upconvert(m_dCodeBank);
+
+		m_pIP = pNewIP;
+
+		//	Continue processing
+
+		return true;
+		}
+
+	//	Otherwise, generic error
+
+	else
+		{
+		CHexeError::Create(NULL_STR, strPattern(ERR_NOT_A_FUNCTION, dExpression.AsString()), retResult);
+		return false;
+		}
+	}
+
+bool CHexeProcess::ExecuteIsEquivalent (CDatum dValue1, CDatum dValue2)
+
+//	ExecuteIsEquivalent
+//
+//	Returns TRUE if dValue1 is equivalent to dValue2
+//
+//	Nil == ""
+//	Nil == {}
+//	Nil == ()
+//	"abc" == "ABC"
+
+	{
+	int i;
+	CDatum::Types iType1 = dValue1.GetBasicType();
+	CDatum::Types iType2 = dValue2.GetBasicType();
+
+	//	If both types are equal, then compare
+
+	if (iType1 == iType2)
+		{
+		switch (iType1)
+			{
+			case CDatum::typeNil:
+			case CDatum::typeTrue:
+				return true;
+
+			case CDatum::typeInteger32:
+				return (int)dValue1 == (int)dValue2;
+
+			case CDatum::typeInteger64:
+				return (DWORDLONG)dValue1 == (DWORDLONG)dValue2;
+
+			case CDatum::typeDouble:
+				return (double)dValue1 == (double)dValue2;
+
+			case CDatum::typeIntegerIP:
+				return ((const CIPInteger &)dValue1) == ((const CIPInteger &)dValue2);
+
+			case CDatum::typeString:
+				return strEquals(strToLower(dValue1), strToLower(dValue2));
+
+			case CDatum::typeDateTime:
+				return ((const CDateTime &)dValue1) == ((const CDateTime &)dValue2);
+
+			case CDatum::typeArray:
+				{
+				if (dValue1.GetCount() != dValue2.GetCount())
+					return false;
+
+				for (i = 0; i < dValue1.GetCount(); i++)
+					if (!ExecuteIsEquivalent(dValue1.GetElement(i), dValue2.GetElement(i)))
+						return false;
+
+				return true;
+				}
+
+			case CDatum::typeStruct:
+				{
+				if (dValue1.GetCount() != dValue2.GetCount())
+					return false;
+
+				for (i = 0; i < dValue1.GetCount(); i++)
+					if (!strEquals(strToLower(dValue1.GetKey(i)), strToLower(dValue2.GetKey(i)))
+							|| !ExecuteIsEquivalent(dValue1.GetElement(i), dValue2.GetElement(i)))
+						return false;
+
+				return true;
+				}
+
+			default:
+				return false;
+			}
+		}
+
+	//	If one of the types is nil, then compare
+
+	else if (iType1 == CDatum::typeNil || iType2 == CDatum::typeNil)
+		{
+		if (iType2 == CDatum::typeNil)
+			{
+			Swap(dValue1, dValue2);
+			Swap(iType1, iType2);
+			}
+
+		switch (iType2)
+			{
+			case CDatum::typeString:
+				return ((const CString &)dValue2).IsEmpty();
+
+			case CDatum::typeArray:
+			case CDatum::typeStruct:
+				return dValue2.GetCount() == 0;
+
+			default:
+				return false;
+			}
+		}
+
+	//	If one of the types is a number, then compare as numbers
+
+	else if (dValue1.IsNumber() || dValue2.IsNumber())
+		{
+		CNumberValue Number1(dValue1);
+		CNumberValue Number2(dValue2);
+
+		return (Number1.IsValidNumber()
+				&& Number2.IsValidNumber()
+				&& Number1.Compare(Number2) == 0);
+		}
+
+	//	Otherwise, cannot compare
+
+	else
+		return false;
+	}
+
+bool CHexeProcess::ExecuteMakeFlagsFromArray (CDatum dOptions, CDatum dMap, CDatum *retdResult)
+
+//	ExecuteMakeFlagsFromArray
+//
+//	dOptions is an array of string options.
+//	dMap is a mapping from strings to DWORDs.
+//
+//	We look up each string option in the map and OR together each of the flags
+//	to generate a result.
+
+	{
+	int i;
+	DWORD dwFlags = 0;
+
+	for (i = 0; i < dOptions.GetCount(); i++)
+		{
+		DWORD dwFlag = (DWORD)(int)dMap.GetElement(dOptions.GetElement(i).AsString());
+		if (dwFlag)
+			dwFlags |= dwFlag;
+		}
+
+	*retdResult = CDatum((int)dwFlags);
+	return true;
+	}
+
+bool CHexeProcess::ExecuteSetAt (CDatum dOriginal, CDatum dKey, CDatum dValue, CDatum *retdResult)
+
+//	ExecuteSetAt
+//
+//	Sets ket and value
+
+	{
+	int iKey;
+	CString sKey;
+
+	//	If the key an integer or string?
+
+	CDatum::Types iKeyType = dKey.GetBasicType();
+	bool bKeyIsInteger = (iKeyType == CDatum::typeInteger32 || iKeyType == CDatum::typeDouble);
+	if (bKeyIsInteger)
+		{
+		iKey = (int)dKey;
+		if (iKey < 0)
+			{
+			CHexeError::Create(NULL_STR, strPattern(ERR_INVALID_KEY, dKey.AsString()), retdResult);
+			return false;
+			}
+		else if (iKey > MAX_ARRAY_SIZE)
+			{
+			CHexeError::Create(NULL_STR, ERR_OUT_OF_MEMORY, retdResult);
+			return false;
+			}
+		}
+	else
+		{
+		sKey = dKey.AsString();
+		if (sKey.IsEmpty())
+			{
+			CHexeError::Create(NULL_STR, strPattern(ERR_INVALID_KEY, dKey.AsString()), retdResult);
+			return false;
+			}
+		}
+
+	//	Set based on what type of value we have in the original variable.
+
+	switch (dOriginal.GetBasicType())
+		{
+		//	If nil, then we create a new array or structure, depending on the
+		//	key type.
+
+		case CDatum::typeNil:
+			{
+			if (bKeyIsInteger)
+				{
+				CComplexArray *pArray = new CComplexArray;
+				pArray->InsertEmpty(iKey + 1);
+				pArray->SetElement(iKey, dValue);
+				*retdResult = CDatum(pArray);
+				return true;
+				}
+			else
+				{
+				CComplexStruct *pStruct = new CComplexStruct;
+				pStruct->SetElement(sKey, dValue);
+				*retdResult = CDatum(pStruct);
+				return true;
+				}
+			}
+
+		case CDatum::typeArray:
+			{
+			if (!bKeyIsInteger)
+				{
+				CHexeError::Create(NULL_STR, strPattern(ERR_INVALID_KEY, dKey.AsString()), retdResult);
+				return false;
+				}
+
+			//	Change in place
+
+			dOriginal.SetElement(iKey, dValue);
+			*retdResult = dOriginal;
+			return true;
+			}
+
+		case CDatum::typeStruct:
+			{
+			if (bKeyIsInteger)
+				sKey = dKey.AsString();
+
+			//	Change in place
+
+			dOriginal.SetElement(sKey, dValue);
+			*retdResult = dOriginal;
+			return true;
+			}
+
+		case CDatum::typeCustom:
+			{
+			if (bKeyIsInteger)
+				sKey = dKey.AsString();
+
+			dOriginal.SetElement(sKey, dValue);
+			*retdResult = dOriginal;
+			return true;
+			}
+
+		default:
+			CHexeError::Create(NULL_STR, ERR_NOT_ARRAY_OR_STRUCT, retdResult);
+			return false;
+		}
+	}

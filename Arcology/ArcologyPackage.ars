@@ -1,0 +1,234 @@
+//	ArcologyPackage.ars
+//
+//	Implements the arcology administrator console
+
+Arc.package Arc
+	{
+	version:	"1.0 beta 15"
+	rights:		Arc.admin		//	Package requires Arc.admin rights
+	}
+
+Arc.service Arc.console
+	{
+	name:		"Arcology Console Service"
+	
+	protocol:	ai1				//	Standard Hexarc protocol
+	port:		7399			//	Arbitrary port number
+	rights:		Arc.admin		//	Service requires Arc.admin rights
+	
+	//	Name of interface. Different services can listen on the same port as
+	//	long as they have a different interface.
+	
+	interface:	Arc.console
+	
+	//	If present, this field requires users to have certain rights in order
+	//	to connect to the interface at all.
+	
+	rightsRequired:	Arc.admin
+	}
+	
+(define Arc.console+addModule (lambda (thePayload)
+	(apply invoke 'Exarch.addModule thePayload)
+	))
+	
+(define Arc.console+addVolume (lambda (thePayload)
+	(apply invoke 'Exarch.addVolume thePayload)
+	))
+	
+(define Arc.console+completeUpgrade (lambda (thePayload)
+	(invoke 'Exarch.completeUpgrade thePayload)
+	))
+
+//(define Arc.console+createTable (lambda (thePayload)
+//	(invoke 'Aeon.createTable thePayload)
+//	))
+
+(define Arc.console+createTestVolume (lambda (thePayload)
+	(apply invoke 'Exarch.createTestVolume thePayload)
+	))
+
+(define Arc.console+deleteRow (lambda (thePayload)
+	(invoke 'Aeon.insert (@ thePayload 0) (@ thePayload 1) nil)
+	))
+	
+(define Arc.console+deleteTable (lambda (thePayload)
+	(invoke 'Aeon.deleteTable (@ thePayload 0))
+	))
+
+(define Arc.console+deleteTestDrive (lambda (thePayload)
+	(apply invoke 'Exarch.deleteTestDrive thePayload)
+	))
+
+(define Arc.console+deleteView (lambda (thePayload)
+	(apply invoke 'Aeon.deleteView thePayload)
+	))
+
+(define Arc.console+dir (lambda (thePayload)
+	(apply invoke 'Aeon.fileDirectory thePayload)
+	))
+	
+(define Arc.console+download (lambda (thePayload)
+	(apply invoke 'Aeon.fileDownload thePayload)
+	))
+	
+(define Arc.console+flushDb (lambda (thePayload)
+	(invoke 'Aeon.flushDb)
+	))
+	
+(define Arc.console+getEncryptionKey (lambda (thePayload)
+	(invoke 'Cryptosaur.getKey (@ thePayload 0))
+	))
+	
+(define Arc.console+getKeyRange (lambda (thePayload)
+	(apply invoke 'Aeon.getKeyRange thePayload)
+	))
+	
+(define Arc.console+getLog (lambda (thePayload)
+	(apply invoke 'Exarch.getLogRows thePayload)
+	))
+	
+(define Arc.console+getMoreRows (lambda (thePayload)
+	(apply invoke 'Aeon.getMoreRows thePayload)
+	))
+	
+(define Arc.console+getRows (lambda (thePayload)
+	(apply invoke 'Aeon.getRows thePayload)
+	))
+	
+(define Arc.console+getStatus (lambda (thePayload)
+	(list (invoke 'Exarch.getStatus))
+	))
+	
+(define Arc.console+getTables (lambda (thePayload)
+	(invoke 'Aeon.getTables)
+	))
+	
+(define Arc.console+help (lambda (thePayload)
+	(list
+		"Arc.console Help"
+		"addModule {filePath}"
+		"addVolume {filePath} [{quota}]"
+//		"createTable {tableDesc}"
+		"deleteRow {tableName} {key}"
+		"deleteTable {tableName}"
+		"deleteView {table/view}"
+		"dir {filePath} [{fieldList}] [recursive]"
+		"flushDb"
+		"getEncryptionKey {keyname}"
+		"getKeyRange {tableName} {count}"
+		"getLog [{lines}]"
+		"getMoreRows {table/view} {lastKey} {count}"
+		"getRows {table/view} {Key} {count}"
+		"getStatus"
+		"getTables"
+//		"getValue {tableName} {path}"
+		"insertRow {tableName} {path} {data}"
+		"listTables"
+		"listViews {tableName}"
+//		"mnemosynthDump"
+		"mutate {tableName} {key} {value} [{mutation}]"
+		"refreshPackages"
+		"removeVolume {volume}"
+		"resetPassword {username}"
+		"tableTest [{rows} [{dataSize} [{tableName}]]]"
+		"unitTest [{unitTest} ...]"
+		"upgrade"
+		"upload {filePath} {filespec}"
+		"uploadCertificate {filespec}"
+		"uploadPackage {packageName} {filespec}"
+		)
+	))
+	
+(define Arc.console+insertRow (lambda (thePayload)
+	(apply invoke 'Aeon.insert thePayload)
+	))
+	
+(define Arc.console+listTables (lambda (thePayload)
+	(map (invoke 'Aeon.getTables) nil theDesc (@ theDesc 'name))
+	))
+	
+(define Arc.console+listViews (lambda (thePayload)
+	(block (theTable)
+		(set! theTable (@ (map (invoke 'Aeon.getTables) '(original excludeNil) theDesc (= (@ thePayload 0) (@ theDesc 'name))) 0))
+		(map (@ theTable 'secondaryViews) nil theView (@ theView 'name))
+		)
+	))
+
+(define Arc.console+mutate (lambda (thePayload)
+	(apply invoke 'Aeon.mutate thePayload)
+	))
+	
+(define Arc.console+refreshPackages (lambda (thePayload)
+	(invoke 'Hyperion.refresh)
+	))
+
+(define Arc.console+removeVolume (lambda (thePayload)
+	(apply invoke 'Exarch.removeVolume thePayload)
+	))
+	
+(define Arc.console+requestUpgrade (lambda (thePayload)
+	//	We return a list because the AI1 protocol expects it.
+	(list (apply invoke 'Exarch.requestUpgrade thePayload))
+	))
+
+(define Arc.console+resetPassword (lambda (thePayload)
+	(apply invoke 'Cryptosaur.resetPasswordManual thePayload)
+	))
+
+(define Arc.console+restartMachine (lambda (thePayload)
+	(apply invoke 'Exarch.restartMachine thePayload)
+	))
+
+(define Arc.console+tableTest (lambda (thePayload)
+	(apply invoke 'DrHouse.createTestTable thePayload)
+	))
+
+(define Arc.console+test (lambda (thePayload)
+	(cat "Hello, " (userGetName) ". "
+		"You are " (if (userHasRight 'Arc.admin) "an administrator." "not an administrator.")
+		)
+	))
+
+(define Arc.console+unitTest (lambda (thePayload)
+	(block nil
+		(print "Begin unit test.")
+		(apply invoke 'DrHouse.unitTest thePayload)
+		)
+	))
+	
+(define Arc.console+upload (lambda (thePayload)
+	(block (
+		(filePath (@ thePayload 0))
+		(fileDesc (@ thePayload 1))
+		(fileData (@ thePayload 2))
+		)
+
+		(switch
+			(= filePath "/Arc.certificates")
+				(invoke 'Cryptosaur.setCertificate 'sslCertificate fileData)
+
+			;	By default, upload to specified path. LATER: We should only allow
+			;	uploads to /Arc.services
+
+			(invoke 'Aeon.fileUpload 
+				filePath 
+
+				//	Add user who modified file to the fileDesc
+
+				(struct (@ thePayload 1) {
+					fileDesc: { modifiedBy: (userGetName) }
+					})
+
+				fileData
+				)
+			)
+		)
+	))
+
+(define Arc.console+uploadUpgrade (lambda (thePayload)
+	(apply invoke 'Exarch.uploadUpgrade thePayload)
+	))
+
+(define Arc.console+* (lambda (theCommand thePayload)
+	(cat "The command \"" theCommand "\" is not available.")
+	))

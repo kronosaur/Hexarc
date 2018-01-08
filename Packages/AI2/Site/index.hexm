@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="utf-8"/>
+<title>AI2 Hexarc Command Interface</title>
+
+<?eval (block nil
+	; Figure out if we're signed in or not
+	(define gUserInfo (invoke 'Cryptosaur.validateAuthToken (httpGetCookie 'ai2_authToken)))
+	
+	; Initialize JS variables
+	(html (cat
+			"<script>"
+				"var $UserInfo = { username: " (toJSON (@ gUserInfo 'username)) ", rights:%rightsJS% };"
+			"</script>"
+			)
+		{
+			username: (@ gUserInfo 'username)
+			rightsJS: (toJSON (@ gUserInfo 'rights))
+			}
+		)
+	)
+?>
+
+<script src="res/jquery-1.7.2.min.js"></script>
+<script src="res/core.js"></script>
+<script src="res/console.js"></script>
+
+<link rel="stylesheet" href="res/core.css"/>
+<link rel="stylesheet" href="res/console.css"/>
+</head>
+
+<body>
+	<section id="header">
+		<div id="consoleTitle">AI2 Hexarc Command Interface</div>
+		<?if gUserInfo ?>
+			<div id='accountIcon'><div class='blankUserIcon'></div></div>
+			<div id='accountName'><?eval (@ gUserInfo 'username) ?></div>
+			<div id='accountControls'><span id='accountEdit' class='ctrlLink'>change password</span> &middot; <span id='accountSignOut' class='ctrlLink'>sign out</span></div>
+		<?else?>
+			<div id='accountIcon'><div class='blankUserIcon'></div></div>
+			<div id='accountSignIn'>Click to sign in</div>
+			<div id='accountControls'></div>
+		<?endif?>
+	</section>
+	<section id="console">
+		<div id="consoleOutput">
+			<p>Welcome!</p>
+		</div>
+		<form class="consoleInput" action="/" onsubmit="OnExecute(); return false;"><input id="fieldInput"></input></form>
+	</section>
+
+	<!-- Dialog Boxes -->
+	
+	<div id='pageCover'></div>
+	
+	<?if (not gUserInfo) ?>
+		<div id='dlgSignIn' class='dialogFrame' style='width:320px'>
+			<div class='dialogTitle'>Sign In</div>
+			<div class='dialogContent'>
+				<div class='ctrlLabel'>Username:</div>
+				<input id='idSignInName' class='ctrlInput' style='width:200px'/>
+				<div class='ctrlLabel'>Password:</div>
+				<input id='idSignInPassword' class='ctrlInput' type='password' style='width:200px'/>
+			</div>
+			<div class='dialogErrorBar'></div>
+			<div class='dialogCommandBar'>
+				<div id='idSignInOK' class='ctrlButton' style='display:inline-block; width:100px'>Sign In</div>
+				<div id='idSignInCancel' class='ctrlButton' style='display:inline-block; width:100px'>Cancel</div>
+			</div>
+		</div>
+	<?else?>
+		<div id='dlgChangePassword' class='dialogFrame' style='width:320px'>
+			<div class='dialogTitle'>Change Password</div>
+			<div class='dialogContent'>
+				<div class='ctrlLabel'>Old Password:</div>
+				<input id='idOldPassword' class='ctrlInput' type='password' style='width:200px'/>
+				<div class='ctrlLabel'>New Password:</div>
+				<input id='idNewPassword' class='ctrlInput' type='password' style='width:200px'/>
+				<div class='ctrlLabel'>Confirm Password:</div>
+				<input id='idConfirmPassword' class='ctrlInput' type='password' style='width:200px'/>
+			</div>
+			<div class='dialogErrorBar'></div>
+			<div class='dialogCommandBar'>
+				<div id='idChangePasswordOK' class='ctrlButton' style='display:inline-block; width:100px'>OK</div>
+				<div id='idChangePasswordCancel' class='ctrlButton' style='display:inline-block; width:100px'>Cancel</div>
+			</div>
+		</div>
+	<?endif?>
+</body>
+</html>
