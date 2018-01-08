@@ -24,7 +24,7 @@ Arc.service AI2.web
 	protocol:	http
 	port:		80
 	tls:		optional
-	hosts:		(ai2.dev.com ai2.benedict.com ai2.hexarc.com)
+	hosts:		(ai2.dev.com ai2.benedict.com ai2.hexarc.com localhost)
 	urlPaths:	"/"
 	
 	service:	www
@@ -43,7 +43,7 @@ Arc.service AI2.api
 	protocol:	http
 	port:		80
 	tls:		optional
-	hosts:		(ai2.dev.com ai2.benedict.com ai2.hexarc.com)
+	hosts:		(ai2.dev.com ai2.benedict.com ai2.hexarc.com localhost)
 	urlPaths:	"/api/"
 	rights:		Arc.admin		//	Service requires Arc.admin rights
 	

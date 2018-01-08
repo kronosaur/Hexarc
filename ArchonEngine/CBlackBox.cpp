@@ -50,6 +50,12 @@ void CBlackBox::Log (const CString &sLine)
 		int iWritten = m_File.Write(sOutput);
 
 		//	LATER: Handle out of disk space
+
+		//	In Debug mode, we always output.
+
+#ifdef DEBUG
+		printf(sOutput);
+#endif
 		}
 	else if (m_bConsoleOut)
 		{
@@ -58,13 +64,6 @@ void CBlackBox::Log (const CString &sLine)
 		//	which is UTF8.
 
 		printf(sOutput);
-		}
-	else
-		{
-#ifdef DEBUG
-		if (!m_bConsoleOut)
-			printf(sOutput);
-#endif
 		}
 	}
 
