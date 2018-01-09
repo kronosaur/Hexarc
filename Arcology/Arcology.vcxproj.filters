@@ -79,5 +79,6 @@
     <None Include="Notes.txt" />
     <None Include="PortsAndMessages.txt" />
     <None Include="..\.gitignore" />
+    <None Include="..\README.md" />
   </ItemGroup>
 </Project>

@@ -271,6 +271,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\.gitignore" />
+    <None Include="..\README.md" />
     <None Include="TestPackage\TestPackage.ars" />
     <None Include="ArcologyPackage.ars" />
     <None Include="Notes.txt" />
