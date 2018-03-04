@@ -229,6 +229,7 @@
     <ClCompile Include="CRowIterator.cpp" />
     <ClCompile Include="CRowKey.cpp" />
     <ClCompile Include="CSegmentBlockCache.cpp" />
+    <ClCompile Include="Housekeeping.cpp" />
     <ClCompile Include="IOrderedRowSet.cpp" />
     <ClCompile Include="MsgWaitForView.cpp" />
     <ClCompile Include="MsgWaitForVolume.cpp" />

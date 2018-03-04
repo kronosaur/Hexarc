@@ -690,6 +690,14 @@ class CAeonTable
 			stateUpdatingView,				//	We are updating a newly created secondary view.
 			};
 
+		struct SNewSegment
+			{
+			DWORD dwViewID;
+			CAeonSegment *pSeg;
+			CString sFilespec;
+			CString sBackup;
+			};
+
 		void CloseSegments (bool bMarkForDelete = false);
 		void CollectGarbage (void);
 		bool CopyDirectory (const CString &sFromPath, const CString &sToPath, CString *retsError);
@@ -701,6 +709,7 @@ class CAeonTable
 		bool DiffDesc (CDatum dDesc, TArray<CDatum> *retNewViews, CString *retsError);
 		bool FindTableVolumes (TArray<CString> *retVolumes);
 		bool FindView (const CString &sView, CAeonView **retpView);
+		DWORD FindSecondaryViewToUpdate (void) const;
 		int FindVolumeToOpen (const TArray<CString> &Volumes, TArray<SEQUENCENUMBER> *retSeq = NULL);
 		CString GetRecoveryFilespec (DWORD dwViewID);
 		CString GetRecoveryFilespec (const CString &sTablePath, DWORD dwViewID);
@@ -709,6 +718,10 @@ class CAeonTable
 		bool GetTablePath (const CString &sVolume, CString *retsTablePath, CString *retsError);
 		CString GetUniqueSegmentFilespec (CString *retsBackup);
 		SEQUENCENUMBER GetVolumeSeq (const CString &sVolume);
+		bool HousekeepingBackup (CSmartLock &Lock);
+		bool HousekeepingMergeSegments (CSmartLock &Lock);
+		bool HousekeepingUpdateView (CSmartLock &Lock, DWORD dwViewID);
+		void HousekeepingValidateBackup (void);
 		bool Init (const CString &sTablePath, CDatum dDesc, CString *retsError);
 		bool MoveToScrap (const CString &sFilespec);
 		bool OpenDesc (const CString &sFilespec, CDatum *retdDesc, CString *retsError);
