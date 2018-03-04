@@ -55,6 +55,7 @@ class CBBRLogFiles
 			};
 
 		void CloseFile (int iIndex);
+		char *FindLineStart (char *pPos, char *pFileStart) const;
 		bool OpenFile (int iIndex, CString *retsError = NULL);
 		bool RefreshFile (CString *retsError = NULL);
 

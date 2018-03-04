@@ -2080,7 +2080,9 @@ bool CAeonTable::Housekeeping (DWORD dwMaxMemoryUse)
 
 		if (ValidateVolume(m_sBackupVolume, &sError))
 			{
+#ifdef DEBUG_VERBOSE
 			m_pProcess->Log(MSG_LOG_INFO, strPattern(STR_BACKUP_OK, m_sName, m_sBackupVolume));
+#endif
 			}
 
 		//	Otherwise, we log an error and force a new backup

@@ -62,6 +62,47 @@ void CBBRLogFiles::CloseIfUnused (void)
 		}
 	}
 
+char *CBBRLogFiles::FindLineStart (char *pPos, char *pFileStart) const
+
+//	FindLineStart
+//
+//	Returns the start of the line.
+
+	{
+	while (pPos > pFileStart)
+		{
+		//	Look for an LF
+
+		while (pPos > pFileStart && pPos[-1] != '\n')
+			pPos--;
+
+		if (pPos == pFileStart)
+			return pPos;
+
+		//	Remember this position because it could be the start of a line.
+
+		char *pLineStart = pPos;
+
+		//	If the previous character is NOT CR, then this is not the beginning
+		//	of the line, so we continue.
+
+		pPos--;
+		if (pPos == pFileStart)
+			return pPos;
+
+		if (pPos[-1] != '\r')
+			continue;
+
+		//	Otherwise, check to see if the line starts with a date.
+
+		//	Found it.
+
+		return pLineStart;
+		}
+
+	return pPos;
+	}
+
 CDatum CBBRLogFiles::GetLine (const SCursor &Cursor) const
 
 //	GetLine
@@ -247,8 +288,7 @@ bool CBBRLogFiles::MoveBackwards (SCursor &Cursor, CString *retsError)
 
 		//	Keep going until we hit the start of the file or until we hit a CRLF.
 
-		while (pPos > pStart && pPos[-1] != '\n' && pPos[-1] != '\r')
-			pPos--;
+		pPos = FindLineStart(pPos, pStart);
 
 		//	We're now pointing at the beginning of the line.
 
