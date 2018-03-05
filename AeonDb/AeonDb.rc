@@ -51,8 +51,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,265,0
- PRODUCTVERSION 1,0,265,0
+ FILEVERSION 1,0,266,0
+ PRODUCTVERSION 1,0,266,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -68,12 +68,12 @@ BEGIN
         BLOCK "040904b0"
         BEGIN
             VALUE "FileDescription", "AeonDB Arcology Module"
-            VALUE "FileVersion", "1.0.265.0"
+            VALUE "FileVersion", "1.0.266.0"
             VALUE "InternalName", "AeonDB"
             VALUE "LegalCopyright", "Copyright © 2011-2018 by Kronosaur Productions LLC. All Rights Reserved."
             VALUE "OriginalFilename", "AeonDB"
             VALUE "ProductName", "AeonDB"
-            VALUE "ProductVersion", "1.0 beta 65"
+            VALUE "ProductVersion", "1.0 beta 66"
         END
     END
     BLOCK "VarFileInfo"
