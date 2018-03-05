@@ -1751,7 +1751,7 @@ CString CAeonTable::GetRecoveryFilespec (DWORD dwViewID)
 	return GetRecoveryFilespec(fileAppend(sVolumePath, m_sName), dwViewID);
 	}
 
-void CAeonTable::GetSegmentFilespecs (const CString &sTablePath, TArray<CString> *retList)
+void CAeonTable::GetSegmentFilespecs (const CString &sTablePath, TArray<CString> *retList) const
 
 //	GetSegmentFilespecs
 //
@@ -4422,7 +4422,7 @@ bool CAeonTable::ValidateTableName (const CString &sName)
 	return true;
 	}
 
-bool CAeonTable::ValidateVolume (const CString &sVolume, CString *retsError) const
+bool CAeonTable::ValidateVolume (const CString &sVolume, TArray<CString> &retUnused, CString *retsError) const
 
 //	ValidateVolume
 //
@@ -4445,6 +4445,18 @@ bool CAeonTable::ValidateVolume (const CString &sVolume, CString *retsError) con
 	CString sTablePath = fileAppend(sVolPath, m_sName);
 	bool bOtherVol = !strEqualsNoCase(sVolume, m_sPrimaryVolume);
 
+	//	Make a list of all segment files on the volume
+
+	TArray<CString> SegmentFilespecs;
+	GetSegmentFilespecs(sTablePath, &SegmentFilespecs);
+
+	//	Create a map of existing segment files. We mark each one TRUE if it is
+	//	being used.
+
+	TSortMap<CString, bool> Existing;
+	for (i = 0; i < SegmentFilespecs.GetCount(); i++)
+		Existing.SetAt(SegmentFilespecs[i], false);
+
 	//	Loop over all views checking each segment
 
 	for (i = 0; i < m_Views.GetCount(); i++)
@@ -4464,14 +4476,27 @@ bool CAeonTable::ValidateVolume (const CString &sVolume, CString *retsError) con
 
 			//	Check to see if the file exists. If not, then validation fails
 
-			bool bIsFile;
-			if (!fileExists(sSegFile, &bIsFile) || !bIsFile)
+			bool *pMarked = Existing.SetAt(sSegFile);
+			if (pMarked == NULL)
 				{
 				if (retsError) *retsError = strPattern(ERR_MISSING_FILE, sSegFile);
 				return false;
 				}
+
+			//	If the segment file does exist, mark it as in use
+
+			*pMarked = true;
 			}
 		}
+
+	//	Now loop over an segment files that are not used and return them
+
+	retUnused.DeleteAll();
+	for (i = 0; i < Existing.GetCount(); i++)
+		if (!Existing[i])
+			{
+			retUnused.Insert(Existing.GetKey(i));
+			}
 
 	//	If we get this far, then the volume is valid.
 

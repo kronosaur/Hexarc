@@ -713,7 +713,7 @@ class CAeonTable
 		int FindVolumeToOpen (const TArray<CString> &Volumes, TArray<SEQUENCENUMBER> *retSeq = NULL);
 		CString GetRecoveryFilespec (DWORD dwViewID);
 		CString GetRecoveryFilespec (const CString &sTablePath, DWORD dwViewID);
-		void GetSegmentFilespecs (const CString &sTablePath, TArray<CString> *retList);
+		void GetSegmentFilespecs (const CString &sTablePath, TArray<CString> *retList) const;
 		CString GetTableFilenamePrefix (void);
 		bool GetTablePath (const CString &sVolume, CString *retsTablePath, CString *retsError);
 		CString GetUniqueSegmentFilespec (CString *retsBackup);
@@ -734,7 +734,7 @@ class CAeonTable
 		bool RowExists (const CTableDimensions &Dims, CDatum dKey);
 		bool SaveDesc (void);
 		bool SaveDesc (CDatum dDesc, const CString &sFilespec, CString *retsError);
-		bool ValidateVolume (const CString &sVolume, CString *retsError) const;
+		bool ValidateVolume (const CString &sVolume, TArray<CString> &retUnused, CString *retsError) const;
 
 		static CDatum GetDimensionPathElement (EKeyTypes iKeyType, char **iopPos, char *pPosEnd);
 		static void SetDimensionDesc (CComplexStruct *pDesc, const SDimensionDesc &Dim);

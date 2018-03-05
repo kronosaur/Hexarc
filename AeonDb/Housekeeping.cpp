@@ -25,6 +25,7 @@ DECLARE_CONST_STRING(ERR_INVALID_BACKUP,				"Table %s: Backup volume %s is inval
 DECLARE_CONST_STRING(ERR_SEGMENT_BACKUP_FAILED,			"Unable to create backup for new segment: %s.")
 DECLARE_CONST_STRING(ERR_CANT_DELETE_FILE,				"Unable to delete file: %s.")
 DECLARE_CONST_STRING(ERR_UPDATE_VIEW_ABORTED,			"Unable to update view %s in table %s.")
+DECLARE_CONST_STRING(ERR_DELETING_EXTRA_SEGMENT_FILE,	"Table %s: Deleting extraneous segment file: %s.")
 
 bool CAeonTable::HousekeepingBackup (CSmartLock &Lock)
 
@@ -461,15 +462,26 @@ void CAeonTable::HousekeepingValidateBackup (void)
 //	Make sure the backup is valid. If not, we set a flag to trigger a backup.
 
 	{
+	int i;
 	CString sError;
 
 	//	If we validate, log it.
 
-	if (ValidateVolume(m_sBackupVolume, &sError))
+	TArray<CString> Extra;
+	if (ValidateVolume(m_sBackupVolume, Extra, &sError))
 		{
 #ifdef DEBUG_VERBOSE
 		m_pProcess->Log(MSG_LOG_INFO, strPattern(STR_BACKUP_OK, m_sName, m_sBackupVolume));
 #endif
+
+		//	If we have extra segment files, we need to delete them
+
+		for (i = 0; i < Extra.GetCount(); i++)
+			{
+			m_pProcess->Log(MSG_LOG_INFO, strPattern(ERR_DELETING_EXTRA_SEGMENT_FILE, m_sName, Extra[i]));
+			if (!fileDelete(Extra[i]))
+				m_pProcess->Log(MSG_LOG_ERROR, strPattern(ERR_CANT_DELETE_FILE, Extra[i]));
+			}
 		}
 
 	//	Otherwise, we log an error and force a new backup
