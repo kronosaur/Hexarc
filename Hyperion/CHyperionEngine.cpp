@@ -46,6 +46,7 @@ DECLARE_CONST_STRING(MSG_ESPER_ON_CONNECT,				"Esper.onConnect")
 DECLARE_CONST_STRING(MSG_ESPER_ON_DISCONNECT,			"Esper.onDisconnect")
 DECLARE_CONST_STRING(MSG_ESPER_ON_LISTENER_STARTED,		"Esper.onListenerStarted")
 DECLARE_CONST_STRING(MSG_ESPER_ON_LISTENER_STOPPED,		"Esper.onListenerStopped")
+DECLARE_CONST_STRING(MSG_HYPERION_GET_OPTIONS,			"Hyperion.getOptions")
 DECLARE_CONST_STRING(MSG_HYPERION_GET_PACKAGE_LIST,		"Hyperion.getPackageList")
 DECLARE_CONST_STRING(MSG_HYPERION_GET_SESSION_LIST,		"Hyperion.getSessionList")
 DECLARE_CONST_STRING(MSG_HYPERION_GET_TASK_LIST,		"Hyperion.getTaskList")
@@ -53,6 +54,7 @@ DECLARE_CONST_STRING(MSG_HYPERION_REFRESH,				"Hyperion.refresh")
 DECLARE_CONST_STRING(MSG_HYPERION_RESIZE_IMAGE,			"Hyperion.resizeImage")
 DECLARE_CONST_STRING(MSG_HYPERION_RUN_TASK,				"Hyperion.runTask")
 DECLARE_CONST_STRING(MSG_HYPERION_SERVICE_MSG,			"Hyperion.serviceMsg")
+DECLARE_CONST_STRING(MSG_HYPERION_SET_OPTION,			"Hyperion.setOption")
 DECLARE_CONST_STRING(MSG_HYPERION_SET_TASK_RUN_ON,		"Hyperion.setTaskRunOn")
 DECLARE_CONST_STRING(MSG_HYPERION_STOP_TASK,			"Hyperion.stopTask")
 
@@ -68,6 +70,9 @@ CHyperionEngine::SMessageHandler CHyperionEngine::m_MsgHandlerList[] =
 		{	MSG_ESPER_ON_CONNECT,				&CHyperionEngine::MsgEsperOnConnect },
 		{	MSG_ESPER_ON_LISTENER_STARTED,		&CHyperionEngine::MsgEsperOnListenerStarted },
 		{	MSG_ESPER_ON_LISTENER_STOPPED,		&CHyperionEngine::MsgEsperOnListenerStopped },
+
+		//	Hyperion.getOptions
+		{	MSG_HYPERION_GET_OPTIONS,			&CHyperionEngine::MsgGetOptions },
 
 		//	Hyperion.getPackageList
 		{	MSG_HYPERION_GET_PACKAGE_LIST,		&CHyperionEngine::MsgGetPackageList },
@@ -89,6 +94,9 @@ CHyperionEngine::SMessageHandler CHyperionEngine::m_MsgHandlerList[] =
 
 		//	Hyperion.serviceMsg {service} {msg} {payload}
 		{	MSG_HYPERION_SERVICE_MSG,			&CHyperionEngine::MsgServiceMsg },
+
+		//	Hyperion.setOption {option} {value}
+		{	MSG_HYPERION_SET_OPTION,			&CHyperionEngine::MsgSetOption },
 
 		//	Hyperion.setTaskRunOn {taskName} [{dateTime}]
 		{	MSG_HYPERION_SET_TASK_RUN_ON,		&CHyperionEngine::MsgSetTaskRunOn },
@@ -235,6 +243,34 @@ bool CHyperionEngine::FindHTTPService (const CString &sListener, const CHTTPMess
 	return true;
 	}
 
+void CHyperionEngine::LogSessionState (const CString &sLine)
+
+//	LogSessionState
+//
+//	Logs session state, if enabled.
+
+	{
+	if (m_Options.GetOptionBoolean(CHyperionOptions::optionLogSessionState))
+		GetProcessCtx()->Log(MSG_LOG_DEBUG, sLine);
+	}
+
+void CHyperionEngine::MsgGetOptions (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)
+
+//	MsgGetOptions
+//
+//	Hyperion.getOptions
+
+	{
+	//	Must be admin service
+
+	if (!ValidateSandboxAdmin(Msg, pSecurityCtx))
+		return;
+
+	//	Return list of options and current settings
+
+	SendMessageReply(MSG_REPLY_DATA, m_Options.GetStatus(), Msg);
+	}
+
 void CHyperionEngine::MsgGetPackageList (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)
 
 //	MsgGetPackageList
@@ -243,6 +279,11 @@ void CHyperionEngine::MsgGetPackageList (const SArchonMessage &Msg, const CHexeS
 
 	{
 	int i;
+
+	//	Must be admin service
+
+	if (!ValidateSandboxAdmin(Msg, pSecurityCtx))
+		return;
 
 	TArray<CHyperionPackageList::SPackageInfo> List;
 	m_Packages.GetPackageList(&List);
@@ -274,6 +315,10 @@ void CHyperionEngine::MsgGetSessionList (const SArchonMessage &Msg, const CHexeS
 	{
 	int i;
 
+	//	Must be admin service
+
+	if (!ValidateSandboxAdmin(Msg, pSecurityCtx))
+		return;
 
 	TArray<ISessionHandler *> Sessions;
 	GetSessions(&Sessions);
@@ -296,6 +341,11 @@ void CHyperionEngine::MsgGetTaskList (const SArchonMessage &Msg, const CHexeSecu
 //	Hyperion.getTaskList
 
 	{
+	//	Must be admin service
+
+	if (!ValidateSandboxAdmin(Msg, pSecurityCtx))
+		return;
+
 	SendMessageReply(MSG_REPLY_DATA, m_Scheduler.GetTaskList(), Msg);
 	}
 
@@ -307,6 +357,11 @@ void CHyperionEngine::MsgGetStatus (const SArchonMessage &Msg, const CHexeSecuri
 
 	{
 	int i;
+
+	//	Must be admin service
+
+	if (!ValidateSandboxAdmin(Msg, pSecurityCtx))
+		return;
 
 	CComplexStruct *pReply = new CComplexStruct;
 
@@ -392,6 +447,33 @@ void CHyperionEngine::MsgHousekeeping (const SArchonMessage &Msg, const CHexeSec
 
 		SendMessage(Msg);
 		}
+	}
+
+void CHyperionEngine::MsgSetOption (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)
+
+//	MsgSetOption
+//
+//	Sets an option for the engine.
+
+	{
+	const CString &sOption = Msg.dPayload.GetElement(0);
+	CDatum dValue = Msg.dPayload.GetElement(1);
+
+	//	Must be admin service
+
+	if (!ValidateSandboxAdmin(Msg, pSecurityCtx))
+		return;
+
+	//	Set the option.
+
+	CString sError;
+	if (!m_Options.SetOption(sOption, dValue, &sError))
+		{
+		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, sError, Msg);
+		return;
+		}
+
+	SendMessageReply(MSG_OK, CDatum(), Msg);
 	}
 
 void CHyperionEngine::MsgSetTaskRunOn (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)

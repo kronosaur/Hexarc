@@ -177,6 +177,7 @@
     <ClCompile Include="CHyperionCache.cpp" />
     <ClCompile Include="CHyperionCommandSet.cpp" />
     <ClCompile Include="CHyperionEngine.cpp" />
+    <ClCompile Include="CHyperionOptions.cpp" />
     <ClCompile Include="CHyperionPackageList.cpp" />
     <ClCompile Include="CHyperionScheduler.cpp" />
     <ClCompile Include="CHyperionSession.cpp" />

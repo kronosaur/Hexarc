@@ -349,6 +349,28 @@ class CHyperionCache
 		TSortMap<CString, SEntry> m_Cache;
 	};
 
+class CHyperionOptions
+	{
+	public:
+		enum EOptions
+			{
+			optionNone,
+
+			optionLogSessionState,					//	Boolean: Logs information about session state
+			};
+
+		bool GetOptionBoolean (EOptions iOption) const;
+		CDatum GetStatus (void) const;
+		bool SetOption (const CString &sOption, CDatum dValue, CString *retsError = NULL);
+		void SetOptionBoolean (EOptions iOption, bool bValue = true);
+
+	private:
+		static bool ParseBooleanValue (const CString &sOption, CDatum dValue, bool *retbValue, CString *retsError = NULL);
+
+		CCriticalSection m_cs;
+		bool m_bLogSessionState = false;
+	};
+
 //	CHyperionEngine ------------------------------------------------------------
 
 class CHyperionEngine : public TSimpleEngine<CHyperionEngine>
@@ -369,9 +391,11 @@ class CHyperionEngine : public TSimpleEngine<CHyperionEngine>
 		inline CHyperionCache &GetCache (void) { return m_Cache; }
 		inline void GetCommands (const CString &sAttrib, TArray<CHyperionCommandSet::SCommandInfo> *retList) { m_Packages.GetCommands(sAttrib, retList); }
 		inline CCriticalSection &GetCS (void) { return m_cs; }
+		inline CHyperionOptions &GetOptions (void) { return m_Options; }
 		inline void GetPackageTables (const CString &sPackage, TArray<CDatum> *retTableDefs) { m_Packages.GetPackageTables(sPackage, retTableDefs); }
 		inline bool IsAdminNeeded (void) { return m_bAdminNeeded; }
 		void LoadServices (void);
+		void LogSessionState (const CString &sLine);
 		inline void SetServicePackages (const TArray<CHyperionPackageList::SPackageFileInfo> &List, TArray<CString> *retNeeded) { m_Packages.SetPackages(List, retNeeded); }
 
 		//	TSimpleEngine
@@ -421,6 +445,7 @@ class CHyperionEngine : public TSimpleEngine<CHyperionEngine>
 		void MsgEsperOnConnect (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgEsperOnListenerStarted (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgEsperOnListenerStopped (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
+		void MsgGetOptions (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgGetPackageList (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgGetSessionList (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgGetTaskList (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
@@ -430,6 +455,7 @@ class CHyperionEngine : public TSimpleEngine<CHyperionEngine>
 		void MsgResizeImage (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgRunTask (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgServiceMsg (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
+		void MsgSetOption (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgSetTaskRunOn (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgStopTask (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 
@@ -450,6 +476,7 @@ class CHyperionEngine : public TSimpleEngine<CHyperionEngine>
 		TSortMap<CString, SListener> m_Listeners;
 		TSortMap<CString, SMsgHandler> m_MsgHandlers;
 		CHyperionScheduler m_Scheduler;
+		CHyperionOptions m_Options;
 		CHyperionCache m_Cache;
 		bool m_bAdminNeeded;						//	TRUE if we need to create an admin account
 	};

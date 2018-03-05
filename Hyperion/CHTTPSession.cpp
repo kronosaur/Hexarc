@@ -10,7 +10,6 @@
 #include "stdafx.h"
 
 #ifdef DEBUG
-//#define DEBUG_SESSION_STATE
 //#define DEBUG_SESSION_TIMING
 #endif
 
@@ -119,9 +118,7 @@ bool CHTTPSession::Disconnect (const SArchonMessage &Msg)
 	CComplexArray *pPayload = new CComplexArray;
 	pPayload->Insert(m_dSocket);
 
-#ifdef DEBUG_SESSION_STATE
-	printf("[%x:%x] Disconnect.\n", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket());
-#endif
+	m_pEngine->LogSessionState(strPattern("[%x:%x] Disconnect.", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket()));
 
 	//	Send
 
@@ -171,9 +168,7 @@ bool CHTTPSession::GetRequest (const SArchonMessage &Msg, bool bContinued)
 
 	//	Start by reading from the client (we expect a request)
 
-#ifdef DEBUG_SESSION_STATE
-	printf("[%x:%x] stateWaitingForRequest %s\n", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)MSG_ESPER_READ);
-#endif
+	m_pEngine->LogSessionState(strPattern("[%x:%x] stateWaitingForRequest %s.", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)MSG_ESPER_READ));
 
 	ISessionHandler::SendMessageCommand(ADDRESS_ESPER_COMMAND,
 			MSG_ESPER_READ,
@@ -250,16 +245,12 @@ bool CHTTPSession::ProcessStateDisconnected (const SArchonMessage &Msg)
 	{
 	if (strEquals(Msg.sMsg, MSG_ESPER_ON_DISCONNECT))
 		{
-#ifdef DEBUG_SESSION_STATE
-		printf("[%x:%x] Received %s\n", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)Msg.sMsg);
-#endif
+		m_pEngine->LogSessionState(strPattern("[%x:%x] Received: %s.", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)Msg.sMsg));
 		return false;
 		}
 	else
 		{
-#ifdef DEBUG_SESSION_STATE
-		printf("[%x:%x] Message while disconnected: %s\n", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)Msg.sMsg);
-#endif
+		m_pEngine->LogSessionState(strPattern("[%x:%x] Message while disconnected: %s.", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)Msg.sMsg));
 		return false;
 		}
 	}
@@ -300,9 +291,7 @@ bool CHTTPSession::ProcessStateResponseSent (const SArchonMessage &Msg)
 
 	else if (strEquals(Msg.sMsg, MSG_ESPER_ON_WRITE))
 		{
-#ifdef DEBUG_SESSION_STATE
-		printf("[%x:%x] Received %s\n", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)MSG_ESPER_ON_WRITE);
-#endif
+		m_pEngine->LogSessionState(strPattern("[%x:%x] Received %s.", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)MSG_ESPER_ON_WRITE));
 
 		//	If this is a 1.0 server or we were asked to close the connection, 
 		//	then we're done.
@@ -319,9 +308,7 @@ bool CHTTPSession::ProcessStateResponseSent (const SArchonMessage &Msg)
 		{
 		//	If we get this far, then something went wrong
 
-#ifdef DEBUG_SESSION_STATE
-		printf("[%x:%x] Unexpected message %s\n", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)Msg.sMsg);
-#endif
+		m_pEngine->LogSessionState(strPattern("[%x:%x] Unexpected message: %s.", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)Msg.sMsg));
 
 		GetProcessCtx()->Log(MSG_LOG_ERROR, strPattern(ERR_UNEXPECTED_MSG, CEsperInterface::ConnectionToFriendlyID(m_dSocket), m_iState, Msg.sMsg));
 		return false;
@@ -364,9 +351,7 @@ bool CHTTPSession::ProcessStateResponseSentPartial (const SArchonMessage &Msg)
 
 	else if (strEquals(Msg.sMsg, MSG_ESPER_ON_WRITE))
 		{
-#ifdef DEBUG_SESSION_STATE
-		printf("[%x:%x] Received %s\n", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)MSG_ESPER_ON_WRITE);
-#endif
+		m_pEngine->LogSessionState(strPattern("[%x:%x] Received: %s.", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)MSG_ESPER_ON_WRITE));
 
 		//	If we're done writing chunks, then continue reading
 
@@ -381,9 +366,7 @@ bool CHTTPSession::ProcessStateResponseSentPartial (const SArchonMessage &Msg)
 		{
 		//	If we get this far, then something went wrong
 
-#ifdef DEBUG_SESSION_STATE
-		printf("[%x:%x] Unexpected message %s\n", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)Msg.sMsg);
-#endif
+		m_pEngine->LogSessionState(strPattern("[%x:%x] Unexpected message: %s.", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)Msg.sMsg));
 
 		GetProcessCtx()->Log(MSG_LOG_ERROR, strPattern(ERR_UNEXPECTED_MSG, CEsperInterface::ConnectionToFriendlyID(m_dSocket), m_iState, Msg.sMsg));
 		return false;
@@ -405,9 +388,7 @@ bool CHTTPSession::ProcessStateWaitingForFileData (const SArchonMessage &Msg)
 		return SendResponse(m_Ctx, Msg);
 		}
 
-#ifdef DEBUG_SESSION_STATE
-	printf("[%x:%x] Received %s\n", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)MSG_AEON_FILE_DOWNLOAD_DESC);
-#endif
+	m_pEngine->LogSessionState(strPattern("[%x:%x] Received: %s.", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)MSG_AEON_FILE_DOWNLOAD_DESC));
 
 #ifdef DEBUG_FILES
 	GetProcessCtx()->Log(MSG_LOG_DEBUG, strPattern("[%x]: Received Aeon.fileDownloadDesc filePath=%s%s", 
@@ -513,9 +494,7 @@ bool CHTTPSession::ProcessStateWaitingForRequest (const SArchonMessage &Msg)
 		{
 		CDatum dData = Msg.dPayload.GetElement(0);
 
-#ifdef DEBUG_SESSION_STATE
-		printf("[%x:%x] Received %s\n", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)MSG_ESPER_ON_READ);
-#endif
+		m_pEngine->LogSessionState(strPattern("[%x:%x] Received: %s.", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)MSG_ESPER_ON_READ));
 
 		//	Parse the message. If we get an error, then we reply with
 		//	a 400 error.
@@ -607,9 +586,7 @@ bool CHTTPSession::ProcessStateWaitingForRequest (const SArchonMessage &Msg)
 		{
 		//	If we get this far, then something went wrong
 
-#ifdef DEBUG_SESSION_STATE
-		printf("[%x:%x] Unexpected message %s\n", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)Msg.sMsg);
-#endif
+		m_pEngine->LogSessionState(strPattern("[%x:%x] Unexpected message: %s.", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)Msg.sMsg));
 
 		GetProcessCtx()->Log(MSG_LOG_ERROR, strPattern(ERR_UNEXPECTED_MSG, CEsperInterface::ConnectionToFriendlyID(m_dSocket), m_iState, Msg.sMsg));
 		return false;
@@ -629,9 +606,8 @@ bool CHTTPSession::ProcessStateWaitingForRPCResult (const SArchonMessage &Msg)
 		return SendResponse(m_Ctx, Msg);
 		}
 
-#ifdef DEBUG_SESSION_STATE
-	printf("[%x:%x] Received %s\n", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)Msg.sMsg);
-#endif
+	m_pEngine->LogSessionState(strPattern("[%x:%x] Received: %s.", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)Msg.sMsg));
+
 	//	Return the reply to the handler. They might process some more and
 	//	request another RPC or they might return with a response.
 
@@ -872,9 +848,7 @@ bool CHTTPSession::SendReadFileRequest (SHTTPRequestCtx &Ctx, const SArchonMessa
 
 	//	Send the message
 
-#ifdef DEBUG_SESSION_STATE
-	printf("[%x:%x] stateWaitingForFileData %s\n", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)sMsg);
-#endif
+	m_pEngine->LogSessionState(strPattern("[%x:%x] stateWaitingForFileData: %s.", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)sMsg));
 
 	ISessionHandler::SendMessageCommand(sAddr,
 			sMsg,
@@ -994,9 +968,10 @@ bool CHTTPSession::SendResponse (SHTTPRequestCtx &Ctx, const SArchonMessage &Msg
 	pPayload->Insert(m_dSocket);
 	pPayload->Insert(dData);
 
-#ifdef DEBUG_SESSION_STATE
-	printf("[%x:%x] %s %s\n", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (bPartial ? "stateResponseSentPartial" : "stateResponseSent"), (LPSTR)MSG_ESPER_WRITE);
-#endif
+	if (bPartial)
+		m_pEngine->LogSessionState(strPattern("[%x:%x] stateResponseSentPartial %s.", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)MSG_ESPER_WRITE));
+	else
+		m_pEngine->LogSessionState(strPattern("[%x:%x] stateResponseSent %s.", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)MSG_ESPER_WRITE));
 
 	ISessionHandler::SendMessageCommand(ADDRESS_ESPER_COMMAND,
 			MSG_ESPER_WRITE,
@@ -1055,9 +1030,7 @@ bool CHTTPSession::SendResponseChunk (const SArchonMessage &Msg, CHTTPMessage &R
 	pPayload->Insert(m_dSocket);
 	pPayload->Insert(dData);
 
-#ifdef DEBUG_SESSION_STATE
-	printf("[%x:%x] SendMessage %s\n", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)MSG_ESPER_WRITE);
-#endif
+	m_pEngine->LogSessionState(strPattern("[%x:%x] SendMessage: %s.", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)MSG_ESPER_WRITE));
 
 	ISessionHandler::SendMessageCommand(ADDRESS_ESPER_COMMAND,
 			MSG_ESPER_WRITE,
@@ -1083,9 +1056,7 @@ bool CHTTPSession::SendRPC (SHTTPRequestCtx &Ctx)
 
 	//	Send the message
 
-#ifdef DEBUG_SESSION_STATE
-	printf("[%x:%x] stateWaitingForRPCResult %s\n", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)Ctx.RPCMsg.sMsg);
-#endif
+	m_pEngine->LogSessionState(strPattern("[%x:%x] stateWaitingForRPCResult: %s.", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)Ctx.RPCMsg.sMsg));
 
 	ISessionHandler::SendMessageCommand(Ctx.sRPCAddr,
 			Ctx.RPCMsg.sMsg,

@@ -102,6 +102,9 @@
     <ClCompile Include="CHyperionCache.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CHyperionOptions.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="HexeMarkup.h">

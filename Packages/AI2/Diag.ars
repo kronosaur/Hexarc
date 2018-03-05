@@ -7,6 +7,43 @@
 	AI2.CONSOLE INTERFACE
 ----------------------------------------------------------------------------- */
 
+function diag.option
+		{
+		attributes: (AI2.console AI2.authAdminOnly)
+		export: public
+		help: "Enables or disables a diagnostics option."
+		}
+	(lambda (params)
+		(block (
+			(option (@ params 0))
+			(optionLC (lowercase option))
+			(optionValue (@ params 1))
+			)
+
+			(switch
+				(not option)
+					(cat
+						"USAGE\n\n"
+
+						"diag.option {option} [enable|disable]\n"
+						"diag.option status\n\n"
+
+						"option:\n\n"
+
+						"Hyperion.logSessionState\n"
+						)
+
+				(= optionLC 'status)
+					(invoke 'Hyperion.getOptions)
+
+				(= (find optionLC "hyperion.") 0)
+					(invoke 'Hyperion.setOption option optionValue)
+
+				(cat "Unknown option: " option)
+				)
+			)
+		)
+
 function diag.view
 		{
 		attributes: (AI2.console AI2.authAdminOnly)
