@@ -125,42 +125,46 @@ enum EHTTPProcessingStatus
 
 struct SHTTPRequestCtx
 	{
-	SHTTPRequestCtx (void) : 
-			pSession(NULL),
-			pService(NULL),
-			iFileRecursion(0),
-			pProcessService(NULL),
-			pProcess(NULL),
-			pHexeEval(NULL),
-			iStatus(pstatNone)
-		{ }
-
 	~SHTTPRequestCtx (void) { if (pProcess) delete pProcess; if (pHexeEval) delete pHexeEval; Request.DeleteBodyBuilder(); }
+
+	inline void Mark (void)
+		{
+		pBodyBuilder->Mark();
+		dFileData.Mark();
+
+		if (pProcess)
+			pProcess->Mark();
+
+		if (pHexeEval)
+			pHexeEval->Mark();
+
+		RPCMsg.dPayload.Mark();
+		}
 
 	//	Current request
 	
 	CHTTPMessage Request;					//	Initialized by CHTTPSession when it receives the request
-	CEsperBodyBuilder BodyBuilder;			//	Used to parse the body
+	CEsperBodyBuilderPtr pBodyBuilder = CEsperBodyBuilderPtr(new CEsperBodyBuilder);	//	Used to parse the body
 
 	//	Processing state
 
-	CHyperionSession *pSession;				//	Session object
-	CHTTPService *pService;					//	Service handling request.
+	CHyperionSession *pSession = NULL;		//	Session object
+	CHTTPService *pService = NULL;			//	Service handling request.
 
-	int iFileRecursion;						//	Number of times we've requested a file this session
+	int iFileRecursion = 0;					//	Number of times we've requested a file this session
 	CDatum dFileData;						//	If file has been split, this contains data that we have
 											//		downloaded so far.
 
-	CHTTPService *pProcessService;			//	Service that initialized the process.
-	CHexeProcess *pProcess;					//	Hexe process handling this request (may be NULL).
+	CHTTPService *pProcessService = NULL;	//	Service that initialized the process.
+	CHexeProcess *pProcess = NULL;			//	Hexe process handling this request (may be NULL).
 											//		This object is initialized by HandleRequest (but freed by us)
 
-	CHexeMarkupEvaluator *pHexeEval;		//	Markup evaluator handling request (may be NULL).
+	CHexeMarkupEvaluator *pHexeEval = NULL;	//	Markup evaluator handling request (may be NULL).
 											//		This object is initialized by HandleRequest (but freed by us)
 
 	//	Current response
 
-	EHTTPProcessingStatus iStatus;			//	Processing status
+	EHTTPProcessingStatus iStatus = pstatNone;	//	Processing status
 	CHTTPMessage Response;					//	Initialized by CHTTPService (or derived classes)
 
 	CString sRPCAddr;						//	RPC address

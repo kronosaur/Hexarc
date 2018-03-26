@@ -129,6 +129,9 @@ enum EContentEncodingTypes
 class IMediaType
 	{
 	public:
+		inline IMediaType *AddRef (void) { m_dwRefCount++; return this; }
+		inline void Delete (void) { if (--m_dwRefCount == 0) delete this; }
+
 		virtual ~IMediaType (void) { }
 
 		virtual bool DecodeFromBuffer (const CString &sMediaType, const IMemoryBlock &Buffer) = 0;
@@ -142,19 +145,40 @@ class IMediaType
 
 		static EContentEncodingTypes GetDefaultEncodingType (const CString &sMediaType);
 		static CString MediaTypeFromExtension (const CString &sExtension);
+
+	private:
+		DWORD m_dwRefCount = 1;
 	};
+
+typedef TSharedPtr<IMediaType> IMediaTypePtr;
 
 class IMediaTypeBuilder
 	{
 	public:
+		IMediaTypeBuilder *AddRef (void) 
+			{ 
+			m_dwRefCount++; 
+			return this; 
+			}
+
+		void Delete (void) 
+			{ 
+			if (--m_dwRefCount == 0) 
+				delete this; 
+			}
+
 		virtual ~IMediaTypeBuilder (void) { }
 		virtual void Append (void *pPos, int iLength) = 0;
-		virtual bool CreateMedia (IMediaType **retpBody) = 0;
-		virtual void Delete (void) { delete this; }
+		virtual bool CreateMedia (IMediaTypePtr *retpBody) = 0;
 		virtual int GetLength (void) const = 0;
 		virtual void Init (const CString &sMediaType) = 0;
 		virtual bool IsEmpty (void) const { return (GetLength() == 0); }
+
+	private:
+		DWORD m_dwRefCount = 1;
 	};
+
+typedef TSharedPtr<IMediaTypeBuilder> IMediaTypeBuilderPtr;
 
 class CHTTPMessageBodyBuilder : public IMediaTypeBuilder
 	{
@@ -163,10 +187,10 @@ class CHTTPMessageBodyBuilder : public IMediaTypeBuilder
 
 		//	IMediaTypeBuilder interface
 
-		virtual void Append (void *pPos, int iLength);
-		virtual bool CreateMedia (IMediaType **retpBody);
-		virtual int GetLength (void) const { return m_Body.GetLength(); }
-		virtual void Init (const CString &sMediaType);
+		virtual void Append (void *pPos, int iLength) override;
+		virtual bool CreateMedia (IMediaTypePtr *retpBody) override;
+		virtual int GetLength (void) const override { return m_Body.GetLength(); }
+		virtual void Init (const CString &sMediaType) override;
 
 	private:
 		CString m_sMediaType;
@@ -189,14 +213,13 @@ class CHTTPMessage
 			};
 
 		CHTTPMessage (void);
-		~CHTTPMessage (void);
 
 		void AddHeader (const CString &sField, const CString &sValue);
 		void AddHeader (const CString &sField, const CDateTime &Value);
-		inline void DeleteBodyBuilder (void) { if (m_pBodyBuilder) m_pBodyBuilder->Delete(); m_pBodyBuilder = NULL; }
+		inline void DeleteBodyBuilder (void) { m_pBodyBuilder = NULL; }
 		bool Encode (EContentEncodingTypes iEncoding);
 		bool FindHeader (const CString &sField, CString *retsValue = NULL) const;
-		inline IMediaType *GetBody (void) const { return m_pBody; }
+		inline IMediaTypePtr GetBody (void) const { return m_pBody; }
 		inline const CString &GetBodyBuffer (void) const { if (m_pBody) return m_pBody->GetMediaBuffer(); else return NULL_STR; }
 		DWORD GetBodySize (void) const;
 		CString GetCookie (const CString &sKey) const;
@@ -211,7 +234,7 @@ class CHTTPMessage
 		inline const CString &GetStatusMsg (void) const { return m_sStatusMsg; }
 		bool InitFromBuffer (const IMemoryBlock &Buffer, bool bNoBody = false);
 		bool InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBody = false);
-		void InitFromPartialBufferReset (IMediaTypeBuilder *pBodyBuilder = NULL);
+		void InitFromPartialBufferReset (IMediaTypeBuilderPtr pBodyBuilder = IMediaTypeBuilderPtr());
 		bool InitFromSocket (SOCKET hSocket);
 		bool InitFromStream (IByteStream &Stream);
 		bool InitRequest (const CString &sMethod, const CString &sURL);
@@ -220,7 +243,7 @@ class CHTTPMessage
 		inline bool IsHTTP11 (void) const { return m_bHTTP11; }
 		bool IsMessageComplete (void) const { return m_iState == stateDone; }
 		bool IsMessagePartial (void) const { return (m_iState != stateDone && m_iState != stateStart); }
-		void SetBody (IMediaType *pBody);
+		void SetBody (IMediaTypePtr pBody);
 		bool WriteChunkToBuffer (IByteStream &Stream, DWORD dwOffset, DWORD dwSize) const;
 		bool WriteHeadersToBuffer (IByteStream &Stream, DWORD dwFlags = 0) const;
 		bool WriteToBuffer (IByteStream &Stream) const;
@@ -258,13 +281,13 @@ class CHTTPMessage
 		DWORD m_dwStatusCode;
 		CString m_sStatusMsg;
 		TArray<SHeader> m_Headers;
-		IMediaType *m_pBody;
+		IMediaTypePtr m_pBody;
 		bool m_bHTTP11;					//	If TRUE, HTTP/1.1
 
 		//	Parse state
 		States m_iState;
 		int m_iChunkLeft;
-		IMediaTypeBuilder *m_pBodyBuilder;
+		IMediaTypeBuilderPtr m_pBodyBuilder;
 		CString m_sLeftOver;			//	Left over buffer from previous call
 	};
 

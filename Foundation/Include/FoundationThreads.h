@@ -129,6 +129,7 @@ template <class CLASS> class TThread : public COSObject
 			CLASS *pObj = (CLASS *)pData;
 			::srand(::GetTickCount() * ::GetCurrentThreadId());
 			pObj->Run();
+			_endthreadex(0);
 			return 0;
 			}
 

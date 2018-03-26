@@ -4,4 +4,7 @@
 
 #include "stdafx.h"
 
+#pragma comment( lib, "version.lib" )
+#pragma comment( lib, "ws2_32.lib" )
+
 NoEmptyFile();

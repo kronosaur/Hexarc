@@ -202,12 +202,6 @@
   <ItemGroup>
     <None Include="Notes.txt" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Foundation\Foundation.vcxproj">
-      <Project>{74057f42-7b59-48b9-8686-ef83d5c86bc1}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

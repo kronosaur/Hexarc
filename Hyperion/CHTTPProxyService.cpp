@@ -57,7 +57,7 @@ bool CHTTPProxyService::OnHandleRequest (SHTTPRequestCtx &Ctx)
 	pParams->Append(Ctx.Request.GetMethod());
 	pParams->Append(sDestURL);
 	pParams->Append(dDestHeaders);
-	pParams->Append(Ctx.BodyBuilder.GetRawBody());
+	pParams->Append(Ctx.pBodyBuilder->GetRawBody());
 	pParams->Append(CDatum(pOptions));
 
 	//	We let the Hexe engine do a call and wait for the result. We need to do
@@ -101,7 +101,7 @@ bool CHTTPProxyService::OnHandleRPCResult (SHTTPRequestCtx &Ctx, const SArchonMe
 		if (!Ctx.Response.FindHeader(HEADER_CONTENT_TYPE, &sMediaType))
 			sMediaType = MEDIA_TYPE_TEXT;
 
-		CRawMediaType *pBody = new CRawMediaType;
+		IMediaTypePtr pBody = IMediaTypePtr(new CRawMediaType);
 		pBody->DecodeFromBuffer(sMediaType, CStringBuffer(sBody));
 
 		Ctx.Response.SetBody(pBody);

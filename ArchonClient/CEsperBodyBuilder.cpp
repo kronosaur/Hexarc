@@ -100,7 +100,7 @@ void CEsperBodyBuilder::Append (void *pPos, int iLength)
 		}
 	}
 
-bool CEsperBodyBuilder::CreateMedia (IMediaType **retpBody)
+bool CEsperBodyBuilder::CreateMedia (IMediaTypePtr *retpBody)
 
 //	CreateMedia
 //
@@ -110,7 +110,7 @@ bool CEsperBodyBuilder::CreateMedia (IMediaType **retpBody)
 	//	We actually don't need the body, because this builder stored a datum for
 	//	the result.
 
-	*retpBody = new CRawMediaType;
+	*retpBody = IMediaTypePtr(new CRawMediaType);
 
 	//	Generate the body based on our state
 

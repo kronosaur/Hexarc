@@ -76,6 +76,7 @@ class CIOCPSocket : public IIOCPEntry
 		CIOCPSocket (SOCKET hSocket);
 		virtual ~CIOCPSocket (void);
 
+		inline SOCKET GetSocket (void) const { return m_hSocket; }
 		bool ResetSocket (void);
 
 		//	IIOCPEntry interface

@@ -71,8 +71,8 @@ bool CEsperInterface::ConvertBodyToDatum (const CHTTPMessage &Message, CDatum *r
 	{
 	//	Edge condition. This is valid (e.g.) if we have a pure GET request.
 
-	IMediaType *pBody = Message.GetBody();
-	if (pBody == NULL)
+	IMediaTypePtr pBody = Message.GetBody();
+	if (!pBody)
 		{
 		*retdBody = CDatum();
 		return true;
@@ -357,7 +357,7 @@ void CEsperInterface::EncodeHTTPRequest (const CString &sMethod, const CString &
 		if (!retMessage->FindHeader(HEADER_CONTENT_TYPE, &sMediaType))
 			sMediaType = MEDIA_TYPE_TEXT;
 
-		CRawMediaType *pBody = new CRawMediaType;
+		IMediaTypePtr pBody = IMediaTypePtr(new CRawMediaType);
 		pBody->DecodeFromBuffer(sMediaType, CStringBuffer(dBody.AsString()));
 
 		retMessage->SetBody(pBody);

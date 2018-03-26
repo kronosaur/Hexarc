@@ -157,7 +157,7 @@ bool CHTTPSession::GetRequest (const SArchonMessage &Msg, bool bContinued)
 
 	if (!bContinued)
 		{
-		m_Ctx.Request.InitFromPartialBufferReset(&m_Ctx.BodyBuilder);
+		m_Ctx.Request.InitFromPartialBufferReset(IMediaTypeBuilderPtr(m_Ctx.pBodyBuilder->AddRef()));
 		m_Ctx.AdditionalHeaders.DeleteAll();
 		}
 
@@ -221,15 +221,7 @@ void CHTTPSession::OnMark (void)
 //	Mark data in use
 
 	{
-	m_Ctx.dFileData.Mark();
-
-	if (m_Ctx.pProcess)
-		m_Ctx.pProcess->Mark();
-
-	if (m_Ctx.pHexeEval)
-		m_Ctx.pHexeEval->Mark();
-
-	m_Ctx.BodyBuilder.Mark();
+	m_Ctx.Mark();
 
 	//	Let our ancestor mark
 
@@ -718,7 +710,7 @@ bool CHTTPSession::ProcessFileResult (SHTTPRequestCtx &Ctx, CDatum dFileDesc, CD
 
 			CString sMediaType = IMediaType::MediaTypeFromExtension(sExtension);
 
-			CRawMediaType *pBody = new CRawMediaType;
+			IMediaTypePtr pBody = IMediaTypePtr(new CRawMediaType);
 			pBody->DecodeFromBuffer(sMediaType, CStringBuffer(dFileData));
 
 			Ctx.Response.InitResponse(http_OK, STR_OK);

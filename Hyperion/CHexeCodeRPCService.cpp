@@ -73,7 +73,7 @@ bool CHexeCodeRPCService::ComposeResponse (SHTTPRequestCtx &Ctx, CHexeProcess::E
 	//
 	//	JSON
 
-	CRawMediaType *pBody = new CRawMediaType;
+	IMediaTypePtr pBody = IMediaTypePtr(new CRawMediaType);
 	if (strEquals(m_sOutputContentType, MEDIA_TYPE_JSON) || strEquals(m_sOutputContentType, MEDIA_TYPE_JSON_REQUEST))
 		{
 		CStringBuffer Buffer;
@@ -156,7 +156,7 @@ bool CHexeCodeRPCService::OnHandleRequest (SHTTPRequestCtx &Ctx)
 	//	Compose the request body into a datum
 
 	CDatum dBody;
-	if (!Ctx.BodyBuilder.GetBody(&dBody))
+	if (!Ctx.pBodyBuilder->GetBody(&dBody))
 		{
 		Ctx.iStatus = pstatResponseReady;
 		Ctx.Response.InitResponse(http_UNSUPPORTED_MEDIA_TYPE, dBody);
@@ -166,7 +166,7 @@ bool CHexeCodeRPCService::OnHandleRequest (SHTTPRequestCtx &Ctx)
 	//	We can reset the body, since we don't need it anymore (and we don't
 	//	want BodyBuilder to keep it in memory).
 
-	Ctx.BodyBuilder.ResetBody();
+	Ctx.pBodyBuilder->ResetBody();
 
 	//	If a different service initialized the process, then clean up
 
@@ -199,7 +199,7 @@ bool CHexeCodeRPCService::OnHandleRequest (SHTTPRequestCtx &Ctx)
 
 		Ctx.pProcess->SetLibraryCtx(LIBRARY_HYPERION, Ctx.pSession->GetEngine());
 		Ctx.pProcess->SetLibraryCtx(LIBRARY_SESSION, Ctx.pSession);
-		Ctx.pProcess->SetLibraryCtx(LIBRARY_SESSION_HTTP_BODY_BUILDER, &Ctx.BodyBuilder);
+		Ctx.pProcess->SetLibraryCtx(LIBRARY_SESSION_HTTP_BODY_BUILDER, Ctx.pBodyBuilder);
 		Ctx.pProcess->SetLibraryCtx(LIBRARY_SESSION_HTTP_REQUEST, &Ctx.Request);
 		Ctx.pProcess->SetSecurityCtx(Ctx.pSession->GetSecurityCtx());
 		}

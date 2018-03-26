@@ -38,13 +38,15 @@ template <class OBJ> class TSharedPtr
 
 		TSharedPtr<OBJ> &operator= (const TSharedPtr<OBJ> &Src)
 			{
-			if (m_pPtr)
-				m_pPtr->Delete();
+			OBJ *pOld = m_pPtr;
 
 			if (Src.m_pPtr)
 				m_pPtr = Src.m_pPtr->AddRef();
 			else
 				m_pPtr = NULL;
+
+			if (pOld)
+				pOld->Delete();
 
 			return *this;
 			}
@@ -58,10 +60,12 @@ template <class OBJ> class TSharedPtr
 
 		void Set (OBJ *pPtr)
 			{
-			if (m_pPtr)
-				m_pPtr->Delete();
+			OLD *pOld = m_pPtr;
 
 			m_pPtr = pPtr;
+
+			if (pOld)
+				pOld->Delete();
 			}
 
 		void Set (const TSharedPtr<OBJ> &Src)
@@ -102,13 +106,15 @@ template <class OBJ> class TUniquePtr
 
 		TUniquePtr<OBJ> &operator= (const TUniquePtr<OBJ> &Src)
 			{
-			if (m_pPtr)
-				delete m_pPtr;
+			OBJ *pOld = m_pPtr;
 
 			if (Src.m_pPtr)
 				m_pPtr = new OBJ(*Src.m_pPtr);
 			else
 				m_pPtr = NULL;
+
+			if (pOld)
+				delete pOld;
 
 			return *this;
 			}
@@ -122,10 +128,12 @@ template <class OBJ> class TUniquePtr
 
 		void Set (OBJ *pPtr)
 			{
-			if (m_pPtr)
-				delete m_pPtr;
+			OBJ *pOld = m_pPtr;
 
 			m_pPtr = pPtr;
+
+			if (pOld)
+				delete pOld;
 			}
 
 		void Set (const TUniquePtr<OBJ> &Src)
@@ -135,11 +143,13 @@ template <class OBJ> class TUniquePtr
 
 		void TakeHandoff (TUniquePtr<OBJ> &Src)
 			{
-			if (m_pPtr)
-				delete m_pPtr;
+			OBJ *pOld = m_pPtr;
 
 			m_pPtr = Src.m_pPtr;
 			Src.m_pPtr = NULL;
+
+			if (pOld)
+				delete pOld;
 			}
 
 	private:

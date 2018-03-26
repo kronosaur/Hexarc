@@ -31,25 +31,12 @@ CString GetToken (char *pPos, char *pEndPos, char chDelimiter, char **retpPos);
 
 CHTTPMessage::CHTTPMessage (void) : 
 		m_iType(typeUnknown),
-		m_bHTTP11(true),
-		m_pBody(NULL),
-		m_pBodyBuilder(NULL)
+		m_bHTTP11(true)
 
 //	CHTTPMessage constructor
 
 	{
 	InitFromPartialBufferReset();
-	}
-
-CHTTPMessage::~CHTTPMessage (void)
-
-//	CHTTPMessage destructor
-
-	{
-	if (m_pBodyBuilder)
-		m_pBodyBuilder->Delete();
-
-	SetBody(NULL);
 	}
 
 void CHTTPMessage::AddHeader (const CString &sField, const CString &sValue)
@@ -194,7 +181,7 @@ EContentEncodingTypes CHTTPMessage::GetDefaultEncoding (void) const
 //	Returns the default encoding based on the media type
 
 	{
-	if (m_pBody == NULL
+	if (!m_pBody
 			|| m_pBody->GetMediaBuffer().IsEmpty())
 		return http_encodingIdentity;
 
@@ -278,7 +265,7 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 	char *pPos;
 	char *pEndPos;
 
-	if (m_pBodyBuilder == NULL)
+	if (!m_pBodyBuilder)
 		InitFromPartialBufferReset();
 
 	//	If we have left overs, prepend it to the new buffer.
@@ -385,7 +372,7 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 				//	Reset everything
 
 				m_Headers.DeleteAll();
-				SetBody(NULL);
+				SetBody(IMediaTypePtr());
 
 				m_iState = stateHeaders;
 				break;
@@ -623,19 +610,18 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 
 	if (m_iState == stateDone && !m_pBodyBuilder->IsEmpty())
 		{
-		IMediaType *pBody;
+		IMediaTypePtr pBody;
 
 		m_pBodyBuilder->CreateMedia(&pBody);
 		SetBody(pBody);
 
-		m_pBodyBuilder->Delete();
-		m_pBodyBuilder = NULL;
+		m_pBodyBuilder = IMediaTypeBuilderPtr();
 		}
 
 	return true;
 	}
 
-void CHTTPMessage::InitFromPartialBufferReset (IMediaTypeBuilder *pBodyBuilder)
+void CHTTPMessage::InitFromPartialBufferReset (IMediaTypeBuilderPtr pBodyBuilder)
 
 //	InitFromPartialBufferReset
 //
@@ -644,13 +630,10 @@ void CHTTPMessage::InitFromPartialBufferReset (IMediaTypeBuilder *pBodyBuilder)
 //	pointer.
 
 	{
-	if (m_pBodyBuilder)
-		m_pBodyBuilder->Delete();
-
 	if (pBodyBuilder)
 		m_pBodyBuilder = pBodyBuilder;
 	else
-		m_pBodyBuilder = new CHTTPMessageBodyBuilder;
+		m_pBodyBuilder = IMediaTypeBuilderPtr(new CHTTPMessageBodyBuilder);
 
 	m_iState = stateStart;
 	m_sLeftOver = NULL_STR;
@@ -742,12 +725,9 @@ bool CHTTPMessage::InitRequest (const CString &sMethod, const CString &sURL)
 	m_dwStatusCode = 0;
 	m_Headers.DeleteAll();
 
-	if (m_pBodyBuilder)
-		{
-		m_pBodyBuilder->Delete();
-		m_pBodyBuilder = NULL;
-		}
-	SetBody(NULL);
+	m_pBodyBuilder = NULL;
+
+	SetBody(IMediaTypePtr());
 
 	return true;
 	}
@@ -771,12 +751,9 @@ bool CHTTPMessage::InitResponse (DWORD dwStatusCode, const CString &sStatusMsg)
 	m_sURL = NULL_STR;
 	m_Headers.DeleteAll();
 
-	if (m_pBodyBuilder)
-		{
-		m_pBodyBuilder->Delete();
-		m_pBodyBuilder = NULL;
-		}
-	SetBody(NULL);
+	m_pBodyBuilder = NULL;
+
+	SetBody(IMediaTypePtr());
 
 	return true;
 	}
@@ -1121,16 +1098,13 @@ bool CHTTPMessage::ParseToken (char *pPos, char *pEndPos, char chDelimiter, char
 	return true;
 	}
 
-void CHTTPMessage::SetBody (IMediaType *pBody)
+void CHTTPMessage::SetBody (IMediaTypePtr pBody)
 
 //	SetBody
 //
 //	Sets the body
 
 	{
-	if (m_pBody)
-		delete m_pBody;
-
 	m_pBody = pBody;
 	}
 
@@ -1145,7 +1119,7 @@ bool CHTTPMessage::WriteChunkToBuffer (IByteStream &Stream, DWORD dwOffset, DWOR
 	//	Must have a body.
 
 	ASSERT(m_pBody);
-	if (m_pBody == NULL)
+	if (!m_pBody)
 		return false;
 
 	//	Write out the chunk size.

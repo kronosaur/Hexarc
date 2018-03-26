@@ -89,11 +89,10 @@ class CEsperBodyBuilder : public IMediaTypeBuilder
 
 		//	IMediaTypeBuilder interface
 
-		virtual void Append (void *pPos, int iLength);
-		virtual bool CreateMedia (IMediaType **retpBody);
-		virtual void Delete (void) { }
-		virtual int GetLength (void) const { return m_iBodyRead; }
-		virtual void Init (const CString &sMediaType);
+		virtual void Append (void *pPos, int iLength) override;
+		virtual bool CreateMedia (IMediaTypePtr *retpBody) override;
+		virtual int GetLength (void) const override { return m_iBodyRead; }
+		virtual void Init (const CString &sMediaType) override;
 
 	private:
 		enum EStates
@@ -167,6 +166,8 @@ class CEsperBodyBuilder : public IMediaTypeBuilder
 		CDatum m_dBody;
 		bool m_bParseSuccess;
 	};
+
+typedef TSharedPtr<CEsperBodyBuilder> CEsperBodyBuilderPtr;
 
 class CEsperMultipartParser
 	{

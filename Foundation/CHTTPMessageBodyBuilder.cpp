@@ -24,14 +24,14 @@ void CHTTPMessageBodyBuilder::Append (void *pPos, int iLength)
 	m_Body.Write(pPos, iLength);
 	}
 
-bool CHTTPMessageBodyBuilder::CreateMedia (IMediaType **retpBody)
+bool CHTTPMessageBodyBuilder::CreateMedia (IMediaTypePtr *retpBody)
 
 //	CreateMedia
 //
 //	Creates the media buffer
 
 	{
-	IMediaType *pBody = new CRawMediaType;
+	IMediaTypePtr pBody(new CRawMediaType);
 	pBody->DecodeFromBuffer(m_sMediaType, m_Body);
 	*retpBody = pBody;
 	return true;

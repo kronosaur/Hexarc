@@ -97,7 +97,7 @@ bool CHexeMarkupEvaluator::ComposeResponse (SHTTPRequestCtx &Ctx)
 	{
 	int i;
 
-	CRawMediaType *pBody = new CRawMediaType;
+	IMediaTypePtr pBody = IMediaTypePtr(new CRawMediaType);
 
 	//	NOTE: We default to HTML, but if the user added a Content-Type header 
 	//	then we'll use that instead.
@@ -166,7 +166,7 @@ bool CHexeMarkupEvaluator::EvalInit (SHTTPRequestCtx &Ctx,
 
 	m_pProcess->SetLibraryCtx(LIBRARY_HYPERION, Ctx.pSession->GetEngine());
 	m_pProcess->SetLibraryCtx(LIBRARY_SESSION, Ctx.pSession);
-	m_pProcess->SetLibraryCtx(LIBRARY_SESSION_HTTP_BODY_BUILDER, &Ctx.BodyBuilder);
+	m_pProcess->SetLibraryCtx(LIBRARY_SESSION_HTTP_BODY_BUILDER, Ctx.pBodyBuilder);
 	m_pProcess->SetLibraryCtx(LIBRARY_SESSION_HTTP_REQUEST, &Ctx.Request);
 	m_pProcess->SetSecurityCtx(SecurityCtx);
 
