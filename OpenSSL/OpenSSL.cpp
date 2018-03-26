@@ -24,3 +24,4 @@ void SHA256Hash(unsigned char digest[EVP_MAX_MD_SIZE], char *stringToHash)
  
  EVP_cleanup();
 }
+

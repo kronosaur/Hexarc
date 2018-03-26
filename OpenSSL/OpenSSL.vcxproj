@@ -213,6 +213,7 @@
     <ClCompile Include="COpenSSL.cpp" />
     <ClCompile Include="CSSLCtx.cpp" />
     <ClCompile Include="CSSLSocketStream.cpp" />
+    <ClCompile Include="HTTP.cpp" />
     <ClCompile Include="OpenSSL.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

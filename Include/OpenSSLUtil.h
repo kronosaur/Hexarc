@@ -386,3 +386,5 @@ class CSSLSocketStream : public IByteStream
 		OpenSSL_SSLPtr m_pSSL;
 		OpenSSL_BIOPtr m_pBIO;
 	};
+
+CHTTPMessage httpRequest (const CString &sURL, const CString &sMethod, const TSortMap<CString, CString> *pHeaders = NULL, const IMemoryBlock *pBuffer = NULL);
