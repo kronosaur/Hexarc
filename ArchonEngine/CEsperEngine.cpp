@@ -35,7 +35,7 @@
 
 #include "stdafx.h"
 
-const int INITIAL_PROCESSING_THREADS =					3;
+const int INITIAL_PROCESSING_THREADS =					6;
 const int DEFAULT_BUFFER_SIZE =							16 * 1024;
 const int DEFAULT_QUEUE_SIZE =							1000;
 
@@ -89,8 +89,6 @@ DECLARE_CONST_STRING(STR_ESPER_ENGINE,					"CEsperEngine")
 
 DECLARE_CONST_STRING(ERR_DUPLICATE_LISTENER_NAME,		"Duplicate listener name.")
 DECLARE_CONST_STRING(ERR_INVALID_LISTENER_NAME,			"Invalid listener name.")
-DECLARE_CONST_STRING(ERR_INVALID_CONNECTION,			"Invalid connection.")
-DECLARE_CONST_STRING(ERR_INVALID_CONNECT_ADDR,			"Invalid connection address.")
 DECLARE_CONST_STRING(ERR_LISTENER_NOT_FOUND,			"Unable to find listener: %s.")
 DECLARE_CONST_STRING(ERR_READ_FAILED,					"Read failed: %s")
 DECLARE_CONST_STRING(ERR_CONNECT_FAILED,				"Unable to connect: %s")

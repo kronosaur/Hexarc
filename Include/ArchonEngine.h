@@ -34,8 +34,10 @@ struct SArchonMessage
 	{
 	CString sMsg;								//	Message name
 	CString sReplyAddr;							//	Address to send errors/replies to (NULL_STR if no reply required)
-	DWORD dwTicket;								//	DWORD used by sender to track replies
+	DWORD dwTicket = 0;							//	DWORD used by sender to track replies
 	CDatum dPayload;							//	Payload (depending on message)
+
+	DWORD dwEnqueueTime = 0;					//	Tick when message was added to queue.
 	};
 
 typedef TArray<SArchonMessage> CArchonMessageList;

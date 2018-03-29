@@ -74,6 +74,8 @@ bool CEsperSimpleConnection::BeginWrite (const SArchonMessage &Msg, const CStrin
 //	Start a write operation and reply to the message when complete.
 
 	{
+	ASSERT(sData.GetLength() > 0);
+
 	//	Remember the message to reply to.
 
 	m_iState = stateReplyOnWrite;

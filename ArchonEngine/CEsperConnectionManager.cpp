@@ -46,6 +46,10 @@ void CEsperConnectionManager::AddConnection (CEsperConnection *pConnection, CDat
 	pConnection->SetID(dwID);
 	m_IOCP.AddObject(pConnection);
 
+#ifdef DEBUG
+	printf("[%x:%x] Created socked\n", CEsperInterface::ConnectionToFriendlyID(pConnection->GetID()), (DWORD)pConnection->GetSocket());
+#endif
+
 	//	Done
 
 	if (retdConnection)

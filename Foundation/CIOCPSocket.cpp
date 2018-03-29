@@ -35,6 +35,10 @@ CIOCPSocket::~CIOCPSocket (void)
 		{
 		shutdown(m_hSocket, SD_BOTH);
 		CSocket::CloseHandoffSocket(m_hSocket);
+
+#ifdef DEBUG
+		printf("[%x:%x] Closed socked\n", ((GetID() & 0x00ffffff) + 1), (DWORD)m_hSocket);
+#endif
 		}
 	}
 
@@ -49,6 +53,7 @@ bool CIOCPSocket::ResetSocket (void)
 		{
 		shutdown(m_hSocket, SD_BOTH);
 		CSocket::CloseHandoffSocket(m_hSocket);
+
 		m_hSocket = INVALID_SOCKET;
 		}
 
