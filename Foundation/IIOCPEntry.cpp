@@ -30,7 +30,7 @@ bool IIOCPEntry::BeginConnection (const CString &sAddress, DWORD dwPort, CString
 		}
 
 	m_iCurrentOp = opConnect;
-	m_dwOpStartTime = sysGetTickCount();
+	m_dwOpStartTime = sysGetTickCount64();
 
 	//	Bind the socket before passing to ConnectEx. For some reason the API
 	//	does not do its own bind (probably so you can reuse sockets).
@@ -131,7 +131,7 @@ bool IIOCPEntry::BeginRead (CString *retsError)
 		}
 
 	m_iCurrentOp = opRead;
-	m_dwOpStartTime = sysGetTickCount();
+	m_dwOpStartTime = sysGetTickCount64();
 
 	//	If we don't have a buffer, then we're done.
 
@@ -199,7 +199,7 @@ bool IIOCPEntry::BeginWrite (const CString &sData, CString *retsError)
 		}
 
 	m_iCurrentOp = opWrite;
-	m_dwOpStartTime = sysGetTickCount();
+	m_dwOpStartTime = sysGetTickCount64();
 
 	//	If we don't have a buffer, then we're done.
 
@@ -313,7 +313,7 @@ void IIOCPEntry::Process (void)
 	OnProcess(); 
 	}
 
-bool IIOCPEntry::TimeoutCheck (DWORD dwNow, DWORD dwTimeout)
+bool IIOCPEntry::TimeoutCheck (DWORDLONG dwNow, DWORDLONG dwTimeout)
 
 //	TimeoutCheck
 //
@@ -323,11 +323,14 @@ bool IIOCPEntry::TimeoutCheck (DWORD dwNow, DWORD dwTimeout)
 //	If we return TRUE, it means the caller should delete us.
 
 	{
+	if (m_dwOpStartTime == 0)
+		return false;
+
 	HANDLE hHandle = GetCompletionHandle();
 	if (hHandle == INVALID_HANDLE_VALUE)
 		return false;
 
-	DWORD dwElapsed = (dwNow < m_dwOpStartTime ? (0xffffffff - m_dwOpStartTime) + dwNow + 1 : dwNow - m_dwOpStartTime);
+	DWORDLONG dwElapsed = dwNow - m_dwOpStartTime;
 	if (dwElapsed <= dwTimeout)
 		return false;
 

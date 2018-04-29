@@ -33,7 +33,7 @@ class IIOCPEntry
 		bool BeginRead (CString *retsError);
 		bool BeginWrite (const CString &sData, CString *retsError);
 		inline EOperations GetCurrentOp (void) const { return m_iCurrentOp; }
-		inline DWORD GetCurrentOpStartTime (void) const { return m_dwOpStartTime; }
+		inline DWORDLONG GetCurrentOpStartTime (void) const { return m_dwOpStartTime; }
 		inline DWORD GetID (void) const { return m_dwID; }
 		inline const CString &GetType (void) const { return m_sType; }
 		inline bool IsDeleted (void) const { return m_bDeleteOnCompletion; }
@@ -42,7 +42,7 @@ class IIOCPEntry
 		void Process (void);
 		inline void SetDeleteOnCompletion (void) { m_bDeleteOnCompletion = true; }
 		inline void SetID (DWORD dwID) { m_dwID = dwID; }
-		bool TimeoutCheck (DWORD dwNow, DWORD dwTimeout);
+		bool TimeoutCheck (DWORDLONG dwNow, DWORDLONG dwTimeout);
 
 		//	IIOCPEntry interface
 
@@ -64,7 +64,7 @@ class IIOCPEntry
 		DWORD m_dwID;
 		CString m_sType;
 		OVERLAPPED m_Overlapped;
-		DWORD m_dwOpStartTime;				//	Tick when we started current operation
+		DWORDLONG m_dwOpStartTime;			//	Tick when we started current operation
 
 		EOperations m_iCurrentOp;
 		bool m_bDeleteOnCompletion;			//	Delete when we complete operation

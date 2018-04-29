@@ -9,7 +9,7 @@ DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply")
 
 DECLARE_CONST_STRING(ERR_CONNECTION_LOST,				"Simple connection lost.")
 
-const DWORD ACTIVE_TIME_THRESHOLD =						5 * 60 * 1000;
+const DWORDLONG ACTIVE_TIME_THRESHOLD =					5 * 60 * 1000;
 
 CEsperSimpleConnection::CEsperSimpleConnection (CEsperConnectionManager &Manager, SOCKET hSocket) : CEsperConnection(hSocket),
 		m_Manager(Manager),

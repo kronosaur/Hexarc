@@ -289,7 +289,7 @@ class CEsperConnectionManager
 		CIOCompletionPort m_IOCP;
 		CEsperStats m_Stats;
 
-		DWORD m_dwLastTimeoutCheck;			//	Tick on which we last checked for timeouts
+		DWORDLONG m_dwLastTimeoutCheck;			//	Tick on which we last checked for timeouts
 	};
 
 class CEsperCertificateCache

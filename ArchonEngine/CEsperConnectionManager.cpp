@@ -5,6 +5,8 @@
 
 #include "stdafx.h"
 
+//#define DEBUG_TRACE
+
 DECLARE_CONST_STRING(ADDR_NULL,							"Arc.null")
 
 DECLARE_CONST_STRING(MSG_ESPER_ON_CONNECT,				"Esper.onConnect")
@@ -27,8 +29,8 @@ DECLARE_CONST_STRING(ERR_INVALID_PORT,					"Unable to determine port from URL: %
 DECLARE_CONST_STRING(ERR_UNABLE_TO_SEND_MESSAGE,		"Unable to send Esper message to engine.")
 DECLARE_CONST_STRING(ERR_INVALID_PROPERTY,				"Unknown connection property: %s.")
 
-const DWORD TIMEOUT_CHECK_INTERVAL =					15 * 1000;		//	Check for inactivity every 15 seconds
-const DWORD INACTIVITY_TIMEOUT =						60 * 60 * 1000;	//	Timeout inactive sessions after an hour.
+const DWORDLONG TIMEOUT_CHECK_INTERVAL =				15 * 1000;		//	Check for inactivity every 15 seconds
+const DWORDLONG INACTIVITY_TIMEOUT =					60 * 60 * 1000;	//	Timeout inactive sessions after an hour.
 
 const DWORD DEFAULT_AMP1_PORT =							7397;
 
@@ -45,10 +47,6 @@ void CEsperConnectionManager::AddConnection (CEsperConnection *pConnection, CDat
 	m_Connections.Insert(pConnection, &dwID);
 	pConnection->SetID(dwID);
 	m_IOCP.AddObject(pConnection);
-
-#ifdef DEBUG
-	printf("[%x:%x] Created socked\n", CEsperInterface::ConnectionToFriendlyID(pConnection->GetID()), (DWORD)pConnection->GetSocket());
-#endif
 
 	//	Done
 
@@ -583,8 +581,11 @@ void CEsperConnectionManager::LogTrace (const CString &sText)
 //	Log trace messages
 
 	{
-#ifdef DEBUG_ESPER
-	printf("%s\n", (LPSTR)sText);
+#ifdef DEBUG_TRACE
+	if (m_pArchon == NULL)
+		return;
+
+	m_pArchon->Log(MSG_LOG_DEBUG, sText);
 #endif
 	}
 
@@ -773,7 +774,7 @@ void CEsperConnectionManager::TimeoutCheck (void)
 	{
 	CSmartLock Lock(m_cs);
 
-	DWORD dwNow;
+	DWORDLONG dwNow;
 	if (sysGetTicksElapsed(m_dwLastTimeoutCheck, &dwNow) <= TIMEOUT_CHECK_INTERVAL)
 		return;
 
@@ -795,9 +796,6 @@ void CEsperConnectionManager::TimeoutCheck (void)
 	int j;
 	for (j = 0; j < ToDelete.GetCount(); j++)
 		{
-#ifdef DEBUG_SOCKET_OPS
-		LogTrace(strPattern("[%x] Delete due to inactivity.", CEsperInterface::ConnectionToFriendlyID(ToDelete[j]->GetID())));
-#endif
 		DeleteConnection(ToDelete[j]);
 		}
 	}

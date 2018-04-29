@@ -12,7 +12,7 @@ DECLARE_CONST_STRING(ERR_SSL_ERROR,						"[%x] SSL error: %s")
 DECLARE_CONST_STRING(ERR_READ_OP_FAILED,				"[%x] Unable to read from SSL connection.")
 DECLARE_CONST_STRING(ERR_WRITE_OP_FAILED,				"[%x] Unable to write to SSL connection.")
 
-const DWORD ACTIVE_TIME_THRESHOLD =						5 * 60 * 1000;
+const DWORDLONG ACTIVE_TIME_THRESHOLD =					5 * 60 * 1000;
 
 CEsperTLSConnectionIn::CEsperTLSConnectionIn (CEsperConnectionManager &Manager, const CString &sListener, const CString &sNetworkAddress, CSSLCtx &SSLCtx, const SArchonMessage &Msg, SOCKET hSocket) : CEsperConnection(hSocket),
 		m_Manager(Manager),

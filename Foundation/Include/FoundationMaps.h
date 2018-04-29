@@ -494,6 +494,17 @@ template <class VALUE> class TIDTable
 			return theValue;
 			}
 
+		VALUE &GetNext (SIDTableEnumerator &i, DWORD *retdwID) const
+			{
+			ASSERT(i.iPos != -1);
+			VALUE &theValue = m_Array[i.iPos].Value;
+			*retdwID = m_Array[i.iPos].dwID;
+
+			Next(i);
+
+			return theValue;
+			}
+
 		inline bool HasMore (SIDTableEnumerator &i) const
 			{
 			return (i.iPos != -1);
