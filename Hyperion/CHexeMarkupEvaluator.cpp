@@ -154,6 +154,12 @@ bool CHexeMarkupEvaluator::EvalInit (SHTTPRequestCtx &Ctx,
 	{
 	CleanUp();
 
+	//	We need to keep the input data (otherwise it might get freed out from
+	//	under us, and we keep a pointer to it in the parser).
+
+	m_dFileDesc = dFileDesc;
+	m_dData = dData;
+
 	//	Initialize the process that we'll use for evaluation
 
 	m_pProcess = new CHexeProcess;

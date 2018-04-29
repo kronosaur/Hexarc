@@ -79,7 +79,7 @@ class CHexeMarkupEvaluator
 					   const TArray<CDatum> &HexeDefinitions,
 					   CDatum dFileDesc, 
 					   CDatum dData);
-		inline void Mark (void) { m_dFileDesc.Mark(); m_dMarkup.Mark(); if (m_pProcess) m_pProcess->Mark(); }
+		inline void Mark (void) { m_dFileDesc.Mark(); m_dData.Mark(); m_dMarkup.Mark(); if (m_pProcess) m_pProcess->Mark(); }
 
 	private:
 		enum TagTypes
@@ -104,6 +104,7 @@ class CHexeMarkupEvaluator
 		bool ProcessResult (SHTTPRequestCtx &Ctx, CHexeProcess::ERunCodes iRun, CDatum dResult);
 
 		CDatum m_dFileDesc;
+		CDatum m_dData;
 		CDatum m_dMarkup;
 		CHexeProcess *m_pProcess;			//	Hexe process to evaluate code
 
