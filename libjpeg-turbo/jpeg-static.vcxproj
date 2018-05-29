@@ -1,0 +1,350 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MinSizeRel|x64">
+      <Configuration>MinSizeRel</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="RelWithDebInfo|x64">
+      <Configuration>RelWithDebInfo</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGUID>{DD428DD9-217B-3307-BB33-9F4EF70CE6C4}</ProjectGUID>
+    <WindowsTargetPlatformVersion>10.0.14393.0</WindowsTargetPlatformVersion>
+    <Keyword>Win32Proj</Keyword>
+    <Platform>x64</Platform>
+    <ProjectName>jpeg-static</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+    <PropertyGroup>
+      <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+      <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\Debug\</OutDir>
+      <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">jpeg-static.dir\Debug\</IntDir>
+      <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">jpeg-static</TargetName>
+      <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.lib</TargetExt>
+      <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\Release\</OutDir>
+      <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">jpeg-static.dir\Release\</IntDir>
+      <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">jpeg-static</TargetName>
+      <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.lib</TargetExt>
+      <OutDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\MinSizeRel\</OutDir>
+      <IntDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">jpeg-static.dir\MinSizeRel\</IntDir>
+      <TargetName Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">jpeg-static</TargetName>
+      <TargetExt Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">.lib</TargetExt>
+      <OutDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\RelWithDebInfo\</OutDir>
+      <IntDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">jpeg-static.dir\RelWithDebInfo\</IntDir>
+      <TargetName Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">jpeg-static</TargetName>
+      <TargetExt Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">.lib</TargetExt>
+    </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>Debug/</AssemblerListingLocation>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <CompileAs>CompileAsC</CompileAs>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+      <ExceptionHandling>
+      </ExceptionHandling>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <Optimization>Disabled</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;WITH_SIMD;CMAKE_INTDIR="Debug";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;WITH_SIMD;CMAKE_INTDIR=\"Debug\";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions)  /machine:x64</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>Release/</AssemblerListingLocation>
+      <CompileAs>CompileAsC</CompileAs>
+      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+      <ExceptionHandling>
+      </ExceptionHandling>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;WITH_SIMD;CMAKE_INTDIR="Release";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat></DebugInformationFormat>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;WITH_SIMD;CMAKE_INTDIR=\"Release\";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions)  /machine:x64</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>MinSizeRel/</AssemblerListingLocation>
+      <CompileAs>CompileAsC</CompileAs>
+      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+      <ExceptionHandling>
+      </ExceptionHandling>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <Optimization>MinSpace</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;WITH_SIMD;CMAKE_INTDIR="MinSizeRel";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat></DebugInformationFormat>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;WITH_SIMD;CMAKE_INTDIR=\"MinSizeRel\";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions)  /machine:x64</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>RelWithDebInfo/</AssemblerListingLocation>
+      <CompileAs>CompileAsC</CompileAs>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+      <ExceptionHandling>
+      </ExceptionHandling>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;WITH_SIMD;CMAKE_INTDIR="RelWithDebInfo";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;WITH_SIMD;CMAKE_INTDIR=\"RelWithDebInfo\";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions)  /machine:x64</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\CMakeLists.txt">
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule C:/Users/GPM/Documents/Hexarc/Luminous/libjpeg-turbo/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -HC:/Users/GPM/Documents/Hexarc/Luminous/libjpeg-turbo -BC:/Users/GPM/Documents/Hexarc/Luminous/libjpeg-turbo --check-stamp-file C:/Users/GPM/Documents/Hexarc/Luminous/libjpeg-turbo/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:/Users/GPM/Documents/Hexarc/Luminous/libjpeg-turbo/CMakeLists.txt;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\CMakeLists.txt;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\CMakeFiles\3.8.2\CMakeSystem.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\CMakeSystemSpecificInitialize.cmake;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\CMakeFiles\3.8.2\CMakeCCompiler.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\CMakeGenericSystem.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\Platform\Windows.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\Platform\WindowsPaths.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\CMakeCInformation.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\CMakeLanguageInformation.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\Platform\Windows-MSVC.cmake;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\CMakeFiles\3.8.2\CMakeRCCompiler.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\CMakeRCInformation.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\CMakeCommonLanguageInclude.cmake;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\win\jconfig.h.in;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\win\jconfigint.h.in;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\release\libjpeg-turbo.nsi.in;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\cmakescripts\cmake_uninstall.cmake.in;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\CMakeLists.txt;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule C:/Users/GPM/Documents/Hexarc/Luminous/libjpeg-turbo/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -HC:/Users/GPM/Documents/Hexarc/Luminous/libjpeg-turbo -BC:/Users/GPM/Documents/Hexarc/Luminous/libjpeg-turbo --check-stamp-file C:/Users/GPM/Documents/Hexarc/Luminous/libjpeg-turbo/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:/Users/GPM/Documents/Hexarc/Luminous/libjpeg-turbo/CMakeLists.txt;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\CMakeLists.txt;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\CMakeFiles\3.8.2\CMakeSystem.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\CMakeSystemSpecificInitialize.cmake;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\CMakeFiles\3.8.2\CMakeCCompiler.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\CMakeGenericSystem.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\Platform\Windows.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\Platform\WindowsPaths.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\CMakeCInformation.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\CMakeLanguageInformation.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\Platform\Windows-MSVC.cmake;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\CMakeFiles\3.8.2\CMakeRCCompiler.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\CMakeRCInformation.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\CMakeCommonLanguageInclude.cmake;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\win\jconfig.h.in;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\win\jconfigint.h.in;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\release\libjpeg-turbo.nsi.in;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\cmakescripts\cmake_uninstall.cmake.in;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\CMakeLists.txt;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">Building Custom Rule C:/Users/GPM/Documents/Hexarc/Luminous/libjpeg-turbo/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -HC:/Users/GPM/Documents/Hexarc/Luminous/libjpeg-turbo -BC:/Users/GPM/Documents/Hexarc/Luminous/libjpeg-turbo --check-stamp-file C:/Users/GPM/Documents/Hexarc/Luminous/libjpeg-turbo/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:/Users/GPM/Documents/Hexarc/Luminous/libjpeg-turbo/CMakeLists.txt;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\CMakeLists.txt;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\CMakeFiles\3.8.2\CMakeSystem.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\CMakeSystemSpecificInitialize.cmake;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\CMakeFiles\3.8.2\CMakeCCompiler.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\CMakeGenericSystem.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\Platform\Windows.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\Platform\WindowsPaths.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\CMakeCInformation.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\CMakeLanguageInformation.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\Platform\Windows-MSVC.cmake;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\CMakeFiles\3.8.2\CMakeRCCompiler.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\CMakeRCInformation.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\CMakeCommonLanguageInclude.cmake;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\win\jconfig.h.in;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\win\jconfigint.h.in;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\release\libjpeg-turbo.nsi.in;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\cmakescripts\cmake_uninstall.cmake.in;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\CMakeLists.txt;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">Building Custom Rule C:/Users/GPM/Documents/Hexarc/Luminous/libjpeg-turbo/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -HC:/Users/GPM/Documents/Hexarc/Luminous/libjpeg-turbo -BC:/Users/GPM/Documents/Hexarc/Luminous/libjpeg-turbo --check-stamp-file C:/Users/GPM/Documents/Hexarc/Luminous/libjpeg-turbo/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:/Users/GPM/Documents/Hexarc/Luminous/libjpeg-turbo/CMakeLists.txt;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\CMakeLists.txt;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\CMakeFiles\3.8.2\CMakeSystem.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\CMakeSystemSpecificInitialize.cmake;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\CMakeFiles\3.8.2\CMakeCCompiler.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\CMakeGenericSystem.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\Platform\Windows.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\Platform\WindowsPaths.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\CMakeCInformation.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\CMakeLanguageInformation.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\Platform\Windows-MSVC.cmake;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\CMakeFiles\3.8.2\CMakeRCCompiler.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\CMakeRCInformation.cmake;C:\Program Files\CMake\share\cmake-3.8\Modules\CMakeCommonLanguageInclude.cmake;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\win\jconfig.h.in;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\win\jconfigint.h.in;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\release\libjpeg-turbo.nsi.in;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\cmakescripts\cmake_uninstall.cmake.in;C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\CMakeLists.txt;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jcapimin.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jcapistd.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jccoefct.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jccolor.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jcdctmgr.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jchuff.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jcinit.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jcmainct.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jcmarker.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jcmaster.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jcomapi.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jcparam.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jcphuff.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jcprepct.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jcsample.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jctrans.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jdapimin.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jdapistd.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jdatadst.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jdatasrc.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jdcoefct.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jdcolor.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jddctmgr.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jdhuff.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jdinput.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jdmainct.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jdmarker.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jdmaster.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jdmerge.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jdphuff.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jdpostct.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jdsample.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jdtrans.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jerror.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jfdctflt.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jfdctfst.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jfdctint.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jidctflt.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jidctfst.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jidctint.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jidctred.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jquant1.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jquant2.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jutils.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jmemmgr.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jmemnobs.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jaricom.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jcarith.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\jdarith.c"  />
+    <ClCompile Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\simd\jsimd_x86_64.c"  />
+    <Object Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\simd\$(Configuration)\jfdctflt-sse-64.obj" />
+    <Object Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\simd\$(Configuration)\jccolor-sse2-64.obj" />
+    <Object Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\simd\$(Configuration)\jcgray-sse2-64.obj" />
+    <Object Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\simd\$(Configuration)\jchuff-sse2-64.obj" />
+    <Object Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\simd\$(Configuration)\jcsample-sse2-64.obj" />
+    <Object Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\simd\$(Configuration)\jdcolor-sse2-64.obj" />
+    <Object Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\simd\$(Configuration)\jdmerge-sse2-64.obj" />
+    <Object Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\simd\$(Configuration)\jdsample-sse2-64.obj" />
+    <Object Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\simd\$(Configuration)\jfdctfst-sse2-64.obj" />
+    <Object Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\simd\$(Configuration)\jfdctint-sse2-64.obj" />
+    <Object Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\simd\$(Configuration)\jidctflt-sse2-64.obj" />
+    <Object Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\simd\$(Configuration)\jidctfst-sse2-64.obj" />
+    <Object Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\simd\$(Configuration)\jidctint-sse2-64.obj" />
+    <Object Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\simd\$(Configuration)\jidctred-sse2-64.obj" />
+    <Object Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\simd\$(Configuration)\jquantf-sse2-64.obj" />
+    <Object Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\simd\$(Configuration)\jquanti-sse2-64.obj" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\ZERO_CHECK.vcxproj">
+      <Project>{7229C585-E5BE-34D6-952E-111C9AEC523B}</Project>
+      <Name>ZERO_CHECK</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\GPM\Documents\Hexarc\Luminous\libjpeg-turbo\simd\simd.vcxproj">
+      <Project>{CFDCC22C-3B14-389C-8764-432C02AC24E7}</Project>
+      <Name>simd</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

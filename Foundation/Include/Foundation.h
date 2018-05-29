@@ -98,6 +98,14 @@ class CManualEvent;
 #include "FoundationUtilities.h"
 #include "FoundationXML.h"
 
+//	Graphics subsystem
+
+#include "FoundationGraphicsCore.h"
+#include "FoundationGraphicsImage8.h"
+#include "FoundationGraphicsImage32.h"
+#include "FoundationGraphicsJPEG.h"
+#include "FoundationGraphicsPNG.h"
+
 class CFoundation
 	{
 	public:

@@ -211,6 +211,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Array.cpp" />
+    <ClCompile Include="C8bitImage.cpp" />
     <ClCompile Include="CAttributeList.cpp" />
     <ClCompile Include="CBase64Decoder.cpp" />
     <ClCompile Include="CBase64Encoder.cpp" />
@@ -233,9 +234,11 @@
     <ClCompile Include="CHexGridBase.cpp" />
     <ClCompile Include="CHexGridNavigator.cpp" />
     <ClCompile Include="CHTTPMessageBodyBuilder.cpp" />
+    <ClCompile Include="CImagePlane.cpp" />
     <ClCompile Include="CIOCompletionPort.cpp" />
     <ClCompile Include="CIOCPSocket.cpp" />
     <ClCompile Include="CIPInteger.cpp" />
+    <ClCompile Include="CJPEG.cpp" />
     <ClCompile Include="CLargeSet.cpp" />
     <ClCompile Include="CLine2D.cpp" />
     <ClCompile Include="CManualEvent.cpp" />
@@ -244,11 +247,14 @@
     <ClCompile Include="CMemoryBuffer.cpp" />
     <ClCompile Include="CMutex.cpp" />
     <ClCompile Include="Compression.cpp" />
+    <ClCompile Include="CPNG.cpp" />
     <ClCompile Include="CPolygon2D.cpp" />
     <ClCompile Include="CPolygonIntersector.cpp" />
     <ClCompile Include="CProcess.cpp" />
     <ClCompile Include="CRect2D.cpp" />
     <ClCompile Include="CResource.cpp" />
+    <ClCompile Include="CRGBA32.cpp" />
+    <ClCompile Include="CRGBA32Image.cpp" />
     <ClCompile Include="CSemaphore.cpp" />
     <ClCompile Include="CSharedMemoryBuffer.cpp" />
     <ClCompile Include="CString.cpp" />
@@ -264,6 +270,11 @@
     <ClCompile Include="IByteStream64.cpp" />
     <ClCompile Include="IIOCPEntry.cpp" />
     <ClCompile Include="IMemoryBlock.cpp" />
+    <ClCompile Include="lodepng\lodepng.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugSecondary|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="MathRandom.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -360,6 +371,7 @@
   <ItemGroup>
     <ClInclude Include="..\zlib-1.2.7\zlib.h" />
     <ClInclude Include="DBValueObjectImpl.h" />
+    <ClInclude Include="GraphicsImpl.h" />
     <ClInclude Include="Include\Foundation.h" />
     <ClInclude Include="Include\FoundationArrays.h" />
     <ClInclude Include="Include\FoundationBase.h" />
@@ -370,6 +382,11 @@
     <ClInclude Include="Include\FoundationDebug.h" />
     <ClInclude Include="Include\FoundationExceptions.h" />
     <ClInclude Include="Include\FoundationFileIO.h" />
+    <ClInclude Include="Include\FoundationGraphicsCore.h" />
+    <ClInclude Include="Include\FoundationGraphicsImage32.h" />
+    <ClInclude Include="Include\FoundationGraphicsImage8.h" />
+    <ClInclude Include="Include\FoundationGraphicsJPEG.h" />
+    <ClInclude Include="Include\FoundationGraphicsPNG.h" />
     <ClInclude Include="Include\FoundationGrids.h" />
     <ClInclude Include="Include\FoundationHashMaps.h" />
     <ClInclude Include="Include\FoundationIOCompletionPort.h" />
@@ -389,6 +406,7 @@
     <ClInclude Include="Include\FoundationUtilities.h" />
     <ClInclude Include="Include\FoundationXML.h" />
     <ClInclude Include="IOCompletionPortImpl.h" />
+    <ClInclude Include="lodepng\lodepng.h" />
     <ClInclude Include="PolygonIntersect.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="UnicodeTables.h" />
@@ -403,6 +421,14 @@
     <ProjectReference Include="..\zlib-1.2.7\contrib\vstudio\vc10\zlibstat.vcxproj">
       <Project>{745dec58-ebb3-47a9-a9b8-4c6627c01bf8}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="LibJPEG\LibDebug\turbojpeg-static.lib">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </Library>
+    <Library Include="LibJPEG\LibRelease\turbojpeg-static.lib">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </Library>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

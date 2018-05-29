@@ -58,6 +58,15 @@
     <Filter Include="Source Files\Parsers">
       <UniqueIdentifier>{0b0fdebb-9414-477b-a915-e8c60a5854a8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Graphics">
+      <UniqueIdentifier>{c680dd12-519b-49cc-9d8b-e1d406b8bd81}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Graphics">
+      <UniqueIdentifier>{f78f24fb-55d5-4c37-bac3-aeedaf8fc218}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="LibJPEG">
+      <UniqueIdentifier>{a9ee4f8c-1f02-4ad1-a8e2-84b14b4841cb}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Array.cpp">
@@ -300,6 +309,27 @@
     <ClCompile Include="CCSVParser.cpp">
       <Filter>Source Files\Parsers</Filter>
     </ClCompile>
+    <ClCompile Include="lodepng\lodepng.cpp">
+      <Filter>Source Files\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="C8bitImage.cpp">
+      <Filter>Source Files\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="CImagePlane.cpp">
+      <Filter>Source Files\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="CJPEG.cpp">
+      <Filter>Source Files\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="CPNG.cpp">
+      <Filter>Source Files\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="CRGBA32.cpp">
+      <Filter>Source Files\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="CRGBA32Image.cpp">
+      <Filter>Source Files\Graphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -422,5 +452,34 @@
     <ClInclude Include="Include\FoundationXML.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Include\FoundationGraphicsCore.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\FoundationGraphicsImage8.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\FoundationGraphicsImage32.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\FoundationGraphicsJPEG.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\FoundationGraphicsPNG.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="lodepng\lodepng.h">
+      <Filter>Header Files\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="GraphicsImpl.h">
+      <Filter>Header Files\Graphics</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="LibJPEG\LibDebug\turbojpeg-static.lib">
+      <Filter>LibJPEG</Filter>
+    </Library>
+    <Library Include="LibJPEG\LibRelease\turbojpeg-static.lib">
+      <Filter>LibJPEG</Filter>
+    </Library>
   </ItemGroup>
 </Project>
