@@ -4,6 +4,12 @@
 !Lib/openssl/libeay32.lib
 !Lib/openssl/ssleay32.lib
 
+## Foundation
+
+!Foundation/LibJPEG/LibDebug/turbojpeg-static.lib
+!Foundation/LibJPEG/LibDebug/turbojpeg-static.pdb
+!Foundation/LibJPEG/LibRelease/turbojpeg-static.lib
+
 openssl-1.0.1j/
 
 #################
@@ -133,9 +139,6 @@ libjpeg-turbo/turbojpeg.vcx*
 libjpeg-turbo/uninstall.vcx*
 libjpeg-turbo/wrjpgcom.vcx*
 libjpeg-turbo/ZERO_CHECK.vcx*
-
-
-
 
 # Visual C++ cache files
 ipch/
