@@ -46,6 +46,7 @@ DECLARE_CONST_STRING(MSG_ESPER_ON_CONNECT,				"Esper.onConnect")
 DECLARE_CONST_STRING(MSG_ESPER_ON_DISCONNECT,			"Esper.onDisconnect")
 DECLARE_CONST_STRING(MSG_ESPER_ON_LISTENER_STARTED,		"Esper.onListenerStarted")
 DECLARE_CONST_STRING(MSG_ESPER_ON_LISTENER_STOPPED,		"Esper.onListenerStopped")
+DECLARE_CONST_STRING(MSG_HYPERION_FILE_DOWNLOAD,		"Hyperion.fileDownload")
 DECLARE_CONST_STRING(MSG_HYPERION_GET_OPTIONS,			"Hyperion.getOptions")
 DECLARE_CONST_STRING(MSG_HYPERION_GET_PACKAGE_LIST,		"Hyperion.getPackageList")
 DECLARE_CONST_STRING(MSG_HYPERION_GET_SESSION_LIST,		"Hyperion.getSessionList")
@@ -70,6 +71,9 @@ CHyperionEngine::SMessageHandler CHyperionEngine::m_MsgHandlerList[] =
 		{	MSG_ESPER_ON_CONNECT,				&CHyperionEngine::MsgEsperOnConnect },
 		{	MSG_ESPER_ON_LISTENER_STARTED,		&CHyperionEngine::MsgEsperOnListenerStarted },
 		{	MSG_ESPER_ON_LISTENER_STOPPED,		&CHyperionEngine::MsgEsperOnListenerStopped },
+
+		//	Hyperion.fileDownload
+		{	MSG_HYPERION_FILE_DOWNLOAD,			&CHyperionEngine::MsgFileDownload },
 
 		//	Hyperion.getOptions
 		{	MSG_HYPERION_GET_OPTIONS,			&CHyperionEngine::MsgGetOptions },

@@ -445,6 +445,7 @@ class CHyperionEngine : public TSimpleEngine<CHyperionEngine>
 		void MsgEsperOnConnect (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgEsperOnListenerStarted (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgEsperOnListenerStopped (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
+		void MsgFileDownload (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgGetOptions (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgGetPackageList (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgGetSessionList (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);

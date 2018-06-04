@@ -234,6 +234,8 @@
     <ClCompile Include="CHexGridBase.cpp" />
     <ClCompile Include="CHexGridNavigator.cpp" />
     <ClCompile Include="CHTTPMessageBodyBuilder.cpp" />
+    <ClCompile Include="CImageDraw.cpp" />
+    <ClCompile Include="CImageLoader.cpp" />
     <ClCompile Include="CImagePlane.cpp" />
     <ClCompile Include="CIOCompletionPort.cpp" />
     <ClCompile Include="CIOCPSocket.cpp" />
@@ -409,6 +411,9 @@
     <ClInclude Include="lodepng\lodepng.h" />
     <ClInclude Include="PolygonIntersect.h" />
     <ClInclude Include="stdafx.h" />
+    <ClInclude Include="TBlenders.h" />
+    <ClInclude Include="TImageBlt.h" />
+    <ClInclude Include="TPainters.h" />
     <ClInclude Include="UnicodeTables.h" />
     <ClInclude Include="BigDigits\bigd.h" />
     <ClInclude Include="BigDigits\bigdigits.h" />

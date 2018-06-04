@@ -15,6 +15,7 @@ class CAeonInterface
 		static CString EncodeFilePathComponent (const CString &sValue);
 		static CString FilespecToFilePath (const CString &sFilespec);
 		static bool ParseFilePath (const CString &sFilePath, const CString &sRoot, int iOffset, const CDateTime &IfModifiedAfter, CString *retsAddr, CString *retsMsg, CDatum *retdPayload);
+		static bool ParseTableFilePath (const CString &sPath, CString *retsTable, CString *retsFilePath, CString *retsError);
 	};
 
 //	AI1 Protocol ---------------------------------------------------------------

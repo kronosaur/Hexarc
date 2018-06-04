@@ -126,6 +126,7 @@ class CRGBA32Image : public CImagePlane
 		inline CRGBA32 *GetPointer (void) const { return m_pRGBA; }
 		inline bool IsEmpty (void) const { return (m_pRGBA == NULL); }
 		inline bool IsMarked (void) const { return m_bMarked; }
+
 		inline CRGBA32 *NextRow (CRGBA32 *pPos) const { return (CRGBA32 *)((BYTE *)pPos + m_iPitch); }
 		inline void SetMarked (bool bMarked = true) { m_bMarked = bMarked; }
 		bool WriteToWindowsBMP (IByteStream &Stream, CString *retsError = NULL) const;

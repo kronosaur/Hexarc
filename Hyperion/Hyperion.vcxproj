@@ -185,6 +185,7 @@
     <ClCompile Include="HyperionStartup.cpp" />
     <ClCompile Include="IHyperionService.cpp" />
     <ClCompile Include="Listeners.cpp" />
+    <ClCompile Include="MsgFileDownload.cpp" />
     <ClCompile Include="MsgResizeImage.cpp" />
     <ClCompile Include="MsgRunTask.cpp" />
     <ClCompile Include="MsgServiceMsg.cpp" />

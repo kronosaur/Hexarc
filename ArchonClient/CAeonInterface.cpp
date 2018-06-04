@@ -18,6 +18,9 @@ DECLARE_CONST_STRING(MSG_TRANSPACE_DOWNLOAD,			"Transpace.download")
 
 DECLARE_CONST_STRING(SEPARATOR_SLASH,					"/")
 
+DECLARE_CONST_STRING(STR_ERROR_ABSOLUTE_PATH_REQUIRED,	"Absolute filePath expected.")
+DECLARE_CONST_STRING(STR_ERROR_NO_TABLE_IN_PATH,		"Table name expected.")
+
 CString CAeonInterface::EncodeFilePathComponent (const CString &sValue)
 
 //	EncodeFilePathComponent
@@ -246,6 +249,65 @@ bool CAeonInterface::ParseFilePath (const CString &sFilePath, const CString &sRo
 		*retdPayload = CDatum(pPayload);
 		}
 
+
+	return true;
+	}
+
+bool CAeonInterface::ParseTableFilePath (const CString &sPath, CString *retsTable, CString *retsFilePath, CString *retsError)
+
+//	ParseTableFilePath
+//
+//	Parses a filePath
+
+	{
+	char *pPos = sPath.GetParsePointer();
+	char *pEndPos = pPos + sPath.GetLength();
+
+	//	First character must be a slash because we need an absolute path
+
+	if (*pPos != '/')
+		{
+		if (retsError)
+			*retsError = STR_ERROR_ABSOLUTE_PATH_REQUIRED;
+		return false;
+		}
+
+	pPos++;
+
+	//	The first segment is the table name
+
+	char *pStart = pPos;
+	while (pPos < pEndPos && *pPos != '/')
+		pPos++;
+
+	CString sTable(pStart, pPos - pStart);
+	if (sTable.IsEmpty())
+		{
+		if (retsError)
+			*retsError = STR_ERROR_NO_TABLE_IN_PATH;
+		return false;
+		}
+
+	//	We have the table name
+
+	if (retsTable)
+		*retsTable = sTable;
+
+	//	If we've reached the end, then we have an empty path
+
+	if (pPos >= pEndPos)
+		{
+		if (retsFilePath)
+			*retsFilePath = CString("/", 1);
+		return true;
+		}
+
+	//	filePath starts with a slash and goes to the end.
+
+	if (retsFilePath)
+		*retsFilePath = CString(pPos, (int)(pEndPos - pPos));
+
+	//	Done
 
 	return true;
 	}
