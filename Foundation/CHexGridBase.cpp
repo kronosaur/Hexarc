@@ -83,6 +83,24 @@ void CHexGridBase::GetOutlines (const TArray<int> &HexList, TArray<CPolygon2D> *
 	Navigator.GetOutlines(retResult);
 	}
 
+bool CHexGridBase::HasMore (SIterator &i, EIterationTypes iType) const
+
+//	HasMore
+//
+//	Returns TRUE if SelectNext will succeed. If this return FALSE, SelectNext is
+//	undefined.
+
+	{
+	switch (iType)
+		{
+		case iterateIndex:
+			return (i.iHexIndex + 1 < m_iCount);
+
+		default:
+			return false;
+		}
+	}
+
 int CHexGridBase::HexXYToIndex (int x, int y) const
 
 //	HexXYToIndex
@@ -314,4 +332,52 @@ int CHexGridBase::PointToIndex (const CVector2D &vPos) const
 	int xHex, yHex;
 	PointToHexXY(vPos, &xHex, &yHex);
 	return HexXYToIndex(xHex, yHex);
+	}
+
+void CHexGridBase::Reset (SIterator &i, EIterationTypes iType) const
+
+//	Reset
+//
+//	Resets the iterator.
+
+	{
+	switch (iType)
+		{
+		case iterateIndex:
+			i.iHexIndex = -1;
+			break;
+		}
+	}
+
+void CHexGridBase::SelectNext (SIterator &i, EIterationTypes iType) const
+
+//	SelectNext
+//
+//	Selects the next hex.
+
+	{
+	switch (iType)
+		{
+		case iterateIndex:
+			if (i.iHexIndex == -1)
+				{
+				i.iHexIndex = 0;
+				IndexToHexXY(0, &i.xHex, &i.yHex);
+				i.vHex = HexXYToPoint(i.xHex, i.yHex);
+				}
+			else
+				{
+				i.iHexIndex++;
+				i.xHex++;
+				if (i.xHex > m_cxHexHalfCount)
+					{
+					i.xHex = -m_cxHexHalfCount;
+					i.yHex++;
+					i.vHex = HexXYToPoint(i.xHex, i.yHex);
+					}
+				else
+					i.vHex.SetX(i.vHex.X() + m_rDX);
+				}
+			break;
+		}
 	}

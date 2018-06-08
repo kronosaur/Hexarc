@@ -12,6 +12,20 @@
 class CHexGridBase
 	{
 	public:
+		enum EIterationTypes
+			{
+			iterateNone,
+			iterateIndex,
+			};
+
+		struct SIterator
+			{
+			int iHexIndex = 0;
+			int xHex = 0;
+			int yHex = 0;
+			CVector2D vHex;
+			};
+
 		CHexGridBase (double rRadius, double rWidth, double rHeight);
 
 		inline int GetCount (void) const { return m_iCount; }
@@ -22,6 +36,7 @@ class CHexGridBase
 		void GetOutlines (const TArray<int> &HexList, TArray<CPolygon2D> *retResult);
 		inline double GetRadius (void) const { return m_rRadius; }
 		inline double GetWidth (void) const { return m_rWidth; }
+		bool HasMore (SIterator &i, EIterationTypes iType = iterateIndex) const;
 		inline bool HexXYInRange (int x, int y) const { return (x <= m_cxHexHalfCount && x >= -m_cxHexHalfCount	&& y <= m_cyHexHalfCount && y >= -m_cyHexHalfCount); }
 		CVector2D HexXYToPoint (int x, int y) const;
 		int HexXYToIndex (int x, int y) const;
@@ -29,6 +44,8 @@ class CHexGridBase
 		CVector2D IndexToPoint (int iIndex) const;
 		void PointToHexXY (const CVector2D &vPos, int *retx, int *rety) const;
 		int PointToIndex (const CVector2D &vPos) const;
+		void Reset (SIterator &i, EIterationTypes iType = iterateIndex) const;
+		void SelectNext (SIterator &i, EIterationTypes iType = iterateIndex) const;
 
 	private:
 		void Init (double rRadius, double rWidth, double rHeight);
@@ -83,6 +100,18 @@ template <class VALUE> class THexGrid : public CHexGridBase
 				return NULL;
 
 			return &m_pHexes[iIndex];
+			}
+
+		void SetHexes (const CPolygon2D &Region, VALUE Value)
+			{
+			SIterator i;
+			Reset(i, iterateIndex);
+			while (HasMore(i, iterateIndex))
+				{
+				SelectNext(i, iterateIndex);
+				if (Region.PointIntersects(i.vHex))
+					m_pHexes[i.iHexIndex] = Value;
+				}
 			}
 
 	private:
