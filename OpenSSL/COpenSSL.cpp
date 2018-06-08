@@ -156,9 +156,20 @@ bool COpenSSL::Init (CString *retsError)
 		return false;
 		}
 
-	const SSL_METHOD *meth = TLSv1_method();
+	const SSL_METHOD *meth = SSLv23_method();
 	SSL_load_error_strings();
 	m_pCtx = SSL_CTX_new (meth);
+
+	//	Set options to deprecate SSL methods which have security problems.
+	//	See: https://raymii.org/s/tutorials/Strong_SSL_Security_On_Apache2.html
+
+	const long flags = SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION;
+	SSL_CTX_set_options(m_pCtx, flags);
+
+	//	Restrict the set of ciphers used to protect against various attacks.
+	//	See: http://stackoverflow.com/questions/30319394/openssl-certificate-generation-for-dhe-exchange/30332153#30332153
+
+	SSL_CTX_set_cipher_list(m_pCtx, "HIGH:!aNULL:!RC4:!MD5");
 
 	//	Done
 
