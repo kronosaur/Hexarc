@@ -87,6 +87,8 @@ DECLARE_CONST_STRING(PROTOCOL_TLS,						"tls")
 
 DECLARE_CONST_STRING(STR_ESPER_ENGINE,					"CEsperEngine")
 
+DECLARE_CONST_STRING(WORKER_SIGNAL_SHUTDOWN,			"Worker.shutdown")
+
 DECLARE_CONST_STRING(ERR_DUPLICATE_LISTENER_NAME,		"Duplicate listener name.")
 DECLARE_CONST_STRING(ERR_INVALID_LISTENER_NAME,			"Invalid listener name.")
 DECLARE_CONST_STRING(ERR_LISTENER_NOT_FOUND,			"Unable to find listener: %s.")
@@ -101,6 +103,13 @@ DECLARE_CONST_STRING(ERR_CRASH_MSG,						"Esper: crashed processing %s.")
 DECLARE_CONST_STRING(ERR_INTERNAL_SERVER_ERROR,			"Internal server error.")
 DECLARE_CONST_STRING(ERR_INVALID_MSG,					"Esper: Unhandled message: %s.")
 DECLARE_CONST_STRING(ERR_NOT_ADMIN,						"Service does not have Arc.admin right.")
+
+class CWorkerShutdownEvent : public IIOCPEntry
+	{
+	public:
+		CWorkerShutdownEvent (void) : IIOCPEntry(WORKER_SIGNAL_SHUTDOWN)
+			{ }
+	};
 
 CEsperEngine::CEsperEngine (void) : 
 		m_pProcess(NULL), 
@@ -117,6 +126,8 @@ CEsperEngine::CEsperEngine (void) :
 	//	LATER: Allow this to be changed at runtime.
 	m_bLogTrace = false;
 #endif
+
+	m_pWorkerShutdown.Set(new CWorkerShutdownEvent);
 	}
 
 CEsperEngine::~CEsperEngine (void)
@@ -918,10 +929,12 @@ void CEsperEngine::SignalShutdown (void)
 	{
 	int i;
 
+	printf("EsperEngine: SignalShutdown.\n");
+
 	//	Stop all worker threads
 
 	for (i = 0; i < m_Workers.GetCount(); i++)
-		m_Connections.SignalEvent(m_Workers[i]->GetQuitSignal());
+		m_Connections.SignalEvent(m_pWorkerShutdown);
 
 	//	Close all the sockets so that the listener threads terminate
 

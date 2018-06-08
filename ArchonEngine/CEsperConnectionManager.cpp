@@ -19,6 +19,8 @@ DECLARE_CONST_STRING(MSG_REPLY_DATA,					"Reply.data")
 
 DECLARE_CONST_STRING(PROTOCOL_AMP1,						"amp1")
 
+DECLARE_CONST_STRING(WORKER_SIGNAL_SHUTDOWN,			"Worker.shutdown")
+
 DECLARE_CONST_STRING(ERR_CRASH,							"Crash in IO operation.")
 DECLARE_CONST_STRING(ERR_INVALID_CONNECTION,			"Invalid connection: %x.")
 DECLARE_CONST_STRING(ERR_INVALID_CONNECT_ADDR,			"Invalid connection address.")
@@ -589,11 +591,11 @@ void CEsperConnectionManager::LogTrace (const CString &sText)
 #endif
 	}
 
-void CEsperConnectionManager::Process (void)
+bool CEsperConnectionManager::Process (void)
 
 //	Process
 //
-//	Process completions
+//	Process completions. We return FALSE if we want the thread to quit.
 
 	{
 	//	Before we start, we take a chance to see if any connections have timed out.
@@ -612,17 +614,26 @@ void CEsperConnectionManager::Process (void)
 	//	If the returned entry has been deleted, then we delete it now
 
 	if (DeleteIfMarked(pEntry))
-		return;
+		{ }
 
 	//	If we failed, then pass it on
 
-	if (!bSuccess)
+	else if (!bSuccess)
 		pEntry->OperationFailed();
 
 	//	For events with no completion handle, we just do them.
 
 	else if (pEntry->GetCompletionHandle() == INVALID_HANDLE_VALUE)
+		{
+		//	If this is a shutdown event, then tell the thread.
+
+		if (strEquals(pEntry->GetType(), WORKER_SIGNAL_SHUTDOWN))
+			return false;
+
+		//	Otherwise, process
+
 		pEntry->Process();
+		}
 
 	//	Otherwise, operation completes
 
@@ -631,6 +642,10 @@ void CEsperConnectionManager::Process (void)
 		pEntry->GetBuffer()->SetLength(dwBytesTransferred);
 		pEntry->OperationComplete(dwBytesTransferred);
 		}
+
+	//	Thread should continue
+
+	return true;
 	}
 
 void CEsperConnectionManager::ResetConnection (CDatum dConnection)

@@ -30,23 +30,6 @@ class CPauseThreadEvent : public IIOCPEntry
 		CEsperProcessingThread *m_pThread;
 	};
 
-class CQuitThreadEvent : public IIOCPEntry
-	{
-	public:
-		CQuitThreadEvent (CEsperProcessingThread *pThread) : IIOCPEntry(WORKER_SIGNAL_SHUTDOWN),
-				m_pThread(pThread)
-			{ }
-
-	protected:
-
-		//	IIOCPEntry overrides
-
-		virtual void OnProcess (void) { m_pThread->SetQuit(); }
-
-	private:
-		CEsperProcessingThread *m_pThread;
-	};
-
 void CEsperProcessingThread::Mark (void)
 
 //	Mark
@@ -69,7 +52,6 @@ void CEsperProcessingThread::Run (void)
 		//	and quitting the app.
 
 		m_pPauseSignal = new CPauseThreadEvent(this);
-		m_pQuitSignal = new CQuitThreadEvent(this);
 
 		//	Process Events
 
@@ -77,25 +59,22 @@ void CEsperProcessingThread::Run (void)
 			{
 			try
 				{
-				m_pEngine->ProcessConnections();
+				//	If ProcessConnections returns FALSE, then it means we want
+				//	to quit processing.
+
+				if (!m_pEngine->ProcessConnections())
+					break;
 				}
 			catch (...)
 				{
 				m_pEngine->Log(MSG_LOG_ERROR, CString("Crash in processing IO completion port."));
 				}
-
-			//	If we need to quit, do it
-
-			if (m_bQuit)
-				break;
 			}
 
 		//	Done
 
 		delete m_pPauseSignal;
 		m_pPauseSignal = NULL;
-		delete m_pQuitSignal;
-		m_pQuitSignal = NULL;
 		}
 	catch (...)
 		{

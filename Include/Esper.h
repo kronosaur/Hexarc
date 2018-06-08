@@ -128,13 +128,11 @@ class CEsperProcessingThread : public TThread<CEsperProcessingThread>
 	public:
 		CEsperProcessingThread (CEsperEngine *pEngine, bool bLogTrace) : 
 				m_pEngine(pEngine), 
-				m_pQuitSignal(NULL),
 				m_pPauseSignal(NULL),
 				m_bLogTrace(bLogTrace),
 				m_bQuit(false)
 			{ m_PausedEvent.Create(); }
 
-		inline IIOCPEntry *GetQuitSignal (void) const { return m_pQuitSignal; }
 		inline IIOCPEntry *GetPauseSignal (void) const { return m_pPauseSignal; }
 		void Mark (void);
 		void Run (void);
@@ -145,7 +143,6 @@ class CEsperProcessingThread : public TThread<CEsperProcessingThread>
 	private:
 		CEsperEngine *m_pEngine;			//	The engine
 		CManualEvent m_PausedEvent;			//	Set when we've stopped
-		IIOCPEntry *m_pQuitSignal;
 		IIOCPEntry *m_pPauseSignal;
 		bool m_bLogTrace;					//	If TRUE we output tracing info
 		bool m_bQuit;						//	If TRUE, we need to quit
@@ -256,7 +253,7 @@ class CEsperConnectionManager
 		bool IsIdle (void);
 		inline void Log (const CString &sMsg, const CString &sText) { if (m_pArchon) m_pArchon->Log(sMsg, sText); }
 		void LogTrace (const CString &sText);
-		void Process (void);
+		bool Process (void);
 		void ResetConnection (CDatum dConnection);
 		inline void SendMessageCommand (const CString &sAddress, const CString &sMsg, const CString &sReplyAddr, DWORD dwTicket, CDatum dPayload) { if (m_pArchon) m_pArchon->SendMessageCommand(sAddress, sMsg, sReplyAddr, dwTicket, dPayload); }
 		inline void SendMessageReply (const CString &sReplyMsg, CDatum dPayload, const SArchonMessage &OriginalMsg) { if (m_pArchon) m_pArchon->SendMessageReply(sReplyMsg, dPayload, OriginalMsg); }
@@ -340,7 +337,7 @@ class CEsperEngine : public IArchonEngine, public IArchonMessagePort
 		inline void Log (const CString &sMsg, const CString &sText) { m_pProcess->Log(sMsg, sText); }
 		void LogTrace (const CString &sText);
 		void OnConnect (const SArchonMessage &Msg, CSocket &NewSocket, const CString &sListener, CEsperConnection::ETypes iType);
-		inline void ProcessConnections (void) { m_Connections.Process(); }
+		inline bool ProcessConnections (void) { return m_Connections.Process(); }
 		void ProcessMessage (const SArchonMessage &Msg, CHexeSecurityCtx *pSecurityCtx = NULL);
 		inline void ReportShutdown (const CString &sName) { RemoveListener(sName); }
 		inline void ResetConnection (CDatum dConnection) { m_Connections.ResetConnection(dConnection); }
@@ -400,4 +397,6 @@ class CEsperEngine : public IArchonEngine, public IArchonMessagePort
 		CManualEvent *m_pRunEvent;
 		CManualEvent *m_pPauseEvent;
 		CManualEvent *m_pQuitEvent;
+
+		TUniquePtr<IIOCPEntry> m_pWorkerShutdown;
 	};

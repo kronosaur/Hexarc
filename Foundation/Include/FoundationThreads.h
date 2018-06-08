@@ -104,6 +104,7 @@ class CWaitArray
 template <class CLASS> class TThread : public COSObject
 	{
 	public:
+		inline DWORD GetID (void) const { return (IsStarted() ? ::GetThreadId(m_hHandle) : 0); }
 		inline bool IsStarted (void) const { return (m_hHandle != INVALID_HANDLE_VALUE); }
 
 		void Start (void)
@@ -172,7 +173,7 @@ class CManualEvent : public COSObject
 		void Create (const CString &sName, bool *retbExists = NULL);
 		inline bool IsSet (void) { return (::WaitForSingleObject(m_hHandle, 0) == WAIT_OBJECT_0); }
 		inline void Reset (void) { ::ResetEvent(m_hHandle); }
-		inline void Set (void) { ::SetEvent(m_hHandle); }
+		inline bool Set (void) { return (::SetEvent(m_hHandle) != 0); }
 	};
 
 class CMutex : public COSObject
