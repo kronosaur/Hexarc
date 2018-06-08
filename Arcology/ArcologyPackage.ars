@@ -130,6 +130,7 @@ Arc.service Arc.console
 		"refreshPackages"
 		"removeVolume {volume}"
 		"resetPassword {username}"
+		"shutdown"
 		"tableTest [{rows} [{dataSize} [{tableName}]]]"
 		"unitTest [{unitTest} ...]"
 		"upgrade"
@@ -177,6 +178,10 @@ Arc.service Arc.console
 
 (define Arc.console+restartMachine (lambda (thePayload)
 	(apply invoke 'Exarch.restartMachine thePayload)
+	))
+
+(define Arc.console+shutdown (lambda (thePayload)
+	(apply invoke 'Exarch.shutdown)
 	))
 
 (define Arc.console+tableTest (lambda (thePayload)

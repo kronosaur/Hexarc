@@ -80,7 +80,6 @@ DECLARE_CONST_STRING(MSG_EXARCH_ON_LOG,					"Exarch.onLog")
 DECLARE_CONST_STRING(MSG_EXARCH_ON_MACHINE_START,		"Exarch.onMachineStart")
 DECLARE_CONST_STRING(MSG_EXARCH_ON_MODULE_START,		"Exarch.onModuleStart")
 DECLARE_CONST_STRING(MSG_EXARCH_ON_MODULE_STOP,			"Exarch.onModuleStop")
-DECLARE_CONST_STRING(MSG_EXARCH_SHUTDOWN,				"Exarch.shutdown")
 DECLARE_CONST_STRING(MSG_LOG_DEBUG,						"Log.debug")
 DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error")
 DECLARE_CONST_STRING(MSG_LOG_INFO,						"Log.info")
@@ -209,6 +208,7 @@ DECLARE_CONST_STRING(MSG_EXARCH_REQUEST_UPGRADE,		"Exarch.requestUpgrade")
 DECLARE_CONST_STRING(MSG_EXARCH_RESTART_MACHINE,		"Exarch.restartMachine")
 DECLARE_CONST_STRING(MSG_EXARCH_RESTART_MODULE,			"Exarch.restartModule")
 DECLARE_CONST_STRING(MSG_EXARCH_SEND_TO_MACHINE,		"Exarch.sendToMachine")
+DECLARE_CONST_STRING(MSG_EXARCH_SHUTDOWN,				"Exarch.shutdown")
 DECLARE_CONST_STRING(MSG_EXARCH_UPLOAD_UPGRADE,			"Exarch.uploadUpgrade")
 
 const DWORD DEFAULT_AMP1_PORT =							7397;
@@ -304,6 +304,9 @@ CExarchEngine::SMessageHandler CExarchEngine::m_MsgHandlerList[] =
 
 		//	Exarch.sendToMachine {machineName} {address} {msg} {ticket} {replyAddr} {payload}
 		{	MSG_EXARCH_SEND_TO_MACHINE,			&CExarchEngine::MsgSendToMachine },
+
+		//	Exarch.shutdown
+		{	MSG_EXARCH_SHUTDOWN,				&CExarchEngine::MsgShutdown },
 
 		//	Exarch.uploadUpgrade {filename} {fileUploadDesc} {data}
 		{	MSG_EXARCH_UPLOAD_UPGRADE,			&CExarchEngine::MsgUploadUpgrade },
@@ -2268,6 +2271,18 @@ void CExarchEngine::MsgRestartModule (const SArchonMessage &Msg, const CHexeSecu
 	//	Done
 
 	SendMessageReply(MSG_OK, CDatum(), Msg);
+	}
+
+void CExarchEngine::MsgShutdown (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)
+
+//	MsgShutdown
+//
+//	Shut down the machine.
+
+	{
+	SendMessageReply(MSG_OK, CDatum(), Msg);
+	::Sleep(1000);
+	GetProcessCtx()->InitiateShutdown();
 	}
 
 void CExarchEngine::MsgUploadUpgrade (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)

@@ -212,6 +212,7 @@ class CExarchEngine : public TSimpleEngine<CExarchEngine>, public IArchonExarch
 		void MsgRestartMachine (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgRestartModule (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgSendToMachine (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
+		void MsgShutdown (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgUploadUpgrade (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 
 		//	AMP1
