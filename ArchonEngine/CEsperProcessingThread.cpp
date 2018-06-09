@@ -89,6 +89,10 @@ void CEsperProcessingThread::Stop (void)
 //	Stop the thread while we garbage collect
 
 	{
+	//	LATER: We need a new way to do this. We should do this like stopping the
+	//	thread, because currently we can't guarantee that the thread running 
+	//	this code will be the one that owns the m_PausedEvent.
+
 	m_PausedEvent.Set();
 
 	CWaitArray Events;
