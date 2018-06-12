@@ -2,6 +2,23 @@
 //
 //	CHexGridBase class
 //	Copyright (c) 2014 Kronosaur Productions, LLC. All Rights Reserved.
+//
+//    ____        ____
+//   /    \      /    \
+//	/  0   \____/  2   \
+//	\-1,1  /    \ 1,1  /
+//	 \____/  1   \____/
+//	 /    \ 0,1  /    \
+//	/  3   \____/  5   \
+//	\-1,0  /    \ 1,0  /
+//	 \____/  4   \____/
+//	 /    \ 0,0  /    \
+//	/  6   \____/  8   \
+//  \-1,-1 /    \ 1,-1 /
+//   \____/  7   \____/
+//        \ 0,-1 /    
+//         \____/      
+
 
 #include "stdafx.h"
 #include <Math.h>
@@ -184,6 +201,26 @@ void CHexGridBase::Init (double rRadius, double rWidth, double rHeight)
 	m_iCount = m_cxHexCount * m_cyHexCount;
 
 	m_iCenterHex = (m_cyHexHalfCount * m_cxHexCount) + m_cxHexHalfCount;
+	}
+
+bool CHexGridBase::IsNeighbor (int xFrom, int yFrom, int xTo, int yTo) const
+
+//	IsNeighbor
+//
+//	Returns TRUE if these two cells are neighbors.
+
+	{
+	int xDiff = xTo - xFrom;
+	if (xDiff > 1 || xDiff < -1)
+		return false;
+
+	int yDiff = yTo - yFrom;
+	if (xDiff == 0)
+		return (yDiff >= -1 && yDiff <= 1);
+	else if ((xFrom % 2) == 0)
+		return (yDiff == 0 || yDiff == -1);
+	else
+		return (yDiff == 0 || yDiff == 1);
 	}
 
 void CHexGridBase::PointToHexXY (const CVector2D &vPos, int *retx, int *rety) const

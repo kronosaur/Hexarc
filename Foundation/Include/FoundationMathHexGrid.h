@@ -42,6 +42,7 @@ class CHexGridBase
 		int HexXYToIndex (int x, int y) const;
 		void IndexToHexXY (int iIndex, int *retx, int *rety) const;
 		CVector2D IndexToPoint (int iIndex) const;
+		bool IsNeighbor (int xFrom, int yFrom, int xTo, int yTo) const;
 		void PointToHexXY (const CVector2D &vPos, int *retx, int *rety) const;
 		int PointToIndex (const CVector2D &vPos) const;
 		void Reset (SIterator &i, EIterationTypes iType = iterateIndex) const;
@@ -93,7 +94,7 @@ template <class VALUE> class THexGrid : public CHexGridBase
 
 		VALUE &GetAt (int iIndex) { return m_pHexes[iIndex]; }
 
-		VALUE *PointToHex (const CVector2D &vPos)
+		VALUE *PointToHex (const CVector2D &vPos) const
 			{
 			int iIndex = PointToIndex(vPos);
 			if (iIndex == -1)
