@@ -94,6 +94,47 @@ void CArrayBase::DeleteBytes (int iOffset, int iLength)
 	m_pBlock->m_iSize -= iLength;
 	}
 
+void CArrayBase::InsertBytes (int iOffset, int iLength, int iAllocQuantum)
+
+//	InsertBytes
+//
+//	Insert at the offset. NOTE: This function will double the allocation.
+
+	{
+	int i;
+
+	if (iLength <= 0)
+		return;
+
+	if (iOffset == -1)
+		iOffset = GetSize();
+
+	ASSERT(iOffset >= 0 && iOffset <= GetSize());
+
+    //	Reallocate if necessary
+
+	int iNewSize = GetSize() + iLength;
+	if (IsReallocNeeded(iNewSize))
+		{
+		//	Allocate a new block which is at least double the size of the 
+		//	current block.
+
+		int iNewAllocSize = Max(AlignUp(iNewSize, iAllocQuantum), 2 * GetSize());
+		Realloc(iNewAllocSize, true);
+		}
+
+	//	Move the array up
+    
+	char *pSource = GetBytes() + GetSize()-1;
+	char *pDest = pSource + iLength;
+    for (i = GetSize()-1; i >= iOffset; i--)
+		*pDest-- = *pSource--;
+
+	//	Done
+    
+	m_pBlock->m_iSize += iLength;
+	}
+
 void CArrayBase::InsertBytes (int iOffset, void *pData, int iLength, int iAllocQuantum)
 
 //	Insert
@@ -137,50 +178,71 @@ void CArrayBase::InsertBytes (int iOffset, void *pData, int iLength, int iAllocQ
 	m_pBlock->m_iSize += iLength;
 	}
 
-void CArrayBase::Resize (int iNewSize, bool bPreserve, int iAllocQuantum)
+void CArrayBase::Realloc (int iNewSize, bool bPreserve)
+
+//	Realloc
+//
+//	Reallocate the block.
+
+	{
+	//	Account for the header
+
+	iNewSize += sizeof(SHeader);
+
+	//	Allocate a new block
+
+	SHeader *pNewBlock = (SHeader *)::HeapAlloc(GetHeap(), 0, iNewSize);
+	if (pNewBlock == NULL)
+		throw CException(errOutOfMemory);
+
+	pNewBlock->m_hHeap = GetHeap();
+	pNewBlock->m_iAllocSize = iNewSize;
+	pNewBlock->m_iGranularity = GetGranularity();
+	pNewBlock->m_iSize = GetSize();
+
+	//	Transfer the contents, if necessary
+
+	if (m_pBlock && bPreserve)
+		{
+		char *pSource = GetBytes();
+		char *pDest = (char *)(&pNewBlock[1]);
+		char *pDestEnd = pDest + GetSize();
+
+		while (pDest < pDestEnd)
+			*pDest++ = *pSource++;
+		}
+
+	//	Swap blocks
+
+	if (m_pBlock)
+		::HeapFree(m_pBlock->m_hHeap, 0, m_pBlock);
+
+	m_pBlock = pNewBlock;
+	}
+
+bool CArrayBase::Resize (int iNewSize, bool bPreserve, int iAllocQuantum)
 
 //	Resize
 //
-//	Resize the array so that it is at least the given new size
+//	Resize the array so that it is at least the given new size. Returns TRUE if 
+//	we had to reallocate the array.
 
 	{
 	ASSERT(iAllocQuantum > 0);
 
 	//	See if we need to reallocate the block
 
-	if (m_pBlock == NULL || (m_pBlock->m_iAllocSize - (int)sizeof(SHeader) < iNewSize))
+	if (IsReallocNeeded(iNewSize))
 		{
 		//	Allocate a new block
 
-		int iNewAllocSize = sizeof(SHeader) + AlignUp(iNewSize, iAllocQuantum);
-		SHeader *pNewBlock = (SHeader *)::HeapAlloc(GetHeap(), 0, iNewAllocSize);
-		if (pNewBlock == NULL)
-			throw CException(errOutOfMemory);
+		int iNewAllocSize = AlignUp(iNewSize, iAllocQuantum);
+		Realloc(iNewAllocSize, bPreserve);
 
-		pNewBlock->m_hHeap = GetHeap();
-		pNewBlock->m_iAllocSize = iNewAllocSize;
-		pNewBlock->m_iGranularity = GetGranularity();
-		pNewBlock->m_iSize = GetSize();
-
-		//	Transfer the contents, if necessary
-
-		if (m_pBlock && bPreserve)
-			{
-			char *pSource = GetBytes();
-			char *pDest = (char *)(&pNewBlock[1]);
-			char *pDestEnd = pDest + GetSize();
-
-			while (pDest < pDestEnd)
-				*pDest++ = *pSource++;
-			}
-
-		//	Swap blocks
-
-		if (m_pBlock)
-			::HeapFree(m_pBlock->m_hHeap, 0, m_pBlock);
-
-		m_pBlock = pNewBlock;
+		return true;
 		}
+
+	return false;
 	}
 
 void CArrayBase::TakeHandoffBase (CArrayBase &Src)

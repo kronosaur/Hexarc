@@ -10,14 +10,20 @@
 #endif
 
 DECLARE_CONST_STRING(MSG_ARC_FILE_MSG,					"Arc.fileMsg")
+DECLARE_CONST_STRING(MSG_LOG_INFO,						"Log.info")
 
 DECLARE_CONST_STRING(STR_FWD_COMMAND,					"FWD")
 DECLARE_CONST_STRING(STR_PROTOCOL_AMP1_00,				"AMP/1.00")
 
 DECLARE_CONST_STRING(PATH_HEXARC_IPQ,					"HexarcIPQ")
 
+DECLARE_CONST_STRING(ERR_ENQUEUE_LARGE,					"IPMQ: Enqueing large payload (%s bytes).")
+DECLARE_CONST_STRING(ERR_SERIALIZE_TIME_WARNING,		"IPMQ: Serialization complete.")
+DECLARE_CONST_STRING(ERR_FILE_TIME_WARNING,				"IPMQ: Wrote payload to temp file.")
+
+static constexpr size_t SIZE_WARNING_THRESHOLD =		200 * 1024;
+static constexpr size_t DISK_QUEUE_THRESHOLD =			200 * 1024;
 const int DEFAULT_ENTRY_SIZE =						4096;
-const int DISK_QUEUE_THRESHOLD =					200 * 1024;
 const int MAX_ENQUEUE_TRIES =						10;
 
 DWORD CInterprocessMessageQueue::AllocEntry (int iSize)
@@ -134,7 +140,7 @@ void CInterprocessMessageQueue::CombineFreeBlocks (DWORD dwFirst, DWORD dwSecond
 			pFirst->dwNext);
 	}
 
-bool CInterprocessMessageQueue::Create (const CString &sMachine, const CString &sProcess, int iMaxSize)
+bool CInterprocessMessageQueue::Create (IArchonProcessCtx *pCtx, const CString &sMachine, const CString &sProcess, int iMaxSize)
 
 //	Create
 //
@@ -163,6 +169,7 @@ bool CInterprocessMessageQueue::Create (const CString &sMachine, const CString &
 	{
 	ASSERT(iMaxSize > 0);
 
+	m_pProcess = pCtx;
 	CString sName = strPattern("%s-%s", sMachine, sProcess);
 
 	//	Create the semaphore (if it already exists, then we fail)
@@ -472,10 +479,6 @@ bool CInterprocessMessageQueue::DeserializeMessage (IByteStream &Stream, SArchon
 //	Deserialize from a stream
 
 	{
-#ifdef DEBUG_BLOB_PERF
-    DWORD dwStart = ::sysGetTickCount();
-#endif
-
 	//	We expect to read:
 	//
 	//	AMP/1.00 FWD {destAddr} {replyAddr} {ticket} {msg} {payload}
@@ -556,17 +559,28 @@ bool CInterprocessMessageQueue::Enqueue (const SArchonEnvelope &Env, CString *re
 			return false;
 			}
 
-		if (!Open(m_sName))
+		if (!Open())
 			{
 			*retsError = strPattern("IPMQ %s: Unable to open queue.", m_sName);
 			return false;
 			}
 		}
 
-	//	Serialize the message
+	//	Compute the approximate size of the payload. If it's particularly large,
+	//	we log it.
 
-	CMemoryBuffer Buffer(4096);
+	size_t PayloadSize = Env.Msg.dPayload.CalcSerializeSize(CDatum::formatAEONLocal);
+	if (PayloadSize > SIZE_WARNING_THRESHOLD)
+		m_pProcess->Log(MSG_LOG_INFO, strPattern(ERR_ENQUEUE_LARGE, strFormatInteger((int)PayloadSize, -1, FORMAT_THOUSAND_SEPARATOR)));
+
+	//	Serialize the payload into a buffer
+
+	CArchonTimer Timer;
+
+	CMemoryBuffer Buffer(4096 + (int)PayloadSize);
 	SerializeMessage(Env, Buffer);
+
+	Timer.LogTime(m_pProcess, ERR_SERIALIZE_TIME_WARNING);
 
 	//	If the buffer is very large then we store it as a temp file instead
 	//	(to save our limited memory).
@@ -575,6 +589,8 @@ bool CInterprocessMessageQueue::Enqueue (const SArchonEnvelope &Env, CString *re
 		{
 		CString sFilespec;
 		CFile TempFile;
+
+		Timer.Start();
 
 #ifdef DEBUG_BLOB_PERF
         printf("Serializing to file.\n");
@@ -609,6 +625,8 @@ bool CInterprocessMessageQueue::Enqueue (const SArchonEnvelope &Env, CString *re
 
 		Buffer.SetLength(0);
 		SerializeMessage(FileEnv, Buffer);
+
+		Timer.LogTime(m_pProcess, ERR_FILE_TIME_WARNING);
 		}
 
 	//	Try enqueueing
@@ -781,17 +799,13 @@ void CInterprocessMessageQueue::FreeEntry (DWORD dwOffset)
 		CombineFreeBlocks(dwOffset, dwNext);
 	}
 
-bool CInterprocessMessageQueue::Open (const CString &sName)
+bool CInterprocessMessageQueue::Open (void)
 
 //	Open
 //
 //	Opens an existing queue.
 
 	{
-	//	We remember the name in case we need to try again later.
-
-	m_sName = sName;
-
 	//	Open the semaphore (if it doesn't exists, then we fail)
 
 	bool bExists;

@@ -90,6 +90,74 @@ DECLARE_CONST_STRING(ERR_UNEXPECTED_TOKEN_IN_STRUCT,	"Unexpected token in struct
 
 const int MAX_IN_MEMORY_SIZE =							4 * 1024 * 1024;
 
+size_t CDatum::CalcSerializeSizeAEONScript (ESerializationFormats iFormat) const
+
+//	CalcSerializeSizeAEONScript
+//
+//	Computes the size of the serialization (in bytes).
+//
+//	NOTE: We return an approximation, not an accurage value, because otherwise 
+//	we would have to traverse the entire data.
+
+	{
+	size_t TotalSize = 0;
+
+	switch (m_dwData & AEON_TYPE_MASK)
+		{
+		case AEON_TYPE_STRING:
+			if (m_dwData == 0)
+				TotalSize = 3;	//	"nil"
+			else
+				{
+				//	We approximate the size.
+
+				const CString &sString = raw_GetString();
+				TotalSize = sString.GetLength();
+				}
+			break;
+
+		case AEON_TYPE_NUMBER:
+			switch (m_dwData & AEON_NUMBER_TYPE_MASK)
+				{
+				case AEON_NUMBER_CONSTANT:
+					{
+					switch (m_dwData)
+						{
+						case constTrue:
+							TotalSize = 4;	//	"true"
+							break;
+
+						default:
+							ASSERT(false);
+						}
+					break;
+					}
+
+				case AEON_NUMBER_28BIT:
+				case AEON_NUMBER_32BIT:
+					TotalSize = 6;
+					break;
+
+				case AEON_NUMBER_DOUBLE:
+					TotalSize = 8;
+					break;
+
+				default:
+					ASSERT(false);
+				}
+			break;
+
+		case AEON_TYPE_COMPLEX:
+			TotalSize = raw_GetComplex()->CalcSerializeSizeAEONScript(iFormat);
+			break;
+
+		default:
+			ASSERT(false);
+		}
+
+	return TotalSize;
+	}
+
 bool CDatum::DeserializeAEONScript (IByteStream &Stream, IAEONParseExtension *pExtension, CDatum *retDatum)
 
 //	DeserializeAEONScript

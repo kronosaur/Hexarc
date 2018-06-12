@@ -6,7 +6,7 @@
 #include "stdafx.h"
 
 #define MIN_ALLOC_INCREMENT							4096
-#define MAX_ALLOC_INCREMENT							65536
+#define MAX_ALLOC_INCREMENT							1000000
 
 CStringBuffer::~CStringBuffer (void)
 

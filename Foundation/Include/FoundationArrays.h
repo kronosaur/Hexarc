@@ -43,8 +43,9 @@ class CArrayBase
 		inline int GetGranularity (void) const { return (m_pBlock ? m_pBlock->m_iGranularity : DEFAULT_ARRAY_GRANULARITY); }
 		inline HANDLE GetHeap (void) const { return (m_pBlock ? m_pBlock->m_hHeap : ::GetProcessHeap()); }
 		inline int GetSize (void) const { return (m_pBlock ? m_pBlock->m_iSize : 0); }
+		void InsertBytes (int iOffset, int iLength, int iAllocQuantum);
 		void InsertBytes (int iOffset, void *pData, int iLength, int iAllocQuantum);
-		void Resize (int iNewSize, bool bPreserve, int iAllocQuantum);
+		bool Resize (int iNewSize, bool bPreserve, int iAllocQuantum);
 		void TakeHandoffBase (CArrayBase &Src);
 
 	protected:
@@ -58,6 +59,9 @@ class CArrayBase
 
 		CArrayBase (SHeader *pBlock) : m_pBlock(pBlock)
 			{ }
+
+		inline bool IsReallocNeeded (int iNewSize) const { return (m_pBlock == NULL || (m_pBlock->m_iAllocSize - (int)sizeof(SHeader) < iNewSize)); }
+		void Realloc (int iNewSize, bool bPreserve);
 
 		SHeader *m_pBlock;
 	};
@@ -184,7 +188,7 @@ template <class VALUE> class TArray : public CArrayBase
 			int iOffset;
 			if (iIndex == -1) iIndex = GetCount();
 			iOffset = iIndex * sizeof(VALUE);
-			InsertBytes(iOffset, NULL, sizeof(VALUE), GetGranularity() * sizeof(VALUE));
+			InsertBytes(iOffset, sizeof(VALUE), GetGranularity() * sizeof(VALUE));
 
 			VALUE *pElement = new(GetBytes() + iOffset) VALUE(Value);
 			}
@@ -204,7 +208,7 @@ template <class VALUE> class TArray : public CArrayBase
 		VALUE *Insert (void)
 			{
 			int iOffset = GetCount() * sizeof(VALUE);
-			InsertBytes(iOffset, NULL, sizeof(VALUE), GetGranularity() * sizeof(VALUE));
+			InsertBytes(iOffset, sizeof(VALUE), GetGranularity() * sizeof(VALUE));
 
 			return new(GetBytes() + iOffset) VALUE;
 			}
@@ -217,7 +221,7 @@ template <class VALUE> class TArray : public CArrayBase
 				InsertEmpty(iIndex - GetCount());
 
 			int iOffset = iIndex * sizeof(VALUE);
-			InsertBytes(iOffset, NULL, sizeof(VALUE), GetGranularity() * sizeof(VALUE));
+			InsertBytes(iOffset, sizeof(VALUE), GetGranularity() * sizeof(VALUE));
 
 			return new(GetBytes() + iOffset) VALUE;
 			}

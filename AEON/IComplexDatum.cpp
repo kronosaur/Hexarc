@@ -19,6 +19,45 @@ DECLARE_CONST_STRING(DATETIME_MILLISECOND,				"millisecond")
 
 //	IComplexDatum --------------------------------------------------------------
 
+size_t IComplexDatum::CalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const
+
+//	CalcSerializeSizeAEONScript
+//
+//	Computes an approximate size.
+
+	{
+	size_t TotalSize = 0;
+
+	switch (iFormat)
+		{
+		case CDatum::formatAEONScript:
+		case CDatum::formatAEONLocal:
+			{
+			TotalSize = GetTypename().GetLength() + 3;
+
+			//	If this is object is serializable as a struct, then we do that.
+
+			if (IsSerializedAsStruct())
+				TotalSize += OnCalcSerializeSizeAEONScript(iFormat);
+
+			//	Otherwise, serialize as base64 encoding, so we increase the total size by
+			//	20%.
+
+			else
+				{
+				size_t RawSize = OnCalcSerializeSizeAEONScript(iFormat);
+				TotalSize += RawSize + (RawSize / 5);
+				}
+			break;
+			}
+
+		default:
+			ASSERT(false);
+		}
+
+	return TotalSize;
+	}
+
 bool IComplexDatum::DeserializeAEONScript (CDatum::ESerializationFormats iFormat, const CString &sTypename, CCharStream *pStream)
 
 //	DeserializeAEONScript
@@ -308,6 +347,22 @@ bool CComplexArray::FindElement (CDatum dValue, int *retiIndex) const
 	return false;
 	}
 
+size_t CComplexArray::OnCalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const
+
+//	OnCalcSerializeSizeAEONScript
+//
+//	Returns an approximation of serialization size.
+
+	{
+	int i;
+	size_t TotalSize = 2 + m_Array.GetCount();
+
+	for (i = 0; i < m_Array.GetCount(); i++)
+		TotalSize += m_Array[i].CalcSerializeSize(iFormat);
+
+	return TotalSize;
+	}
+
 void CComplexArray::OnMarked (void)
 
 //	OnMarked
@@ -527,6 +582,16 @@ CDatum CComplexDateTime::GetElement (const CString &sKey) const
 
 const CString &CComplexDateTime::GetTypename (void) const { return TYPENAME_DATETIME; }
 
+size_t CComplexDateTime::OnCalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const
+
+//	OnCalcSerializeSizeAEONScript
+//
+//	Returns an approximation of serialization size.
+
+	{
+	return 25;
+	}
+
 void CComplexDateTime::Serialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const
 
 //	Serialize
@@ -675,6 +740,22 @@ bool CComplexStruct::FindElement (const CString &sKey, CDatum *retpValue)
 		*retpValue = *pValue;
 
 	return true;
+	}
+
+size_t CComplexStruct::OnCalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const
+
+//	OnCalcSerializeSizeAEONScript
+//
+//	Returns an approximation of serialization size.
+
+	{
+	int i;
+	size_t TotalSize = 2;
+
+	for (i = 0; i < m_Map.GetCount(); i++)
+		TotalSize += m_Map.GetKey(i).GetLength() + 2 + m_Map[i].CalcSerializeSize(iFormat);
+
+	return TotalSize;
 	}
 
 void CComplexStruct::OnMarked (void)

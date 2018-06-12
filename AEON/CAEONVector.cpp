@@ -87,6 +87,16 @@ void CAEONVector2D::SetElement (const CString &sKey, CDatum dDatum)
 		m_vVector.SetY(dDatum);
 	}
 
+size_t CAEONVector2D::OnCalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const
+
+//	OnCalcSerializeSizeAEONScript
+//
+//	Returns an approximation of serialization size.
+
+	{
+	return 0;	//	Not Yet Implemented
+	}
+
 void CAEONVector2D::OnMarked (void)
 
 //	OnMarked

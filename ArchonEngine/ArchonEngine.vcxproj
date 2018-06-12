@@ -178,6 +178,7 @@
     <ClCompile Include="AMP1.cpp" />
     <ClCompile Include="CAeonFileDownloadSession.cpp" />
     <ClCompile Include="CArchonProcess.cpp" />
+    <ClCompile Include="CArchonTimer.cpp" />
     <ClCompile Include="CConsoleThread.cpp" />
     <ClCompile Include="CEsperAMP1ConnectionIn.cpp" />
     <ClCompile Include="CEsperAMP1ConnectionOut.cpp" />

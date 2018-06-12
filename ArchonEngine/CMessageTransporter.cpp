@@ -221,7 +221,7 @@ IArchonMessagePort *CMessageTransporter::BindRaw (const CString &sAddress, bool 
 		if (!m_ProcessQueues.Find(sKey, &pQueue))
 			{
 			pQueue = new CInterprocessMessageQueue;
-			pQueue->Open(m_pProcess->GetMachineName(), sProcess);
+			pQueue->Open(m_pProcess, m_pProcess->GetMachineName(), sProcess);
 			m_ProcessQueues.Insert(sKey, pQueue);
 			}
 

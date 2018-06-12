@@ -131,6 +131,16 @@ IComplexDatum *CComplexBinary::Clone (void) const
 	return pDest;
 	}
 
+size_t CComplexBinary::OnCalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const
+
+//	OnCalcSerializeSizeAEONScript
+//
+//	Returns an approximation of serialization size.
+
+	{
+	return GetLength();
+	}
+
 bool CComplexBinary::OnDeserialize (CDatum::ESerializationFormats iFormat, const CString &sTypename, IByteStream &Stream)
 
 //	OnDeserialize

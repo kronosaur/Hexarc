@@ -27,6 +27,7 @@ class CAEONVector2D : public TExternalDatum<CAEONVector2D>
 		virtual void SetElement (const CString &sKey, CDatum dDatum);
 
 	protected:
+		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const;
 		virtual void OnMarked (void);
 		virtual void OnSerialize (CDatum::ESerializationFormats iFormat, CComplexStruct *pStruct) const;
 
@@ -54,6 +55,7 @@ class CAEONPolygon2D : public TExternalDatum<CAEONPolygon2D>
 		virtual void SetElement (const CString &sKey, CDatum dDatum);
 
 	protected:
+		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const;
 		virtual void OnMarked (void);
 		virtual void OnSerialize (CDatum::ESerializationFormats iFormat, CComplexStruct *pStruct) const;
 

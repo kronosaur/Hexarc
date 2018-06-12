@@ -34,6 +34,7 @@ DECLARE_CONST_STRING(ERR_UNABLE_TO_PARSE_MULTIPART,		"Error parsing MIME multipa
 DECLARE_CONST_STRING(ERR_INVALID_URL_PATH,				"Invalid urlPath: %s.")
 DECLARE_CONST_STRING(ERR_404_NOT_FOUND,					"Not Found")
 DECLARE_CONST_STRING(ERR_UNSUPPORTED_MEDIA_TYPE,		"Unsupported media type: %s.")
+DECLARE_CONST_STRING(ERR_JSON_SERIALIZE_TIME_WARNING,	"Serialized JSON response.")
 
 bool CHexeCodeRPCService::ComposeResponse (SHTTPRequestCtx &Ctx, CHexeProcess::ERunCodes iRun, CDatum dResult)
 
@@ -78,8 +79,12 @@ bool CHexeCodeRPCService::ComposeResponse (SHTTPRequestCtx &Ctx, CHexeProcess::E
 		{
 		CStringBuffer Buffer;
 
+		CArchonTimer Timer;
+
 		dResult.Serialize(CDatum::formatJSON, Buffer);
 		pBody->DecodeFromBuffer(MEDIA_TYPE_JSON, Buffer);
+
+		Timer.LogTime(Ctx.pSession->GetEngine()->GetProcessCtx(), ERR_JSON_SERIALIZE_TIME_WARNING);
 		}
 	
 	//	HTML

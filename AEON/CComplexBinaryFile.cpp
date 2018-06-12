@@ -264,6 +264,23 @@ void CComplexBinaryFile::IncrementRefCount (void) const
 #endif
 	}
 
+size_t CComplexBinaryFile::OnCalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const
+
+//	OnCalcSerializeSizeAEONScript
+//
+//	Returns an approximation of serialization size.
+
+	{
+	switch (iFormat)
+		{
+		case CDatum::formatAEONLocal:
+			return (3 * sizeof(DWORD)) + m_sFilespec.GetLength();
+
+		default:
+			return sizeof(DWORD) + GetLength();
+		}
+	}
+
 bool CComplexBinaryFile::OnDeserialize (CDatum::ESerializationFormats iFormat, const CString &sTypename, IByteStream &Stream)
 
 //	OnDeserialize

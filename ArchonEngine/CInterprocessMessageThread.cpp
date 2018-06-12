@@ -12,6 +12,7 @@ DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error")
 
 DECLARE_CONST_STRING(ERR_CANT_DESERIALIZE,				"Unable to deserialize message: %s.")
 DECLARE_CONST_STRING(ERR_CANT_BIND,						"Unable to bind to address: %s.")
+DECLARE_CONST_STRING(ERR_DESERIALIZE_TIME_WARNING,		"Deserialized message.")
 
 CInterprocessMessageThread::CInterprocessMessageThread (void) :
 		m_pProcess(NULL),
@@ -42,13 +43,13 @@ void CInterprocessMessageThread::Boot (IArchonProcessCtx *pProcess, const CStrin
 
 	//	Start the queue
 
-	if (!m_Queue.Create(pProcess->GetMachineName(), pProcess->GetModuleName(), MAX_QUEUE_SIZE))
+	if (!m_Queue.Create(pProcess, pProcess->GetMachineName(), pProcess->GetModuleName(), MAX_QUEUE_SIZE))
 		{
 		//	If we could not create the queue then it means that someone else 
 		//	already has it open. This can happen if our process got restarted
 		//	while the rest of the arcology kept a handle to the queue.
 
-		if (!m_Queue.Open(pProcess->GetMachineName(), pProcess->GetModuleName()))
+		if (!m_Queue.Open(pProcess, pProcess->GetMachineName(), pProcess->GetModuleName()))
 			{
 			//	LATER: Log error or handle error
 			NULL;
@@ -105,12 +106,16 @@ void CInterprocessMessageThread::Run (void)
 					{
 					for (i = 0; i < List.GetCount(); i++)
 						{
+						CArchonTimer Timer;
+
 						SArchonEnvelope Env;
 						if (!CInterprocessMessageQueue::DeserializeMessage(List[i], &Env))
 							{
 							m_pProcess->Log(MSG_LOG_ERROR, strPattern(ERR_CANT_DESERIALIZE, List[i]));
 							continue;
 							}
+
+						Timer.LogTime(m_pProcess, ERR_DESERIALIZE_TIME_WARNING);
 
 						//	LATER: Check to see if this is bound for another machine
 						//	(In which case, we should send to Exarch for transport)

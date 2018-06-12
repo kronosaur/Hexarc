@@ -12,6 +12,18 @@
 class CMessagePort;
 class CMessageTransporter;
 
+class CArchonTimer
+	{
+	public:
+		CArchonTimer (void) { Start(); }
+
+		void LogTime (IArchonProcessCtx *pProcess, const CString &sText, DWORDLONG dwMinTime = 1000) const;
+		inline void Start (void) { m_dwStart = ::sysGetTickCount64(); }
+
+	private:
+		DWORDLONG m_dwStart;
+	};
+
 //	CMessagePortMap ------------------------------------------------------------
 
 class CMessagePortMap
@@ -73,11 +85,16 @@ class CInterprocessMessageQueue
 	public:
 		CInterprocessMessageQueue (void) : m_pHeader(NULL) { }
 
-		bool Create (const CString &sMachine, const CString &sProcess, int iMaxSize);
+		bool Create (IArchonProcessCtx *pCtx, const CString &sMachine, const CString &sProcess, int iMaxSize);
 		bool Dequeue (int iMaxCount, TArray<CString> *retList);
 		bool Enqueue (const SArchonEnvelope &Env, CString *retsError);
 		inline CManualEvent &GetEvent (void) { return m_HasMessages; }
-		inline bool Open (const CString &sMachine, const CString &sProcess) { return Open(strPattern("%s-%s", sMachine, sProcess)); }
+		inline bool Open (IArchonProcessCtx *pCtx, const CString &sMachine, const CString &sProcess) 
+			{ 
+			m_pProcess = pCtx;
+			m_sName = strPattern("%s-%s", sMachine, sProcess);
+			return Open();
+			}
 
 		static bool DecodeFileMsg (const SArchonMessage &Msg, SArchonMessage *retMsg);
 		static bool DeserializeMessage (const CString &sEnv, SArchonEnvelope *retEnv);
@@ -130,9 +147,10 @@ class CInterprocessMessageQueue
 		inline bool IsFree (DWORD dwOffset) { return (GetFreeEntry(dwOffset)->iSize < 0); }
 		inline bool IsFull (void) const	{ return (((m_pHeader->dwTail + 1) % m_pHeader->dwSize) == m_pHeader->dwHead); }
 		inline bool IsOpen (void) const { return (m_pHeader != NULL); }
-		bool Open (const CString &sName);
+		bool Open (void);
 		inline void SetFree (SFreeEntry *pEntry, int iSize, DWORD dwNext) { pEntry->iSize = -iSize; pEntry->dwNext = dwNext; }
 
+		IArchonProcessCtx *m_pProcess = NULL;
 		CString m_sName;
 		CSemaphore m_Lock;
 		CSharedMemoryBuffer m_Queue;

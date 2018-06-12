@@ -47,6 +47,25 @@ CDatum::Types CComplexInteger::GetNumberType (int *retiValue)
 		return CDatum::typeIntegerIP;
 	}
 
+size_t CComplexInteger::OnCalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const
+
+//	OnCalcSerializeSizeAEONScript
+//
+//	Returns an approximation of serialization size.
+
+	{
+	switch (iFormat)
+		{
+		case CDatum::formatAEONLocal:
+		case CDatum::formatAEONScript:
+			return m_Value.AsString().GetLength();
+
+		default:
+			ASSERT(false);
+			return 0;
+		}
+	}
+
 void CComplexInteger::Serialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const
 
 //	Serialize

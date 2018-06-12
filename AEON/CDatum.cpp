@@ -653,6 +653,29 @@ TArray<CString> CDatum::AsStringArray (void) const
 	return Result;
 	}
 
+size_t CDatum::CalcSerializeSize (ESerializationFormats iFormat) const
+
+//	CalcSerializeSize
+//
+//	Computes the size needed to serialize this datum.
+
+	{
+	switch (iFormat)
+		{
+		case formatAEONScript:
+		case formatAEONLocal:
+			return CalcSerializeSizeAEONScript(iFormat);
+
+		case formatJSON:
+			ASSERT(false);	//	Not Yet Implemented
+			return 0;
+
+		default:
+			ASSERT(false);
+			return 0;
+		}
+	}
+
 bool CDatum::CanInvoke (void) const
 
 //	CanInvoke
