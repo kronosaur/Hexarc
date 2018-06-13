@@ -328,21 +328,32 @@ void CHexGridBase::PointToHexXY (const CVector2D &vPos, int *retx, int *rety) co
 
 		if (yOffset <= m_rHalfDY)
 			{
+			int xHexC = xHexA + 1;
+			int yHexC = ((xHexA % 2) == 0 ? yHexA - 1 : yHexA);
+
 			double yLine = xOffset * SQRT_3;
 			if (yOffset > yLine)
+				{
 				xHex = xHexA;
+				yHex = yHexA;
+				}
 			else
-				xHex = xHexA + 1;
+				{
+				xHex = xHexC;
+				yHex = yHexC;
+				}
 
-			yHex = yHexA;
 			}
 		else
 			{
+			int xHexB = xHexA + 1;
+			int yHexB = ((xHexA % 2) == 0 ? yHexA : yHexA + 1);
+
 			double yLine = (m_rHalfRadius - xOffset) * SQRT_3;
-			if (yOffset > yLine)
+			if (yOffset - m_rHalfDY > yLine)
 				{
-				xHex = xHexA + 1;
-				yHex = ((xHexA % 2) != 0 ? yHexA + 1 : yHexA);
+				xHex = xHexB;
+				yHex = yHexB;
 				}
 			else
 				{
