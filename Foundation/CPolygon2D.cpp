@@ -32,6 +32,18 @@ CPolygon2D::CPolygon2D (const TArray<CVector2D> &vPoints) :
 	{
 	}
 
+CPolygon2D::CPolygon2D (const CRect2D &Rect)
+
+//	CPolygon2D constructor
+
+	{
+	m_vPoints.InsertEmpty(4);
+	m_vPoints[0] = Rect.GetLL();
+	m_vPoints[1] = CVector2D(Rect.GetLL().X(), Rect.GetUR().Y());
+	m_vPoints[2] = Rect.GetUR();
+	m_vPoints[3] = CVector2D(Rect.GetUR().X(), Rect.GetLL().Y());
+	}
+
 CPolygon2D::~CPolygon2D (void)
 
 //	CPolygon2D destructor

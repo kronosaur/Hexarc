@@ -211,6 +211,7 @@ class CPolygon2D
 
 		CPolygon2D (int iPoints = 0);
 		CPolygon2D (const TArray<CVector2D> &vPoints);
+		CPolygon2D (const CRect2D &Rect);
 		CPolygon2D (const CPolygon2D &Src);
 		~CPolygon2D (void);
 

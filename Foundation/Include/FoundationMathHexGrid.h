@@ -26,14 +26,14 @@ class CHexGridBase
 			CVector2D vHex;
 			};
 
-		CHexGridBase (double rRadius, double rWidth, double rHeight);
+		CHexGridBase (double rRadius = 1.0, double rWidth = 100.0, double rHeight = 100.0);
 
 		inline int GetCount (void) const { return m_iCount; }
 		inline double GetDX (void) const { return m_rDX; }
 		inline double GetDY (void) const { return m_rDY; }
 		inline double GetHeight (void) const { return m_rHeight; }
 		bool GetHexesInRange (const CVector2D &vPos, double rRange, TArray<int> *retHexes) const;
-		void GetOutlines (const TArray<int> &HexList, TArray<CPolygon2D> *retResult);
+		void GetOutlines (const TArray<int> &HexList, TArray<CPolygon2D> *retResult) const;
 		inline double GetRadius (void) const { return m_rRadius; }
 		inline double GetWidth (void) const { return m_rWidth; }
 		bool HasMore (SIterator &i, EIterationTypes iType = iterateIndex) const;
@@ -42,6 +42,7 @@ class CHexGridBase
 		int HexXYToIndex (int x, int y) const;
 		void IndexToHexXY (int iIndex, int *retx, int *rety) const;
 		CVector2D IndexToPoint (int iIndex) const;
+		void Init (double rRadius, double rWidth, double rHeight);
 		bool IsNeighbor (int xFrom, int yFrom, int xTo, int yTo) const;
 		void PointToHexXY (const CVector2D &vPos, int *retx, int *rety) const;
 		int PointToIndex (const CVector2D &vPos) const;
@@ -49,13 +50,10 @@ class CHexGridBase
 		void SelectNext (SIterator &i, EIterationTypes iType = iterateIndex) const;
 
 	private:
-		void Init (double rRadius, double rWidth, double rHeight);
-
 		double m_rRadius;					//	Radius of each hex
 		double m_rHalfRadius;
 
 		double m_rDX;						//	Distance between hex centers (horizontally)
-		double m_rHalfDX;
 		double m_rDY;						//	Distance between hex centers (vertically)
 		double m_rHalfDY;
 
@@ -73,6 +71,10 @@ class CHexGridBase
 template <class VALUE> class THexGrid : public CHexGridBase
 	{
 	public:
+		THexGrid (void) : m_pHexes(NULL)
+			{
+			}
+
 		THexGrid (double rRadius, double rWidth, double rHeight) : CHexGridBase(rRadius, rWidth, rHeight),
 				m_pHexes(NULL)
 			{
@@ -92,7 +94,15 @@ template <class VALUE> class THexGrid : public CHexGridBase
 				m_pHexes[i] = Value;
 			}
 
+		const VALUE &GetAt (int iIndex) const { return m_pHexes[iIndex]; }
 		VALUE &GetAt (int iIndex) { return m_pHexes[iIndex]; }
+
+		void Init (double rRadius, double rWidth, double rHeight)
+			{
+			CleanUp();
+			CHexGridBase::Init(rRadius, rWidth, rHeight);
+			AllocArray();
+			}
 
 		VALUE *PointToHex (const CVector2D &vPos) const
 			{

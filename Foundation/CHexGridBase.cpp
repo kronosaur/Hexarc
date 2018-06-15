@@ -88,7 +88,7 @@ bool CHexGridBase::GetHexesInRange (const CVector2D &vPos, double rRange, TArray
 	return (retHexes->GetCount() > 0);
 	}
 
-void CHexGridBase::GetOutlines (const TArray<int> &HexList, TArray<CPolygon2D> *retResult)
+void CHexGridBase::GetOutlines (const TArray<int> &HexList, TArray<CPolygon2D> *retResult) const
 
 //	GetOutline
 //
