@@ -101,7 +101,7 @@ template <int l> struct SConstString
 
 #define DECLARE_CONST_STRING(label,string)	\
 	static SConstString<sizeof(string)> g_p##label = { 0-(int)(sizeof(string)-1), string }; \
-	static const CString label (g_p##label##.pString, -1, true);
+	static const CString label (g_p##label##.pString, -1, true); 
 
 extern const CString NULL_STR;
 

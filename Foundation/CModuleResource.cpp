@@ -1,11 +1,11 @@
-//	CResource.cpp
+//	CModuleResource.cpp
 //
-//	CResource class
+//	CModuleResource class
 //	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
 
 #include "stdafx.h"
 
-void CResource::Close (void)
+void CModuleResource::Close (void)
 
 //	Close
 //
@@ -19,7 +19,7 @@ void CResource::Close (void)
 		}
 	}
 
-bool CResource::Open (const CString &sType, const CString &sName)
+bool CModuleResource::Open (const CString &sType, const CString &sName)
 
 //	Open
 //

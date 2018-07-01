@@ -661,10 +661,15 @@ void CAeonEngine::MsgFileGetDesc (const SArchonMessage &Msg, const CHexeSecurity
 
 //	MsgFileGetDesc
 //
-//	Aeon.fileGetDesc {filePath}
+//	Aeon.fileGetDesc {filePath} [{options}]
 
 	{
 	CString sError;
+
+	//	Options
+
+	CDatum dOptions = Msg.dPayload.GetElement(1);
+	bool bIncludeStoragePath = !dOptions.GetElement(FIELD_STORAGE_PATH).IsNil();
 
 	//	Get the filePath
 
@@ -701,7 +706,7 @@ void CAeonEngine::MsgFileGetDesc (const SArchonMessage &Msg, const CHexeSecurity
 
 	//	Prepare the descriptor for return
 
-	CDatum dNewFileDesc = CAeonTable::PrepareFileDesc(sTable, sFilePath, dFileDesc);
+	CDatum dNewFileDesc = CAeonTable::PrepareFileDesc(sTable, sFilePath, dFileDesc, (bIncludeStoragePath ? CAeonTable::FLAG_STORAGE_PATH : 0));
 
 	//	Done
 

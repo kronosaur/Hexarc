@@ -257,7 +257,7 @@
     <ClCompile Include="CPolygonIntersector.cpp" />
     <ClCompile Include="CProcess.cpp" />
     <ClCompile Include="CRect2D.cpp" />
-    <ClCompile Include="CResource.cpp" />
+    <ClCompile Include="CModuleResource.cpp" />
     <ClCompile Include="CRGBA32.cpp" />
     <ClCompile Include="CRGBA32Image.cpp" />
     <ClCompile Include="CSemaphore.cpp" />

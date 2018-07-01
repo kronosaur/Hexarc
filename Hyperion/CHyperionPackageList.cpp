@@ -236,7 +236,7 @@ bool CHyperionPackageList::AddPackage (IArchonProcessCtx *pProcess, const CStrin
 
 	//	Load the resource
 
-	CResource Res;
+	CModuleResource Res;
 	if (!Res.Open(RESTYPE_PACKAGE, sResName))
 		{
 		*retsError = strPattern(ERR_CANT_FIND_RESOURCE, sResName);

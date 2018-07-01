@@ -1563,7 +1563,7 @@ bool CAeonTable::GetFileData (const CString &sFilePath, int iMaxSize, int iPos, 
 		{
 		CComplexStruct *pFileDownloadDesc = new CComplexStruct;
 		pFileDownloadDesc->SetElement(FIELD_UNMODIFIED, CDatum(CDatum::constTrue));
-		pFileDownloadDesc->SetElement(FIELD_FILE_DESC, PrepareFileDesc(m_sName, sFilePath, dFileDesc, bTranspace));
+		pFileDownloadDesc->SetElement(FIELD_FILE_DESC, PrepareFileDesc(m_sName, sFilePath, dFileDesc, (bTranspace ? FLAG_TRANSPACE : 0)));
 
 		*retdFileDownloadDesc = CDatum(pFileDownloadDesc);
 		return true;
@@ -1622,7 +1622,7 @@ bool CAeonTable::GetFileData (const CString &sFilePath, int iMaxSize, int iPos, 
 
 	//	Transpace message has a slightly different format
 
-	pFileDownloadDesc->SetElement(FIELD_FILE_DESC, PrepareFileDesc(m_sName, sFilePath, dFileDesc, bTranspace));
+	pFileDownloadDesc->SetElement(FIELD_FILE_DESC, PrepareFileDesc(m_sName, sFilePath, dFileDesc, (bTranspace ? FLAG_TRANSPACE : 0)));
 	pFileDownloadDesc->SetElement(FIELD_PARTIAL_POS, iPos);
 	pFileDownloadDesc->SetElement(FIELD_DATA, dData);
 
@@ -3556,7 +3556,7 @@ bool CAeonTable::ParseTableType (const CString &sType, Types *retiType, CString 
 	return true;
 	}
 
-CDatum CAeonTable::PrepareFileDesc (const CString &sTable, const CString &sFilePath, CDatum dFileDesc, bool bTranspace)
+CDatum CAeonTable::PrepareFileDesc (const CString &sTable, const CString &sFilePath, CDatum dFileDesc, DWORD dwFlags)
 
 //	PrepareFileDesc
 //
@@ -3564,6 +3564,9 @@ CDatum CAeonTable::PrepareFileDesc (const CString &sTable, const CString &sFileP
 
 	{
 	int i;
+
+	bool bTranspace = ((dwFlags & FLAG_TRANSPACE) ? true : false);
+	bool bIncludeStoragePath = ((dwFlags & FLAG_STORAGE_PATH) ? true : false);
 
 	CComplexStruct *pNewFileDesc = new CComplexStruct;
 
@@ -3581,7 +3584,7 @@ CDatum CAeonTable::PrepareFileDesc (const CString &sTable, const CString &sFileP
 		const CString &sField = dFileDesc.GetKey(i);
 
 		if (!strEquals(sField, FIELD_FILE_PATH)
-				&& !strEquals(sField, FIELD_STORAGE_PATH))
+				&& (bIncludeStoragePath || !strEquals(sField, FIELD_STORAGE_PATH)))
 			pNewFileDesc->SetElement(sField, dFileDesc.GetElement(sField));
 		}
 

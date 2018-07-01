@@ -620,13 +620,6 @@ class CAeonTable
 			DEFAULT_VIEW =				0,	//	Default view is always ID 0
 			};
 
-		enum Flags
-			{
-			FLAG_MORE_ROWS =			0x00000001,	//	GetRows: Start with first row AFTER key
-			FLAG_INCLUDE_KEY =			0x00000002,	//	GetRows: Include key in data (instead of interleaving)
-			FLAG_NO_KEY =				0x00000004,	//	GetRows: Just return the data
-			};
-
 		enum Types
 			{
 			typeStandard,					//	A standard table with no special properties
@@ -649,7 +642,13 @@ class CAeonTable
 		bool GetFileDesc (const CString &sFilePath, CDatum *retdFileDesc, CString *retsError);
 		bool GetKeyRange (int iCount, CDatum *retdResult, CString *retsError);
 		inline const CString &GetName (void) { return m_sName; }
+
+		static constexpr DWORD FLAG_MORE_ROWS =		0x00000001;	//	GetRows: Start with first row AFTER key
+		static constexpr DWORD FLAG_INCLUDE_KEY =	0x00000002;	//	GetRows: Include key in data (instead of interleaving)
+		static constexpr DWORD FLAG_NO_KEY =		0x00000004;	//	GetRows: Just return the data
+
 		bool GetRows (DWORD dwViewID, CDatum dLastKey, int iRowCount, const TArray<int> &Limits, DWORD dwFlags, CDatum *retdResult, CString *retsError);
+
 		inline Types GetType (void) const { return m_iType; }
 		bool GetViewStatus (DWORD dwViewID, bool *retbUpToDate, CString *retsError);
 		inline bool HasSecondaryViews (void) { return (m_Views.GetCount() > 1); }
@@ -676,7 +675,12 @@ class CAeonTable
 		static bool ParseDimensionDescForSecondaryView (CDatum dDimDesc, CHexeProcess &Process, SDimensionDesc *retDimDesc, CDatum *retdKey, CString *retsError);
 		static bool ParseFilePath (const CString &sPath, CString *retsTable, CString *retsFilePath, CString *retsError);
 		static bool ParseFilePathForCreate (const CString &sPath, CString *retsTable, CString *retsFilePath, CString *retsError);
-		static CDatum PrepareFileDesc (const CString &sTable, const CString &sFilePath, CDatum dFileDesc, bool bTranspace = false);
+
+		static constexpr DWORD FLAG_TRANSPACE =		0x00000001;
+		static constexpr DWORD FLAG_STORAGE_PATH =	0x00000002;
+
+		static CDatum PrepareFileDesc (const CString &sTable, const CString &sFilePath, CDatum dFileDesc, DWORD dwFlags = 0);
+
 		static bool ValidateTableName (const CString &sName);
 
 	private:

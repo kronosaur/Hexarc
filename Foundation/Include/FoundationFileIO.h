@@ -164,11 +164,11 @@ class CFileMultiplexer : public IByteStream
 		TArray<CFile> m_Mirrors;
 	};
 
-class CResource : public CMemoryBlockImpl
+class CModuleResource : public CMemoryBlockImpl
 	{
 	public:
-		CResource (void) : m_hRes(NULL) { }
-		virtual ~CResource (void) { Close(); }
+		CModuleResource (void) : m_hRes(NULL) { }
+		virtual ~CModuleResource (void) { Close(); }
 
 		void Close (void);
 		bool Open (const CString &sType, const CString &sName);
