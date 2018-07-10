@@ -5,36 +5,37 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(LIBRARY_HYPERION,					"hyperion")
-DECLARE_CONST_STRING(LIBRARY_SESSION,					"session")
-DECLARE_CONST_STRING(LIBRARY_SESSION_HTTP_BODY_BUILDER,	"sessionHTTPBodyBuilder")
-DECLARE_CONST_STRING(LIBRARY_SESSION_HTTP_REQUEST,		"sessionHTTPRequest")
+DECLARE_CONST_STRING(LIBRARY_HYPERION,					"hyperion");
+DECLARE_CONST_STRING(LIBRARY_SESSION,					"session");
+DECLARE_CONST_STRING(LIBRARY_SESSION_CTX,				"sessionCtx");
+DECLARE_CONST_STRING(LIBRARY_SESSION_HTTP_BODY_BUILDER,	"sessionHTTPBodyBuilder");
+DECLARE_CONST_STRING(LIBRARY_SESSION_HTTP_REQUEST,		"sessionHTTPRequest");
 
 bool httpMisc (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinueCtx, CDatum *retdResult);
 
 const DWORD HTTP_CALL =									0;
-DECLARE_CONST_STRING(HTTP_CALL_NAME,					"http")
-DECLARE_CONST_STRING(HTTP_CALL_ARGS,					"*")
-DECLARE_CONST_STRING(HTTP_CALL_HELP,					"(http method URL headers body [options]) -> result")
+DECLARE_CONST_STRING(HTTP_CALL_NAME,					"http");
+DECLARE_CONST_STRING(HTTP_CALL_ARGS,					"*");
+DECLARE_CONST_STRING(HTTP_CALL_HELP,					"(http method URL headers body [options]) -> result");
 
 const DWORD HTTP_GET_COOKIE =							1;
-DECLARE_CONST_STRING(HTTP_GET_COOKIE_NAME,				"httpGetCookie")
-DECLARE_CONST_STRING(HTTP_GET_COOKIE_ARGS,				"s")
-DECLARE_CONST_STRING(HTTP_GET_COOKIE_HELP,				"(httpGetCookie key) -> value")
+DECLARE_CONST_STRING(HTTP_GET_COOKIE_NAME,				"httpGetCookie");
+DECLARE_CONST_STRING(HTTP_GET_COOKIE_ARGS,				"s");
+DECLARE_CONST_STRING(HTTP_GET_COOKIE_HELP,				"(httpGetCookie key) -> value");
 
 const DWORD HTTP_GET_HEADERS =							2;
-DECLARE_CONST_STRING(HTTP_GET_HEADERS_NAME,				"httpGetHeaders")
-DECLARE_CONST_STRING(HTTP_GET_HEADERS_ARGS,				"-")
-DECLARE_CONST_STRING(HTTP_GET_HEADERS_HELP,				"(httpGetHeaders) -> ((header1 value1) (header2 value2)...)")
+DECLARE_CONST_STRING(HTTP_GET_HEADERS_NAME,				"httpGetHeaders");
+DECLARE_CONST_STRING(HTTP_GET_HEADERS_ARGS,				"-");
+DECLARE_CONST_STRING(HTTP_GET_HEADERS_HELP,				"(httpGetHeaders) -> ((header1 value1) (header2 value2)...)");
 
 const DWORD HTTP_GET_RAW_BODY =							3;
-DECLARE_CONST_STRING(HTTP_GET_RAW_BODY_NAME,			"httpGetRawBody")
-DECLARE_CONST_STRING(HTTP_GET_RAW_BODY_ARGS,			"-")
-DECLARE_CONST_STRING(HTTP_GET_RAW_BODY_HELP,			"(httpGetRawBody) -> value")
+DECLARE_CONST_STRING(HTTP_GET_RAW_BODY_NAME,			"httpGetRawBody");
+DECLARE_CONST_STRING(HTTP_GET_RAW_BODY_ARGS,			"-");
+DECLARE_CONST_STRING(HTTP_GET_RAW_BODY_HELP,			"(httpGetRawBody) -> value");
 
 const DWORD HTTP_GET_REQUEST_URL =						4;
-DECLARE_CONST_STRING(HTTP_GET_REQUEST_URL_NAME,			"httpGetRequestURL")
-DECLARE_CONST_STRING(HTTP_GET_REQUEST_URL_ARGS,			"-")
+DECLARE_CONST_STRING(HTTP_GET_REQUEST_URL_NAME,			"httpGetRequestURL");
+DECLARE_CONST_STRING(HTTP_GET_REQUEST_URL_ARGS,			"-");
 DECLARE_CONST_STRING(HTTP_GET_REQUEST_URL_HELP,			"(httpGetRequestURL) -> urlDesc\n\n"
 
 														"urlDesc:\n\n"
@@ -44,72 +45,86 @@ DECLARE_CONST_STRING(HTTP_GET_REQUEST_URL_HELP,			"(httpGetRequestURL) -> urlDes
 														"   'protocol: The protocol (e.g., http)\n"
 														"   'query: A struct representing the query\n"
 														"   'url: The full request URL\n"
-														)
+														);
 
 const DWORD HTTP_GET_URL_PARAMS =						5;
-DECLARE_CONST_STRING(HTTP_GET_URL_PARAMS_NAME,			"httpGetURLParams")
-DECLARE_CONST_STRING(HTTP_GET_URL_PARAMS_ARGS,			"-")
-DECLARE_CONST_STRING(HTTP_GET_URL_PARAMS_HELP,			"(httpGetURLParams) -> { param1:value1 param2:value2 ... }")
+DECLARE_CONST_STRING(HTTP_GET_URL_PARAMS_NAME,			"httpGetURLParams");
+DECLARE_CONST_STRING(HTTP_GET_URL_PARAMS_ARGS,			"-");
+DECLARE_CONST_STRING(HTTP_GET_URL_PARAMS_HELP,			"(httpGetURLParams) -> { param1:value1 param2:value2 ... }");
 
 bool serviceMisc (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinueCtx, CDatum *retdResult);
 
 const DWORD SERVICE_FIND_COMMAND =						0;
-DECLARE_CONST_STRING(SERVICE_FIND_COMMAND_NAME,			"srvFindCommand")
-DECLARE_CONST_STRING(SERVICE_FIND_COMMAND_ARGS,			"s*")
-DECLARE_CONST_STRING(SERVICE_FIND_COMMAND_HELP,			"(srvFindCommand command [attrib]) -> commandDesc")
+DECLARE_CONST_STRING(SERVICE_FIND_COMMAND_NAME,			"srvFindCommand");
+DECLARE_CONST_STRING(SERVICE_FIND_COMMAND_ARGS,			"s*");
+DECLARE_CONST_STRING(SERVICE_FIND_COMMAND_HELP,			"(srvFindCommand command [attrib]) -> commandDesc");
 
-const DWORD SERVICE_PARSE_COMMAND_LINE =				1;
-DECLARE_CONST_STRING(SERVICE_PARSE_COMMAND_LINE_NAME,	"srvParseCommandLine")
-DECLARE_CONST_STRING(SERVICE_PARSE_COMMAND_LINE_ARGS,	"s")
-DECLARE_CONST_STRING(SERVICE_PARSE_COMMAND_LINE_HELP,	"(srvParseCommandLine commandLine) -> (command params)")
+const DWORD SERVICE_GET_INFO =							1;
+DECLARE_CONST_STRING(SERVICE_GET_INFO_NAME,				"srvGetInfo");
+DECLARE_CONST_STRING(SERVICE_GET_INFO_ARGS,				"-");
+DECLARE_CONST_STRING(SERVICE_GET_INFO_HELP,				"(srvGetInfo) -> infoDesc\n\n"
+
+														"infoDesc:\n\n"
+
+														"   'name: Name of service\n"
+														"   'packageName: Name of package\n"
+														"   'packageVersion: Version string of package\n"
+														);
+
+const DWORD SERVICE_PARSE_COMMAND_LINE =				2;
+DECLARE_CONST_STRING(SERVICE_PARSE_COMMAND_LINE_NAME,	"srvParseCommandLine");
+DECLARE_CONST_STRING(SERVICE_PARSE_COMMAND_LINE_ARGS,	"s");
+DECLARE_CONST_STRING(SERVICE_PARSE_COMMAND_LINE_HELP,	"(srvParseCommandLine commandLine) -> (command params)");
 
 bool sessionMisc (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinueCtx, CDatum *retdResult);
 
 const DWORD SESSION_LOG =								0;
-DECLARE_CONST_STRING(SESSION_LOG_NAME,					"print")
-DECLARE_CONST_STRING(SESSION_LOG_ARGS,					"s")
-DECLARE_CONST_STRING(SESSION_LOG_HELP,					"(print ...) -> string")
+DECLARE_CONST_STRING(SESSION_LOG_NAME,					"print");
+DECLARE_CONST_STRING(SESSION_LOG_ARGS,					"s");
+DECLARE_CONST_STRING(SESSION_LOG_HELP,					"(print ...) -> string");
 
 bool userMisc (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinueCtx, CDatum *retdResult);
 
 const DWORD USER_GET_NAME =								0;
-DECLARE_CONST_STRING(USER_GET_NAME_NAME,				"userGetName")
-DECLARE_CONST_STRING(USER_GET_NAME_ARGS,				"-")
-DECLARE_CONST_STRING(USER_GET_NAME_HELP,				"(userGetName) -> username")
+DECLARE_CONST_STRING(USER_GET_NAME_NAME,				"userGetName");
+DECLARE_CONST_STRING(USER_GET_NAME_ARGS,				"-");
+DECLARE_CONST_STRING(USER_GET_NAME_HELP,				"(userGetName) -> username");
 
 const DWORD USER_GET_RIGHTS =							1;
-DECLARE_CONST_STRING(USER_GET_RIGHTS_NAME,				"userGetRights")
-DECLARE_CONST_STRING(USER_GET_RIGHTS_ARGS,				"-")
-DECLARE_CONST_STRING(USER_GET_RIGHTS_HELP,				"(userGetRights) -> list of rights")
+DECLARE_CONST_STRING(USER_GET_RIGHTS_NAME,				"userGetRights");
+DECLARE_CONST_STRING(USER_GET_RIGHTS_ARGS,				"-");
+DECLARE_CONST_STRING(USER_GET_RIGHTS_HELP,				"(userGetRights) -> list of rights");
 
 const DWORD USER_HAS_RIGHT =							2;
-DECLARE_CONST_STRING(USER_HAS_RIGHT_NAME,				"userHasRight")
-DECLARE_CONST_STRING(USER_HAS_RIGHT_ARGS,				"-")
-DECLARE_CONST_STRING(USER_HAS_RIGHT_HELP,				"(userHasRight right) -> true/nil")
+DECLARE_CONST_STRING(USER_HAS_RIGHT_NAME,				"userHasRight");
+DECLARE_CONST_STRING(USER_HAS_RIGHT_ARGS,				"-");
+DECLARE_CONST_STRING(USER_HAS_RIGHT_HELP,				"(userHasRight right) -> true/nil");
 
 const DWORD USER_SET =									3;
-DECLARE_CONST_STRING(USER_SET_NAME,						"userSet")
-DECLARE_CONST_STRING(USER_SET_ARGS,						"s*")
-DECLARE_CONST_STRING(USER_SET_HELP,						"(userSet username [rights]) -> true/nil")
+DECLARE_CONST_STRING(USER_SET_NAME,						"userSet");
+DECLARE_CONST_STRING(USER_SET_ARGS,						"s*");
+DECLARE_CONST_STRING(USER_SET_HELP,						"(userSet username [rights]) -> true/nil");
 
-DECLARE_CONST_STRING(FIELD_ATTRIBUTES,					"attributes")
-DECLARE_CONST_STRING(FIELD_CODE,						"code")
-DECLARE_CONST_STRING(FIELD_HELP,						"help")
-DECLARE_CONST_STRING(FIELD_HOST,						"host")
-DECLARE_CONST_STRING(FIELD_NAME,						"name")
-DECLARE_CONST_STRING(FIELD_PARAMETERS,					"parameters")
-DECLARE_CONST_STRING(FIELD_PATH,						"path")
-DECLARE_CONST_STRING(FIELD_PROTOCOL,					"protocol")
-DECLARE_CONST_STRING(FIELD_QUERY,						"query")
-DECLARE_CONST_STRING(FIELD_URL,							"url")
+DECLARE_CONST_STRING(FIELD_ATTRIBUTES,					"attributes");
+DECLARE_CONST_STRING(FIELD_CODE,						"code");
+DECLARE_CONST_STRING(FIELD_HELP,						"help");
+DECLARE_CONST_STRING(FIELD_HOST,						"host");
+DECLARE_CONST_STRING(FIELD_NAME,						"name");
+DECLARE_CONST_STRING(FIELD_PACKAGE_NAME,				"packageName");
+DECLARE_CONST_STRING(FIELD_PACKAGE_VERSION,				"packageVersion");
+DECLARE_CONST_STRING(FIELD_PARAMETERS,					"parameters");
+DECLARE_CONST_STRING(FIELD_PATH,						"path");
+DECLARE_CONST_STRING(FIELD_PROTOCOL,					"protocol");
+DECLARE_CONST_STRING(FIELD_QUERY,						"query");
+DECLARE_CONST_STRING(FIELD_URL,							"url");
 
-DECLARE_CONST_STRING(MSG_LOG_INFO,						"Log.info")
+DECLARE_CONST_STRING(MSG_LOG_INFO,						"Log.info");
 
-DECLARE_CONST_STRING(OPTION_OPTIONAL,					"optional")
+DECLARE_CONST_STRING(OPTION_OPTIONAL,					"optional");
 
-DECLARE_CONST_STRING(ERR_CANT_GET_RIGHTS,				"Cannot obtain user rights.")
-DECLARE_CONST_STRING(ERR_BAD_COMMAND_LINE,				"Unable to parse command line.")
-DECLARE_CONST_STRING(ERR_INVALID_REQUEST_URL,			"Unable to parse request URL: %s.")
+DECLARE_CONST_STRING(ERR_CANT_GET_RIGHTS,				"Cannot obtain user rights.");
+DECLARE_CONST_STRING(ERR_BAD_COMMAND_LINE,				"Unable to parse command line.");
+DECLARE_CONST_STRING(ERR_INVALID_REQUEST_URL,			"Unable to parse request URL: %s.");
 
 //	Library --------------------------------------------------------------------
 
@@ -123,6 +138,7 @@ SLibraryFuncDef g_SessionLibraryDef[] =
 	DECLARE_DEF_LIBRARY_FUNC(HTTP_GET_URL_PARAMS, httpMisc),
 
 	DECLARE_DEF_LIBRARY_FUNC(SERVICE_FIND_COMMAND, serviceMisc),
+	DECLARE_DEF_LIBRARY_FUNC(SERVICE_GET_INFO, serviceMisc),
 	DECLARE_DEF_LIBRARY_FUNC(SERVICE_PARSE_COMMAND_LINE, serviceMisc),
 
 	DECLARE_DEF_LIBRARY_FUNC(SESSION_LOG, sessionMisc),
@@ -391,6 +407,31 @@ bool serviceMisc (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 				*retdResult = CDatum(pDesc);
 				return true;
 				}
+			}
+
+		case SERVICE_GET_INFO:
+			{
+			CHyperionEngine *pEngine = (CHyperionEngine *)pCtx->GetLibraryCtx(LIBRARY_HYPERION);
+			SHTTPRequestCtx *pSessionCtx = (SHTTPRequestCtx *)pCtx->GetLibraryCtx(LIBRARY_SESSION_CTX);
+			if (pSessionCtx == NULL)
+				{
+				*retdResult = CDatum();
+				return true;
+				}
+
+			CHyperionPackageList::SPackageInfo PackageInfo;
+			if (pEngine)
+				pEngine->GetPackageInfo(pSessionCtx->pService->GetPackageName(), PackageInfo);
+
+			CDatum dResult(new CComplexStruct);
+			dResult.SetElement(FIELD_NAME, pSessionCtx->pService->GetName());
+			dResult.SetElement(FIELD_PACKAGE_NAME, pSessionCtx->pService->GetPackageName());
+			dResult.SetElement(FIELD_PACKAGE_VERSION, PackageInfo.sVersion);
+
+			//	Done
+
+			*retdResult = dResult;
+			return true;
 			}
 
 		case SERVICE_PARSE_COMMAND_LINE:

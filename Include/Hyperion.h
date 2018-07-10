@@ -240,6 +240,7 @@ class CHyperionPackageList
 		bool FindCommand (const CString &sAttrib, const CString &sCommand, CHyperionCommandSet::SCommandInfo *retInfo);
 		bool FindCommand (const CString &sPackage, const CString &sAttrib, const CString &sCommand, CHyperionCommandSet::SCommandInfo *retInfo);
 		void GetCommands (const CString &sAttrib, TArray<CHyperionCommandSet::SCommandInfo> *retList);
+		void GetPackageInfo (const CString &sName, SPackageInfo &Info) const;
 		void GetPackageList (TArray<SPackageInfo> *retPackages);
 		void GetPackageTables (const CString &sName, TArray<CDatum> *retTables);
 		void GetScheduledTasks (IArchonProcessCtx *pProcess, TArray<STaskInfo> *retList);
@@ -276,7 +277,7 @@ class CHyperionPackageList
 		void CleanUpPackage (SPackage *pEntry);
 		void CollectGarbage (void);
 		bool FindPackage (const CString &sFilePath, int *retiIndex = NULL);
-		bool FindPackageByName (const CString &sName, int *retiIndex = NULL);
+		bool FindPackageByName (const CString &sName, int *retiIndex = NULL) const;
 		bool InitPackage (SPackage *pPackage, CDatum dPackageDef, CString *retsError);
 		bool LoadPackageDoc (IArchonProcessCtx *pProcess, SPackage *pPackage, CHexeProcess &Process, CHexeDocument &PackageDoc, CString *retsError);
 		bool LoadPackageDoc (IArchonProcessCtx *pProcess, SPackage *pPackage, IByteStream &Stream, CString *retsError);
@@ -392,6 +393,7 @@ class CHyperionEngine : public TSimpleEngine<CHyperionEngine>
 		inline void GetCommands (const CString &sAttrib, TArray<CHyperionCommandSet::SCommandInfo> *retList) { m_Packages.GetCommands(sAttrib, retList); }
 		inline CCriticalSection &GetCS (void) { return m_cs; }
 		inline CHyperionOptions &GetOptions (void) { return m_Options; }
+		inline void GetPackageInfo (const CString &sPackage, CHyperionPackageList::SPackageInfo &Info) const { m_Packages.GetPackageInfo(sPackage, Info); }
 		inline void GetPackageTables (const CString &sPackage, TArray<CDatum> *retTableDefs) { m_Packages.GetPackageTables(sPackage, retTableDefs); }
 		inline bool IsAdminNeeded (void) { return m_bAdminNeeded; }
 		void LoadServices (void);

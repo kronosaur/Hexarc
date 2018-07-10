@@ -42,6 +42,7 @@ DECLARE_CONST_STRING(INTERFACE_ARC_CONSOLE,				"Arc.console")
 
 DECLARE_CONST_STRING(LIBRARY_HYPERION,					"hyperion")
 DECLARE_CONST_STRING(LIBRARY_SESSION,					"session")
+DECLARE_CONST_STRING(LIBRARY_SESSION_CTX,				"sessionCtx")
 DECLARE_CONST_STRING(LIBRARY_SESSION_HTTP_BODY_BUILDER,	"sessionHTTPBodyBuilder")
 DECLARE_CONST_STRING(LIBRARY_SESSION_HTTP_REQUEST,		"sessionHTTPRequest")
 
@@ -444,6 +445,7 @@ bool CAI1Session::ProcessCommand (const CString &sCommand, CDatum dPayload)
 		m_Process.SetSecurityCtx(m_SecurityCtx);
 		m_Process.SetLibraryCtx(LIBRARY_HYPERION, GetEngine());
 		m_Process.SetLibraryCtx(LIBRARY_SESSION, (CHyperionSession *)this);
+		m_Process.SetLibraryCtx(LIBRARY_SESSION_CTX, NULL);
 		m_Process.SetLibraryCtx(LIBRARY_SESSION_HTTP_BODY_BUILDER, NULL);
 		m_Process.SetLibraryCtx(LIBRARY_SESSION_HTTP_REQUEST, NULL);
 

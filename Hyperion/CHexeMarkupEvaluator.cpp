@@ -9,6 +9,7 @@ DECLARE_CONST_STRING(HEADER_LOCATION,					"location")
 
 DECLARE_CONST_STRING(LIBRARY_HYPERION,					"hyperion")
 DECLARE_CONST_STRING(LIBRARY_SESSION,					"session")
+DECLARE_CONST_STRING(LIBRARY_SESSION_CTX,				"sessionCtx")
 DECLARE_CONST_STRING(LIBRARY_SESSION_HTTP_BODY_BUILDER,	"sessionHTTPBodyBuilder")
 DECLARE_CONST_STRING(LIBRARY_SESSION_HTTP_REQUEST,		"sessionHTTPRequest")
 
@@ -172,6 +173,7 @@ bool CHexeMarkupEvaluator::EvalInit (SHTTPRequestCtx &Ctx,
 
 	m_pProcess->SetLibraryCtx(LIBRARY_HYPERION, Ctx.pSession->GetEngine());
 	m_pProcess->SetLibraryCtx(LIBRARY_SESSION, Ctx.pSession);
+	m_pProcess->SetLibraryCtx(LIBRARY_SESSION_CTX, &Ctx);
 	m_pProcess->SetLibraryCtx(LIBRARY_SESSION_HTTP_BODY_BUILDER, Ctx.pBodyBuilder);
 	m_pProcess->SetLibraryCtx(LIBRARY_SESSION_HTTP_REQUEST, &Ctx.Request);
 	m_pProcess->SetSecurityCtx(SecurityCtx);

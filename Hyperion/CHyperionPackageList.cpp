@@ -401,7 +401,7 @@ bool CHyperionPackageList::FindPackage (const CString &sFilePath, int *retiIndex
 	return false;
 	}
 
-bool CHyperionPackageList::FindPackageByName (const CString &sName, int *retiIndex)
+bool CHyperionPackageList::FindPackageByName (const CString &sName, int *retiIndex) const
 
 //	FindPackage
 //
@@ -441,6 +441,27 @@ void CHyperionPackageList::GetCommands (const CString &sAttrib, TArray<CHyperion
 
 	for (i = 0; i < m_Packages.GetCount(); i++)
 		m_Packages[i].CommandSet.GetCommands(sAttrib, retList);
+	}
+
+void CHyperionPackageList::GetPackageInfo (const CString &sName, SPackageInfo &Info) const
+
+//	GetPackageInfo
+//
+//	Returns info for the given package.
+
+	{
+	CSmartLock Lock(m_cs);
+
+	int iIndex;
+	if (!FindPackageByName(sName, &iIndex))
+		return;
+
+	const SPackage &Package = m_Packages[iIndex];
+	Info.sName = Package.sName;
+	Info.sFilePath = Package.sFilePath;
+	Info.sVersion = Package.sVersion;
+	Info.sModifiedBy = Package.sModifiedBy;
+	Info.ModifiedOn = Package.ModifiedOn;
 	}
 
 void CHyperionPackageList::GetPackageList (TArray<SPackageInfo> *retPackages)

@@ -15,6 +15,7 @@ DECLARE_CONST_STRING(HEADER_CACHE_CONTROL,				"Cache-Control")
 
 DECLARE_CONST_STRING(LIBRARY_HYPERION,					"hyperion")
 DECLARE_CONST_STRING(LIBRARY_SESSION,					"session")
+DECLARE_CONST_STRING(LIBRARY_SESSION_CTX,				"sessionCtx")
 DECLARE_CONST_STRING(LIBRARY_SESSION_HTTP_BODY_BUILDER,	"sessionHTTPBodyBuilder")
 DECLARE_CONST_STRING(LIBRARY_SESSION_HTTP_REQUEST,		"sessionHTTPRequest")
 
@@ -204,6 +205,7 @@ bool CHexeCodeRPCService::OnHandleRequest (SHTTPRequestCtx &Ctx)
 
 		Ctx.pProcess->SetLibraryCtx(LIBRARY_HYPERION, Ctx.pSession->GetEngine());
 		Ctx.pProcess->SetLibraryCtx(LIBRARY_SESSION, Ctx.pSession);
+		Ctx.pProcess->SetLibraryCtx(LIBRARY_SESSION_CTX, &Ctx);
 		Ctx.pProcess->SetLibraryCtx(LIBRARY_SESSION_HTTP_BODY_BUILDER, Ctx.pBodyBuilder);
 		Ctx.pProcess->SetLibraryCtx(LIBRARY_SESSION_HTTP_REQUEST, &Ctx.Request);
 		Ctx.pProcess->SetSecurityCtx(Ctx.pSession->GetSecurityCtx());
