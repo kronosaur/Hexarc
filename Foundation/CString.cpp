@@ -823,8 +823,7 @@ void CString::SetLength (int iLength)
 	{
 	if (IsLiteral())
 		{
-		//	Can't set the length of a literal
-		ASSERT(false);
+		Init(NULL, iLength);
 		}
 	else if (m_pString)
 		{
@@ -958,6 +957,13 @@ CString strClean (const CString &sText, DWORD dwFlags)
 //	*	Collapses multiple space characters into one
 
 	{
+	//	Short circuit.
+
+	if (sText.IsEmpty())
+		return sText;
+
+	//	Result will always be shorter
+
 	CString sResult(sText.GetLength());
 
 	char *pSrc = sText.GetParsePointer();
@@ -967,6 +973,7 @@ CString strClean (const CString &sText, DWORD dwFlags)
 	bool bFoundNonSpace = false;
 	bool bLastCharWasSpace = false;
 	bool bFoundAlpha = false;
+	bool bFoundAlphaNumeric = false;
 
 	while (pSrc < pSrcEnd)
 		{
@@ -989,7 +996,12 @@ CString strClean (const CString &sText, DWORD dwFlags)
 				else
 					{
 					if (strIsASCIIAlpha(pSrc))
+						{
 						bFoundAlpha = true;
+						bFoundAlphaNumeric = true;
+						}
+					else if (strIsASCIIAlphaNumeric(pSrc))
+						bFoundAlphaNumeric = true;
 
 					*pDest++ = *pSrc;
 					bLastCharWasSpace = false;
@@ -1010,6 +1022,8 @@ CString strClean (const CString &sText, DWORD dwFlags)
 	//	If we didn't find any alpha characters and we want at least one then we fail
 
 	if ((dwFlags & STC_FLAG_MUST_HAVE_ALPHA) && !bFoundAlpha)
+		return NULL_STR;
+	else if ((dwFlags & STC_FLAG_MUST_HAVE_ALPHANUMERIC) && !bFoundAlphaNumeric)
 		return NULL_STR;
 
 	//	Done
