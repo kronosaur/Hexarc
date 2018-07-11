@@ -434,6 +434,7 @@ void mathVoronoiEx (const TArray<CVector2D> &Points, TArray<SVoronoiEdge> *retSe
 
 inline double mathAngleMod (double rAngle) { if (rAngle >= 0.0) return fmod(rAngle, TAU); else return TAU - fmod(-rAngle, TAU); }
 inline int mathAngleMod (int iAngle) { if (iAngle >= 0) return (iAngle % 360); else return (360 - (-iAngle % 360)); }
+inline double mathAngleBearing (double rAngle, double rFrom) { double rDiff = mathAngleMod(rAngle - rFrom); return (rDiff > PI ? rDiff - TAU : rDiff); }
 inline double mathAngleDiff (double rFrom, double rTo) { return mathAngleMod(rTo - rFrom); }
 inline double mathDegreesToRadians (int iAngle) { return iAngle * PI / 180.0; }
 inline double mathDegreesToRadians (double rAngle) { return rAngle * PI / 180.0; }
