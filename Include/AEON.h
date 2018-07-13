@@ -170,6 +170,7 @@ class CDatum
 		//	Standard interface
 		void Append (CDatum dValue);
 		CDateTime AsDateTime (void) const;
+		CDatum AsOptions (bool *retbConverted = NULL) const;
 		CString AsString (void) const;
 		TArray<CString> AsStringArray (void) const;
 		size_t CalcSerializeSize (ESerializationFormats iFormat) const;

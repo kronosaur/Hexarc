@@ -587,6 +587,59 @@ CDateTime CDatum::AsDateTime (void) const
 		}
 	}
 
+CDatum CDatum::AsOptions (bool *retbConverted) const
+
+//	AsOptions
+//
+//	Always returns as a structure, converting as appropriate. retbConverted is
+//	set to TRUE if we convert.
+
+	{
+	int i;
+
+	Types iType = GetBasicType();
+	bool bConverted = false;
+	CDatum dResult;
+
+	if (IsNil() || iType == typeStruct)
+		{ }
+	else if (iType == typeString)
+		{
+		const CString &sValue = *this;
+		if (!sValue.IsEmpty())
+			{
+			dResult = CDatum(new CComplexStruct);
+			dResult.SetElement(sValue, CDatum(constTrue));
+			}
+
+		bConverted = true;
+		}
+	else if (iType == typeArray)
+		{
+		dResult = CDatum(new CComplexStruct);
+		for (i = 0; i < GetCount(); i++)
+			{
+			CString sValue = GetElement(i).AsString();
+			if (!sValue.IsEmpty())
+				dResult.SetElement(sValue, CDatum(constTrue));
+			}
+
+		if (dResult.GetCount() == 0)
+			dResult = CDatum();
+
+		bConverted = true;
+		}
+	else
+		{
+		bConverted = true;
+		}
+
+	//	Done
+
+	if (retbConverted) *retbConverted = bConverted;
+	return dResult;
+	}
+
 CString CDatum::AsString (void) const
 
 //	AsString
