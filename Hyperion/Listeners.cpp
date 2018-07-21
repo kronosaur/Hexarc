@@ -155,7 +155,7 @@ void CHyperionEngine::MsgEsperOnConnect (const SArchonMessage &Msg, const CHexeS
 	//	Ask one of the services (it doesn't matter which one)
 	//	to create a session object for us.
 
-	ISessionHandler *pSession = pListener->Services[0]->CreateSessionObject(this, sListener, sSocket, sNetAddress);
+	ISessionHandler *pSession = pListener->Services[0]->CreateSessionObject(this, sListener, pListener->sProtocol, sSocket, sNetAddress);
 
 	//	We can unlock at this point
 

@@ -229,7 +229,7 @@ class CHTTPMessage
 		inline const CString &GetHTTPVersion (void) const { return m_sVersion; }
 		inline const CString &GetMethod (void) const { return m_sMethod; }
 		CString GetRequestedHost (void) const;
-		CString GetRequestedURL (CString *retsFullURL = NULL) const;
+		CString GetRequestedPath (CString *retsFullURL = NULL) const;
 		inline DWORD GetStatusCode (void) const { return m_dwStatusCode; }
 		inline const CString &GetStatusMsg (void) const { return m_sStatusMsg; }
 		bool InitFromBuffer (const IMemoryBlock &Buffer, bool bNoBody = false);
@@ -243,6 +243,7 @@ class CHTTPMessage
 		inline bool IsHTTP11 (void) const { return m_bHTTP11; }
 		bool IsMessageComplete (void) const { return m_iState == stateDone; }
 		bool IsMessagePartial (void) const { return (m_iState != stateDone && m_iState != stateStart); }
+		bool ParseRequestedURL (CString *retsProtocol, CString *retsHost = NULL, CString *retsPath = NULL) const;
 		void SetBody (IMediaTypePtr pBody);
 		bool WriteChunkToBuffer (IByteStream &Stream, DWORD dwOffset, DWORD dwSize) const;
 		bool WriteHeadersToBuffer (IByteStream &Stream, DWORD dwFlags = 0) const;

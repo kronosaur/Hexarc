@@ -87,7 +87,7 @@ void CHyperionEngine::MsgServiceMsg (const SArchonMessage &Msg, const CHexeSecur
 
 //	CHexarcMsgSession ----------------------------------------------------------
 
-CHexarcMsgSession::CHexarcMsgSession (CHyperionEngine *pEngine, IHyperionService *pService, const CHexeSecurityCtx *pSecurityCtx, const CString &sMsg, CDatum dPayload) : CHyperionSession(pEngine, NULL_STR, CDatum(), NULL_STR),
+CHexarcMsgSession::CHexarcMsgSession (CHyperionEngine *pEngine, IHyperionService *pService, const CHexeSecurityCtx *pSecurityCtx, const CString &sMsg, CDatum dPayload) : CHyperionSession(pEngine, NULL_STR, NULL_STR, CDatum(), NULL_STR),
 		m_pService(pService),
 		m_pCallerSecurityCtx(pSecurityCtx),
 		m_sMsg(sMsg),

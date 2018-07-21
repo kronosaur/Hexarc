@@ -214,7 +214,7 @@ bool CHyperionEngine::FindHTTPService (const CString &sListener, const CHTTPMess
 	//	Match on the host and url
 
 	CString sHostToMatch = Request.GetRequestedHost();
-	CString sURLToMatch = Request.GetRequestedURL();
+	CString sURLToMatch = Request.GetRequestedPath();
 
 	//	Loop over all services for this listener
 

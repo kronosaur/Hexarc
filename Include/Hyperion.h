@@ -70,11 +70,12 @@ class CConnectionInfo
 class CHyperionSession : public ISessionHandler
 	{
 	public:
-		CHyperionSession (CHyperionEngine *pEngine, const CString &sListener, CDatum dSocket, const CString &sNetAddress);
+		CHyperionSession (CHyperionEngine *pEngine, const CString &sListener, const CString &sProtocol, CDatum dSocket, const CString &sNetAddress);
 
 		void DebugLog (const CString &sLog);
 		virtual CString GetDebugInfo (void) const;
 		inline CHyperionEngine *GetEngine (void) const { return m_pEngine; }
+		inline const CString &GetProtocol (void) const { return m_sProtocol; }
 		inline CHexeSecurityCtx &GetSecurityCtx (void) { return m_SecurityCtx; }
 		inline void SetServiceSecurity (const CHexeSecurityCtx &SecurityCtx) { m_SecurityCtx.SetServiceSecurity(SecurityCtx); }
 
@@ -95,6 +96,7 @@ class CHyperionSession : public ISessionHandler
 
 		CHyperionEngine *m_pEngine;
 		CString m_sListener;				//	Request came through this listener
+		CString m_sProtocol;				//	Request came through this protocol
 		CDatum m_dSocket;					//	Request came on this socket
 		CString m_sNetAddress;				//	IP address of client making request (including port)
 		CHexeSecurityCtx m_SecurityCtx;		//	Service and user security context.
@@ -120,7 +122,7 @@ class IHyperionService
 								   IHyperionService **retpService, 
 								   CString *retsError);
 
-		inline CHyperionSession *CreateSessionObject (CHyperionEngine *pEngine, const CString &sListener, const CString &sSocket, const CString &sNetAddress) { return OnCreateSessionObject(pEngine, sListener, sSocket, sNetAddress); }
+		inline CHyperionSession *CreateSessionObject (CHyperionEngine *pEngine, const CString &sListener, const CString &sProtocol, const CString &sSocket, const CString &sNetAddress) { return OnCreateSessionObject(pEngine, sListener, sProtocol, sSocket, sNetAddress); }
 		inline void DeleteSession (CHyperionSession *pSession) { CSmartLock Lock(m_cs); m_Sessions.DeleteValue(pSession); }
 		inline CString GetFileRoot (void) const { return OnGetFileRoot(); }
 		inline const CString &GetName (void) const { return m_sName; }
@@ -142,7 +144,7 @@ class IHyperionService
 
 	protected:
 		//	IHyperionService
-		virtual CHyperionSession *OnCreateSessionObject (CHyperionEngine *pEngine, const CString &sListener, const CString &sSocket, const CString &sNetAddress) { return NULL; }
+		virtual CHyperionSession *OnCreateSessionObject (CHyperionEngine *pEngine, const CString &sListener, const CString &sProtocol, const CString &sSocket, const CString &sNetAddress) { return NULL; }
 		virtual CString OnGetFileRoot (void) const { return NULL_STR; }
 		virtual void OnGetListeners (TArray<SListenerDesc> &Listeners) const;
 		virtual bool OnInit (CDatum dServiceDef, const CHexeDocument &Package, CString *retsError) { return true; }

@@ -76,7 +76,7 @@ class CAI1Service : public IHyperionService
 
 	protected:
 		//	IHyperionService
-		virtual CHyperionSession *OnCreateSessionObject (CHyperionEngine *pEngine, const CString &sListener, const CString &sSocket, const CString &sNetAddress) override { return new CAI1Session(pEngine, sListener, sSocket, sNetAddress); }
+		virtual CHyperionSession *OnCreateSessionObject (CHyperionEngine *pEngine, const CString &sListener, const CString &sProtocol, const CString &sSocket, const CString &sNetAddress) override { return new CAI1Session(pEngine, sListener, sSocket, sNetAddress); }
 		virtual bool OnInit (CDatum dServiceDef, const CHexeDocument &Package, CString *retsError) override;
 		virtual void OnInitProcess (CHexeProcess &Process) override { Process.InitFrom(m_ProcessTemplate); }
 		virtual bool OnIsListener (void) const override { return true; }
@@ -178,7 +178,7 @@ struct SHTTPRequestCtx
 class CHTTPSession : public CHyperionSession
 	{
 	public:
-		CHTTPSession (CHyperionEngine *pEngine, const CString &sListener, CDatum dSocket, const CString &sNetAddress);
+		CHTTPSession (CHyperionEngine *pEngine, const CString &sListener, const CString &sProtocol, CDatum dSocket, const CString &sNetAddress);
 
 		virtual CString GetDebugInfo (void) const;
 
@@ -266,7 +266,7 @@ class CHTTPService : public IHyperionService
 			};
 
 		//	IHyperionService
-		virtual CHyperionSession *OnCreateSessionObject (CHyperionEngine *pEngine, const CString &sListener, const CString &sSocket, const CString &sNetAddress) override { return new CHTTPSession(pEngine, sListener, sSocket, sNetAddress); }
+		virtual CHyperionSession *OnCreateSessionObject (CHyperionEngine *pEngine, const CString &sListener, const CString &sProtocol, const CString &sSocket, const CString &sNetAddress) override { return new CHTTPSession(pEngine, sListener, sProtocol, sSocket, sNetAddress); }
 		virtual void OnGetListeners (TArray<SListenerDesc> &Listeners) const override;
 		virtual bool OnInit (CDatum dServiceDef, const CHexeDocument &Package, CString *retsError) override;
 		virtual bool OnIsListener (void) const override { return true; }

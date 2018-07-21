@@ -21,6 +21,7 @@ DECLARE_CONST_STRING(HEADER_LOCATION,					"location")
 DECLARE_CONST_STRING(PORT_DEFAULT_TLS,					"443")
 
 DECLARE_CONST_STRING(PROTOCOL_HTTP,						"http")
+DECLARE_CONST_STRING(PROTOCOL_HTTPS,					"https")
 DECLARE_CONST_STRING(PROTOCOL_TLS,						"tls")
 
 DECLARE_CONST_STRING(SERVICE_HEXCODE,					"hexcode")
@@ -93,10 +94,28 @@ bool CHTTPService::HandleRequest (SHTTPRequestCtx &Ctx)
 	{
 	int i;
 
+	//	Parse URL
+
+	CString sURLHost;
+	CString sURLPath;
+	Ctx.Request.ParseRequestedURL(NULL, &sURLHost, &sURLPath);
+
+	//	If we require TLS, then redirect HTTP to HTTPS
+
+	if (m_iTLS == tlsRequired 
+			&& !strEquals(Ctx.pSession->GetProtocol(), PROTOCOL_TLS))
+		{
+		Ctx.iStatus = pstatResponseReady;
+		Ctx.Response.InitResponse(http_MOVED_PERMANENTLY, STR_MOVED_PERMANENTLY);
+
+		CString sRedirect = ::strPattern("https://%s%s", sURLHost, sURLPath);
+		Ctx.Response.AddHeader(HEADER_LOCATION, sRedirect);
+		return true;
+		}
+
 	//	Convert the URL to a relative path before checking for redirects.
 
-	CString sURLHost = Ctx.Request.GetRequestedHost();
-	CString sURLPath = MakeRelativePath(Ctx.Request.GetRequestedURL());
+	sURLPath = MakeRelativePath(sURLPath);
 
 	//	See if we need to redirect.
 

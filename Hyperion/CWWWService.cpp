@@ -79,7 +79,7 @@ bool CWWWService::OnHandleRequest (SHTTPRequestCtx &Ctx)
 
 	CDatum dQuery;
 	CString sPath;
-	urlParseQuery(Ctx.Request.GetRequestedURL(), &sPath, &dQuery);
+	urlParseQuery(Ctx.Request.GetRequestedPath(), &sPath, &dQuery);
 	const CString &sMethod = Ctx.Request.GetMethod();
 
 	//	If this is the root then we supply the default file.

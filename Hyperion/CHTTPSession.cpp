@@ -76,8 +76,8 @@ DECLARE_CONST_STRING(ERR_HTTP_SESSION_TIMING,			"[%x] %s%s took %d ms to process
 
 const DWORD MAX_SINGLE_BODY_SIZE =						100000;
 
-CHTTPSession::CHTTPSession (CHyperionEngine *pEngine, const CString &sListener, CDatum dSocket, const CString &sNetAddress) : 
-		CHyperionSession(pEngine, sListener, dSocket, sNetAddress),
+CHTTPSession::CHTTPSession (CHyperionEngine *pEngine, const CString &sListener, const CString &sProtocol, CDatum dSocket, const CString &sNetAddress) : 
+		CHyperionSession(pEngine, sListener, sProtocol, dSocket, sNetAddress),
 		m_iState(stateUnknown),
 		m_dwLastRequestTime(0)
 
@@ -458,7 +458,7 @@ bool CHTTPSession::ProcessStateWaitingForRequest (const SArchonMessage &Msg)
 		//	If we've got a request then maybe we have a bug.
 
 		if (m_Ctx.Request.IsMessagePartial())
-			GetProcessCtx()->Log(MSG_LOG_DEBUG, strPattern("[%x] Incomplete message: %s %s", CEsperInterface::ConnectionToFriendlyID(m_dSocket), m_Ctx.Request.GetMethod(), m_Ctx.Request.GetRequestedURL()));
+			GetProcessCtx()->Log(MSG_LOG_DEBUG, strPattern("[%x] Incomplete message: %s %s", CEsperInterface::ConnectionToFriendlyID(m_dSocket), m_Ctx.Request.GetMethod(), m_Ctx.Request.GetRequestedPath()));
 			
 		//	Log a disconnect
 
@@ -524,7 +524,7 @@ bool CHTTPSession::ProcessStateWaitingForRequest (const SArchonMessage &Msg)
 		try
 			{
 			m_sLastRequestMethod = m_Ctx.Request.GetMethod();
-			m_Ctx.Request.GetRequestedURL(&m_sLastRequestURL);
+			m_Ctx.Request.GetRequestedPath(&m_sLastRequestURL);
 			if (bNewProxyIP)
 				m_sLastRequestIP = sOriginalAddr;
 			else if (bFirstRequest)
@@ -542,7 +542,7 @@ bool CHTTPSession::ProcessStateWaitingForRequest (const SArchonMessage &Msg)
 		else if (bFirstRequest)
 			GetProcessCtx()->Log(MSG_LOG_INFO, strPattern("[%x] Connected %s.", CEsperInterface::ConnectionToFriendlyID(m_dSocket), m_sNetAddress));
 			
-		GetProcessCtx()->Log(MSG_LOG_INFO, strPattern("[%x] %s %s%s.", CEsperInterface::ConnectionToFriendlyID(m_dSocket), m_Ctx.Request.GetMethod(), m_Ctx.Request.GetRequestedHost(), m_Ctx.Request.GetRequestedURL()));
+		GetProcessCtx()->Log(MSG_LOG_INFO, strPattern("[%x] %s %s%s.", CEsperInterface::ConnectionToFriendlyID(m_dSocket), m_Ctx.Request.GetMethod(), m_Ctx.Request.GetRequestedHost(), m_Ctx.Request.GetRequestedPath()));
 #endif
 		//	Ask the engine for a service to handle this request
 
@@ -867,7 +867,7 @@ bool CHTTPSession::SendResponse (SHTTPRequestCtx &Ctx, const SArchonMessage &Msg
 	GetProcessCtx()->Log(MSG_LOG_INFO, strPattern(ERR_HTTP_SESSION_TIMING, CEsperInterface::ConnectionToFriendlyID(m_dSocket), Ctx.Request.GetRequestedHost(), Ctx.Request.GetRequestedURL(), dwTime));
 #else
 	if (dwTime >= 1000)
-		GetProcessCtx()->Log(MSG_LOG_INFO, strPattern(ERR_HTTP_SESSION_TIMING, CEsperInterface::ConnectionToFriendlyID(m_dSocket), Ctx.Request.GetRequestedHost(), Ctx.Request.GetRequestedURL(), dwTime));
+		GetProcessCtx()->Log(MSG_LOG_INFO, strPattern(ERR_HTTP_SESSION_TIMING, CEsperInterface::ConnectionToFriendlyID(m_dSocket), Ctx.Request.GetRequestedHost(), Ctx.Request.GetRequestedPath(), dwTime));
 #endif
 		
 

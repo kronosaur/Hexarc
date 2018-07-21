@@ -10,9 +10,10 @@ DECLARE_CONST_STRING(FIELD_SOCKET,						"socket")
 
 DECLARE_CONST_STRING(MSG_LOG_INFO,						"Log.info")
 
-CHyperionSession::CHyperionSession (CHyperionEngine *pEngine, const CString &sListener, CDatum dSocket, const CString &sNetAddress) :
+CHyperionSession::CHyperionSession (CHyperionEngine *pEngine, const CString &sListener, const CString &sProtocol, CDatum dSocket, const CString &sNetAddress) :
 		m_pEngine(pEngine),
 		m_sListener(sListener),
+		m_sProtocol(sProtocol),
 		m_dSocket(dSocket),
 		m_sNetAddress(sNetAddress)
 

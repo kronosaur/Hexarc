@@ -251,7 +251,7 @@ bool httpMisc (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinu
 			//	Parse the URL components
 
 			CString sURL;
-			pRequest->GetRequestedURL(&sURL);
+			pRequest->GetRequestedPath(&sURL);
 
 			CString sProtocol;
 			CString sHost;
@@ -294,7 +294,7 @@ bool httpMisc (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinu
 				return true;
 				}
 
-			if (!urlParseQuery(pRequest->GetRequestedURL(), NULL, retdResult))
+			if (!urlParseQuery(pRequest->GetRequestedPath(), NULL, retdResult))
 				{
 				*retdResult = CDatum();
 				return false;

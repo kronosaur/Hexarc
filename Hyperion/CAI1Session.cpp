@@ -83,7 +83,7 @@ const int DEFAULT_TIMEOUT =								30 * 1000;
 #endif
 
 CAI1Session::CAI1Session (CHyperionEngine *pEngine, const CString &sListener, CDatum dSocket, const CString &sNetAddress) :
-		CHyperionSession(pEngine, sListener, dSocket, sNetAddress),
+		CHyperionSession(pEngine, sListener, NULL_STR, dSocket, sNetAddress),
 		m_pService(NULL),
 		m_iState(stateUnknown),
 		m_iWritesOutstanding(0)

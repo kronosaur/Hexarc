@@ -33,9 +33,9 @@ bool CHTTPProxyService::OnHandleRequest (SHTTPRequestCtx &Ctx)
 
 	CString sDestURL;
 	if (m_dwDestPort != urlGetDefaultPort(GetProtocol()))
-		sDestURL = strPattern("%s://%s:%d%s", GetProtocol(), m_sDestHost, m_dwDestPort, Ctx.Request.GetRequestedURL());
+		sDestURL = strPattern("%s://%s:%d%s", GetProtocol(), m_sDestHost, m_dwDestPort, Ctx.Request.GetRequestedPath());
 	else
-		sDestURL = strPattern("%s://%s%s", GetProtocol(), m_sDestHost, Ctx.Request.GetRequestedURL());
+		sDestURL = strPattern("%s://%s%s", GetProtocol(), m_sDestHost, Ctx.Request.GetRequestedPath());
 
 	//	Options
 
