@@ -30,6 +30,7 @@ function diag.option
 
 						"option:\n\n"
 
+						"Hyperion.logHTTPParsing\n"
 						"Hyperion.logSessionState\n"
 						)
 

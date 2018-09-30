@@ -488,10 +488,21 @@ bool CHTTPSession::ProcessStateWaitingForRequest (const SArchonMessage &Msg)
 
 		m_pEngine->LogSessionState(strPattern("[%x:%x] Received: %s.", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)MSG_ESPER_ON_READ));
 
+		bool bDebugHTTPParsing = m_pEngine->GetOptions().GetOptionBoolean(CHyperionOptions::optionLogHTTPParsing);
+		TArray<CString> DebugLog;
+
 		//	Parse the message. If we get an error, then we reply with
 		//	a 400 error.
 
-		if (!m_Ctx.Request.InitFromPartialBuffer(CStringBuffer((const CString &)dData)))
+		bool bSuccess = m_Ctx.Request.InitFromPartialBuffer(CStringBuffer((const CString &)dData), false, (bDebugHTTPParsing ? &DebugLog : NULL));
+
+		if (bDebugHTTPParsing)
+			{
+			for (int i = 0; i < DebugLog.GetCount(); i++)
+				GetProcessCtx()->Log(MSG_LOG_DEBUG, strPattern("[%x] HTTPParsing: %s", CEsperInterface::ConnectionToFriendlyID(m_dSocket), DebugLog[i]));
+			}
+
+		if (!bSuccess)
 			{
 #ifdef LOG_HTTP_SESSION
 			GetProcessCtx()->Log(MSG_LOG_INFO, strPattern("[%x] Responded: 400 Bad Request.", CEsperInterface::ConnectionToFriendlyID(m_dSocket)));

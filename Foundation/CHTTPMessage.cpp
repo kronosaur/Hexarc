@@ -251,7 +251,7 @@ bool CHTTPMessage::InitFromBuffer (const IMemoryBlock &Buffer, bool bNoBody)
 	return (m_iState == stateDone);
 	}
 
-bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBody)
+bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBody, TArray<CString> *pDebugOutput)
 
 //	InitFromPartialBuffer
 //
@@ -266,13 +266,20 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 	char *pEndPos;
 
 	if (!m_pBodyBuilder)
+		{
 		InitFromPartialBufferReset();
+		if (pDebugOutput)
+			pDebugOutput->Insert(CString("Initializing buffer."));
+		}
 
 	//	If we have left overs, prepend it to the new buffer.
 
 	CBuffer Temp;
 	if (!m_sLeftOver.IsEmpty())
 		{
+		if (pDebugOutput)
+			pDebugOutput->Insert(strPattern("m_sLeftOver has %d bytes.", m_sLeftOver.GetLength()));
+
 		Temp.Write(m_sLeftOver);
 		Temp.Write(Buffer.GetPointer(), Buffer.GetLength());
 		pPos = Temp.GetPointer();
@@ -288,6 +295,9 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 		pPos = Buffer.GetPointer();
 		pEndPos = Buffer.GetPointer() + Buffer.GetLength();
 		}
+
+	if (pDebugOutput)
+		pDebugOutput->Insert(strPattern("Buffer has %d bytes.", Buffer.GetLength()));
 
 	while (pPos < pEndPos && m_iState != stateDone)
 		{
@@ -306,6 +316,10 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 				if (!ParseToken(pPos, pEndPos, ' ', &pPos, &sToken))
 					{
 					m_sLeftOver = CString(pOriginalPos, pEndPos - pOriginalPos);
+
+					if (pDebugOutput)
+						pDebugOutput->Insert(strPattern("stateStart: Need more data."));
+
 					return true;
 					}
 
@@ -324,6 +338,10 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 					if (!ParseToken(pPos, pEndPos, ' ', &pPos, &sStatus))
 						{
 						m_sLeftOver = CString(pOriginalPos, pEndPos - pOriginalPos);
+
+						if (pDebugOutput)
+							pDebugOutput->Insert(strPattern("stateStart: Need more data for status code."));
+
 						return true;
 						}
 
@@ -334,6 +352,10 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 					if (!ParseToken(pPos, pEndPos, '\r', &pPos, &m_sStatusMsg))
 						{
 						m_sLeftOver = CString(pOriginalPos, pEndPos - pOriginalPos);
+
+						if (pDebugOutput)
+							pDebugOutput->Insert(strPattern("stateStart: Need more data for message."));
+
 						return true;
 						}
 
@@ -375,6 +397,10 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 				SetBody(IMediaTypePtr());
 
 				m_iState = stateHeaders;
+
+				if (pDebugOutput)
+					pDebugOutput->Insert(strPattern("stateStart: %s %s", m_sMethod, m_sURL));
+
 				break;
 				}
 
@@ -408,6 +434,9 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 						{
 						m_pBodyBuilder->Init(NULL_STR);
 						m_iState = stateDone;
+
+						if (pDebugOutput)
+							pDebugOutput->Insert(strPattern("stateHeaders: No body."));
 						}
 
 					//	If we have a non-identity transfer encoding, then we have 
@@ -422,6 +451,9 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 
 						m_pBodyBuilder->Init(sMediaType);
 						m_iState = stateBody;
+
+						if (pDebugOutput)
+							pDebugOutput->Insert(strPattern("stateHeaders: transfer encoding: %s.", sEncoding));
 						}
 
 					//	If we have a non-zero content length, then we have a body.
@@ -435,6 +467,9 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 
 						m_pBodyBuilder->Init(sMediaType);
 						m_iState = stateBody;
+
+						if (pDebugOutput)
+							pDebugOutput->Insert(strPattern("stateHeaders: content length: %s.", sLength));
 						}
 
 					//	Otherwise, no body
@@ -443,6 +478,9 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 						{
 						m_pBodyBuilder->Init(NULL_STR);
 						m_iState = stateDone;
+
+						if (pDebugOutput)
+							pDebugOutput->Insert(strPattern("stateHeaders: No body."));
 						}
 					}
 
@@ -451,6 +489,9 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 
 				else if (pPos < pEndPos)
 					{
+					if (pDebugOutput)
+						pDebugOutput->Insert(strPattern("stateHeaders: Need more data."));
+
 					m_sLeftOver = CString(pPos, pEndPos - pPos);
 					return true;
 					}
@@ -476,16 +517,24 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 					if (!ParseToken(pPos, pEndPos, '\r', &pPos, &sLine))
 						{
 						m_sLeftOver = CString(pOriginalPos, pEndPos - pOriginalPos);
+
+						if (pDebugOutput)
+							pDebugOutput->Insert(strPattern("stateBody: Chunked transfer, need more data."));
+
 						return true;
 						}
 
 					int iTotalLength = strParseIntOfBase(sLine, 16, 0);
+
+					if (pDebugOutput)
+						pDebugOutput->Insert(strPattern("stateBody: Total length %d.", iTotalLength));
 
 					//	0-length means we're done
 
 					if (iTotalLength == 0)
 						{
 						m_iState = stateDone;
+
 						break;
 						}
 
@@ -505,6 +554,9 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 						{
 						m_iChunkLeft = iTotalLength - iLength;
 						m_iState = stateChunk;
+
+						if (pDebugOutput)
+							pDebugOutput->Insert(strPattern("stateBody: Chunked transfer read %d need %d more.", iLength, m_iChunkLeft));
 						}
 
 					//	Otherwise, we're done with this chunk
@@ -519,8 +571,15 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 							{
 							m_iState = stateChunkEnd;
 							m_sLeftOver = CString(pOriginalPos, pEndPos - pOriginalPos);
+
+							if (pDebugOutput)
+								pDebugOutput->Insert(strPattern("stateBody: Chunked need more data."));
+
 							return true;
 							}
+
+						if (pDebugOutput)
+							pDebugOutput->Insert(strPattern("stateBody: Chunk done."));
 						}
 					}
 
@@ -540,16 +599,29 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 						pPos += iLength;
 						}
 
+					if (pDebugOutput)
+						pDebugOutput->Insert(strPattern("stateBody: Total length %d remaining %d length %d.", iTotalLength, iRemaining, iLength));
+
 					//	If we hit the end, then we're done
 
 					if (iLength == iRemaining)
+						{
 						m_iState = stateDone;
+
+						if (pDebugOutput)
+							pDebugOutput->Insert(strPattern("stateBody: Done."));
+						}
 					}
 
 				//	Otherwise, we are done
 
 				else
+					{
 					m_iState = stateDone;
+
+					if (pDebugOutput)
+						pDebugOutput->Insert(strPattern("stateBody: Done done."));
+					}
 
 				break;
 				}
@@ -562,10 +634,18 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 					{
 					m_iState = stateChunkEnd;
 					m_sLeftOver = CString(pOriginalPos, pEndPos - pOriginalPos);
+
+					if (pDebugOutput)
+						pDebugOutput->Insert(strPattern("stateChunkEnd: Chunked need more data."));
+
 					return true;
 					}
 
 				m_iState = stateBody;
+
+				if (pDebugOutput)
+					pDebugOutput->Insert(strPattern("stateChunkEnd: Chunk done."));
+
 				break;
 				}
 
@@ -581,6 +661,9 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 					m_iChunkLeft -= iLength;
 					}
 
+				if (pDebugOutput)
+					pDebugOutput->Insert(strPattern("stateChunk: Read %d need %d more.", iLength, m_iChunkLeft));
+
 				//	Done?
 
 				if (m_iChunkLeft == 0)
@@ -593,6 +676,10 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 						{
 						m_iState = stateChunkEnd;
 						m_sLeftOver = CString(pOriginalPos, pEndPos - pOriginalPos);
+
+						if (pDebugOutput)
+							pDebugOutput->Insert(strPattern("stateChunk: Chunked need more data."));
+
 						return true;
 						}
 

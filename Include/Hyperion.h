@@ -359,6 +359,7 @@ class CHyperionOptions
 			{
 			optionNone,
 
+			optionLogHTTPParsing,					//	Boolean: Logs information about HTTP parsing
 			optionLogSessionState,					//	Boolean: Logs information about session state
 			};
 
@@ -372,6 +373,7 @@ class CHyperionOptions
 
 		CCriticalSection m_cs;
 		bool m_bLogSessionState = false;
+		bool m_bLogHTTPParsing = false;
 	};
 
 //	CHyperionEngine ------------------------------------------------------------
@@ -394,7 +396,7 @@ class CHyperionEngine : public TSimpleEngine<CHyperionEngine>
 		inline CHyperionCache &GetCache (void) { return m_Cache; }
 		inline void GetCommands (const CString &sAttrib, TArray<CHyperionCommandSet::SCommandInfo> *retList) { m_Packages.GetCommands(sAttrib, retList); }
 		inline CCriticalSection &GetCS (void) { return m_cs; }
-		inline CHyperionOptions &GetOptions (void) { return m_Options; }
+		inline const CHyperionOptions &GetOptions (void) const { return m_Options; }
 		inline void GetPackageInfo (const CString &sPackage, CHyperionPackageList::SPackageInfo &Info) const { m_Packages.GetPackageInfo(sPackage, Info); }
 		inline void GetPackageTables (const CString &sPackage, TArray<CDatum> *retTableDefs) { m_Packages.GetPackageTables(sPackage, retTableDefs); }
 		inline bool IsAdminNeeded (void) { return m_bAdminNeeded; }

@@ -5,7 +5,7 @@
 
 Arc.package AI2
 	{
-	version:	"1.2.1 (2018.03.04)"
+	version:	"1.2.2 (2018.09.26)"
 	rights:		Arc.admin		//	Package requires Arc.admin rights
 	}
 

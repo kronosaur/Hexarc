@@ -233,7 +233,7 @@ class CHTTPMessage
 		inline DWORD GetStatusCode (void) const { return m_dwStatusCode; }
 		inline const CString &GetStatusMsg (void) const { return m_sStatusMsg; }
 		bool InitFromBuffer (const IMemoryBlock &Buffer, bool bNoBody = false);
-		bool InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBody = false);
+		bool InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBody = false, TArray<CString> *pDebugOutput = NULL);
 		void InitFromPartialBufferReset (IMediaTypeBuilderPtr pBodyBuilder = IMediaTypeBuilderPtr());
 		bool InitFromSocket (SOCKET hSocket);
 		bool InitFromStream (IByteStream &Stream);

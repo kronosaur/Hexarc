@@ -2414,7 +2414,25 @@ bool CAeonTable::MoveToScrap (const CString &sFilespec)
 
 	CString sDestFilespec = fileAppend(sPath, strPattern(FILESPEC_SCRAP_CONS, m_sName, sFilename));
 	if (!fileMove(sFilespec, sDestFilespec))
-		return false;
+		{
+		CString sToTablePath = fileAppend(sPath, m_sName);
+
+		//	If this fails, then make sure the scrap directory exists
+
+		filePathCreate(fileAppend(sToTablePath, FILESPEC_SCRAP_DIR));
+
+		//	Now try again
+
+		if (!fileMove(sFilespec, sDestFilespec))
+			{
+			//	LATER: Add to a list to move later.
+			return false;
+			}
+
+		//	Success!
+
+		return true;
+		}
 
 	return true;
 	}
@@ -4190,8 +4208,8 @@ AEONERR CAeonTable::UploadFile (CMsgProcessCtx &Ctx, const CString &sSessionID, 
 				{
 				//	This is not an error, since the file was uploaded properly.
 				//	We can find this file later while checking for consistency.
-				//
-				//	LATER: Log
+
+				m_pProcess->Log(MSG_LOG_ERROR, strPattern(ERR_CANT_MOVE_TO_SCRAP, sCurrentFilespec));
 				}
 			}
 

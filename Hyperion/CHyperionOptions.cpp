@@ -5,13 +5,16 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(FIELD_LOG_SESSION_STATE,			"Hyperion.logSessionState")
+DECLARE_CONST_STRING(FIELD_LOG_SESSION_STATE,			"Hyperion.logSessionState");
+DECLARE_CONST_STRING(FIELD_LOG_HTTP_PARSING,			"Hyperion.logHTTPParsing");
 
-DECLARE_CONST_STRING(VALUE_DISABLED,					"disabled")
-DECLARE_CONST_STRING(VALUE_ENABLED,						"enabled")
+DECLARE_CONST_STRING(VALUE_DISABLE,						"disable");
+DECLARE_CONST_STRING(VALUE_DISABLED,					"disabled");
+DECLARE_CONST_STRING(VALUE_ENABLE,						"enable");
+DECLARE_CONST_STRING(VALUE_ENABLED,						"enabled");
 
-DECLARE_CONST_STRING(ERR_INVALID_VALUE,					"Invalid value %s for option %s.")
-DECLARE_CONST_STRING(ERR_UNKNOWN_OPTION,				"Unknown option: %s.")
+DECLARE_CONST_STRING(ERR_INVALID_VALUE,					"Invalid value %s for option %s.");
+DECLARE_CONST_STRING(ERR_UNKNOWN_OPTION,				"Unknown option: %s.");
 
 bool CHyperionOptions::GetOptionBoolean (EOptions iOption) const
 
@@ -24,6 +27,9 @@ bool CHyperionOptions::GetOptionBoolean (EOptions iOption) const
 
 	switch (iOption)
 		{
+		case optionLogHTTPParsing:
+			return m_bLogHTTPParsing;
+
 		case optionLogSessionState:
 			return m_bLogSessionState;
 
@@ -41,7 +47,10 @@ CDatum CHyperionOptions::GetStatus (void) const
 	{
 	CDatum dResult(CDatum::typeStruct);
 
-	CDatum dValue = (m_bLogSessionState ? CDatum(VALUE_ENABLED) : CDatum(VALUE_DISABLED));
+	CDatum dValue = (m_bLogHTTPParsing ? CDatum(VALUE_ENABLED) : CDatum(VALUE_DISABLED));
+	dResult.SetElement(FIELD_LOG_HTTP_PARSING, dValue);
+
+	dValue = (m_bLogSessionState ? CDatum(VALUE_ENABLED) : CDatum(VALUE_DISABLED));
 	dResult.SetElement(FIELD_LOG_SESSION_STATE, dValue);
 
 	return dResult;
@@ -60,10 +69,14 @@ bool CHyperionOptions::ParseBooleanValue (const CString &sOption, CDatum dValue,
 		{
 		const CString &sValue = dValue;
 
-		if (strEqualsNoCase(sValue, VALUE_DISABLED))
+		if (strEqualsNoCase(sValue, VALUE_DISABLED)
+				|| strEqualsNoCase(sValue, VALUE_DISABLE))
 			*retbValue = false;
-		else if (strEqualsNoCase(sValue, VALUE_ENABLED))
+
+		else if (strEqualsNoCase(sValue, VALUE_ENABLED)
+				|| strEqualsNoCase(sValue, VALUE_ENABLE))
 			*retbValue = true;
+
 		else
 			{
 			if (retsError) *retsError = strPattern(ERR_INVALID_VALUE, sValue, sOption);
@@ -85,7 +98,12 @@ bool CHyperionOptions::SetOption (const CString &sOption, CDatum dValue, CString
 //	Sets the given option. Returns FALSE if we cannot set the option.
 
 	{
-	if (strEqualsNoCase(sOption, FIELD_LOG_SESSION_STATE))
+	if (strEqualsNoCase(sOption, FIELD_LOG_HTTP_PARSING))
+		{
+		if (!ParseBooleanValue(sOption, dValue, &m_bLogHTTPParsing, retsError))
+			return false;
+		}
+	else if (strEqualsNoCase(sOption, FIELD_LOG_SESSION_STATE))
 		{
 		if (!ParseBooleanValue(sOption, dValue, &m_bLogSessionState, retsError))
 			return false;
@@ -110,6 +128,10 @@ void CHyperionOptions::SetOptionBoolean (EOptions iOption, bool bValue)
 
 	switch (iOption)
 		{
+		case optionLogHTTPParsing:
+			m_bLogHTTPParsing = bValue;
+			break;
+
 		case optionLogSessionState:
 			m_bLogSessionState = bValue;
 			break;
