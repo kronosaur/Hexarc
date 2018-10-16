@@ -152,6 +152,14 @@ CDatum::CDatum (const CString &sString)
 //	CDatum constructor
 
 	{
+	//	Empty strings are always nil
+
+	if (sString.IsEmpty())
+		{
+		m_dwData = 0;
+		return;
+		}
+
 	//	If this is a literal string, then we can just
 	//	take the value, because it doesn't need to be freed.
 	//	NOTE: We can only do this if the literal pointer is
@@ -159,22 +167,14 @@ CDatum::CDatum (const CString &sString)
 
 	if (sString.IsLiteral())
 		{
-		if (sString.IsEmpty())
-			{
-			m_dwData = 0;
+		m_dwData = (DWORD_PTR)(LPSTR)sString;
+		if ((m_dwData & AEON_TYPE_MASK) == AEON_TYPE_STRING)
 			return;
-			}
-		else
-			{
-			m_dwData = (DWORD_PTR)(LPSTR)sString;
-			if ((m_dwData & AEON_TYPE_MASK) == AEON_TYPE_STRING)
-				return;
 
 #ifdef DEBUG
-			else
-				g_iUnalignedLiteralCount++;
+		else
+			g_iUnalignedLiteralCount++;
 #endif
-			}
 		}
 
 	//	Get a copy of the naked LPSTR out of the string
