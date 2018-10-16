@@ -188,72 +188,77 @@ DECLARE_CONST_STRING(STR_CAT_NAME,						"cat")
 DECLARE_CONST_STRING(STR_CAT_ARGS,						"*")
 DECLARE_CONST_STRING(STR_CAT_HELP,						"(cat ...) -> string")
 
-const DWORD STR_CONVERT_TO =							2;
+const DWORD STR_CLEAN =									2;
+DECLARE_CONST_STRING(STR_CLEAN_NAME,					"clean")
+DECLARE_CONST_STRING(STR_CLEAN_ARGS,					"*")
+DECLARE_CONST_STRING(STR_CLEAN_HELP,					"(clean string [options]) -> string")
+
+const DWORD STR_CONVERT_TO =							3;
 DECLARE_CONST_STRING(STR_CONVERT_TO_NAME,				"convertTo")
 DECLARE_CONST_STRING(STR_CONVERT_TO_ARGS,				"*")
 DECLARE_CONST_STRING(STR_CONVERT_TO_HELP,				"(convertTo type value) -> result")
 
-const DWORD STR_FIND =									3;
+const DWORD STR_FIND =									4;
 DECLARE_CONST_STRING(STR_FIND_NAME,						"find")
 DECLARE_CONST_STRING(STR_FIND_ARGS,						"*")
 DECLARE_CONST_STRING(STR_FIND_HELP,						"(find string stringToFind) -> index")
 
-const DWORD STR_FORMAT =								4;
+const DWORD STR_FORMAT =								5;
 DECLARE_CONST_STRING(STR_FORMAT_NAME,					"format")
 DECLARE_CONST_STRING(STR_FORMAT_ARGS,					"*")
 DECLARE_CONST_STRING(STR_FORMAT_HELP,					"(format formatDesc value) -> string")
 
-const DWORD STR_FROM_ARS =								5;
+const DWORD STR_FROM_ARS =								6;
 DECLARE_CONST_STRING(STR_FROM_ARS_NAME,					"fromARS")
 DECLARE_CONST_STRING(STR_FROM_ARS_ARGS,					"*")
 DECLARE_CONST_STRING(STR_FROM_ARS_HELP,					"(fromARS ARS-string) -> value")
 
-const DWORD STR_HEX =									6;
+const DWORD STR_HEX =									7;
 DECLARE_CONST_STRING(STR_HEX_NAME,						"hex")
 DECLARE_CONST_STRING(STR_HEX_ARGS,						"*")
 DECLARE_CONST_STRING(STR_HEX_HELP,						"(hex decimal) -> hex string")
 
-const DWORD STR_HTML =									7;
+const DWORD STR_HTML =									8;
 DECLARE_CONST_STRING(STR_HTML_NAME,						"html")
 DECLARE_CONST_STRING(STR_HTML_ARGS,						"*")
 DECLARE_CONST_STRING(STR_HTML_HELP,						"(html template struct) -> string")
 
-const DWORD STR_JOIN =									8;
+const DWORD STR_JOIN =									9;
 DECLARE_CONST_STRING(STR_JOIN_NAME,						"join")
 DECLARE_CONST_STRING(STR_JOIN_ARGS,						"*")
 DECLARE_CONST_STRING(STR_JOIN_HELP,						"(join list [separator-string]) -> string")
 
-const DWORD STR_LENGTH =								9;
+const DWORD STR_LENGTH =								10;
 DECLARE_CONST_STRING(STR_LENGTH_NAME,					"length")
 DECLARE_CONST_STRING(STR_LENGTH_ARGS,					"*")
 DECLARE_CONST_STRING(STR_LENGTH_HELP,					"(length string) -> number of characters")
 
-const DWORD STR_LOWERCASE =								10;
+const DWORD STR_LOWERCASE =								11;
 DECLARE_CONST_STRING(STR_LOWERCASE_NAME,				"lowercase")
 DECLARE_CONST_STRING(STR_LOWERCASE_ARGS,				"*")
 DECLARE_CONST_STRING(STR_LOWERCASE_HELP,				"(lowercase string) -> string")
 
-const DWORD STR_SPLIT =									11;
+const DWORD STR_SPLIT =									12;
 DECLARE_CONST_STRING(STR_SPLIT_NAME,					"split")
 DECLARE_CONST_STRING(STR_SPLIT_ARGS,					"*")
 DECLARE_CONST_STRING(STR_SPLIT_HELP,					"(split string [separators] [max] [options]) -> string")
 
-const DWORD STR_SUBSTRING =								12;
+const DWORD STR_SUBSTRING =								13;
 DECLARE_CONST_STRING(STR_SUBSTRING_NAME,				"substring")
 DECLARE_CONST_STRING(STR_SUBSTRING_ARGS,				"*")
 DECLARE_CONST_STRING(STR_SUBSTRING_HELP,				"(substring string start [count]) -> string")
 
-const DWORD STR_TO_JSON =								13;
+const DWORD STR_TO_JSON =								14;
 DECLARE_CONST_STRING(STR_TO_JSON_NAME,					"toJSON")
 DECLARE_CONST_STRING(STR_TO_JSON_ARGS,					"*")
 DECLARE_CONST_STRING(STR_TO_JSON_HELP,					"(toJSON value) -> JSON string")
 
-const DWORD STR_TYPE_OF =								14;
+const DWORD STR_TYPE_OF =								15;
 DECLARE_CONST_STRING(STR_TYPE_OF_NAME,					"typeof")
 DECLARE_CONST_STRING(STR_TYPE_OF_ARGS,					"*")
 DECLARE_CONST_STRING(STR_TYPE_OF_HELP,					"(typeof value) -> type")
 
-const DWORD STR_URL_PARAM =								15;
+const DWORD STR_URL_PARAM =								16;
 DECLARE_CONST_STRING(STR_URL_PARAM_NAME,				"urlParam")
 DECLARE_CONST_STRING(STR_URL_PARAM_ARGS,				"*")
 DECLARE_CONST_STRING(STR_URL_PARAM_HELP,				"(urlParam string) -> string")
@@ -364,6 +369,7 @@ SLibraryFuncDef g_CoreLibraryDef[] =
 
 	DECLARE_DEF_LIBRARY_FUNC(STR_ASCII, coreStrings),
 	DECLARE_DEF_LIBRARY_FUNC(STR_CAT, coreStrings),
+	DECLARE_DEF_LIBRARY_FUNC(STR_CLEAN, coreStrings),
 	DECLARE_DEF_LIBRARY_FUNC(STR_CONVERT_TO, coreStrings),
 	DECLARE_DEF_LIBRARY_FUNC(STR_FIND, coreStrings),
 	DECLARE_DEF_LIBRARY_FUNC(STR_FORMAT, coreStrings),
@@ -1279,6 +1285,15 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 				CDatum::CreateStringFromHandoff(Buffer, retdResult);
 			else
 				*retdResult = CDatum();
+			return true;
+			}
+
+		case STR_CLEAN:
+			{
+			const CString &sString = dLocalEnv.GetElement(0);
+
+			*retdResult = CDatum(strClean(sString));
+
 			return true;
 			}
 
