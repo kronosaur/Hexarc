@@ -5,7 +5,9 @@
 
 #include "stdafx.h"
 
+#ifdef DEBUG
 //#define DEBUG_TRACE
+#endif
 
 DECLARE_CONST_STRING(ADDR_NULL,							"Arc.null")
 

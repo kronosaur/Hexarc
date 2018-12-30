@@ -5,7 +5,9 @@
 
 #include "stdafx.h"
 
-#define DEBUG_TLS
+#ifdef DEBUG
+//#define DEBUG_TLS
+#endif
 
 DECLARE_CONST_STRING(ERR_SSL_INVALID_STATE,				"SSL invalid state.")
 DECLARE_CONST_STRING(ERR_SSL_ERROR,						"[%x] SSL error: %s")
