@@ -35,8 +35,11 @@ class CJSONParser
 		char m_chChar;
 	};
 
-DECLARE_CONST_STRING(STR_AEON_SENTINEL,					"AEON2011:")
-DECLARE_CONST_STRING(TYPENAME_IP_INTEGER,				"ipInteger")
+DECLARE_CONST_STRING(STR_AEON_SENTINEL,					"AEON2011:");
+DECLARE_CONST_STRING(TYPENAME_IP_INTEGER,				"ipInteger");
+
+DECLARE_CONST_STRING(STR_INFINITY,						"\"Infinity\"");
+DECLARE_CONST_STRING(STR_NAN,							"\"NaN\"");
 
 const int MAX_IN_MEMORY_SIZE =							4 * 1024 * 1024;
 
@@ -104,8 +107,13 @@ void CDatum::SerializeJSON (IByteStream &Stream) const
 
 				case AEON_NUMBER_DOUBLE:
 					{
-					CString sNumber = strFromDouble(raw_GetDouble());
-					Stream.Write(sNumber);
+					double rValue = raw_GetDouble();
+					if (isnan(rValue))
+						Stream.Write(STR_NAN);
+					else if (isinf(rValue))
+						Stream.Write(STR_INFINITY);
+					else
+						Stream.Write(strFromDouble(rValue));
 					break;
 					}
 
