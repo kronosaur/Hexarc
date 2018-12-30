@@ -5,15 +5,15 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(PORT_HEXE_COMMAND,					"Hexe.command")
+DECLARE_CONST_STRING(PORT_HEXE_COMMAND,					"Hexe.command");
 
-DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply")
-DECLARE_CONST_STRING(MSG_REPLY_DATA,					"Reply.data")
+DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply");
+DECLARE_CONST_STRING(MSG_REPLY_DATA,					"Reply.data");
 
-DECLARE_CONST_STRING(LIBRARY_CORE,						"core")
+DECLARE_CONST_STRING(LIBRARY_CORE,						"core");
 
-DECLARE_CONST_STRING(ERR_COMPILER,						"HexeLisp compiler error: %s.")
-DECLARE_CONST_STRING(ERR_UNABLE_TO_PARSE_CODE,			"Unable to parse input.")
+DECLARE_CONST_STRING(ERR_COMPILER,						"HexeLisp compiler error: %s.");
+DECLARE_CONST_STRING(ERR_UNABLE_TO_PARSE_CODE,			"Unable to parse input.");
 
 static constexpr DWORD MESSAGE_TIMEOUT =				30 * 1000;
 static constexpr DWORDLONG MAX_EXECUTION_TIME =			30 * 1000;
@@ -37,7 +37,6 @@ class CRunSession : public ISessionHandler
 			};
 
 		bool HandleResult (CHexeProcess::ERunCodes iRun, CDatum dResult);
-		CHexeProcess::ERunCodes RunContinues (CDatum dAsyncResult, CDatum *retdResult);
 
 		States m_iState;
 		CHexeProcess m_Process;
