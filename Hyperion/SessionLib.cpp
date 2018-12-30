@@ -120,6 +120,8 @@ DECLARE_CONST_STRING(FIELD_URL,							"url");
 
 DECLARE_CONST_STRING(MSG_LOG_INFO,						"Log.info");
 
+DECLARE_CONST_STRING(CMD_EVAL,							"eval");
+
 DECLARE_CONST_STRING(OPTION_OPTIONAL,					"optional");
 
 DECLARE_CONST_STRING(ERR_CANT_GET_RIGHTS,				"Cannot obtain user rights.");
@@ -452,7 +454,7 @@ bool serviceMisc (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 					//	Command is the character
 
 					CDatum dResult(CDatum::typeArray);
-					dResult.Append(CString(pPos, 1));
+					dResult.Append(CMD_EVAL);
 
 					CDatum dParams(CDatum::typeArray);
 					dResult.Append(dParams);

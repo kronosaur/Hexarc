@@ -5,7 +5,7 @@
 
 Arc.package AI2
 	{
-	version:	"1.2.2 (2018.09.26)"
+	version:	"1.3.0 (2018.12.29)"
 	rights:		Arc.admin		//	Package requires Arc.admin rights
 	}
 
@@ -172,6 +172,39 @@ function AI2.api+login (lambda (URL method headers message)
 /* -----------------------------------------------------------------------------
 	AI2.CONSOLE INTERFACE
 ----------------------------------------------------------------------------- */
+
+function AI2.eval
+		{
+		attributes: (AI2.console AI2.authAdminOnly)
+		export: public
+		help: "Evaluates a HexeLisp expression."
+		}
+
+	(lambda (params)
+		(block (
+			(expr (@ params 0))
+			result
+			)
+			(switch
+				(not expr)
+					"USAGE\n\neval {expression}"
+
+				//	Invoke
+
+				(not (set! result (invoke 'Hexe.run expr)))
+					"Nil"
+
+				//	If this is a large integer, then we convert it to a string
+
+				(= (typeof result) 'intIP)
+					(cat result)
+
+				//	Otherwise, just output the result
+
+				result
+				)
+			)
+		)
 
 function AI2.help
 		{

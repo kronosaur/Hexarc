@@ -300,8 +300,13 @@ function OutputData (data)
 
 	else if (data == true)
 		OutputText("OK");
+
+	//	If a number, then output
+
+	else if (typeof data == "number")
+		OutputText(data.toString());
 		
-	//	Otherwise, just display the data
+	//	Otherwise, just display text
 	
 	else
 		OutputText(data);
