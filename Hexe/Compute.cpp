@@ -1067,6 +1067,8 @@ CHexeProcess::ERunCodes CHexeProcess::Execute (CDatum *retResult)
 				CHexeError::Create(NULL_STR, ERR_EXECUTION_TOOK_TOO_LONG, retResult);
 				return runError;
 				}
+
+			iStopCheck = STOP_CHECK_COUNT;
 			}
 		}
 
