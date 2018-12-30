@@ -50,6 +50,7 @@ DECLARE_CONST_STRING(MSG_DIAGNOSTICS_GET_LOG_SEARCH,	"Diagnostics.getLogSearch")
 DECLARE_CONST_STRING(MSG_DIAGNOSTICS_PORT_CACHE_DUMP,	"Diagnostics.portCacheDump")
 DECLARE_CONST_STRING(MSG_DRHOUSE_CREATE_TEST_TABLE,		"DrHouse.createTestTable")
 DECLARE_CONST_STRING(MSG_DRHOUSE_UNIT_TEST,				"DrHouse.unitTest")
+DECLARE_CONST_STRING(MSG_ERROR_NOT_ALLOWED,				"Error.notAllowed")
 DECLARE_CONST_STRING(MSG_ERROR_UNKNOWN,					"Error.unknownMessage")
 DECLARE_CONST_STRING(MSG_ESPER_GET_USAGE_HISTORY,		"Esper.getUsageHistory")
 DECLARE_CONST_STRING(MSG_ESPER_HTTP,					"Esper.http")
@@ -83,6 +84,7 @@ DECLARE_CONST_STRING(MSG_HYPERION_SET_TASK_RUN_ON,		"Hyperion.setTaskRunOn")
 DECLARE_CONST_STRING(MSG_HYPERION_STOP_TASK,			"Hyperion.stopTask")
 DECLARE_CONST_STRING(MSG_TRANSPACE_DOWNLOAD,			"Transpace.download")
 
+DECLARE_CONST_STRING(ERR_CANNOT_INVOKE,					"You are not authorized to call Invoke")
 DECLARE_CONST_STRING(ERR_UNKNOWN_MSG,					"Unknown Hexarc message: %s.")
 
 CHexeProcess::SHexarcMsgInfo CHexeProcess::m_HexarcMsgInfo[] =
@@ -281,6 +283,16 @@ bool CHexeProcess::SendHexarcMessage (const CHexeSecurityCtx &SecurityCtx, const
 //	2: payload
 
 	{
+	//	Validate the security context
+
+	if (!(SecurityCtx.GetExecutionRights() & CHexeSecurityCtx::EXEC_RIGHT_INVOKE))
+		{
+		CHexeError::Create(MSG_ERROR_NOT_ALLOWED, ERR_CANNOT_INVOKE, retdResult);
+		return false;
+		}
+
+	//	Encode
+
 	CString sEncodedMsg;
 	CDatum dEncodedPayload;
 	ComposeHexarcMessage(SecurityCtx, sMsg, dPayload, &sEncodedMsg, &dEncodedPayload);

@@ -24,8 +24,8 @@ DECLARE_CONST_STRING(AI1_READ_FILE_HELP,				"(readFile filespec [options]) -> da
 
 SLibraryFuncDef g_AI1LibraryDef[] =
 	{
-	DECLARE_DEF_LIBRARY_FUNC(AI1_PRINT, ai1Misc),
-	DECLARE_DEF_LIBRARY_FUNC(AI1_READ_FILE, ai1Misc),
+	DECLARE_DEF_LIBRARY_FUNC(AI1_PRINT, ai1Misc, 0),
+	DECLARE_DEF_LIBRARY_FUNC(AI1_READ_FILE, ai1Misc, 0),
 	};
 
 const int g_iAI1LibraryDefCount = SIZEOF_STATIC_ARRAY(g_AI1LibraryDef);

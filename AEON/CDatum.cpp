@@ -2000,7 +2000,7 @@ const CString &CDatum::GetTypename (void) const
 		}
 	}
 
-bool CDatum::Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, CDatum *retdResult)
+bool CDatum::Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, DWORD dwExecutionRights, CDatum *retdResult)
 
 //	Invoke
 //
@@ -2010,7 +2010,7 @@ bool CDatum::Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, CDatum *retdResult)
 	switch (m_dwData & AEON_TYPE_MASK)
 		{
 		case AEON_TYPE_COMPLEX:
-			return raw_GetComplex()->Invoke(pCtx, dLocalEnv, retdResult);
+			return raw_GetComplex()->Invoke(pCtx, dLocalEnv, dwExecutionRights, retdResult);
 
 		default:
 			return false;

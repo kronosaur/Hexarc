@@ -212,7 +212,7 @@ class CDatum
 		//	Function related methods
 		bool CanInvoke (void) const;
 		ECallTypes GetCallInfo (CDatum *retdCodeBank = NULL, DWORD **retpIP = NULL) const;
-		bool Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, CDatum *retdResult);
+		bool Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, DWORD dwExecutionRights, CDatum *retdResult);
 		bool InvokeContinues (IInvokeCtx *pCtx, CDatum dContext, CDatum dResult, CDatum *retdResult);
 
 		//	Utilities
@@ -282,7 +282,7 @@ class IComplexDatum
 		virtual CDatum::Types GetNumberType (int *retiValue) { return CDatum::typeUnknown; }
 		virtual const CString &GetTypename (void) const = 0;
 		virtual void GrowToFit (int iCount) { }
-		virtual bool Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, CDatum *retdResult) { *retdResult = CDatum(); return false; }
+		virtual bool Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, DWORD dwExecutionRights, CDatum *retdResult) { *retdResult = CDatum(); return false; }
 		virtual bool InvokeContinues (IInvokeCtx *pCtx, CDatum dContext, CDatum dResult, CDatum *retdResult) { *retdResult = CDatum(); return false; }
 		virtual bool IsArray (void) const = 0;
 		virtual bool IsError (void) const { return false; }

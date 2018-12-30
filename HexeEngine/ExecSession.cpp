@@ -15,7 +15,8 @@ DECLARE_CONST_STRING(LIBRARY_CORE,						"core")
 DECLARE_CONST_STRING(ERR_COMPILER,						"HexeLisp compiler error: %s.")
 DECLARE_CONST_STRING(ERR_UNABLE_TO_PARSE_CODE,			"Unable to parse input.")
 
-const DWORD MESSAGE_TIMEOUT =							30 * 1000;
+static constexpr DWORD MESSAGE_TIMEOUT =				30 * 1000;
+static constexpr DWORDLONG MAX_EXECUTION_TIME =			30 * 1000;
 
 class CRunSession : public ISessionHandler
 	{
@@ -36,6 +37,7 @@ class CRunSession : public ISessionHandler
 			};
 
 		bool HandleResult (CHexeProcess::ERunCodes iRun, CDatum dResult);
+		CHexeProcess::ERunCodes RunContinues (CDatum dAsyncResult, CDatum *retdResult);
 
 		States m_iState;
 		CHexeProcess m_Process;
@@ -136,6 +138,20 @@ bool CRunSession::OnStartSession (const SArchonMessage &Msg, DWORD dwTicket)
 	//	Initialize the process
 
 	m_Process.LoadLibrary(LIBRARY_CORE);
+
+	//	We run with minimal rights
+	//
+	//	LATER: If we want more rights, we need to pass in the rights that we 
+	//	want and we need to verify that the service and user have appropriate
+	//	rights.
+
+	CHexeSecurityCtx SecurityCtx;
+	SecurityCtx.SetExecutionRights(CHexeSecurityCtx::EXEC_RIGHTS_MINIMAL);
+	m_Process.SetSecurityCtx(SecurityCtx);
+
+	//	Abort if we don't complete this in a certain amount of time
+
+	m_Process.SetMaxExecutionTime(MAX_EXECUTION_TIME);
 
 	//	Parse into an expression (depending on the type of input)
 

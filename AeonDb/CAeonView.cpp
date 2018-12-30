@@ -10,31 +10,31 @@ const DWORDLONG SMALL_MERGE_SIZE =						10000000;	//	10 MB is considered a small
 const double MIN_MERGE_RATIO =							0.8;
 const double MAX_MERGE_RATIO =							1.25;
 
-DECLARE_CONST_STRING(STR_ERROR_KEY,						"(Cannot evaluate key function)")
-DECLARE_CONST_STRING(STR_EMPTY_KEY,						"(nil)")
-DECLARE_CONST_STRING(STR_ALL_COLUMNS,					"*")
+DECLARE_CONST_STRING(STR_ERROR_KEY,						"(Cannot evaluate key function)");
+DECLARE_CONST_STRING(STR_EMPTY_KEY,						"(nil)");
+DECLARE_CONST_STRING(STR_ALL_COLUMNS,					"*");
 
-DECLARE_CONST_STRING(FIELD_COLUMNS,						"columns")
-DECLARE_CONST_STRING(FIELD_COMPUTED_COLUMNS,			"computedColumns")
-DECLARE_CONST_STRING(FIELD_ERROR,						"error")
-DECLARE_CONST_STRING(FIELD_EXCLUDE_NIL_KEYS,			"excludeNilKeys")
-DECLARE_CONST_STRING(FIELD_GLOBAL_ENV,					"globalEnv")
-DECLARE_CONST_STRING(FIELD_ID,							"id")
-DECLARE_CONST_STRING(FIELD_NAME,						"name")
-DECLARE_CONST_STRING(FIELD_PRIMARY_KEY,					"primaryKey")
-DECLARE_CONST_STRING(FIELD_RECOVERY_FILESPEC,			"recoveryFilespec")
-DECLARE_CONST_STRING(FIELD_SEGMENTS,					"segments")
-DECLARE_CONST_STRING(FIELD_UPDATE_NEEDED,				"updateNeeded")
-DECLARE_CONST_STRING(FIELD_X,							"x")
-DECLARE_CONST_STRING(FIELD_Y,							"y")
-DECLARE_CONST_STRING(FIELD_Z,							"z")
+DECLARE_CONST_STRING(FIELD_COLUMNS,						"columns");
+DECLARE_CONST_STRING(FIELD_COMPUTED_COLUMNS,			"computedColumns");
+DECLARE_CONST_STRING(FIELD_ERROR,						"error");
+DECLARE_CONST_STRING(FIELD_EXCLUDE_NIL_KEYS,			"excludeNilKeys");
+DECLARE_CONST_STRING(FIELD_GLOBAL_ENV,					"globalEnv");
+DECLARE_CONST_STRING(FIELD_ID,							"id");
+DECLARE_CONST_STRING(FIELD_NAME,						"name");
+DECLARE_CONST_STRING(FIELD_PRIMARY_KEY,					"primaryKey");
+DECLARE_CONST_STRING(FIELD_RECOVERY_FILESPEC,			"recoveryFilespec");
+DECLARE_CONST_STRING(FIELD_SEGMENTS,					"segments");
+DECLARE_CONST_STRING(FIELD_UPDATE_NEEDED,				"updateNeeded");
+DECLARE_CONST_STRING(FIELD_X,							"x");
+DECLARE_CONST_STRING(FIELD_Y,							"y");
+DECLARE_CONST_STRING(FIELD_Z,							"z");
 
-DECLARE_CONST_STRING(TYPENAME_HEXE_FUNCTION,			"hexeFunction")
+DECLARE_CONST_STRING(TYPENAME_HEXE_FUNCTION,			"hexeFunction");
 
-DECLARE_CONST_STRING(ERR_COMPUTED_COLUMN,				"Cannot evaluate computed column function.")
-DECLARE_CONST_STRING(ERR_DIMENSIONS_REQUIRED,			"Cannot create a table without dimensions.")
-DECLARE_CONST_STRING(ERR_PRIMARY_KEY_CANT_BE_LIST,		"List-type keys not supported for primary views.")
-DECLARE_CONST_STRING(ERR_INVALID_PATH,					"Path does not have the correct number of dimensions.")
+DECLARE_CONST_STRING(ERR_COMPUTED_COLUMN,				"Cannot evaluate computed column function.");
+DECLARE_CONST_STRING(ERR_DIMENSIONS_REQUIRED,			"Cannot create a table without dimensions.");
+DECLARE_CONST_STRING(ERR_PRIMARY_KEY_CANT_BE_LIST,		"List-type keys not supported for primary views.");
+DECLARE_CONST_STRING(ERR_INVALID_PATH,					"Path does not have the correct number of dimensions.");
 
 CAeonView::CAeonView (void) : m_pRows(NULL),
 		m_Segments(DescendingSort),

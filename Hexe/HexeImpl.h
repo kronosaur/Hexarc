@@ -164,8 +164,8 @@ class CHexeCode : public TExternalDatum<CHexeCode>
 
 	protected:
 		//	IComplexDatum
-		virtual bool OnDeserialize (CDatum::ESerializationFormats iFormat, const CString &sTypename, IByteStream &Stream);
-		virtual void OnSerialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const;
+		virtual bool OnDeserialize (CDatum::ESerializationFormats iFormat, const CString &sTypename, IByteStream &Stream) override;
+		virtual void OnSerialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const override;
 
 	private:
 		enum BlockTypes
@@ -197,8 +197,8 @@ class CHexePrimitive : public TExternalDatum<CHexePrimitive>
 		static const CString &StaticGetTypename (void);
 
 		//	IComplexDatum
-		virtual bool CanInvoke (void) const { return true; }
-		virtual CDatum::ECallTypes GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) const { return m_iPrimitive; }
+		virtual bool CanInvoke (void) const override { return true; }
+		virtual CDatum::ECallTypes GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) const override { return m_iPrimitive; }
 
 	private:
 		CDatum::ECallTypes m_iPrimitive;
@@ -218,17 +218,17 @@ class CHexeFunction : public TExternalDatum<CHexeFunction>
 		inline CDatum GetLocalEnv (void) { return m_dLocalEnv; }
 
 		//	IComplexDatum
-		virtual bool CanInvoke (void) const { return true; }
-		virtual CDatum::ECallTypes GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) const;
-		virtual int GetCount (void) const;
-		virtual CDatum GetElement (int iIndex) const;
-		virtual CDatum GetElement (const CString &sKey) const;
-		virtual CString GetKey (int iIndex) const;
-		virtual bool IsSerializedAsStruct (void) const { return true; }
-		virtual void SetElement (const CString &sKey, CDatum dDatum);
+		virtual bool CanInvoke (void) const override { return true; }
+		virtual CDatum::ECallTypes GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) const override;
+		virtual int GetCount (void) const override;
+		virtual CDatum GetElement (int iIndex) const override;
+		virtual CDatum GetElement (const CString &sKey) const override;
+		virtual CString GetKey (int iIndex) const override;
+		virtual bool IsSerializedAsStruct (void) const override { return true; }
+		virtual void SetElement (const CString &sKey, CDatum dDatum) override;
 
 	protected:
-		virtual void OnMarked (void) { m_dHexeCode.Mark(); m_dGlobalEnv.Mark(); m_dLocalEnv.Mark(); }
+		virtual void OnMarked (void) override { m_dHexeCode.Mark(); m_dGlobalEnv.Mark(); m_dLocalEnv.Mark(); }
 
 	private:
 		CDatum m_dHexeCode;
@@ -247,10 +247,10 @@ class CHexeLibraryFunction : public TExternalDatum<CHexeLibraryFunction>
 		static const CString &StaticGetTypename (void);
 
 		//	IComplexDatum
-		virtual bool CanInvoke (void) const { return true; }
-		virtual CDatum::ECallTypes GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) const { return CDatum::funcLibrary; }
-		virtual bool Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, CDatum *retdResult);
-		virtual bool InvokeContinues (IInvokeCtx *pCtx, CDatum dContext, CDatum dResult, CDatum *retdResult);
+		virtual bool CanInvoke (void) const override { return true; }
+		virtual CDatum::ECallTypes GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) const override { return CDatum::funcLibrary; }
+		virtual bool Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, DWORD dwExecutionRights, CDatum *retdResult) override;
+		virtual bool InvokeContinues (IInvokeCtx *pCtx, CDatum dContext, CDatum dResult, CDatum *retdResult) override;
 
 	private:
 		CString m_sName;
@@ -258,6 +258,7 @@ class CHexeLibraryFunction : public TExternalDatum<CHexeLibraryFunction>
 		DWORD m_dwData;
 		CString m_sArgList;
 		CString m_sHelpLine;
+		DWORD m_dwExecutionRights;
 	};
 
 //	CHexeGlobalEnvironment -----------------------------------------------------
@@ -279,17 +280,17 @@ class CHexeGlobalEnvironment : public TExternalDatum<CHexeGlobalEnvironment>
 		inline void SetServiceSecurity (const CHexeSecurityCtx &Ctx) { m_ServiceSecurity.SetServiceSecurity(Ctx); }
 
 		//	IComplexDatum
-		virtual int GetCount (void) const { return m_Env.GetCount(); }
-		virtual CDatum GetElement (int iIndex) const { return (iIndex < m_Env.GetCount() ? m_Env[iIndex] : CDatum()); }
-		virtual CDatum GetElement (const CString &sKey) const { CDatum *pFound = m_Env.GetAt(sKey); return (pFound ? *pFound : CDatum()); }
-		virtual CString GetKey (int iIndex) const { return m_Env.GetKey(iIndex); }
-		virtual bool IsArray (void) const { return true; }
-		virtual bool IsSerializedAsStruct (void) const { return true; }
-		virtual void SetElement (const CString &sKey, CDatum dDatum) { SetAt(sKey, dDatum); }
+		virtual int GetCount (void) const override { return m_Env.GetCount(); }
+		virtual CDatum GetElement (int iIndex) const override { return (iIndex < m_Env.GetCount() ? m_Env[iIndex] : CDatum()); }
+		virtual CDatum GetElement (const CString &sKey) const override { CDatum *pFound = m_Env.GetAt(sKey); return (pFound ? *pFound : CDatum()); }
+		virtual CString GetKey (int iIndex) const override { return m_Env.GetKey(iIndex); }
+		virtual bool IsArray (void) const override { return true; }
+		virtual bool IsSerializedAsStruct (void) const override { return true; }
+		virtual void SetElement (const CString &sKey, CDatum dDatum) override { SetAt(sKey, dDatum); }
 
 	protected:
-		virtual void OnMarked (void);
-		virtual void OnSerialize (CDatum::ESerializationFormats iFormat, CComplexStruct *pStruct) const;
+		virtual void OnMarked (void) override;
+		virtual void OnSerialize (CDatum::ESerializationFormats iFormat, CComplexStruct *pStruct) const override;
 
 	private:
 		TSortMap<CString, CDatum> m_Env;			//	Global environment
@@ -314,17 +315,17 @@ class CHexeLocalEnvironment : public TExternalDatum<CHexeLocalEnvironment>
 		inline void SetParentEnv (CDatum dParentEnv) { m_dParentEnv = dParentEnv; }
 
 		//	IComplexDatum
-		virtual int GetCount (void) const { return m_Array.GetCount(); }
-		virtual CDatum GetElement (int iIndex) const { return (iIndex < m_Array.GetCount() ? m_Array[iIndex].dValue : CDatum()); }
-		virtual CDatum GetElement (const CString &sKey) const;
-		virtual CString GetKey (int iIndex) const { return m_Array[iIndex].sArg; }
-		virtual bool IsArray (void) const { return true; }
-		virtual bool IsSerializedAsStruct (void) const { return true; }
-		virtual void SetElement (const CString &sKey, CDatum dDatum);
+		virtual int GetCount (void) const override { return m_Array.GetCount(); }
+		virtual CDatum GetElement (int iIndex) const override { return (iIndex < m_Array.GetCount() ? m_Array[iIndex].dValue : CDatum()); }
+		virtual CDatum GetElement (const CString &sKey) const override;
+		virtual CString GetKey (int iIndex) const override { return m_Array[iIndex].sArg; }
+		virtual bool IsArray (void) const override { return true; }
+		virtual bool IsSerializedAsStruct (void) const override { return true; }
+		virtual void SetElement (const CString &sKey, CDatum dDatum) override;
 
 	protected:
-		virtual void OnMarked (void);
-		virtual void OnSerialize (CDatum::ESerializationFormats iFormat, CComplexStruct *pStruct) const;
+		virtual void OnMarked (void) override;
+		virtual void OnSerialize (CDatum::ESerializationFormats iFormat, CComplexStruct *pStruct) const override;
 
 	private:
 		struct SEntry
@@ -439,7 +440,7 @@ class CLambdaParseExtension : public IAEONParseExtension
 		CLambdaParseExtension (CHexeProcess &Process) : m_Process(Process) { }
 
 		//	IAEONParseExtension virtuals
-		virtual bool ParseAEONArray (CCharStream &Stream, CDatum *retDatum);
+		virtual bool ParseAEONArray (CCharStream &Stream, CDatum *retDatum) override;
 
 	private:
 		bool ParseHexeLispDef (CCharStream *pStream, CDatum *retdDatum, CString *retsError);

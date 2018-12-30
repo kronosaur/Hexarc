@@ -111,4 +111,5 @@ void CHexeSecurityCtx::SetUserSecurity (const CHexeSecurityCtx &SecurityCtx)
 	{
 	m_sUsername = SecurityCtx.m_sUsername;
 	m_UserRights = SecurityCtx.m_UserRights;
+	m_dwExecutionRights = SecurityCtx.m_dwExecutionRights;
 	}

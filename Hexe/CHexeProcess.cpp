@@ -5,21 +5,17 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(LIBRARY_CORE,						"core")
+DECLARE_CONST_STRING(LIBRARY_CORE,						"core");
 
-DECLARE_CONST_STRING(TYPE_HEXE_LISP,					"$hexeLisp")
+DECLARE_CONST_STRING(TYPE_HEXE_LISP,					"$hexeLisp");
 
-DECLARE_CONST_STRING(ERR_ASYNC_REQUEST_NOT_ALLOWED,		"Async requests are not allowed.")
-DECLARE_CONST_STRING(ERR_COMPUTE_CRASH,					"Compute runtime crash.")
-DECLARE_CONST_STRING(ERR_LIBRARY_NOT_FOUND,				"Library not found: %s.")
-DECLARE_CONST_STRING(ERR_HEXE_CODE_EXPECTED,			"Unable to execute term: %s.")
-DECLARE_CONST_STRING(ERR_UNKNOWN,						"Unknown error.")
+DECLARE_CONST_STRING(ERR_ASYNC_REQUEST_NOT_ALLOWED,		"Async requests are not allowed.");
+DECLARE_CONST_STRING(ERR_COMPUTE_CRASH,					"Compute runtime crash.");
+DECLARE_CONST_STRING(ERR_LIBRARY_NOT_FOUND,				"Library not found: %s.");
+DECLARE_CONST_STRING(ERR_HEXE_CODE_EXPECTED,			"Unable to execute term: %s.");
+DECLARE_CONST_STRING(ERR_UNKNOWN,						"Unknown error.");
 
-CHexeProcess::CHexeProcess (void) : 
-		m_pIP(NULL),
-		m_pCodeBank(NULL),
-		m_pCurGlobalEnv(NULL),
-		m_pLocalEnv(NULL)
+CHexeProcess::CHexeProcess (void)
 
 //	CHexeProcess constructor
 
@@ -464,6 +460,13 @@ CHexeProcess::ERunCodes CHexeProcess::RunWithStack (CDatum dExpression, CDatum *
 //	previously.
 
 	{
+	//	Set abort time
+
+	if (m_dwMaxExecutionTime)
+		m_dwAbortTime = ::sysGetTickCount64() + m_dwMaxExecutionTime;
+	else
+		m_dwAbortTime = 0;
+
 	//	Prepare the context
 
 	m_dExpression = dExpression;

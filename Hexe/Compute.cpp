@@ -5,17 +5,19 @@
 
 #include "stdafx.h"
 
-const int MAX_ARRAY_SIZE =								10000000;
+static constexpr int MAX_ARRAY_SIZE =					10000000;
+static constexpr int STOP_CHECK_COUNT =					10000;
 
-DECLARE_CONST_STRING(ERR_COLON_EXPECTED,				"':' expected: %s.")
-DECLARE_CONST_STRING(ERR_DIVISION_BY_ZERO,				"Divide by zero error.")
-DECLARE_CONST_STRING(ERR_INVALID_KEY,					"Invalid key: %s.")
-DECLARE_CONST_STRING(ERR_INVALID_OP_CODE,				"Invalid opcode.")
-DECLARE_CONST_STRING(ERR_INVALID_PRIMITIVE_SUB,			"Invalid primitive subroutine: not a function.")
-DECLARE_CONST_STRING(ERR_NOT_A_FUNCTION,				"Not a function: %s.")
-DECLARE_CONST_STRING(ERR_OUT_OF_MEMORY,					"Out of memory.")
-DECLARE_CONST_STRING(ERR_NOT_ARRAY_OR_STRUCT,			"Unable to set item: not an array or structure.")
-DECLARE_CONST_STRING(ERR_UNBOUND_VARIABLE,				"Undefined identifier: %s.")
+DECLARE_CONST_STRING(ERR_COLON_EXPECTED,				"':' expected: %s.");
+DECLARE_CONST_STRING(ERR_DIVISION_BY_ZERO,				"Divide by zero error.");
+DECLARE_CONST_STRING(ERR_INVALID_KEY,					"Invalid key: %s.");
+DECLARE_CONST_STRING(ERR_INVALID_OP_CODE,				"Invalid opcode.");
+DECLARE_CONST_STRING(ERR_INVALID_PRIMITIVE_SUB,			"Invalid primitive subroutine: not a function.");
+DECLARE_CONST_STRING(ERR_NOT_A_FUNCTION,				"Not a function: %s.");
+DECLARE_CONST_STRING(ERR_OUT_OF_MEMORY,					"Out of memory.");
+DECLARE_CONST_STRING(ERR_NOT_ARRAY_OR_STRUCT,			"Unable to set item: not an array or structure.");
+DECLARE_CONST_STRING(ERR_UNBOUND_VARIABLE,				"Undefined identifier: %s.");
+DECLARE_CONST_STRING(ERR_EXECUTION_TOOK_TOO_LONG,		"Execution took too long.");
 
 CHexeProcess::ERunCodes CHexeProcess::Execute (CDatum *retResult)
 
@@ -30,6 +32,8 @@ CHexeProcess::ERunCodes CHexeProcess::Execute (CDatum *retResult)
 	bool bCondition;
 	CComplexArray *pArray;
 	CComplexStruct *pStruct;
+
+	int iStopCheck = STOP_CHECK_COUNT;
 
 	while (true)
 		{
@@ -490,7 +494,7 @@ CHexeProcess::ERunCodes CHexeProcess::Execute (CDatum *retResult)
 					case CDatum::funcLibrary:
 						{
 						CDatum dResult;
-						if (!dNewExpression.Invoke(this, m_dLocalEnv, &dResult))
+						if (!dNewExpression.Invoke(this, m_dLocalEnv, m_UserSecurity.GetExecutionRights(), &dResult))
 							{
 							if (ExecuteHandleInvokeResult(dNewExpression, dResult, retResult))
 								break;
@@ -526,6 +530,14 @@ CHexeProcess::ERunCodes CHexeProcess::Execute (CDatum *retResult)
 						m_LocalEnvStack.Restore(&m_dCurGlobalEnv, &m_pCurGlobalEnv, &m_dLocalEnv, &m_pLocalEnv);
 						m_pIP++;
 
+						//	Make sure we haven't exceeded our execution time.
+
+						if (m_dwAbortTime && ::sysGetTickCount64() >= m_dwAbortTime)
+							{
+							CHexeError::Create(NULL_STR, ERR_EXECUTION_TOOK_TOO_LONG, retResult);
+							return runError;
+							}
+
 						//	Send the message
 
 						if (!SendHexarcMessage(dMsg, CDatum(pArray), &dValue))
@@ -554,6 +566,16 @@ CHexeProcess::ERunCodes CHexeProcess::Execute (CDatum *retResult)
 				CDatum dMsg = m_Stack.Pop();
 
 				m_pIP++;
+
+				//	Make sure we haven't exceeded our execution time.
+
+				if (m_dwAbortTime && ::sysGetTickCount64() >= m_dwAbortTime)
+					{
+					CHexeError::Create(NULL_STR, ERR_EXECUTION_TOOK_TOO_LONG, retResult);
+					return runError;
+					}
+
+				//	Send the message
 
 				if (!SendHexarcMessage(dMsg, dPayload, &dValue))
 					{
@@ -1034,6 +1056,17 @@ CHexeProcess::ERunCodes CHexeProcess::Execute (CDatum *retResult)
 			default:
 				CHexeError::Create(NULL_STR, ERR_INVALID_OP_CODE, retResult);
 				return runError;
+			}
+
+		//	Check to make sure we're not in an infinite loop.
+
+		if (m_dwAbortTime && --iStopCheck == 0)
+			{
+			if (::sysGetTickCount64() >= m_dwAbortTime)
+				{
+				CHexeError::Create(NULL_STR, ERR_EXECUTION_TOOK_TOO_LONG, retResult);
+				return runError;
+				}
 			}
 		}
 

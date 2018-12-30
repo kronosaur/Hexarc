@@ -130,23 +130,23 @@ DECLARE_CONST_STRING(ERR_INVALID_REQUEST_URL,			"Unable to parse request URL: %s
 
 SLibraryFuncDef g_SessionLibraryDef[] =
 	{
-	DECLARE_DEF_LIBRARY_FUNC(HTTP_CALL, httpMisc),
-	DECLARE_DEF_LIBRARY_FUNC(HTTP_GET_COOKIE, httpMisc),
-	DECLARE_DEF_LIBRARY_FUNC(HTTP_GET_HEADERS, httpMisc),
-	DECLARE_DEF_LIBRARY_FUNC(HTTP_GET_RAW_BODY, httpMisc),
-	DECLARE_DEF_LIBRARY_FUNC(HTTP_GET_REQUEST_URL, httpMisc),
-	DECLARE_DEF_LIBRARY_FUNC(HTTP_GET_URL_PARAMS, httpMisc),
+	DECLARE_DEF_LIBRARY_FUNC(HTTP_CALL, httpMisc, CHexeSecurityCtx::EXEC_RIGHT_SIDE_EFFECTS),
+	DECLARE_DEF_LIBRARY_FUNC(HTTP_GET_COOKIE, httpMisc, 0),
+	DECLARE_DEF_LIBRARY_FUNC(HTTP_GET_HEADERS, httpMisc, 0),
+	DECLARE_DEF_LIBRARY_FUNC(HTTP_GET_RAW_BODY, httpMisc, 0),
+	DECLARE_DEF_LIBRARY_FUNC(HTTP_GET_REQUEST_URL, httpMisc, 0),
+	DECLARE_DEF_LIBRARY_FUNC(HTTP_GET_URL_PARAMS, httpMisc, 0),
 
-	DECLARE_DEF_LIBRARY_FUNC(SERVICE_FIND_COMMAND, serviceMisc),
-	DECLARE_DEF_LIBRARY_FUNC(SERVICE_GET_INFO, serviceMisc),
-	DECLARE_DEF_LIBRARY_FUNC(SERVICE_PARSE_COMMAND_LINE, serviceMisc),
+	DECLARE_DEF_LIBRARY_FUNC(SERVICE_FIND_COMMAND, serviceMisc, 0),
+	DECLARE_DEF_LIBRARY_FUNC(SERVICE_GET_INFO, serviceMisc, 0),
+	DECLARE_DEF_LIBRARY_FUNC(SERVICE_PARSE_COMMAND_LINE, serviceMisc, 0),
 
-	DECLARE_DEF_LIBRARY_FUNC(SESSION_LOG, sessionMisc),
+	DECLARE_DEF_LIBRARY_FUNC(SESSION_LOG, sessionMisc, CHexeSecurityCtx::EXEC_RIGHT_SIDE_EFFECTS),
 
-	DECLARE_DEF_LIBRARY_FUNC(USER_GET_NAME, userMisc),
-	DECLARE_DEF_LIBRARY_FUNC(USER_GET_RIGHTS, userMisc),
-	DECLARE_DEF_LIBRARY_FUNC(USER_HAS_RIGHT, userMisc),
-	DECLARE_DEF_LIBRARY_FUNC(USER_SET, userMisc),
+	DECLARE_DEF_LIBRARY_FUNC(USER_GET_NAME, userMisc, 0),
+	DECLARE_DEF_LIBRARY_FUNC(USER_GET_RIGHTS, userMisc, 0),
+	DECLARE_DEF_LIBRARY_FUNC(USER_HAS_RIGHT, userMisc, 0),
+	DECLARE_DEF_LIBRARY_FUNC(USER_SET, userMisc, CHexeSecurityCtx::EXEC_RIGHT_SIDE_EFFECTS),
 	};
 
 const int g_iSessionLibraryDefCount = SIZEOF_STATIC_ARRAY(g_SessionLibraryDef);
@@ -443,58 +443,89 @@ bool serviceMisc (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 			char *pPos = sCmdLine.GetParsePointer();
 			char *pPosEnd = pPos + sCmdLine.GetLength();
 
-			//	First we parse the command, which is delimited by whitespace
-
-			while (pPos < pPosEnd && strIsWhitespace(pPos))
-				pPos++;
-
-			char *pStart = pPos;
-			while (pPos < pPosEnd && !strIsWhitespace(pPos))
-				pPos++;
-
-			CString sCmd(pStart, pPos - pStart);
-
-			//	Now parse the parameters into an array
-
-			CComplexArray *pParams = new CComplexArray;
-			while (pPos < pPosEnd)
+			switch (*pPos)
 				{
-				//	Skip leading whitespace
+				//	Handle some special one-character commands
 
-				while (pPos < pPosEnd && strIsWhitespace(pPos))
-					pPos++;
-
-				//	If we hit the end, then we're done
-
-				if (pPos == pPosEnd)
-					break;
-
-				//	Parse the param
-
-				CBuffer Buffer(pPos, (int)(pPosEnd - pPos), false);
-				CDatum dParam;
-				if (!CDatum::Deserialize(CDatum::formatAEONScript, Buffer, &dParam))
+				case '=':
 					{
-					delete pParams;
-					CHexeError::Create(NULL_STR, ERR_BAD_COMMAND_LINE, retdResult);
-					return false;
+					//	Command is the character
+
+					CDatum dResult(CDatum::typeArray);
+					dResult.Append(CString(pPos, 1));
+
+					CDatum dParams(CDatum::typeArray);
+					dResult.Append(dParams);
+
+					//	The remaining characters are the argument.
+
+					pPos++;
+					if (pPos < pPosEnd)
+						dParams.Append(CString(pPos, (pPosEnd - pPos)));
+
+					//	Done
+
+					*retdResult = dResult;
+					return true;
 					}
 
-				pParams->Insert(dParam);
+				//	Otherwise, parse commands by whitespace
 
-				//	Adjust pPos
+				default:
+					{
+					//	First we parse the command, which is delimited by whitespace
 
-				pPos += Buffer.GetPos();
+					while (pPos < pPosEnd && strIsWhitespace(pPos))
+						pPos++;
+
+					char *pStart = pPos;
+					while (pPos < pPosEnd && !strIsWhitespace(pPos))
+						pPos++;
+
+					CString sCmd(pStart, pPos - pStart);
+
+					//	Now parse the parameters into an array
+
+					CDatum dParams(CDatum::typeArray);
+					while (pPos < pPosEnd)
+						{
+						//	Skip leading whitespace
+
+						while (pPos < pPosEnd && strIsWhitespace(pPos))
+							pPos++;
+
+						//	If we hit the end, then we're done
+
+						if (pPos == pPosEnd)
+							break;
+
+						//	Parse the param
+
+						CBuffer Buffer(pPos, (int)(pPosEnd - pPos), false);
+						CDatum dParam;
+						if (!CDatum::Deserialize(CDatum::formatAEONScript, Buffer, &dParam))
+							{
+							CHexeError::Create(NULL_STR, ERR_BAD_COMMAND_LINE, retdResult);
+							return false;
+							}
+
+						dParams.Append(dParam);
+
+						//	Adjust pPos
+
+						pPos += Buffer.GetPos();
+						}
+
+					//	Return the command and the parameters in an array
+
+					CDatum dResult(CDatum::typeArray);
+					dResult.Append(sCmd);
+					dResult.Append(dParams);
+
+					*retdResult = dResult;
+					return true;
+					}
 				}
-
-			//	Return the command and the parameters in an array
-
-			CComplexArray *pResult = new CComplexArray;
-			pResult->Insert(sCmd);
-			pResult->Insert(CDatum(pParams));
-			*retdResult = CDatum(pResult);
-
-			return true;
 			}
 
 		default:

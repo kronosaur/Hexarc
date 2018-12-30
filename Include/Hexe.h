@@ -89,9 +89,10 @@ struct SLibraryFuncDef
 	DWORD dwData;
 	const CString &sArgList;
 	const CString &sHelpLine;
+	DWORD dwExecutionRights;
 	};
 
-#define DECLARE_DEF_LIBRARY_FUNC(name,func)	{ name##_NAME, func, name, name##_ARGS, name##_HELP }
+#define DECLARE_DEF_LIBRARY_FUNC(name,func,rights)	{ name##_NAME, func, name, name##_ARGS, name##_HELP, (rights) }
 
 class CHexeLibrarian
 	{
@@ -127,15 +128,15 @@ class CHexeError : public TExternalDatum<CHexeError>
 		static const CString &StaticGetTypename (void);
 
 		//	IComplexDatum
-		virtual CString AsString (void) const { return m_sDescription; }
-		virtual const CString &CastCString (void) const { return m_sDescription; }
-		virtual bool IsError (void) const { return true; }
-		virtual void Serialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const;
+		virtual CString AsString (void) const override { return m_sDescription; }
+		virtual const CString &CastCString (void) const override { return m_sDescription; }
+		virtual bool IsError (void) const override { return true; }
+		virtual void Serialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const override;
 
 	protected:
 		//	IComplexDatum
-		virtual bool OnDeserialize (CDatum::ESerializationFormats iFormat, const CString &sTypename, IByteStream &Stream);
-		virtual void OnSerialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const;
+		virtual bool OnDeserialize (CDatum::ESerializationFormats iFormat, const CString &sTypename, IByteStream &Stream) override;
+		virtual void OnSerialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const override;
 
 	private:
 		CString m_sError;
@@ -158,7 +159,14 @@ class CHexeError : public TExternalDatum<CHexeError>
 class CHexeSecurityCtx
 	{
 	public:
+		static constexpr DWORD EXEC_RIGHT_SIDE_EFFECTS =		0x00000001;
+		static constexpr DWORD EXEC_RIGHT_INVOKE =				0x00000002;
+
+		static constexpr DWORD EXEC_RIGHTS_ALL =				0xffffffff;
+		static constexpr DWORD EXEC_RIGHTS_MINIMAL =			0x00000000;
+
 		CDatum AsDatum (void) const;
+		inline DWORD GetExecutionRights (void) const { return m_dwExecutionRights; }
 		inline const CString &GetSandbox (void) const { return m_sSandbox; }
 		inline CString GetSandboxName (void) const { return strSubString(m_sSandbox, 0, m_sSandbox.GetLength() - 1); }
 		inline const CString &GetUsername (void) const { return m_sUsername; }
@@ -177,6 +185,7 @@ class CHexeSecurityCtx
 		inline bool IsNamespaceAccessible (const CString &sName) const { return m_sSandbox.IsEmpty() || strStartsWith(sName, m_sSandbox); }
 		inline bool IsAnonymous (void) const { return m_sUsername.IsEmpty(); }
 		inline void SetAnonymous (void) { m_sUsername = NULL_STR; m_UserRights.DeleteAll(); }
+		inline void SetExecutionRights (DWORD dwRights) { m_dwExecutionRights = dwRights; }
 		inline void SetSandbox (const CString &sSandbox) { m_sSandbox = sSandbox; }
 		inline void SetServiceRights (CDatum dDatum) { dDatum.AsAttributeList(&m_ServiceRights); }
 		void SetServiceSecurity (const CHexeSecurityCtx &SecurityCtx);
@@ -191,6 +200,7 @@ class CHexeSecurityCtx
 
 		CString m_sUsername;				//	Authenticated user (may be NULL, in which case on behalf of service).
 		CAttributeList m_UserRights;		//	Rights granted to user
+		DWORD m_dwExecutionRights = EXEC_RIGHTS_ALL;
 	};
 
 class CHexeProcess : public IInvokeCtx
@@ -246,6 +256,7 @@ class CHexeProcess : public IInvokeCtx
 		ERunCodes Run (CDatum dExpression, CDatum *retResult);
 		ERunCodes Run (CDatum dFunc, CDatum dCallExpression, const TArray<CDatum> *pInitialStack, CDatum *retResult);
 		ERunCodes RunContinues (CDatum dAsyncResult, CDatum *retResult);
+		inline void SetMaxExecutionTime (DWORDLONG dwMilliseconds) { m_dwMaxExecutionTime = dwMilliseconds; }
 		inline void SetLibraryCtx (const CString &sLibrary, void *pCtx) { m_LibraryCtx.SetAt(sLibrary, pCtx); }
 		void SetSecurityCtx (const CHexeSecurityCtx &Ctx);
 
@@ -254,8 +265,8 @@ class CHexeProcess : public IInvokeCtx
 		static bool ExecuteIsEquivalent (CDatum dValue1, CDatum dValue2);
 
 		//	IInvokeCtx virtuals
-		virtual void *GetLibraryCtx (const CString &sLibrary) { void **ppCtx = m_LibraryCtx.GetAt(sLibrary); return (ppCtx ? *ppCtx : NULL); }
-		virtual void SetUserSecurity (const CString &sUsername, const CAttributeList &Rights);
+		virtual void *GetLibraryCtx (const CString &sLibrary) override { void **ppCtx = m_LibraryCtx.GetAt(sLibrary); return (ppCtx ? *ppCtx : NULL); }
+		virtual void SetUserSecurity (const CString &sUsername, const CAttributeList &Rights) override;
 
 	private:
 		struct SHexarcMsgInfo
@@ -286,28 +297,27 @@ class CHexeProcess : public IInvokeCtx
 		static bool ExecuteMakeFlagsFromArray (CDatum dOptions, CDatum dMap, CDatum *retdResult);
 		static bool ExecuteSetAt (CDatum dOriginal, CDatum dKey, CDatum dValue, CDatum *retdResult);
 
+		DWORDLONG m_dwMaxExecutionTime = 0;			//	Do not allow execution to exceed this amount of time (in ms)
+		DWORDLONG m_dwAbortTime = 0;				//	Abort at this tick (0 = never abort)
 		CHexeStack m_Stack;							//	Stack
 
 		CDatum m_dExpression;						//	Current expression being executed
-		DWORD *m_pIP;								//	Current instruction pointer
+		DWORD *m_pIP = NULL;						//	Current instruction pointer
 		CDatum m_dCodeBank;							//	Current code bank
-		CHexeCode *m_pCodeBank;						//	Current code bank
+		CHexeCode *m_pCodeBank = NULL;				//	Current code bank
 		CHexeCallStack m_CallStack;					//	Call stack
 
 		CDatum m_dGlobalEnv;						//	Process global environment
 
 		CDatum m_dCurGlobalEnv;						//	Current global environment
-		CHexeGlobalEnvironment *m_pCurGlobalEnv;	//	Current global environment
+		CHexeGlobalEnvironment *m_pCurGlobalEnv = NULL;	//	Current global environment
 
 		CDatum m_dLocalEnv;							//	Local environment
-		CHexeLocalEnvironment *m_pLocalEnv;			//	Local environment
+		CHexeLocalEnvironment *m_pLocalEnv = NULL;	//	Local environment
 		CHexeEnvStack m_LocalEnvStack;
 
 		TSortMap<CString, void *> m_LibraryCtx;		//	Ctx for each library
 		CHexeSecurityCtx m_UserSecurity;			//	User security context
-
-		//CHexeSecurityCtx m_SecurityCtx;				//	Security context
-		//CDatum m_dSecurityCtx;
 
 		static SHexarcMsgInfo m_HexarcMsgInfo[];
 		static int m_iHexarcMsgInfoCount;
