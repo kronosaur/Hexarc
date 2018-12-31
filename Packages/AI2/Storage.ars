@@ -1,0 +1,95 @@
+//	Storage.ars
+//
+//	Hexarc Command Line Package
+//	Copyright (c) 2018 Kronosaur Productions, LLC. All Rights Reserved.
+
+//	AI2.files ------------------------------------------------------------------
+//
+//	This table keeps all uploaded files for the database.
+//
+//	FilePaths are of the following form:
+//
+//	/AI2.files/{fileID}
+
+Arc.table AI2.files
+	{
+	type: file
+
+	secondaryViews: (
+		{ name:byUsername
+			x: {
+				key:ownedBy
+				keyType:utf8
+				keySort:ascending
+				}
+			y: {
+				key:filename
+				keyType:utf8
+				keySort:ascending
+				}
+			}
+		)
+	}
+
+//	/api/createFile ------------------------------------------------------------
+//
+//	Creates a new file, with optional data.
+//
+//	filename: The original name of the file (without file type)
+//	fileType: The file type (without the dot)
+//	fileData: The data for the new file (may be nil)
+//
+//	Returns the fileID for the new file.
+
+function AI2.api+createFile (lambda (URL method headers message)
+	(block (
+		//	Validate the authtoken
+
+		(authToken (invoke 'Cryptosaur.validateAuthToken (httpGetCookie 'ai2_authToken)))
+
+		//	File info
+
+		(usernameKey (lowercase (@ authToken 'username)))
+		(ownedBy usernameKey)
+		(filename (@ message 'filename))
+		(fileType (@ message 'fileType))
+		(fileData (@ message 'fileData))
+
+		(fileID (make 'code32 10))
+		(filePath (cat "/AI2.files/" fileID))
+
+		uploadResult
+		)
+
+		//	Validate some fields
+
+		(switch
+			(= filename "")
+				(error 'inputError "Must have a valid filename.")
+
+			(= fileType "")
+				(error 'inputError "Must have a valid fileType.")
+
+			(find fileType ".")
+				(error 'inputError (cat "Invalid fileType: " fileType))
+			)
+
+		//	Store
+
+		(set! uploadResult (invoke 'Aeon.fileUpload "/AI2.files/" {
+			primaryKey: 'code8
+			fileDesc: {
+				ownedBy: ownedBy
+				filename: filename
+				fileType: fileType
+				}
+			}
+			fileData
+			))
+
+		//	Success
+
+		uploadResult
+		)
+	)
+	

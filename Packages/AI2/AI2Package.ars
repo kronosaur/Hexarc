@@ -11,6 +11,7 @@ Arc.package AI2
 
 Include "Arc.ars"
 Include "Diag.ars"
+Include "Storage.ars"
 Include "Utilities.ars"
 
 /* -----------------------------------------------------------------------------

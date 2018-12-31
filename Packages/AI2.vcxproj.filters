@@ -28,5 +28,6 @@
     <None Include="AI2\Site\res\core.js">
       <Filter>Site\res</Filter>
     </None>
+    <None Include="AI2\Storage.ars" />
   </ItemGroup>
 </Project>

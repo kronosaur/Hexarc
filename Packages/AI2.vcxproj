@@ -27,6 +27,7 @@
     <None Include="AI2\Site\res\console.js" />
     <None Include="AI2\Site\res\core.css" />
     <None Include="AI2\Site\res\core.js" />
+    <None Include="AI2\Storage.ars" />
     <None Include="AI2\Utilities.ars" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
