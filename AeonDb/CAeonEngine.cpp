@@ -81,6 +81,7 @@ DECLARE_CONST_STRING(STR_ERROR_UNKNOWN_KEY_TYPE,		"Unknown keyType: %s.")
 DECLARE_CONST_STRING(STR_ERROR_UNKNOWN_TABLE,			"Unknown table: %s.")
 DECLARE_CONST_STRING(ERR_UNABLE_TO_FLUSH,				"Unable to save all tables to disk.")
 DECLARE_CONST_STRING(ERR_INVALID_GET_ROWS_OPTION,		"Invalid %s option: %s.")
+DECLARE_CONST_STRING(ERR_INVALID_FILE_PATH,				"Invalid filePath: %s.")
 
 //	Message Table --------------------------------------------------------------
 
@@ -734,6 +735,9 @@ void CAeonEngine::MsgFileUpload (const SArchonMessage &Msg, const CHexeSecurityC
 		return;
 		}
 
+	//	NOTE: It is OK if sFilePath is empty because we might need to generate
+	//	a unique file path.
+
 	//	Make sure we are allowed access to this table
 
 	if (!ValidateTableAccess(Msg, pSecurityCtx, sTable))
@@ -786,8 +790,8 @@ void CAeonEngine::MsgFileUpload (const SArchonMessage &Msg, const CHexeSecurityC
 
 	//	Let the table handle the rest
 
-	int iComplete;
-	if (error = pTable->UploadFile(Ctx, sSessionID, sFilePath, dUploadDesc, dData, &iComplete, &sError))
+	CAeonUploadSessions::SReceipt Receipt;
+	if (error = pTable->UploadFile(Ctx, sSessionID, sFilePath, dUploadDesc, dData, &Receipt, &sError))
 		{
 		if (error == AEONERR_OUT_OF_DATE)
 			SendMessageReplyError(MSG_ERROR_OUT_OF_DATE, sError, Msg);
@@ -802,11 +806,12 @@ void CAeonEngine::MsgFileUpload (const SArchonMessage &Msg, const CHexeSecurityC
 
 	//	Reply
 
-	if (iComplete == 100)
-		SendMessageReply(MSG_OK, CDatum(), Msg);
+	if (Receipt.iComplete == 100)
+		SendMessageReply(MSG_OK, CDatum(Receipt.sFilePath), Msg);
 	else
 		{
-		CDatum dReceipt;
+		CDatum dReceipt(CDatum::typeStruct);
+		dReceipt.SetElement(FIELD_FILE_PATH, Receipt.sFilePath);
 
 		//	LATER: Fill in receipt
 

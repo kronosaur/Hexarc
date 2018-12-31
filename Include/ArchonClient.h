@@ -12,6 +12,7 @@
 class CAeonInterface
 	{
 	public:
+		static CString CreateTableFilePath (const CString &sTable, const CString &sFilePath);
 		static CString EncodeFilePathComponent (const CString &sValue);
 		static CString FilespecToFilePath (const CString &sFilespec);
 		static bool ParseFilePath (const CString &sFilePath, const CString &sRoot, int iOffset, const CDateTime &IfModifiedAfter, CString *retsAddr, CString *retsMsg, CDatum *retdPayload);

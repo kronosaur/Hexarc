@@ -573,6 +573,7 @@ bool CAeonUploadSessions::ProcessUpload (CMsgProcessCtx &Ctx,
 
 		//	Return the result
 
+		*retReceipt = SReceipt();
 		retReceipt->iComplete = 100;
 		retReceipt->sFilePath = pSession->sFilePath;
 		retReceipt->dwVersion = pSession->dwVersion;
@@ -590,7 +591,9 @@ bool CAeonUploadSessions::ProcessUpload (CMsgProcessCtx &Ctx,
 
 	else
 		{
+		*retReceipt = SReceipt();
 		retReceipt->iComplete = CalcUploadCompletion(pSession);
+		retReceipt->sFilePath = sFilePath;
 		pSession->dwLastActivity = sysGetTickCount();
 		}
 

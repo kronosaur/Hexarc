@@ -5,21 +5,31 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(ADDR_AEON,							"Aeon.command")
-DECLARE_CONST_STRING(ADDRESS_HYPERION_COMMAND,			"Hyperion.command")
+DECLARE_CONST_STRING(ADDR_AEON,							"Aeon.command");
+DECLARE_CONST_STRING(ADDRESS_HYPERION_COMMAND,			"Hyperion.command");
 
-DECLARE_CONST_STRING(FIELD_IF_MODIFIED_AFTER,			"ifModifiedAfter")
-DECLARE_CONST_STRING(FIELD_PARTIAL_MAX_SIZE,			"partialMaxSize")
-DECLARE_CONST_STRING(FIELD_PARTIAL_POS,					"partialPos")
+DECLARE_CONST_STRING(FIELD_IF_MODIFIED_AFTER,			"ifModifiedAfter");
+DECLARE_CONST_STRING(FIELD_PARTIAL_MAX_SIZE,			"partialMaxSize");
+DECLARE_CONST_STRING(FIELD_PARTIAL_POS,					"partialPos");
 
-DECLARE_CONST_STRING(MSG_AEON_FILE_DOWNLOAD,			"Aeon.fileDownload")
-DECLARE_CONST_STRING(MSG_HYPERION_SERVICE_MSG,			"Hyperion.serviceMsg")
-DECLARE_CONST_STRING(MSG_TRANSPACE_DOWNLOAD,			"Transpace.download")
+DECLARE_CONST_STRING(MSG_AEON_FILE_DOWNLOAD,			"Aeon.fileDownload");
+DECLARE_CONST_STRING(MSG_HYPERION_SERVICE_MSG,			"Hyperion.serviceMsg");
+DECLARE_CONST_STRING(MSG_TRANSPACE_DOWNLOAD,			"Transpace.download");
 
-DECLARE_CONST_STRING(SEPARATOR_SLASH,					"/")
+DECLARE_CONST_STRING(SEPARATOR_SLASH,					"/");
 
-DECLARE_CONST_STRING(STR_ERROR_ABSOLUTE_PATH_REQUIRED,	"Absolute filePath expected.")
-DECLARE_CONST_STRING(STR_ERROR_NO_TABLE_IN_PATH,		"Table name expected.")
+DECLARE_CONST_STRING(STR_ERROR_ABSOLUTE_PATH_REQUIRED,	"Absolute filePath expected.");
+DECLARE_CONST_STRING(STR_ERROR_NO_TABLE_IN_PATH,		"Table name expected.");
+
+CString CAeonInterface::CreateTableFilePath (const CString &sTable, const CString &sFilePath)
+
+//	CreateTableFilePath
+//
+//	Composes a full filepath.
+
+	{
+	return strPattern("/%s/%s", sTable, sFilePath);
+	}
 
 CString CAeonInterface::EncodeFilePathComponent (const CString &sValue)
 

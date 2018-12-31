@@ -453,15 +453,15 @@ class CAeonUploadSessions
 	public:
 		struct SReceipt
 			{
-			int iComplete;					//	% complete
+			int iComplete = 0;				//	% complete
 			CString sError;					//	Error (if ProcessUpload returns false)
 
 			//	If 100% complete
 			CString sFilePath;				//	File path
-			DWORD dwVersion;				//	Current version to overwrite
+			DWORD dwVersion = 0;			//	Current version to overwrite
 			CDatum dFileDesc;				//	File descriptor
-			int iFileSize;					//	Total size of file
-			bool bNewFile;					//	New file created
+			int iFileSize = 0;				//	Total size of file
+			bool bNewFile = false;			//	New file created
 			CString sFilespec;				//	Uploaded file
 			};
 
@@ -665,7 +665,7 @@ class CAeonTable
 		bool RecoverTableRows (CString *retsError);
 		bool Recreate (IArchonProcessCtx *pProcess, CDatum dDesc, bool *retbUpdated, CString *retsError);
 		bool Save (CString *retsError);
-		AEONERR UploadFile (CMsgProcessCtx &Ctx, const CString &sSessionID, const CString &sFilePath, CDatum dUploadDesc, CDatum dData, int *retiComplete, CString *retsError);
+		AEONERR UploadFile (CMsgProcessCtx &Ctx, const CString &sSessionID, const CString &sFilePath, CDatum dUploadDesc, CDatum dData, CAeonUploadSessions::SReceipt *retReceipt, CString *retsError);
 
 		static CDatum GetDimensionDesc (SDimensionDesc &Dim);
 		static CDatum GetDimensionDescForSecondaryView (SDimensionDesc &Dim, CDatum dKey);

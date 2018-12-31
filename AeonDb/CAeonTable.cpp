@@ -217,6 +217,7 @@ DECLARE_CONST_STRING(ERR_UPDATE_GREATER_OUT_OF_DATE,	"Unable to mutate row %s. F
 DECLARE_CONST_STRING(ERR_UPDATE_VERSION_OUT_OF_DATE,	"Unable to mutate row %s. Field %s value (%s) does not match original (%s).")
 DECLARE_CONST_STRING(ERR_CANNOT_CONSUME,				"Unable to mutate row %s. Field %s value (%s) insufficient.")
 DECLARE_CONST_STRING(ERR_UPDATE_NIL,					"Unable to mutate row %s. Field %s is not nil.")
+DECLARE_CONST_STRING(ERR_INVALID_FILE_PATH_CODE,		"Unknown filePath generation code: %s.")
 
 CAeonTable::CAeonTable (void) : 
 		m_pStorage(NULL), 
@@ -3450,15 +3451,6 @@ bool CAeonTable::ParseFilePathForCreate (const CString &sPath, CString *retsTabl
 	if (!ParseFilePath(sPath, retsTable, &sFilePath, retsError))
 		return false;
 
-	//	An empty filepath is no good
-
-	if (sFilePath.IsEmpty())
-		{
-		if (retsError)
-			*retsError = strPattern(ERR_INVALID_FILE_PATH, sPath);
-		return false;
-		}
-
 	//	Parse all components of the path
 
 	char *pPos = sFilePath.GetParsePointer();
@@ -4137,7 +4129,7 @@ void CAeonTable::SetDimensionDesc (CComplexStruct *pDesc, const SDimensionDesc &
 		}
 	}
 
-AEONERR CAeonTable::UploadFile (CMsgProcessCtx &Ctx, const CString &sSessionID, const CString &sFilePath, CDatum dUploadDesc, CDatum dData, int *retiComplete, CString *retsError)
+AEONERR CAeonTable::UploadFile (CMsgProcessCtx &Ctx, const CString &sSessionID, const CString &sFilePathArg, CDatum dUploadDesc, CDatum dData, CAeonUploadSessions::SReceipt *retReceipt, CString *retsError)
 
 //	UploadFile
 //
@@ -4170,19 +4162,63 @@ AEONERR CAeonTable::UploadFile (CMsgProcessCtx &Ctx, const CString &sSessionID, 
 	if (m_bPrimaryLost)
 		{
 		*retsError = strPattern(ERR_PRIMARY_OFFLINE, m_sName);
-		return false;
+		return AEONERR_FAIL;
 		}
 
-	//	Generate a path
+	//	Need the path and any existing file descriptor
 
+	CString sFilePath;
 	CRowKey Path;
-	CRowKey::CreateFromFilePath(sFilePath, &Path);
-
-	//	Get the existing data for this file (if any)
-
 	CDatum dCurrentFileDesc;
-	if (!GetData(DEFAULT_VIEW, Path, &dCurrentFileDesc, NULL, retsError))
+
+	//	If we don't need to generate a filePath, then we just take the filePath
+	//	that's been given to us.
+
+	CDatum dKeyGen = dUploadDesc.GetElement(FIELD_PRIMARY_KEY);
+	if (dKeyGen.IsNil())
+		{
+		sFilePath = sFilePathArg;
+		if (sFilePath.IsEmpty())
+			{
+			if (retsError)
+				*retsError = strPattern(ERR_INVALID_FILE_PATH, sFilePath);
+			return AEONERR_FAIL;
+			}
+
+		//	Generate a path
+
+		CRowKey::CreateFromFilePath(sFilePath, &Path);
+
+		//	Get the existing data for this file (if any)
+
+		if (!GetData(DEFAULT_VIEW, Path, &dCurrentFileDesc, NULL, retsError))
+			return AEONERR_FAIL;
+		}
+
+	//	Otherwise, we need to generate a unique filePath
+
+	else if (strStartsWith(dKeyGen, MUTATE_CODE_8))
+		{
+		//	Make sure the key is unique
+
+		do
+			{
+			sFilePath = strPattern("/%s/%s", m_sName, cryptoRandomCode(8));
+			CRowKey::CreateFromFilePath(sFilePath, &Path);
+
+			if (!GetData(DEFAULT_VIEW, Path, &dCurrentFileDesc, NULL, retsError))
+				return AEONERR_FAIL;
+			}
+		while (!dCurrentFileDesc.IsNil());
+		}
+
+	//	Otherwise, invalid option
+
+	else
+		{
+		if (retsError) *retsError = strPattern(ERR_INVALID_FILE_PATH_CODE, (const CString &)dKeyGen);
 		return AEONERR_FAIL;
+		}
 
 	CString sCurrentFilespec;
 	if (!dCurrentFileDesc.IsNil())
@@ -4215,8 +4251,13 @@ AEONERR CAeonTable::UploadFile (CMsgProcessCtx &Ctx, const CString &sSessionID, 
 
 		//	Done
 
-		if (retiComplete)
-			*retiComplete = 100;
+		if (retReceipt)
+			{
+			*retReceipt = CAeonUploadSessions::SReceipt();
+			retReceipt->iComplete = 100;
+			retReceipt->iFileSize = 0;
+			retReceipt->sFilePath = CAeonInterface::CreateTableFilePath(m_sName, sFilePath);
+			}
 
 		return AEONERR_OK;
 		}
@@ -4239,8 +4280,11 @@ AEONERR CAeonTable::UploadFile (CMsgProcessCtx &Ctx, const CString &sSessionID, 
 
 	if (Receipt.iComplete != 100)
 		{
-		if (retiComplete)
-			*retiComplete = Receipt.iComplete;
+		if (retReceipt)
+			{
+			*retReceipt = Receipt;
+			retReceipt->sFilePath = CAeonInterface::CreateTableFilePath(m_sName, sFilePath);
+			}
 
 		return AEONERR_OK;
 		}
@@ -4314,8 +4358,11 @@ AEONERR CAeonTable::UploadFile (CMsgProcessCtx &Ctx, const CString &sSessionID, 
 
 	//	Done
 
-	if (retiComplete)
-		*retiComplete = Receipt.iComplete;
+	if (retReceipt)
+		{
+		*retReceipt = Receipt;
+		retReceipt->sFilePath = CAeonInterface::CreateTableFilePath(m_sName, sFilePath);
+		}
 
 	return AEONERR_OK;
 	}
