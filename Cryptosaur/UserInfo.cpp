@@ -199,46 +199,14 @@ bool CUserInfoSession::OnProcessMessage (const SArchonMessage &Msg)
 
 	if (m_iState == stateWaitingForUserRecord)
 		{
-		//	If we get back nil then the user does not exist.
-
-		if (Msg.dPayload.IsNil())
-			{
-			SendMessageReplyError(MSG_ERROR_DOES_NOT_EXIST, strPattern(ERR_UNKNOWN_USERNAME, m_sUsername));
-			return false;
-			}
-
-		//	Otherwise, we handle the result based on the original message
-
-		else if (strEquals(GetOriginalMsg().sMsg, MSG_CRYPTOSAUR_CHECK_PASSWORD_SHA1))
-			{
-			//	Get the parameters from the original message
-
-			CDatum dChallenge = GetOriginalMsg().dPayload.GetElement(1);
-			CDatum dResponse = GetOriginalMsg().dPayload.GetElement(2);
-
-			//	Get the password has from the response
-
-			CDatum dAuthDesc = Msg.dPayload.GetElement(FIELD_AUTH_DESC);
-			CDatum dPasswordHash = dAuthDesc.GetElement(FIELD_CREDENTIALS);
-
-			//	Create a response to the challenge based on the password hash that
-			//	we have stored.
-
-			CDatum dCorrect = CAI1Protocol::CreateSHAPasswordChallengeResponse(dPasswordHash, dChallenge);
-
-			//	Compare the correct response to the actual
-
-			if ((const CIPInteger &)dResponse == (const CIPInteger &)dCorrect)
-				return UpdateLoginSuccess(stateWaitingForSuccessUpdate);
-			else
-				return UpdateLoginFailure();
-			}
-
 		//	Cryptosaur.getUser
 
-		else if (strEquals(GetOriginalMsg().sMsg, MSG_CRYPTOSAUR_GET_USER))
+		if (strEquals(GetOriginalMsg().sMsg, MSG_CRYPTOSAUR_GET_USER))
 			{
 			CDatum dUserData = Msg.dPayload;
+
+			//	If the user does not exist, then we return Nil
+
 			if (dUserData.IsNil())
 				{
 				SendMessageReply(MSG_REPLY_DATA, CDatum());
@@ -270,6 +238,41 @@ bool CUserInfoSession::OnProcessMessage (const SArchonMessage &Msg)
 
 			SendMessageReply(MSG_REPLY_DATA, CDatum(pReply));
 			return false;
+			}
+
+		//	If we get back nil then the user does not exist.
+
+		else if (Msg.dPayload.IsNil())
+			{
+			SendMessageReplyError(MSG_ERROR_DOES_NOT_EXIST, strPattern(ERR_UNKNOWN_USERNAME, m_sUsername));
+			return false;
+			}
+
+		//	Otherwise, we handle the result based on the original message
+
+		else if (strEquals(GetOriginalMsg().sMsg, MSG_CRYPTOSAUR_CHECK_PASSWORD_SHA1))
+			{
+			//	Get the parameters from the original message
+
+			CDatum dChallenge = GetOriginalMsg().dPayload.GetElement(1);
+			CDatum dResponse = GetOriginalMsg().dPayload.GetElement(2);
+
+			//	Get the password has from the response
+
+			CDatum dAuthDesc = Msg.dPayload.GetElement(FIELD_AUTH_DESC);
+			CDatum dPasswordHash = dAuthDesc.GetElement(FIELD_CREDENTIALS);
+
+			//	Create a response to the challenge based on the password hash that
+			//	we have stored.
+
+			CDatum dCorrect = CAI1Protocol::CreateSHAPasswordChallengeResponse(dPasswordHash, dChallenge);
+
+			//	Compare the correct response to the actual
+
+			if ((const CIPInteger &)dResponse == (const CIPInteger &)dCorrect)
+				return UpdateLoginSuccess(stateWaitingForSuccessUpdate);
+			else
+				return UpdateLoginFailure();
 			}
 
 		//	Cryptosaur.hasRights
