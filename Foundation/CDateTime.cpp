@@ -360,96 +360,123 @@ CString CDateTime::Format (DateFormats iDateFormat, TimeFormats iTimeFormat) con
 //	Formats using OS functions
 
 	{
-	TCHAR szBuffer[1024];
-	TCHAR *pPos = szBuffer;
-	TCHAR *pPosEnd = pPos + (sizeof(szBuffer) / sizeof(szBuffer[0]));
+	//	Relative dates
 
-	//	Compose flags for the calls
-
-	bool bDate = true;
-	DWORD dwDateFlags;
-	switch (iDateFormat)
+	if (iDateFormat == dfRelative)
 		{
-		case dfNone:
-			bDate = false;
-			break;
-
-		case dfShort:
-			dwDateFlags = DATE_SHORTDATE;
-			break;
-
-		case dfLong:
-			dwDateFlags = DATE_LONGDATE;
-			break;
-
-		default:
-			ASSERT(false);
+		CTimeSpan Span = timeSpan(*this, CDateTime(Now));
+		DWORDLONG dwSeconds = Span.Seconds64();
+		if (dwSeconds < SECONDS_PER_MINUTE)
+			return CString("just now");
+		else if (dwSeconds < SECONDS_PER_MINUTE + (SECONDS_PER_MINUTE / 2))
+			return CString("1 minute ago");
+		else if (dwSeconds < SECONDS_PER_HOUR)
+			return strPattern("%d minutes ago", (int)(dwSeconds / SECONDS_PER_MINUTE));
+		else if (dwSeconds < SECONDS_PER_HOUR + (SECONDS_PER_HOUR / 2))
+			return CString("1 hour ago");
+		else if (dwSeconds < 2 * SECONDS_PER_DAY)
+			return strPattern("%d hours ago", (int)(dwSeconds / SECONDS_PER_HOUR));
+		else if (dwSeconds < 30 * SECONDS_PER_DAY)
+			return strPattern("%d days ago", (int)(dwSeconds / SECONDS_PER_DAY));
+		else
+			return strPattern("%d %s %d", Day(), CString(g_szMonthNameIMF[Month() - 1], 3), Year());
 		}
 
-	bool bTime = true;
-	DWORD dwTimeFlags;
-	switch (iTimeFormat)
+	//	Formats based on system calls
+
+	else
 		{
-		case tfNone:
-			bTime = false;
-			break;
+		TCHAR szBuffer[1024];
+		TCHAR *pPos = szBuffer;
+		TCHAR *pPosEnd = pPos + (sizeof(szBuffer) / sizeof(szBuffer[0]));
 
-		case tfShort:
-			dwTimeFlags = TIME_NOSECONDS;
-			break;
+		//	Compose flags for the calls
 
-		case tfShort24:
-			dwTimeFlags = TIME_NOSECONDS | TIME_FORCE24HOURFORMAT | TIME_NOTIMEMARKER;
-			break;
+		bool bDate = true;
+		DWORD dwDateFlags;
+		switch (iDateFormat)
+			{
+			case dfNone:
+				bDate = false;
+				break;
 
-		case tfLong:
-			dwTimeFlags = 0;
-			break;
+			case dfShort:
+				dwDateFlags = DATE_SHORTDATE;
+				break;
 
-		case tfLong24:
-			dwTimeFlags = TIME_FORCE24HOURFORMAT | TIME_NOTIMEMARKER;
-			break;
+			case dfLong:
+				dwDateFlags = DATE_LONGDATE;
+				break;
 
-		default:
-			ASSERT(false);
-		}
+			default:
+				ASSERT(false);
+			}
 
-	//	Format
+		bool bTime = true;
+		DWORD dwTimeFlags;
+		switch (iTimeFormat)
+			{
+			case tfNone:
+				bTime = false;
+				break;
 
-	int iLen = 0;
-	if (bDate)
-		{
-		iLen = ::GetDateFormat(LOCALE_USER_DEFAULT,
-				dwDateFlags,
-				&m_Time,
-				NULL,
-				pPos,
-				(int)(pPosEnd - pPos));
-		pPos += iLen;
+			case tfShort:
+				dwTimeFlags = TIME_NOSECONDS;
+				break;
 
-		//	If we have a time then we don't need the terminating NULL.
+			case tfShort24:
+				dwTimeFlags = TIME_NOSECONDS | TIME_FORCE24HOURFORMAT | TIME_NOTIMEMARKER;
+				break;
+
+			case tfLong:
+				dwTimeFlags = 0;
+				break;
+
+			case tfLong24:
+				dwTimeFlags = TIME_FORCE24HOURFORMAT | TIME_NOTIMEMARKER;
+				break;
+
+			default:
+				ASSERT(false);
+			}
+
+		//	Format
+
+		int iLen = 0;
+		if (bDate)
+			{
+			iLen = ::GetDateFormat(LOCALE_USER_DEFAULT,
+					dwDateFlags,
+					&m_Time,
+					NULL,
+					pPos,
+					(int)(pPosEnd - pPos));
+			pPos += iLen;
+
+			//	If we have a time then we don't need the terminating NULL.
+
+			if (bTime)
+				pPos[-1] = _T(' ');
+			}
+
+		//	Format the time
 
 		if (bTime)
-			pPos[-1] = _T(' ');
+			{
+			iLen = ::GetTimeFormat(LOCALE_USER_DEFAULT,
+					dwTimeFlags,
+					&m_Time,
+					NULL,
+					pPos,
+					(int)(pPosEnd - pPos));
+			pPos += iLen;
+			}
+
+		//	Done
+
+		*pPos = _T('\0');
+		return CString(szBuffer, (int)(pPos - szBuffer) - 1);
 		}
-
-	//	Format the time
-
-	if (bTime)
-		{
-		iLen = ::GetTimeFormat(LOCALE_USER_DEFAULT,
-				dwTimeFlags,
-				&m_Time,
-				NULL,
-				pPos,
-				(int)(pPosEnd - pPos));
-		pPos += iLen;
-		}
-
-	//	Done
-
-	*pPos = _T('\0');
-	return CString(szBuffer, (int)(pPos - szBuffer) - 1);
 	}
 
 CString CDateTime::FormatIMF (void) const

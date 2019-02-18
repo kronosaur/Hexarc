@@ -285,6 +285,7 @@ DECLARE_CONST_STRING(FORMAT_HEXE_TEXT,					"hexetext")
 DECLARE_CONST_STRING(FORMAT_DATE_ONLY,					"dateonly")
 DECLARE_CONST_STRING(FORMAT_DATE_TIME,					"datetime")
 DECLARE_CONST_STRING(FORMAT_INTERNET,					"internet")
+DECLARE_CONST_STRING(FORMAT_RELATIVE,					"relative")
 DECLARE_CONST_STRING(FORMAT_SHORT_DATE_ONLY,			"shortdateonly")
 DECLARE_CONST_STRING(FORMAT_SHORT_DATE_TIME,			"shortdatetime")
 DECLARE_CONST_STRING(FORMAT_SHORT_DATE_TIME24,			"shortdatetime24")
@@ -433,6 +434,7 @@ bool coreDateTime (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCon
 			//	dateTime
 			//	dateOnly
 			//	internet
+			//	relative
 			//	shortDateOnly
 			//	shortDateTime
 
@@ -453,6 +455,8 @@ bool coreDateTime (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCon
 				*retdResult = CDatum(DateTime.Format(CDateTime::dfLong, CDateTime::tfNone));
 			else if (strEquals(sFormat, FORMAT_INTERNET))
 				*retdResult = CDatum(DateTime.FormatIMF());
+			else if (strEquals(sFormat, FORMAT_RELATIVE))
+				*retdResult = CDatum(DateTime.Format(CDateTime::dfRelative, CDateTime::tfNone));
 			else if (strEquals(sFormat, FORMAT_SHORT_DATE_ONLY))
 				*retdResult = CDatum(DateTime.Format(CDateTime::dfShort, CDateTime::tfNone));
 			else if (strEquals(sFormat, FORMAT_SHORT_DATE_TIME))

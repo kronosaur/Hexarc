@@ -38,6 +38,7 @@ class CDateTime
 			dfNone,
 			dfShort,					//	Same as OS short date format
 			dfLong,						//	Same as OS long date format
+			dfRelative,					//	DateTime relative to now
 			};
 
 		enum TimeFormats
@@ -48,6 +49,10 @@ class CDateTime
 			tfLong,						//	4:15:30 PM
 			tfLong24,					//	16:15:30
 			};
+
+		static const DWORDLONG SECONDS_PER_MINUTE = 60;
+		static const DWORDLONG SECONDS_PER_HOUR = 60 * SECONDS_PER_MINUTE;
+		static const DWORDLONG SECONDS_PER_DAY = 24 * SECONDS_PER_HOUR;
 
 		CDateTime (void);
 		CDateTime (Constants Init);
