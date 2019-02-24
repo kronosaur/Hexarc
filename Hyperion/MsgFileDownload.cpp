@@ -46,8 +46,8 @@ class CFileDownloadSession : public CAeonFileDownloadSession
 			CDatum dParams;
 			};
 
-		CFileDownloadSession (CHyperionEngine &Engine, const CString &sFilePath, CDatum dFileDownloadDesc) : 
-				CAeonFileDownloadSession(GenerateAddress(PORT_HYPERION_COMMAND), sFilePath),
+		CFileDownloadSession (CHyperionEngine &Engine, const CString &sReplyAddr, const CString &sFilePath, CDatum dFileDownloadDesc) : 
+				CAeonFileDownloadSession(sReplyAddr, sFilePath),
 				m_Engine(Engine),
 				m_dFileDownloadDesc(dFileDownloadDesc)
 			{ }
@@ -114,7 +114,7 @@ void CHyperionEngine::MsgFileDownload (const SArchonMessage &Msg, const CHexeSec
 
 	//	Start a session to get the file from Aeon
 
-	StartSession(Msg, new CFileDownloadSession(*this, sFilePath, dFileDownloadDesc));
+	StartSession(Msg, new CFileDownloadSession(*this, GenerateAddress(PORT_HYPERION_COMMAND), sFilePath, dFileDownloadDesc));
 	}
 
 //	CResizeImageSession --------------------------------------------------------

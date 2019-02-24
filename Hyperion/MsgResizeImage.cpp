@@ -18,8 +18,8 @@ DECLARE_CONST_STRING(ERR_BAD_PARAMS,					"Invalid parameters.")
 class CResizeImageSession : public CAeonFileDownloadSession
 	{
 	public:
-		CResizeImageSession (CHyperionEngine &Engine, const CString &sFilePath, DWORD dwNewSize, const CString &sCacheID, const CHexeSecurityCtx *pSecurityCtx) : 
-				CAeonFileDownloadSession(GenerateAddress(PORT_HYPERION_COMMAND), sFilePath, pSecurityCtx),
+		CResizeImageSession (CHyperionEngine &Engine, const CString &sReplyAddr, const CString &sFilePath, DWORD dwNewSize, const CString &sCacheID, const CHexeSecurityCtx *pSecurityCtx) : 
+				CAeonFileDownloadSession(sReplyAddr, sFilePath, pSecurityCtx),
 				m_Engine(Engine),
 				m_dwNewSize(dwNewSize),
 				m_sCacheID(sCacheID)
@@ -75,7 +75,7 @@ void CHyperionEngine::MsgResizeImage (const SArchonMessage &Msg, const CHexeSecu
 	//	Otherwise, we need to resize the file. Start a session to get the 
 	//	original file bits.
 
-	StartSession(Msg, new CResizeImageSession(*this, sFilePath, dwSize, sID, pSecurityCtx));
+	StartSession(Msg, new CResizeImageSession(*this, GenerateAddress(PORT_HYPERION_COMMAND), sFilePath, dwSize, sID, pSecurityCtx));
 	}
 
 //	CResizeImageSession --------------------------------------------------------

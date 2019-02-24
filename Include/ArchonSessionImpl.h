@@ -29,7 +29,7 @@ class CAeonFileDownloadSession : public ISessionHandler
 
 		CString m_sReplyAddr;
 		CString m_sFilePath;
-		const CHexeSecurityCtx *m_pSecurityCtx;
+		const CHexeSecurityCtx m_SecurityCtx;
 		CString m_sRoot;
 		CDateTime m_IfModifiedAfter;
 		DWORD m_dwChunkSize;

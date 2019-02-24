@@ -24,7 +24,7 @@ const DWORD MESSAGE_TIMEOUT =							30 * 1000;
 CAeonFileDownloadSession::CAeonFileDownloadSession (const CString &sReplyAddr, const CString &sFilePath, const CHexeSecurityCtx *pSecurityCtx, const CString &sRoot, const CDateTime &IfModifiedAfter, DWORD dwChunkSize) :
 		m_sReplyAddr(sReplyAddr),
 		m_sFilePath(sFilePath),
-		m_pSecurityCtx(pSecurityCtx),
+		m_SecurityCtx(pSecurityCtx ? *pSecurityCtx : CHexeSecurityCtx()),
 		m_sRoot(sRoot),
 		m_IfModifiedAfter(IfModifiedAfter),
 		m_dwChunkSize(dwChunkSize)
@@ -132,8 +132,8 @@ bool CAeonFileDownloadSession::SendFileDownloadRequest (int iOffset)
 
 	//	If necessary, encode into a sandbox message
 
-	if (m_pSecurityCtx)
-		CHexeProcess::ComposeHexarcMessage(*m_pSecurityCtx, sMsg, dPayload, &sMsg, &dPayload);
+	if (!m_SecurityCtx.IsEmpty())
+		CHexeProcess::ComposeHexarcMessage(m_SecurityCtx, sMsg, dPayload, &sMsg, &dPayload);
 
 	//	Send the message out
 
