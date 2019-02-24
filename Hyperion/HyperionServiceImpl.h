@@ -216,6 +216,7 @@ class CHTTPSession : public CHyperionSession
 		bool CalcRequestIP (const CHTTPMessage &Msg, CString *retsAddress) const;
 		bool Disconnect (const SArchonMessage &Msg);
 		bool GetRequest (const SArchonMessage &Msg, bool bContinued = false);
+		CString GetRequestDescription (void) const;
 		bool ProcessFileResult (SHTTPRequestCtx &Ctx, CDatum dFileDesc, CDatum dFileData, const SArchonMessage &Msg);
 		bool ProcessServiceResult (SHTTPRequestCtx &Ctx, const SArchonMessage &Msg);
 		bool ProcessStateDisconnected (const SArchonMessage &Msg);

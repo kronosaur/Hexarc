@@ -179,6 +179,16 @@ bool CHTTPSession::GetRequest (const SArchonMessage &Msg, bool bContinued)
 	return true;
 	}
 
+CString CHTTPSession::GetRequestDescription (void) const
+
+//	GetRequestDescription
+//
+//	Returns a string of the form: GET http://hostname/url
+
+	{
+	return strPattern("%s %s%s", m_Ctx.Request.GetMethod(), m_Ctx.Request.GetRequestedHost(), m_Ctx.Request.GetRequestedPath());
+	}
+
 void CHTTPSession::OnEndSession (DWORD dwTicket)
 
 //	OnEndSession
@@ -505,7 +515,7 @@ bool CHTTPSession::ProcessStateWaitingForRequest (const SArchonMessage &Msg)
 		if (!bSuccess)
 			{
 #ifdef LOG_HTTP_SESSION
-			GetProcessCtx()->Log(MSG_LOG_INFO, strPattern("[%x] Responded: 400 Bad Request.", CEsperInterface::ConnectionToFriendlyID(m_dSocket)));
+			GetProcessCtx()->Log(MSG_LOG_INFO, strPattern("[%x] %s -> 400 Bad Request.", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetRequestDescription()));
 			GetProcessCtx()->Log(MSG_LOG_INFO, (const CString &)dData);
 #endif
 			m_Ctx.Response.InitResponse(http_BAD_REQUEST, ERR_400_BAD_REQUEST);
@@ -553,7 +563,7 @@ bool CHTTPSession::ProcessStateWaitingForRequest (const SArchonMessage &Msg)
 		else if (bFirstRequest)
 			GetProcessCtx()->Log(MSG_LOG_INFO, strPattern("[%x] Connected %s.", CEsperInterface::ConnectionToFriendlyID(m_dSocket), m_sNetAddress));
 			
-		GetProcessCtx()->Log(MSG_LOG_INFO, strPattern("[%x] %s %s%s.", CEsperInterface::ConnectionToFriendlyID(m_dSocket), m_Ctx.Request.GetMethod(), m_Ctx.Request.GetRequestedHost(), m_Ctx.Request.GetRequestedPath()));
+		GetProcessCtx()->Log(MSG_LOG_INFO, strPattern("[%x] %s.", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetRequestDescription()));
 #endif
 		//	Ask the engine for a service to handle this request
 
@@ -955,7 +965,7 @@ bool CHTTPSession::SendResponse (SHTTPRequestCtx &Ctx, const SArchonMessage &Msg
 #ifdef LOG_HTTP_SESSION
 	bool bNoErrorLog = ((dwFlags & FLAG_NO_ERROR_LOG) ? true : false);
 	if (!bNoErrorLog && Ctx.Response.GetStatusCode() != http_OK && Ctx.Response.GetStatusCode() != http_NOT_MODIFIED)
-		GetProcessCtx()->Log(MSG_LOG_INFO, strPattern("[%x] Responded: %d %s", CEsperInterface::ConnectionToFriendlyID(m_dSocket), Ctx.Response.GetStatusCode(), Ctx.Response.GetStatusMsg()));
+		GetProcessCtx()->Log(MSG_LOG_INFO, strPattern("[%x] %s -> %d %s", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetRequestDescription(), Ctx.Response.GetStatusCode(), Ctx.Response.GetStatusMsg()));
 #endif
 
 	//	We expect an onWrite with some data
