@@ -5,30 +5,30 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(FIELD_DATA,						"data")
-DECLARE_CONST_STRING(FIELD_FILE_DESC,					"fileDesc")
-DECLARE_CONST_STRING(FIELD_FILE_PATH,					"filePath")
-DECLARE_CONST_STRING(FIELD_HEIGHT,						"height")
-DECLARE_CONST_STRING(FIELD_TRANSFORMS,					"transforms")
-DECLARE_CONST_STRING(FIELD_TYPE,						"type")
-DECLARE_CONST_STRING(FIELD_WIDTH,						"width")
+DECLARE_CONST_STRING(FIELD_DATA,						"data");
+DECLARE_CONST_STRING(FIELD_FILE_DESC,					"fileDesc");
+DECLARE_CONST_STRING(FIELD_FILE_PATH,					"filePath");
+DECLARE_CONST_STRING(FIELD_HEIGHT,						"height");
+DECLARE_CONST_STRING(FIELD_TRANSFORMS,					"transforms");
+DECLARE_CONST_STRING(FIELD_TYPE,						"type");
+DECLARE_CONST_STRING(FIELD_WIDTH,						"width");
 
-DECLARE_CONST_STRING(MSG_AEON_FILE_DOWNLOAD_DESC,		"Aeon.fileDownloadDesc")
-DECLARE_CONST_STRING(MSG_ERROR_NOT_ALLOWED,				"Error.notAllowed")
-DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply")
+DECLARE_CONST_STRING(MSG_AEON_FILE_DOWNLOAD_DESC,		"Aeon.fileDownloadDesc");
+DECLARE_CONST_STRING(MSG_ERROR_NOT_ALLOWED,				"Error.notAllowed");
+DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply");
 
-DECLARE_CONST_STRING(PORT_HYPERION_COMMAND,				"Hyperion.command")
+DECLARE_CONST_STRING(PORT_HYPERION_COMMAND,				"Hyperion.command");
 
-DECLARE_CONST_STRING(TYPE_RESIZE,						"resize")
+DECLARE_CONST_STRING(TYPE_RESIZE,						"resize");
 
-DECLARE_CONST_STRING(ERR_BAD_PARAMS,					"Invalid parameters.")
-DECLARE_CONST_STRING(ERR_INVALID_TRANS_TYPE,			"Invalid transform description")
-DECLARE_CONST_STRING(ERR_NOT_IN_SANDBOX,				"Table %s cannot be accessed by service: %s.")
-DECLARE_CONST_STRING(ERR_PARSING_FILE_PATH,				"Unable to parse filePath: %s")
-DECLARE_CONST_STRING(ERR_INVALID_TYPE,					"Unknown transform: %s")
-DECLARE_CONST_STRING(ERR_INVALID_SIZE,					"Invalid image size.")
-DECLARE_CONST_STRING(ERR_INVALID_IMAGE,					"Invalid image.")
-DECLARE_CONST_STRING(ERR_UNKNOWN_IMAGE_FORMAT,			"Unknown image format.")
+DECLARE_CONST_STRING(ERR_BAD_PARAMS,					"Invalid parameters.");
+DECLARE_CONST_STRING(ERR_INVALID_TRANS_TYPE,			"Invalid transform description");
+DECLARE_CONST_STRING(ERR_NOT_IN_SANDBOX,				"Table %s cannot be accessed by service: %s.");
+DECLARE_CONST_STRING(ERR_PARSING_FILE_PATH,				"Unable to parse filePath: %s");
+DECLARE_CONST_STRING(ERR_INVALID_TYPE,					"Unknown transform: %s");
+DECLARE_CONST_STRING(ERR_INVALID_SIZE,					"Invalid image size.");
+DECLARE_CONST_STRING(ERR_INVALID_IMAGE,					"Invalid image.");
+DECLARE_CONST_STRING(ERR_UNKNOWN_IMAGE_FORMAT,			"Unknown image format.");
 
 class CFileDownloadSession : public CAeonFileDownloadSession
 	{
@@ -64,7 +64,7 @@ class CFileDownloadSession : public CAeonFileDownloadSession
 		bool ProcessResize (CDatum dFileDesc, CDatum dData, int cxWidth, int cyHeight, CDatum *retdFileDesc, CDatum *retdData, CString *retsError = NULL) const;
 		bool ProcessTransforms (CDatum dFileDesc, CDatum dData, const TArray<STransformDesc> &Trans, CDatum *retdFileDesc, CDatum *retdData, CString *retsError = NULL) const;
 
-		CHyperionEngine m_Engine;
+		CHyperionEngine &m_Engine;
 		CDatum m_dFileDownloadDesc;
 	};
 
