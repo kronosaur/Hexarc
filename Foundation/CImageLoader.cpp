@@ -5,13 +5,13 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(EXTENSION_BMP,						".bmp")
-DECLARE_CONST_STRING(EXTENSION_JPEG,					".jpeg")
-DECLARE_CONST_STRING(EXTENSION_JPG,						".jpg")
-DECLARE_CONST_STRING(EXTENSION_PNG,						".png")
+DECLARE_CONST_STRING(EXTENSION_BMP,						".bmp");
+DECLARE_CONST_STRING(EXTENSION_JPEG,					".jpeg");
+DECLARE_CONST_STRING(EXTENSION_JPG,						".jpg");
+DECLARE_CONST_STRING(EXTENSION_PNG,						".png");
 
-DECLARE_CONST_STRING(ERR_CRASH,							"Crash loading image.")
-DECLARE_CONST_STRING(ERR_UNKNOWN_IMAGE_FORMAT,			"Unknown image format.")
+DECLARE_CONST_STRING(ERR_CRASH,							"Crash loading image.");
+DECLARE_CONST_STRING(ERR_UNKNOWN_IMAGE_FORMAT,			"Unknown image format.");
 
 CImageLoader::EFormats CImageLoader::GetFormatFromExtension (const CString &sFilespec)
 

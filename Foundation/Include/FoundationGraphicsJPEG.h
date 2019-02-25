@@ -13,6 +13,7 @@ class CJPEG
 	{
 	public:
 		static bool Load (IMemoryBlock &Data, CRGBA32Image &Image, CString *retsError = NULL);
+		static bool Save (CRGBA32Image &Image, TBuffer<CMallocAllocator> &Data, int iQuality, CString *retsError = NULL);
 
 	private:
 	};
