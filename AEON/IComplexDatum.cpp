@@ -327,6 +327,21 @@ CString CComplexArray::AsString (void) const
 	return sOutput;
 	}
 
+size_t CComplexArray::CalcMemorySize (void) const
+
+//	CalcMemorySize
+//
+//	Computes the amount of memory being used.
+
+	{
+	size_t dwSize = 0;
+
+	for (int i = 0; i < m_Array.GetCount(); i++)
+		dwSize += m_Array[i].CalcMemorySize();
+
+	return dwSize;
+	}
+
 bool CComplexArray::FindElement (CDatum dValue, int *retiIndex) const
 
 //	FindElement
@@ -740,6 +755,24 @@ bool CComplexStruct::FindElement (const CString &sKey, CDatum *retpValue)
 		*retpValue = *pValue;
 
 	return true;
+	}
+
+size_t CComplexStruct::CalcMemorySize (void) const
+
+//	CalcMemorySize
+//
+//	Computes the amount of memory being used.
+
+	{
+	size_t dwSize = 0;
+
+	for (int i = 0; i < m_Map.GetCount(); i++)
+		{
+		dwSize += m_Map.GetKey(i).GetLength() + sizeof(DWORD) + 1;
+		dwSize += m_Map[i].CalcMemorySize();
+		}
+
+	return dwSize;
 	}
 
 size_t CComplexStruct::OnCalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const

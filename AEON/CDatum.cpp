@@ -706,6 +706,57 @@ TArray<CString> CDatum::AsStringArray (void) const
 	return Result;
 	}
 
+size_t CDatum::CalcMemorySize (void) const
+
+//	CalcMemorySize
+//
+//	Computes the amount of memory used up by this datum.
+
+	{
+	size_t dwSize = sizeof(CDatum);
+
+	switch (m_dwData & AEON_TYPE_MASK)
+		{
+		case AEON_TYPE_STRING:
+			if (m_dwData != 0)
+				dwSize += raw_GetString().GetLength() + sizeof(DWORD) + 1;
+			break;
+
+		case AEON_TYPE_NUMBER:
+			switch (m_dwData & AEON_NUMBER_TYPE_MASK)
+				{
+				case AEON_NUMBER_CONSTANT:
+					break;
+
+				case AEON_NUMBER_28BIT:
+					break;
+
+				case AEON_NUMBER_32BIT:
+					dwSize += sizeof(DWORD);
+					break;
+
+				case AEON_NUMBER_DOUBLE:
+					dwSize += sizeof(double);
+					break;
+
+				default:
+					ASSERT(false);
+					break;
+				}
+			break;
+
+		case AEON_TYPE_COMPLEX:
+			dwSize += raw_GetComplex()->CalcMemorySize();
+			break;
+
+		default:
+			ASSERT(false);
+			break;
+		}
+
+	return dwSize;
+	}
+
 size_t CDatum::CalcSerializeSize (ESerializationFormats iFormat) const
 
 //	CalcSerializeSize

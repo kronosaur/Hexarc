@@ -521,6 +521,16 @@ bool CIPInteger::FitsAsInteger64Unsigned (void) const
 	return true;
 	}
 
+DWORD CIPInteger::GetSize (void) const
+
+//	GetSize
+//
+//	Returns the size in bytes
+
+	{
+	return (DWORD)bdConvToOctets((BIGD)m_Value, NULL, 0);
+	}
+
 void CIPInteger::InitFromBytes (IMemoryBlock &Data)
 
 //	InitFromBytes

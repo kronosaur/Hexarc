@@ -173,6 +173,7 @@ class CDatum
 		CDatum AsOptions (bool *retbConverted = NULL) const;
 		CString AsString (void) const;
 		TArray<CString> AsStringArray (void) const;
+		size_t CalcMemorySize (void) const;
 		size_t CalcSerializeSize (ESerializationFormats iFormat) const;
 		CDatum Clone (void) const;
 		bool Find (CDatum dValue, int *retiIndex = NULL) const;
@@ -258,6 +259,7 @@ class IComplexDatum
 		virtual void Append (CDatum dDatum) { }
 		virtual CString AsString (void) const { return NULL_STR; }
 		virtual size_t CalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const;
+		virtual size_t CalcMemorySize (void) const = 0;
 		virtual bool CanInvoke (void) const { return false; }
 		virtual const CDateTime &CastCDateTime (void) const { return NULL_DATETIME; }
 		virtual const CIPInteger &CastCIPInteger (void) const { return NULL_IPINTEGER; }
@@ -336,6 +338,7 @@ class CComplexArray : public IComplexDatum
 		//	IComplexDatum
 		virtual void Append (CDatum dDatum) override { m_Array.Insert(dDatum); }
 		virtual CString AsString (void) const override;
+		virtual size_t CalcMemorySize (void) const override;
 		virtual IComplexDatum *Clone (void) const override { return new CComplexArray(m_Array); }
 		virtual bool Find (CDatum dValue, int *retiIndex = NULL) const override { return FindElement(dValue, retiIndex); }
 		virtual int GetCount (void) const override { return m_Array.GetCount(); }
@@ -370,6 +373,7 @@ class CComplexBinary : public IComplexDatum
 		//	IComplexDatum
 		virtual void Append (CDatum dDatum);
 		virtual CString AsString (void) const;
+		virtual size_t CalcMemorySize (void) const override { return CastCString().GetLength() + sizeof(DWORD) + 1; }
 		virtual const CString &CastCString (void) const;
 		virtual IComplexDatum *Clone (void) const override;
 		virtual CDatum::Types GetBasicType (void) const { return CDatum::typeBinary; }
@@ -404,6 +408,7 @@ class CComplexBinaryFile : public IComplexDatum
 
 		//	IComplexDatum
 		virtual void Append (CDatum dDatum);
+		virtual size_t CalcMemorySize (void) const override { return sizeof(CComplexBinaryFile); }
 		virtual const CString &CastCString (void) const;
 		virtual IComplexDatum *Clone (void) const override;
 		virtual CDatum::Types GetBasicType (void) const { return CDatum::typeBinary; }
@@ -449,6 +454,7 @@ class CComplexDateTime : public IComplexDatum
 		static bool CreateFromString (const CString &sString, CDatum *retdDatum);
 
 		virtual CString AsString (void) const;
+		virtual size_t CalcMemorySize (void) const override { return sizeof(CComplexDateTime); }
 		virtual const CDateTime &CastCDateTime (void) const { return m_DateTime; }
 		virtual IComplexDatum *Clone (void) const override { return new CComplexDateTime(m_DateTime); }
 		virtual CDatum::Types GetBasicType (void) const { return CDatum::typeDateTime; }
@@ -490,6 +496,7 @@ class CComplexInteger : public IComplexDatum
 
 		//	IComplexDatum
 		virtual CString AsString (void) const { return m_Value.AsString(); }
+		virtual size_t CalcMemorySize (void) const override { return m_Value.GetSize(); }
 		virtual const CIPInteger &CastCIPInteger (void) const { return m_Value; }
 		virtual DWORDLONG CastDWORDLONG (void) const;
 		virtual int CastInteger32 (void) const;
@@ -526,6 +533,7 @@ class CComplexStruct : public IComplexDatum
 		//	IComplexDatum
 		virtual void Append (CDatum dDatum) { AppendStruct(dDatum); }
 		virtual CString AsString (void) const;
+		virtual size_t CalcMemorySize (void) const override;
 		virtual IComplexDatum *Clone (void) const override { return new CComplexStruct(m_Map); }
 		virtual bool FindElement (const CString &sKey, CDatum *retpValue);
 		virtual CDatum::Types GetBasicType (void) const { return CDatum::typeStruct; }
@@ -574,17 +582,18 @@ template <class VALUE> class TExternalDatum : public IComplexDatum
 			}
 
 		//	IComplexDatum
-		virtual CString AsString (void) const { return strPattern("[%s]", GetTypename()); }
+		virtual CString AsString (void) const override { return strPattern("[%s]", GetTypename()); }
+		virtual size_t CalcMemorySize (void) const override { return sizeof(VALUE); }
 		virtual IComplexDatum *Clone (void) const override { ASSERT(false); return NULL; }
-		virtual CDatum::Types GetBasicType (void) const { return CDatum::typeCustom; }
-		virtual int GetCount (void) const { return 1; }
-		virtual CDatum GetElement (IInvokeCtx *pCtx, int iIndex) const { return GetElement(iIndex); }
-		virtual CDatum GetElement (int iIndex) const { return CDatum(); }
-		virtual CDatum GetElement (IInvokeCtx *pCtx, const CString &sKey) const { return GetElement(sKey); }
-		virtual CDatum GetElement (const CString &sKey) const { return CDatum(); }
-		virtual CString GetKey (int iIndex) const { return NULL_STR; }
-		virtual const CString &GetTypename (void) const { return VALUE::StaticGetTypename(); }
-		virtual bool IsArray (void) const { return false; }
+		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeCustom; }
+		virtual int GetCount (void) const override { return 1; }
+		virtual CDatum GetElement (IInvokeCtx *pCtx, int iIndex) const override { return GetElement(iIndex); }
+		virtual CDatum GetElement (int iIndex) const override { return CDatum(); }
+		virtual CDatum GetElement (IInvokeCtx *pCtx, const CString &sKey) const override { return GetElement(sKey); }
+		virtual CDatum GetElement (const CString &sKey) const override { return CDatum(); }
+		virtual CString GetKey (int iIndex) const override { return NULL_STR; }
+		virtual const CString &GetTypename (void) const override { return VALUE::StaticGetTypename(); }
+		virtual bool IsArray (void) const override { return false; }
 
 	protected:
 
