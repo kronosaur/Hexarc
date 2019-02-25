@@ -4,3 +4,4 @@
 #include "TPainters.h"
 #include "TBlenders.h"
 #include "TImageBlt.h"
+#include "TImageDraw.h"

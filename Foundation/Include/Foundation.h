@@ -106,6 +106,7 @@ class CManualEvent;
 #include "FoundationGraphicsImage32.h"
 #include "FoundationGraphicsJPEG.h"
 #include "FoundationGraphicsPNG.h"
+#include "FoundationGraphicsDraw.h"
 
 class CFoundation
 	{

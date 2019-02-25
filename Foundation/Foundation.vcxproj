@@ -388,6 +388,7 @@
     <ClInclude Include="Include\FoundationExceptions.h" />
     <ClInclude Include="Include\FoundationFileIO.h" />
     <ClInclude Include="Include\FoundationGraphicsCore.h" />
+    <ClInclude Include="Include\FoundationGraphicsDraw.h" />
     <ClInclude Include="Include\FoundationGraphicsImage32.h" />
     <ClInclude Include="Include\FoundationGraphicsImage8.h" />
     <ClInclude Include="Include\FoundationGraphicsJPEG.h" />
@@ -417,6 +418,7 @@
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="TBlenders.h" />
     <ClInclude Include="TImageBlt.h" />
+    <ClInclude Include="TImageDraw.h" />
     <ClInclude Include="TPainters.h" />
     <ClInclude Include="UnicodeTables.h" />
     <ClInclude Include="BigDigits\bigd.h" />

@@ -82,10 +82,3 @@ class CImageLoader
 		static bool Load (IMemoryBlock &Data, EFormats iFormat, CRGBA32Image &Image, CString *retsError = NULL);
 	};
 
-class CImageDraw
-	{
-	public:
-		static void Blt (CRGBA32Image &Dest, int xDest, int yDest, const CRGBA32Image &Src, int xSrc = 0, int ySrc = 0, int cxSrc = -1, int cySrc = -1, EBlendModes iBlend = blendNormal);
-		static void BltScaled (CRGBA32Image &Dest, int xDest, int yDest, int cxDest, int cyDest, const CRGBA32Image &Src, int xSrc = 0, int ySrc = 0, int cxSrc = -1, int cySrc = -1, EBlendModes iBlend = blendNormal);
-		static void Copy (CRGBA32Image &Dest, int xDest, int yDest, const CRGBA32Image &Src, int xSrc = 0, int ySrc = 0, int cxSrc = -1, int cySrc = -1);
-	};

@@ -59,3 +59,27 @@ void CImageDraw::Copy (CRGBA32Image &Dest, int xDest, int yDest, const CRGBA32Im
 	TSolidImageBlt<CBlendCopy> Algorithm;
 	Algorithm.Copy(Dest, xDest, yDest, Src, xSrc, ySrc, cxSrc, cySrc);
 	}
+
+void CImageDraw::Rectangle (CRGBA32Image &Dest, int xDest, int yDest, int cxDest, int cyDest, CRGBA32 rgbColor, EBlendModes iBlend)
+
+//	Rectangle
+//
+//	Draw a filled rectangle
+
+	{
+	CPainterSolid Fill(rgbColor);
+
+	switch (iBlend)
+		{
+		case blendNormal:
+			{
+			TSolidImageDraw<CBlendBlend> Algorithm(Fill);
+			Algorithm.Rectangle(Dest, xDest, yDest, cxDest, cyDest);
+			break;
+			}
+
+		default:
+			ASSERT(false);
+			break;
+		}
+	}
