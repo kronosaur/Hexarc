@@ -9,6 +9,8 @@
 
 #pragma once
 
+class IMemoryBlock;
+
 //	Useful macros
 
 #define DEF_STRING(str)					(sizeof(str)-1), str

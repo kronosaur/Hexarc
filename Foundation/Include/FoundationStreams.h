@@ -103,6 +103,7 @@ class CBuffer : public CMemoryBlockImpl
 		LPVOID GetHandoff (int *retiAllocation = NULL);
 		inline int GetAllocSize (void) const { return max(m_iAllocation, m_iLength); }
 		void TakeHandoff (CBuffer &Src);
+		void TakeHandoff (void *pBuffer, int iAllocLength);
 
 		//	IMemoryBlock virtuals
 		virtual int GetLength (void) const override { return m_iLength; }

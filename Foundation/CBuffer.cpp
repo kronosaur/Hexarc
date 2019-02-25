@@ -210,3 +210,21 @@ void CBuffer::TakeHandoff (CBuffer &Src)
 
 	Seek(0);
 	}
+
+void CBuffer::TakeHandoff (void *pBuffer, int iAllocLength)
+
+//	TakeHandoff
+//
+//	Takes ownership of the given allocation.
+
+	{
+	if (m_bAllocated)
+		delete [] m_pBuffer;
+
+	m_bAllocated = true;
+	m_iLength = iAllocLength;
+	m_iAllocation = iAllocLength;
+	m_pBuffer = (char *)pBuffer;
+
+	Seek(0);
+	}

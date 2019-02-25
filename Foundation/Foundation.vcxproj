@@ -405,6 +405,7 @@
     <ClInclude Include="Include\FoundationSmartPtr.h" />
     <ClInclude Include="Include\FoundationStreams.h" />
     <ClInclude Include="Include\FoundationStreams64.h" />
+    <ClInclude Include="Include\FoundationStreamsTBuffer.h" />
     <ClInclude Include="Include\FoundationStrings.h" />
     <ClInclude Include="Include\FoundationThreads.h" />
     <ClInclude Include="Include\FoundationTime.h" />

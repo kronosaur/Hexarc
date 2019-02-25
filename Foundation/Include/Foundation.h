@@ -74,8 +74,10 @@ class CManualEvent;
 #include "FoundationArrays.h"
 #include "FoundationMaps.h"
 #include "FoundationHashMaps.h"
+#include "FoundationUtilities.h"
 #include "FoundationStreams.h"
 #include "FoundationStreams64.h"
+#include "FoundationStreamsTBuffer.h"
 
 #include "FoundationDB.h"
 #include "FoundationMath.h"
@@ -95,7 +97,6 @@ class CManualEvent;
 #include "FoundationMarkup.h"
 #include "FoundationNetworkIO.h"
 #include "FoundationParsers.h"
-#include "FoundationUtilities.h"
 #include "FoundationXML.h"
 
 //	Graphics subsystem
