@@ -338,6 +338,7 @@ class CHyperionCache
 	{
 	public:
 		bool FindEntry (const CString &sID, CDatum *retdEntry = NULL) const;
+		inline size_t GetTotalSize (void) const { CSmartLock Lock(m_cs); return m_dwTotalSize; }
 		void Mark (void);
 		void SetEntry (const CString &sID, CDatum dEntry);
 
@@ -345,11 +346,17 @@ class CHyperionCache
 		struct SEntry
 			{
 			CDatum dEntry;
+			size_t dwSize;
 			mutable DWORDLONG dwLastAccess;
 			};
 
+		inline void DecrementTotalSize (size_t dwSize) { if (dwSize <= m_dwTotalSize) m_dwTotalSize -= dwSize; else m_dwTotalSize = 0; }
+		void FlushLRU (void);
+
 		CCriticalSection m_cs;
 		TSortMap<CString, SEntry> m_Cache;
+		size_t m_dwMaxSize = 1000000;
+		size_t m_dwTotalSize = 0;
 	};
 
 class CHyperionOptions

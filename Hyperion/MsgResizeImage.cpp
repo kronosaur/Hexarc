@@ -5,15 +5,17 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(FIELD_DATA,						"data")
-DECLARE_CONST_STRING(FIELD_FILE_DESC,					"fileDesc")
+DECLARE_CONST_STRING(FIELD_DATA,						"data");
+DECLARE_CONST_STRING(FIELD_FILE_DESC,					"fileDesc");
 
-DECLARE_CONST_STRING(MSG_AEON_FILE_DOWNLOAD_DESC,		"Aeon.fileDownloadDesc")
-DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply")
+DECLARE_CONST_STRING(MSG_AEON_FILE_DOWNLOAD_DESC,		"Aeon.fileDownloadDesc");
+DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply");
+DECLARE_CONST_STRING(MSG_LOG_DEBUG,						"Log.debug")
 
-DECLARE_CONST_STRING(PORT_HYPERION_COMMAND,				"Hyperion.command")
+DECLARE_CONST_STRING(PORT_HYPERION_COMMAND,				"Hyperion.command");
 
-DECLARE_CONST_STRING(ERR_BAD_PARAMS,					"Invalid parameters.")
+DECLARE_CONST_STRING(ERR_BAD_PARAMS,					"Invalid parameters.");
+DECLARE_CONST_STRING(ERR_UNKNOWN_IMAGE_FORMAT,			"Unable to determine image format from extension: %s.");
 
 class CResizeImageSession : public CAeonFileDownloadSession
 	{
@@ -31,7 +33,7 @@ class CResizeImageSession : public CAeonFileDownloadSession
 		virtual void OnFileUnmodified (void) override;
 
 	private:
-		CHyperionEngine m_Engine;
+		CHyperionEngine &m_Engine;
 		DWORD m_dwNewSize;
 		CString m_sCacheID;
 	};
@@ -68,6 +70,7 @@ void CHyperionEngine::MsgResizeImage (const SArchonMessage &Msg, const CHexeSecu
 	CDatum dData;
 	if (m_Cache.FindEntry(sID, &dData))
 		{
+		Log(MSG_LOG_DEBUG, strPattern("Found entry in cache: %s", sID));
 		SendMessageReply(MSG_AEON_FILE_DOWNLOAD_DESC, dData, Msg);
 		return;
 		}
@@ -90,7 +93,12 @@ void CResizeImageSession::OnFileDownloaded (CDatum dFileDesc, CDatum dData)
 	{
 	//	Resize the image.
 
-
+	CImageLoader::EFormats iFormat = CImageLoader::GetFormatFromExtension(GetFilePath());
+	if (iFormat == CImageLoader::formatUnknown)
+		{
+		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_UNKNOWN_IMAGE_FORMAT, fileGetFilename(GetFilePath())));
+		return;
+		}
 
 	//	Compose a fileDownloadDesc for the newly resized image.
 
@@ -101,6 +109,7 @@ void CResizeImageSession::OnFileDownloaded (CDatum dFileDesc, CDatum dData)
 	//	Store it in our cache
 
 	m_Engine.GetCache().SetEntry(m_sCacheID, dResult);
+	m_Engine.GetProcessCtx()->Log(MSG_LOG_DEBUG, strPattern("Added entry to cache: %s (cache size = %d)", m_sCacheID, (DWORD)m_Engine.GetCache().GetTotalSize()));
 
 	//	Reply to original caller
 

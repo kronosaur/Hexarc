@@ -24,6 +24,8 @@ class CAeonFileDownloadSession : public ISessionHandler
 		virtual bool OnProcessMessage (const SArchonMessage &Msg) override;
 		virtual bool OnStartSession (const SArchonMessage &Msg, DWORD dwTicket) override;
 
+		inline const CString &GetFilePath (void) const { return m_sFilePath; }
+
 	private:
 		bool SendFileDownloadRequest (int iOffset);
 

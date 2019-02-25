@@ -31,6 +31,35 @@ bool CHyperionCache::FindEntry (const CString &sID, CDatum *retdEntry) const
 	return true;
 	}
 
+void CHyperionCache::FlushLRU (void)
+
+//	FlushLRU
+//
+//	Flushes the least recently used entry in our cache
+
+	{
+	//	Look for the least recently used entry
+
+	int iLRUEntry = -1;
+	DWORDLONG dwLRUTime;
+	for (int i = 0; i < m_Cache.GetCount(); i++)
+		{
+		if (iLRUEntry == -1 || m_Cache[i].dwLastAccess < dwLRUTime)
+			{
+			iLRUEntry = i;
+			dwLRUTime = m_Cache[i].dwLastAccess;
+			}
+		}
+
+	//	Remove the cache entry, if found.
+
+	if (iLRUEntry != -1)
+		{
+		DecrementTotalSize(m_Cache[iLRUEntry].dwSize);
+		m_Cache.Delete(iLRUEntry);
+		}
+	}
+
 void CHyperionCache::Mark (void)
 
 //	Mark
@@ -53,7 +82,25 @@ void CHyperionCache::SetEntry (const CString &sID, CDatum dEntry)
 	{
 	CSmartLock Lock(m_cs);
 
-	SEntry *pEntry = m_Cache.SetAt(sID);
+	bool bNew;
+	SEntry *pEntry = m_Cache.SetAt(sID, &bNew);
 	pEntry->dEntry = dEntry;
 	pEntry->dwLastAccess = sysGetTickCount64();
+
+	//	If we're replacing an entry, subtract the old entry's size from the 
+	//	total size of the cache.
+
+	if (!bNew)
+		DecrementTotalSize(pEntry->dwSize);
+
+	//	Set the size.
+
+	pEntry->dwSize = dEntry.CalcMemorySize();
+	m_dwTotalSize += pEntry->dwSize;
+
+	//	If we've exceeded our allocated size, then we flush something out of
+	//	the cache.
+
+	if (m_dwTotalSize > m_dwMaxSize)
+		FlushLRU();
 	}

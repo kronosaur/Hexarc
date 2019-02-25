@@ -90,7 +90,7 @@ CHyperionEngine::SMessageHandler CHyperionEngine::m_MsgHandlerList[] =
 		//	Hyperion.refresh
 		{	MSG_HYPERION_REFRESH,				&CHyperionEngine::MsgRefresh },
 
-		//	Hyperion.resizeImage
+		//	Hyperion.resizeImage filePath newSize [options]
 		{	MSG_HYPERION_RESIZE_IMAGE,			&CHyperionEngine::MsgResizeImage },
 
 		//	Hyperion.runTask {taskName}

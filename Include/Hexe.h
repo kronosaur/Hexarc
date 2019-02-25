@@ -181,7 +181,7 @@ class CHexeSecurityCtx
 		void Init (CDatum dDatum);
 		inline void InsertServiceRight (const CString &sRight) { m_ServiceRights.Insert(sRight); }
 		inline void InsertUserRight (const CString &sRight) { m_UserRights.Insert(sRight); }
-		inline bool IsEmpty (void) { return m_sSandbox.IsEmpty() && m_sUsername.IsEmpty(); }
+		inline bool IsEmpty (void) const { return m_sSandbox.IsEmpty() && m_sUsername.IsEmpty(); }
 		inline bool IsNamespaceAccessible (const CString &sName) const { return m_sSandbox.IsEmpty() || strStartsWith(sName, m_sSandbox); }
 		inline bool IsAnonymous (void) const { return m_sUsername.IsEmpty(); }
 		inline void SetAnonymous (void) { m_sUsername = NULL_STR; m_UserRights.DeleteAll(); }
