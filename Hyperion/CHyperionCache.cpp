@@ -5,7 +5,7 @@
 
 #include "stdafx.h"
 
-bool CHyperionCache::FindEntry (const CString &sID, CDatum *retdEntry) const
+bool CHyperionCache::FindEntry (const CString &sID, CDatum *retdEntry, CDateTime *retModifiedOn) const
 
 //	FindEntry
 //
@@ -25,6 +25,9 @@ bool CHyperionCache::FindEntry (const CString &sID, CDatum *retdEntry) const
 		*retdEntry = pEntry->dEntry;
 		pEntry->dwLastAccess = sysGetTickCount64();
 		}
+
+	if (retModifiedOn)
+		*retModifiedOn = pEntry->ModifiedOn;
 
 	//	Found!
 
@@ -73,7 +76,7 @@ void CHyperionCache::Mark (void)
 		m_Cache[i].dEntry.Mark();
 	}
 
-void CHyperionCache::SetEntry (const CString &sID, CDatum dEntry)
+void CHyperionCache::SetEntry (const CString &sID, CDatum dEntry, const CDateTime &ModifiedOn)
 
 //	SetEntry
 //
@@ -85,6 +88,7 @@ void CHyperionCache::SetEntry (const CString &sID, CDatum dEntry)
 	bool bNew;
 	SEntry *pEntry = m_Cache.SetAt(sID, &bNew);
 	pEntry->dEntry = dEntry;
+	pEntry->ModifiedOn = ModifiedOn;
 	pEntry->dwLastAccess = sysGetTickCount64();
 
 	//	If we're replacing an entry, subtract the old entry's size from the 

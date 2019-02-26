@@ -12,12 +12,20 @@
 class CAeonFileDownloadSession : public ISessionHandler
 	{
 	public:
-		CAeonFileDownloadSession (const CString &sReplyAddr, const CString &sFilePath, const CHexeSecurityCtx *pSecurityCtx = NULL, const CString &sRoot = NULL_STR, const CDateTime &IfModifiedAfter = CDateTime(), DWORD dwChunkSize = 100000);
+		struct SOptions
+			{
+			CString sRoot;
+			CDateTime IfModifiedAfter;
+			DWORD dwChunkSize = 100000;
+			};
+
+		CAeonFileDownloadSession (const CString &sReplyAddr, const CString &sFilePath, const CHexeSecurityCtx *pSecurityCtx = NULL, const SOptions &Options = SOptions());
 
 	protected:
 		//	CAeonFileDownloadSession virtuals
 		virtual void OnFileDownloaded (CDatum dFileDesc, CDatum dData) { }
 		virtual void OnFileUnmodified (void) { }
+		virtual bool OnPrepareRequest (CString &sFilePath, SOptions &Options) { return true; }
 
 		//	ISessionHandler virtuals
 		virtual void OnMark (void) override { m_dFileData.Mark(); }
@@ -32,9 +40,7 @@ class CAeonFileDownloadSession : public ISessionHandler
 		CString m_sReplyAddr;
 		CString m_sFilePath;
 		const CHexeSecurityCtx m_SecurityCtx;
-		CString m_sRoot;
-		CDateTime m_IfModifiedAfter;
-		DWORD m_dwChunkSize;
+		SOptions m_Options;
 
 		CDatum m_dFileData;
 	};

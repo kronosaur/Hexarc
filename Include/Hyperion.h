@@ -337,16 +337,17 @@ class CHyperionScheduler
 class CHyperionCache
 	{
 	public:
-		bool FindEntry (const CString &sID, CDatum *retdEntry = NULL) const;
+		bool FindEntry (const CString &sID, CDatum *retdEntry = NULL, CDateTime *retModifiedOn = NULL) const;
 		inline size_t GetTotalSize (void) const { CSmartLock Lock(m_cs); return m_dwTotalSize; }
 		void Mark (void);
-		void SetEntry (const CString &sID, CDatum dEntry);
+		void SetEntry (const CString &sID, CDatum dEntry, const CDateTime &ModifiedOn);
 
 	private:
 		struct SEntry
 			{
 			CDatum dEntry;
 			size_t dwSize;
+			CDateTime ModifiedOn;
 			mutable DWORDLONG dwLastAccess;
 			};
 

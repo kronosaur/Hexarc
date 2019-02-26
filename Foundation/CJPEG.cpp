@@ -104,7 +104,7 @@ bool CJPEG::Load (IMemoryBlock &Data, CRGBA32Image &Image, CString *retsError)
 		}
 	}
 
-bool CJPEG::Save (CRGBA32Image &Image, TBuffer<CMallocAllocator> &Data, int iQuality, CString *retsError)
+bool CJPEG::Save (CRGBA32Image &Image, IByteStream &Output, int iQuality, CString *retsError)
 
 //	Save
 //
@@ -172,13 +172,13 @@ bool CJPEG::Save (CRGBA32Image &Image, TBuffer<CMallocAllocator> &Data, int iQua
 
 		jpeg_finish_compress(&cinfo);
 
-		//	Now we've got a valid buffer, so take ownership.
-		//
-		//	LATER: The pOutput buffer was probably allocated with malloc, so 
-		//	we cannot use it here. We need to either make a copy or add an 
-		//	option to CBuffer to use free.
+		//	Write out to the output stream
 
-		Data.TakeHandoff(pOutput, (int)dwOutputSize);
+		Output.Write(pOutput, (int)dwOutputSize);
+
+		//	Free the buffer
+
+		free(pOutput);
 
 		//	Done
 

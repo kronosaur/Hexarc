@@ -21,13 +21,11 @@ DECLARE_CONST_STRING(ERR_UNEXPECTED_RESPONSE,			"Unexpected response from AeonDB
 
 const DWORD MESSAGE_TIMEOUT =							30 * 1000;
 
-CAeonFileDownloadSession::CAeonFileDownloadSession (const CString &sReplyAddr, const CString &sFilePath, const CHexeSecurityCtx *pSecurityCtx, const CString &sRoot, const CDateTime &IfModifiedAfter, DWORD dwChunkSize) :
+CAeonFileDownloadSession::CAeonFileDownloadSession (const CString &sReplyAddr, const CString &sFilePath, const CHexeSecurityCtx *pSecurityCtx, const SOptions &Options) :
 		m_sReplyAddr(sReplyAddr),
 		m_sFilePath(sFilePath),
 		m_SecurityCtx(pSecurityCtx ? *pSecurityCtx : CHexeSecurityCtx()),
-		m_sRoot(sRoot),
-		m_IfModifiedAfter(IfModifiedAfter),
-		m_dwChunkSize(dwChunkSize)
+		m_Options(Options)
 
 //	CAeonFileDownloadSession constructor
 
@@ -108,6 +106,9 @@ bool CAeonFileDownloadSession::OnStartSession (const SArchonMessage &Msg, DWORD 
 //	Initiate
 
 	{
+	if (!OnPrepareRequest(m_sFilePath, m_Options))
+		return false;
+
 	return SendFileDownloadRequest(0);
 	}
 
@@ -124,7 +125,7 @@ bool CAeonFileDownloadSession::SendFileDownloadRequest (int iOffset)
 	CString sAddr;
 	CString sMsg;
 	CDatum dPayload;
-	if (!CAeonInterface::ParseFilePath(m_sFilePath, m_sRoot, iOffset, m_IfModifiedAfter, &sAddr, &sMsg, &dPayload))
+	if (!CAeonInterface::ParseFilePath(m_sFilePath, m_Options.sRoot, iOffset, m_Options.IfModifiedAfter, &sAddr, &sMsg, &dPayload))
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, ERR_BAD_PARAMS);
 		return false;
