@@ -155,7 +155,7 @@ class CFileMultiplexer : public IByteStream
 		virtual int Write (void *pData, int iLength);
 
 		//	Helpers	(Needed because IByteStream::Write is hidden when we
-		//	have the derrived class)
+		//	have the derived class)
 		inline int Write (const CString &sString) { return IByteStream::Write(sString); }
 		inline int Write (IMemoryBlock &Block) { return IByteStream::Write(Block); }
 
