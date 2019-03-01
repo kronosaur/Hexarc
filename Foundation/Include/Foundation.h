@@ -85,6 +85,7 @@ class CManualEvent;
 #include "FoundationMathHexGrid.h"
 #include "FoundationThreads.h"
 #include "FoundationTime.h"
+#include "FoundationIOInterfaces.h"
 
 //	Include Foundation classes
 

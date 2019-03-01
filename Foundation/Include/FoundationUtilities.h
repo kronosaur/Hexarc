@@ -53,37 +53,6 @@ template<class KEY> int KeyCompare (const KEY &Key1, const KEY &Key2)
 int KeyCompare (const LPSTR &pKey1, const LPSTR &pKey2);
 inline int KeyCompare (const CString &sKey1, const CString &sKey2) { return KeyCompare((LPSTR)sKey1, (LPSTR)sKey2); }
 
-//	Log interface
-
-class ILogService
-	{
-	public:
-		enum ELogClasses
-			{
-			logDebug,
-			logInfo,
-			logWarning,
-			logError,
-			};
-
-		virtual ~ILogService (void) { }
-
-		virtual void Write (const CString &sLine, ELogClasses iClass = logInfo) { }
-	};
-
-//  Progress interface
-
-class IProgressEvents
-    {
-    public:
-        virtual ~IProgressEvents (void) { }
-
-        virtual void OnProgressStart (void) { }
-        virtual void OnProgress (int iPercent, const CString &sStatus = NULL_STR) { }
-		virtual void OnProgressLogError (const CString &sError) { }
-        virtual void OnProgressDone (void) { }
-    };
-
 //	Ref-counted classes
 
 class IRefCounted

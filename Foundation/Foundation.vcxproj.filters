@@ -67,6 +67,9 @@
     <Filter Include="LibJPEG">
       <UniqueIdentifier>{a9ee4f8c-1f02-4ad1-a8e2-84b14b4841cb}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\IOInterfaces">
+      <UniqueIdentifier>{279a2779-f3c5-4746-aba0-d4207d476a31}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Array.cpp">
@@ -336,6 +339,9 @@
     <ClCompile Include="CModuleResource.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="IIOConsole.cpp">
+      <Filter>Source Files\IOInterfaces</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -495,6 +501,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Include\FoundationStreamsTBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\FoundationIOInterfaces.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

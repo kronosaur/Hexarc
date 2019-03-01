@@ -273,6 +273,7 @@
     <ClCompile Include="FileIO.cpp" />
     <ClCompile Include="Geometry.cpp" />
     <ClCompile Include="IByteStream64.cpp" />
+    <ClCompile Include="IIOConsole.cpp" />
     <ClCompile Include="IIOCPEntry.cpp" />
     <ClCompile Include="IMemoryBlock.cpp" />
     <ClCompile Include="lodepng\lodepng.cpp">
@@ -396,6 +397,7 @@
     <ClInclude Include="Include\FoundationGrids.h" />
     <ClInclude Include="Include\FoundationHashMaps.h" />
     <ClInclude Include="Include\FoundationIOCompletionPort.h" />
+    <ClInclude Include="Include\FoundationIOInterfaces.h" />
     <ClInclude Include="Include\FoundationMaps.h" />
     <ClInclude Include="Include\FoundationMarkup.h" />
     <ClInclude Include="Include\FoundationMath.h" />
