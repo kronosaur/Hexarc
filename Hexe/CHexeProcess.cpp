@@ -521,6 +521,42 @@ CHexeProcess::ERunCodes CHexeProcess::RunWithStack (CDatum dExpression, CDatum *
 	return iRun;
 	}
 
+void *CHexeProcess::SetLibraryCtx (const CString &sLibrary, void *pCtx)
+
+//	SetLibraryCtx
+//
+//	Sets the library context and returns the previous context.
+
+	{
+	void *pOldCtx;
+
+	if (pCtx)
+		{
+		bool bNew;
+		void **ppPos = m_LibraryCtx.SetAt(sLibrary, &bNew);
+
+		pOldCtx = (bNew ? NULL : *ppPos);
+		*ppPos = pCtx;
+		}
+
+	//	If we're setting the context to NULL then this is the same as deleting
+	//	the context.
+
+	else
+		{
+		int iPos;
+		if (m_LibraryCtx.FindPos(sLibrary, &iPos))
+			{
+			pOldCtx = m_LibraryCtx[iPos];
+			m_LibraryCtx.Delete(iPos);
+			}
+		else
+			pOldCtx = NULL;
+		}
+
+	return pOldCtx;
+	}
+
 void CHexeProcess::SetSecurityCtx (const CHexeSecurityCtx &Ctx)
 
 //	SetSecurityCtx

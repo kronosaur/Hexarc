@@ -241,6 +241,7 @@ class CHexeProcess : public IInvokeCtx
 
 		void DefineGlobal (const CString &sIdentifier, CDatum dValue);
 		void DeleteAll (void);
+		inline void DeleteLibraryCtx (const CString &sLibrary) { m_LibraryCtx.DeleteAt(sLibrary); }
 		bool FindGlobalDef (const CString &sIdentifier, CDatum *retdValue = NULL);
 		inline CDatum GetGlobalEnv (void) { return m_dGlobalEnv; }
 		bool InitFrom (const CHexeProcess &Process, CString *retsError = NULL);
@@ -257,7 +258,7 @@ class CHexeProcess : public IInvokeCtx
 		ERunCodes Run (CDatum dFunc, CDatum dCallExpression, const TArray<CDatum> *pInitialStack, CDatum *retResult);
 		ERunCodes RunContinues (CDatum dAsyncResult, CDatum *retResult);
 		inline void SetMaxExecutionTime (DWORDLONG dwMilliseconds) { m_dwMaxExecutionTime = dwMilliseconds; }
-		inline void SetLibraryCtx (const CString &sLibrary, void *pCtx) { m_LibraryCtx.SetAt(sLibrary, pCtx); }
+		void *SetLibraryCtx (const CString &sLibrary, void *pCtx);
 		void SetSecurityCtx (const CHexeSecurityCtx &Ctx);
 
 		//	Execution helpers
