@@ -177,6 +177,8 @@
   <ItemGroup>
     <ClCompile Include="AMP1.cpp" />
     <ClCompile Include="CAeonFileDownloadSession.cpp" />
+    <ClCompile Include="CArchonConsole.cpp" />
+    <ClCompile Include="CArchonConsoleManager.cpp" />
     <ClCompile Include="CArchonProcess.cpp" />
     <ClCompile Include="CArchonTimer.cpp" />
     <ClCompile Include="CConsoleThread.cpp" />

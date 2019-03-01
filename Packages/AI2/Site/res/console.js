@@ -148,7 +148,8 @@ function OnResponse (data)
 
 	else if (data.ai2Directive == "partialResult")
 		{
-		OutputData(data.partialResult);
+		if (data.partialResult != null && data.partialResult != "")
+			OutputData(data.partialResult);
 		
 		$Status = "autoCommand";
 		$AutoCommand = data.continueCommand;
