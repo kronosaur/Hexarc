@@ -5,7 +5,7 @@
 
 Arc.package AI2
 	{
-	version:	"1.3.0 (2018.12.29)"
+	version:	"1.3.1 (2019.02.28)"
 	rights:		Arc.admin		//	Package requires Arc.admin rights
 	}
 
@@ -225,8 +225,15 @@ function AI2.help
 
 				(not search)
 					(apply struct
-						(map (srvFindCommand nil 'AI2.console) nil theCommandInfo
-							(list (@ theCommandInfo 'name) (@ theCommandInfo 'help))
+						(map (srvFindCommand nil 'AI2.console) 'excludeNil theCommandInfo
+							(switch
+								;	Exclude internal commands
+
+								(find (@ theCommandInfo 'attributes) 'AI2.internal)
+									nil
+								
+								(list (@ theCommandInfo 'name) (@ theCommandInfo 'help))
+								)
 							)
 						)
 
@@ -236,10 +243,14 @@ function AI2.help
 				(not (set! results
 						(apply struct
 							(map (srvFindCommand nil 'AI2.console) 'exludeNil theCommandInfo
-								(if (|| (find (@ theCommandInfo 'name) search)
-										(find (@ theCommandInfo 'help) search)
-										)
-									(list (@ theCommandInfo 'name) (@ theCommandInfo 'help))
+								(switch
+									(find (@ theCommandInfo 'attributes) 'AI2.internal)
+										nil
+
+									(|| (find (@ theCommandInfo 'name) search)
+											(find (@ theCommandInfo 'help) search)
+											)
+										(list (@ theCommandInfo 'name) (@ theCommandInfo 'help))
 									)
 								)
 							)
