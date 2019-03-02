@@ -197,6 +197,14 @@ CDatum::CDatum (const CString &sString)
 	ASSERT(AEON_TYPE_STRING == 0x00);
 	}
 
+CDatum::CDatum (CString &&sString)
+
+//	CDatum constructor
+
+	{
+	CreateStringFromHandoff(sString, this);
+	}
+
 CDatum::CDatum (IComplexDatum *pValue)
 
 //	CDatum constructor

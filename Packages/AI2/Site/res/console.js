@@ -123,6 +123,8 @@ function OnExecute ()
 
 function OnResponse (data)
 	{
+	var i;
+
 	//	If aborting, cancel
 
 	if ($Status == "abortCommand")
@@ -143,12 +145,32 @@ function OnResponse (data)
 	if (data[0] == "AEON2011:hexeError:v1")
 		OutputText("ERROR: " + data[3]);
 
+	//	If this is a list result the we have an array of data
+
+	else if (data.ai2Directive == "listResult")
+		{
+		if (data.listResult != null && data.listResult.length > 0)
+			{
+			for (i = 0; i < data.listResult.length; i++)
+				{
+				OutputData(data.listResult[i]);
+				}
+			}
+		}
+
 	//	Is this a partial result? If so, output the result and set up an auto-
 	//	command to continue execution.
 
 	else if (data.ai2Directive == "partialResult")
 		{
-		if (data.partialResult != null && data.partialResult != "")
+		if (data.listResult != null && data.listResult.length > 0)
+			{
+			for (i = 0; i < data.listResult.length; i++)
+				{
+				OutputData(data.listResult[i]);
+				}
+			}
+		else if (data.partialResult != null && data.partialResult != "")
 			OutputData(data.partialResult);
 		
 		$Status = "autoCommand";

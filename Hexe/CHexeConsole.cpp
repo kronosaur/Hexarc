@@ -80,17 +80,13 @@ CDatum CHexeConsole::GetConsoleData (DWORD Seq) const
 	int iFirst;
 	if ((iFirst = FindFirstLine(Seq)) != -1)
 		{
-		CStringBuffer Lines;
+		dLines = CDatum(CDatum::typeArray);
+
+		int iCount = m_Lines.GetCount() - iFirst;
+		dLines.GrowToFit(iCount);
 
 		for (int i = iFirst; i < m_Lines.GetCount(); i++)
-			{
-			if (i != iFirst)
-				Lines.Write("\n", 1);
-
-			Lines.Write(m_Lines[i].sLine);
-			}
-
-		CDatum::CreateStringFromHandoff(Lines, &dLines);
+			dLines.Append(m_Lines[i].dData);
 		}
 
 	//	Now compose the result
@@ -118,9 +114,10 @@ bool CHexeConsole::HasReaderAccess (const CString &sUsername) const
 	return m_Readers.Find(sUsername);
 	}
 
-void CHexeConsole::Output (const CString &sText)
+#if 0
+void CHexeConsole::OutputText (const CString &sText)
 
-//	Output
+//	OutputText
 //
 //	Outputs a block of text, parsing for line endings.
 //
@@ -153,12 +150,12 @@ void CHexeConsole::Output (const CString &sText)
 					iState = stateDone;
 				else if (*pPos == '\r')
 					{
-					OutputLine(NULL_STR);
+					OutputData(CDatum());
 					iState = stateCR;
 					}
 				else if (*pPos == '\n')
 					{
-					OutputLine(NULL_STR);
+					OutputData(CDatum());
 					iState = stateLF;
 					}
 				else
@@ -171,17 +168,17 @@ void CHexeConsole::Output (const CString &sText)
 			case stateLine:
 				if (pPos == pPosEnd || *pPos == '\0')
 					{
-					OutputLine(CString(pStart, (pPos - pStart)));
+					OutputData(CString(pStart, (pPos - pStart)));
 					iState = stateDone;
 					}
 				else if (*pPos == '\r')
 					{
-					OutputLine(CString(pStart, (pPos - pStart)));
+					OutputData(CString(pStart, (pPos - pStart)));
 					iState = stateCR;
 					}
 				else if (*pPos == '\n')
 					{
-					OutputLine(CString(pStart, (pPos - pStart)));
+					OutputData(CString(pStart, (pPos - pStart)));
 					iState = stateLF;
 					}
 				break;
@@ -193,7 +190,7 @@ void CHexeConsole::Output (const CString &sText)
 					iState = stateStart;
 				else if (*pPos == '\r')
 					{
-					OutputLine(NULL_STR);
+					OutputData(CDatum());
 					}
 				else
 					{
@@ -209,7 +206,7 @@ void CHexeConsole::Output (const CString &sText)
 					iState = stateStart;
 				else if (*pPos == '\n')
 					{
-					OutputLine(NULL_STR);
+					OutputData(CDatum());
 					}
 				else
 					{
@@ -222,8 +219,9 @@ void CHexeConsole::Output (const CString &sText)
 		pPos++;
 		}
 	}
+#endif
 
-void CHexeConsole::OutputLine (const CString &sLine)
+void CHexeConsole::OutputData (CDatum dData)
 
 //	OutputLine
 //
@@ -233,6 +231,6 @@ void CHexeConsole::OutputLine (const CString &sLine)
 	CSmartLock Lock(m_cs);
 
 	SEntry *pEntry = m_Lines.Insert();
-	pEntry->sLine = sLine;
+	pEntry->dData = dData;
 	pEntry->Seq = m_Seq++;
 	}
