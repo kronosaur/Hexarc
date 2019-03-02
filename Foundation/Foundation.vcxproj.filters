@@ -339,9 +339,6 @@
     <ClCompile Include="CModuleResource.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="IIOConsole.cpp">
-      <Filter>Source Files\IOInterfaces</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">

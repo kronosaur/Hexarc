@@ -343,3 +343,5 @@ class CHexe
 
 bool HexeGetPolygon2DArg (CDatum dArg, const CPolygon2D **retpPolygon, CPolygon2D *retTempStore, CDatum *retdResult);
 bool HexeGetVector2DArg (CDatum dArgList, int *ioArg, CVector2D *retVector, CDatum *retdResult);
+
+#include "HexeConsole.h"

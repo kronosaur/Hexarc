@@ -273,7 +273,6 @@
     <ClCompile Include="FileIO.cpp" />
     <ClCompile Include="Geometry.cpp" />
     <ClCompile Include="IByteStream64.cpp" />
-    <ClCompile Include="IIOConsole.cpp" />
     <ClCompile Include="IIOCPEntry.cpp" />
     <ClCompile Include="IMemoryBlock.cpp" />
     <ClCompile Include="lodepng\lodepng.cpp">

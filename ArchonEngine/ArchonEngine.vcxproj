@@ -177,8 +177,6 @@
   <ItemGroup>
     <ClCompile Include="AMP1.cpp" />
     <ClCompile Include="CAeonFileDownloadSession.cpp" />
-    <ClCompile Include="CArchonConsole.cpp" />
-    <ClCompile Include="CArchonConsoleManager.cpp" />
     <ClCompile Include="CArchonProcess.cpp" />
     <ClCompile Include="CArchonTimer.cpp" />
     <ClCompile Include="CConsoleThread.cpp" />
@@ -244,6 +242,7 @@
     <ClInclude Include="..\Include\Esper.h" />
     <ClInclude Include="..\Include\Exarch.h" />
     <ClInclude Include="..\Include\Mnemosynth.h" />
+    <ClInclude Include="..\Include\TArchonConsoleManager.h" />
     <ClInclude Include="EsperImpl.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
