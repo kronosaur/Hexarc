@@ -27,6 +27,7 @@ size_t IComplexDatum::CalcSerializeSizeAEONScript (CDatum::ESerializationFormats
 
 	{
 	size_t TotalSize = 0;
+	DWORD dwFlags = OnGetSerializeFlags();
 
 	switch (iFormat)
 		{
@@ -37,7 +38,7 @@ size_t IComplexDatum::CalcSerializeSizeAEONScript (CDatum::ESerializationFormats
 
 			//	If this is object is serializable as a struct, then we do that.
 
-			if (IsSerializedAsStruct())
+			if (dwFlags & FLAG_SERIALIZE_AS_STRUCT)
 				TotalSize += OnCalcSerializeSizeAEONScript(iFormat);
 
 			//	Otherwise, serialize as base64 encoding, so we increase the total size by
@@ -66,6 +67,7 @@ bool IComplexDatum::DeserializeAEONScript (CDatum::ESerializationFormats iFormat
 
 	{
 	int i;
+	DWORD dwFlags = OnGetSerializeFlags();
 
 	//	If we have an open brace then we've stored everything as a structure.
 
@@ -73,7 +75,7 @@ bool IComplexDatum::DeserializeAEONScript (CDatum::ESerializationFormats iFormat
 		{
 		//	Object must support this
 
-		if (!IsSerializedAsStruct())
+		if (!(dwFlags & FLAG_SERIALIZE_AS_STRUCT))
 			return false;
 
 		//	Parse the structure
@@ -156,18 +158,23 @@ void IComplexDatum::Serialize (CDatum::ESerializationFormats iFormat, IByteStrea
 //	Serialize the datum
 
 	{
+	DWORD dwFlags = OnGetSerializeFlags();
+
 	switch (iFormat)
 		{
 		case CDatum::formatAEONScript:
 		case CDatum::formatAEONLocal:
 			{
-			Stream.Write("[", 1);
-			Stream.Write(GetTypename());
-			Stream.Write(":", 1);
+			if (!(dwFlags & FLAG_SERIALIZE_NO_TYPENAME))
+				{
+				Stream.Write("[", 1);
+				Stream.Write(GetTypename());
+				Stream.Write(":", 1);
+				}
 
 			//	If this is object is serializable as a struct, then we do that.
 
-			if (IsSerializedAsStruct())
+			if (dwFlags & FLAG_SERIALIZE_AS_STRUCT)
 				{
 				CComplexStruct *pStruct = new CComplexStruct;
 
@@ -186,15 +193,19 @@ void IComplexDatum::Serialize (CDatum::ESerializationFormats iFormat, IByteStrea
 				Encoder.Close();
 				}
 
-			Stream.Write("]", 1);
+			if (!(dwFlags & FLAG_SERIALIZE_NO_TYPENAME))
+				Stream.Write("]", 1);
 			break;
 			}
 
 		case CDatum::formatJSON:
 			{
-			Stream.Write("[\"AEON2011:", 11);
-			Stream.Write(GetTypename());
-			Stream.Write(":v1\", \"", 7);
+			if (!(dwFlags & FLAG_SERIALIZE_NO_TYPENAME))
+				{
+				Stream.Write("[\"AEON2011:", 11);
+				Stream.Write(GetTypename());
+				Stream.Write(":v1\", \"", 7);
+				}
 
 			//	LATER: Handle serialization/deserialization of struct-based objects
 
@@ -202,7 +213,8 @@ void IComplexDatum::Serialize (CDatum::ESerializationFormats iFormat, IByteStrea
 			OnSerialize(iFormat, Encoder);
 			Encoder.Close();
 
-			Stream.Write("\"]", 2);
+			if (!(dwFlags & FLAG_SERIALIZE_NO_TYPENAME))
+				Stream.Write("\"]", 2);
 			break;
 			}
 

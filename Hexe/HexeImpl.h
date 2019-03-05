@@ -224,10 +224,10 @@ class CHexeFunction : public TExternalDatum<CHexeFunction>
 		virtual CDatum GetElement (int iIndex) const override;
 		virtual CDatum GetElement (const CString &sKey) const override;
 		virtual CString GetKey (int iIndex) const override;
-		virtual bool IsSerializedAsStruct (void) const override { return true; }
 		virtual void SetElement (const CString &sKey, CDatum dDatum) override;
 
 	protected:
+		virtual DWORD OnGetSerializeFlags (void) const override { return FLAG_SERIALIZE_AS_STRUCT; }
 		virtual void OnMarked (void) override { m_dHexeCode.Mark(); m_dGlobalEnv.Mark(); m_dLocalEnv.Mark(); }
 
 	private:
@@ -285,10 +285,10 @@ class CHexeGlobalEnvironment : public TExternalDatum<CHexeGlobalEnvironment>
 		virtual CDatum GetElement (const CString &sKey) const override { CDatum *pFound = m_Env.GetAt(sKey); return (pFound ? *pFound : CDatum()); }
 		virtual CString GetKey (int iIndex) const override { return m_Env.GetKey(iIndex); }
 		virtual bool IsArray (void) const override { return true; }
-		virtual bool IsSerializedAsStruct (void) const override { return true; }
 		virtual void SetElement (const CString &sKey, CDatum dDatum) override { SetAt(sKey, dDatum); }
 
 	protected:
+		virtual DWORD OnGetSerializeFlags (void) const override { return FLAG_SERIALIZE_AS_STRUCT; }
 		virtual void OnMarked (void) override;
 		virtual void OnSerialize (CDatum::ESerializationFormats iFormat, CComplexStruct *pStruct) const override;
 
@@ -320,10 +320,10 @@ class CHexeLocalEnvironment : public TExternalDatum<CHexeLocalEnvironment>
 		virtual CDatum GetElement (const CString &sKey) const override;
 		virtual CString GetKey (int iIndex) const override { return m_Array[iIndex].sArg; }
 		virtual bool IsArray (void) const override { return true; }
-		virtual bool IsSerializedAsStruct (void) const override { return true; }
 		virtual void SetElement (const CString &sKey, CDatum dDatum) override;
 
 	protected:
+		virtual DWORD OnGetSerializeFlags (void) const override { return FLAG_SERIALIZE_AS_STRUCT; }
 		virtual void OnMarked (void) override;
 		virtual void OnSerialize (CDatum::ESerializationFormats iFormat, CComplexStruct *pStruct) const override;
 

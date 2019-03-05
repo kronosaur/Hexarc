@@ -19,7 +19,7 @@ class CSortFunctionProcessor : public TExternalDatum<CSortFunctionProcessor>
 		bool ProcessContinues (CDatum dSelf, CDatum dResult, CDatum *retResult);
 
 	protected:
-		virtual void OnMarked (void);
+		virtual void OnMarked (void) override;
 
 	private:
 		enum EProcessType

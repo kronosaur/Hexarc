@@ -254,6 +254,9 @@ inline int KeyCompare (const CDatum &dKey1, const CDatum &dKey2) { return CDatum
 class IComplexDatum
 	{
 	public:
+		static constexpr DWORD FLAG_SERIALIZE_AS_STRUCT =	0x00000001;
+		static constexpr DWORD FLAG_SERIALIZE_NO_TYPENAME =	0x00000002;
+
 		IComplexDatum (void) : m_bMarked(false) { }
 		virtual ~IComplexDatum (void) { }
 
@@ -293,7 +296,6 @@ class IComplexDatum
 		inline bool IsMarked (void) const { return m_bMarked; }
 		virtual bool IsMemoryBlock (void) const { const CString &sData = CastCString(); return (sData.GetLength() > 0); }
 		virtual bool IsNil (void) const { return false; }
-		virtual bool IsSerializedAsStruct (void) const { return false; }
 		inline void Mark (void) { if (!m_bMarked) { m_bMarked = true; OnMarked(); } }	//	Check m_bMarked to avoid infinite recursion
 		virtual void Serialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const;
 		virtual void SetElement (IInvokeCtx *pCtx, const CString &sKey, CDatum dDatum) { SetElement(sKey, dDatum); }
@@ -305,6 +307,7 @@ class IComplexDatum
 	protected:
 		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const { return 0; }
 		virtual bool OnDeserialize (CDatum::ESerializationFormats iFormat, const CString &sTypename, IByteStream &Stream) { ASSERT(false); return false; }
+		virtual DWORD OnGetSerializeFlags (void) const { return 0; }
 		virtual void OnMarked (void) { }
 		virtual void OnSerialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const { ASSERT(false); }
 		virtual void OnSerialize (CDatum::ESerializationFormats iFormat, CComplexStruct *pStruct) const;

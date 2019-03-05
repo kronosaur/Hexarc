@@ -28,7 +28,7 @@ class CHexeTextFunctionProcessor : public TExternalDatum<CHexeTextFunctionProces
 		bool ProcessContinues (CDatum dSelf, CDatum dResult, CDatum *retResult);
 
 	protected:
-		virtual void OnMarked (void);
+		virtual void OnMarked (void) override;
 
 	private:
 		bool ProcessExtension (CDatum dSelf, CTextMarkupParser::SExtensionDesc &Desc, CString *retsText, CDatum *retResult);
