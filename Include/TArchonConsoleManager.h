@@ -87,6 +87,12 @@ class TArchonConsoleManager
 			return true;
 			}
 
+		void Mark (void)
+			{
+			for (int i = 0; i < m_Consoles.GetCount(); i++)
+				m_Consoles[i]->Mark();
+			}
+
 	private:
 		static constexpr DWORD MAX_IDLE_TIME =	15 * 60 * 1000;
 

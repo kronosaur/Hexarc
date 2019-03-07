@@ -221,6 +221,17 @@ void CHexeConsole::OutputText (const CString &sText)
 	}
 #endif
 
+void CHexeConsole::Mark (void)
+
+//	Mark
+//
+//	Mark all data in use
+
+	{
+	for (int i = 0; i < m_Lines.GetCount(); i++)
+		m_Lines[i].dData.Mark();
+	}
+
 void CHexeConsole::OutputData (CDatum dData)
 
 //	OutputLine

@@ -28,6 +28,7 @@ class CHexeConsole
 		inline DWORDLONG GetLastAccessTime (void) const { return m_dwLastAccess; }
 		inline DWORD GetLastSeq (void) const { CSmartLock Lock(m_cs); return m_Seq; }
 		bool HasReaderAccess (const CString &sUsername) const;
+		void Mark (void);
 		void OutputData (CDatum dData);
 //		void OutputText (const CString &sText);
 
