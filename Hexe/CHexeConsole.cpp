@@ -230,6 +230,19 @@ void CHexeConsole::OutputData (CDatum dData)
 	{
 	CSmartLock Lock(m_cs);
 
+	//	Skip empty data
+
+	if (dData.IsNil())
+		return;
+
+	//	If the data is an error we need to convert to a string because our 
+	//	recipients don't know how to deserialize an error.
+
+	if (dData.IsError())
+		dData = strPattern("ERROR: %s", (LPSTR)dData.AsString());
+
+	//	Insert in log
+
 	SEntry *pEntry = m_Lines.Insert();
 	pEntry->dData = dData;
 	pEntry->Seq = m_Seq++;
