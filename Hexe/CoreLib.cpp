@@ -59,12 +59,17 @@ DECLARE_CONST_STRING(LIST_MAKE_NAME,					"make")
 DECLARE_CONST_STRING(LIST_MAKE_ARGS,					"*")
 DECLARE_CONST_STRING(LIST_MAKE_HELP,					"(make makeType ...) -> value")
 
-const DWORD LIST_SORT =									7;
+const DWORD LIST_SLICE =								7;
+DECLARE_CONST_STRING(LIST_SLICE_NAME,					"slice")
+DECLARE_CONST_STRING(LIST_SLICE_ARGS,					"*")
+DECLARE_CONST_STRING(LIST_SLICE_HELP,					"(slice list start [count]) -> list")
+
+const DWORD LIST_SORT =									8;
 DECLARE_CONST_STRING(LIST_SORT_NAME,					"sort!")
 DECLARE_CONST_STRING(LIST_SORT_ARGS,					"*")
 DECLARE_CONST_STRING(LIST_SORT_HELP,					"(sort! list [options]) -> struct")
 
-const DWORD LIST_STRUCT =								8;
+const DWORD LIST_STRUCT =								9;
 DECLARE_CONST_STRING(LIST_STRUCT_NAME,					"struct")
 DECLARE_CONST_STRING(LIST_STRUCT_ARGS,					"*")
 DECLARE_CONST_STRING(LIST_STRUCT_HELP,					"(struct ...) -> struct")
@@ -322,6 +327,8 @@ DECLARE_CONST_STRING(ERR_CANT_HEXIFY,					"Unable to convert value to hexadecima
 DECLARE_CONST_STRING(ERR_CANT_DEHEXIFY,					"Unable to parse hexadecimal value: %s.")
 DECLARE_CONST_STRING(ERR_UNEXPECTED_END_OF_TEMPLATE,	"Unexpected end of template.")
 DECLARE_CONST_STRING(ERR_UNKNOWN_MAKE_TYPE,				"Unknown make type: %s.")
+DECLARE_CONST_STRING(ERR_LIST_EXPECTED,					"List expected: %s.")
+DECLARE_CONST_STRING(ERR_START_CANNOT_BE_NEGATIVE,		"Splice start must be non-negative.")
 
 bool GetStrSplitFlags (CDatum dArg, DWORD *retdwFlags);
 CDatum MinMaxOfList (CDatum dList, int iMinMax);
@@ -343,6 +350,7 @@ SLibraryFuncDef g_CoreLibraryDef[] =
 	DECLARE_DEF_LIBRARY_FUNC(LIST_ITEM2, coreLists, 0),
 	DECLARE_DEF_LIBRARY_FUNC(LIST_LIST, coreLists, 0),
 	DECLARE_DEF_LIBRARY_FUNC(LIST_MAKE, coreLists, 0),
+	DECLARE_DEF_LIBRARY_FUNC(LIST_SLICE, coreLists, 0),
 	DECLARE_DEF_LIBRARY_FUNC(LIST_SORT, coreLists, 0),
 	DECLARE_DEF_LIBRARY_FUNC(LIST_STRUCT, coreLists, 0),
 
@@ -790,6 +798,48 @@ bool coreLists (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContin
 				}
 
 			return true;
+			}
+
+		case LIST_SLICE:
+			{
+			CDatum dList = dLocalEnv.GetElement(0);
+			int iStart = dLocalEnv.GetElement(1);
+			int iCount = (dLocalEnv.GetElement(2).IsNil() ? -1 : (int)dLocalEnv.GetElement(2));
+
+			if (dList.IsNil())
+				{
+				*retdResult = CDatum();
+				return true;
+				}
+			else if (dList.GetBasicType() != CDatum::typeArray)
+				{
+				CHexeError::Create(NULL_STR, strPattern(ERR_LIST_EXPECTED, dList.AsString()), retdResult);
+				return false;
+				}
+			else if (iStart >= dList.GetCount() || iCount == 0)
+				{
+				*retdResult = CDatum();
+				return true;
+				}
+			else if (iStart < 0)
+				{
+				CHexeError::Create(NULL_STR, ERR_START_CANNOT_BE_NEGATIVE, retdResult);
+				return false;
+				}
+			else
+				{
+				if (iCount < 0)
+					iCount = dList.GetCount() - iStart;
+
+				*retdResult = CDatum(CDatum::typeArray);
+				retdResult->GrowToFit(iCount);
+
+				int iEnd = Min(iStart + iCount, dList.GetCount());
+				for (int i = iStart; i < iEnd; i++)
+					retdResult->Append(dList.GetElement(i));
+
+				return true;
+				}
 			}
 
 		case LIST_SORT:
