@@ -60,7 +60,7 @@ template <class OBJ> class TSharedPtr
 
 		void Set (OBJ *pPtr)
 			{
-			OLD *pOld = m_pPtr;
+			OBJ *pOld = m_pPtr;
 
 			m_pPtr = pPtr;
 

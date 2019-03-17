@@ -66,7 +66,6 @@ class TArchonConsoleManager
 				{
 				if (m_Consoles[i]->GetLastAccessTime() + MAX_IDLE_TIME < dwNow)
 					{
-					m_Consoles[i]->Delete();
 					m_Consoles.Delete(i);
 					i--;
 					}
