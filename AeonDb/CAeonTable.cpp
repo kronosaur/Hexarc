@@ -123,6 +123,7 @@ DECLARE_CONST_STRING(MUTATE_INCREMENT,					"increment")
 DECLARE_CONST_STRING(MUTATE_MAX,						"max")
 DECLARE_CONST_STRING(MUTATE_MIN,						"min")
 DECLARE_CONST_STRING(MUTATE_PREPEND,					"prepend")
+DECLARE_CONST_STRING(MUTATE_PRIMARY_KEY,				"primaryKey")
 DECLARE_CONST_STRING(MUTATE_REMOVE_FROM_SET,			"removeFromSet")
 DECLARE_CONST_STRING(MUTATE_ROW_ID,						"rowID")
 DECLARE_CONST_STRING(MUTATE_UPDATE_GREATER,				"updateGreater")
@@ -2693,6 +2694,11 @@ AEONERR CAeonTable::Mutate (const CRowKey &Path, CDatum dData, CDatum dMutateDes
 
 				pResult->SetElement(sField, CDatum(pNewArray));
 				}
+			}
+
+		else if (strEquals(sOp, MUTATE_PRIMARY_KEY))
+			{
+			pResult->SetElement(sField, pPath->AsDatum(PrimaryDims));
 			}
 
 		else if (strEquals(sOp, MUTATE_REMOVE_FROM_SET))
