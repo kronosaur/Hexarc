@@ -146,6 +146,7 @@ class CDatum
 		CDatum (const CDateTime &DateTime);
 		CDatum (const CIPInteger &Value);
 		explicit CDatum (Types iType);
+		explicit CDatum (bool bValue);
 
 		static bool CreateBinary (IByteStream &Stream, int iSize, CDatum *retDatum);
 		static bool CreateBinaryFromHandoff (CStringBuffer &Buffer, CDatum *retDatum);

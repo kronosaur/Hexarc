@@ -253,6 +253,17 @@ CDatum::CDatum (const CIPInteger &Value)
 	m_dwData = ((DWORD_PTR)pValue | AEON_TYPE_COMPLEX);
 	}
 
+CDatum::CDatum (bool bValue)
+
+//	CDatum constructor
+
+	{
+	if (bValue)
+		m_dwData = constTrue;
+	else
+		m_dwData = 0;
+	}
+
 CDatum::operator int () const
 
 //	int cast operator
