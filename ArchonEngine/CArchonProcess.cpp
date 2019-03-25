@@ -54,6 +54,8 @@ DECLARE_CONST_STRING(ERR_MEMORY_WARNING,				"WARNING: Process exceeding safe mem
 DECLARE_CONST_STRING(ERR_NO_MACHINE_NAME,				"No machine name provided at processes launch.")
 DECLARE_CONST_STRING(ERR_NOT_IN_CONSOLE_MODE,			"Not in console mode.")
 DECLARE_CONST_STRING(ERR_CRASH_IN_CONSOLE_COMMAND,		"Crash processing console command.")
+DECLARE_CONST_STRING(ERR_CRASH_IN_SEND_GLOBAL_MESSAGE,	"Crash in SendGlobalMessage.")
+DECLARE_CONST_STRING(ERR_CRASH_IN_COLLECT_GARBAGE,		"Crash in SendGlobalMessage.")
 
 CArchonProcess::CArchonProcess (void) :
 		m_EventThread(m_RunEvent, m_PauseEvent, m_QuitEvent)
@@ -270,176 +272,183 @@ void CArchonProcess::CollectGarbage (void)
 //	Collects garbage
 
 	{
-	int i;
+	try {
+		int i;
 
-	//	Compute how long it's been since we last collected garbage
+		//	Compute how long it's been since we last collected garbage
 
-	DWORD dwStart = sysGetTickCount();
-	DWORD dwTimeSinceLastCollection = dwStart - m_dwLastGarbageCollect;
-
-	//	If it has been less than a certain time, then only collect garbage if
-	//	all engines are idle.
-
-	if (dwTimeSinceLastCollection < MAX_GARBAGE_COLLECT_WAIT)
-		{
-		//	Check to see if engines are idle
-
-		bool bEnginesIdle = true;
-		for (i = 0; i < m_Engines.GetCount(); i++)
-			if (!m_Engines[i].pEngine->IsIdle())
-				{
-				bEnginesIdle = false;
-				break;
-				}
-
-		//	If the engines are busy, then check to see if we have enough
-		//	memory to wait some more.
-
-		if (!bEnginesIdle)
-			{
-			CProcess CurrentProc;
-			CurrentProc.CreateCurrentProcess();
-			CProcess::SMemoryInfo MemoryInfo;
-			if (!CurrentProc.GetMemoryInfo(&MemoryInfo))
-				{
-				LogBlackBox(ERR_CANT_GET_MEMORY_INFO);
-				return;
-				}
-
-			//	If we have enough memory, then wait to collect garbage
-
-			if (MemoryInfo.dwCurrentAlloc < MAX_GARBAGE_COLLECT_MEMORY)
-				return;
-
-			//	Warning that we're running out of memory
-
-			LogBlackBox(ERR_MEMORY_WARNING);
-			}
-		}
-
-	//	Collect
-
-#ifdef DEBUG_GARBAGE_COLLECTION
-	printf("[%s] Collecting garbage.\n", (LPSTR)m_sName);
-#endif
-
-	m_dwLastGarbageCollect = dwStart;
-
-	m_RunEvent.Reset();
-	m_PauseEvent.Set();
-
-	//	Keep track of how long each engine takes to pause (for diagnostic
-	//	purposes).
-
-	TArray<DWORD> PauseTime;
-	PauseTime.InsertEmpty(m_Engines.GetCount());
-
-	//	Some engines still need an explicit call (because they don't have
-	//	their own main thread).
-
-	for (i = 0; i < m_Engines.GetCount(); i++)
-		m_Engines[i].pEngine->SignalPause();
-
-	//	Wait for the engines to stop
-
-	for (i = 0; i < m_Engines.GetCount(); i++)
-		{
 		DWORD dwStart = sysGetTickCount();
+		DWORD dwTimeSinceLastCollection = dwStart - m_dwLastGarbageCollect;
 
-		m_Engines[i].pEngine->WaitForPause();
+		//	If it has been less than a certain time, then only collect garbage if
+		//	all engines are idle.
 
-		PauseTime[i] = sysGetTicksElapsed(dwStart);
-		}
+		if (dwTimeSinceLastCollection < MAX_GARBAGE_COLLECT_WAIT)
+			{
+			//	Check to see if engines are idle
 
-	//	Wait for our threads to stop
+			bool bEnginesIdle = true;
+			for (i = 0; i < m_Engines.GetCount(); i++)
+				if (!m_Engines[i].pEngine->IsIdle())
+					{
+					bEnginesIdle = false;
+					break;
+					}
 
-	m_EventThread.WaitForPause();
-	m_ImportThread.WaitForPause();
+			//	If the engines are busy, then check to see if we have enough
+			//	memory to wait some more.
 
-	//	Now we ask all engines to mark their data in use
+			if (!bEnginesIdle)
+				{
+				CProcess CurrentProc;
+				CurrentProc.CreateCurrentProcess();
+				CProcess::SMemoryInfo MemoryInfo;
+				if (!CurrentProc.GetMemoryInfo(&MemoryInfo))
+					{
+					LogBlackBox(ERR_CANT_GET_MEMORY_INFO);
+					return;
+					}
 
-	for (i = 0; i < m_Engines.GetCount(); i++)
-		{
+				//	If we have enough memory, then wait to collect garbage
+
+				if (MemoryInfo.dwCurrentAlloc < MAX_GARBAGE_COLLECT_MEMORY)
+					return;
+
+				//	Warning that we're running out of memory
+
+				LogBlackBox(ERR_MEMORY_WARNING);
+				}
+			}
+
+		//	Collect
+
+	#ifdef DEBUG_GARBAGE_COLLECTION
+		printf("[%s] Collecting garbage.\n", (LPSTR)m_sName);
+	#endif
+
+		m_dwLastGarbageCollect = dwStart;
+
+		m_RunEvent.Reset();
+		m_PauseEvent.Set();
+
+		//	Keep track of how long each engine takes to pause (for diagnostic
+		//	purposes).
+
+		TArray<DWORD> PauseTime;
+		PauseTime.InsertEmpty(m_Engines.GetCount());
+
+		//	Some engines still need an explicit call (because they don't have
+		//	their own main thread).
+
+		for (i = 0; i < m_Engines.GetCount(); i++)
+			m_Engines[i].pEngine->SignalPause();
+
+		//	Wait for the engines to stop
+
+		for (i = 0; i < m_Engines.GetCount(); i++)
+			{
+			DWORD dwStart = sysGetTickCount();
+
+			m_Engines[i].pEngine->WaitForPause();
+
+			PauseTime[i] = sysGetTicksElapsed(dwStart);
+			}
+
+		//	Wait for our threads to stop
+
+		m_EventThread.WaitForPause();
+		m_ImportThread.WaitForPause();
+
+		//	Now we ask all engines to mark their data in use
+
+		for (i = 0; i < m_Engines.GetCount(); i++)
+			{
+			try
+				{
+				m_Engines[i].pEngine->Mark();
+				}
+			catch (...)
+				{
+				LogBlackBox(strPattern("ERROR: Crash marking data: %s engine.", m_Engines[i].pEngine->GetName()));
+				throw;
+				}
+			}
+
+		//	Now we mark our own structures
+
 		try
 			{
-			m_Engines[i].pEngine->Mark();
+			m_MnemosynthDb.Mark();
 			}
 		catch (...)
 			{
-			LogBlackBox(strPattern("ERROR: Crash marking data: %s engine.", m_Engines[i].pEngine->GetName()));
+			LogBlackBox(CString("ERROR: Crash marking MnemosynthDb."));
 			throw;
 			}
-		}
 
-	//	Now we mark our own structures
+		try
+			{
+			m_EventThread.Mark();
+			}
+		catch (...)
+			{
+			LogBlackBox(CString("ERROR: Crash marking event thread."));
+			throw;
+			}
 
-	try
-		{
-		m_MnemosynthDb.Mark();
+		try
+			{
+			m_ImportThread.Mark();
+			}
+		catch (...)
+			{
+			LogBlackBox(CString("ERROR: Crash marking import thread."));
+			throw;
+			}
+
+		//	Now we sweep all unused
+
+		DWORD dwSweepStart = sysGetTickCount();
+
+		try
+			{
+			CDatum::MarkAndSweep();
+			}
+		catch (...)
+			{
+			LogBlackBox(CString("ERROR: Crash sweeping."));
+			throw;
+			}
+
+		DWORD dwSweepTime = sysGetTickCount() - dwSweepStart;
+
+		//	Now we start all engines up again
+
+		m_PauseEvent.Reset();
+		m_RunEvent.Set();
+
+		//	If garbage collection took too long, then we need to log it.
+
+		DWORD dwTime = sysGetTickCount() - dwStart;
+		if (dwTime >= 500)
+			{
+			//	Log each engine that took too long
+
+			for (i = 0; i < m_Engines.GetCount(); i++)
+				if (PauseTime[i] >= 500)
+					Log(MSG_LOG_INFO, strPattern(STR_ENGINE_PAUSE_TIME, m_Engines[i].pEngine->GetName(), PauseTime[i] / 1000, (PauseTime[i] % 1000) / 10));
+
+			//	Log overall time
+
+			Log(MSG_LOG_INFO, strPattern(STR_GARBAGE_COLLECTION, 
+					dwTime / 1000, (dwTime % 1000) / 10,
+					dwSweepTime / 1000, (dwSweepTime % 1000) / 10));
+			}
 		}
 	catch (...)
 		{
-		LogBlackBox(CString("ERROR: Crash marking MnemosynthDb."));
+		Log(MSG_LOG_ERROR, ERR_CRASH_IN_COLLECT_GARBAGE);
 		throw;
-		}
-
-	try
-		{
-		m_EventThread.Mark();
-		}
-	catch (...)
-		{
-		LogBlackBox(CString("ERROR: Crash marking event thread."));
-		throw;
-		}
-
-	try
-		{
-		m_ImportThread.Mark();
-		}
-	catch (...)
-		{
-		LogBlackBox(CString("ERROR: Crash marking import thread."));
-		throw;
-		}
-
-	//	Now we sweep all unused
-
-	DWORD dwSweepStart = sysGetTickCount();
-
-	try
-		{
-		CDatum::MarkAndSweep();
-		}
-	catch (...)
-		{
-		LogBlackBox(CString("ERROR: Crash sweeping."));
-		throw;
-		}
-
-	DWORD dwSweepTime = sysGetTickCount() - dwSweepStart;
-
-	//	Now we start all engines up again
-
-	m_PauseEvent.Reset();
-	m_RunEvent.Set();
-
-	//	If garbage collection took too long, then we need to log it.
-
-	DWORD dwTime = sysGetTickCount() - dwStart;
-	if (dwTime >= 500)
-		{
-		//	Log each engine that took too long
-
-		for (i = 0; i < m_Engines.GetCount(); i++)
-			if (PauseTime[i] >= 500)
-				Log(MSG_LOG_INFO, strPattern(STR_ENGINE_PAUSE_TIME, m_Engines[i].pEngine->GetName(), PauseTime[i] / 1000, (PauseTime[i] % 1000) / 10));
-
-		//	Log overall time
-
-		Log(MSG_LOG_INFO, strPattern(STR_GARBAGE_COLLECTION, 
-				dwTime / 1000, (dwTime % 1000) / 10,
-				dwSweepTime / 1000, (dwSweepTime % 1000) / 10));
 		}
 	}
 
