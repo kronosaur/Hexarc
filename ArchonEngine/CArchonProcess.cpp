@@ -665,18 +665,23 @@ void CArchonProcess::SendGlobalMessage (const CString &sMsg, CDatum dPayload)
 //	Sends a message to all engines.
 
 	{
-	int i;
-
-	for (i = 0; i < m_Engines.GetCount(); i++)
+	try
 		{
-		SArchonMessage Msg;
-		Msg.sMsg = sMsg;
-		Msg.sReplyAddr = ADDR_NULL;
-		Msg.dwTicket = 0;
-		Msg.dPayload = dPayload;
+		for (int i = 0; i < m_Engines.GetCount(); i++)
+			{
+			SArchonMessage Msg;
+			Msg.sMsg = sMsg;
+			Msg.sReplyAddr = ADDR_NULL;
+			Msg.dwTicket = 0;
+			Msg.dPayload = dPayload;
 
-		if (m_Engines[i].pCommand)
-			m_Engines[i].pCommand->SendMessage(Msg);
+			if (m_Engines[i].pCommand)
+				m_Engines[i].pCommand->SendMessage(Msg);
+			}
+		}
+	catch (...)
+		{
+		Log(MSG_LOG_ERROR, ERR_CRASH_IN_SEND_GLOBAL_MESSAGE);
 		}
 	}
 
