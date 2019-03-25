@@ -67,7 +67,7 @@ void CEsperProcessingThread::Run (void)
 				}
 			catch (...)
 				{
-				m_pEngine->Log(MSG_LOG_ERROR, CString("Crash in processing IO completion port."));
+				m_pEngine->Log(MSG_LOG_ERROR, CString("CRASH: Processing IO completion port."));
 				}
 			}
 
@@ -78,7 +78,7 @@ void CEsperProcessingThread::Run (void)
 		}
 	catch (...)
 		{
-		m_pEngine->Log(MSG_LOG_ERROR, CString("Crash in Esper processing thread."));
+		m_pEngine->Log(MSG_LOG_ERROR, CString("CRASH: Esper processing thread."));
 		}
 	}
 

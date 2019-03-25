@@ -147,7 +147,7 @@ void CEsperListenerThread::Run (void)
 		}
 	catch (...)
 		{
-		m_pEngine->Log(MSG_LOG_ERROR, CString("ERROR: Crash in Esper listener thread."));
+		m_pEngine->Log(MSG_LOG_ERROR, CString("CRASH: Esper listener thread."));
 		throw;
 		}
 	}

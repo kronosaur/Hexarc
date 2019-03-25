@@ -128,7 +128,7 @@ void CInterprocessMessageThread::Run (void)
 		}
 	catch (...)
 		{
-		m_pProcess->LogBlackBox(CString("ERROR: Crash in Interprocess Message Thread."));
+		m_pProcess->LogBlackBox(CString("CRASH: Interprocess Message Thread."));
 		throw;
 		}
 	}

@@ -38,6 +38,10 @@ DECLARE_CONST_STRING(STR_BOOT_COMPLETE,					"Module started.")
 DECLARE_CONST_STRING(STR_CENTRAL_MODULE_STARTED,		"CentralModule started.")
 DECLARE_CONST_STRING(STR_GARBAGE_COLLECTION,			"Garbage collection: %d.%02d seconds (Sweep: %d.%02d seconds).")
 DECLARE_CONST_STRING(STR_ENGINE_PAUSE_TIME,				"Garbage collection: %s took %d.%02d seconds to pause.")
+DECLARE_CONST_STRING(STR_MARKING_MNEMOSYNTH,			"Marking MnemosynthDb.")
+DECLARE_CONST_STRING(STR_MARKING_EVENT_THREAD,			"Marking EventThread.")
+DECLARE_CONST_STRING(STR_MARKING_IMPORT_THREAD,			"Marking ImportThread.")
+DECLARE_CONST_STRING(STR_MARK_AND_SWEEP,				"In CDatum::MarkAndSweep.")
 
 DECLARE_CONST_STRING(ERR_CANT_BIND,						"Unable to bind to address: %s.")
 DECLARE_CONST_STRING(ERR_UNABLE_TO_BOOT_WINSOCK,		"Unable to boot WinSock.")
@@ -54,8 +58,8 @@ DECLARE_CONST_STRING(ERR_MEMORY_WARNING,				"WARNING: Process exceeding safe mem
 DECLARE_CONST_STRING(ERR_NO_MACHINE_NAME,				"No machine name provided at processes launch.")
 DECLARE_CONST_STRING(ERR_NOT_IN_CONSOLE_MODE,			"Not in console mode.")
 DECLARE_CONST_STRING(ERR_CRASH_IN_CONSOLE_COMMAND,		"Crash processing console command.")
-DECLARE_CONST_STRING(ERR_CRASH_IN_SEND_GLOBAL_MESSAGE,	"Crash in SendGlobalMessage.")
-DECLARE_CONST_STRING(ERR_CRASH_IN_COLLECT_GARBAGE,		"Crash in SendGlobalMessage.")
+DECLARE_CONST_STRING(ERR_CRASH_IN_SEND_GLOBAL_MESSAGE,	"CRASH: In SendGlobalMessage.")
+DECLARE_CONST_STRING(ERR_CRASH_IN_COLLECT_GARBAGE,		"CRASH: In CollectGarbage.")
 
 CArchonProcess::CArchonProcess (void) :
 		m_EventThread(m_RunEvent, m_PauseEvent, m_QuitEvent)
@@ -272,7 +276,10 @@ void CArchonProcess::CollectGarbage (void)
 //	Collects garbage
 
 	{
-	try {
+	CString sTask;
+
+	try 
+		{
 		int i;
 
 		//	Compute how long it's been since we last collected garbage
@@ -363,64 +370,30 @@ void CArchonProcess::CollectGarbage (void)
 
 		for (i = 0; i < m_Engines.GetCount(); i++)
 			{
-			try
-				{
-				m_Engines[i].pEngine->Mark();
-				}
-			catch (...)
-				{
-				LogBlackBox(strPattern("ERROR: Crash marking data: %s engine.", m_Engines[i].pEngine->GetName()));
-				throw;
-				}
+			sTask = strPattern("Marking data: %s engine.", m_Engines[i].pEngine->GetName());
+			m_Engines[i].pEngine->Mark();
 			}
 
 		//	Now we mark our own structures
 
-		try
-			{
-			m_MnemosynthDb.Mark();
-			}
-		catch (...)
-			{
-			LogBlackBox(CString("ERROR: Crash marking MnemosynthDb."));
-			throw;
-			}
+		sTask = STR_MARKING_MNEMOSYNTH;
+		m_MnemosynthDb.Mark();
 
-		try
-			{
-			m_EventThread.Mark();
-			}
-		catch (...)
-			{
-			LogBlackBox(CString("ERROR: Crash marking event thread."));
-			throw;
-			}
+		sTask = STR_MARKING_EVENT_THREAD;
+		m_EventThread.Mark();
 
-		try
-			{
-			m_ImportThread.Mark();
-			}
-		catch (...)
-			{
-			LogBlackBox(CString("ERROR: Crash marking import thread."));
-			throw;
-			}
+		sTask = STR_MARKING_IMPORT_THREAD;
+		m_ImportThread.Mark();
 
 		//	Now we sweep all unused
 
+		sTask = STR_MARK_AND_SWEEP;
+
 		DWORD dwSweepStart = sysGetTickCount();
-
-		try
-			{
-			CDatum::MarkAndSweep();
-			}
-		catch (...)
-			{
-			LogBlackBox(CString("ERROR: Crash sweeping."));
-			throw;
-			}
-
+		CDatum::MarkAndSweep();
 		DWORD dwSweepTime = sysGetTickCount() - dwSweepStart;
+
+		sTask = NULL_STR;
 
 		//	Now we start all engines up again
 
@@ -447,8 +420,10 @@ void CArchonProcess::CollectGarbage (void)
 		}
 	catch (...)
 		{
-		Log(MSG_LOG_ERROR, ERR_CRASH_IN_COLLECT_GARBAGE);
-		throw;
+		if (sTask.IsEmpty())
+			CriticalError(ERR_CRASH_IN_COLLECT_GARBAGE);
+		else
+			CriticalError(strPattern("CRASH: %s", sTask));
 		}
 	}
 
@@ -484,6 +459,30 @@ CString CArchonProcess::ConsoleCommand (const CString &sCmd, const TArray<CDatum
 	//	If we get this far, then no engine handled it.
 
 	return NULL_STR;
+	}
+
+void CArchonProcess::CriticalError (const CString &sError)
+
+//	CriticalError
+//
+//	Report a critical error; a critical error is an error in the Run loop that
+//	we cannot recover from.
+
+	{
+	static constexpr DWORD MAX_CRITICAL_ERRORS = 4;
+
+	//	If we've exceeded the max count of critical errors, then we just throw
+	//	and terminate the process.
+
+	if (++m_dwCriticalErrors >= MAX_CRITICAL_ERRORS)
+		throw CException(errFail);
+
+	//	Otherwise, we log it, but continue.
+
+	else if ((m_bCentralModule && m_bArcologyPrime) || m_bConsoleMode)
+		LogBlackBox(sError);
+	else
+		Log(MSG_LOG_ERROR, sError);
 	}
 
 void CArchonProcess::OnMnemosynthDbModified (CDatum dLocalUpdates)

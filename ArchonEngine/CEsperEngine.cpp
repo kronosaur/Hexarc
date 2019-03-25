@@ -99,7 +99,7 @@ DECLARE_CONST_STRING(ERR_MSG_TIMING,					"Esper: %s took %d ms to process.")
 DECLARE_CONST_STRING(ERR_UNABLE_TO_SEND_MESSAGE,		"Unable to send Esper message to engine.")
 DECLARE_CONST_STRING(ERR_UNKNOWN_PROTOCOL,				"Unknown protocol: %s.")
 DECLARE_CONST_STRING(ERR_WRITE_FAILED,					"Write failed: %s")
-DECLARE_CONST_STRING(ERR_CRASH_MSG,						"Esper: crashed processing %s.")
+DECLARE_CONST_STRING(ERR_CRASH_MSG,						"CRASH: Esper crashed processing %s.")
 DECLARE_CONST_STRING(ERR_INTERNAL_SERVER_ERROR,			"Internal server error.")
 DECLARE_CONST_STRING(ERR_INVALID_MSG,					"Esper: Unhandled message: %s.")
 DECLARE_CONST_STRING(ERR_NOT_ADMIN,						"Service does not have Arc.admin right.")
@@ -862,7 +862,7 @@ bool CEsperEngine::SendMessage (const SArchonMessage &Msg)
 		}
 	catch (...)
 		{
-		m_pProcess->Log(MSG_LOG_ERROR, CString("Crash in CEsperEngine::SendMessage."));
+		m_pProcess->Log(MSG_LOG_ERROR, CString("CRASH: CEsperEngine::SendMessage."));
 		return false;
 		}
 	}

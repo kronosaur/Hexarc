@@ -356,6 +356,7 @@ class CArchonProcess : public IArchonProcessCtx
 			};
 
 		void CollectGarbage (void);
+		void CriticalError (const CString &sError);
 		bool OnModuleStart (void);
 		void Shutdown (void);
 		bool TransformAddress (const CString &sAddress, const CString &sMsg, CDatum dPayload, CString *retsDestMsgAddress, CString *retsDestMsg, CDatum *retdPayload, CString *retsError);
@@ -375,6 +376,7 @@ class CArchonProcess : public IArchonProcessCtx
 		bool m_bDebugger = false;				//	TRUE if we should launch debugger on load
 		CSemaphore m_CentralModuleSem;			//	Locked if we are the central module
 		DWORD m_dwLastGarbageCollect = 0;		//	Tick when we last collected garbage
+		DWORD m_dwCriticalErrors = 0;			//	Number of crashes inside Run loop
 
 		IArchonExarch *m_pExarch = NULL;		//	Wormhole to CExarchEngine
 		CBlackBox m_BlackBox;					//	Diagnostic log

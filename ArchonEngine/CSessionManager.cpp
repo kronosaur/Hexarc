@@ -14,7 +14,7 @@ DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error")
 DECLARE_CONST_STRING(MSG_OK,							"OK")
 DECLARE_CONST_STRING(MSG_REPLY_DATA,					"Reply.data")
 
-DECLARE_CONST_STRING(ERR_CRASH_ON_REPLY,				"%s: Crashed processing reply: %s.")
+DECLARE_CONST_STRING(ERR_CRASH_ON_REPLY,				"%s: CRASH processing reply: %s.")
 DECLARE_CONST_STRING(ERR_INVALID_MSG,					"%s: Unhandled message: %s.")
 DECLARE_CONST_STRING(ERR_INVALID_REPLY,					"%s: Unhandled reply: %s %s")
 

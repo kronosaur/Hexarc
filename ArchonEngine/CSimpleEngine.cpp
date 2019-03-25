@@ -24,8 +24,8 @@ DECLARE_CONST_STRING(MSG_OK,							"OK")
 
 DECLARE_CONST_STRING(STR_SIMPLE_ENGINE,					"CSimpleEngine")
 
-DECLARE_CONST_STRING(ERR_CRASH_ON_MSG,					"%s [%s]: Unknown crash.")
-DECLARE_CONST_STRING(ERR_EXCEPTION,						"%s [%s]: %s")
+DECLARE_CONST_STRING(ERR_CRASH_ON_MSG,					"CRASH: %s [%s]: Unknown crash.")
+DECLARE_CONST_STRING(ERR_EXCEPTION,						"CRASH: %s [%s]: %s")
 DECLARE_CONST_STRING(ERR_INTERNAL_SERVER_ERROR,			"Internal server error.")
 DECLARE_CONST_STRING(ERR_MSG_TIMING,					"%s: %s took %d ms to process.")
 DECLARE_CONST_STRING(ERR_NOT_ADMIN,						"Service does not have Arc.admin right.")
@@ -553,7 +553,7 @@ void CSimpleProcessingThread::Run (void)
 		}
 	catch (...)
 		{
-		m_pEngine->GetProcessCtx()->LogBlackBox(strPattern("ERROR: Crash in CSimpleEngine: %s.", m_pEngine->GetName()));
+		m_pEngine->GetProcessCtx()->LogBlackBox(strPattern("CRASH: CSimpleEngine: %s.", m_pEngine->GetName()));
 		throw;
 		}
 	}
@@ -620,7 +620,7 @@ void CSimpleEventThread::Run (void)
 		}
 	catch (...)
 		{
-		m_pEngine->GetProcessCtx()->LogBlackBox(strPattern("ERROR: Crash in CSimpleEventThread: %s.", m_pEngine->GetName()));
+		m_pEngine->GetProcessCtx()->LogBlackBox(strPattern("CRASH: CSimpleEventThread: %s.", m_pEngine->GetName()));
 		throw;
 		}
 	}
