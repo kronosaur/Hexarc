@@ -197,3 +197,15 @@ template <class OBJ> class TUniquePtr<OBJ[]>
 	private:
 		OBJ *m_pPtr;
 	};
+
+template <class OBJ> class TRefCounted
+	{
+	public:
+		TRefCounted (void) : m_dwRefCount(1) { }
+
+		inline OBJ *AddRef (void) { m_dwRefCount++; return reinterpret_cast<OBJ *>(this); }
+		inline void Delete (void) { if (--m_dwRefCount == 0) delete this; }
+
+	private:
+		int m_dwRefCount;
+	};

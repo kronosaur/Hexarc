@@ -20,10 +20,24 @@ class CCSVParser
 		bool ParseRow (TArray<CString> &Row, CString *retsError = NULL);
 
 	private:
+		enum EFormat
+			{
+			formatUnknown,
+			formatError,
+
+			formatNone,
+			formatUTF8,
+			formatUTF16_BigEndian,
+			formatUTF16_LittleEndian,
+			};
+
 		inline char GetCurChar (void) const { return m_chCur; }
 		inline char GetNextChar (void) { m_chCur = m_Stream.ReadChar(); return m_chCur; }
+		EFormat ParseBOM (void);
+		void ParseToOpenQuote (void);
 
 		IByteStream &m_Stream;
+		EFormat m_iFormat = formatUnknown;
 		TArray<CString> m_Header;
 
 		char m_chCur;

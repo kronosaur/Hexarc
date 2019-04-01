@@ -23,7 +23,7 @@ class CDBValue
 			typeInt32 =				2,
 			typeInt64 =				3,
 			typeDouble =			4,
-			typeString =			5,
+			typeString =			5,	//	UTF8
 			typeArray =				6,
 			typeBinary =			7,
 			typeDateTime =			8,
@@ -34,11 +34,20 @@ class CDBValue
 
 		CDBValue (void) : m_dwData(0) { }
 		CDBValue (const CDBValue &Src) { Copy(Src); }
+		CDBValue (CDBValue &&Src) { m_dwData = Src.m_dwData; Src.m_dwData = 0; }
+		CDBValue (const CString &sValue);
+		CDBValue (int iValue);
+		CDBValue (double rValue);
 		explicit CDBValue (ETypes iType);
+
+		static CDBValue FromHandoff (CString &Src);
 
 		~CDBValue (void) { CleanUp(); }
 
 		CDBValue &operator= (const CDBValue &Src) { CleanUp(); Copy(Src); return *this; }
+		CDBValue &operator= (CDBValue &&Src) { CleanUp(); m_dwData = Src.m_dwData; Src.m_dwData = 0; return * this; }
+
+		static const CDBValue Null;
 
 	private:
 		static constexpr DWORD DISCRIMINATOR_1_MASK =	0x00000003;
@@ -74,4 +83,43 @@ class IDBValueObject
 		virtual ~IDBValueObject (void) { }
 
 		virtual IDBValueObject *Clone (void) const = 0;
+	};
+
+class CDBTable
+	{
+	public:
+		struct SColumnDef
+			{
+			CString sName;					//	Name of column (must be unique in table)
+			CDBValue::ETypes iType = CDBValue::typeUnknown;
+			};
+
+		bool AddCol (const SColumnDef &ColDef);
+		int AddRow (void);
+		void CleanUp (void);
+		int FindColByName (const CString &sName) const;
+		inline int GetColCount (void) const { return m_Cols.GetCount(); }
+		const CDBValue &GetField (int iCol, int iRow) const;
+		CDBValue *GetField (int iCol, int iRow);
+		inline int GetRowCount (void) const { return (GetColCount() > 0 ? m_Rows.GetCount() / GetColCount() : 0); }
+		inline void GrowToFit (int iRows) { m_Rows.GrowToFit(iRows * GetColCount()); }
+		bool SetField (int iCol, int iRow, const CDBValue &Value);
+
+	private:
+		void InitColIndex (void);
+
+		TArray<SColumnDef> m_Cols;
+		TArray<CDBValue> m_Rows;
+
+		TSortMap<CString, int> m_ColIndex;
+	};
+
+class CDBFormatCSV
+	{
+	public:
+		struct SOptions
+			{
+			};
+
+		static bool Load (IByteStream &Stream, const SOptions &Options, CDBTable &Table, CString *retsError = NULL);
 	};

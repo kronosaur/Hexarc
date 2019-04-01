@@ -23,6 +23,8 @@
 #include "stdafx.h"
 #include "DBValueObjectImpl.h"
 
+const CDBValue CDBValue::Null;
+
 CDBValue::CDBValue (ETypes iType)
 
 //	CDBValue constructor
@@ -62,6 +64,30 @@ CDBValue::CDBValue (ETypes iType)
 			ASSERT(false);
 			m_dwData = 0;
 		}
+	}
+
+CDBValue::CDBValue (const CString &sValue)
+
+//	CDBValue constructor
+
+	{
+	m_dwData = EncodeString(sValue);
+	}
+
+CDBValue::CDBValue (int iValue)
+
+//	CDBValue constructor
+
+	{
+	m_dwData = EncodeInt32(iValue);
+	}
+
+CDBValue::CDBValue (double rValue)
+
+//	CDBValue constructor
+
+	{
+	m_dwData = EncodeDouble(rValue);
 	}
 
 void CDBValue::CleanUp (void)
@@ -179,4 +205,18 @@ DWORDLONG CDBValue::EncodeString (const CString &sValue)
 	//	Return the new pointer. Callers must handle this properly.
 
 	return (DWORDLONG)pString;
+	}
+
+CDBValue CDBValue::FromHandoff (CString &Src)
+
+//	FromHandoff
+//
+//	Takes the allocated value from the given string.
+
+	{
+	CDBValue Value;
+
+	LPSTR pStr = Src.Handoff();
+	Value.m_dwData = (DWORDLONG)pStr;
+	return Value;
 	}

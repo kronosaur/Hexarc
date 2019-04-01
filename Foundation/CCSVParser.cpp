@@ -7,6 +7,94 @@
 
 DECLARE_CONST_STRING(ERR_END_OF_STREAM,					"End of stream.")
 
+CCSVParser::EFormat CCSVParser::ParseBOM (void)
+
+//	ParseBOM
+//
+//	Parses any Byte Order Mark
+
+	{
+	switch (GetCurChar())
+		{
+		case '\xEF':
+			{
+			switch (GetNextChar())
+				{
+				case '\xBB':
+					{
+					switch (GetNextChar())
+						{
+						case '\xBF':
+							{
+							GetNextChar();
+							return formatUTF8;
+							}
+
+						default:
+							{
+							ParseToOpenQuote();
+							return formatError;
+							}
+						}
+					break;
+					}
+
+				default:
+					{
+					ParseToOpenQuote();
+					return formatError;
+					}
+				}
+			break;
+			}
+
+		case '\xFE':
+			{
+			switch (GetNextChar())
+				{
+				case '\xFF':
+					{
+					ASSERT(false);	//	Not yet implemented
+					GetNextChar();
+					return formatUTF16_BigEndian;
+					}
+
+				default:
+					{
+					ParseToOpenQuote();
+					return formatError;
+					}
+				}
+			break;
+			}
+
+		case '\xFF':
+			{
+			switch (GetNextChar())
+				{
+				case '\xFE':
+					{
+					ASSERT(false);	//	Not yet implemented
+					GetNextChar();
+					return formatUTF16_LittleEndian;
+					}
+
+				default:
+					{
+					ParseToOpenQuote();
+					return formatError;
+					}
+				}
+			}
+
+		default:
+			{
+			ParseToOpenQuote();
+			return formatNone;
+			}
+		}
+	}
+
 bool CCSVParser::ParseRow (TArray<CString> &Row, CString *retsError)
 
 //	ParseRow
@@ -26,6 +114,11 @@ bool CCSVParser::ParseRow (TArray<CString> &Row, CString *retsError)
 		};
 
 	Row.DeleteAll();
+
+	//	Parse the BOM, if any
+
+	if (m_iFormat == formatUnknown)
+		m_iFormat = ParseBOM();
 
 	//	Keep reading until we hit the end of the line.
 
@@ -215,4 +308,15 @@ bool CCSVParser::ParseRow (TArray<CString> &Row, CString *retsError)
 
 		GetNextChar();
 		}
+	}
+
+void CCSVParser::ParseToOpenQuote (void)
+
+//	ParseToOpenQuote
+//
+//	Reads characters until we find an open quote.
+
+	{
+	while (GetCurChar() != '\"')
+		GetNextChar();
 	}
