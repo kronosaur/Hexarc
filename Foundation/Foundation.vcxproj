@@ -225,6 +225,8 @@
     <ClCompile Include="CCryptoDigest.cpp" />
     <ClCompile Include="CCSVParser.cpp" />
     <ClCompile Include="CDateTime.cpp" />
+    <ClCompile Include="CDBFormatCSV.cpp" />
+    <ClCompile Include="CDBTable.cpp" />
     <ClCompile Include="CDBValue.cpp" />
     <ClCompile Include="CEntityResolverList.cpp" />
     <ClCompile Include="CExternalEntityTable.cpp" />
@@ -428,11 +430,6 @@
     <ClInclude Include="BigDigits\bigdRand.h" />
     <ClInclude Include="BigDigits\bigdtypes.h" />
     <ClInclude Include="VoronoiGenerator.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\zlib-1.2.7\contrib\vstudio\vc10\zlibstat.vcxproj">
-      <Project>{745dec58-ebb3-47a9-a9b8-4c6627c01bf8}</Project>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Library Include="LibJPEG\LibDebug\turbojpeg-static.lib">

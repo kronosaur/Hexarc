@@ -70,6 +70,9 @@
     <Filter Include="Source Files\IOInterfaces">
       <UniqueIdentifier>{279a2779-f3c5-4746-aba0-d4207d476a31}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\DB">
+      <UniqueIdentifier>{e2ca37e3-7d77-4104-94ab-cec85d24b660}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Array.cpp">
@@ -303,9 +306,6 @@
     <ClCompile Include="CFoundation.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CDBValue.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="CCSVParser.cpp">
       <Filter>Source Files\Parsers</Filter>
     </ClCompile>
@@ -338,6 +338,15 @@
     </ClCompile>
     <ClCompile Include="CModuleResource.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CDBValue.cpp">
+      <Filter>Source Files\DB</Filter>
+    </ClCompile>
+    <ClCompile Include="CDBTable.cpp">
+      <Filter>Source Files\DB</Filter>
+    </ClCompile>
+    <ClCompile Include="CDBFormatCSV.cpp">
+      <Filter>Source Files\DB</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
