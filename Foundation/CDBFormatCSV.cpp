@@ -30,9 +30,7 @@ bool CDBFormatCSV::Load (IByteStream &Stream, const SOptions &Options, CDBTable 
 	const TArray<CString> &Header = Parser.GetHeader();
 	for (i = 0; i < Header.GetCount(); i++)
 		{
-		CDBTable::SColumnDef ColDef;
-		ColDef.sName = Header[i];
-
+		CDBColumnDef ColDef(Header[i], CDBValue::typeString, i);
 		if (!Table.AddCol(ColDef))
 			{
 			if (retsError) *retsError = strPattern(ERR_BAD_HEADER, Header[i]);

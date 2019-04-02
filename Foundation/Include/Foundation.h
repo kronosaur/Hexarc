@@ -79,7 +79,6 @@ class CManualEvent;
 #include "FoundationStreams64.h"
 #include "FoundationStreamsTBuffer.h"
 
-#include "FoundationDB.h"
 #include "FoundationMath.h"
 #include "FoundationMathGeometry.h"
 #include "FoundationMathHexGrid.h"
@@ -92,6 +91,7 @@ class CManualEvent;
 #include "FoundationCompression.h"
 #include "FoundationCounters.h"
 #include "FoundationCrypto.h"
+#include "FoundationDB.h"
 #include "FoundationFileIO.h"
 #include "FoundationGrids.h"
 #include "FoundationIOCompletionPort.h"
@@ -112,6 +112,8 @@ class CManualEvent;
 class CFoundation
 	{
 	public:
+		static constexpr DWORD BOOT_FLAG_COM =		0x00000001;
+
 		CFoundation (void);
 		~CFoundation (void);
 

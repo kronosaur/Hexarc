@@ -225,6 +225,7 @@
     <ClCompile Include="CCryptoDigest.cpp" />
     <ClCompile Include="CCSVParser.cpp" />
     <ClCompile Include="CDateTime.cpp" />
+    <ClCompile Include="CDBColumnDef.cpp" />
     <ClCompile Include="CDBFormatCSV.cpp" />
     <ClCompile Include="CDBTable.cpp" />
     <ClCompile Include="CDBValue.cpp" />

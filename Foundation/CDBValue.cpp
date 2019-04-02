@@ -13,6 +13,7 @@
 //	[ Pointer to string                                                         ]00		NULL == Nil
 //	[ Pointer to IDBValueObject                                                 ]01
 //	[ Unused                                                                    ]10
+//	[ 60-bit special values                                                     ]11
 //
 //	[ 32-bit integer                      ] ---- ---- ---- ---- ---- ---- ---- 0011
 //	[ 60-bit integer														 ] 0111
@@ -34,6 +35,10 @@ CDBValue::CDBValue (ETypes iType)
 		{
 		case typeArray:
 			m_dwData = EncodeObjectPtr(new CDBValueArray);
+			break;
+
+		case typeDateTime:
+			m_dwData = EncodeObjectPtr(new CDBValueDateTime);
 			break;
 
 		case typeDouble:
@@ -74,6 +79,14 @@ CDBValue::CDBValue (const CString &sValue)
 	m_dwData = EncodeString(sValue);
 	}
 
+CDBValue::CDBValue (const CDateTime &Value)
+
+//	CDBValue constructor
+
+	{
+	m_dwData = EncodeObjectPtr(new CDBValueDateTime(Value));
+	}
+
 CDBValue::CDBValue (int iValue)
 
 //	CDBValue constructor
@@ -88,6 +101,80 @@ CDBValue::CDBValue (double rValue)
 
 	{
 	m_dwData = EncodeDouble(rValue);
+	}
+
+CDBValue::operator int () const
+
+//	operator int
+
+	{
+	switch (DecodeDiscriminator2(m_dwData))
+		{
+		case TYPE_INT_32:
+			return DecodeInt32(m_dwData);
+
+		default:
+			return 0;
+		}
+	}
+
+CDBValue::operator double () const
+
+//	Operator double
+
+	{
+	switch (DecodeDiscriminator1(m_dwData))
+		{
+		case TYPE_OBJECT:
+			{
+			IDBValueObject *pObj = DecodeObject(m_dwData);
+			return pObj->CastDouble();
+			}
+
+		default:
+			return 0.0;
+		}
+	}
+
+CDBValue::operator const CDateTime & () const
+
+//	Operator const CDateTime &
+
+	{
+	switch (DecodeDiscriminator1(m_dwData))
+		{
+		case TYPE_OBJECT:
+			{
+			IDBValueObject *pObj = DecodeObject(m_dwData);
+			return pObj->CastDateTime();
+			}
+
+		default:
+			return NULL_DATETIME;
+		}
+	}
+
+CDBValue::operator LONGLONG () const
+
+//	Operator const LONGLONG
+
+	{
+	return 0;
+	}
+
+CDBValue::operator const CString & () const
+
+//	Operator const CString &
+
+	{
+	switch (DecodeDiscriminator1(m_dwData))
+		{
+		case TYPE_STRING:
+			return *(CString *)&m_dwData;
+
+		default:
+			return NULL_STR;
+		}
 	}
 
 void CDBValue::CleanUp (void)
@@ -219,4 +306,51 @@ CDBValue CDBValue::FromHandoff (CString &Src)
 	LPSTR pStr = Src.Handoff();
 	Value.m_dwData = (DWORDLONG)pStr;
 	return Value;
+	}
+
+CDBValue::ETypes CDBValue::GetType (void) const
+
+//	GetType
+//
+//	Returns a type.
+
+	{
+	switch (DecodeDiscriminator1(m_dwData))
+		{
+		case TYPE_STRING:
+			return (m_dwData == 0 ? typeNil : typeString);
+
+		case TYPE_OBJECT:
+			{
+			IDBValueObject *pObj = DecodeObject(m_dwData);
+			return pObj->GetType();
+			}
+
+		case TYPE_SPECIAL_60:
+			{
+			switch (DecodeDiscriminator2(m_dwData))
+				{
+				case TYPE_INT_32:
+					return typeInt32;
+
+				case TYPE_SPECIAL:
+					{
+					switch (m_dwData)
+						{
+						case SPECIAL_TRUE:
+							return typeTrue;
+
+						default:
+							return typeNil;
+						}
+					}
+
+				default:
+					return typeNil;
+				}
+			}
+
+		default:
+			return typeNil;
+		}
 	}

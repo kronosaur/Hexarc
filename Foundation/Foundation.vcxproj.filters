@@ -348,6 +348,9 @@
     <ClCompile Include="CDBFormatCSV.cpp">
       <Filter>Source Files\DB</Filter>
     </ClCompile>
+    <ClCompile Include="CDBColumnDef.cpp">
+      <Filter>Source Files\DB</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">

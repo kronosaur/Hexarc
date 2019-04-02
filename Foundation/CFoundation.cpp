@@ -5,6 +5,7 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(ERR_CANT_INITIALIZE_COM,			"Unable to initialize COM system.")
 DECLARE_CONST_STRING(ERR_CANT_INITIALIZE_WINSOCK,		"Unable to initialize Winsock.")
 
 static CFoundation g_Foundation;
@@ -59,14 +60,25 @@ bool CFoundation::Startup (DWORD dwFlags, CString *retsError)
 	if (m_bInitialized)
 		return true;
 
+	//	Initialize COM
+
+	if (dwFlags & BOOT_FLAG_COM)
+		{
+		HRESULT hr = ::CoInitializeEx(NULL, COINIT_MULTITHREADED);
+		if (hr)
+			{
+			if (retsError) *retsError = ERR_CANT_INITIALIZE_COM;
+			return false;
+			}
+		}
+
 	//	Initialize winsock
 
 	WORD wVersionRequested = 0x0202;		//	Version 2.2
 	WSADATA wsaData;
 	if (WSAStartup(wVersionRequested, &wsaData))
 		{
-		if (retsError)
-			*retsError = ERR_CANT_INITIALIZE_WINSOCK;
+		if (retsError) *retsError = ERR_CANT_INITIALIZE_WINSOCK;
 		return false;
 		}
 

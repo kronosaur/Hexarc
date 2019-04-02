@@ -5,7 +5,7 @@
 
 #include "stdafx.h"
 
-bool CDBTable::AddCol (const SColumnDef &ColDef)
+bool CDBTable::AddCol (const CDBColumnDef &ColDef)
 
 //	AddCol
 //
@@ -15,7 +15,7 @@ bool CDBTable::AddCol (const SColumnDef &ColDef)
 	{
 	//	Make sure this is not a duplicate column
 
-	if (FindColByName(ColDef.sName) != -1)
+	if (FindColByName(ColDef.GetName()) != -1)
 		return false;
 
 	//	If we have no rows, then it is easy to add a new column.
@@ -125,7 +125,7 @@ void CDBTable::InitColIndex (void)
 	m_ColIndex.DeleteAll();
 	for (i = 0; i < m_Cols.GetCount(); i++)
 		{
-		m_ColIndex.Insert(strToLower(m_Cols[i].sName), i);
+		m_ColIndex.Insert(strToLower(m_Cols[i].GetName()), i);
 		}
 	}
 
