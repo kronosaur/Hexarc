@@ -189,11 +189,11 @@ CString strFormatInteger (int iValue, int iMinFieldWidth = -1, DWORD dwFlags = 0
 CString strFromDouble (double rValue);
 CString strFromInt (int iInteger, bool bSigned = true);
 CString strFromIntOfBase (int iInteger, int iBase, bool bSigned = true, bool bUppercase = false);
-inline bool strIsASCIIAlpha (char *pPos) { return (*pPos >= 'a' && *pPos <= 'z') || (*pPos >= 'A' && *pPos <= 'Z'); }
-inline bool strIsASCIIControl (char *pPos) { return ((BYTE)*pPos <= (BYTE)0x1f) || *pPos == 0x7f; }
-inline bool strIsASCIIHigh (char *pPos) { return ((BYTE)*pPos >= (BYTE)0x80); }
+inline bool strIsASCIIAlpha (const char *pPos) { return (*pPos >= 'a' && *pPos <= 'z') || (*pPos >= 'A' && *pPos <= 'Z'); }
+inline bool strIsASCIIControl (const char *pPos) { return ((BYTE)*pPos <= (BYTE)0x1f) || *pPos == 0x7f; }
+inline bool strIsASCIIHigh (const char *pPos) { return ((BYTE)*pPos >= (BYTE)0x80); }
 bool strIsASCIISymbol (char *pPos);
-inline bool strIsDigit (char *pPos) { return (*pPos >= '0' && *pPos <= '9'); }
+inline bool strIsDigit (const char *pPos) { return (*pPos >= '0' && *pPos <= '9'); }
 bool strIsInt (const CString &sString, int *retiValue = NULL);
 inline bool strIsWhitespace (char chChar) { return (chChar == ' ' || chChar == '\t' || chChar == '\r' || chChar == '\n'); }
 inline bool strIsWhitespace (const char *pPos) { return strIsWhitespace(*pPos); }
@@ -224,7 +224,7 @@ UTF32 strParseUTF8Char (char **iopPos, char *pEndPos);
 UTF32 strToLowerChar (UTF32 dwCodePoint);
 UTF32 strToUpperChar (UTF32 dwCodePoint);
 
-inline bool strIsASCIIAlphaNumeric (char *pPos) { return (strIsASCIIAlpha(pPos) || strIsDigit(pPos)); }
+inline bool strIsASCIIAlphaNumeric (const char *pPos) { return (strIsASCIIAlpha(pPos) || strIsDigit(pPos)); }
 
 //	Pattern functions
 
