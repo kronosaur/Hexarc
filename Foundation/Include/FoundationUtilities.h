@@ -53,6 +53,9 @@ template<class KEY> int KeyCompare (const KEY &Key1, const KEY &Key2)
 int KeyCompare (const LPSTR &pKey1, const LPSTR &pKey2);
 inline int KeyCompare (const CString &sKey1, const CString &sKey2) { return KeyCompare((LPSTR)sKey1, (LPSTR)sKey2); }
 
+int KeyCompareNoCase (const LPSTR &pKey1, int iKey1Len, const LPSTR &pKey2, int iKey2Len);
+inline int KeyCompareNoCase (const CString &sKey1, const CString &sKey2) { return KeyCompareNoCase((LPSTR)sKey1, sKey1.GetLength(), (LPSTR)sKey2, sKey2.GetLength()); }
+
 //	Ref-counted classes
 
 class IRefCounted

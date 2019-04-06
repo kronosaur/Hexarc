@@ -25,6 +25,8 @@ class CDBValueDateTime : public IDBValueObject
 				m_Value(Value)
 			{ }
 
+		virtual CDateTime AsDateTime (void) const { return m_Value; }
+		virtual CString AsString (void) const { return m_Value.FormatIMF(); }
 		virtual const CDateTime &CastDateTime (void) const { return m_Value; }
 		virtual IDBValueObject *Clone (void) const override { return new CDBValueDateTime(m_Value); }
 		virtual CDBValue::ETypes GetType (void) const override { return CDBValue::typeDateTime; }
@@ -40,7 +42,9 @@ class CDBValueDouble : public IDBValueObject
 				m_rValue(rValue)
 			{ }
 
+		virtual CString AsString (void) const { return strFromDouble(m_rValue); }
 		virtual double CastDouble (void) const override { return m_rValue; }
+		virtual LONGLONG CastLONGLONG (void) const { return (LONGLONG)m_rValue; }
 		virtual IDBValueObject *Clone (void) const override { return new CDBValueDouble(m_rValue); }
 		virtual CDBValue::ETypes GetType (void) const override { return CDBValue::typeDouble; }
 
@@ -55,8 +59,28 @@ class CDBValueStruct : public IDBValueObject
 		CDBValueStruct (const TSortMap<CString, CDBValue> &Src) : m_Table(Src) { }
 
 		virtual IDBValueObject *Clone (void) const override { return new CDBValueStruct(m_Table); }
+		virtual const CDBValue &GetElement (const CString &sKey) const override { CDBValue *pValue = m_Table.GetAt(sKey); return (pValue ? *pValue : CDBValue::Null); }
 		virtual CDBValue::ETypes GetType (void) const override { return CDBValue::typeStruct; }
+		virtual void SetElement (const CString &sKey, const CDBValue &Value) override { m_Table.SetAt(sKey, Value); }
 
 	private:
 		TSortMap<CString, CDBValue> m_Table;
 	};
+
+class CDBValueTimeSpan : public IDBValueObject
+	{
+	public:
+		CDBValueTimeSpan (const CTimeSpan &Value = CTimeSpan()) :
+				m_Value(Value)
+			{ }
+
+		virtual CTimeSpan AsTimeSpan (void) const { return m_Value; }
+		virtual CString AsString (void) const { return m_Value.Format(CString("hh:mm:ss")); }
+		virtual LONGLONG CastLONGLONG (void) const { return (LONGLONG)m_Value.Milliseconds64(); }
+		virtual IDBValueObject *Clone (void) const override { return new CDBValueTimeSpan(m_Value); }
+		virtual CDBValue::ETypes GetType (void) const override { return CDBValue::typeTimeSpan; }
+
+	private:
+		CTimeSpan m_Value;
+	};
+

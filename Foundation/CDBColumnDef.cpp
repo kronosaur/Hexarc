@@ -19,3 +19,14 @@ CDBColumnDef::CDBColumnDef (const CString &sID, CDBValue::ETypes iType, int iOrd
 	m_iDisplayType = iType;
 	m_sDisplayName = sID;
 	}
+
+void CDBColumnDef::SetID (const CString &sID)
+
+//	SetID
+//
+//	Sets the column ID.
+
+	{
+	m_sID = strToLower(sID);
+	m_sName = sID;
+	}

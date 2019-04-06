@@ -47,6 +47,10 @@ void CFoundation::Shutdown (void)
 		return;
 
 	WSACleanup();
+
+	if (m_bCOMInitialized)
+		::CoUninitialize();
+
 	m_bInitialized = false;
 	}
 
@@ -70,6 +74,8 @@ bool CFoundation::Startup (DWORD dwFlags, CString *retsError)
 			if (retsError) *retsError = ERR_CANT_INITIALIZE_COM;
 			return false;
 			}
+
+		m_bCOMInitialized = true;
 		}
 
 	//	Initialize winsock

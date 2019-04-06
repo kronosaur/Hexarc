@@ -23,7 +23,13 @@ bool CDBTable::AddCol (const CDBColumnDef &ColDef)
 	if (m_Rows.GetCount() == 0)
 		{
 		m_Cols.Insert(ColDef);
-		InitColIndex();
+
+		//	Make sure the ordinal matches. We need to do this because we use the
+		//	ordinals when writing back to OLEDB.
+
+		m_Cols[m_Cols.GetCount() - 1].SetOrdinal(m_Cols.GetCount());
+
+		InvalidateColIndex();
 		}
 
 	//	Otherwise, we need to move data around.
@@ -75,11 +81,35 @@ int CDBTable::FindColByName (const CString &sName) const
 //	column, we return -1.
 
 	{
+	InitColIndex();
+
 	int *pCol = m_ColIndex.GetAt(strToLower(sName))	;
 	if (pCol == NULL)
 		return -1;
 
 	return *pCol;
+	}
+
+bool CDBTable::FindColsByName (const TArray<CString> &Names, TArray<int> &retIndices) const
+
+//	FindColsByName
+//
+//	Looks up all the column names and returns an array with column indices.
+//	We return TRUE if all names were found.
+
+	{
+	retIndices.DeleteAll();
+	retIndices.InsertEmpty(Names.GetCount());
+
+	bool bAllFound = true;
+	for (int i = 0; i < Names.GetCount(); i++)
+		{
+		retIndices[i] = FindColByName(Names[i]);
+		if (retIndices[i] == -1)
+			bAllFound = false;
+		}
+
+	return bAllFound;
 	}
 
 const CDBValue &CDBTable::GetField (int iCol, int iRow) const
@@ -113,20 +143,54 @@ CDBValue *CDBTable::GetField (int iCol, int iRow)
 	return &m_Rows[iRow * GetColCount() + iCol];
 	}
 
-void CDBTable::InitColIndex (void)
+void CDBTable::InitColIndex (void) const
 
 //	InitColIndex
 //
 //	Initialize the column name index.
 
 	{
-	int i;
+	if (m_bColIndexValid)
+		return;
 
 	m_ColIndex.DeleteAll();
-	for (i = 0; i < m_Cols.GetCount(); i++)
+	for (int i = 0; i < m_Cols.GetCount(); i++)
 		{
-		m_ColIndex.Insert(strToLower(m_Cols[i].GetName()), i);
+		m_ColIndex.Insert(m_Cols[i].GetID(), i);
+
+		//	See if we should add display name
+
+		CString sDisplayName = strToLower(m_Cols[i].GetDisplayName());
+		if (!sDisplayName.IsEmpty() && !strEquals(sDisplayName, m_Cols[i].GetID()))
+			m_ColIndex.Insert(m_Cols[i].GetDisplayName(), i);
 		}
+
+	m_bColIndexValid = true;
+	}
+
+void CDBTable::SetColumnDefs (const TArray<CDBColumnDef> &Cols)
+
+//	SetColumnDefs
+//
+//	Set column definitions.
+
+	{
+	if (GetRowCount() != 0)
+		{
+		//	Not Yet Implemented
+		ASSERT(false);
+		return;
+		}
+
+	m_Cols = Cols;
+
+	//	Fix up the ordinals. The ordinal is used in OLEDB, so we need it to 
+	//	match.
+
+	for (int i = 0; i < m_Cols.GetCount(); i++)
+		m_Cols[i].SetOrdinal(i + 1);
+
+	InvalidateColIndex(); 
 	}
 
 bool CDBTable::SetField (int iCol, int iRow, const CDBValue &Value)
@@ -144,3 +208,17 @@ bool CDBTable::SetField (int iCol, int iRow, const CDBValue &Value)
 	*pField = Value;
 	return true;
 	}
+
+void CDBTable::TakeHandoff (CDBTable &Src)
+
+//	TakeHandoff
+//
+//	Take handoff
+
+	{
+	m_Cols.TakeHandoff(Src.m_Cols);
+	m_Rows.TakeHandoff(Src.m_Rows);
+	m_bColIndexValid = Src.m_bColIndexValid;
+	m_ColIndex.TakeHandoff(Src.m_ColIndex);
+	}
+

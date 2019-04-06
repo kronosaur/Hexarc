@@ -287,6 +287,14 @@ template <class KEY, class VALUE> class TSortMap
 			*pValue = value;
 			}
 
+		void TakeHandoff (TSortMap<KEY, VALUE> &Src)
+			{
+			m_iOrder = Src.m_iOrder;
+			m_Index.TakeHandoff(Src.m_Index);
+			m_Array.TakeHandoff(Src.m_Array);
+			m_Free.TakeHandoff(Src.m_Free);
+			}
+
 		//	Atom helper functions
 
 		void atom_Delete (DWORD dwAtom)

@@ -24,6 +24,18 @@
 #include "stdafx.h"
 #include "DBValueObjectImpl.h"
 
+DECLARE_CONST_STRING(TYPE_ARRAY,					"array");
+DECLARE_CONST_STRING(TYPE_DATE_TIME,				"dateTime");
+DECLARE_CONST_STRING(TYPE_DOUBLE_NAME,				"double");
+DECLARE_CONST_STRING(TYPE_INT32,					"int32");
+DECLARE_CONST_STRING(TYPE_INT64,					"int64");
+DECLARE_CONST_STRING(TYPE_NIL,						"nil");
+DECLARE_CONST_STRING(TYPE_STRING_NAME,				"string");
+DECLARE_CONST_STRING(TYPE_STRUCT,					"struct");
+DECLARE_CONST_STRING(TYPE_TIME_SPAN,				"timeSpan");
+DECLARE_CONST_STRING(TYPE_TRUE,						"true");
+DECLARE_CONST_STRING(TYPE_UNKNOWN,					"unknown");
+
 const CDBValue CDBValue::Null;
 
 CDBValue::CDBValue (ETypes iType)
@@ -71,6 +83,17 @@ CDBValue::CDBValue (ETypes iType)
 		}
 	}
 
+CDBValue::CDBValue (bool bValue)
+
+//	CDBValue constructo
+
+	{
+	if (bValue)
+		m_dwData = SPECIAL_TRUE;
+	else
+		m_dwData = 0;
+	}
+
 CDBValue::CDBValue (const CString &sValue)
 
 //	CDBValue constructor
@@ -85,6 +108,14 @@ CDBValue::CDBValue (const CDateTime &Value)
 
 	{
 	m_dwData = EncodeObjectPtr(new CDBValueDateTime(Value));
+	}
+
+CDBValue::CDBValue (const CTimeSpan &Value)
+
+//	CDBValue constructor
+
+	{
+	m_dwData = EncodeObjectPtr(new CDBValueTimeSpan(Value));
 	}
 
 CDBValue::CDBValue (int iValue)
@@ -125,6 +156,9 @@ CDBValue::operator double () const
 	{
 	switch (DecodeDiscriminator1(m_dwData))
 		{
+		case TYPE_INT_32:
+			return (double)DecodeInt32(m_dwData);
+			
 		case TYPE_OBJECT:
 			{
 			IDBValueObject *pObj = DecodeObject(m_dwData);
@@ -159,7 +193,20 @@ CDBValue::operator LONGLONG () const
 //	Operator const LONGLONG
 
 	{
-	return 0;
+	switch (DecodeDiscriminator1(m_dwData))
+		{
+		case TYPE_INT_32:
+			return (LONGLONG)DecodeInt32(m_dwData);
+			
+		case TYPE_OBJECT:
+			{
+			IDBValueObject *pObj = DecodeObject(m_dwData);
+			return pObj->CastLONGLONG();
+			}
+
+		default:
+			return 0;
+		}
 	}
 
 CDBValue::operator const CString & () const
@@ -171,6 +218,72 @@ CDBValue::operator const CString & () const
 		{
 		case TYPE_STRING:
 			return *(CString *)&m_dwData;
+
+		default:
+			return NULL_STR;
+		}
+	}
+
+CDateTime CDBValue::AsDateTime (void) const
+
+//	AsDateTime
+//
+//	Returns a date time representation.
+
+	{
+	switch (DecodeDiscriminator1(m_dwData))
+		{
+		case TYPE_OBJECT:
+			{
+			IDBValueObject *pObj = DecodeObject(m_dwData);
+			return pObj->AsDateTime();
+			}
+
+		default:
+			return NULL_DATETIME;
+		}
+	}
+
+CTimeSpan CDBValue::AsTimeSpan (void) const
+
+//	AsTimeSpan
+//
+//	Returns a timespan
+
+	{
+	switch (DecodeDiscriminator1(m_dwData))
+		{
+		case TYPE_OBJECT:
+			{
+			IDBValueObject *pObj = DecodeObject(m_dwData);
+			return pObj->AsTimeSpan();
+			}
+
+		default:
+			return CTimeSpan();
+		}
+	}
+
+CString CDBValue::AsString (void) const
+
+//	AsString
+//
+//	Return a string representation.
+
+	{
+	switch (DecodeDiscriminator1(m_dwData))
+		{
+		case TYPE_INT_32:
+			return strFromInt(DecodeInt32(m_dwData));
+
+		case TYPE_STRING:
+			return *(CString *)&m_dwData;
+
+		case TYPE_OBJECT:
+			{
+			IDBValueObject *pObj = DecodeObject(m_dwData);
+			return pObj->AsString();
+			}
 
 		default:
 			return NULL_STR;
@@ -206,6 +319,321 @@ void CDBValue::CleanUp (void)
 			break;
 			}
 		}
+	}
+
+CDBValue::ETypes CDBValue::Coerce (const CDBValue &Value1, const CDBValue &Value2)
+
+//	Coerce
+//
+//	Coerce types when combining in a binary operation.
+
+	{
+	ETypes iType1 = Value1.GetType();
+	ETypes iType2 = Value2.GetType();
+	if (iType1 == iType2)
+		return iType1;
+
+	switch (iType1)
+		{
+		case typeNil:
+			return (iType2 == typeTrue ? typeTrue : typeNil);
+
+		case typeTrue:
+			switch (iType2)
+				{
+				case typeNil:
+					return typeTrue;
+
+				default:
+					return iType2;
+				}
+
+		case typeInt32:
+			switch (iType2)
+				{
+				case typeTrue:
+					return typeInt32;
+
+				default:
+					return iType2;
+				}
+
+		case typeInt64:
+			switch (iType2)
+				{
+				case typeTrue:
+				case typeInt32:
+					return typeInt64;
+
+				default:
+					return iType2;
+				}
+
+		case typeDouble:
+			switch (iType2)
+				{
+				case typeTrue:
+				case typeInt32:
+				case typeInt64:
+					return typeDouble;
+
+				default:
+					return iType2;
+				}
+
+		case typeTimeSpan:
+			switch (iType2)
+				{
+				case typeTrue:
+				case typeInt32:
+				case typeInt64:
+				case typeDouble:
+					return typeTimeSpan;
+
+				default:
+					return iType2;
+				}
+
+		case typeDateTime:
+			switch (iType2)
+				{
+				case typeTrue:
+				case typeInt32:
+				case typeInt64:
+				case typeDouble:
+				case typeTimeSpan:
+					return typeDateTime;
+
+				default:
+					return iType2;
+				}
+
+		case typeString:
+			switch (iType2)
+				{
+				case typeTrue:
+				case typeInt32:
+				case typeInt64:
+				case typeDouble:
+				case typeTimeSpan:
+				case typeDateTime:
+					return typeString;
+
+				default:
+					return iType2;
+				}
+
+		case typeArray:
+			switch (iType2)
+				{
+				case typeTrue:
+				case typeInt32:
+				case typeInt64:
+				case typeDouble:
+				case typeTimeSpan:
+				case typeDateTime:
+				case typeString:
+					return typeArray;
+
+				default:
+					return iType2;
+				}
+
+		case typeStruct:
+			switch (iType2)
+				{
+				case typeTrue:
+				case typeInt32:
+				case typeInt64:
+				case typeDouble:
+				case typeTimeSpan:
+				case typeDateTime:
+				case typeString:
+				case typeArray:
+					return typeStruct;
+
+				default:
+					return iType2;
+				}
+
+		default:
+			return typeUnknown;
+		}
+	}
+
+int CDBValue::Compare (const CDBValue &Left, const CDBValue &Right, ETypes *retiType)
+
+//	Compare
+//
+//	Compares two values:
+//
+//	 0	if Left == Right
+//	 1	if Left > Right
+//	-1	if Left < Right
+//
+//	-2	if we get an error comparing
+
+	{
+	CDBValue::ETypes iType = CDBValue::Coerce(Left, Right);
+	if (retiType)
+		*retiType = iType;
+
+	switch (iType)
+		{
+		case CDBValue::typeNil:
+		case CDBValue::typeTrue:
+			{
+			//	Nil is always less than everything and only equal to null or "".
+
+			if (Left.IsNil()
+					&& Right.IsNil())
+				return 0;
+			else if (Left.IsNil())
+				return -1;
+			else if (Right.IsNil())
+				return 1;
+
+			//	Otherwise, both values are true
+
+			else
+				return 0;
+			break;
+			}
+
+		case CDBValue::typeInt32:
+			{
+			int iLeft = (int)Left;
+			int iRight = (int)Right;
+			if (iLeft == iRight)
+				return 0;
+			else if (iLeft < iRight)
+				return -1;
+			else
+				return 1;
+			break;
+			}
+
+		case CDBValue::typeDouble:
+			{
+			double rLeft = (double)Left;
+			double rRight = (double)Right;
+			if (rLeft == rRight)
+				return 0;
+			else if (rLeft < rRight)
+				return -1;
+			else
+				return 1;
+			break;
+			}
+
+		case CDBValue::typeString:
+			{
+			if (Left.GetType() == typeString && Right.GetType() == typeString)
+				return ::KeyCompareNoCase((const CString &)Left, (const CString &)Right);
+			else
+				return ::KeyCompareNoCase(Left.AsString(), Right.AsString());
+			}
+
+		case CDBValue::typeDateTime:
+		case CDBValue::typeTimeSpan:
+			{
+			//	DateTimes are coerced to a timespan (to deal with arithmetic), 
+			//	so we need to handle datetime compares here.
+
+			CDateTime LeftDT = Left.AsDateTime();
+			CDateTime RightDT = Right.AsDateTime();
+
+			if (LeftDT.IsValid() && RightDT.IsValid())
+				return ::KeyCompare(LeftDT, RightDT);
+
+			//	We also compare two timespan values here.
+
+			else if (Left.GetType() == typeTimeSpan && Right.GetType() == typeTimeSpan)
+				{
+				LONGLONG iLeft = (LONGLONG)Left;
+				LONGLONG iRight = (LONGLONG)Right;
+				if (iLeft == iRight)
+					return 0;
+				else if (iLeft < iRight)
+					return -1;
+				else
+					return 1;
+				}
+
+			//	Anything else doesn't work
+
+			else
+				{
+				return -2;
+				}
+
+			break;
+			}
+
+		default:
+			return -2;
+		}
+	}
+
+CDBValue CDBValue::ConvertSASDate (double rValue)
+
+//	ConvertSASDate
+//
+//	Converts a SAS date to a CDateTime.
+//	See: http://support.sas.com/documentation/cdl/en/lrcon/62955/HTML/default/viewer.htm#a002200738.htm
+
+	{
+	//	0.0 is considered a null value
+	if (rValue == 0.0)
+		return CDBValue();
+
+	CDateTime Epoch(1, 1, 1960);
+	double rMsecs = rValue * 24.0 * 60.0 * 60.0 * 1000.0;
+	if (rMsecs >= 0.0)
+		{
+		CTimeSpan SinceEpoch((DWORDLONG)rMsecs);
+		return timeAddTime(Epoch, SinceEpoch);
+		}
+	else
+		{
+		CTimeSpan SinceEpoch((DWORDLONG)-rMsecs);
+		return timeSubtractTime(Epoch, SinceEpoch);
+		}
+	}
+
+CDBValue CDBValue::ConvertSASDateTime (double rValue)
+
+//	ConvertSASDateTime
+//
+//	Converts a SAS datetime to a CDateTime.
+
+	{
+	//	0.0 is considered a null value
+	if (rValue == 0.0)
+		return CDBValue();
+
+	CDateTime Epoch(1, 1, 1960);
+	double rMsecs = rValue * 1000.0;
+	if (rMsecs >= 0.0)
+		{
+		CTimeSpan SinceEpoch((DWORDLONG)rMsecs);
+		return timeAddTime(Epoch, SinceEpoch);
+		}
+	else
+		{
+		CTimeSpan SinceEpoch((DWORDLONG)-rMsecs);
+		return timeSubtractTime(Epoch, SinceEpoch);
+		}
+	}
+
+CDBValue CDBValue::ConvertSASTime (double rValue)
+
+//	ConvertSASTime
+//
+//	Converts a SAS time to a CTimeSpan.
+
+	{
+	return CTimeSpan((int)(rValue * 1000.0));
 	}
 
 void CDBValue::Copy (const CDBValue &Src)
@@ -352,5 +780,84 @@ CDBValue::ETypes CDBValue::GetType (void) const
 
 		default:
 			return typeNil;
+		}
+	}
+
+const CDBValue &CDBValue::GetElement (const CString &sKey) const
+
+//	GetElement
+//
+//	Returns an element.
+
+	{
+	switch (DecodeDiscriminator1(m_dwData))
+		{
+		case TYPE_OBJECT:
+			{
+			IDBValueObject *pObj = DecodeObject(m_dwData);
+			return pObj->GetElement(sKey);
+			}
+
+		default:
+			return Null;
+		}
+	}
+
+void CDBValue::SetElement (const CString &sKey, const CDBValue &Value)
+
+//	SetElement
+//
+//	Sets an element.
+
+	{
+	switch (DecodeDiscriminator1(m_dwData))
+		{
+		case TYPE_OBJECT:
+			{
+			IDBValueObject *pObj = DecodeObject(m_dwData);
+			pObj->SetElement(sKey, Value);
+			break;
+			}
+
+		default:
+			break;
+		}
+	}
+
+const CString &CDBValue::TypeName (ETypes iType)
+
+//	TypeName
+//
+//	Returns a typename
+
+	{
+	switch (iType)
+		{
+		case typeNil:
+			return TYPE_NIL;
+
+		case typeTrue:
+			return TYPE_TRUE;
+
+		case typeInt32:
+			return TYPE_INT32;
+
+		case typeInt64:
+			return TYPE_INT64;
+
+		case typeDouble:
+			return TYPE_DOUBLE_NAME;
+
+		case typeString:
+			return TYPE_STRING_NAME;
+
+		case typeArray:
+			return TYPE_ARRAY;
+
+		case typeStruct:
+			return TYPE_STRUCT;
+
+		default:
+			return TYPE_UNKNOWN;
 		}
 	}

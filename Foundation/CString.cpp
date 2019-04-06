@@ -2906,3 +2906,48 @@ int KeyCompare (const LPSTR &pKey1, const LPSTR &pKey2)
 	else
 		return 1;
 	}
+
+int KeyCompareNoCase (const LPSTR &pKey1, int iKey1Len, const LPSTR &pKey2, int iKey2Len)
+
+//	KeyCompareNoCase
+//
+//	Case-insensitive, non-locale specific comparison
+//
+//	0 if Key1 == Key2
+//	1 if Key1 > Key2
+//	-1 if Key1 < Key2
+
+	{
+	char *pPos1 = pKey1;
+	char *pPos2 = pKey2;
+
+	//	Handle NULL
+
+	if (pPos1 == NULL)
+		return ((pPos2 == NULL || *pPos2 == '\0') ? 0 : -1);
+	else if (pPos2 == NULL)
+		return ((*pPos1 == '\0') ? 0 : 1);
+
+	//	Compare
+
+	char *pPos1End = pPos1 + iKey1Len;
+	char *pPos2End = pPos2 + iKey2Len;
+
+	while (pPos1 < pPos1End && pPos2 < pPos2End)
+		{
+		UTF32 dwCodePoint1 = strToLowerChar(strParseUTF8Char(&pPos1, pPos1End));
+		UTF32 dwCodePoint2 = strToLowerChar(strParseUTF8Char(&pPos2, pPos2End));
+
+		if (dwCodePoint1 < dwCodePoint2)
+			return -1;
+		else if (dwCodePoint1 > dwCodePoint2)
+			return 1;
+		}
+
+	if (pPos1 == pPos1End && pPos2 == pPos2End)
+		return 0;
+	else if (pPos1 == pPos1End)
+		return -1;
+	else
+		return 1;
+	}

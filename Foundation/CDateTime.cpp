@@ -221,6 +221,32 @@ CDateTime::CDateTime (int iDay, int iMonth, int iYear, int iHour, int iMinute, i
 	m_Time.wDayOfWeek = 0xffff;
 	}
 
+int CDateTime::Age (const CDateTime &Today, int *retiMonths, int *retiDays) const
+
+//	Age
+//
+//	Compute age in years, months, days.
+//	See: https://stackoverflow.com/questions/453208/how-can-i-calculate-the-age-of-a-person-in-year-month-days
+
+	{
+	int t0 = Year() * 12 + Month() - 1;
+	int t = Today.Year() * 12 + Today.Month() - 1;
+	int dm = t - t0;	//	Months since birthday
+	if (Today.Day() >= Day())
+		{
+		if (retiMonths) *retiMonths = (dm % 12);
+		if (retiDays) *retiDays = Today.Day() - Day();
+		return (dm / 12);
+		}
+
+	dm--;
+	t--;
+
+	if (retiMonths) *retiMonths = (dm % 12);
+	if (retiDays) *retiDays = timeSpan(CDateTime(Day(), (t % 12)+1, t / 12), Today).Days();
+	return (dm / 12);
+	}
+
 CDateTime CDateTime::AsLocalTime (void) const
 
 //	AsLocalTime

@@ -126,6 +126,13 @@ template <class OBJ> class TUniquePtr
 
 		void Delete (void) { Set(NULL); }
 
+		OBJ *Release (void)
+			{
+			OBJ *pOld = m_pPtr;
+			m_pPtr = NULL;
+			return pOld;
+			}
+
 		void Set (OBJ *pPtr)
 			{
 			OBJ *pOld = m_pPtr;

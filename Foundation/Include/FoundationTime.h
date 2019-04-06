@@ -100,6 +100,7 @@ class CDateTime
 		inline void SetMillisecond (int iMillisecond) { m_Time.wMilliseconds = iMillisecond; }
 		void SetTime (int iHour, int iMinute, int iSecond, int iMillisecond = 0);
 
+		int Age (const CDateTime &Today = CDateTime(Today), int *retiMonths = NULL, int *retiDays = NULL) const;
 		CDateTime AsLocalTime (void) const;
 		int Compare (const CDateTime &Src) const;
 		int DayOfWeek (void) const;
@@ -132,11 +133,13 @@ class CTimeSpan
 		CTimeSpan (DWORDLONG dwMilliseconds);
 		CTimeSpan (int iDays, int iMilliseconds);
 
-		inline int Days (void) const { return (int)m_Days; }
-		inline int Seconds (void) const { return (SECONDS_PER_DAY * m_Days) + (m_Milliseconds / 1000); }
-		inline DWORDLONG Seconds64 (void) const { return (SECONDS_PER_DAY * (DWORDLONG)m_Days) + (DWORDLONG)(m_Milliseconds / 1000); }
-		inline int Milliseconds (void) const { return (SECONDS_PER_DAY * 1000 * m_Days) + m_Milliseconds; }
-		inline int MillisecondsSinceMidnight (void) const { return (int)m_Milliseconds; }
+		int Days (void) const { return (int)m_Days; }
+		bool IsEmpty (void) const { return (m_Days == 0 && m_Milliseconds == 0); }
+		int Seconds (void) const { return (SECONDS_PER_DAY * m_Days) + (m_Milliseconds / 1000); }
+		DWORDLONG Seconds64 (void) const { return (SECONDS_PER_DAY * (DWORDLONG)m_Days) + (DWORDLONG)(m_Milliseconds / 1000); }
+		int Milliseconds (void) const { return (SECONDS_PER_DAY * 1000 * m_Days) + m_Milliseconds; }
+		inline DWORDLONG Milliseconds64 (void) const { return ((DWORDLONG)SECONDS_PER_DAY * (DWORDLONG)m_Days * 1000) + (DWORDLONG)m_Milliseconds; }
+		int MillisecondsSinceMidnight (void) const { return (int)m_Milliseconds; }
 
 		CString Format (const CString &sFormat) const;
 

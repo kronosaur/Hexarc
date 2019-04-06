@@ -123,5 +123,6 @@ class CFoundation
 		bool Startup (DWORD dwFlags, CString *retsError = NULL);
 		void Shutdown (void);
 
-		bool m_bInitialized;
+		bool m_bInitialized = false;
+		bool m_bCOMInitialized = false;
 	};

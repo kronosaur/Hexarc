@@ -626,6 +626,19 @@ template <class VALUE> class TQueue
 			return m_pArray[(m_iTail + m_iSize - 1) % m_iSize];
 			}
 
+		void TakeHandoff (TQueue<VALUE> &Src)
+			{
+			if (m_pArray)
+				delete [] m_pArray;
+
+			m_pArray = Src.m_pArray;
+			m_iSize = Src.m_iSize;
+			m_iHead = Src.m_iHead;
+			m_iTail = Src.m_iTail;
+
+			Src.m_pArray = NULL;
+			}
+
 		bool TryEnqueue (const VALUE &Value)
 			{
 			if (((m_iTail + 1) % m_iSize) == m_iHead)
