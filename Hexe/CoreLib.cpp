@@ -1345,8 +1345,12 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 		case STR_CLEAN:
 			{
 			const CString &sString = dLocalEnv.GetElement(0);
+			CString sClean = strClean(sString);
 
-			*retdResult = CDatum(strClean(sString));
+			if (!sClean.IsEmpty())
+				*retdResult = CDatum(sClean);
+			else
+				*retdResult = CDatum();
 
 			return true;
 			}
