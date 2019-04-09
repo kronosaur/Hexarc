@@ -42,6 +42,8 @@ class CDBValueDouble : public IDBValueObject
 				m_rValue(rValue)
 			{ }
 
+		virtual double AsDouble (bool *retbValid = NULL) const override { if (retbValid) *retbValid = true; return m_rValue; }
+		virtual int AsInt32 (bool *retbValid = NULL) const { if (retbValid) *retbValid = true; return (int)m_rValue; }
 		virtual CString AsString (void) const { return strFromDouble(m_rValue); }
 		virtual double CastDouble (void) const override { return m_rValue; }
 		virtual LONGLONG CastLONGLONG (void) const { return (LONGLONG)m_rValue; }

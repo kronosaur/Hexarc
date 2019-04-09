@@ -59,6 +59,8 @@ class CDBValue
 		CDBValue &operator= (CDBValue &&Src) { CleanUp(); m_dwData = Src.m_dwData; Src.m_dwData = 0; return * this; }
 
 		CDateTime AsDateTime (void) const;
+		double AsDouble (bool *retbValid = NULL) const;
+		int AsInt32 (bool *retbValid = NULL) const;
 		CTimeSpan AsTimeSpan (void) const;
 		CString AsString (void) const;
 		const CDBValue &GetElement (const CString &sKey) const;
@@ -112,6 +114,8 @@ class IDBValueObject
 		virtual ~IDBValueObject (void) { }
 
 		virtual CDateTime AsDateTime (void) const { return NULL_DATETIME; }
+		virtual double AsDouble (bool *retbValid = NULL) const { if (retbValid) *retbValid = false; return 0.0; }
+		virtual int AsInt32 (bool *retbValid = NULL) const { if (retbValid) *retbValid = false; return 0; }
 		virtual CTimeSpan AsTimeSpan (void) const { return CTimeSpan(); }
 		virtual CString AsString (void) const { return NULL_STR; }
 		virtual const CDateTime &CastDateTime (void) const { return NULL_DATETIME; }

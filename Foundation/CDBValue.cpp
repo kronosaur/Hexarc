@@ -244,6 +244,86 @@ CDateTime CDBValue::AsDateTime (void) const
 		}
 	}
 
+double CDBValue::AsDouble (bool *retbValid) const
+
+//	AsDouble
+//
+//	Return as a double.
+
+	{
+	switch (DecodeDiscriminator1(m_dwData))
+		{
+		case TYPE_INT_32:
+			if (retbValid) *retbValid = true;
+			return (double)DecodeInt32(m_dwData);
+			
+		case TYPE_STRING:
+			{
+			const CString &sValue = *(CString *)&m_dwData;
+			char *pPos = sValue.GetParsePointer();
+			char *pPosEnd = pPos + sValue.GetLength();
+
+			char *pParseEnd;
+			bool bNull;
+			double rValue = strParseDouble(pPos, 0.0, &pParseEnd, &bNull);
+			if (retbValid) *retbValid = (!bNull && pPosEnd == pParseEnd);
+			return rValue;
+			}
+
+		case TYPE_OBJECT:
+			{
+			IDBValueObject *pObj = DecodeObject(m_dwData);
+			return pObj->AsDouble(retbValid);
+			}
+
+		default:
+			{
+			if (retbValid) *retbValid = false;
+			return 0.0;
+			}
+		}
+	}
+
+int CDBValue::AsInt32 (bool *retbValid) const
+
+//	AsInt32
+//
+//	Return as an integer.
+
+	{
+	switch (DecodeDiscriminator1(m_dwData))
+		{
+		case TYPE_INT_32:
+			if (retbValid) *retbValid = true;
+			return DecodeInt32(m_dwData);
+			
+		case TYPE_STRING:
+			{
+			const CString &sValue = *(CString *)&m_dwData;
+			char *pPos = sValue.GetParsePointer();
+			char *pPosEnd = pPos + sValue.GetLength();
+
+			char *pParseEnd;
+			bool bNull;
+			int iValue = strParseInt(pPos, 0, &pParseEnd, &bNull);
+			if (retbValid) *retbValid = (!bNull && pPosEnd == pParseEnd);
+			return iValue;
+			}
+
+		case TYPE_OBJECT:
+			{
+			IDBValueObject *pObj = DecodeObject(m_dwData);
+			return pObj->AsInt32(retbValid);
+			}
+
+		default:
+			{
+			if (retbValid) *retbValid = false;
+			return 0;
+			}
+		}
+	}
+
 CTimeSpan CDBValue::AsTimeSpan (void) const
 
 //	AsTimeSpan

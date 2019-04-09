@@ -231,3 +231,4 @@ class CReaderWriterSemaphore : private CSemaphore
 //	Functions
 
 inline DWORD sysGetCurrentProcessID (void) { return ::GetCurrentProcessId(); }
+inline DWORD sysGetCurrentThreadID (void) { return ::GetCurrentThreadId(); }

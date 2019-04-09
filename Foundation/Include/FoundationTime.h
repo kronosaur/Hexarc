@@ -108,6 +108,7 @@ class CDateTime
 		CString Format (const CString &sFormat) const;
 		CString Format (DateFormats iDateFormat, TimeFormats iTimeFormat) const;
 		CString FormatIMF (void) const;
+		bool HasTime (void) const { return m_Time.wHour || m_Time.wMinute || m_Time.wSecond || m_Time.wMilliseconds; }
 		bool IsValid (void) const;
 		int MillisecondsSinceMidnight (void) const;
 
