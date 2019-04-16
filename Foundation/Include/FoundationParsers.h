@@ -18,6 +18,7 @@ class CCSVParser
 		inline bool HasMore (void) const { return (GetCurChar() != '\0'); }
 		inline bool ParseHeader (CString *retsError) { return ParseRow(m_Header, retsError); }
 		bool ParseRow (TArray<CString> &Row, CString *retsError = NULL);
+		void SetUTF8Format (void) { m_iFormat = formatUTF8; }
 
 	private:
 		enum EFormat

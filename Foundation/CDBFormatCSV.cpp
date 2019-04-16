@@ -19,6 +19,9 @@ bool CDBFormatCSV::Load (IByteStream &Stream, const SOptions &Options, CDBTable 
 	int i;
 	CCSVParser Parser(Stream);
 
+	if (Options.bUseUTF8)
+		Parser.SetUTF8Format();
+
 	//	Parse the header
 
 	if (!Parser.ParseHeader(retsError))
@@ -55,7 +58,7 @@ bool CDBFormatCSV::Load (IByteStream &Stream, const SOptions &Options, CDBTable 
 		if (!Parser.ParseRow(Row, retsError))
 			return false;
 
-		if (Row.GetCount() < Table.GetColCount())
+		if (!Options.bAllowShortRows && Row.GetCount() < Table.GetColCount())
 			{
 			if (retsError) *retsError = ERR_NOT_ENOUGH_COLS_IN_ROW;
 			return false;

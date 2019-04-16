@@ -1044,3 +1044,16 @@ CString GetVersionString (char *pData, WORD *pLangInfo, const CString &sString)
 	else
 		return NULL_STR;
 	}
+
+bool fileSetWorkingDirectory (const CString &sPath)
+
+//	fileSetWorkingDirectory
+//
+//	Sets the current working directory for the process.
+
+	{
+	if (!::SetCurrentDirectory(CString16(sPath)))
+		return false;
+
+	return true;
+	}

@@ -24,17 +24,17 @@
 #include "stdafx.h"
 #include "DBValueObjectImpl.h"
 
-DECLARE_CONST_STRING(TYPE_ARRAY,					"array");
-DECLARE_CONST_STRING(TYPE_DATE_TIME,				"dateTime");
-DECLARE_CONST_STRING(TYPE_DOUBLE_NAME,				"double");
-DECLARE_CONST_STRING(TYPE_INT32,					"int32");
-DECLARE_CONST_STRING(TYPE_INT64,					"int64");
-DECLARE_CONST_STRING(TYPE_NIL,						"nil");
-DECLARE_CONST_STRING(TYPE_STRING_NAME,				"string");
-DECLARE_CONST_STRING(TYPE_STRUCT,					"struct");
-DECLARE_CONST_STRING(TYPE_TIME_SPAN,				"timeSpan");
-DECLARE_CONST_STRING(TYPE_TRUE,						"true");
-DECLARE_CONST_STRING(TYPE_UNKNOWN,					"unknown");
+DECLARE_CONST_STRING(TYPE_NAME_ARRAY,				"array");
+DECLARE_CONST_STRING(TYPE_NAME_DATE_TIME,			"dateTime");
+DECLARE_CONST_STRING(TYPE_NAME_DOUBLE,				"double");
+DECLARE_CONST_STRING(TYPE_NAME_INT32,				"int32");
+DECLARE_CONST_STRING(TYPE_NAME_INT64,				"int64");
+DECLARE_CONST_STRING(TYPE_NAME_NIL,					"nil");
+DECLARE_CONST_STRING(TYPE_NAME_STRING,				"string");
+DECLARE_CONST_STRING(TYPE_NAME_STRUCT,				"struct");
+DECLARE_CONST_STRING(TYPE_NAME_TIME_SPAN,			"timeSpan");
+DECLARE_CONST_STRING(TYPE_NAME_TRUE,				"true");
+DECLARE_CONST_STRING(TYPE_NAME_UNKNOWN,				"unknown");
 
 const CDBValue CDBValue::Null;
 
@@ -144,6 +144,18 @@ CDBValue::operator int () const
 		case TYPE_INT_32:
 			return DecodeInt32(m_dwData);
 
+		case TYPE_SPECIAL:
+			{
+			switch (m_dwData)
+				{
+				case SPECIAL_TRUE:
+					return 1;
+
+				default:
+					return 0;
+				}
+			}
+
 		default:
 			return 0;
 		}
@@ -156,13 +168,22 @@ CDBValue::operator double () const
 	{
 	switch (DecodeDiscriminator1(m_dwData))
 		{
-		case TYPE_INT_32:
-			return (double)DecodeInt32(m_dwData);
-			
 		case TYPE_OBJECT:
 			{
 			IDBValueObject *pObj = DecodeObject(m_dwData);
 			return pObj->CastDouble();
+			}
+
+		case TYPE_SPECIAL_60:
+			{
+			switch (DecodeDiscriminator2(m_dwData))
+				{
+				case TYPE_INT_32:
+					return (double)DecodeInt32(m_dwData);
+
+				default:
+					return 0.0;
+				}
 			}
 
 		default:
@@ -195,13 +216,22 @@ CDBValue::operator LONGLONG () const
 	{
 	switch (DecodeDiscriminator1(m_dwData))
 		{
-		case TYPE_INT_32:
-			return (LONGLONG)DecodeInt32(m_dwData);
-			
 		case TYPE_OBJECT:
 			{
 			IDBValueObject *pObj = DecodeObject(m_dwData);
 			return pObj->CastLONGLONG();
+			}
+
+		case TYPE_SPECIAL_60:
+			{
+			switch (DecodeDiscriminator2(m_dwData))
+				{
+				case TYPE_INT_32:
+					return (LONGLONG)DecodeInt32(m_dwData);
+
+				default:
+					return 0;
+				}
 			}
 
 		default:
@@ -253,10 +283,6 @@ double CDBValue::AsDouble (bool *retbValid) const
 	{
 	switch (DecodeDiscriminator1(m_dwData))
 		{
-		case TYPE_INT_32:
-			if (retbValid) *retbValid = true;
-			return (double)DecodeInt32(m_dwData);
-			
 		case TYPE_STRING:
 			{
 			const CString &sValue = *(CString *)&m_dwData;
@@ -276,6 +302,20 @@ double CDBValue::AsDouble (bool *retbValid) const
 			return pObj->AsDouble(retbValid);
 			}
 
+		case TYPE_SPECIAL_60:
+			{
+			switch (DecodeDiscriminator2(m_dwData))
+				{
+				case TYPE_INT_32:
+					if (retbValid) *retbValid = true;
+					return (double)DecodeInt32(m_dwData);
+
+				default:
+					if (retbValid) *retbValid = false;
+					return 0.0;
+				}
+			}
+
 		default:
 			{
 			if (retbValid) *retbValid = false;
@@ -293,10 +333,6 @@ int CDBValue::AsInt32 (bool *retbValid) const
 	{
 	switch (DecodeDiscriminator1(m_dwData))
 		{
-		case TYPE_INT_32:
-			if (retbValid) *retbValid = true;
-			return DecodeInt32(m_dwData);
-			
 		case TYPE_STRING:
 			{
 			const CString &sValue = *(CString *)&m_dwData;
@@ -314,6 +350,34 @@ int CDBValue::AsInt32 (bool *retbValid) const
 			{
 			IDBValueObject *pObj = DecodeObject(m_dwData);
 			return pObj->AsInt32(retbValid);
+			}
+
+		case TYPE_SPECIAL_60:
+			{
+			switch (DecodeDiscriminator2(m_dwData))
+				{
+				case TYPE_INT_32:
+					if (retbValid) *retbValid = true;
+					return DecodeInt32(m_dwData);
+
+				case TYPE_SPECIAL:
+					{
+					switch (m_dwData)
+						{
+						case SPECIAL_TRUE:
+							if (retbValid) *retbValid = true;
+							return 1;
+
+						default:
+							if (retbValid) *retbValid = false;
+							return 0;
+						}
+					}
+			
+				default:
+					if (retbValid) *retbValid = false;
+					return 0;
+				}
 			}
 
 		default:
@@ -353,9 +417,6 @@ CString CDBValue::AsString (void) const
 	{
 	switch (DecodeDiscriminator1(m_dwData))
 		{
-		case TYPE_INT_32:
-			return strFromInt(DecodeInt32(m_dwData));
-
 		case TYPE_STRING:
 			return *(CString *)&m_dwData;
 
@@ -363,6 +424,30 @@ CString CDBValue::AsString (void) const
 			{
 			IDBValueObject *pObj = DecodeObject(m_dwData);
 			return pObj->AsString();
+			}
+
+		case TYPE_SPECIAL_60:
+			{
+			switch (DecodeDiscriminator2(m_dwData))
+				{
+				case TYPE_INT_32:
+					return strFromInt(DecodeInt32(m_dwData));
+
+				case TYPE_SPECIAL:
+					{
+					switch (m_dwData)
+						{
+						case SPECIAL_TRUE:
+							return TYPE_NAME_TRUE;
+
+						default:
+							return NULL_STR;
+						}
+					}
+			
+				default:
+					return NULL_STR;
+				}
 			}
 
 		default:
@@ -401,22 +486,23 @@ void CDBValue::CleanUp (void)
 		}
 	}
 
-CDBValue::ETypes CDBValue::Coerce (const CDBValue &Value1, const CDBValue &Value2)
+CDBValue::ETypes CDBValue::Coerce (ETypes iType1, ETypes iType2)
 
 //	Coerce
 //
 //	Coerce types when combining in a binary operation.
 
 	{
-	ETypes iType1 = Value1.GetType();
-	ETypes iType2 = Value2.GetType();
 	if (iType1 == iType2)
 		return iType1;
 
 	switch (iType1)
 		{
+		//	In a binary operation, nil always coerces to the other type. For
+		//	example, 1 + nil == 1.
+
 		case typeNil:
-			return (iType2 == typeTrue ? typeTrue : typeNil);
+			return iType2;
 
 		case typeTrue:
 			switch (iType2)
@@ -431,6 +517,7 @@ CDBValue::ETypes CDBValue::Coerce (const CDBValue &Value1, const CDBValue &Value
 		case typeInt32:
 			switch (iType2)
 				{
+				case typeNil:
 				case typeTrue:
 					return typeInt32;
 
@@ -441,6 +528,7 @@ CDBValue::ETypes CDBValue::Coerce (const CDBValue &Value1, const CDBValue &Value
 		case typeInt64:
 			switch (iType2)
 				{
+				case typeNil:
 				case typeTrue:
 				case typeInt32:
 					return typeInt64;
@@ -452,6 +540,7 @@ CDBValue::ETypes CDBValue::Coerce (const CDBValue &Value1, const CDBValue &Value
 		case typeDouble:
 			switch (iType2)
 				{
+				case typeNil:
 				case typeTrue:
 				case typeInt32:
 				case typeInt64:
@@ -464,6 +553,7 @@ CDBValue::ETypes CDBValue::Coerce (const CDBValue &Value1, const CDBValue &Value
 		case typeTimeSpan:
 			switch (iType2)
 				{
+				case typeNil:
 				case typeTrue:
 				case typeInt32:
 				case typeInt64:
@@ -477,6 +567,7 @@ CDBValue::ETypes CDBValue::Coerce (const CDBValue &Value1, const CDBValue &Value
 		case typeDateTime:
 			switch (iType2)
 				{
+				case typeNil:
 				case typeTrue:
 				case typeInt32:
 				case typeInt64:
@@ -491,6 +582,7 @@ CDBValue::ETypes CDBValue::Coerce (const CDBValue &Value1, const CDBValue &Value
 		case typeString:
 			switch (iType2)
 				{
+				case typeNil:
 				case typeTrue:
 				case typeInt32:
 				case typeInt64:
@@ -506,6 +598,7 @@ CDBValue::ETypes CDBValue::Coerce (const CDBValue &Value1, const CDBValue &Value
 		case typeArray:
 			switch (iType2)
 				{
+				case typeNil:
 				case typeTrue:
 				case typeInt32:
 				case typeInt64:
@@ -522,6 +615,7 @@ CDBValue::ETypes CDBValue::Coerce (const CDBValue &Value1, const CDBValue &Value
 		case typeStruct:
 			switch (iType2)
 				{
+				case typeNil:
 				case typeTrue:
 				case typeInt32:
 				case typeInt64:
@@ -554,103 +648,203 @@ int CDBValue::Compare (const CDBValue &Left, const CDBValue &Right, ETypes *reti
 //	-2	if we get an error comparing
 
 	{
-	CDBValue::ETypes iType = CDBValue::Coerce(Left, Right);
-	if (retiType)
-		*retiType = iType;
+	CDBValue::ETypes iLeftType = Left.GetType();
+	CDBValue::ETypes iRightType = Right.GetType();
 
-	switch (iType)
+	if (iLeftType == iRightType)
 		{
-		case CDBValue::typeNil:
-		case CDBValue::typeTrue:
+		switch (iLeftType)
 			{
-			//	Nil is always less than everything and only equal to null or "".
-
-			if (Left.IsNil()
-					&& Right.IsNil())
+			case typeNil:
+			case typeTrue:
 				return 0;
-			else if (Left.IsNil())
-				return -1;
-			else if (Right.IsNil())
-				return 1;
 
-			//	Otherwise, both values are true
-
-			else
-				return 0;
-			break;
-			}
-
-		case CDBValue::typeInt32:
-			{
-			int iLeft = (int)Left;
-			int iRight = (int)Right;
-			if (iLeft == iRight)
-				return 0;
-			else if (iLeft < iRight)
-				return -1;
-			else
-				return 1;
-			break;
-			}
-
-		case CDBValue::typeDouble:
-			{
-			double rLeft = (double)Left;
-			double rRight = (double)Right;
-			if (rLeft == rRight)
-				return 0;
-			else if (rLeft < rRight)
-				return -1;
-			else
-				return 1;
-			break;
-			}
-
-		case CDBValue::typeString:
-			{
-			if (Left.GetType() == typeString && Right.GetType() == typeString)
-				return ::KeyCompareNoCase((const CString &)Left, (const CString &)Right);
-			else
-				return ::KeyCompareNoCase(Left.AsString(), Right.AsString());
-			}
-
-		case CDBValue::typeDateTime:
-		case CDBValue::typeTimeSpan:
-			{
-			//	DateTimes are coerced to a timespan (to deal with arithmetic), 
-			//	so we need to handle datetime compares here.
-
-			CDateTime LeftDT = Left.AsDateTime();
-			CDateTime RightDT = Right.AsDateTime();
-
-			if (LeftDT.IsValid() && RightDT.IsValid())
-				return ::KeyCompare(LeftDT, RightDT);
-
-			//	We also compare two timespan values here.
-
-			else if (Left.GetType() == typeTimeSpan && Right.GetType() == typeTimeSpan)
+			case typeInt32:
 				{
-				LONGLONG iLeft = (LONGLONG)Left;
-				LONGLONG iRight = (LONGLONG)Right;
-				if (iLeft == iRight)
+				if ((int)Left == (int)Right)
 					return 0;
-				else if (iLeft < iRight)
-					return -1;
-				else
+				else if ((int)Left > (int)Right)
 					return 1;
+				else
+					return -1;
 				}
 
-			//	Anything else doesn't work
+			case typeDateTime:
+				return ::KeyCompare((const CDateTime &)Left, (const CDateTime &)Right);
 
-			else
+			case typeDouble:
 				{
-				return -2;
+				if (isnan((double)Left))
+					{
+					if (isnan((double)Right))
+						return 0;
+					else
+						return -1;
+					}
+				else if (isnan((double)Right))
+					return 1;
+				else if ((double)Left == (double)Right)
+					return 0;
+				else if ((double)Left > (double)Right)
+					return 1;
+				else
+					return -1;
 				}
 
-			break;
-			}
+			case typeString:
+				return ::KeyCompareNoCase((const CString &)Left, (const CString &)Right);
 
-		default:
+			case typeArray:
+				//	Not yet implemented
+				return -2;
+
+			case typeStruct:
+				//	Not Yet implemented
+				return -2;
+
+			default:
+				return -2;
+			}
+		}
+	else
+		{
+		if (iLeftType == typeNil)
+			{
+			switch (iRightType)
+				{
+				case typeNil:
+					return 0;
+
+				case typeTrue:
+					return -1;
+
+				case typeInt32:
+				case typeDouble:
+				case typeString:
+					//	Nil is always less than everything
+					return -1;
+
+				case typeArray:
+				case typeStruct:
+					//	Not yet implemented
+					return -2;
+
+				default:
+					return -2;
+				}
+			}
+		else if (iRightType == typeNil)
+			{
+			int iResult = Compare(Right, Left);
+			if (iResult == -1)
+				return 1;
+			else if (iResult == 1)
+				return -1;
+			else
+				return iResult;
+			}
+		else if (iLeftType == typeDouble)
+			{
+			switch (iRightType)
+				{
+				case typeTrue:
+					{
+					if (isnan((double)Left))
+						return -1;
+					else if ((double)Left == 1.0)
+						return 0;
+					else if ((double)Left > 1.0)
+						return 1;
+					else
+						return -1;
+					}
+
+				case typeInt32:
+					{
+					double rRightValue = (double)Right;
+					if (isnan((double)Left))
+						return -1;
+					else if ((double)Left == rRightValue)
+						return 0;
+					else if ((double)Left > rRightValue)
+						return 1;
+					else
+						return -1;
+					}
+
+				case typeString:
+					{
+					bool bValid;
+					double rRightValue = Right.AsDouble(&bValid);
+					if (!bValid)
+						return -2;
+					else if (isnan((double)Left))
+						return -1;
+					else if ((double)Left == rRightValue)
+						return 0;
+					else if ((double)Left > rRightValue)
+						return 1;
+					else
+						return -1;
+					}
+
+				default:
+					return -2;
+				}
+			}
+		else if (iRightType == typeDouble)
+			{
+			int iResult = Compare(Right, Left);
+			if (iResult == -1)
+				return 1;
+			else if (iResult == 1)
+				return -1;
+			else
+				return iResult;
+			}
+		else if (iLeftType == typeInt32)
+			{
+			switch (iRightType)
+				{
+				case typeTrue:
+					{
+					if ((int)Left == 1)
+						return 0;
+					else if ((int)Left > 1)
+						return 1;
+					else
+						return -1;
+					}
+
+				case typeString:
+					{
+					bool bValid;
+					int iRightValue = Right.AsInt32(&bValid);
+					if (!bValid)
+						return -2;
+					else if ((int)Left == iRightValue)
+						return 0;
+					else if ((int)Left > iRightValue)
+						return 1;
+					else
+						return -1;
+					}
+
+				default:
+					return -2;
+				}
+			}
+		else if (iRightType == typeInt32)
+			{
+			int iResult = Compare(Right, Left);
+			if (iResult == -1)
+				return 1;
+			else if (iResult == 1)
+				return -1;
+			else
+				return iResult;
+			}
+		else
 			return -2;
 		}
 	}
@@ -914,30 +1108,30 @@ const CString &CDBValue::TypeName (ETypes iType)
 	switch (iType)
 		{
 		case typeNil:
-			return TYPE_NIL;
+			return TYPE_NAME_NIL;
 
 		case typeTrue:
-			return TYPE_TRUE;
+			return TYPE_NAME_TRUE;
 
 		case typeInt32:
-			return TYPE_INT32;
+			return TYPE_NAME_INT32;
 
 		case typeInt64:
-			return TYPE_INT64;
+			return TYPE_NAME_INT64;
 
 		case typeDouble:
-			return TYPE_DOUBLE_NAME;
+			return TYPE_NAME_DOUBLE;
 
 		case typeString:
-			return TYPE_STRING_NAME;
+			return TYPE_NAME_STRING;
 
 		case typeArray:
-			return TYPE_ARRAY;
+			return TYPE_NAME_ARRAY;
 
 		case typeStruct:
-			return TYPE_STRUCT;
+			return TYPE_NAME_STRUCT;
 
 		default:
-			return TYPE_UNKNOWN;
+			return TYPE_NAME_UNKNOWN;
 		}
 	}

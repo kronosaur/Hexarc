@@ -237,3 +237,5 @@ bool filePathDelete (const CString &sPath, DWORD dwFlags = 0);
 
 inline bool fileGetFileList (const CString &sFilespec, DWORD dwFlags, TArray<CString> *retFiles)
 	{ return fileGetFileList(fileGetPath(sFilespec), NULL_STR, fileGetFilename(sFilespec), dwFlags, retFiles); }
+
+bool fileSetWorkingDirectory (const CString &sPath);

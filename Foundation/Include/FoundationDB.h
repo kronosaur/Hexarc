@@ -68,7 +68,8 @@ class CDBValue
 		bool IsNil (void) const { return m_dwData == 0; }
 		void SetElement (const CString &sKey, const CDBValue &Value);
 
-		static ETypes Coerce (const CDBValue &Value1, const CDBValue &Value2);
+		static ETypes Coerce (ETypes iType1, ETypes iType2);
+		static ETypes Coerce (const CDBValue &Value1, const CDBValue &Value2) { return Coerce(Value1.GetType(), Value2.GetType()); }
 		static int Compare (const CDBValue &Left, const CDBValue &Right, ETypes *retiType = NULL);
 		static CDBValue ConvertSASDate (double rValue);
 		static CDBValue ConvertSASDateTime (double rValue);
@@ -193,6 +194,8 @@ class CDBFormatCSV
 	public:
 		struct SOptions
 			{
+			bool bUseUTF8 = false;
+			bool bAllowShortRows = false;
 			};
 
 		static bool Load (IByteStream &Stream, const SOptions &Options, CDBTable &Table, CString *retsError = NULL);
