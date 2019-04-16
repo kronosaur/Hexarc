@@ -186,7 +186,7 @@ const DWORD FORMAT_THOUSAND_SEPARATOR =		0x00000002;
 const DWORD FORMAT_UNSIGNED =				0x00000004;
 CString strFormatInteger (int iValue, int iMinFieldWidth = -1, DWORD dwFlags = 0);
 
-CString strFromDouble (double rValue);
+CString strFromDouble (double rValue, int iDecimals = 17);
 CString strFromInt (int iInteger, bool bSigned = true);
 CString strFromIntOfBase (int iInteger, int iBase, bool bSigned = true, bool bUppercase = false);
 inline bool strIsASCIIAlpha (const char *pPos) { return (*pPos >= 'a' && *pPos <= 'z') || (*pPos >= 'A' && *pPos <= 'Z'); }

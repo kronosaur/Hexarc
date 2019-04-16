@@ -1332,7 +1332,7 @@ CString strFormatInteger (int iValue, int iMinFieldWidth, DWORD dwFlags)
 	return sResult;
 	}
 
-CString strFromDouble (double rValue)
+CString strFromDouble (double rValue, int iDecimals)
 
 //	strFromDouble
 //
@@ -1341,44 +1341,144 @@ CString strFromDouble (double rValue)
 	{
 	CString sResult(_CVTBUFSIZE + 1);
 	char *pPos = sResult.GetParsePointer();
-	if (_gcvt_s(pPos, sResult.GetLength(), rValue, 17) != 0)
-		return STR_NAN;
 
-	//	Figure out how much we wrote
+	//	-1 means we adjust
 
-	int iLen = (int)strlen(pPos);
-
-	//	If we have a '.' followed by nothing, then we need to add a digit.
-	//	JSON and others do not like a number like "2.e-002"
-
-	char *pEdit = pPos;
-	char *pPosEnd = pPos + iLen;
-	while (pEdit < pPosEnd)
+	if (iDecimals <= 0)
 		{
-		if (*pEdit == '.')
+		CStringBuffer Dest;
+
+		//	If necessary adjust decimal output based on the size of the number.
+
+		if (iDecimals == -1)
 			{
-			if (pEdit + 1 == pPosEnd || pEdit[1] == 'e' || pEdit[1] == 'E')
+			double rValueAbs = Abs(rValue);
+
+			if (rValueAbs >= 100000000.0)
 				{
-				char *pSlide = pPosEnd - 1;
-				char *pSlideEnd = pEdit + 1;
+				if (_gcvt_s(pPos, sResult.GetLength(), rValue, 8) != 0)
+					return STR_NAN;
 
-				while (pSlide >= pSlideEnd)
-					pSlide[1] = *pSlide--;
+				//	Figure out how much we wrote
 
-				pEdit[1] = '0';
-
-				pPosEnd++;
-				iLen++;
-				*pPosEnd = '\0';
+				int iLen = (int)strlen(pPos);
+				sResult.SetLength(iLen);
+				return sResult;
 				}
-			break;
+			else if (rValueAbs >= 0.00001)
+				iDecimals = 6;
+			else if (rValueAbs >= 0.000001)
+				iDecimals = 7;
+			else if (rValueAbs >= 0.0000001)
+				iDecimals = 8;
+			else
+				{
+				if (_gcvt_s(pPos, sResult.GetLength(), rValue, 8) != 0)
+					return STR_NAN;
+
+				//	Figure out how much we wrote
+
+				int iLen = (int)strlen(pPos);
+				sResult.SetLength(iLen);
+				return sResult;
+				}
 			}
 
-		pEdit++;
+		int iDec, iSign;
+		if (_fcvt_s(pPos, sResult.GetLength(), rValue, iDecimals, &iDec, &iSign))
+			return STR_NAN;
+
+		char *pSrc = sResult.GetParsePointer();
+
+		//	Now generate the final string based on parameters.
+
+		if (iSign)
+			Dest.WriteChar('-');
+
+		if (iDec <= 0)
+			{
+			Dest.WriteChar('0');
+			Dest.WriteChar('.');
+			if (iDec)
+				Dest.WriteChar('0', -iDec);
+
+			int iLen = (int)strlen(pSrc);
+			if (iLen)
+				{
+				while (iLen > 0 && pSrc[iLen - 1] == '0')
+					iLen--;
+
+				Dest.Write(pSrc, iLen);
+				}
+			else
+				Dest.WriteChar('0');
+			}
+		else
+			{
+			Dest.Write(pSrc, iDec);
+			pSrc += iDec;
+			if (iDecimals > 0)
+				{
+				Dest.WriteChar('.');
+
+				while (iDecimals > 0 && pSrc[iDecimals - 1] == '0')
+					iDecimals--;
+
+				if (iDecimals)
+					Dest.Write(pSrc, iDecimals);
+				else
+					Dest.WriteChar('0');
+				}
+			}
+
+		//	Done
+
+		return CString::CreateFromHandoff(Dest);
 		}
 
-	sResult.SetLength(iLen);
-	return sResult;
+	//	Otherwise, iDecimals to total number of significant digits
+
+	else
+		{
+		if (_gcvt_s(pPos, sResult.GetLength(), rValue, iDecimals) != 0)
+			return STR_NAN;
+
+		//	Figure out how much we wrote
+
+		int iLen = (int)strlen(pPos);
+
+		//	If we have a '.' followed by nothing, then we need to add a digit.
+		//	JSON and others do not like a number like "2.e-002"
+
+		char *pEdit = pPos;
+		char *pPosEnd = pPos + iLen;
+		while (pEdit < pPosEnd)
+			{
+			if (*pEdit == '.')
+				{
+				if (pEdit + 1 == pPosEnd || pEdit[1] == 'e' || pEdit[1] == 'E')
+					{
+					char *pSlide = pPosEnd - 1;
+					char *pSlideEnd = pEdit + 1;
+
+					while (pSlide >= pSlideEnd)
+						pSlide[1] = *pSlide--;
+
+					pEdit[1] = '0';
+
+					pPosEnd++;
+					iLen++;
+					*pPosEnd = '\0';
+					}
+				break;
+				}
+
+			pEdit++;
+			}
+
+		sResult.SetLength(iLen);
+		return sResult;
+		}
 	}
 
 CString strFromInt (int iInteger, bool bSigned)

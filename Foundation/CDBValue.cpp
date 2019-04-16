@@ -285,6 +285,12 @@ double CDBValue::AsDouble (bool *retbValid) const
 		{
 		case TYPE_STRING:
 			{
+			if (m_dwData == 0)
+				{
+				if (retbValid) *retbValid = true;
+				return 0.0;
+				}
+
 			const CString &sValue = *(CString *)&m_dwData;
 			char *pPos = sValue.GetParsePointer();
 			char *pPosEnd = pPos + sValue.GetLength();
@@ -335,6 +341,12 @@ int CDBValue::AsInt32 (bool *retbValid) const
 		{
 		case TYPE_STRING:
 			{
+			if (m_dwData == 0)
+				{
+				if (retbValid) *retbValid = true;
+				return 0;
+				}
+
 			const CString &sValue = *(CString *)&m_dwData;
 			char *pPos = sValue.GetParsePointer();
 			char *pPosEnd = pPos + sValue.GetLength();
@@ -342,8 +354,40 @@ int CDBValue::AsInt32 (bool *retbValid) const
 			char *pParseEnd;
 			bool bNull;
 			int iValue = strParseInt(pPos, 0, &pParseEnd, &bNull);
-			if (retbValid) *retbValid = (!bNull && pPosEnd == pParseEnd);
-			return iValue;
+
+			//	If we didn't find an integer, then this is not valid.
+
+			if (bNull)
+				{
+				if (retbValid) *retbValid = false;
+				return 0;
+				}
+
+			//	If we have a non-null integer but there are more characters, 
+			//	then see if this is a double.
+
+			else if (pPosEnd != pParseEnd)
+				{
+				double rValue = strParseDouble(pPos, 0.0, &pParseEnd, &bNull);
+				if (!bNull && pPosEnd == pParseEnd)
+					{
+					if (retbValid) *retbValid = true;
+					return (int)rValue;
+					}
+				else
+					{
+					if (retbValid) *retbValid = false;
+					return 0;
+					}
+				}
+
+			//	Otherwise, we have a valid integer
+
+			else
+				{
+				if (retbValid) *retbValid = true;
+				return iValue;
+				}
 			}
 
 		case TYPE_OBJECT:
