@@ -1458,7 +1458,7 @@ void CDateTime::SetTime (int iHour, int iMinute, int iSecond, int iMillisecond)
 
 //	CTimeSpan -----------------------------------------------------------------
 
-CTimeSpan::CTimeSpan (void) : m_Days(0), m_Milliseconds(0)
+CTimeSpan::CTimeSpan (void)
 
 //	CTimeSpan constructor
 
@@ -1474,16 +1474,31 @@ CTimeSpan::CTimeSpan (int iMilliseconds)
 	m_Milliseconds = iMilliseconds % (SECONDS_PER_DAY * 1000);
 	}
 
-CTimeSpan::CTimeSpan (DWORDLONG dwMilliseconds)
+CTimeSpan::CTimeSpan (DWORDLONG dwMilliseconds, bool bNegative)
 
 //	CTimeSpan constructor
 
 	{
 	m_Days = (DWORD)(dwMilliseconds / (DWORDLONG)(SECONDS_PER_DAY * 1000));
 	m_Milliseconds = dwMilliseconds % (DWORDLONG)(SECONDS_PER_DAY * 1000);
+	m_bNegative = bNegative;
 	}
 
-CTimeSpan::CTimeSpan (int iDays, int iMilliseconds) : m_Days(iDays), m_Milliseconds(iMilliseconds)
+CTimeSpan::CTimeSpan (int iDays, int iMilliseconds, bool bNegative) : 
+		m_Days(iDays), 
+		m_Milliseconds(iMilliseconds),
+		m_bNegative(bNegative)
+
+//	CTimeSpan constructor
+
+	{
+	}
+
+CTimeSpan::CTimeSpan (const CTimeSpan &Src, bool bNegative) :
+		m_Days(Src.m_Days),
+		m_Milliseconds(Src.m_Milliseconds),
+		m_bNegative(bNegative)
+
 
 //	CTimeSpan constructor
 
@@ -1571,6 +1586,9 @@ CDateTime timeAddTime (const CDateTime &StartTime, const CTimeSpan &Addition)
 //	Adds a timespan to a datetime
 
 	{
+	if (Addition.IsNegative())
+		return timeSubtractTime(StartTime, CTimeSpan(Addition, false));
+
 	int iDaysSince1AD = StartTime.DaysSince1AD();
 	int iMillisecondsSinceMidnight = StartTime.MillisecondsSinceMidnight();
 
@@ -1615,7 +1633,7 @@ CTimeSpan timeSpan (const CDateTime &StartTime, const CDateTime &EndTime)
 	{
 	int iDays = EndTime.DaysSince1AD() - StartTime.DaysSince1AD();
 	if (iDays < 0)
-		return timeSpan(EndTime, StartTime);
+		return CTimeSpan(timeSpan(EndTime, StartTime), true);
 
 	int iStartTime = StartTime.MillisecondsSinceMidnight();
 	int iEndTime = EndTime.MillisecondsSinceMidnight();
@@ -1646,6 +1664,9 @@ CDateTime timeSubtractTime (const CDateTime &StartTime, const CTimeSpan &Subtrac
 //	Subtracts time from datetime
 
 	{
+	if (Subtraction.IsNegative())
+		return timeAddTime(StartTime, CTimeSpan(Subtraction, false));
+
 	int iDaysSince1AD = StartTime.DaysSince1AD();
 	int iMillisecondsSinceMidnight = StartTime.MillisecondsSinceMidnight();
 

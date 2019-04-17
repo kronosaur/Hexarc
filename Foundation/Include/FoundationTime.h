@@ -131,13 +131,15 @@ class CTimeSpan
 	public:
 		CTimeSpan (void);
 		CTimeSpan (int iMilliseconds);
-		CTimeSpan (DWORDLONG dwMilliseconds);
-		CTimeSpan (int iDays, int iMilliseconds);
+		CTimeSpan (DWORDLONG dwMilliseconds, bool bNegative = false);
+		CTimeSpan (int iDays, int iMilliseconds, bool bNegative = false);
+		CTimeSpan (const CTimeSpan &Src, bool bNegative);
 
 		int Days (void) const { return (int)m_Days; }
 		bool IsEmpty (void) const { return (m_Days == 0 && m_Milliseconds == 0); }
+		bool IsNegative (void) const { return m_bNegative; }
 		int Seconds (void) const { return (SECONDS_PER_DAY * m_Days) + (m_Milliseconds / 1000); }
-		DWORDLONG Seconds64 (void) const { return (SECONDS_PER_DAY * (DWORDLONG)m_Days) + (DWORDLONG)(m_Milliseconds / 1000); }
+		DWORDLONG Seconds64 (bool *retbNegative = NULL) const { if (retbNegative) *retbNegative = m_bNegative; return (SECONDS_PER_DAY * (DWORDLONG)m_Days) + (DWORDLONG)(m_Milliseconds / 1000); }
 		int Milliseconds (void) const { return (SECONDS_PER_DAY * 1000 * m_Days) + m_Milliseconds; }
 		inline DWORDLONG Milliseconds64 (void) const { return ((DWORDLONG)SECONDS_PER_DAY * (DWORDLONG)m_Days * 1000) + (DWORDLONG)m_Milliseconds; }
 		int MillisecondsSinceMidnight (void) const { return (int)m_Milliseconds; }
@@ -145,8 +147,9 @@ class CTimeSpan
 		CString Format (const CString &sFormat) const;
 
 	private:
-		DWORD m_Days;
-		DWORD m_Milliseconds;
+		DWORD m_Days = 0;
+		DWORD m_Milliseconds = 0;
+		bool m_bNegative = false;
 	};
 
 CDateTime timeAddTime (const CDateTime &StartTime, const CTimeSpan &Addition);
