@@ -134,6 +134,7 @@ class CDBColumnDef
 		CDBColumnDef (void) { }
 		CDBColumnDef (const CString &sID, CDBValue::ETypes iType, int iOrdinal = -1);
 
+		const CString &GetDesc (void) const { return m_sDesc; }
 		const CString &GetDisplayName (void) const { return m_sDisplayName; }
 		DWORD GetExtra (void) const { return m_dwExtra; }
 		const CString &GetID (void) const { return m_sID; }
@@ -172,16 +173,19 @@ class CDBTable
 		int GetColCount (void) const { return m_Cols.GetCount(); }
 		const CDBValue &GetField (int iCol, int iRow) const;
 		CDBValue *GetField (int iCol, int iRow);
+		const CString &GetName (void) const { return m_sName; }
 		int GetRowCount (void) const { return (GetColCount() > 0 ? m_Rows.GetCount() / GetColCount() : 0); }
 		void GrowToFit (int iRows) { m_Rows.GrowToFit(iRows * GetColCount()); }
 		void SetColumnDefs (const TArray<CDBColumnDef> &Cols);
 		bool SetField (int iCol, int iRow, const CDBValue &Value);
+		void SetName (const CString &sName) { m_sName = sName; }
 		void TakeHandoff (CDBTable &Src);
 
 	private:
 		void InitColIndex (void) const;
 		void InvalidateColIndex (void) { m_bColIndexValid = false; }
 
+		CString m_sName;
 		TArray<CDBColumnDef> m_Cols;
 		TArray<CDBValue> m_Rows;
 
