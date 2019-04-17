@@ -239,6 +239,17 @@ template <class VALUE> class TArray : public CArrayBase
 				}
 			}
 
+		void InsertHandoff (VALUE &Value, int iIndex = -1)
+			{
+			VALUE *pEntry;
+			if (iIndex == -1)
+				pEntry = Insert();
+			else
+				pEntry = InsertAt(iIndex);
+
+			pEntry->TakeHandoff(Value);
+			}
+
 		inline VALUE &Random (void) const
 			{
 			int iCount = GetCount();

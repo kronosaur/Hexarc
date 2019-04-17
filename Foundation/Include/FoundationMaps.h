@@ -287,6 +287,12 @@ template <class KEY, class VALUE> class TSortMap
 			*pValue = value;
 			}
 
+		void SetAtHandoff (const KEY &key, VALUE &value, bool *retbInserted = NULL)
+			{
+			VALUE *pValue = SetAt(key, retbInserted);
+			pValue->TakeHandoff(value);
+			}
+
 		void TakeHandoff (TSortMap<KEY, VALUE> &Src)
 			{
 			m_iOrder = Src.m_iOrder;
