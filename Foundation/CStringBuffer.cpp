@@ -33,6 +33,7 @@ LPSTR CStringBuffer::Handoff (void)
 	char *pString = m_pString;
 	m_pString = NULL;
 	m_iAlloc = 0;
+	Seek(0);
 
 	return pString;
 	}
