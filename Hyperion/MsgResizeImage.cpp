@@ -44,6 +44,8 @@ class CResizeImageSession : public CAeonFileDownloadSession
 		DWORD m_dwNewSize;
 		CString m_sCacheID;
 		CDatum m_dResult;
+
+		bool m_bDebugLog = false;
 	};
 
 void CHyperionEngine::MsgResizeImage (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)
@@ -142,7 +144,8 @@ void CResizeImageSession::OnFileDownloaded (CDatum dFileDesc, CDatum dData)
 	//	Store it in our cache
 
 	m_Engine.GetCache().SetEntry(m_sCacheID, dResult, ModifiedOn);
-	m_Engine.GetProcessCtx()->Log(MSG_LOG_DEBUG, strPattern("Added entry to cache: %s (cache size = %d)", m_sCacheID, (DWORD)m_Engine.GetCache().GetTotalSize()));
+	if (m_bDebugLog)
+		m_Engine.GetProcessCtx()->Log(MSG_LOG_DEBUG, strPattern("Added entry to cache: %s (cache size = %d)", m_sCacheID, (DWORD)m_Engine.GetCache().GetTotalSize()));
 
 	//	Reply to original caller
 
@@ -159,7 +162,8 @@ void CResizeImageSession::OnFileUnmodified (void)
 	//	If the file has not been modified since our cached version, we return 
 	//	our cached version back.
 
-	m_Engine.GetProcessCtx()->Log(MSG_LOG_DEBUG, strPattern("Found entry in cache: %s", m_sCacheID));
+	if (m_bDebugLog)
+		m_Engine.GetProcessCtx()->Log(MSG_LOG_DEBUG, strPattern("Found entry in cache: %s", m_sCacheID));
 	SendMessageReply(MSG_AEON_FILE_DOWNLOAD_DESC, m_dResult);
 	}
 
@@ -167,7 +171,7 @@ bool CResizeImageSession::OnPrepareRequest (CString &sFilePath, SOptions &Option
 
 //	OnPrepareRequest
 //
-//	We're about to request a download from Aeon. This give us a change to 
+//	We're about to request a download from Aeon. This give us a chance to 
 //	modify options, if nessary.
 
 	{
