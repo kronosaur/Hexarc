@@ -11,6 +11,7 @@ class CDBValueArray : public IDBValueObject
 		CDBValueArray (void) { }
 		CDBValueArray (const TArray<CDBValue> &Src) : m_Array(Src) { }
 
+		virtual CString AsString (void) const override;
 		virtual IDBValueObject *Clone (void) const override { return new CDBValueArray(m_Array); }
 		virtual CDBValue::ETypes GetType (void) const override { return CDBValue::typeArray; }
 
@@ -74,6 +75,7 @@ class CDBValueStruct : public IDBValueObject
 		CDBValueStruct (void) { }
 		CDBValueStruct (const TSortMap<CString, CDBValue> &Src) : m_Table(Src) { }
 
+		virtual CString AsString (void) const override;
 		virtual IDBValueObject *Clone (void) const override { return new CDBValueStruct(m_Table); }
 		virtual const CDBValue &GetElement (const CString &sKey) const override { CDBValue *pValue = m_Table.GetAt(sKey); return (pValue ? *pValue : CDBValue::Null); }
 		virtual CDBValue::ETypes GetType (void) const override { return CDBValue::typeStruct; }
