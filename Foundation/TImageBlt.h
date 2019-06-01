@@ -121,13 +121,15 @@ template <class PAINTER, class BLENDER> class TImageBlt
 
 			int xDest = rcDest.left;
 			int yDest = rcDest.top;
-			int cxDest = RectWidth(rcDest);
-			int cyDest = RectHeight(rcDest);
+			int cxDest = ::RectWidth(rcDest);
+			int cyDest = ::RectHeight(rcDest);
 			if (!Dest.AdjustCoords(NULL, NULL, 0, 0, &xDest, &yDest, &cxDest, &cyDest))
 				return;
 
-			int xSrcEnd = xSrc + cxSrc;
-			int ySrcEnd = ySrc + cySrc;
+			int xSrc = (int)rSrcX;
+			int ySrc = (int)rSrcY;
+			int xSrcEnd = (int)(rSrcX + rSrcWidth);
+			int ySrcEnd = (int)(rSrcY + rSrcHeight);
 
 			//	Compute vectors that move us by 1 pixel
 
@@ -323,7 +325,7 @@ template <class PAINTER, class BLENDER> class TImageBlt
 
 			//	Done
 
-			return (RectWidth(*retrcDest) > 0 ) && (RectHeight(*retrcDest) > 0);
+			return (::RectWidth(*retrcDest) > 0 ) && (::RectHeight(*retrcDest) > 0);
 			}
 
 		inline CRGBA32 FILTER (CRGBA32 rgbSrc, CRGBA32 *pDest) const { return m_Painter.Filter(rgbSrc, pDest); }

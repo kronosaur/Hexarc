@@ -51,7 +51,7 @@ class CString
 		static CString Deserialize (IByteStream &Stream);
 		static CString DeserializeJSON (IByteStream &Stream);
 
-		inline operator LPSTR () const { return GetParsePointer(); }
+		operator LPSTR () const { return GetParsePointer(); }
 
 		CString &operator= (LPSTR pStr);
 		CString &operator= (const CString &sStr);
@@ -200,9 +200,9 @@ inline bool strIsWhitespace (const char *pPos) { return strIsWhitespace(*pPos); 
 int strLength (LPCSTR pStr);
 CString strOrdinal (int iOrdinal);
 bool strOverflowsInteger32 (const CString &sValue);
-double strParseDouble (char *pStart, double rNullResult, char **retpEnd = NULL, bool *retbNullValue = NULL);
+double strParseDouble (const char *pStart, double rNullResult, const char **retpEnd = NULL, bool *retbNullValue = NULL);
 int strParseHexChar (char chChar, int iNullResult = 0);
-int strParseInt (char *pStart, int iNullResult = 0, char **retpEnd = NULL, bool *retbNullValue = NULL);
+int strParseInt (const char *pStart, int iNullResult = 0, const char **retpEnd = NULL, bool *retbNullValue = NULL);
 int strParseIntOfBase (char *pStart, int iBase, int iNullResult = 0, char **retpEnd = NULL, bool *retbNullValue = NULL);
 CString strRepeat (char chChar, int iCount);
 bool strStartsWith (const CString &sString, const CString &sPartial);
@@ -228,8 +228,8 @@ inline bool strIsASCIIAlphaNumeric (const char *pPos) { return (strIsASCIIAlpha(
 
 //	Pattern functions
 
-typedef void (*PATTERNHOOKPROC)(LPVOID pCtx, LPSTR &pPos, LPVOID *&pArgs, IByteStream *pStream);
+typedef void (*PATTERNHOOKPROC)(LPVOID pCtx, LPCSTR &pPos, LPVOID *&pArgs, IByteStream *pStream);
 
-CString strPattern (LPSTR pLine, ...);
-CString strPatternEx (LPSTR pLine, PATTERNHOOKPROC pfHook, LPVOID pCtx, ...);
+CString strPattern (LPCSTR pLine, ...);
+CString strPatternEx (LPCSTR pLine, PATTERNHOOKPROC pfHook, LPVOID pCtx, ...);
 

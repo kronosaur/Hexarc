@@ -247,7 +247,7 @@ void ParseAttributeIntegerList (const CString &sValue, TArray<int> *retList)
 	{
 	retList->DeleteAll();
 
-	char *pPos = sValue.GetPointer();
+	const char *pPos = sValue.GetPointer();
 	while (*pPos != '\0')
 		{
 		//	Skip non-numbers

@@ -86,7 +86,7 @@ template <class KEY, class VALUE> class TSortMap
 					return false;
 					}
 
-				int iCompare = m_iOrder * KeyCompare(key, GetKey(iTry));
+				int iCompare = m_iOrder * ::KeyCompare(key, GetKey(iTry));
 				if (iCompare == 0)
 					{
 					if (retiPos)
@@ -210,7 +210,7 @@ template <class KEY, class VALUE> class TSortMap
 
 				else
 					{
-					int iCompare = m_iOrder * KeyCompare(Src.GetKey(iSrcPos), GetKey(iDestPos));
+					int iCompare = m_iOrder * ::KeyCompare(Src.GetKey(iSrcPos), GetKey(iDestPos));
 
 					//	If the same key then we replace
 

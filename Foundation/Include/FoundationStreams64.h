@@ -18,17 +18,17 @@ class IByteStream64
 		virtual DWORDLONG GetStreamLength (void) = 0;
 		virtual void Read (void *pData, DWORDLONG dwLength) = 0;
 		virtual void Seek (DWORDLONG dwPos, bool bFromEnd = false) = 0;
-		virtual void Write (void *pData, DWORDLONG dwLength) = 0;
+		virtual void Write (const void *pData, DWORDLONG dwLength) = 0;
 
 		//	Helpers
 
 		inline bool HasMore (void) { return (GetPos() < GetStreamLength()); }
 		char ReadChar (void);
 
-		inline void Write (void *pData, int iLength) { if (iLength > 0) Write(pData, (DWORDLONG)iLength); }
-		inline void Write (void *pData, DWORD dwLength) { Write(pData, (DWORDLONG)dwLength); }
-		inline void Write (void *pData, std::ptrdiff_t iLength) { if (iLength > 0) Write(pData, (DWORDLONG)iLength); }
-		inline void Write (const CString &sString) { Write((LPSTR)sString, (DWORDLONG)sString.GetLength()); }
+		void Write (const void *pData, int iLength) { if (iLength > 0) Write(pData, (DWORDLONG)iLength); }
+		void Write (const void *pData, DWORD dwLength) { Write(pData, (DWORDLONG)dwLength); }
+		void Write (const void *pData, std::ptrdiff_t iLength) { if (iLength > 0) Write(pData, (DWORDLONG)iLength); }
+		void Write (const CString &sString) { Write((LPSTR)sString, (DWORDLONG)sString.GetLength()); }
 		void Write (IByteStream &Stream, int iLength);
 		void Write (IByteStream64 &Stream, DWORDLONG dwLength);
 		void Write (IMemoryBlock &Block);
@@ -58,7 +58,7 @@ class CMemoryBlockImpl64 : public IMemoryBlock64
 		virtual DWORDLONG GetStreamLength (void) override { return GetLength(); }
 		virtual void Read (void *pData, DWORDLONG dwLength) override;
 		virtual void Seek (DWORDLONG dwPos, bool bFromEnd = false) override;
-		virtual void Write (void *pData, DWORDLONG dwLength) override;
+		virtual void Write (const void *pData, DWORDLONG dwLength) override;
 
 		//	We want to inherit all the overloaded versions of Write.
 

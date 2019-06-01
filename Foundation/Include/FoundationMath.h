@@ -57,7 +57,7 @@ class CIPInteger
 		int Compare (const CIPInteger &Src) const;
 		bool FitsAsInteger64Unsigned (void) const;
 		DWORD GetSize (void) const;
-		void InitFromBytes (IMemoryBlock &Data);
+		void InitFromBytes (const IMemoryBlock &Data);
 		void InitFromString (const CString &sString);
 		bool IsEmpty (void) const;
 		inline bool IsNegative (void) const { return m_bNegative; }

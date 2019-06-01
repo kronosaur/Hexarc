@@ -292,10 +292,10 @@ double CDBValue::AsDouble (bool *retbValid) const
 				}
 
 			const CString &sValue = *(CString *)&m_dwData;
-			char *pPos = sValue.GetParsePointer();
-			char *pPosEnd = pPos + sValue.GetLength();
+			const char *pPos = sValue.GetParsePointer();
+			const char *pPosEnd = pPos + sValue.GetLength();
 
-			char *pParseEnd;
+			const char *pParseEnd;
 			bool bNull;
 			double rValue = strParseDouble(pPos, 0.0, &pParseEnd, &bNull);
 			if (retbValid) *retbValid = (!bNull && pPosEnd == pParseEnd);
@@ -348,10 +348,10 @@ int CDBValue::AsInt32 (bool *retbValid) const
 				}
 
 			const CString &sValue = *(CString *)&m_dwData;
-			char *pPos = sValue.GetParsePointer();
-			char *pPosEnd = pPos + sValue.GetLength();
+			const char *pPos = sValue.GetParsePointer();
+			const char *pPosEnd = pPos + sValue.GetLength();
 
-			char *pParseEnd;
+			const char *pParseEnd;
 			bool bNull;
 			int iValue = strParseInt(pPos, 0, &pParseEnd, &bNull);
 

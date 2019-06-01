@@ -269,7 +269,7 @@ void CFile::Unlock (int iPos, int iLength)
 		throw CFileException(errFail, m_sFilespec, ::GetLastError(), strPattern(ERR_UNLOCK, m_sFilespec, ::GetLastError()));
 	}
 
-int CFile::Write (void *pData, int iLength)
+int CFile::Write (const void *pData, int iLength)
 
 //	Write
 //

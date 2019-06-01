@@ -44,11 +44,11 @@ class CFile : public IByteStream
 		void Unlock (int iPos, int iLength);
 
 		//	IByteStream virtuals
-		virtual int GetPos (void);
-		virtual int GetStreamLength (void);
-		virtual int Read (void *pData, int iLength);
-		virtual void Seek (int iPos, bool bFromEnd = false);
-		virtual int Write (void *pData, int iLength);
+		virtual int GetPos (void) override;
+		virtual int GetStreamLength (void) override;
+		virtual int Read (void *pData, int iLength) override;
+		virtual void Seek (int iPos, bool bFromEnd = false) override;
+		virtual int Write (const void *pData, int iLength) override;
 
 		//	We want to inherit all the overloaded versions of Write.
 
@@ -148,11 +148,11 @@ class CFileMultiplexer : public IByteStream
 		bool OpenMirror (const CString &sFilespec, CString *retsError = NULL);
 
 		//	IByteStream virtuals
-		virtual int GetPos (void) { return m_Primary.GetPos(); }
-		virtual int GetStreamLength (void) { return m_Primary.GetStreamLength(); }
-		virtual int Read (void *pData, int iLength);
-		virtual void Seek (int iPos, bool bFromEnd = false);
-		virtual int Write (void *pData, int iLength);
+		virtual int GetPos (void) override { return m_Primary.GetPos(); }
+		virtual int GetStreamLength (void) override { return m_Primary.GetStreamLength(); }
+		virtual int Read (void *pData, int iLength) override;
+		virtual void Seek (int iPos, bool bFromEnd = false) override;
+		virtual int Write (const void *pData, int iLength) override;
 
 		//	Helpers	(Needed because IByteStream::Write is hidden when we
 		//	have the derived class)

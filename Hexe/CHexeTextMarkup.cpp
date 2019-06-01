@@ -135,8 +135,8 @@ CString CHexeTextMarkup::FormatString (CDatum dArgList)
 	//	Compose
 
 	CStringBuffer Stream;
-	LPSTR pPos = sPattern.GetParsePointer();
-	LPSTR pRunStart;
+	LPCSTR pPos = sPattern.GetParsePointer();
+	LPCSTR pRunStart;
 	int iRunLength;
 	int iLastInteger = 1;
 

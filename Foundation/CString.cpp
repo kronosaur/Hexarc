@@ -931,7 +931,8 @@ CString strCapitalize (const CString &sString)
 	if (iOldLen == iNewLen)
 		{
 		CString sResult = sString;
-		strEncodeUTF8Char(dwUpper, CBuffer(sResult.GetParsePointer(), sResult.GetLength(), false));
+		CBuffer Buffer(sResult.GetParsePointer(), sResult.GetLength(), false);
+		strEncodeUTF8Char(dwUpper, Buffer);
 		return sResult;
 		}
 
@@ -1591,7 +1592,7 @@ bool strIsInt (const CString &sString, int *retiValue)
 
 	{
 	bool bFailed;
-	char *pPos = sString.GetParsePointer();
+	const char *pPos = sString.GetParsePointer();
 	int iValue = strParseInt(pPos, 0, &pPos, &bFailed);
 	if (bFailed || *pPos != '\0')
 		return false;
@@ -1711,14 +1712,14 @@ bool strOverflowsInteger32 (const CString &sValue)
 		}
 	}
 
-double strParseDouble (char *pStart, double rNullResult, char **retpEnd, bool *retbNullValue)
+double strParseDouble (const char *pStart, double rNullResult, const char **retpEnd, bool *retbNullValue)
 
 //  strParseDouble
 //
 //  Parses a double precision value.
 
     {
-    char *pPos = pStart;
+    const char *pPos = pStart;
 
     //  Skip any leading whitespace
 
@@ -1728,7 +1729,7 @@ double strParseDouble (char *pStart, double rNullResult, char **retpEnd, bool *r
     //  We copy what we've got to a buffer, because we're going to use atof.
 
     const int MAX_SIZE = 64;
-    char *pSrc = pPos;
+    const char *pSrc = pPos;
     char szBuffer[MAX_SIZE];
     char *pDest = szBuffer;
     char *pDestEnd = szBuffer + MAX_SIZE;
@@ -1805,7 +1806,7 @@ int strParseHexChar (char chChar, int iNullResult)
 		}
 	}
 
-int strParseInt (char *pStart, int iNullResult, char **retpEnd, bool *retbNullValue)
+int strParseInt (const char *pStart, int iNullResult, const char **retpEnd, bool *retbNullValue)
 
 //	strParseInt
 //
@@ -1815,7 +1816,7 @@ int strParseInt (char *pStart, int iNullResult, char **retpEnd, bool *retbNullVa
 //	retbNullValue: Returns true if there are no valid numbers.
 
 	{
-	char *pPos;
+	const char *pPos;
 	bool bNegative;
 	bool bFoundNumber;
 	bool bHex;
@@ -2095,7 +2096,7 @@ int strParseIntOfBase (char *pStart, int iBase, int iNullResult, char **retpEnd,
 //	p	If the last integer argument not 1, then 's' is substituted.
 //		This is used to pluralize words in the English language.
 
-CString strPatternEngine (LPSTR pPattern, LPVOID *pArgs, PATTERNHOOKPROC pfHook, LPVOID pCtx)
+CString strPatternEngine (LPCSTR pPattern, LPVOID *pArgs, PATTERNHOOKPROC pfHook, LPVOID pCtx)
 
 //	strPatternEngine
 //
@@ -2103,8 +2104,8 @@ CString strPatternEngine (LPSTR pPattern, LPVOID *pArgs, PATTERNHOOKPROC pfHook,
 
 	{
 	CMemoryBuffer Stream(4096);
-	LPSTR pPos = pPattern;
-	LPSTR pRunStart;
+	LPCSTR pPos = pPattern;
+	LPCSTR pRunStart;
 	int iRunLength;
 	int iLastInteger = 1;
 
@@ -2264,7 +2265,7 @@ CString strPatternEngine (LPSTR pPattern, LPVOID *pArgs, PATTERNHOOKPROC pfHook,
 	return CString(Stream.GetPointer(), Stream.GetLength());
 	}
 
-CString strPattern (char *pLine, ...)
+CString strPattern (LPCSTR pLine, ...)
 
 //	strPattern
 //
@@ -2276,7 +2277,7 @@ CString strPattern (char *pLine, ...)
 	return strPatternEngine(pLine, (void **)pArgs, NULL, NULL);
 	}
 
-CString strPatternEx (char *pLine, PATTERNHOOKPROC pfHook, LPVOID pCtx, ...)
+CString strPatternEx (LPCSTR pLine, PATTERNHOOKPROC pfHook, LPVOID pCtx, ...)
 
 //	strPatternEx
 //

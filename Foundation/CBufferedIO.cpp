@@ -116,7 +116,7 @@ void CBufferedIO::Seek (int iPos, bool bFromEnd)
 	m_Stream.Seek(iPos, bFromEnd);
 	}
 
-int CBufferedIO::Write (void *pData, int iLength)
+int CBufferedIO::Write (const void *pData, int iLength)
 
 //	Write
 //

@@ -37,6 +37,8 @@
 
 //	Include basic library files required by Foundation
 
+struct IUnknown;
+
 #define _CRT_RAND_S
 #include <stdlib.h>
 #include <stdio.h>
@@ -61,12 +63,7 @@
 #include <WS2tcpip.h>
 #include <MSWSock.h>
 
-//	Some forward declarations
-
-class IByteStream;
-class CCriticalSection;
-class CManualEvent;
-
+#include "FoundationBase.h"
 #include "FoundationDebug.h"
 #include "FoundationSmartPtr.h"
 #include "FoundationStrings.h"

@@ -115,7 +115,7 @@ class CDateTime
 		static int GetDaysInMonth (int iMonth, int iYear = 0);
 
 	private:
-		static bool ParseAuto (char *pPos, char *pPosEnd, StandardFormats iFormat, CDateTime *retResult);
+		static bool ParseAuto (const char *pPos, const char *pPosEnd, StandardFormats iFormat, CDateTime *retResult);
 		static bool ParseFixedDigits (char **iopPos, char *pPosEnd, int iCount, int *retiValue, int iDefault = -1);
 		static CDateTime ParseIMF (char *pPos, char *pPosEnd);
 		static bool ParseISO8601 (char *pPos, char *pPosEnd, CDateTime *retResult);
@@ -133,6 +133,7 @@ class CTimeSpan
 		CTimeSpan (int iMilliseconds);
 		CTimeSpan (DWORDLONG dwMilliseconds, bool bNegative = false);
 		CTimeSpan (int iDays, int iMilliseconds, bool bNegative = false);
+		CTimeSpan (DWORD dwDays, DWORD dwMilliseconds, bool bNegative = false);
 		CTimeSpan (const CTimeSpan &Src, bool bNegative);
 
 		int Days (void) const { return (int)m_Days; }

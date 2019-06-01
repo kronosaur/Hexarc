@@ -21,7 +21,7 @@ class TBuffer : public CMemoryBlockImpl
 		TBuffer (const CString &sString, int iPos = 0, int iLength = -1) :
 				m_Block(sString, iPos, iLength)
 			{
-			m_iLength = m_Block.GetAllocSize();
+			m_dwLength = m_Block.GetAllocSize();
 			}
 
 		TBuffer (void *pBuffer, int iLength) :

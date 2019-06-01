@@ -468,7 +468,7 @@ void CSocket::SetBlockingMode (bool bBlocking)
 		}
 	}
 
-int CSocket::Write (void *pData, int iLength)
+int CSocket::Write (const void *pData, int iLength)
 
 //	Write
 //

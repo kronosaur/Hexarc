@@ -62,7 +62,7 @@ void CBase64Encoder::Close (void)
 		}
 	}
 
-int CBase64Encoder::Write (void *pData, int iLength)
+int CBase64Encoder::Write (const void *pData, int iLength)
 
 //	Write
 //

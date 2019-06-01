@@ -141,16 +141,6 @@ bool utlMemCompare (void *pSource, void *pDest, int iCount);
 void utlMemReverse (void *pSource, void *pDest, int iCount);
 void utlMemSet (void *pDest, int Count, char Value = 0);
 
-//	Miscellaneous utilities
-
-template <class VALUE> VALUE Abs (VALUE x) { return (x < 0 ? -x : x); }
-template <class VALUE> VALUE AlignUp (VALUE iValue, VALUE iGranularity) { return ((iValue + iGranularity - 1) / iGranularity) * iGranularity; }
-template <class VALUE> VALUE Clamp (VALUE x, VALUE a, VALUE b) { return (x < a ? a : (x > b ? b : x)); }
-template <class VALUE> VALUE Min (VALUE a, VALUE b) { return (a < b ? a : b); }
-template <class VALUE> VALUE Max (VALUE a, VALUE b) { return (a > b ? a : b); }
-template <class VALUE> VALUE Sign (VALUE iValue) { return (iValue < 0 ? -1 : (iValue == 0 ? 0 : 1)); }
-template <class VALUE> void Swap (VALUE &a, VALUE &b) { VALUE temp = a;	a = b;	b = temp; }
-
 DWORD utlAdler32 (IMemoryBlock &Data);
 int utlBitsSet (DWORD dwValue);
 

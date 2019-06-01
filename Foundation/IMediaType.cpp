@@ -189,7 +189,8 @@ void CRawMediaType::EncodeContent (EContentEncodingTypes iEncoding)
 		{
 		case http_encodingGzip:
 			{
-			compCompress(CBuffer(m_sBody), compressionGzip, &Encoded);
+			CBuffer Buffer(m_sBody);
+			compCompress(Buffer, compressionGzip, &Encoded);
 			break;
 			}
 

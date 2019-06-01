@@ -52,7 +52,7 @@ void CMemoryBlockImpl64::Seek (DWORDLONG dwPos, bool bFromEnd)
 		}
 	}
 
-void CMemoryBlockImpl64::Write (void *pData, DWORDLONG dwLength)
+void CMemoryBlockImpl64::Write (const void *pData, DWORDLONG dwLength)
 
 //	Write
 //

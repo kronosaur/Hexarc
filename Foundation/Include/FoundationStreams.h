@@ -21,7 +21,7 @@ class IByteStream
 		virtual int GetStreamLength (void) = 0;
 		virtual int Read (void *pData, int iLength) = 0;
 		virtual void Seek (int iPos, bool bFromEnd = false) = 0;
-		virtual int Write (void *pData, int iLength) = 0;
+		virtual int Write (const void *pData, int iLength) = 0;
 
 		//	Helpers
 
@@ -31,9 +31,9 @@ class IByteStream
 		inline bool HasMore (void) { return (GetPos() < GetStreamLength()); }
 		inline int Write (const CString &sString) { return this->Write((LPSTR)sString, sString.GetLength()); }
 		inline int Write (IMemoryBlock &Block);
-		inline int Write (void *pData, DWORD iLength) { ASSERT(iLength < MAXINT); return this->Write(pData, (int)iLength); }
-		inline int Write (void *pData, size_t iLength) { ASSERT(iLength < MAXINT); return this->Write(pData, (int)iLength); }
-		inline int Write (void *pData, std::ptrdiff_t iLength) { ASSERT(iLength < MAXINT); return this->Write(pData, (int)iLength); }
+		inline int Write (const void *pData, DWORD iLength) { ASSERT(iLength < MAXINT); return this->Write(pData, (int)iLength); }
+		inline int Write (const void *pData, size_t iLength) { ASSERT(iLength < MAXINT); return this->Write(pData, (int)iLength); }
+		inline int Write (const void *pData, std::ptrdiff_t iLength) { ASSERT(iLength < MAXINT); return this->Write(pData, (int)iLength); }
 		int Write (IByteStream &Stream, int iLength);
 		int WriteChar (char chChar, int iCount = 1);
         int WriteWithProgress (IByteStream &Stream, int iLength, IProgressEvents *pProgress);
@@ -66,7 +66,7 @@ class CMemoryBlockImpl : public IMemoryBlock
 		virtual int GetStreamLength (void) override { return GetLength(); }
 		virtual int Read (void *pData, int iLength) override;
 		virtual void Seek (int iPos, bool bFromEnd = false) override;
-		virtual int Write (void *pData, int iLength) override;
+		virtual int Write (const void *pData, int iLength) override;
 
 		//	We want to inherit all the overloaded versions of Write.
 
@@ -83,7 +83,7 @@ class CNullStream : public CMemoryBlockImpl
 	public:
 		//	IMemoryBlock virtuals
 		virtual int GetLength (void) const override { return 0; }
-		virtual char *GetPointer (void) const override { return ""; }
+		virtual char *GetPointer (void) const override { return (char *)""; }
 	};
 
 extern CNullStream NULL_STREAM;
@@ -132,7 +132,7 @@ class CCircularBuffer : public IByteStream
 		virtual int GetStreamLength (void) override;
 		virtual int Read (void *pData, int iLength) override;
 		virtual void Seek (int iPos, bool bFromEnd = false) override { }
-		virtual int Write (void *pData, int iLength) override;
+		virtual int Write (const void *pData, int iLength) override;
 	
 		//	We want to inherit all the overloaded versions of Write.
 
@@ -231,7 +231,7 @@ class CBufferedIO : public IByteStream
 		virtual int GetStreamLength (void) override { return m_Stream.GetStreamLength(); }
 		virtual int Read (void *pData, int iLength) override;
 		virtual void Seek (int iPos, bool bFromEnd = false) override;
-		virtual int Write (void *pData, int iLength) override;
+		virtual int Write (const void *pData, int iLength) override;
 
 		//	We want to inherit all the overloaded versions of Write.
 
@@ -258,7 +258,7 @@ class CBase64Decoder : public IByteStream
 		virtual int GetStreamLength (void) override;
 		virtual int Read (void *pData, int iLength) override;
 		virtual void Seek (int iPos, bool bFromEnd = false) override { }
-		virtual int Write (void *pData, int iLength) override { return 0; }
+		virtual int Write (const void *pData, int iLength) override { return 0; }
 
 		//	We want to inherit all the overloaded versions of Write.
 
@@ -286,7 +286,7 @@ class CBase64Encoder : public IByteStream
 		virtual int GetStreamLength (void) override { return 0; }
 		virtual int Read (void *pData, int iLength) override { return 0; }
 		virtual void Seek (int iPos, bool bFromEnd = false) override { }
-		virtual int Write (void *pData, int iLength) override;
+		virtual int Write (const void *pData, int iLength) override;
 
 		//	We want to inherit all the overloaded versions of Write.
 

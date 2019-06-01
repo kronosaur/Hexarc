@@ -9,27 +9,20 @@
 
 #pragma once
 
-class IByteStream
-	{
-	public:
-		virtual ~IByteStream (void) { }
-		virtual int GetPos (void) = 0;
-		virtual int GetStreamLength (void) = 0;
-		virtual int Read (void *pData, int iLength) = 0;
-		virtual void Seek (int iPos, bool bFromEnd = false) = 0;
-		virtual int Write (void *pData, int iLength) = 0;
+//	Forward declarations
 
-		//	For shared stream access
-		virtual bool Lock (int iPos, int iLength) { ASSERT(false); return false; }
-		virtual void Unlock (int iPos, int iLength) { ASSERT(false); }
-	};
+class IByteStream;
+class CCriticalSection;
+class CManualEvent;
+class CSmartLock;
 
-class IMemoryBlock
-	{
-	public:
-		virtual ~IMemoryBlock (void) { }
-		virtual int GetLength (void) const = 0;
-		virtual char *GetPointer (void) const = 0;
+//	Miscellaneous utilities
 
-	};
+template <class VALUE> constexpr VALUE Abs (VALUE x) { return (x < 0 ? -x : x); }
+template <class VALUE> constexpr VALUE AlignUp (VALUE iValue, VALUE iGranularity) { return ((iValue + iGranularity - 1) / iGranularity) * iGranularity; }
+template <class VALUE> constexpr VALUE Clamp (VALUE x, VALUE a, VALUE b) { return (x < a ? a : (x > b ? b : x)); }
+template <class VALUE> constexpr VALUE Min (VALUE a, VALUE b) { return (a < b ? a : b); }
+template <class VALUE> constexpr VALUE Max (VALUE a, VALUE b) { return (a > b ? a : b); }
+template <class VALUE> constexpr VALUE Sign (VALUE iValue) { return (iValue < 0 ? -1 : (iValue == 0 ? 0 : 1)); }
+template <class VALUE> constexpr void Swap (VALUE &a, VALUE &b) { VALUE temp = a;	a = b;	b = temp; }
 

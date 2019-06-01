@@ -257,7 +257,7 @@ void CFileMultiplexer::Seek (int iPos, bool bFromEnd)
 		}
 	}
 
-int CFileMultiplexer::Write (void *pData, int iLength)
+int CFileMultiplexer::Write (const void *pData, int iLength)
 
 //	Write
 //

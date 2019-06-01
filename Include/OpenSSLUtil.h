@@ -371,11 +371,11 @@ class CSSLSocketStream : public IByteStream
 
 		//	IByteStream interface
 
-		virtual int GetPos (void) { throw CException(errFail); }
-		virtual int GetStreamLength (void) { throw CException(errFail); }
-		virtual int Read (void *pData, int iLength);
-		virtual void Seek (int iPos, bool bFromEnd = false) { throw CException(errFail); }
-		virtual int Write (void *pData, int iLength);
+		virtual int GetPos (void) override { throw CException(errFail); }
+		virtual int GetStreamLength (void) override { throw CException(errFail); }
+		virtual int Read (void *pData, int iLength) override;
+		virtual void Seek (int iPos, bool bFromEnd = false) override { throw CException(errFail); }
+		virtual int Write (const void *pData, int iLength) override;
 
 	private:
 		bool SelectWait (int iResult);

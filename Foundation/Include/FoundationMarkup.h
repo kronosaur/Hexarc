@@ -82,17 +82,17 @@ class CTextMarkupParser
 		ETokens PeekNextToken (CString *retsToken = NULL, int *retiTokenCount = NULL);
 		void RestoreParser (CTextMarkupParser &Saved);
 		void SaveParser (CTextMarkupParser *retSaved);
-		void SetInput (char *pPos, char *pPosEnd);
+		void SetInput (const char *pPos, const char *pPosEnd);
 
-		static bool IsBasicLink (char *pPos, char *pPosEnd);
-		static bool IsEntity (char *pPos, char *pPosEnd);
+		static bool IsBasicLink (const char *pPos, const char *pPosEnd);
+		static bool IsEntity (const char *pPos, const char *pPosEnd);
 
 	private:
 		bool IsSpecialChar (char chChar);
 		ETokens TokenFromSpecialChar (char chChar);
 
-		char *m_pPos;
-		char *m_pPosEnd;
+		const char *m_pPos;
+		const char *m_pPosEnd;
 
 		ETokens m_iToken;
 		int m_iTokenCount;

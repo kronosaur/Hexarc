@@ -531,7 +531,7 @@ DWORD CIPInteger::GetSize (void) const
 	return (DWORD)bdConvToOctets((BIGD)m_Value, NULL, 0);
 	}
 
-void CIPInteger::InitFromBytes (IMemoryBlock &Data)
+void CIPInteger::InitFromBytes (const IMemoryBlock &Data)
 
 //	InitFromBytes
 //

@@ -52,7 +52,7 @@ void CMemoryBlockImpl::Seek (int iPos, bool bFromEnd)
 		}
 	}
 
-int CMemoryBlockImpl::Write (void *pData, int iLength)
+int CMemoryBlockImpl::Write (const void *pData, int iLength)
 
 //	Write
 //

@@ -124,7 +124,7 @@ int CCircularBuffer::Scan (const CString &sString) const
 	return -1;
 	}
 
-int CCircularBuffer::Write (void *pData, int iLength)
+int CCircularBuffer::Write (const void *pData, int iLength)
 
 //	Write
 //

@@ -256,7 +256,7 @@ template <class VALUE> class TArray : public CArrayBase
 			if (iCount == 0)
 				return m_NullValue;
 
-			VALUE *pElement = (VALUE *)(GetBytes() + mathRandom(0, iCount - 1) * sizeof(VALUE));
+			VALUE *pElement = (VALUE *)(GetBytes() + ::mathRandom(0, iCount - 1) * sizeof(VALUE));
 			return *pElement;
 			}
 
@@ -283,7 +283,7 @@ template <class VALUE> class TArray : public CArrayBase
 			int i = GetCount() - 1;
 			while (i > 0)
 				{
-				int x = mathRandom(0, i);
+				int x = ::mathRandom(0, i);
 
 				VALUE Temp = GetAt(x);
 				GetAt(x) = GetAt(i);

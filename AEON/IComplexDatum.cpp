@@ -478,7 +478,7 @@ bool CComplexDateTime::CreateFromString (const CString &sString, CDateTime *retD
 //	Reverse of AsString
 
 	{
-	char *pPos = sString.GetParsePointer();
+	const char *pPos = sString.GetParsePointer();
 
 	int iYear = strParseInt(pPos, 0, &pPos);
 	if (iYear < 1 || iYear > 30827)

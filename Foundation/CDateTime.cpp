@@ -21,7 +21,7 @@ int g_DaysOfLeapYearByMonth[] =
 	//		J   F   M   A   M   J   J   A   S   O   N   D
 	{	0,  31, 60, 91, 121,152,182,213,244,274,305,335,366 };
 
-char *g_szMonthName[] =
+const char *g_szMonthName[] =
 	{
 	"January",
 	"February",
@@ -37,7 +37,7 @@ char *g_szMonthName[] =
 	"December",
 	};
 
-char *g_szMonthNameIMF[] =
+const char *g_szMonthNameIMF[] =
 	{
 	"Jan",
 	"Feb",
@@ -53,7 +53,7 @@ char *g_szMonthNameIMF[] =
 	"Dec",
 	};
 
-char *g_szDayNameIMF[] =
+const char *g_szDayNameIMF[] =
 	{
 	"Sun",
 	"Mon",
@@ -612,7 +612,7 @@ bool CDateTime::Parse (StandardFormats iFormat, const CString &sValue, CDateTime
 	return Parse(iFormat, pPos, pPosEnd, retResult);
 	}
 
-bool CDateTime::ParseAuto (char *pPos, char *pPosEnd, StandardFormats iFormat, CDateTime *retResult)
+bool CDateTime::ParseAuto (const char *pPos, const char *pPosEnd, StandardFormats iFormat, CDateTime *retResult)
 
 //	ParseAuto
 //
@@ -667,7 +667,7 @@ bool CDateTime::ParseAuto (char *pPos, char *pPosEnd, StandardFormats iFormat, C
 			{
 			case stateStart:
 				{
-				char *pStart = pPos;
+				const char *pStart = pPos;
 
 				//	If we're at the end, then we don't have enough.
 
@@ -944,7 +944,7 @@ bool CDateTime::ParseAuto (char *pPos, char *pPosEnd, StandardFormats iFormat, C
 					{
 					//	Get the string
 
-					char *pStart = pPos;
+					const char *pStart = pPos;
 					while (pPos < pPosEnd && strIsDigit(pPos))
 						pPos++;
 
@@ -1487,6 +1487,16 @@ CTimeSpan::CTimeSpan (DWORDLONG dwMilliseconds, bool bNegative)
 CTimeSpan::CTimeSpan (int iDays, int iMilliseconds, bool bNegative) : 
 		m_Days(iDays), 
 		m_Milliseconds(iMilliseconds),
+		m_bNegative(bNegative)
+
+//	CTimeSpan constructor
+
+	{
+	}
+
+CTimeSpan::CTimeSpan (DWORD dwDays, DWORD dwMilliseconds, bool bNegative) : 
+		m_Days(dwDays), 
+		m_Milliseconds(dwMilliseconds),
 		m_bNegative(bNegative)
 
 //	CTimeSpan constructor

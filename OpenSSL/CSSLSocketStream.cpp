@@ -181,7 +181,7 @@ bool CSSLSocketStream::SelectWait (int iResult)
 	return true;
 	}
 
-int CSSLSocketStream::Write (void *pData, int iLength)
+int CSSLSocketStream::Write (const void *pData, int iLength)
 
 //	Write
 //

@@ -47,11 +47,11 @@ class CSocket : public IByteStream
 		static int GetGlobalSocketCount (void) { return m_iGlobalSocketCount; }
 
 		//	IByteStream virtuals
-		virtual int GetPos (void) { return 0; }
-		virtual int GetStreamLength (void) { return 0; }
-		virtual int Read (void *pData, int iLength);
-		virtual void Seek (int iPos, bool bFromEnd = false) { }
-		virtual int Write (void *pData, int iLength);
+		virtual int GetPos (void) override { return 0; }
+		virtual int GetStreamLength (void) override { return 0; }
+		virtual int Read (void *pData, int iLength) override;
+		virtual void Seek (int iPos, bool bFromEnd = false) override { }
+		virtual int Write (const void *pData, int iLength) override;
 
 		//	Helpers	(Needed because IByteStream::Write is hidden when we
 		//	have the derived class)

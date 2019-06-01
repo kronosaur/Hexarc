@@ -96,7 +96,7 @@ char CTextMarkupParser::GetTokenChar (void) const
 		}
 	}
 
-bool CTextMarkupParser::IsBasicLink (char *pPos, char *pPosEnd)
+bool CTextMarkupParser::IsBasicLink (const char *pPos, const char *pPosEnd)
 
 //	IsBasicLink
 //
@@ -157,7 +157,7 @@ bool CTextMarkupParser::IsBasicLink (char *pPos, char *pPosEnd)
 	return true;
 	}
 
-bool CTextMarkupParser::IsEntity (char *pPos, char *pPosEnd)
+bool CTextMarkupParser::IsEntity (const char *pPos, const char *pPosEnd)
 
 //	IsEntity
 //
@@ -233,7 +233,7 @@ void CTextMarkupParser::ParseExtensions (TArray<SExtensionDesc> *retExtensions)
 
 	EStates iState = stateStart;
 	SExtensionDesc *pCurrent = NULL;
-	char *pStart;
+	const char *pStart;
 	EStates iOldState;
 	int iCurParam;
 	CString sCurKey;
@@ -458,7 +458,7 @@ CTextMarkupParser::ETokens CTextMarkupParser::ParseNextToken (void)
 	m_iToken = tokenEoS;
 	m_iTokenCount = 0;
 	m_sToken = NULL_STR;
-	char *pStart;
+	const char *pStart;
 	char chSpecialChar;
 	int iPeek = 0;
 
@@ -947,8 +947,8 @@ CTextMarkupParser::ETokens CTextMarkupParser::PeekNextToken (CString *retsToken,
 	{
 	//	Save all state
 
-	char *pOldPos = m_pPos;
-	char *pOldPosEnd = m_pPosEnd;
+	const char *pOldPos = m_pPos;
+	const char *pOldPosEnd = m_pPosEnd;
 	ETokens iOldToken = m_iToken;
 	int iOldTokenCount = m_iTokenCount;
 
@@ -1010,7 +1010,7 @@ void CTextMarkupParser::SaveParser (CTextMarkupParser *retSaved)
 	m_sToken = retSaved->m_sToken;
 	}
 
-void CTextMarkupParser::SetInput (char *pPos, char *pPosEnd)
+void CTextMarkupParser::SetInput (const char *pPos, const char *pPosEnd)
 
 //	SetInput
 //
