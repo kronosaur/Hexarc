@@ -82,6 +82,7 @@ DECLARE_CONST_STRING(MSG_HYPERION_GET_SESSION_LIST,		"Hyperion.getSessionList")
 DECLARE_CONST_STRING(MSG_HYPERION_GET_TASK_LIST,		"Hyperion.getTaskList")
 DECLARE_CONST_STRING(MSG_HYPERION_REFRESH,				"Hyperion.refresh")
 DECLARE_CONST_STRING(MSG_HYPERION_RESIZE_IMAGE,			"Hyperion.resizeImage")
+DECLARE_CONST_STRING(MSG_HYPERION_SERVICE_MSG_SANDBOXED,"Hyperion.serviceMsgSandboxed")
 DECLARE_CONST_STRING(MSG_HYPERION_SET_OPTION,			"Hyperion.setOption")
 DECLARE_CONST_STRING(MSG_HYPERION_SET_TASK_RUN_ON,		"Hyperion.setTaskRunOn")
 DECLARE_CONST_STRING(MSG_HYPERION_STOP_TASK,			"Hyperion.stopTask")
@@ -257,6 +258,18 @@ bool CHexeProcess::FindHexarcMessage (const CString &sMsg, CString *retsAddr)
 		return true;
 		}
 
+	//	If we have an embedded plus sign then this is a service message. We 
+	//	need this code because otherwise we might match a pattern below.
+
+	const char *pPos = sMsg.GetParsePointer();
+	while (*pPos != '\0')
+		{
+		if (*pPos == '+')
+			return false;
+		else
+			pPos++;
+		}
+
 	//	If not found, check for pattern matches
 
 	for (i = 0; i < m_HexarcMsgPatterns.GetCount(); i++)
@@ -271,6 +284,46 @@ bool CHexeProcess::FindHexarcMessage (const CString &sMsg, CString *retsAddr)
 	//	Not found
 
 	return false;
+	}
+
+bool CHexeProcess::ParseHyperionServiceMessage (const CString &sMsg, CDatum dPayload, CString &sAddr, CString &sNewMsg, CDatum &dNewPayload)
+
+//	ParseHyperionServiceMessage
+//
+//	Parses a message of the form, {service}+{message} and returns its 
+//	components.
+
+	{
+	const char *pPos = sMsg.GetParsePointer();
+	const char *pStart = pPos;
+	while (*pPos != '+' && *pPos != '\0')
+		pPos++;
+
+	if (*pPos != '+')
+		return false;
+
+	CString sService = CString(pStart, pPos - pStart);
+	pPos++;
+
+	pStart = pPos;
+	while (*pPos != '\0')
+		pPos++;
+
+	CString sServiceMsg = CString (pStart, pPos - pStart);
+
+	//	Compose the new payload
+
+	dNewPayload = CDatum(CDatum::typeArray);
+	dNewPayload.Append(sService);
+	dNewPayload.Append(sServiceMsg);
+	dNewPayload.Append(dPayload);
+
+	//	We send Hyperion.serviceMsgSandboxed
+
+	sAddr = ADDR_HYPERION_COMMAND;
+	sNewMsg = MSG_HYPERION_SERVICE_MSG_SANDBOXED;
+
+	return true;
 	}
 
 bool CHexeProcess::SendHexarcMessage (const CHexeSecurityCtx &SecurityCtx, const CString &sAddr, const CString &sMsg, CDatum dPayload, CDatum *retdResult)
@@ -332,13 +385,24 @@ bool CHexeProcess::SendHexarcMessage (const CHexeSecurityCtx &SecurityCtx, const
 //	2: payload
 
 	{
-	//	Get the address for this message
+	//	If this is a standard Hexarc message, then we look up its address and
+	//	send it.
 
 	CString sAddr;
-	if (!ValidateHexarcMessage(sMsg, dPayload, &sAddr, retdResult))
-		return false;
+	if (FindHexarcMessage(sMsg, &sAddr))
+		return SendHexarcMessage(SecurityCtx, sAddr, sMsg, dPayload, retdResult);
 
-	return SendHexarcMessage(SecurityCtx, sAddr, sMsg, dPayload, retdResult);
+	//	Otherwise, see if this is a Hyperion service message
+
+	CString sNewMsg;
+	CDatum dNewPayload;
+	if (ParseHyperionServiceMessage(sMsg, dPayload, sAddr, sNewMsg, dNewPayload))
+		return SendHexarcMessage(SecurityCtx, sAddr, sNewMsg, dNewPayload, retdResult);
+
+	//	Else, this is not a valid message
+		
+	CHexeError::Create(MSG_ERROR_UNKNOWN, strPattern(ERR_UNKNOWN_MSG, sMsg), retdResult);
+	return false;
 	}
 
 bool CHexeProcess::ValidateHexarcMessage (const CString &sMsg, CDatum dPayload, CString *retsAddr, CDatum *retdResult)

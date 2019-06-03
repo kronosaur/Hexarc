@@ -108,6 +108,9 @@
     <ClCompile Include="MsgFileDownload.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CServicePermissions.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="HexeMarkup.h">

@@ -23,12 +23,15 @@ DECLARE_CONST_STRING(PORT_HYPERION_COMMAND,				"Hyperion.command")
 
 DECLARE_CONST_STRING(PROTOCOL_SERVICE_MSG,				"serviceMsg")
 
+DECLARE_CONST_STRING(STR_ADMIN,							"Admin")
+
 DECLARE_CONST_STRING(ERR_INVALID_RESPONSE,				"Cannot interpret service response.")
 DECLARE_CONST_STRING(ERR_NO_HANDLER,					"Hexarc message handler not found: %s+%s.")
 DECLARE_CONST_STRING(ERR_INVALID_MESSAGE,				"Invalid Hexarc message redirect: %s.")
 DECLARE_CONST_STRING(ERR_SERVICE_NOT_FOUND,				"Service not found: %s.")
 DECLARE_CONST_STRING(ERR_INVALID_ADDRESS,				"Unable to send Hexarc message to address: %s.")
 DECLARE_CONST_STRING(ERR_TIMEOUT,						"Unable to complete computation within timeout limit.")
+DECLARE_CONST_STRING(ERR_API_ACCESS_DENIED,				"[%s]: Access denied; %s is not on the allowAccess list.")
 
 const int DEFAULT_TIMEOUT =								30 * 1000;
 
@@ -77,6 +80,40 @@ void CHyperionEngine::MsgServiceMsg (const SArchonMessage &Msg, const CHexeSecur
 	if (!FindHexarcMsgService(sService, &pService))
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_SERVICE_NOT_FOUND, sService), Msg);
+		return;
+		}
+
+	//	Start a session
+
+	return StartSession(Msg, new CHexarcMsgSession(this, pService, pSecurityCtx, sMsg, dPayload));
+	}
+
+void CHyperionEngine::MsgServiceMsgSandboxed (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)
+
+//	MsgServiceMsgSandboxed
+//
+//	Hyperion.serviceMsgSandboxed {service} {msg} {payload}
+
+	{
+	CString sService = Msg.dPayload.GetElement(0);
+	CString sMsg = Msg.dPayload.GetElement(1);
+	CDatum dPayload = Msg.dPayload.GetElement(2);
+
+	//	Find the service that can handle this message
+
+	IHyperionService *pService;
+	if (!FindHexarcMsgService(sService, &pService))
+		{
+		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_SERVICE_NOT_FOUND, sService), Msg);
+		return;
+		}
+
+	//	Make sure that the service allows us to access it
+
+	if (!pService->GetAccessPermissions().CanAccess(pSecurityCtx))
+		{
+		CString sRequester = (pSecurityCtx ? pSecurityCtx->GetSandboxName() : STR_ADMIN);
+		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_API_ACCESS_DENIED, sService, sRequester), Msg);
 		return;
 		}
 

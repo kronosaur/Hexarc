@@ -55,6 +55,7 @@ DECLARE_CONST_STRING(MSG_HYPERION_REFRESH,				"Hyperion.refresh")
 DECLARE_CONST_STRING(MSG_HYPERION_RESIZE_IMAGE,			"Hyperion.resizeImage")
 DECLARE_CONST_STRING(MSG_HYPERION_RUN_TASK,				"Hyperion.runTask")
 DECLARE_CONST_STRING(MSG_HYPERION_SERVICE_MSG,			"Hyperion.serviceMsg")
+DECLARE_CONST_STRING(MSG_HYPERION_SERVICE_MSG_SANDBOXED,"Hyperion.serviceMsgSandboxed")
 DECLARE_CONST_STRING(MSG_HYPERION_SET_OPTION,			"Hyperion.setOption")
 DECLARE_CONST_STRING(MSG_HYPERION_SET_TASK_RUN_ON,		"Hyperion.setTaskRunOn")
 DECLARE_CONST_STRING(MSG_HYPERION_STOP_TASK,			"Hyperion.stopTask")
@@ -98,6 +99,9 @@ CHyperionEngine::SMessageHandler CHyperionEngine::m_MsgHandlerList[] =
 
 		//	Hyperion.serviceMsg {service} {msg} {payload}
 		{	MSG_HYPERION_SERVICE_MSG,			&CHyperionEngine::MsgServiceMsg },
+
+		//	Hyperion.serviceMsgSandboxed {service} {msg} {payload}
+		{	MSG_HYPERION_SERVICE_MSG_SANDBOXED,	&CHyperionEngine::MsgServiceMsgSandboxed },
 
 		//	Hyperion.setOption {option} {value}
 		{	MSG_HYPERION_SET_OPTION,			&CHyperionEngine::MsgSetOption },

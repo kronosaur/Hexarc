@@ -42,15 +42,15 @@ class CHTTPService;
 class CUserInfo
 	{
 	public:
-		inline void DeleteRight (const CString &sRight) { m_Rights.Delete(sRight); }
-		inline const CString &GetUsername (void) const { return m_sUsername; }
-		inline bool HasRight (const CString &sRight) const { return m_Rights.HasAttribute(sRight); }
+		void DeleteRight (const CString &sRight) { m_Rights.Delete(sRight); }
+		const CString &GetUsername (void) const { return m_sUsername; }
+		bool HasRight (const CString &sRight) const { return m_Rights.HasAttribute(sRight); }
 		bool HasRights (const CAttributeList &Rights) const;
-		inline void InsertRight (const CString &sRight) { m_Rights.Insert(sRight); }
-		inline bool IsAnonymous (void) const { return m_sUsername.IsEmpty(); }
-		inline void SetAnonymous (void) { m_sUsername = NULL_STR; m_Rights.DeleteAll(); }
-		inline void SetRights (CDatum dRights) { dRights.AsAttributeList(&m_Rights); }
-		inline void SetUsername (const CString &sUsername) { m_sUsername = sUsername; }
+		void InsertRight (const CString &sRight) { m_Rights.Insert(sRight); }
+		bool IsAnonymous (void) const { return m_sUsername.IsEmpty(); }
+		void SetAnonymous (void) { m_sUsername = NULL_STR; m_Rights.DeleteAll(); }
+		void SetRights (CDatum dRights) { dRights.AsAttributeList(&m_Rights); }
+		void SetUsername (const CString &sUsername) { m_sUsername = sUsername; }
 
 	private:
 		CString m_sUsername;					//	Username
@@ -65,6 +65,29 @@ class CConnectionInfo
 		CAttributeList m_Attribs;				//	COnnection attributes
 	};
 
+//	Utility service classes
+
+enum class EServicePermission
+	{
+	accessUnknown,								//	Unknown permission
+
+	accessNone,									//	No access
+	accessAll,									//	All can access
+	accessWhitelist,							//	List is packages with access
+	};
+
+class CServicePermissions
+	{
+	public:
+		bool CanAccess (const CHexeSecurityCtx *pSecurityCtx) const;
+		bool InitFromDatum (const CString &sPackageName, CDatum dDesc, CString *retsError = NULL);
+
+	private:
+		CString m_sPackageName;					//	Our package name
+		EServicePermission m_iAccess = EServicePermission::accessNone;
+		TArray<CString> m_List;					//	List of packages names
+	};
+
 //	Sessions -------------------------------------------------------------------
 
 class CHyperionSession : public ISessionHandler
@@ -73,11 +96,14 @@ class CHyperionSession : public ISessionHandler
 		CHyperionSession (CHyperionEngine *pEngine, const CString &sListener, const CString &sProtocol, CDatum dSocket, const CString &sNetAddress);
 
 		void DebugLog (const CString &sLog);
+		CHyperionEngine *GetEngine (void) const { return m_pEngine; }
+		const CString &GetProtocol (void) const { return m_sProtocol; }
+		CHexeSecurityCtx &GetSecurityCtx (void) { return m_SecurityCtx; }
+		void SetServiceSecurity (const CHexeSecurityCtx &SecurityCtx) { m_SecurityCtx.SetServiceSecurity(SecurityCtx); }
+
+		//	CHyperionSession virtuals
+
 		virtual CString GetDebugInfo (void) const;
-		inline CHyperionEngine *GetEngine (void) const { return m_pEngine; }
-		inline const CString &GetProtocol (void) const { return m_sProtocol; }
-		inline CHexeSecurityCtx &GetSecurityCtx (void) { return m_SecurityCtx; }
-		inline void SetServiceSecurity (const CHexeSecurityCtx &SecurityCtx) { m_SecurityCtx.SetServiceSecurity(SecurityCtx); }
 
 	protected:
 
@@ -87,8 +113,8 @@ class CHyperionSession : public ISessionHandler
 		//	LATER: We should fix this by making the subclasses override a different
 		//	method.
 
-		virtual void OnGetStatusReport (CComplexStruct *pStatus) const;
-		virtual void OnMark (void) { m_dSocket.Mark(); }
+		virtual void OnGetStatusReport (CComplexStruct *pStatus) const override;
+		virtual void OnMark (void) override { m_dSocket.Mark(); }
 
 		//	CHyperionSession virtuals
 
@@ -122,22 +148,23 @@ class IHyperionService
 								   IHyperionService **retpService, 
 								   CString *retsError);
 
-		inline CHyperionSession *CreateSessionObject (CHyperionEngine *pEngine, const CString &sListener, const CString &sProtocol, const CString &sSocket, const CString &sNetAddress) { return OnCreateSessionObject(pEngine, sListener, sProtocol, sSocket, sNetAddress); }
-		inline void DeleteSession (CHyperionSession *pSession) { CSmartLock Lock(m_cs); m_Sessions.DeleteValue(pSession); }
-		inline CString GetFileRoot (void) const { return OnGetFileRoot(); }
-		inline const CString &GetName (void) const { return m_sName; }
-		inline const CString &GetPackageName (void) const { return m_sPackageName; }
-		inline const CString &GetPort (void) const { return m_sPort; }
-		inline void GetListeners (TArray<SListenerDesc> &Listeners) const { return OnGetListeners(Listeners); }
-		inline const CString &GetProtocol (void) const { return m_sProtocol; }
-		inline const CHexeSecurityCtx &GetSecurityCtx (void) const { return m_SecurityCtx; }
-		inline int GetSessionCount (void) const { CSmartLock Lock(m_cs); return m_Sessions.GetCount(); }
-		inline void InitProcess (CHexeProcess &Process) { OnInitProcess(Process); }
-		inline void InsertSession (CHyperionSession *pSession) { CSmartLock Lock(m_cs); m_Sessions.Insert(pSession); }
+		CHyperionSession *CreateSessionObject (CHyperionEngine *pEngine, const CString &sListener, const CString &sProtocol, const CString &sSocket, const CString &sNetAddress) { return OnCreateSessionObject(pEngine, sListener, sProtocol, sSocket, sNetAddress); }
+		void DeleteSession (CHyperionSession *pSession) { CSmartLock Lock(m_cs); m_Sessions.DeleteValue(pSession); }
+		const CServicePermissions &GetAccessPermissions (void) const { return m_Access; }
+		CString GetFileRoot (void) const { return OnGetFileRoot(); }
+		const CString &GetName (void) const { return m_sName; }
+		const CString &GetPackageName (void) const { return m_sPackageName; }
+		const CString &GetPort (void) const { return m_sPort; }
+		void GetListeners (TArray<SListenerDesc> &Listeners) const { return OnGetListeners(Listeners); }
+		const CString &GetProtocol (void) const { return m_sProtocol; }
+		const CHexeSecurityCtx &GetSecurityCtx (void) const { return m_SecurityCtx; }
+		int GetSessionCount (void) const { CSmartLock Lock(m_cs); return m_Sessions.GetCount(); }
+		void InitProcess (CHexeProcess &Process) { OnInitProcess(Process); }
+		void InsertSession (CHyperionSession *pSession) { CSmartLock Lock(m_cs); m_Sessions.Insert(pSession); }
 		bool IsAccessible (const CString &sName);
-		inline bool IsListener (void) const { return OnIsListener(); }
-		inline bool IsSandboxed (void) { return !m_SecurityCtx.GetSandbox().IsEmpty(); }
-		inline void Mark (void) { OnMark(); }
+		bool IsListener (void) const { return OnIsListener(); }
+		bool IsSandboxed (void) { return !m_SecurityCtx.GetSandbox().IsEmpty(); }
+		void Mark (void) { OnMark(); }
 
 		static bool ParseObjectName (const CString &sName, CString *retsSandbox, CString *retsLocalName);
 		static bool ValidatePort (const CString &sPort);
@@ -160,7 +187,8 @@ class IHyperionService
 		CString m_sProtocol;
 		CString m_sPort;
 
-		CHexeSecurityCtx m_SecurityCtx;		//	Service security (excluding user info)
+		CHexeSecurityCtx m_SecurityCtx;				//	Service security (excluding user info)
+		CServicePermissions m_Access;				//	What packages can access this service
 
 		TArray<CHyperionSession *> m_Sessions;		//	We keep track of the sessions that are
 													//	using this service.
@@ -470,6 +498,7 @@ class CHyperionEngine : public TSimpleEngine<CHyperionEngine>
 		void MsgResizeImage (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgRunTask (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgServiceMsg (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
+		void MsgServiceMsgSandboxed (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgSetOption (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgSetTaskRunOn (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgStopTask (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);

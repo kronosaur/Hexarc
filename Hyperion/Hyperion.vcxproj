@@ -181,6 +181,7 @@
     <ClCompile Include="CHyperionPackageList.cpp" />
     <ClCompile Include="CHyperionScheduler.cpp" />
     <ClCompile Include="CHyperionSession.cpp" />
+    <ClCompile Include="CServicePermissions.cpp" />
     <ClCompile Include="CUserInfo.cpp" />
     <ClCompile Include="HyperionStartup.cpp" />
     <ClCompile Include="IHyperionService.cpp" />

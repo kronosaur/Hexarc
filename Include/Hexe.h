@@ -166,32 +166,32 @@ class CHexeSecurityCtx
 		static constexpr DWORD EXEC_RIGHTS_MINIMAL =			0x00000000;
 
 		CDatum AsDatum (void) const;
-		inline DWORD GetExecutionRights (void) const { return m_dwExecutionRights; }
-		inline const CString &GetSandbox (void) const { return m_sSandbox; }
-		inline CString GetSandboxName (void) const { return strSubString(m_sSandbox, 0, m_sSandbox.GetLength() - 1); }
-		inline const CString &GetUsername (void) const { return m_sUsername; }
-		inline void GetServiceSecurity (CHexeSecurityCtx *retCtx) { retCtx->SetServiceSecurity(*this); }
-		inline const CAttributeList &GetUserRights (void) const { return m_UserRights; }
-		inline void GetUserSecurity (CHexeSecurityCtx *retCtx) { retCtx->SetUserSecurity(*this); }
+		DWORD GetExecutionRights (void) const { return m_dwExecutionRights; }
+		const CString &GetSandbox (void) const { return m_sSandbox; }
+		CString GetSandboxName (void) const { return strSubString(m_sSandbox, 0, m_sSandbox.GetLength() - 1); }
+		const CString &GetUsername (void) const { return m_sUsername; }
+		void GetServiceSecurity (CHexeSecurityCtx *retCtx) { retCtx->SetServiceSecurity(*this); }
+		const CAttributeList &GetUserRights (void) const { return m_UserRights; }
+		void GetUserSecurity (CHexeSecurityCtx *retCtx) { retCtx->SetUserSecurity(*this); }
 		bool HasServiceRightArcAdmin (void) const;
-		inline bool HasNoServiceRights (void) const { return m_ServiceRights.IsEmpty(); }
-		inline bool HasServiceRight (const CString &sRight) const { return m_ServiceRights.HasAttribute(sRight); }
-		inline bool HasUserRight (const CString &sRight) const { return m_UserRights.HasAttribute(sRight); }
+		bool HasNoServiceRights (void) const { return m_ServiceRights.IsEmpty(); }
+		bool HasServiceRight (const CString &sRight) const { return m_ServiceRights.HasAttribute(sRight); }
+		bool HasUserRight (const CString &sRight) const { return m_UserRights.HasAttribute(sRight); }
 		bool HasUserRights (const CAttributeList &Rights) const;
 		void Init (CDatum dDatum);
-		inline void InsertServiceRight (const CString &sRight) { m_ServiceRights.Insert(sRight); }
-		inline void InsertUserRight (const CString &sRight) { m_UserRights.Insert(sRight); }
-		inline bool IsEmpty (void) const { return m_sSandbox.IsEmpty() && m_sUsername.IsEmpty(); }
-		inline bool IsNamespaceAccessible (const CString &sName) const { return m_sSandbox.IsEmpty() || strStartsWith(sName, m_sSandbox); }
-		inline bool IsAnonymous (void) const { return m_sUsername.IsEmpty(); }
-		inline void SetAnonymous (void) { m_sUsername = NULL_STR; m_UserRights.DeleteAll(); }
-		inline void SetExecutionRights (DWORD dwRights) { m_dwExecutionRights = dwRights; }
-		inline void SetSandbox (const CString &sSandbox) { m_sSandbox = sSandbox; }
-		inline void SetServiceRights (CDatum dDatum) { dDatum.AsAttributeList(&m_ServiceRights); }
+		void InsertServiceRight (const CString &sRight) { m_ServiceRights.Insert(sRight); }
+		void InsertUserRight (const CString &sRight) { m_UserRights.Insert(sRight); }
+		bool IsEmpty (void) const { return m_sSandbox.IsEmpty() && m_sUsername.IsEmpty(); }
+		bool IsNamespaceAccessible (const CString &sName) const { return m_sSandbox.IsEmpty() || strStartsWith(sName, m_sSandbox); }
+		bool IsAnonymous (void) const { return m_sUsername.IsEmpty(); }
+		void SetAnonymous (void) { m_sUsername = NULL_STR; m_UserRights.DeleteAll(); }
+		void SetExecutionRights (DWORD dwRights) { m_dwExecutionRights = dwRights; }
+		void SetSandbox (const CString &sSandbox) { m_sSandbox = sSandbox; }
+		void SetServiceRights (CDatum dDatum) { dDatum.AsAttributeList(&m_ServiceRights); }
 		void SetServiceSecurity (const CHexeSecurityCtx &SecurityCtx);
-		inline void SetUsername (const CString &sUsername) { m_sUsername = sUsername; }
-		inline void SetUserRights (CDatum dDatum) { dDatum.AsAttributeList(&m_UserRights); }
-		inline void SetUserRights (const CAttributeList &Rights) { m_UserRights = Rights; }
+		void SetUsername (const CString &sUsername) { m_sUsername = sUsername; }
+		void SetUserRights (CDatum dDatum) { dDatum.AsAttributeList(&m_UserRights); }
+		void SetUserRights (const CAttributeList &Rights) { m_UserRights = Rights; }
 		void SetUserSecurity (const CHexeSecurityCtx &SecurityCtx);
 
 	private:
@@ -288,8 +288,9 @@ class CHexeProcess : public IInvokeCtx
 		void GetCurrentSecurityCtx (CHexeSecurityCtx *retCtx);
 		CDatum GetCurrentSecurityCtx (void);
 		void InitGlobalEnv (CHexeGlobalEnvironment **retpGlobalEnv = NULL);
+		static bool ParseHyperionServiceMessage (const CString &sMsg, CDatum dPayload, CString &sAddr, CString &sNewMsg, CDatum &dNewPayload);
 		ERunCodes RunWithStack (CDatum dExpression, CDatum *retResult);
-		inline bool SendHexarcMessage (const CString &sMsg, CDatum dPayload, CDatum *retdResult) { CHexeSecurityCtx Ctx; GetCurrentSecurityCtx(&Ctx); return SendHexarcMessage(Ctx, sMsg, dPayload, retdResult); }
+		bool SendHexarcMessage (const CString &sMsg, CDatum dPayload, CDatum *retdResult) { CHexeSecurityCtx Ctx; GetCurrentSecurityCtx(&Ctx); return SendHexarcMessage(Ctx, sMsg, dPayload, retdResult); }
 		bool SendHexarcMessage (const CHexeSecurityCtx &SecurityCtx, const CString &sMsg, CDatum dPayload, CDatum *retdResult);
 		static bool ValidateHexarcMessage (const CString &sMsg, CDatum dPayload, CString *retsAddr, CDatum *retdResult);
 

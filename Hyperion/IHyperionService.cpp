@@ -5,19 +5,20 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(FIELD_PORT,						"port")
-DECLARE_CONST_STRING(FIELD_PROTOCOL,					"protocol")
-DECLARE_CONST_STRING(FIELD_RIGHTS,						"rights")
+DECLARE_CONST_STRING(FIELD_ALLOW_ACCESS,				"allowAccess");
+DECLARE_CONST_STRING(FIELD_PORT,						"port");
+DECLARE_CONST_STRING(FIELD_PROTOCOL,					"protocol");
+DECLARE_CONST_STRING(FIELD_RIGHTS,						"rights");
 
-DECLARE_CONST_STRING(PROTOCOL_AI1,						"ai1")
-DECLARE_CONST_STRING(PROTOCOL_HTTP,						"http")
-DECLARE_CONST_STRING(PROTOCOL_HEXARC_MSG,				"hexarcMsg")
+DECLARE_CONST_STRING(PROTOCOL_AI1,						"ai1");
+DECLARE_CONST_STRING(PROTOCOL_HTTP,						"http");
+DECLARE_CONST_STRING(PROTOCOL_HEXARC_MSG,				"hexarcMsg");
 
-DECLARE_CONST_STRING(RIGHT_ARC_ADMIN,					"Arc.admin")
-DECLARE_CONST_STRING(RIGHT_ARC_DEVELOPER,				"Arc.developer")
+DECLARE_CONST_STRING(RIGHT_ARC_ADMIN,					"Arc.admin");
+DECLARE_CONST_STRING(RIGHT_ARC_DEVELOPER,				"Arc.developer");
 
-DECLARE_CONST_STRING(ERR_INVALID_PORT,					"Invalid port: %s.")
-DECLARE_CONST_STRING(ERR_UNKNOWN_PROTOCOL,				"Unknown protocol: %s.")
+DECLARE_CONST_STRING(ERR_INVALID_PORT,					"Invalid port: %s.");
+DECLARE_CONST_STRING(ERR_UNKNOWN_PROTOCOL,				"Unknown protocol: %s.");
 
 bool IHyperionService::CreateService (const CString &sName,
 									  CDatum dServiceDef, 
@@ -91,6 +92,11 @@ bool IHyperionService::CreateService (const CString &sName,
 		CString sSandbox = strPattern("%s.", sPackageName);
 		pService->m_SecurityCtx.SetSandbox(sSandbox);
 		}
+
+	//	Load the access granted to other packages
+
+	if (!pService->m_Access.InitFromDatum(sPackageName, dServiceDef.GetElement(FIELD_ALLOW_ACCESS), retsError))
+		return false;
 
 	//	Allow subclasses to initialize
 
