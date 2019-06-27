@@ -16,14 +16,16 @@ class IByteStream64
 
 		virtual DWORDLONG GetPos (void) = 0;
 		virtual DWORDLONG GetStreamLength (void) = 0;
-		virtual void Read (void *pData, DWORDLONG dwLength) = 0;
+		virtual char ReadChar (void);
+		virtual DWORDLONG ReadTry (void *pData, DWORDLONG dwLength) = 0;
 		virtual void Seek (DWORDLONG dwPos, bool bFromEnd = false) = 0;
 		virtual void Write (const void *pData, DWORDLONG dwLength) = 0;
 
 		//	Helpers
 
-		inline bool HasMore (void) { return (GetPos() < GetStreamLength()); }
-		char ReadChar (void);
+		bool HasMore (void) { return (GetPos() < GetStreamLength()); }
+
+		void Read (void *pData, DWORDLONG dwLength) { DWORDLONG dwRead = ReadTry(pData, dwLength); if (dwRead != dwLength) throw CException(errEoS); }
 
 		void Write (const void *pData, int iLength) { if (iLength > 0) Write(pData, (DWORDLONG)iLength); }
 		void Write (const void *pData, DWORD dwLength) { Write(pData, (DWORDLONG)dwLength); }
@@ -56,7 +58,8 @@ class CMemoryBlockImpl64 : public IMemoryBlock64
 
 		virtual DWORDLONG GetPos (void) override { return m_dwPos; }
 		virtual DWORDLONG GetStreamLength (void) override { return GetLength(); }
-		virtual void Read (void *pData, DWORDLONG dwLength) override;
+		virtual char ReadChar (void) override;
+		virtual DWORDLONG ReadTry (void *pData, DWORDLONG dwLength) override;
 		virtual void Seek (DWORDLONG dwPos, bool bFromEnd = false) override;
 		virtual void Write (const void *pData, DWORDLONG dwLength) override;
 

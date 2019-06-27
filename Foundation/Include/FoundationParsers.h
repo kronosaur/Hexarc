@@ -12,11 +12,11 @@
 class CCSVParser
 	{
 	public:
-		CCSVParser (IByteStream &Stream) : m_Stream(Stream), m_chCur(Stream.ReadChar()) { }
+		CCSVParser (IByteStream64 &Stream) : m_Stream(Stream), m_chCur(Stream.ReadChar()) { }
 
-		inline const TArray<CString> &GetHeader (void) const { return m_Header; }
-		inline bool HasMore (void) const { return (GetCurChar() != '\0'); }
-		inline bool ParseHeader (CString *retsError) { return ParseRow(m_Header, retsError); }
+		const TArray<CString> &GetHeader (void) const { return m_Header; }
+		bool HasMore (void) const { return (GetCurChar() != '\0'); }
+		bool ParseHeader (CString *retsError) { return ParseRow(m_Header, retsError); }
 		bool ParseRow (TArray<CString> &Row, CString *retsError = NULL);
 		void SetUTF8Format (void) { m_iFormat = formatUTF8; }
 
@@ -32,12 +32,12 @@ class CCSVParser
 			formatUTF16_LittleEndian,
 			};
 
-		inline char GetCurChar (void) const { return m_chCur; }
-		inline char GetNextChar (void) { m_chCur = m_Stream.ReadChar(); return m_chCur; }
+		char GetCurChar (void) const { return m_chCur; }
+		char GetNextChar (void) { m_chCur = m_Stream.ReadChar(); return m_chCur; }
 		EFormat ParseBOM (void);
 		void ParseToOpenQuote (void);
 
-		IByteStream &m_Stream;
+		IByteStream64 &m_Stream;
 		EFormat m_iFormat = formatUnknown;
 		TArray<CString> m_Header;
 

@@ -22,6 +22,7 @@ enum ErrorCodes
 									//	the middle. Upper layers must recover
 									//	silently.
 
+	errEoS,							//	End of stream
 	errOutOfMemory,
 	errOutOfDiskspace,
 	errUnableToOpenFile,			//	m_sErrorInfo is file and reason for error

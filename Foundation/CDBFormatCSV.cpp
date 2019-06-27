@@ -5,17 +5,30 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(ERR_BAD_HEADER,					"Unable to add %s column.")
-DECLARE_CONST_STRING(ERR_BAD_FIELD_INDEX,				"Bad field index.")
-DECLARE_CONST_STRING(ERR_NOT_ENOUGH_COLS_IN_ROW,		"Not enough columns in row.")
+DECLARE_CONST_STRING(ERR_BAD_HEADER,					"Unable to add %s column.");
+DECLARE_CONST_STRING(ERR_BAD_FIELD_INDEX,				"Bad field index.");
+DECLARE_CONST_STRING(ERR_NOT_ENOUGH_COLS_IN_ROW,		"Not enough columns in row.");
 
-bool CDBFormatCSV::Load (IByteStream &Stream, const SOptions &Options, CDBTable &Table, CString *retsError)
+constexpr int CDBFormatCSV::EstimateRowCount (DWORDLONG dwStreamSize)
+
+//	EstimateRowCount
+//
+//	Estimate the number of rows based on stream size.
+
+	{
+	return (int)(dwStreamSize / 200);
+	}
+
+bool CDBFormatCSV::Load (IByteStream64 &Stream, const SOptions &Options, CDBTable &Table, CString *retsError)
 
 //	Load
 //
 //	Load a CSV file into a table.
 
 	{
+	constexpr int PROGRESS_GRANULARITY = 1000;
+	const DWORDLONG dwStreamSize = Stream.GetStreamLength();
+
 	int i;
 	CCSVParser Parser(Stream);
 
@@ -43,7 +56,7 @@ bool CDBFormatCSV::Load (IByteStream &Stream, const SOptions &Options, CDBTable 
 
 	//	Now add all the rows.
 
-	const int ROW_GRANULARITY = 100;
+	const int ROW_GRANULARITY = Max(100, EstimateRowCount(dwStreamSize) / 10);
 	int iRow = 0;
 	while (Parser.HasMore())
 		{
@@ -80,6 +93,16 @@ bool CDBFormatCSV::Load (IByteStream &Stream, const SOptions &Options, CDBTable 
 		//	Next row
 
 		iRow++;
+
+		//	Progress
+		
+		if (Options.fnOnProgress && (iRow % PROGRESS_GRANULARITY) == 0)
+			{
+			DWORDLONG dwPos = Stream.GetPos();
+			int iPercent = (int)(dwPos * 100 / dwStreamSize);
+
+			Options.fnOnProgress(iPercent, NULL_STR);
+			}
 		}
 
 	return true;

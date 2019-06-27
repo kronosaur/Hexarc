@@ -171,8 +171,9 @@ class CString16
 bool strASCIICharInSet (char *pPos, const CString &sSet);
 CString strCapitalize (const CString &sString);
 
-const DWORD STC_FLAG_MUST_HAVE_ALPHA =			0x00000001;
-const DWORD STC_FLAG_MUST_HAVE_ALPHANUMERIC =	0x00000002;
+constexpr DWORD STC_FLAG_MUST_HAVE_ALPHA =			0x00000001;
+constexpr DWORD STC_FLAG_MUST_HAVE_ALPHANUMERIC =	0x00000002;
+constexpr DWORD STC_FLAG_NO_SPACES =				0x00000004;
 CString strClean (const CString &sText, DWORD dwFlags = 0);
 
 bool strEndsWith (const CString &sString, const CString &sPartial);

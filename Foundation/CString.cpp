@@ -986,7 +986,10 @@ CString strClean (const CString &sText, DWORD dwFlags)
 			case ' ':
 				if (!bLastCharWasSpace && bFoundNonSpace)
 					{
-					*pDest++ = ' ';
+					if (dwFlags & STC_FLAG_NO_SPACES)
+						*pDest++ = '_';
+					else
+						*pDest++ = ' ';
 					bLastCharWasSpace = true;
 					}
 				break;

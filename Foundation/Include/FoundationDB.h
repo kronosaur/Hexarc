@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include <functional>
+
 class IDBValueObject;
 
 class CDBValue
@@ -200,7 +202,12 @@ class CDBFormatCSV
 			{
 			bool bUseUTF8 = false;
 			bool bAllowShortRows = false;
+
+			std::function<void(int, const CString &)> fnOnProgress = NULL;
 			};
 
-		static bool Load (IByteStream &Stream, const SOptions &Options, CDBTable &Table, CString *retsError = NULL);
+		static bool Load (IByteStream64 &Stream, const SOptions &Options, CDBTable &Table, CString *retsError = NULL);
+
+	private:
+		static constexpr int EstimateRowCount (DWORDLONG dwStreamSize);
 	};

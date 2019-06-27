@@ -5,23 +5,38 @@
 
 #include "stdafx.h"
 
-void CMemoryBlockImpl64::Read (void *pData, DWORDLONG dwLength)
+char CMemoryBlockImpl64::ReadChar (void)
 
-//	Read
+//	ReadChar
+//
+//	Reads a character. We return '\0' if we are at the end of the stream.
+
+	{
+	DWORDLONG dwLength = GetLength();
+	if (m_dwPos >= dwLength)
+		return '\0';
+
+	char *pMemory = GetPointer();
+	return pMemory[m_dwPos++];
+	}
+
+DWORDLONG CMemoryBlockImpl64::ReadTry (void *pData, DWORDLONG dwLength)
+
+//	ReadTry
 //
 //	Reads data
 
 	{
-	DWORDLONG dwCurrentSize = GetLength();
-	if (dwLength < dwCurrentSize - m_dwPos)
-		throw CException(errFail);
+	DWORDLONG dwLeft = GetLength() - m_dwPos;
+	dwLength = Min(dwLeft, dwLength);
 
 	char *pMemory = GetPointer();
-
 	if (pData)
 		utlMemCopy(pMemory + m_dwPos, pData, dwLength);
 
 	m_dwPos += dwLength;
+
+	return dwLength;
 	}
 
 void CMemoryBlockImpl64::Seek (DWORDLONG dwPos, bool bFromEnd)

@@ -15,7 +15,10 @@ char IByteStream64::ReadChar (void)
 
 	{
 	char chChar;
-	Read(&chChar, 1);
+	DWORDLONG dwRead = ReadTry(&chChar, 1);
+	if (dwRead != 1)
+		return '\0';
+
 	return chChar;
 	}
 
