@@ -135,7 +135,7 @@ CString CAeonEngine::ConsoleCommand (const CString &sCmd, const TArray<CDatum> &
 
 		//	Look for the file to import
 
-		CFileBuffer Input;
+		CFileBuffer64 Input;
 		if (!Input.OpenReadOnly(sFilespec, &sError))
 			return sError;
 

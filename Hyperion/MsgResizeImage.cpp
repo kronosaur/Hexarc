@@ -5,6 +5,10 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(FIELD_CROP_BOTTOM,					"cropBottom");
+DECLARE_CONST_STRING(FIELD_CROP_LEFT,					"cropLeft");
+DECLARE_CONST_STRING(FIELD_CROP_RIGHT,					"cropRight");
+DECLARE_CONST_STRING(FIELD_CROP_TOP,					"cropTop");
 DECLARE_CONST_STRING(FIELD_DATA,						"data");
 DECLARE_CONST_STRING(FIELD_FILE_DESC,					"fileDesc");
 DECLARE_CONST_STRING(FIELD_MODIFIED_ON,					"modifiedOn");
@@ -25,11 +29,13 @@ DECLARE_CONST_STRING(ERR_CANT_SAVE_JPEG,				"%s: Unable to save JPEG image.");
 class CResizeImageSession : public CAeonFileDownloadSession
 	{
 	public:
-		CResizeImageSession (CHyperionEngine &Engine, const CString &sReplyAddr, const CString &sFilePath, DWORD dwNewSize, const CHexeSecurityCtx *pSecurityCtx) : 
+		CResizeImageSession (CHyperionEngine &Engine, const CString &sReplyAddr, const CString &sFilePath, DWORD dwNewSize, CDatum dOptions, const CHexeSecurityCtx *pSecurityCtx) : 
 				CAeonFileDownloadSession(sReplyAddr, sFilePath, pSecurityCtx),
 				m_Engine(Engine),
 				m_dwNewSize(dwNewSize)
-			{ }
+			{
+			LoadOptions(dOptions);
+			}
 
 	protected:
 		//	CAeonFileDownloadSession virtuals
@@ -38,10 +44,13 @@ class CResizeImageSession : public CAeonFileDownloadSession
 		virtual bool OnPrepareRequest (CString &sFilePath, SOptions &Options) override;
 
 	private:
-		bool ResizeImage (const CRGBA32Image &Input, DWORD dwNewSize, CRGBA32Image &retOutput);
+		bool IsCropped (void) const { return (m_rcCrop.left != 0 || m_rcCrop.right != 0 || m_rcCrop.bottom != 0 || m_rcCrop.top != 0); }
+		void LoadOptions (CDatum dOptions);
+		bool ResizeImage (const CRGBA32Image &Input, DWORD dwNewSize, const RECT &rcCrop, CRGBA32Image &retOutput);
 
 		CHyperionEngine &m_Engine;
 		DWORD m_dwNewSize;
+		RECT m_rcCrop;
 		CString m_sCacheID;
 		CDatum m_dResult;
 
@@ -71,13 +80,28 @@ void CHyperionEngine::MsgResizeImage (const SArchonMessage &Msg, const CHexeSecu
 		return;
 		}
 
+	CDatum dOptions = Msg.dPayload.GetElement(2);
+
 	//	Otherwise, we need to resize the file. Start a session to get the 
 	//	original file bits.
 
-	StartSession(Msg, new CResizeImageSession(*this, GenerateAddress(PORT_HYPERION_COMMAND), sFilePath, dwSize, pSecurityCtx));
+	StartSession(Msg, new CResizeImageSession(*this, GenerateAddress(PORT_HYPERION_COMMAND), sFilePath, dwSize, dOptions, pSecurityCtx));
 	}
 
 //	CResizeImageSession --------------------------------------------------------
+
+void CResizeImageSession::LoadOptions (CDatum dOptions)
+
+//	LoadOptions
+//
+//	Loads options.
+
+	{
+	m_rcCrop.left = (int)dOptions.GetElement(FIELD_CROP_LEFT);
+	m_rcCrop.right = (int)dOptions.GetElement(FIELD_CROP_RIGHT);
+	m_rcCrop.top = (int)dOptions.GetElement(FIELD_CROP_TOP);
+	m_rcCrop.bottom = (int)dOptions.GetElement(FIELD_CROP_BOTTOM);
+	}
 
 void CResizeImageSession::OnFileDownloaded (CDatum dFileDesc, CDatum dData)
 
@@ -116,7 +140,7 @@ void CResizeImageSession::OnFileDownloaded (CDatum dFileDesc, CDatum dData)
 	//	Resize the image
 
 	CRGBA32Image ResizedImage;
-	if (!ResizeImage(FullSizeImage, m_dwNewSize, ResizedImage))
+	if (!ResizeImage(FullSizeImage, m_dwNewSize, m_rcCrop, ResizedImage))
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_CANT_RESIZE, fileGetFilename(GetFilePath())));
 		return;
@@ -179,7 +203,10 @@ bool CResizeImageSession::OnPrepareRequest (CString &sFilePath, SOptions &Option
 
 	//	Generate an ID for the generated file.
 
-	m_sCacheID = strPattern("%s#size=%d", sFilePath, m_dwNewSize);
+	if (IsCropped())
+		m_sCacheID = strPattern("%s#size=%d;cropB=%d;cropL=%d;cropR=%d;cropT=%d", sFilePath, m_dwNewSize, m_rcCrop.bottom, m_rcCrop.left, m_rcCrop.right, m_rcCrop.top);
+	else
+		m_sCacheID = strPattern("%s#size=%d", sFilePath, m_dwNewSize);
 
 	//	If we have it in the cache, then we need to see if the file has been 
 	//	changed since we cached it.
@@ -195,7 +222,7 @@ bool CResizeImageSession::OnPrepareRequest (CString &sFilePath, SOptions &Option
 	return true;
 	}
 
-bool CResizeImageSession::ResizeImage (const CRGBA32Image &Input, DWORD dwNewSize, CRGBA32Image &retOutput)
+bool CResizeImageSession::ResizeImage (const CRGBA32Image &Input, DWORD dwNewSize, const RECT &rcCrop, CRGBA32Image &retOutput)
 
 //	ResizeImage
 //
@@ -204,21 +231,28 @@ bool CResizeImageSession::ResizeImage (const CRGBA32Image &Input, DWORD dwNewSiz
 	{
 	try
 		{
-		if (Input.GetWidth() <= 0 || Input.GetHeight() <= 0)
+		int xSrc = rcCrop.left;
+		int ySrc = rcCrop.top;
+		int cxOriginal = Input.GetWidth();
+		int cyOriginal = Input.GetHeight();
+		int cxSrc = cxOriginal - (rcCrop.left + rcCrop.right);
+		int cySrc = cyOriginal - (rcCrop.top + rcCrop.bottom);
+
+		if (cxSrc <= 0 || cySrc <= 0)
 			return false;
 
 		int cxMaxWidth = dwNewSize;
 		int cyMaxHeight = dwNewSize;
 
-		double rScaleX = (double)cxMaxWidth / (double)Input.GetWidth();
-		double rScaleY = (double)cyMaxHeight / (double)Input.GetHeight();
+		double rScaleX = (double)cxMaxWidth / (double)cxSrc;
+		double rScaleY = (double)cyMaxHeight / (double)cySrc;
 		double rScale = Min(rScaleX, rScaleY);
 
-		int cxNewWidth = Min(cxMaxWidth, (int)mathRound(rScale * Input.GetWidth()));
-		int cyNewHeight = Min(cyMaxHeight, (int)mathRound(rScale * Input.GetHeight()));
+		int cxNewWidth = Min(cxMaxWidth, (int)mathRound(rScale * cxSrc));
+		int cyNewHeight = Min(cyMaxHeight, (int)mathRound(rScale * cySrc));
 
 		retOutput.Create(cxNewWidth, cyNewHeight, CRGBA32Image::alphaNone);
-		CImageDraw::BltScaled(retOutput, 0, 0, cxNewWidth, cyNewHeight, Input);
+		CImageDraw::BltScaled(retOutput, 0, 0, cxNewWidth, cyNewHeight, Input, xSrc, ySrc, cxSrc, cySrc);
 
 		return true;
 		}
