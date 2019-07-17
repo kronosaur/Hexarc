@@ -5,7 +5,7 @@
 
 #include "stdafx.h"
 
-CDBColumnDef::CDBColumnDef (const CString &sID, CDBValue::ETypes iType, int iOrdinal)
+CDBColumnDef::CDBColumnDef (const CString &sID, CDBValue::ETypes iType, int iOrdinal, int iSize)
 
 //	CDBColumnDef constructor
 
@@ -15,6 +15,7 @@ CDBColumnDef::CDBColumnDef (const CString &sID, CDBValue::ETypes iType, int iOrd
 	m_iType = iType;
 
 	m_iOrdinal = iOrdinal;
+	m_iSize = iSize;
 
 	m_iDisplayType = iType;
 	m_sDisplayName = sID;

@@ -134,7 +134,7 @@ class CDBColumnDef
 	{
 	public:
 		CDBColumnDef (void) { }
-		CDBColumnDef (const CString &sID, CDBValue::ETypes iType, int iOrdinal = -1);
+		CDBColumnDef (const CString &sID, CDBValue::ETypes iType, int iOrdinal = -1, int iSize = -1);
 
 		const CString &GetDesc (void) const { return m_sDesc; }
 		const CString &GetDisplayName (void) const { return m_sDisplayName; }
@@ -142,6 +142,7 @@ class CDBColumnDef
 		const CString &GetID (void) const { return m_sID; }
 		const CString &GetName (void) const { return m_sName; }
 		int GetOrdinal (void) const { return m_iOrdinal; }
+		int GetSize (void) const { return m_iSize; }
 		CDBValue::ETypes GetType (void) const { return m_iType; }
 		void SetExtra (DWORD dwExtra) { m_dwExtra = dwExtra; }
 		void SetID (const CString &sID);
@@ -155,6 +156,7 @@ class CDBColumnDef
 		CString m_sDesc;					//	Description of column (may have spaces).
 		CDBValue::ETypes m_iType = CDBValue::typeUnknown;
 		int m_iOrdinal = -1;				//	Column ordinal in table (-1 = unknown)
+		int m_iSize = -1;					//	Column size (-1 = default)
 		DWORD m_dwExtra = 0;
 
 		CString m_sDisplayName;				//	Display name of column
