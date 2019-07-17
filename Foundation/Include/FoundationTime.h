@@ -63,7 +63,7 @@ class CDateTime
 
 		static bool Parse (StandardFormats iFormat, char *pPos, char *pPosEnd, CDateTime *retResult);
 		static bool Parse (StandardFormats iFormat, const CString &sValue, CDateTime *retResult);
-		inline static CDateTime ParseIMF (const CString &sValue) { return ParseIMF(sValue.GetParsePointer(), sValue.GetParsePointer() + sValue.GetLength()); }
+		static CDateTime ParseIMF (const CString &sValue) { return ParseIMF(sValue.GetParsePointer(), sValue.GetParsePointer() + sValue.GetLength()); }
 
 		bool operator== (const CDateTime &Other) const 
 			{ return (m_Time.wYear == Other.m_Time.wYear)
@@ -88,16 +88,16 @@ class CDateTime
 		bool operator>= (const CDateTime &Other) const { return (Compare(Other) != -1); }
 		bool operator<= (const CDateTime &Other) const { return (Compare(Other) != 1); }
 
-		inline int Year (void) const { return m_Time.wYear; }
-		inline int Month (void) const { return m_Time.wMonth; }
-		inline int Day (void) const { return m_Time.wDay; }
-		inline int Hour (void) const { return m_Time.wHour; }
-		inline int Minute (void) const { return m_Time.wMinute; }
-		inline int Second (void) const { return m_Time.wSecond; }
-		inline int Millisecond (void) const { return m_Time.wMilliseconds; }
+		int Year (void) const { return m_Time.wYear; }
+		int Month (void) const { return m_Time.wMonth; }
+		int Day (void) const { return m_Time.wDay; }
+		int Hour (void) const { return m_Time.wHour; }
+		int Minute (void) const { return m_Time.wMinute; }
+		int Second (void) const { return m_Time.wSecond; }
+		int Millisecond (void) const { return m_Time.wMilliseconds; }
 
 		void SetDate (int iDay, int iMonth, int iYear);
-		inline void SetMillisecond (int iMillisecond) { m_Time.wMilliseconds = iMillisecond; }
+		void SetMillisecond (int iMillisecond) { m_Time.wMilliseconds = iMillisecond; }
 		void SetTime (int iHour, int iMinute, int iSecond, int iMillisecond = 0);
 
 		int Age (const CDateTime &Today = CDateTime(Today), int *retiMonths = NULL, int *retiDays = NULL) const;
@@ -142,7 +142,7 @@ class CTimeSpan
 		int Seconds (void) const { return (SECONDS_PER_DAY * m_Days) + (m_Milliseconds / 1000); }
 		DWORDLONG Seconds64 (bool *retbNegative = NULL) const { if (retbNegative) *retbNegative = m_bNegative; return (SECONDS_PER_DAY * (DWORDLONG)m_Days) + (DWORDLONG)(m_Milliseconds / 1000); }
 		int Milliseconds (void) const { return (SECONDS_PER_DAY * 1000 * m_Days) + m_Milliseconds; }
-		inline DWORDLONG Milliseconds64 (void) const { return ((DWORDLONG)SECONDS_PER_DAY * (DWORDLONG)m_Days * 1000) + (DWORDLONG)m_Milliseconds; }
+		DWORDLONG Milliseconds64 (void) const { return ((DWORDLONG)SECONDS_PER_DAY * (DWORDLONG)m_Days * 1000) + (DWORDLONG)m_Milliseconds; }
 		int MillisecondsSinceMidnight (void) const { return (int)m_Milliseconds; }
 
 		CString Format (const CString &sFormat) const;
