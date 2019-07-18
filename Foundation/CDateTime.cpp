@@ -221,6 +221,15 @@ CDateTime::CDateTime (int iDay, int iMonth, int iYear, int iHour, int iMinute, i
 	m_Time.wDayOfWeek = 0xffff;
 	}
 
+CDateTime::CDateTime (StandardFormats iFormat, const CString &sValue)
+
+//	CDateTime constructor
+
+	{
+	if (!Parse(iFormat, sValue, this))
+		*this = CDateTime();
+	}
+
 int CDateTime::Age (const CDateTime &Today, int *retiMonths, int *retiDays) const
 
 //	Age
@@ -258,6 +267,19 @@ CDateTime CDateTime::AsLocalTime (void) const
 	Local.m_Time = m_Time;
 	::SystemTimeToTzSpecificLocalTime(NULL, &Local.m_Time, &Local.m_Time);
 	return Local;
+	}
+
+CDateTime CDateTime::AsUTC (void) const
+
+//	AsUTC
+//
+//	Converts the time to UTC (assuming that it is local).
+
+	{
+	CDateTime UTC;
+	UTC.m_Time = m_Time;
+	::TzSpecificLocalTimeToSystemTime(NULL, &UTC.m_Time, &UTC.m_Time);
+	return UTC;
 	}
 
 int CDateTime::Compare (const CDateTime &Src) const
@@ -543,22 +565,6 @@ int CDateTime::GetDaysInMonth (int iMonth, int iYear)
 		}
 	}
 
-bool CDateTime::IsValid (void) const
-
-//	IsValid
-//
-//	Returns FALSE if this is set to BeginningOfTime
-
-	{
-	return (m_Time.wYear != 1
-			|| m_Time.wMonth != 1
-			|| m_Time.wDay != 1
-			|| m_Time.wHour != 0
-			|| m_Time.wMinute != 0
-			|| m_Time.wSecond != 0
-			|| m_Time.wMilliseconds != 0);
-	}
-
 int CDateTime::MillisecondsSinceMidnight (void) const
 
 //	MillisecondsSinceMidnight
@@ -572,7 +578,7 @@ int CDateTime::MillisecondsSinceMidnight (void) const
 			+ (Hour() * 60 * 60 * 1000);
 	}
 
-bool CDateTime::Parse (StandardFormats iFormat, char *pPos, char *pPosEnd, CDateTime *retResult)
+bool CDateTime::Parse (StandardFormats iFormat, const char *pPos, const char *pPosEnd, CDateTime &retResult)
 
 //	Parse
 //
@@ -584,14 +590,17 @@ bool CDateTime::Parse (StandardFormats iFormat, char *pPos, char *pPosEnd, CDate
 		case formatAuto:
 		case formatInterpolateStart:
 		case formatInterpolateEnd:
-			return ParseAuto(pPos, pPosEnd, iFormat, retResult);
+			return ParseAuto(pPos, pPosEnd, iFormat, &retResult);
 
 		case formatIMF:
-			*retResult = ParseIMF(pPos, pPosEnd);
-			return retResult->IsValid();
+			retResult = ParseIMF(const_cast<char *>(pPos), const_cast<char *>(pPosEnd));
+			return retResult.IsValid();
 
 		case formatISO8601:
-			return ParseISO8601(pPos, pPosEnd, retResult);
+			return ParseISO8601(const_cast<char *>(pPos), const_cast<char *>(pPosEnd), &retResult);
+
+		case formatTime:
+			return ParseTime(pPos, pPosEnd, retResult);
 
 		default:
 			ASSERT(false);
@@ -599,7 +608,36 @@ bool CDateTime::Parse (StandardFormats iFormat, char *pPos, char *pPosEnd, CDate
 		}
 	}
 
+bool CDateTime::Parse (StandardFormats iFormat, char *pPos, char *pPosEnd, CDateTime *retResult)
+
+//	Parse
+//
+//	Parse standard formats. Returns TRUE if successful.
+
+	{
+	if (retResult)
+		return Parse(iFormat, pPos, pPosEnd, *retResult);
+	else
+		{
+		CDateTime Dummy;
+		return Parse(iFormat, pPos, pPosEnd, Dummy);
+		}
+	}
+
 bool CDateTime::Parse (StandardFormats iFormat, const CString &sValue, CDateTime *retResult)
+
+//	Parse
+//
+//	Parse standard formats. Returns TRUE if successful.
+
+	{
+	char *pPos = sValue.GetParsePointer();
+	char *pPosEnd = pPos + sValue.GetLength();
+
+	return Parse(iFormat, pPos, pPosEnd, retResult);
+	}
+
+bool CDateTime::Parse (StandardFormats iFormat, const CString &sValue, CDateTime &retResult)
 
 //	Parse
 //
@@ -1056,6 +1094,53 @@ bool CDateTime::ParseAuto (const char *pPos, const char *pPosEnd, StandardFormat
 	return true;
 	}
 
+bool CDateTime::ParseDigits (const char *&ioPos, const char *pPosEnd, int *retiValue, int iDefault, int *retiDigitsParsed)
+
+//	ParseDigits
+//
+//	Parse 0 or more digits and returns TRUE if we have a valid value.
+
+	{
+	if (retiDigitsParsed)
+		*retiDigitsParsed = 0;
+
+	//	If we're already at the end, then we return TRUE to support optional
+	//	values.
+
+	if (ioPos == pPosEnd)
+		{
+		if (retiValue)
+			*retiValue = iDefault;
+		return (iDefault != -1);
+		}
+
+	//	Parse
+
+	bool bFoundValue = false;
+	int iValue = 0;
+	while (ioPos < pPosEnd && *ioPos >= '0' && *ioPos <= '9')
+		{
+		iValue = (10 * iValue) + ((*ioPos) - '0');
+		bFoundValue = true;
+		if (retiDigitsParsed)
+			(*retiDigitsParsed)++;
+
+		ioPos++;
+		}
+
+	if (!bFoundValue)
+		{
+		if (retiValue)
+			*retiValue = iDefault;
+		return (iDefault != -1);
+		}
+
+	if (retiValue)
+		*retiValue = iValue;
+
+	return true;
+	}
+
 bool CDateTime::ParseFixedDigits (char **iopPos, char *pPosEnd, int iCount, int *retiValue, int iDefault)
 
 //	ParseFixedDigits
@@ -1423,6 +1508,91 @@ bool CDateTime::ParseMonthIMF (const CString &sValue, int *retiMonth, bool bFull
 	if (retiMonth)
 		*retiMonth = iMonth;
 
+	return true;
+	}
+
+bool CDateTime::ParseTime (const char *pPos, const char *pPosEnd, CDateTime &retResult)
+
+//	ParseTime
+//
+//	4 PM
+//	4:15 PM
+//	4:15:00 PM
+//	4:15:00.000 PM
+//	16
+//	16:15
+//	16:15:00
+//	16:15:00.000
+
+	{
+	//	Skip whitespace
+
+	while (pPos < pPosEnd && !strIsDigit(pPos))
+		pPos++;
+
+	//	Parse hour
+
+	int iHour;
+	if (!ParseDigits(pPos, pPosEnd, &iHour))
+		return false;
+
+	//	Parse minutes
+
+	if (pPos < pPosEnd && *pPos == ':')
+		pPos++;
+
+	int iMinutes;
+	ParseDigits(pPos, pPosEnd, &iMinutes, 0);
+
+	//	Parse seconds
+
+	if (pPos < pPosEnd && *pPos == ':')
+		pPos++;
+
+	int iSeconds;
+	ParseDigits(pPos, pPosEnd, &iSeconds, 0);
+
+	//	Parse milliseconds
+
+	if (pPos < pPosEnd && *pPos == '.')
+		pPos++;
+
+	int iMilliseconds;
+	int iDigitsParsed;
+	ParseDigits(pPos, pPosEnd, &iMilliseconds, 0, &iDigitsParsed);
+	if (iDigitsParsed > 0 && iDigitsParsed < 3)
+		{
+		int iMult = 3 - iDigitsParsed;
+		while (iMult--)
+			iMilliseconds *= 10;
+		}
+
+	//	Parse AM/PM
+
+	while (pPos < pPosEnd && strIsWhitespace(pPos))
+		pPos++;
+
+	if (pPos < pPosEnd)
+		{
+		if (*pPos == 'P' || *pPos == 'p')
+			iHour += 12;
+		}
+
+	//	Validate
+
+	if (iHour < 0 || iHour > 23)
+		return false;
+
+	if (iMinutes < 0 || iMinutes > 59)
+		return false;
+
+	if (iSeconds < 0 || iSeconds > 59)
+		return false;
+
+	if (iMilliseconds < 0 || iMilliseconds > 999)
+		return false;
+
+	retResult = CDateTime(1, 1, 1, iHour, iMinutes, iSeconds, iMilliseconds);
 	return true;
 	}
 

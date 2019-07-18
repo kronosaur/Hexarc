@@ -225,6 +225,7 @@ DWORDLONG fileGetSize (const CString &sFilespec);
 CString fileGetTempPath (void);
 bool fileGetVersionInfo (const CString &sFilespec, SFileVersionInfo *retInfo);
 bool fileGetVolumeList (DWORD dwFlags, TArray<CString> *retVolumes);
+CString fileGetWorkingDirectory (void);
 bool fileIsAbsolute (const CString &sFilespec);
 bool fileIsDotted (const CString &sFilespec);
 bool fileIsPathEqual (const CString &sFilespec1, const CString &sFilespec2);
@@ -239,3 +240,34 @@ inline bool fileGetFileList (const CString &sFilespec, DWORD dwFlags, TArray<CSt
 	{ return fileGetFileList(fileGetPath(sFilespec), NULL_STR, fileGetFilename(sFilespec), dwFlags, retFiles); }
 
 bool fileSetWorkingDirectory (const CString &sPath);
+
+//	Utilities ------------------------------------------------------------------
+
+class CSaveWorkingDirectory
+	{
+	public:
+		CSaveWorkingDirectory (void)
+			{
+			m_sOldDir = fileGetWorkingDirectory();
+			}
+
+		explicit CSaveWorkingDirectory (const CString &sFilespec)
+			{
+			m_sOldDir = fileGetWorkingDirectory();
+			fileSetWorkingDirectory(sFilespec);
+			}
+
+		CSaveWorkingDirectory (const CSaveWorkingDirectory &Src) = delete;
+		CSaveWorkingDirectory (CSaveWorkingDirectory &&Src) = delete;
+
+		~CSaveWorkingDirectory (void)
+			{
+			fileSetWorkingDirectory(m_sOldDir);
+			}
+
+		CSaveWorkingDirectory &operator= (const CSaveWorkingDirectory &Src) = delete;
+		CSaveWorkingDirectory &operator= (CSaveWorkingDirectory &&Src) = delete;
+
+	private:
+		CString m_sOldDir;
+	};

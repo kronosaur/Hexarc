@@ -1045,6 +1045,21 @@ CString GetVersionString (char *pData, WORD *pLangInfo, const CString &sString)
 		return NULL_STR;
 	}
 
+CString fileGetWorkingDirectory (void)
+
+//	fileGetWorkingDirector
+//
+//	Returns the current directory.
+
+	{
+	TCHAR szBuffer[MAX_FILE_PATH_CHARS];
+	int iLen = ::GetCurrentDirectory(MAX_FILE_PATH_CHARS, szBuffer);
+
+	//	Convert to UTF-8
+
+	return CString(szBuffer, iLen);
+	}
+
 bool fileSetWorkingDirectory (const CString &sPath)
 
 //	fileSetWorkingDirectory

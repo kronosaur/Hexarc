@@ -31,6 +31,7 @@ class CDateTime
 
 			formatIMF,					//	Sun, 06 Nov 1994 08:49:37 GMT
 			formatISO8601,				//	1994-11-06T08:49:37.123Z
+			formatTime,					//	4:15:00 PM or 16:15:00
 			};
 
 		enum DateFormats
@@ -60,9 +61,12 @@ class CDateTime
 		CDateTime (int iDay, int iMonth, int iYear);
 		CDateTime (int iDay, int iMonth, int iYear, int iHour, int iMinute, int iSecond, int iMillisecond = 0);
 		CDateTime (SYSTEMTIME &SystemTime) { m_Time = SystemTime; }
+		CDateTime (StandardFormats iFormat, const CString &sValue);
 
 		static bool Parse (StandardFormats iFormat, char *pPos, char *pPosEnd, CDateTime *retResult);
+		static bool Parse (StandardFormats iFormat, const char *pPos, const char *pPosEnd, CDateTime &retResult);
 		static bool Parse (StandardFormats iFormat, const CString &sValue, CDateTime *retResult);
+		static bool Parse (StandardFormats iFormat, const CString &sValue, CDateTime &retResult);
 		static CDateTime ParseIMF (const CString &sValue) { return ParseIMF(sValue.GetParsePointer(), sValue.GetParsePointer() + sValue.GetLength()); }
 
 		bool operator== (const CDateTime &Other) const 
@@ -102,24 +106,28 @@ class CDateTime
 
 		int Age (const CDateTime &Today = CDateTime(Today), int *retiMonths = NULL, int *retiDays = NULL) const;
 		CDateTime AsLocalTime (void) const;
+		CDateTime AsUTC (void) const;
 		int Compare (const CDateTime &Src) const;
 		int DayOfWeek (void) const;
 		int DaysSince1AD (void) const;
 		CString Format (const CString &sFormat) const;
 		CString Format (DateFormats iDateFormat, TimeFormats iTimeFormat) const;
 		CString FormatIMF (void) const;
+		bool HasDate (void) const { return m_Time.wDay != 1 || m_Time.wMonth != 1 || m_Time.wYear != 1; }
 		bool HasTime (void) const { return m_Time.wHour || m_Time.wMinute || m_Time.wSecond || m_Time.wMilliseconds; }
-		bool IsValid (void) const;
+		bool IsValid (void) const { return HasDate() || HasTime(); }
 		int MillisecondsSinceMidnight (void) const;
 
 		static int GetDaysInMonth (int iMonth, int iYear = 0);
 
 	private:
 		static bool ParseAuto (const char *pPos, const char *pPosEnd, StandardFormats iFormat, CDateTime *retResult);
+		static bool ParseDigits (const char *&ioPos, const char *pPosEnd, int *retiValue, int iDefault = -1, int *retiDigitsParsed = NULL);
 		static bool ParseFixedDigits (char **iopPos, char *pPosEnd, int iCount, int *retiValue, int iDefault = -1);
 		static CDateTime ParseIMF (char *pPos, char *pPosEnd);
 		static bool ParseISO8601 (char *pPos, char *pPosEnd, CDateTime *retResult);
 		static bool ParseMonthIMF (const CString &sValue, int *retiMonth = NULL, bool bFullNameOK = false);
+		static bool ParseTime (const char *pPos, const char *pPosEnd, CDateTime &retResult);
 
 		SYSTEMTIME m_Time;
 	};
