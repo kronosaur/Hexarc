@@ -225,7 +225,12 @@ bool CHexeCodeRPCService::OnHandleRequest (SHTTPRequestCtx &Ctx)
 	//	Generate a call to the appropriate handler for this entry point
 
 	CDatum dCode;
-	if (Ctx.pProcess->FindGlobalDef(strPattern("%s+%s", GetName(), sRelativePath), &dCode))
+	if (sRelativePath.IsEmpty() && Ctx.pProcess->FindGlobalDef(strPattern("%s+/", GetName()), &dCode))
+		;
+
+	//	Otherwise, see if we have the generic handler.
+
+	else if (Ctx.pProcess->FindGlobalDef(strPattern("%s+%s", GetName(), sRelativePath), &dCode))
 		;
 
 	//	Otherwise, see if we have the generic handler.
