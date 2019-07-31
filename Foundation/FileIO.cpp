@@ -888,6 +888,23 @@ bool fileIsDotted (const CString &sFilespec)
 	return false;
 	}
 
+bool fileIsFilename (const CString &sFilespec)
+
+//	fileIsFilename
+//
+//	Returns TRUE if the given filespec has an extension (or even a dot with no
+//	extension).
+
+	{
+	const char *pStart = sFilespec.GetParsePointer();
+	const char *pPos = pStart + sFilespec.GetLength() - 1;
+
+	while (pPos >= pStart && *pPos != '.' && *pPos != '/' && *pPos != '\\')
+		pPos--;
+
+	return (pPos >= pStart && *pPos == '.');
+	}
+
 bool fileIsPathEqual (const CString &sFilespec1, const CString &sFilespec2)
 
 //	fileIsPathEqual
@@ -921,6 +938,27 @@ bool fileIsPathEqual (const CString &sFilespec1, const CString &sFilespec2)
 		}
 
 	return (pPos1 == pEndPos1 && pPos2 == pEndPos2);
+	}
+
+bool fileIsWildcard (const CString &sFilespec)
+
+//	fileIsWildcard
+//
+//	Returns TRUE if the filespec has a wildcard.
+
+	{
+	const char *pPos = sFilespec.GetParsePointer();
+	const char *pPosEnd = pPos + sFilespec.GetLength();
+
+	while (pPos < pPosEnd)
+		{
+		if (*pPos == '?' || *pPos == '*')
+			return true;
+
+		pPos++;
+		}
+
+	return false;
 	}
 
 bool fileMove (const CString &sSourceFilespec, const CString &sDestFilespec)

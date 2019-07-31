@@ -228,7 +228,9 @@ bool fileGetVolumeList (DWORD dwFlags, TArray<CString> *retVolumes);
 CString fileGetWorkingDirectory (void);
 bool fileIsAbsolute (const CString &sFilespec);
 bool fileIsDotted (const CString &sFilespec);
+bool fileIsFilename (const CString &sFilespec);
 bool fileIsPathEqual (const CString &sFilespec1, const CString &sFilespec2);
+bool fileIsWildcard (const CString &sFilespec);
 bool fileMove (const CString &sSourceFilespec, const CString &sDestFilespec);
 bool filePathCreate (const CString &sPath, CString *retsError = NULL);
 
