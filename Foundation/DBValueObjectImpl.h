@@ -13,6 +13,8 @@ class CDBValueArray : public IDBValueObject
 
 		virtual CString AsString (void) const override;
 		virtual IDBValueObject *Clone (void) const override { return new CDBValueArray(m_Array); }
+		virtual const CDBValue &GetElement (int iIndex) const override { return (iIndex >= 0 && iIndex < m_Array.GetCount() ? m_Array[iIndex] : CDBValue::Null); }
+		virtual int GetElementCount (void) const override { return m_Array.GetCount(); }
 		virtual CDBValue::ETypes GetType (void) const override { return CDBValue::typeArray; }
 
 	private:
@@ -77,7 +79,10 @@ class CDBValueStruct : public IDBValueObject
 
 		virtual CString AsString (void) const override;
 		virtual IDBValueObject *Clone (void) const override { return new CDBValueStruct(m_Table); }
+		virtual const CDBValue &GetElement (int iIndex) const override { return (iIndex >= 0 && iIndex < m_Table.GetCount() ? m_Table[iIndex] : CDBValue::Null); }
 		virtual const CDBValue &GetElement (const CString &sKey) const override { CDBValue *pValue = m_Table.GetAt(sKey); return (pValue ? *pValue : CDBValue::Null); }
+		virtual int GetElementCount (void) const override { return m_Table.GetCount(); }
+		virtual const CString &GetElementKey (int iIndex) const override { return (iIndex >= 0 && iIndex < m_Table.GetCount() ? m_Table.GetKey(iIndex) : NULL_STR); }
 		virtual CDBValue::ETypes GetType (void) const override { return CDBValue::typeStruct; }
 		virtual void SetElement (const CString &sKey, const CDBValue &Value) override { m_Table.SetAt(sKey, Value); }
 

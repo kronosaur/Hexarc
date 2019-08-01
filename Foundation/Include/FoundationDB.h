@@ -65,7 +65,10 @@ class CDBValue
 		int AsInt32 (bool *retbValid = NULL) const;
 		CTimeSpan AsTimeSpan (void) const;
 		CString AsString (void) const;
+		const CDBValue &GetElement (int iIndex) const;
 		const CDBValue &GetElement (const CString &sKey) const;
+		int GetElementCount (void) const;
+		const CString &GetElementKey (int iIndex) const;
 		ETypes GetType (void) const;
 		bool IsNil (void) const { return m_dwData == 0; }
 		void SetElement (const CString &sKey, const CDBValue &Value);
@@ -125,7 +128,10 @@ class IDBValueObject
 		virtual double CastDouble (void) const { return 0.0; }
 		virtual LONGLONG CastLONGLONG (void) const { return 0; }
 		virtual IDBValueObject *Clone (void) const = 0;
+		virtual const CDBValue &GetElement (int iIndex) const { return CDBValue::Null; }
 		virtual const CDBValue &GetElement (const CString &sKey) const { return CDBValue::Null; }
+		virtual int GetElementCount (void) const { return 1; }
+		virtual const CString &GetElementKey (int iIndex) const { return NULL_STR; }
 		virtual CDBValue::ETypes GetType (void) const = 0;
 		virtual void SetElement (const CString &sKey, const CDBValue &Value) { }
 	};

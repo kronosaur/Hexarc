@@ -202,6 +202,7 @@ CString fileAppend (const CString &sPath, const CString &sComponent);
 CString fileAppendExtension (const CString &sFilespec, const CString &sExtension);
 DWORD fileChecksumAdler32 (const CString &sFilespec);
 bool fileCompare (const CString &sFilespec1, const CString &sFilespec2, bool bQuick = false);
+int fileCompareModifiedTime (const CString &sFilespec1, const CString &sFilespec2);
 bool fileCopy (const CString &sFrom, const CString &sTo);
 bool fileCreateDrive (const CString &sPath, CString *retsDriveRoot);
 bool fileDelete (const CString &sFilespec);

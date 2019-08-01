@@ -34,20 +34,21 @@ CString fileAppend (const CString &sPath, const CString &sComponent)
 	else if (sPath.IsEmpty())
 		return sComponent;
 
-	char *pComponent = sComponent.GetParsePointer();
+	const char *pComponent = sComponent.GetParsePointer();
+	const char *pPathEnd = sPath.GetParsePointer() + sPath.GetLength() - 1;
 
 	//	If the path has a trailing backslash...
 
-	if (*((sPath.GetParsePointer()) + (sPath.GetLength() - 1)) == '\\')
+	if (*pPathEnd == '\\' || *pPathEnd == '/')
 		{
 		//	If the component has a leading backslash, then we need to remove it
 
-		if (pComponent[0] == '\\')
+		if (pComponent[0] == '\\' || pComponent[0] == '/')
 			return strPattern("%s%s", sPath, (LPSTR)CString(pComponent + 1));
 
 		//	If the component has a leading .\ then we remove it
 
-		else if (pComponent[0] == '.' && pComponent[1] == '\\')
+		else if (pComponent[0] == '.' && (pComponent[1] == '\\' || pComponent[1] == '/'))
 			return strPattern("%s%s", sPath, (LPSTR)CString(pComponent + 2));
 
 		//	Otherwise, we just concatenate them together
@@ -62,12 +63,12 @@ CString fileAppend (const CString &sPath, const CString &sComponent)
 		{
 		//	If the component has a leading backslash, then we concatenate
 
-		if (pComponent[0] == '\\')
+		if (pComponent[0] == '\\' || pComponent[0] == '/')
 			return strPattern("%s%s", sPath, (LPSTR)sComponent);
 
 		//	If the component has a leading .\ then we remove the dot
 
-		else if (pComponent[0] == '.' && pComponent[1] == '\\')
+		else if (pComponent[0] == '.' && (pComponent[1] == '\\' || pComponent[1] == '/'))
 			return strPattern("%s%s", sPath, (LPSTR)CString(pComponent + 1));
 
 		//	Otherwise, we append on
@@ -155,6 +156,21 @@ bool fileCompare (const CString &sFilespec1, const CString &sFilespec2, bool bQu
 			return false;
 
 	return true;
+	}
+
+int fileCompareModifiedTime (const CString &sFilespec1, const CString &sFilespec2)
+
+//	fileCompareModifiedTime
+//
+//	If Filespec1 > Filespec2,		1
+//	If Filespec1 == Filespec2,		0
+//	If Filespec1 < Filespec2,		-1
+//
+//	NOTE: If either filespec1 or filespec2 don't exist, we treat them as being
+//	at the beginning of time.
+
+	{
+	return fileGetModifiedTime(sFilespec1).Compare(fileGetModifiedTime(sFilespec2));
 	}
 
 DWORD fileChecksumAdler32 (const CString &sFilespec)

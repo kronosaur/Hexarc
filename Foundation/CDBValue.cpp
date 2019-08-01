@@ -743,8 +743,29 @@ int CDBValue::Compare (const CDBValue &Left, const CDBValue &Right, ETypes *reti
 				return -2;
 
 			case typeStruct:
-				//	Not Yet implemented
-				return -2;
+				{
+				if (Left.GetElementCount() == Right.GetElementCount())
+					{
+					for (int i = 0; i < Left.GetElementCount(); i++)
+						{
+						int iKeyCompare = ::KeyCompareNoCase(Left.GetElementKey(i), Right.GetElementKey(i));
+						if (iKeyCompare != 0)
+							return iKeyCompare;
+
+						int iValueCompare = Compare(Left.GetElement(i), Right.GetElement(i));
+						if (iValueCompare != 0)
+							return iValueCompare;
+						}
+
+					//	If we get this far, then structs are equal
+
+					return 0;
+					}
+				else if (Left.GetElementCount() > Right.GetElementCount())
+					return 1;
+				else
+					return -1;
+				}
 
 			default:
 				return -2;
@@ -1101,6 +1122,26 @@ CDBValue::ETypes CDBValue::GetType (void) const
 		}
 	}
 
+const CDBValue &CDBValue::GetElement (int iIndex) const
+
+//	GetElement
+//
+//	Returns an element.
+
+	{
+	switch (DecodeDiscriminator1(m_dwData))
+		{
+		case TYPE_OBJECT:
+			{
+			IDBValueObject *pObj = DecodeObject(m_dwData);
+			return pObj->GetElement(iIndex);
+			}
+
+		default:
+			return Null;
+		}
+	}
+
 const CDBValue &CDBValue::GetElement (const CString &sKey) const
 
 //	GetElement
@@ -1118,6 +1159,49 @@ const CDBValue &CDBValue::GetElement (const CString &sKey) const
 
 		default:
 			return Null;
+		}
+	}
+
+int CDBValue::GetElementCount (void) const
+
+//	GetElementCount
+//
+//	Returns the number of elements.
+
+	{
+	switch (DecodeDiscriminator1(m_dwData))
+		{
+		case TYPE_STRING:
+			return (m_dwData == 0 ? 0 : 1);
+
+		case TYPE_OBJECT:
+			{
+			IDBValueObject *pObj = DecodeObject(m_dwData);
+			return pObj->GetElementCount();
+			}
+
+		default:
+			return 1;
+		}
+	}
+
+const CString &CDBValue::GetElementKey (int iIndex) const
+
+//	GetElementKey
+//
+//	Returns the element key
+
+	{
+	switch (DecodeDiscriminator1(m_dwData))
+		{
+		case TYPE_OBJECT:
+			{
+			IDBValueObject *pObj = DecodeObject(m_dwData);
+			return pObj->GetElementKey(iIndex);
+			}
+
+		default:
+			return NULL_STR;
 		}
 	}
 
