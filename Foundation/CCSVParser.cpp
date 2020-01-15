@@ -88,10 +88,7 @@ CCSVParser::EFormat CCSVParser::ParseBOM (void)
 			}
 
 		default:
-			{
-			ParseToOpenQuote();
 			return formatNone;
-			}
 		}
 	}
 
@@ -117,8 +114,9 @@ bool CCSVParser::ParseRow (TArray<CString> &Row, CString *retsError)
 
 	//	Parse the BOM, if any
 
-	if (m_iFormat == formatUnknown)
-		m_iFormat = ParseBOM();
+	EFormat iBOMFormat = ParseBOM();
+	if (iBOMFormat != formatError && iBOMFormat != formatNone)
+		m_iFormat = iBOMFormat;
 
 	//	Keep reading until we hit the end of the line.
 
