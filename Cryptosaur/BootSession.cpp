@@ -61,7 +61,7 @@ DECLARE_CONST_STRING(ERR_UNABLE_TO_READ_USERS_TABLE,	"Unable to read Arc.users t
 DECLARE_CONST_STRING(ERR_UNABLE_TO_ADD_KEY,				"Unable to add key to Arc.keys table.")
 DECLARE_CONST_STRING(ERR_EXPECTED_ARC_TABLE,			"Unable to interpret table definition.")
 
-const DWORD MESSAGE_TIMEOUT =							30 * 1000;
+const DWORD MESSAGE_TIMEOUT =							3000 * 1000;
 const int MAX_CERTIFICATES =							1000;
 const int MAX_KEYS =									100;
 const int DEFAULT_KEY_SIZE_BYTES =						64;
