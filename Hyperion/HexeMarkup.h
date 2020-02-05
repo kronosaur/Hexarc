@@ -90,6 +90,7 @@ class CHexeMarkupEvaluator
 			tagFile,
 			tagHeader,
 			tagRedirect,
+			tagResponse,
 			};
 
 		void AddHeader (const CString &sField, CDatum dValue);

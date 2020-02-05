@@ -22,6 +22,7 @@ DECLARE_CONST_STRING(PI_FILE,							"file")
 DECLARE_CONST_STRING(PI_HEADER,							"header")
 DECLARE_CONST_STRING(PI_IF,								"if")
 DECLARE_CONST_STRING(PI_REDIRECT,						"redirect")
+DECLARE_CONST_STRING(PI_RESPONSE,						"response")
 DECLARE_CONST_STRING(PI_XML,							"xml")
 
 DECLARE_CONST_STRING(STR_OK,							"OK")
@@ -375,6 +376,12 @@ bool CHexeMarkupEvaluator::ProcessDirective (SHTTPRequestCtx &Ctx, const CString
 			return false;
 		}
 
+	else if (strEquals(sDirective, PI_RESPONSE))
+		{
+		if (!ProcessEval(Ctx, tagResponse, sValue))
+			return false;
+		}
+
 	else if (strEquals(sDirective, PI_XML))
 		m_Output.Write(strPattern("<?xml %s ?>", sValue));
 	else
@@ -584,6 +591,21 @@ bool CHexeMarkupEvaluator::ProcessResult (SHTTPRequestCtx &Ctx, CHexeProcess::ER
 				m_sResponseMsg = STR_MOVED_PERMANENTLY;
 
 				AddHeader(HEADER_LOCATION, dResult);
+				}
+
+			break;
+
+		case tagResponse:
+			if (iRun == CHexeProcess::runError)
+				{
+				Ctx.iStatus = pstatResponseReady;
+				Ctx.Response.InitResponse(http_NOT_FOUND, dResult.AsString());
+				bResult = false;
+				}
+			else if (!dResult.IsNil())
+				{
+				m_dwResponseCode = dResult;
+				m_sResponseMsg = CHTTPMessage::StatusMessageFromStatusCode(m_dwResponseCode);
 				}
 
 			break;

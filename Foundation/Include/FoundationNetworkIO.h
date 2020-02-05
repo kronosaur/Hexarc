@@ -254,6 +254,7 @@ class CHTTPMessage
 		static void ParseCookies (const CString &sValue, TSortMap<CString, CString> *retCookies);
 		static bool ParseHeader (char *pPos, char *pEndPos, CString *retpField, CString *retpValue, char **retpPos, bool *retbHeadersDone);
 		static bool ParseHeaderValue (const CString &sValue, CString *retsValue, TSortMap<CString, CString> *retFields);
+		static CString StatusMessageFromStatusCode (DWORD dwStatusCode);
 
 	private:
 		enum States
@@ -273,6 +274,12 @@ class CHTTPMessage
 			typeResponse,
 			};
 
+		struct SStatusMessageEntry
+			{
+			DWORD dwCode = 0;
+			LPCSTR pszMessage = NULL;
+			};
+
 		bool ParseToken (char *pPos, char *pEndPos, char chDelimiter, char **retpPos, CString *retsToken) const;
 
 		MessageTypes m_iType;
@@ -290,6 +297,8 @@ class CHTTPMessage
 		int m_iChunkLeft;
 		IMediaTypeBuilderPtr m_pBodyBuilder;
 		CString m_sLeftOver;			//	Left over buffer from previous call
+
+		static SStatusMessageEntry m_StatusMessageTable[];
 	};
 
 //	HTTP Media Types -----------------------------------------------------------

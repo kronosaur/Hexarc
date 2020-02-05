@@ -27,6 +27,53 @@ DECLARE_CONST_STRING(ENCODING_IDENTITY,					"identity")
 
 DECLARE_CONST_STRING(MEDIA_WWW_FORM_URL_ENCODED,		"application/x-www-form-urlencoded")
 
+CHTTPMessage::SStatusMessageEntry CHTTPMessage::m_StatusMessageTable[] = 
+	{
+		{	http_CONTINUE,							"Continue"						},
+		{	http_SWITCHING_PROTOCOLS,				"Switching Protocols"			},
+
+		{	http_OK,								"OK"							},
+		{	http_CREATED,							"Created"						},
+		{	http_ACCEPTED,							"Accepted"						},
+		{	http_NON_AUTHORITATIVE,					"Non-Authoritative Information"	},
+		{	http_NO_CONTENT,						"No Content"					},
+		{	http_RESET_CONTENT,						"Reset Content"					},
+		{	http_PARTIAL_CONTENT,					"Partial Content"				},
+
+		{	http_MULTIPLE_CHOICES,					"Multiple Choices"				},
+		{	http_MOVED_PERMANENTLY,					"Moved Permanently"				},
+		{	http_FOUND,								"Found"							},
+		{	http_SEE_OTHER,							"See Other"						},
+		{	http_NOT_MODIFIED,						"Not Modified"					},
+		{	http_USE_PROXY,							"Use Proxy"						},
+		{	http_TEMPORARY_REDIRECT,				"Temporary Redirect"			},
+
+		{	http_BAD_REQUEST,						"Bad Request"					},
+		{	http_UNAUTHORIZED,						"Unauthorized"					},
+		{	http_FORBIDDEN,							"Forbidden"						},
+		{	http_NOT_FOUND,							"Not Found"						},
+		{	http_NOT_ALLOWED,						"Method Not Allowed"			},
+		{	http_NOT_ACCEPTABLE,					"Not Acceptable"				},
+		{	http_PROXY_AUTH_REQUIRED,				"Proxy Authentication Required"	},
+		{	http_REQUEST_TIMEOUT,					"Request Timeout"				},
+		{	http_CONFLICT,							"Conflict"						},
+		{	http_GONE,								"Gone"							},
+		{	http_LENGTH_REQUIRED,					"Length Required"				},
+		{	http_PRECONDITION_FAILED,				"Precondition Failed"			},
+		{	http_ENTITY_TOO_LARGE,					"Payload Too Large"				},
+		{	http_URI_TOO_LONG,						"URI Too Long"					},
+		{	http_UNSUPPORTED_MEDIA_TYPE,			"Unsupported Media Type"		},
+		{	http_BAD_REQUEST_RANGE,					"Range Not Satisfiable"			},
+		{	http_EXPECTATION_FAILED,				"Expectation Failed"			},
+
+		{	http_INTERNAL_SERVER_ERROR,				"Internal Server Error"			},
+		{	http_NOT_IMPLEMENTED,					"Not Implemented"				},
+		{	http_BAD_GATEWAY,						"Bad Gateway"					},
+		{	http_SERVICE_UNAVAILABLE,				"Service Unavailable"			},
+		{	http_GATEWAY_TIMEOUT,					"Gateway Timeout"				},
+		{	http_VERSION_NOT_SUPPORTED,				"HTTP Version Not Supported"	},
+	};
+
 CString GetToken (char *pPos, char *pEndPos, char chDelimiter, char **retpPos);
 
 CHTTPMessage::CHTTPMessage (void) : 
@@ -1220,6 +1267,23 @@ void CHTTPMessage::SetBody (IMediaTypePtr pBody)
 
 	{
 	m_pBody = pBody;
+	}
+
+CString CHTTPMessage::StatusMessageFromStatusCode (DWORD dwStatusCode)
+
+//	StatusMessageFromStatusCode
+//
+//	Returns the standard status message from a code. If the code is invalid, we 
+//	return NULL_STR.
+
+	{
+	constexpr int TABLE_SIZE = SIZEOF_STATIC_ARRAY(m_StatusMessageTable);
+
+	for (int i = 0; i < TABLE_SIZE; i++)
+		if (m_StatusMessageTable[i].dwCode == dwStatusCode)
+			return CString(m_StatusMessageTable[i].pszMessage);
+
+	return NULL_STR;
 	}
 
 bool CHTTPMessage::WriteChunkToBuffer (IByteStream &Stream, DWORD dwOffset, DWORD dwSize) const
