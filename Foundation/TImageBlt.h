@@ -151,8 +151,8 @@ template <class PAINTER, class BLENDER> class TImageBlt
 				CRGBA32 *pDestPosEnd = pDestRow + cxDest;
 				while (pDestPos < pDestPosEnd)
 					{
-					int xSrcPos = (int)vSrcPos.GetX();
-					int ySrcPos = (int)vSrcPos.GetY();
+					int xSrcPos = (int)vSrcPos.X();
+					int ySrcPos = (int)vSrcPos.Y();
 
 					if (xSrcPos >= xSrc && xSrcPos + 1 < xSrcEnd
 							&& ySrcPos >= ySrc && ySrcPos + 1< ySrcEnd)
@@ -170,8 +170,8 @@ template <class PAINTER, class BLENDER> class TImageBlt
 							CRGBA32 rgbC = FILTER(*(pSrcPos + 1), pDestPos);
 							CRGBA32 rgbD = FILTER(*(pSrcPos + iRowHeight + 1), pDestPos);
 
-							Metric xf = vSrcPos.GetX() - (Metric)(xSrcPos);
-							Metric yf = vSrcPos.GetY() - (Metric)(ySrcPos);
+							Metric xf = vSrcPos.X() - (Metric)(xSrcPos);
+							Metric yf = vSrcPos.Y() - (Metric)(ySrcPos);
 
 							Metric ka = (1.0 - xf) * (1.0 - yf);
 							Metric kb = (1.0 - xf) * yf;
@@ -311,10 +311,10 @@ template <class PAINTER, class BLENDER> class TImageBlt
 			//	Now figure out the axis-aligned box in which the source will
 			//	be in destination coordinates
 
-			Metric rLeft = Min(Min(vSrcUL.GetX(), vSrcUR.GetX()), Min(vSrcLL.GetX(), vSrcLR.GetX()));
-			Metric rRight = Max(Max(vSrcUL.GetX(), vSrcUR.GetX()), Max(vSrcLL.GetX(), vSrcLR.GetX()));
-			Metric rTop = Min(Min(vSrcUL.GetY(), vSrcUR.GetY()), Min(vSrcLL.GetY(), vSrcLR.GetY()));
-			Metric rBottom = Max(Max(vSrcUL.GetY(), vSrcUR.GetY()), Max(vSrcLL.GetY(), vSrcLR.GetY()));
+			Metric rLeft = Min(Min(vSrcUL.X(), vSrcUR.X()), Min(vSrcLL.X(), vSrcLR.X()));
+			Metric rRight = Max(Max(vSrcUL.X(), vSrcUR.X()), Max(vSrcLL.X(), vSrcLR.X()));
+			Metric rTop = Min(Min(vSrcUL.Y(), vSrcUR.Y()), Min(vSrcLL.Y(), vSrcLR.Y()));
+			Metric rBottom = Max(Max(vSrcUL.Y(), vSrcUR.Y()), Max(vSrcLL.Y(), vSrcLR.Y()));
 
 			//	Generate the rect
 
