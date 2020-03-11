@@ -229,7 +229,8 @@ class CHTTPMessage
 		inline const CString &GetHTTPVersion (void) const { return m_sVersion; }
 		inline const CString &GetMethod (void) const { return m_sMethod; }
 		CString GetRequestedHost (void) const;
-		CString GetRequestedPath (CString *retsFullURL = NULL) const;
+		CString GetRequestedPath (void) const;
+		CString GetRequestedURL (void) const;
 		inline DWORD GetStatusCode (void) const { return m_dwStatusCode; }
 		inline const CString &GetStatusMsg (void) const { return m_sStatusMsg; }
 		bool InitFromBuffer (const IMemoryBlock &Buffer, bool bNoBody = false);

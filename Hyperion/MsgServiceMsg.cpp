@@ -43,14 +43,14 @@ class CHexarcMsgSession : public CHyperionSession
 	protected:
 		//	ISessionHandler virtuals
 
-		virtual void OnEndSession (DWORD dwTicket);
-		virtual void OnMark (void);
-		virtual bool OnProcessMessage (const SArchonMessage &Msg);
-		virtual bool OnStartSession (const SArchonMessage &Msg, DWORD dwTicket);
+		virtual void OnEndSession (DWORD dwTicket) override;
+		virtual void OnMark (void) override;
+		virtual bool OnProcessMessage (const SArchonMessage &Msg) override;
+		virtual bool OnStartSession (const SArchonMessage &Msg, DWORD dwTicket) override;
 
 		//	CHyperionSession virtuals
 
-		virtual void OnGetHyperionStatusResport (CComplexStruct *pStatus) const;
+		virtual void OnGetHyperionStatusReport (CComplexStruct *pStatus) const override;
 
 	private:
 		bool ComposeResponse (CHexeProcess::ERunCodes iRun, CDatum dResult);
@@ -266,7 +266,7 @@ void CHexarcMsgSession::OnEndSession (DWORD dwTicket)
 		}
 	}
 
-void CHexarcMsgSession::OnGetHyperionStatusResport (CComplexStruct *pStatus) const
+void CHexarcMsgSession::OnGetHyperionStatusReport (CComplexStruct *pStatus) const
 
 //	OnGetHyperionStatusReport
 //

@@ -56,5 +56,5 @@ void CHyperionSession::OnGetStatusReport (CComplexStruct *pStatus) const
 
 	//	Let our subclasses add status
 
-	OnGetHyperionStatusResport(pStatus);
+	OnGetHyperionStatusReport(pStatus);
 	}

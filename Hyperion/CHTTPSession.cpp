@@ -203,7 +203,7 @@ void CHTTPSession::OnEndSession (DWORD dwTicket)
 		}
 	}
 
-void CHTTPSession::OnGetHyperionStatusResport (CComplexStruct *pStatus) const
+void CHTTPSession::OnGetHyperionStatusReport (CComplexStruct *pStatus) const
 
 //	OnGetHyperionStatusReport
 //
@@ -545,7 +545,7 @@ bool CHTTPSession::ProcessStateWaitingForRequest (const SArchonMessage &Msg)
 		try
 			{
 			m_sLastRequestMethod = m_Ctx.Request.GetMethod();
-			m_Ctx.Request.GetRequestedPath(&m_sLastRequestURL);
+			m_sLastRequestURL = m_Ctx.Request.GetRequestedURL();
 			if (bNewProxyIP)
 				m_sLastRequestIP = sOriginalAddr;
 			else if (bFirstRequest)

@@ -52,6 +52,11 @@ DECLARE_CONST_STRING(HTTP_GET_URL_PARAMS_NAME,			"httpGetURLParams");
 DECLARE_CONST_STRING(HTTP_GET_URL_PARAMS_ARGS,			"-");
 DECLARE_CONST_STRING(HTTP_GET_URL_PARAMS_HELP,			"(httpGetURLParams) -> { param1:value1 param2:value2 ... }");
 
+const DWORD HTTP_SET_COOKIE =							6;
+DECLARE_CONST_STRING(HTTP_SET_COOKIE_NAME,				"httpSetCookie");
+DECLARE_CONST_STRING(HTTP_SET_COOKIE_ARGS,				"*");
+DECLARE_CONST_STRING(HTTP_SET_COOKIE_HELP,				"(httpSetCookie cookie) -> True/Nil");
+
 bool serviceMisc (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinueCtx, CDatum *retdResult);
 
 const DWORD SERVICE_FIND_COMMAND =						0;
@@ -118,6 +123,8 @@ DECLARE_CONST_STRING(FIELD_PROTOCOL,					"protocol");
 DECLARE_CONST_STRING(FIELD_QUERY,						"query");
 DECLARE_CONST_STRING(FIELD_URL,							"url");
 
+DECLARE_CONST_STRING(HEADER_SET_COOKIE,					"set-cookie");
+
 DECLARE_CONST_STRING(MSG_LOG_INFO,						"Log.info");
 
 DECLARE_CONST_STRING(CMD_EVAL,							"eval");
@@ -125,6 +132,8 @@ DECLARE_CONST_STRING(CMD_EVAL,							"eval");
 DECLARE_CONST_STRING(OPTION_OPTIONAL,					"optional");
 
 DECLARE_CONST_STRING(ERR_CANT_GET_RIGHTS,				"Cannot obtain user rights.");
+DECLARE_CONST_STRING(ERR_INVALID_COOKIE,				"Invalid cookie.");
+DECLARE_CONST_STRING(ERR_NO_SESSION_CTX,				"Unable to find session context.");
 DECLARE_CONST_STRING(ERR_BAD_COMMAND_LINE,				"Unable to parse command line.");
 DECLARE_CONST_STRING(ERR_INVALID_REQUEST_URL,			"Unable to parse request URL: %s.");
 
@@ -138,6 +147,7 @@ SLibraryFuncDef g_SessionLibraryDef[] =
 	DECLARE_DEF_LIBRARY_FUNC(HTTP_GET_RAW_BODY, httpMisc, 0),
 	DECLARE_DEF_LIBRARY_FUNC(HTTP_GET_REQUEST_URL, httpMisc, 0),
 	DECLARE_DEF_LIBRARY_FUNC(HTTP_GET_URL_PARAMS, httpMisc, 0),
+	DECLARE_DEF_LIBRARY_FUNC(HTTP_SET_COOKIE, httpMisc, 0),
 
 	DECLARE_DEF_LIBRARY_FUNC(SERVICE_FIND_COMMAND, serviceMisc, 0),
 	DECLARE_DEF_LIBRARY_FUNC(SERVICE_GET_INFO, serviceMisc, 0),
@@ -252,8 +262,7 @@ bool httpMisc (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinu
 
 			//	Parse the URL components
 
-			CString sURL;
-			pRequest->GetRequestedPath(&sURL);
+			CString sURL = pRequest->GetRequestedURL();
 
 			CString sProtocol;
 			CString sHost;
@@ -302,6 +311,32 @@ bool httpMisc (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinu
 				return false;
 				}
 
+			return true;
+			}
+
+		case HTTP_SET_COOKIE:
+			{
+			SHTTPRequestCtx *pSessionCtx = (SHTTPRequestCtx *)pCtx->GetLibraryCtx(LIBRARY_SESSION_CTX);
+			if (pSessionCtx == NULL)
+				{
+				CHexeError::Create(NULL_STR, ERR_NO_SESSION_CTX, retdResult);
+				return false;
+				}
+
+			CDatum dCookie = dLocalEnv.GetElement(0);
+			if (dCookie.GetBasicType() == CDatum::typeString)
+				{
+				CHTTPMessage::SHeader *pHeader = pSessionCtx->AdditionalHeaders.Insert();
+				pHeader->sField = HEADER_SET_COOKIE;
+				pHeader->sValue = dCookie;
+				}
+			else
+				{
+				CHexeError::Create(NULL_STR, ERR_INVALID_COOKIE, retdResult);
+				return false;
+				}
+
+			*retdResult = CDatum(CDatum::typeTrue);
 			return true;
 			}
 

@@ -118,7 +118,7 @@ class CHyperionSession : public ISessionHandler
 
 		//	CHyperionSession virtuals
 
-		virtual void OnGetHyperionStatusResport (CComplexStruct *pStatus) const { }
+		virtual void OnGetHyperionStatusReport (CComplexStruct *pStatus) const { }
 
 		CHyperionEngine *m_pEngine;
 		CString m_sListener;				//	Request came through this listener

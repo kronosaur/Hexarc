@@ -215,7 +215,7 @@ void CAI1Session::OnEndSession (DWORD dwTicket)
 		}
 	}
 
-void CAI1Session::OnGetHyperionStatusResport (CComplexStruct *pStatus) const
+void CAI1Session::OnGetHyperionStatusReport (CComplexStruct *pStatus) const
 
 //	OnGetHyperionStatusReport
 //

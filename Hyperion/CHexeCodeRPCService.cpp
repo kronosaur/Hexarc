@@ -137,6 +137,11 @@ bool CHexeCodeRPCService::ComposeResponse (SHTTPRequestCtx &Ctx, CHexeProcess::E
 
 	Ctx.Response.AddHeader(HEADER_CACHE_CONTROL, CACHE_NO_CACHE);
 
+	//	Add any additional headers
+
+	for (int i = 0; i < Ctx.AdditionalHeaders.GetCount(); i++)
+		Ctx.Response.AddHeader(Ctx.AdditionalHeaders[i].sField, Ctx.AdditionalHeaders[i].sValue);
+
 	return true;
 	}
 

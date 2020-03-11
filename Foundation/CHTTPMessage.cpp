@@ -260,7 +260,7 @@ CString CHTTPMessage::GetRequestedHost (void) const
 	return sHost;
 	}
 
-CString CHTTPMessage::GetRequestedPath (CString *retsFullURL) const
+CString CHTTPMessage::GetRequestedPath (void) const
 
 //	GetRequestedPath
 //
@@ -268,17 +268,40 @@ CString CHTTPMessage::GetRequestedPath (CString *retsFullURL) const
 //	(URL is always absolute, starting with a leading '/', but has no host)
 
 	{
-	CString sPath;
-
 	//	Parse the URL
 
+	CString sPath;
 	if (!urlParse(m_sURL, NULL, NULL, &sPath))
 		return NULL_STR;
 
-	if (retsFullURL)
-		*retsFullURL = m_sURL;
-
 	return sPath;
+	}
+
+CString CHTTPMessage::GetRequestedURL (void) const
+
+//	GetRequestedURL
+//
+//	Returns the full URL, including the host, but not always the protocol.
+
+	{
+	//	See if our URL has the host
+
+	CString sHost;
+	CString sPath;
+	if (!urlParse(m_sURL, NULL, &sHost, &sPath))
+		return NULL_STR;
+
+	//	If the URL already has the host, then just return it.
+
+	if (!sHost.IsEmpty())
+		return m_sURL;
+
+	//	Otherwise, get it from the headers
+
+	if (!FindHeader(HEADER_HOST, &sHost) || sHost.IsEmpty())
+		return m_sURL;
+
+	return strPattern("%s%s", sHost, sPath);
 	}
 
 bool CHTTPMessage::InitFromBuffer (const IMemoryBlock &Buffer, bool bNoBody)

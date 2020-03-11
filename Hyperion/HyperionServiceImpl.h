@@ -26,7 +26,7 @@ class CAI1Session : public CHyperionSession
 
 		//	CHyperionSession virtuals
 
-		virtual void OnGetHyperionStatusResport (CComplexStruct *pStatus) const override;
+		virtual void OnGetHyperionStatusReport (CComplexStruct *pStatus) const override;
 
 	private:
 		enum EStates
@@ -192,7 +192,7 @@ class CHTTPSession : public CHyperionSession
 
 		//	CHyperionSession virtuals
 
-		virtual void OnGetHyperionStatusResport (CComplexStruct *pStatus) const override;
+		virtual void OnGetHyperionStatusReport (CComplexStruct *pStatus) const override;
 
 	private:
 		enum EFlags
