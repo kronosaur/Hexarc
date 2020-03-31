@@ -14,6 +14,8 @@ DECLARE_CONST_STRING(FIELD_CHALLENGE,					"challenge")
 DECLARE_CONST_STRING(FIELD_CHALLENGE_EXPIRATION,		"challengeExpiration")
 DECLARE_CONST_STRING(FIELD_CREDENTIALS,					"credentials")
 DECLARE_CONST_STRING(FIELD_EMAIL,						"email")
+DECLARE_CONST_STRING(FIELD_LAST_LOGIN_FAILURE_ON,		"lastLoginFailureOn")
+DECLARE_CONST_STRING(FIELD_LOGIN_FAILURE_COUNT,			"loginFailureCount")
 DECLARE_CONST_STRING(FIELD_NEW_PASSWORD,				"newPassword")
 DECLARE_CONST_STRING(FIELD_PASSWORD,					"password")
 DECLARE_CONST_STRING(FIELD_RIGHTS,						"rights")
@@ -34,6 +36,7 @@ DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply")
 DECLARE_CONST_STRING(MSG_REPLY_DATA,					"Reply.data")
 
 DECLARE_CONST_STRING(MUTATE_ADD_TO_SET,					"addToSet")
+DECLARE_CONST_STRING(MUTATE_DELETE,						"delete")
 DECLARE_CONST_STRING(MUTATE_REMOVE_FROM_SET,			"removeFromSet")
 
 DECLARE_CONST_STRING(PORT_CRYPTOSAUR_COMMAND,			"Cryptosaur.command")
@@ -406,26 +409,30 @@ bool CChangeUserSession::OnProcessMessage (const SArchonMessage &Msg)
 				//	Compose a reply in the event that we succeed in updating 
 				//	the user record.
 
-				CComplexStruct *pReply = new CComplexStruct;
-				pReply->SetElement(FIELD_USERNAME, m_sUsername);
-				pReply->SetElement(FIELD_EMAIL, dUserData.GetElement(FIELD_USER_CONTACT).GetElement(FIELD_EMAIL));
-				pReply->SetElement(FIELD_NEW_PASSWORD, sPassword);
-				m_dReply = CDatum(pReply);
+				m_dReply = CDatum(CDatum::typeStruct);
+				m_dReply.SetElement(FIELD_USERNAME, m_sUsername);
+				m_dReply.SetElement(FIELD_EMAIL, dUserData.GetElement(FIELD_USER_CONTACT).GetElement(FIELD_EMAIL));
+				m_dReply.SetElement(FIELD_NEW_PASSWORD, sPassword);
 
 				//	Update the credentials
 
-				CComplexStruct *pNewAuthDesc = new CComplexStruct(dCurrentAuthDesc);
-				pNewAuthDesc->SetElement(FIELD_CREDENTIALS, dCredentials);
+				CDatum dNewAuthDesc(CDatum::typeStruct);
+				dNewAuthDesc.SetElement(FIELD_CREDENTIALS, dCredentials);
 
-				CComplexStruct *pNewUserData = new CComplexStruct;
-				pNewUserData->SetElement(FIELD_AUTH_DESC, CDatum(pNewAuthDesc));
+				CDatum dNewUserData(CDatum::typeStruct);
+				dNewUserData.SetElement(FIELD_AUTH_DESC, dNewAuthDesc);
+
+				CDatum dMutation(CDatum::typeStruct);
+				dMutation.SetElement(FIELD_LAST_LOGIN_FAILURE_ON, MUTATE_DELETE);
+				dMutation.SetElement(FIELD_LOGIN_FAILURE_COUNT, MUTATE_DELETE);
 
 				//	Mutate the existing user data record to just replace the authDesc field
 
-				CComplexArray *pPayload = new CComplexArray;
-				pPayload->Insert(TABLE_ARC_USERS);
-				pPayload->Insert(m_sUsernameKey);
-				pPayload->Insert(CDatum(pNewUserData));
+				CDatum dPayload(CDatum::typeArray);
+				dPayload.Append(TABLE_ARC_USERS);
+				dPayload.Append(m_sUsernameKey);
+				dPayload.Append(dNewUserData);
+				dPayload.Append(dMutation);
 
 				//	Send message
 
@@ -434,7 +441,7 @@ bool CChangeUserSession::OnProcessMessage (const SArchonMessage &Msg)
 				ISessionHandler::SendMessageCommand(ADDRESS_AEON_COMMAND,
 						MSG_AEON_MUTATE,
 						GenerateAddress(PORT_CRYPTOSAUR_COMMAND),
-						CDatum(pPayload),
+						dPayload,
 						MESSAGE_TIMEOUT);
 
 				//	Expect a reply
