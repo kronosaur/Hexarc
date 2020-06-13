@@ -140,6 +140,19 @@ bool CHexeTextFunctionProcessor::ProcessExtension (CDatum dSelf, CTextMarkupPars
 //	if we have the data (retResult is the data). If we need to call a function
 //	to determine the value of the extension, we return FALSE and the calling
 //	parameters are in retResult.
+//
+//	Extensions have the following formats:
+//
+//	[[xyz]]
+//	[[xyz|param0|param1|...]]
+//	[[xyz|field0=value0|field1=value1|...]]
+//
+//	{{xyz}}
+//	{{xyz|param0|param1|...}}
+//	{{xyz|field0=value0|field1=value1|...]]
+//
+//	The first part (xyz) is the name. This is optionally followed by anonymous
+//	or named parameters.
 
 	{
 	switch (Desc.iType)
