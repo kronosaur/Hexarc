@@ -51,32 +51,27 @@ const DWORD SIGNATURE = 'SOEA';		//	'AEOS' backwards because of little-endiannes
 const DWORD CURRENT_VERSION = 1;
 const int BLOCK_CACHE_SIZE = 64;
 
-DECLARE_CONST_STRING(FIELD_BLOCK_INDEX,					"blockIndex")
-DECLARE_CONST_STRING(FIELD_FILE_SIZE,					"fileSize")
-DECLARE_CONST_STRING(FIELD_FILESPEC,					"filespec")
-DECLARE_CONST_STRING(FIELD_KEY,							"key")
-DECLARE_CONST_STRING(FIELD_MARKED_FOR_DELETE,			"markedForDelete")
-DECLARE_CONST_STRING(FIELD_OFFSET_X,					"offset")
-DECLARE_CONST_STRING(FIELD_ROW_COUNT,					"rowCount")
-DECLARE_CONST_STRING(FIELD_SEQ,							"sequence")
-DECLARE_CONST_STRING(FIELD_SIZE,						"size")
+DECLARE_CONST_STRING(FIELD_BLOCK_INDEX,					"blockIndex");
+DECLARE_CONST_STRING(FIELD_FILE_SIZE,					"fileSize");
+DECLARE_CONST_STRING(FIELD_FILESPEC,					"filespec");
+DECLARE_CONST_STRING(FIELD_KEY,							"key");
+DECLARE_CONST_STRING(FIELD_MARKED_FOR_DELETE,			"markedForDelete");
+DECLARE_CONST_STRING(FIELD_OFFSET_X,					"offset");
+DECLARE_CONST_STRING(FIELD_ROW_COUNT,					"rowCount");
+DECLARE_CONST_STRING(FIELD_SEQ,							"sequence");
+DECLARE_CONST_STRING(FIELD_SIZE,						"size");
 
-DECLARE_CONST_STRING(ERR_MUST_HAVE_ROWS,				"Unable to create a segment with no rows.")
-DECLARE_CONST_STRING(ERR_CANT_CREATE_FILE,				"Unable to create segment file: %s.")
-DECLARE_CONST_STRING(ERR_CANT_READ_SEGMENT,				"Unable to read segment: %s.")
-DECLARE_CONST_STRING(ERR_CANT_WRITE_FILE,				"Unable to write segment: %s.")
+DECLARE_CONST_STRING(ERR_MUST_HAVE_ROWS,				"Unable to create a segment with no rows.");
+DECLARE_CONST_STRING(ERR_CANT_CREATE_FILE,				"Unable to create segment file: %s.");
+DECLARE_CONST_STRING(ERR_CANT_READ_SEGMENT,				"Unable to read segment: %s.");
+DECLARE_CONST_STRING(ERR_CANT_WRITE_FILE,				"Unable to write segment: %s.");
 
-DECLARE_CONST_STRING(ERR_GET_BLOCK_BY_ROW_POS,			"Crash in GetBlockByRowPos.")
-DECLARE_CONST_STRING(ERR_LOAD_BLOCK,					"Crash in LoadBlock.")
-DECLARE_CONST_STRING(ERR_ROW_VALUE,						"Crash loading row value.")
-DECLARE_CONST_STRING(ERR_GET_DATA,						"Crash in GetData.")
+DECLARE_CONST_STRING(ERR_GET_BLOCK_BY_ROW_POS,			"Crash in GetBlockByRowPos.");
+DECLARE_CONST_STRING(ERR_LOAD_BLOCK,					"Crash in LoadBlock.");
+DECLARE_CONST_STRING(ERR_ROW_VALUE,						"Crash loading row value.");
+DECLARE_CONST_STRING(ERR_GET_DATA,						"Crash in GetData.");
 
-CAeonSegment::CAeonSegment (void) : 
-		m_Seq(0),
-		m_dwDesiredBlockSize(64 * 1024),
-		m_pHeader(NULL),
-		m_pIndex(NULL),
-		m_bMarkedForDelete(false)
+CAeonSegment::CAeonSegment (void)
 
 //	CAeonSegment constructor
 

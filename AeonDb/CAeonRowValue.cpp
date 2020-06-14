@@ -16,15 +16,6 @@
 const int DEFAULT_VAR_BLOCK_SIZE =					4096;
 const int DEFAULT_ROW_COUNT =						16;
 
-CAeonRowValue::CAeonRowValue (void) : 
-		m_dwFixedBlockAlloc(0),
-		m_pFixedBlock(NULL)
-
-//	CAeonRowValue constructor
-
-	{
-	}
-
 CAeonRowValue::~CAeonRowValue (void)
 
 //	CAeonRowValue destructor

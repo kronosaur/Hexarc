@@ -26,17 +26,17 @@ class IByteStream
 		//	Helpers
 
 		char ReadChar (void);
-		inline void ReadChecked (void *pData, int iLength) { if (Read(pData, iLength) != iLength) throw CException(errNotFound); }
-		inline void SeekBackward (int iLength = 1) { Seek(GetPos() - iLength); }
-		inline bool HasMore (void) { return (GetPos() < GetStreamLength()); }
-		inline int Write (const CString &sString) { return this->Write((LPSTR)sString, sString.GetLength()); }
+		void ReadChecked (void *pData, int iLength) { if (Read(pData, iLength) != iLength) throw CException(errNotFound); }
+		void SeekBackward (int iLength = 1) { Seek(GetPos() - iLength); }
+		bool HasMore (void) { return (GetPos() < GetStreamLength()); }
+		int Write (const CString &sString) { return this->Write((LPSTR)sString, sString.GetLength()); }
 		inline int Write (IMemoryBlock &Block);
-		inline int Write (const void *pData, DWORD iLength) { ASSERT(iLength < MAXINT); return this->Write(pData, (int)iLength); }
-		inline int Write (const void *pData, size_t iLength) { ASSERT(iLength < MAXINT); return this->Write(pData, (int)iLength); }
-		inline int Write (const void *pData, std::ptrdiff_t iLength) { ASSERT(iLength < MAXINT); return this->Write(pData, (int)iLength); }
+		int Write (const void *pData, DWORD iLength) { ASSERT(iLength < MAXINT); return this->Write(pData, (int)iLength); }
+		int Write (const void *pData, size_t iLength) { ASSERT(iLength < MAXINT); return this->Write(pData, (int)iLength); }
+		int Write (const void *pData, std::ptrdiff_t iLength) { ASSERT(iLength < MAXINT); return this->Write(pData, (int)iLength); }
 		int Write (IByteStream &Stream, int iLength);
 		int WriteChar (char chChar, int iCount = 1);
-        int WriteWithProgress (IByteStream &Stream, int iLength, IProgressEvents *pProgress);
+		int WriteWithProgress (IByteStream &Stream, int iLength, IProgressEvents *pProgress);
 	};
 
 class IMemoryBlock : public IByteStream
@@ -91,17 +91,21 @@ extern CNullStream NULL_STREAM;
 class CBuffer : public CMemoryBlockImpl
 	{
 	public:
-		CBuffer (void);
-		CBuffer (int iSize);
+		CBuffer (void) { }
+		CBuffer (const CBuffer &Src);
+		CBuffer (CBuffer &&Src) noexcept;
+
+		explicit CBuffer (int iSize);
 		CBuffer (const CString &sString, int iPos = 0, int iLength = -1);
 		CBuffer (LPVOID pBuffer, int iLength, bool bCopy = true);
-		CBuffer (const CBuffer &Src);
+
 		virtual ~CBuffer (void);
 
 		CBuffer &operator= (const CBuffer &Src);
+		CBuffer &operator= (CBuffer &&Src) noexcept { TakeHandoff(Src); return *this; }
 
 		LPVOID GetHandoff (int *retiAllocation = NULL);
-		inline int GetAllocSize (void) const { return max(m_iAllocation, m_iLength); }
+		int GetAllocSize (void) const { return max(m_iAllocation, m_iLength); }
 		void TakeHandoff (CBuffer &Src);
 		void TakeHandoff (void *pBuffer, int iAllocLength);
 
@@ -113,11 +117,11 @@ class CBuffer : public CMemoryBlockImpl
 	private:
 		void Copy (const CBuffer &Src);
 
-		int m_iLength;
-		char *m_pBuffer;
+		int m_iLength = 0;
+		char *m_pBuffer = NULL;
 
-		bool m_bAllocated;
-		int m_iAllocation;
+		bool m_bAllocated = false;
+		int m_iAllocation = 0;
 	};
 
 class CCircularBuffer : public IByteStream
@@ -159,7 +163,7 @@ class CMemoryBuffer : public CMemoryBlockImpl
 		virtual void SetLength (int iLength);
 
 	private:
-		inline bool IsConstant (void) { return (m_iMaxSize == -1); }
+		bool IsConstant (void) { return (m_iMaxSize == -1); }
 
 		int m_iMaxSize;
 		int m_iCommittedSize;
@@ -176,7 +180,7 @@ class CSharedMemoryBuffer : public CMemoryBlockImpl
 
 		void Close (void);
 		void Create (LPSTR sName, int iMaxSize, bool *retbExists = NULL);
-		inline bool IsOpen (void) const { return (m_pBlock != NULL); }
+		bool IsOpen (void) const { return (m_pBlock != NULL); }
 		void SetMaxSize (int iMaxSize);
 
 		//	IMemoryBlock virtuals
@@ -208,9 +212,9 @@ class CStringBuffer : public CMemoryBlockImpl
 		virtual void SetLength (int iLength) override;
 
 	private:
-		inline char *GetBuffer (void) const { return (char *)(m_pString - sizeof(int)); }
-		inline int GetLengthParameter (void) const { return *((int *)GetBuffer()); }
-		inline void SetLengthParameter (int iLen) { *((int *)GetBuffer()) = iLen; }
+		char *GetBuffer (void) const { return (char *)(m_pString - sizeof(int)); }
+		int GetLengthParameter (void) const { return *((int *)GetBuffer()); }
+		void SetLengthParameter (int iLen) { *((int *)GetBuffer()) = iLen; }
 
 		char *m_pString;
 		int m_iAlloc;
@@ -244,8 +248,8 @@ class CBufferedIO : public IByteStream
 		int m_iBufferPos;					//	Current position in buffer
 		int m_iBufferLen;					//	Valid portion of buffer
 		char *m_pBuffer;
-        bool m_bReadBuffer;                 //  Buffer contains read data
-        bool m_bWriteBuffer;                //  Writes to buffer need to be flushed
+		bool m_bReadBuffer;                 //  Buffer contains read data
+		bool m_bWriteBuffer;                //  Writes to buffer need to be flushed
 	};
 
 class CBase64Decoder : public IByteStream
@@ -309,9 +313,9 @@ class CCharStream
 		CCharStream (void);
 
 		CString ComposeError (const CString &sError);
-		inline IByteStream *GetByteStream (void) const { return m_pStream; }
-		inline char GetChar (void) const { return m_chChar; }
-		inline int GetLine (void) const { return m_iLine; }
+		IByteStream *GetByteStream (void) const { return m_pStream; }
+		char GetChar (void) const { return m_chChar; }
+		int GetLine (void) const { return m_iLine; }
 		bool Init (IByteStream &Stream, int iStartingLine = 1);
 		bool ParseQuotedString (DWORD dwFlags, CString *retsString = NULL);
 		void ParseToEndOfLine (CString *retsLine = NULL);

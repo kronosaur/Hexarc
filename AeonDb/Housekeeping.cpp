@@ -5,27 +5,27 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(FILESPEC_RECOVERY_DIR,				"recovery")
+DECLARE_CONST_STRING(FILESPEC_RECOVERY_DIR,				"recovery");
 
-DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error")
-DECLARE_CONST_STRING(MSG_LOG_INFO,						"Log.info")
+DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error");
+DECLARE_CONST_STRING(MSG_LOG_INFO,						"Log.info");
 
-DECLARE_CONST_STRING(OP_UPDATING_VIEW,					"updating a view")
+DECLARE_CONST_STRING(OP_UPDATING_VIEW,					"updating a view");
 
-DECLARE_CONST_STRING(STR_BACKING_UP,					"Table %s: Backing up to: %s.")
-DECLARE_CONST_STRING(STR_BACKUP_COMPLETE,				"Table %s: Backup complete.")
-DECLARE_CONST_STRING(STR_MERGE_COMPLETE,				"Table %s: Segment merge complete.")
-DECLARE_CONST_STRING(STR_UPDATING_VIEW,					"Updating view %s in table %s.")
-DECLARE_CONST_STRING(STR_VIEW_UPDATED,					"View update complete: view %s in table %s.")
+DECLARE_CONST_STRING(STR_BACKING_UP,					"Table %s: Backing up to: %s.");
+DECLARE_CONST_STRING(STR_BACKUP_COMPLETE,				"Table %s: Backup complete.");
+DECLARE_CONST_STRING(STR_MERGE_COMPLETE,				"Table %s: Segment merge complete.");
+DECLARE_CONST_STRING(STR_UPDATING_VIEW,					"Updating view %s in table %s.");
+DECLARE_CONST_STRING(STR_VIEW_UPDATED,					"View update complete: view %s in table %s.");
 
-DECLARE_CONST_STRING(ERR_MERGING_SEGMENTS,				"Merging segments in table %s: %s (%d rows) with %s (%d rows).")
-DECLARE_CONST_STRING(ERR_MERGE_TOO_BIG,					"Segment merge exceeds size limits: %s and %s.")
-DECLARE_CONST_STRING(ERR_NOT_ENOUGH_SPACE_TO_MERGE,		"Insufficient disk space to merge segments: %s and %s.")
-DECLARE_CONST_STRING(ERR_INVALID_BACKUP,				"Table %s: Backup volume %s is invalid: %s")
-DECLARE_CONST_STRING(ERR_SEGMENT_BACKUP_FAILED,			"Unable to create backup for new segment: %s.")
-DECLARE_CONST_STRING(ERR_CANT_DELETE_FILE,				"Unable to delete file: %s.")
-DECLARE_CONST_STRING(ERR_UPDATE_VIEW_ABORTED,			"Unable to update view %s in table %s.")
-DECLARE_CONST_STRING(ERR_DELETING_EXTRA_SEGMENT_FILE,	"Table %s: Deleting extraneous segment file: %s.")
+DECLARE_CONST_STRING(ERR_MERGING_SEGMENTS,				"Merging segments in table %s: %s (%d rows) with %s (%d rows).");
+DECLARE_CONST_STRING(ERR_MERGE_TOO_BIG,					"Segment merge exceeds size limits: %s and %s.");
+DECLARE_CONST_STRING(ERR_NOT_ENOUGH_SPACE_TO_MERGE,		"Insufficient disk space to merge segments: %s and %s.");
+DECLARE_CONST_STRING(ERR_INVALID_BACKUP,				"Table %s: Backup volume %s is invalid: %s");
+DECLARE_CONST_STRING(ERR_SEGMENT_BACKUP_FAILED,			"Unable to create backup for new segment: %s.");
+DECLARE_CONST_STRING(ERR_CANT_DELETE_FILE,				"Unable to delete file: %s.");
+DECLARE_CONST_STRING(ERR_UPDATE_VIEW_ABORTED,			"Unable to update view %s in table %s.");
+DECLARE_CONST_STRING(ERR_DELETING_EXTRA_SEGMENT_FILE,	"Table %s: Deleting extraneous segment file: %s.");
 
 bool CAeonTable::HousekeepingBackup (CSmartLock &Lock)
 

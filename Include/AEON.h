@@ -158,7 +158,7 @@ class CDatum
 		static bool CreateStringFromHandoff (CString &sString, CDatum *retDatum);
 		static bool CreateStringFromHandoff (CStringBuffer &String, CDatum *retDatum);
 		static bool Deserialize (ESerializationFormats iFormat, IByteStream &Stream, IAEONParseExtension *pExtension, CDatum *retDatum);
-		static inline bool Deserialize (ESerializationFormats iFormat, IByteStream &Stream, CDatum *retDatum) { return Deserialize(iFormat, Stream, NULL, retDatum); }
+		static bool Deserialize (ESerializationFormats iFormat, IByteStream &Stream, CDatum *retDatum) { return Deserialize(iFormat, Stream, NULL, retDatum); }
 		static Types GetStringValueType (const CString &sValue);
 
 		operator int () const;
@@ -208,7 +208,7 @@ class CDatum
 		static int Compare (CDatum dValue1, CDatum dValue2) { return DefaultCompare(NULL, dValue1, dValue2); }
 
 		//	Math related methods
-		inline bool FitsAsDWORDLONG (void) const { Types iType = GetNumberType(NULL); return (iType == typeInteger32 || iType == typeInteger64); }
+		bool FitsAsDWORDLONG (void) const { Types iType = GetNumberType(NULL); return (iType == typeInteger32 || iType == typeInteger64); }
 		Types GetNumberType (int *retiValue, CDatum *retdConverted = NULL) const;
 		bool IsNumber (void) const;
 
@@ -232,16 +232,16 @@ class CDatum
 		size_t CalcSerializeSizeAEONScript (ESerializationFormats iFormat) const;
 		static int DefaultCompare (void *pCtx, const CDatum &dKey1, const CDatum &dKey2);
 		static bool DeserializeAEONScript (IByteStream &Stream, IAEONParseExtension *pExtension, CDatum *retDatum);
-		static inline bool DeserializeAEONScript (IByteStream &Stream, CDatum *retDatum) { return DeserializeAEONScript(Stream, NULL, retDatum); }
+		static bool DeserializeAEONScript (IByteStream &Stream, CDatum *retDatum) { return DeserializeAEONScript(Stream, NULL, retDatum); }
 		static bool DeserializeJSON (IByteStream &Stream, CDatum *retDatum);
 		static bool DeserializeTextUTF8 (IByteStream &Stream, CDatum *retDatum);
 		static bool DetectFileFormat (const CString &sFilespec, IMemoryBlock &Data, ESerializationFormats *retiFormat, CString *retsError);
-		inline DWORD GetNumberIndex (void) const { return (DWORD)(m_dwData >> 4); }
-		inline bool IsAllocatedInteger (void) const { return (m_dwData & AEON_NUMBER_TYPE_MASK) == AEON_NUMBER_32BIT; }
-		inline IComplexDatum *raw_GetComplex (void) const { return (IComplexDatum *)(m_dwData & AEON_POINTER_MASK); }
+		DWORD GetNumberIndex (void) const { return (DWORD)(m_dwData >> 4); }
+		bool IsAllocatedInteger (void) const { return (m_dwData & AEON_NUMBER_TYPE_MASK) == AEON_NUMBER_32BIT; }
+		IComplexDatum *raw_GetComplex (void) const { return (IComplexDatum *)(m_dwData & AEON_POINTER_MASK); }
 		double raw_GetDouble (void) const;
 		int raw_GetInt32 (void) const;
-		inline const CString &raw_GetString (void) const { ASSERT(AEON_TYPE_STRING == 0x00); return *(CString *)&m_dwData; }
+		const CString &raw_GetString (void) const { ASSERT(AEON_TYPE_STRING == 0x00); return *(CString *)&m_dwData; }
 		void SerializeAEONScript (ESerializationFormats iFormat, IByteStream &Stream) const;
 		void SerializeJSON (IByteStream &Stream) const;
 
@@ -271,7 +271,7 @@ class IComplexDatum
 		virtual const CString &CastCString (void) const { return NULL_STR; }
 		virtual DWORDLONG CastDWORDLONG (void) const { return 0; }
 		virtual int CastInteger32 (void) const { return 0; }
-		inline void ClearMark (void) { m_bMarked = false; }
+		void ClearMark (void) { m_bMarked = false; }
 		virtual IComplexDatum *Clone (void) const = 0;
 		bool DeserializeAEONScript (CDatum::ESerializationFormats iFormat, const CString &sTypename, CCharStream *pStream);
 		virtual bool DeserializeJSON (const CString &sTypename, const TArray<CDatum> &Data);
@@ -294,10 +294,10 @@ class IComplexDatum
 		virtual bool IsArray (void) const = 0;
 		virtual bool IsError (void) const { return false; }
 		virtual bool IsIPInteger (void) const { return false; }
-		inline bool IsMarked (void) const { return m_bMarked; }
+		bool IsMarked (void) const { return m_bMarked; }
 		virtual bool IsMemoryBlock (void) const { const CString &sData = CastCString(); return (sData.GetLength() > 0); }
 		virtual bool IsNil (void) const { return false; }
-		inline void Mark (void) { if (!m_bMarked) { m_bMarked = true; OnMarked(); } }	//	Check m_bMarked to avoid infinite recursion
+		void Mark (void) { if (!m_bMarked) { m_bMarked = true; OnMarked(); } }	//	Check m_bMarked to avoid infinite recursion
 		virtual void Serialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const;
 		virtual void SetElement (IInvokeCtx *pCtx, const CString &sKey, CDatum dDatum) { SetElement(sKey, dDatum); }
 		virtual void SetElement (const CString &sKey, CDatum dDatum) { }
@@ -335,10 +335,10 @@ class CComplexArray : public IComplexDatum
 		CComplexArray (const TArray<CString> &Src);
 		CComplexArray (const TArray<CDatum> &Src);
 
-		inline void Delete (int iIndex) { m_Array.Delete(iIndex); }
+		void Delete (int iIndex) { m_Array.Delete(iIndex); }
 		bool FindElement (CDatum dValue, int *retiIndex = NULL) const;
-		inline void Insert (CDatum Element, int iIndex = -1) { m_Array.Insert(Element, iIndex); }
-		inline void InsertEmpty (int iCount = 1, int iIndex = -1) { m_Array.InsertEmpty(iCount, iIndex); }
+		void Insert (CDatum Element, int iIndex = -1) { m_Array.Insert(Element, iIndex); }
+		void InsertEmpty (int iCount = 1, int iIndex = -1) { m_Array.InsertEmpty(iCount, iIndex); }
 
 		//	IComplexDatum
 		virtual void Append (CDatum dDatum) override { m_Array.Insert(dDatum); }
@@ -368,11 +368,11 @@ class CComplexArray : public IComplexDatum
 class CComplexBinary : public IComplexDatum
 	{
 	public:
-		inline CComplexBinary (void) : m_pData(NULL) { }
+		CComplexBinary (void) : m_pData(NULL) { }
 		CComplexBinary (IByteStream &Stream, int iLength);
 		~CComplexBinary (void);
 
-		inline int GetLength (void) const { return (m_pData ? ((CString *)&m_pData)->GetLength() : 0); }
+		int GetLength (void) const { return (m_pData ? ((CString *)&m_pData)->GetLength() : 0); }
 		void TakeHandoff (CStringBuffer &Buffer);
 
 		//	IComplexDatum
@@ -396,7 +396,7 @@ class CComplexBinary : public IComplexDatum
 		virtual void OnSerialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const;
 
 	private:
-		inline LPSTR GetBuffer (void) const { return (m_pData - sizeof(DWORD)); }
+		LPSTR GetBuffer (void) const { return (m_pData - sizeof(DWORD)); }
 
 		LPSTR m_pData;						//	Points to data (previous DWORD is length)
 	};
@@ -404,12 +404,12 @@ class CComplexBinary : public IComplexDatum
 class CComplexBinaryFile : public IComplexDatum
 	{
 	public:
-		inline CComplexBinaryFile (void) : m_dwLength(0) { }
+		CComplexBinaryFile (void) : m_dwLength(0) { }
 		CComplexBinaryFile (IByteStream &Stream, int iLength);
 		~CComplexBinaryFile (void);
 
 		void Append (IMemoryBlock &Data);
-		inline int GetLength (void) const { return m_dwLength; }
+		int GetLength (void) const { return m_dwLength; }
 
 		//	IComplexDatum
 		virtual void Append (CDatum dDatum);
@@ -493,11 +493,11 @@ class CComplexDateTime : public IComplexDatum
 class CComplexInteger : public IComplexDatum
 	{
 	public:
-		inline CComplexInteger (void) { }
-		inline CComplexInteger (DWORDLONG ilValue) : m_Value(ilValue) { }
-		inline CComplexInteger (const CIPInteger &Value) : m_Value(Value) { }
+		CComplexInteger (void) { }
+		CComplexInteger (DWORDLONG ilValue) : m_Value(ilValue) { }
+		CComplexInteger (const CIPInteger &Value) : m_Value(Value) { }
 
-		inline void TakeHandoff (CIPInteger &Value) { m_Value.TakeHandoff(Value); }
+		void TakeHandoff (CIPInteger &Value) { m_Value.TakeHandoff(Value); }
 
 		//	IComplexDatum
 		virtual CString AsString (void) const { return m_Value.AsString(); }
@@ -533,7 +533,7 @@ class CComplexStruct : public IComplexDatum
 		CComplexStruct (const TSortMap<CString, CString> &Src);
 		CComplexStruct (const TSortMap<CString, CDatum> &Src);
 
-		inline void DeleteElement (const CString &sKey) { m_Map.DeleteAt(sKey); }
+		void DeleteElement (const CString &sKey) { m_Map.DeleteAt(sKey); }
 
 		//	IComplexDatum
 		virtual void Append (CDatum dDatum) { AppendStruct(dDatum); }
@@ -622,27 +622,27 @@ class CNumberValue
 		CNumberValue (CDatum dValue);
 
 		void Add (CDatum dValue);
-		inline int Compare (CDatum dValue) const {  CNumberValue Src(dValue); return Compare(Src); }
+		int Compare (CDatum dValue) const {  CNumberValue Src(dValue); return Compare(Src); }
 		int Compare (const CNumberValue &Value) const;
 		void ConvertToDouble (void);
 		void ConvertToIPInteger (void);
 		bool Divide (CDatum dValue);
 		bool DivideReversed (CDatum dValue);
 		CDatum GetDatum (void);
-		inline double GetDouble (void) const { return m_rValue; }
-		inline int GetInteger (void) const { return (int)(DWORD_PTR)m_pValue; }
-		inline DWORDLONG GetInteger64 (void) const { return m_ilValue; }
-		inline const CIPInteger &GetIPInteger (void) const { return *(CIPInteger *)m_pValue; }
-		inline bool IsValidNumber (void) const { return !m_bNotANumber; }
+		double GetDouble (void) const { return m_rValue; }
+		int GetInteger (void) const { return (int)(DWORD_PTR)m_pValue; }
+		DWORDLONG GetInteger64 (void) const { return m_ilValue; }
+		const CIPInteger &GetIPInteger (void) const { return *(CIPInteger *)m_pValue; }
+		bool IsValidNumber (void) const { return !m_bNotANumber; }
 		void Max (CDatum dValue);
 		void Min (CDatum dValue);
 		bool Mod (CDatum dValue);
 		bool ModClock (CDatum dValue);
 		void Multiply (CDatum dValue);
-		inline void SetDouble (double rValue) { m_rValue = rValue; m_bUpconverted = true; }
-		inline void SetInteger (int iValue) { m_pValue = (void *)(DWORD_PTR)iValue; m_bUpconverted = true; }
-		inline void SetInteger64 (DWORDLONG ilValue) { m_ilValue = ilValue; m_bUpconverted = true; }
-		inline void SetIPInteger (const CIPInteger &Value) { m_ipValue = Value; m_pValue = &m_ipValue; m_bUpconverted = true; }
+		void SetDouble (double rValue) { m_rValue = rValue; m_bUpconverted = true; }
+		void SetInteger (int iValue) { m_pValue = (void *)(DWORD_PTR)iValue; m_bUpconverted = true; }
+		void SetInteger64 (DWORDLONG ilValue) { m_ilValue = ilValue; m_bUpconverted = true; }
+		void SetIPInteger (const CIPInteger &Value) { m_ipValue = Value; m_pValue = &m_ipValue; m_bUpconverted = true; }
 		void Subtract (CDatum dValue);
 		void Upconvert (CNumberValue &Src);
 

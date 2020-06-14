@@ -90,13 +90,13 @@ CDatum::CDatum (int iValue)
 	//	If we fit in 28-bit range, then store in m_dwData
 
 	if (dwValue >= AEON_MIN_28BIT || dwValue <= AEON_MAX_28BIT)
-		m_dwData = ((dwValue << 4) | AEON_NUMBER_28BIT);
+		m_dwData = (((DWORD_PTR)dwValue << 4) | AEON_NUMBER_28BIT);
 
 	//	Otherwise, we need to store the number elsewhere
 
 	else
 		{
-		DWORD dwID = g_IntAlloc.New(dwValue);
+		DWORD_PTR dwID = g_IntAlloc.New(dwValue);
 		m_dwData = (dwID << 4) | AEON_NUMBER_32BIT;
 		}
 	}
@@ -109,13 +109,13 @@ CDatum::CDatum (DWORD dwValue)
 	//	If we fit in 28-bit range, then store in m_dwData
 
 	if (dwValue >= AEON_MIN_28BIT || dwValue <= AEON_MAX_28BIT)
-		m_dwData = ((dwValue << 4) | AEON_NUMBER_28BIT);
+		m_dwData = (((DWORD_PTR)dwValue << 4) | AEON_NUMBER_28BIT);
 
 	//	Otherwise, we need to store the number elsewhere
 
 	else
 		{
-		DWORD dwID = g_IntAlloc.New(dwValue);
+		DWORD_PTR dwID = g_IntAlloc.New(dwValue);
 		m_dwData = (dwID << 4) | AEON_NUMBER_32BIT;
 		}
 	}

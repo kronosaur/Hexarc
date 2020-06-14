@@ -457,7 +457,9 @@ CString CDateTime::Format (DateFormats iDateFormat, TimeFormats iTimeFormat) con
 				break;
 
 			default:
+				dwDateFlags = 0;
 				ASSERT(false);
+				break;
 			}
 
 		bool bTime = true;
@@ -485,7 +487,9 @@ CString CDateTime::Format (DateFormats iDateFormat, TimeFormats iTimeFormat) con
 				break;
 
 			default:
+				dwTimeFlags = 0;
 				ASSERT(false);
+				break;
 			}
 
 		//	Format

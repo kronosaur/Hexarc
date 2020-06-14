@@ -20,7 +20,7 @@ template <class KEY, class VALUE> class TSortMap
 	public:
 		TSortMap (ESortOptions iOrder = AscendingSort) : m_iOrder(iOrder), m_Free(0) { }
 
-		inline VALUE &operator [] (int iIndex) const { return GetValue(iIndex); }
+		VALUE &operator [] (int iIndex) const { return GetValue(iIndex); }
 
 		TSortMap<KEY, VALUE> &operator= (const TSortMap<KEY, VALUE> &Obj)
 			{
@@ -449,7 +449,7 @@ template <class VALUE> class TAtomTable
 	public:
 		TAtomTable (ESortOptions iOrder = AscendingSort) : m_Map(iOrder) { }
 
-		inline VALUE &operator [] (DWORD dwAtom) const { return GetAt(dwAtom); }
+		VALUE &operator [] (DWORD dwAtom) const { return GetAt(dwAtom); }
 
 		DWORD Atomize (const CString &sKey) const
 			{
@@ -525,7 +525,7 @@ template <class VALUE> class TIDTable
 			return *this;
 			}
 
-		inline VALUE &operator [] (DWORD dwID) const { return GetAt(dwID); }
+		VALUE &operator [] (DWORD dwID) const { return GetAt(dwID); }
 
 		void Delete (DWORD dwID, const VALUE &DeleteValue = VALUE())
 			{
@@ -555,7 +555,7 @@ template <class VALUE> class TIDTable
 			DeleteAll();
 			}
 
-		inline VALUE &GetAt (DWORD dwID) const
+		VALUE &GetAt (DWORD dwID) const
 			{
 			return m_Array[GetIndex(dwID)].Value;
 			}
@@ -593,7 +593,7 @@ template <class VALUE> class TIDTable
 			return theValue;
 			}
 
-		inline bool HasMore (SIDTableEnumerator &i) const
+		bool HasMore (SIDTableEnumerator &i) const
 			{
 			return (i.iPos != -1);
 			}
@@ -635,7 +635,7 @@ template <class VALUE> class TIDTable
 			return &m_Array[iIndex].Value;
 			}
 
-		inline bool IsValid (DWORD dwID) const
+		bool IsValid (DWORD dwID) const
 			{
 			int iIndex = GetIndex(dwID);
 			return (iIndex >= 0 && iIndex < m_Array.GetCount() && m_Array[iIndex].dwID == dwID);
@@ -717,9 +717,9 @@ template <class VALUE> class TIDTable
 			VALUE Value;
 			};
 
-		inline int GetCounter (DWORD dwID) const { return (dwID >> 24); }
-		inline int GetIndex (DWORD dwID) const { return (dwID & 0x00ffffff); }
-		inline DWORD MakeID (int iIndex, int iCounter) const { return ((((DWORD)iCounter) << 24) | (iIndex & 0x00ffffff)); }
+		int GetCounter (DWORD dwID) const { return (dwID >> 24); }
+		int GetIndex (DWORD dwID) const { return (dwID & 0x00ffffff); }
+		DWORD MakeID (int iIndex, int iCounter) const { return ((((DWORD)iCounter) << 24) | (iIndex & 0x00ffffff)); }
 
 		TArray<SEntry> m_Array;
 		TArray<DWORD> m_Free;
@@ -732,7 +732,7 @@ template <class VALUE> class TIDArray
 	public:
 		~TIDArray (void) { }
 
-		inline VALUE &operator [] (int iIndex) const { return GetAt((DWORD)iIndex); }
+		VALUE &operator [] (int iIndex) const { return GetAt((DWORD)iIndex); }
 
 		void Delete (DWORD dwID)
 			{
@@ -812,7 +812,7 @@ template <class VALUE> class TObjArray
 	public:
 		~TObjArray (void) { DeleteAll(); }
 
-		inline VALUE *operator [] (DWORD dwID) const { return GetAt(dwID); }
+		VALUE *operator [] (DWORD dwID) const { return GetAt(dwID); }
 
 		void Delete (DWORD dwID)
 			{
@@ -878,7 +878,7 @@ template <class VALUE> class TObjArray
 			}
 
 	private:
-		inline bool IsValidID (DWORD dwID) const { return (dwID < (DWORD)m_Array.GetCount()); }
+		bool IsValidID (DWORD dwID) const { return (dwID < (DWORD)m_Array.GetCount()); }
 
 		TArray<VALUE *> m_Array;
 		TArray<int> m_Free;

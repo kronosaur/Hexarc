@@ -26,3 +26,7 @@ template <class VALUE> constexpr VALUE Max (VALUE a, VALUE b) { return (a > b ? 
 template <class VALUE> constexpr VALUE Sign (VALUE iValue) { return (iValue < 0 ? -1 : (iValue == 0 ? 0 : 1)); }
 template <class VALUE> constexpr void Swap (VALUE &a, VALUE &b) { VALUE temp = a;	a = b;	b = temp; }
 
+inline int RectHeight (RECT *pRect) { return pRect->bottom - pRect->top; }
+inline int RectHeight (const RECT &Rect) { return Rect.bottom - Rect.top; }
+inline int RectWidth (RECT *pRect) { return pRect->right - pRect->left; }
+inline int RectWidth (const RECT &Rect) { return Rect.right - Rect.left; }

@@ -18,22 +18,22 @@ class C8bitImage : public CImagePlane
 		C8bitImage (const C8bitImage &Src) { Copy(Src); }
 		virtual ~C8bitImage (void) { CleanUp(); }
 
-		inline C8bitImage &operator= (const C8bitImage &Src) { CleanUp(); Copy(Src); return *this; }
+		C8bitImage &operator= (const C8bitImage &Src) { CleanUp(); Copy(Src); return *this; }
 
-		inline static C8bitImage &Null (void) { return m_NullImage; }
+		static C8bitImage &Null (void) { return m_NullImage; }
 
 		//	Basic Interface
 
 		void CleanUp (void);
 		bool Create (int cxWidth, int cyHeight);
 		bool Create (int cxWidth, int cyHeight, BYTE byInitialValue);
-		inline BYTE GetPixel (int x, int y) const { return *GetPixelPos(x, y); }
-		inline BYTE *GetPixelPos (int x, int y) const { return (m_pChannel + (y * m_iPitch)) + x; }
-		inline BYTE *GetPointer (void) const { return m_pChannel; }
-		inline bool IsEmpty (void) const { return (m_pChannel == NULL); }
-		inline bool IsMarked (void) const { return m_bMarked; }
-		inline BYTE *NextRow (BYTE *pPos) const { return (pPos + m_iPitch); }
-		inline void SetMarked (bool bMarked = true) { m_bMarked = bMarked; }
+		BYTE GetPixel (int x, int y) const { return *GetPixelPos(x, y); }
+		BYTE *GetPixelPos (int x, int y) const { int iOffset = (y * m_iPitch) + x; return m_pChannel + iOffset; }
+		BYTE *GetPointer (void) const { return m_pChannel; }
+		bool IsEmpty (void) const { return (m_pChannel == NULL); }
+		bool IsMarked (void) const { return m_bMarked; }
+		BYTE *NextRow (BYTE *pPos) const { return (pPos + m_iPitch); }
+		void SetMarked (bool bMarked = true) { m_bMarked = bMarked; }
 		bool WriteToWindowsBMP (IByteStream &Stream, CString *retsError = NULL) const;
 
 	private:

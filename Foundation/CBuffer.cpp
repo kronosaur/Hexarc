@@ -8,17 +8,6 @@
 #define MIN_ALLOC_INCREMENT							4096
 #define MAX_ALLOC_INCREMENT							65536
 
-CBuffer::CBuffer (void) :
-		m_pBuffer(NULL),
-		m_iLength(0),
-		m_iAllocation(0),
-		m_bAllocated(false)
-
-//	CBuffer constructor
-
-	{
-	}
-
 CBuffer::CBuffer (int iSize)
 
 //	CBuffer constructor
@@ -72,6 +61,21 @@ CBuffer::CBuffer (const CBuffer &Src)
 
 	{
 	Copy(Src);
+	}
+
+CBuffer::CBuffer (CBuffer &&Src) noexcept
+
+//	CBuffer move constructor
+
+	{
+	m_iLength = Src.m_iLength;
+	m_iAllocation = Src.m_iAllocation;
+	m_bAllocated = Src.m_bAllocated;
+
+	m_pBuffer = Src.m_pBuffer;
+
+	Src.m_pBuffer = NULL;
+	Src.m_bAllocated = false;
 	}
 
 CBuffer::~CBuffer (void)

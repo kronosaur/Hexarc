@@ -343,6 +343,8 @@ void CWin32Service::ReportErrorEvent (LPSTR pMsg, DWORD dwError)
 //	Reports an error to the OS event log
 
 	{
+	constexpr int BUFFER_SIZE = 1024;
+
 	if (dwError == 0)
 		dwError = ::GetLastError();
 
@@ -354,8 +356,8 @@ void CWin32Service::ReportErrorEvent (LPSTR pMsg, DWORD dwError)
 
 	//	Compose some error message strings
 
-	TCHAR szMsg1[1024];
-	_stprintf_s(szMsg1, sizeof(szMsg1), TEXT("%s error: %d"), (LPTSTR)m_sServiceName, dwError);
+	TCHAR szMsg1[BUFFER_SIZE];
+	swprintf_s(szMsg1, BUFFER_SIZE, TEXT("%s error: %d"), (LPTSTR)m_sServiceName, dwError);
 
 	CString16 sMsg2(pMsg);
 

@@ -23,31 +23,30 @@ typedef BYTE DIGEST [20];
 class CCryptoDigest
 	{
 	public:
-		CCryptoDigest (void) : m_bInitialized(false)
-			{ }
+		CCryptoDigest (void) { }
 
 		void AddData (void *pData, int iLength);
 		void AddData (IMemoryBlock &Data);
 		void CalcDigest (CIPInteger *retDigest);
 		void CalcDigest (BYTE *retDigest);
-		inline void Reset (void) { m_bInitialized = false; }
+		void Reset (void) { m_bInitialized = false; }
 
 	private:
 		struct SHA_CTX
 			{
-			DWORD digest[5];			//	Message digest
-			DWORD countLo;				//	64-bit count
-			DWORD countHi;
-			DWORD data[16];             //	SHS data buffer
+			DWORD digest[5] = { 0 };		//	Message digest
+			DWORD countLo = 0;				//	64-bit count
+			DWORD countHi = 0;
+			DWORD data[16] = { 0 };			//	SHS data buffer
 
-			bool bBigEndian;
+			bool bBigEndian = false;
 			};
 
 		void SHAInit(SHA_CTX *);
 		void SHAUpdate(SHA_CTX *, BYTE *buffer, int count);
 		void SHAFinal(BYTE *output, SHA_CTX *);
 
-		bool m_bInitialized;
+		bool m_bInitialized = false;
 		SHA_CTX m_Ctx;
 	};
 

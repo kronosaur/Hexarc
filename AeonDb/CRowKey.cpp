@@ -5,16 +5,23 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(ERR_INVALID_PATH,					"Invalid rowPath: %s")
+DECLARE_CONST_STRING(ERR_INVALID_PATH,					"Invalid rowPath: %s");
 
-CRowKey::CRowKey (void) : 
-		m_iCount(0),
-		m_psKey(NULL),
-		m_bFree(false)
+CRowKey::CRowKey (void)
 
 //	CRowKey constructor
 
 	{
+	}
+
+CRowKey::CRowKey (const CRowKey &Src)
+
+//	CRowKey copy constructor
+
+	{
+	m_iCount = Src.m_iCount;
+	m_psKey = new CString(Src.AsEncodedString());
+	m_bFree = true;
 	}
 
 CRowKey::CRowKey (const CTableDimensions &Dims, const CString &sKey) :

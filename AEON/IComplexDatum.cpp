@@ -794,11 +794,10 @@ size_t CComplexStruct::OnCalcSerializeSizeAEONScript (CDatum::ESerializationForm
 //	Returns an approximation of serialization size.
 
 	{
-	int i;
 	size_t TotalSize = 2;
 
-	for (i = 0; i < m_Map.GetCount(); i++)
-		TotalSize += m_Map.GetKey(i).GetLength() + 2 + m_Map[i].CalcSerializeSize(iFormat);
+	for (int i = 0; i < m_Map.GetCount(); i++)
+		TotalSize += (size_t)m_Map.GetKey(i).GetLength() + 2 + m_Map[i].CalcSerializeSize(iFormat);
 
 	return TotalSize;
 	}

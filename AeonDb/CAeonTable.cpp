@@ -62,177 +62,163 @@
 
 const int MAX_CHANGES_IN_MEMORY =						100;
 
-DECLARE_CONST_STRING(FILESPEC_TABLE_DESC_FILE,			"desc.ars")
-DECLARE_CONST_STRING(FILESPEC_FILES_DIR,				"files")
-DECLARE_CONST_STRING(FILESPEC_RECOVERY_DIR,				"recovery")
-DECLARE_CONST_STRING(FILESPEC_SCRAP_CONS,				"%s\\scrap\\%s")
-DECLARE_CONST_STRING(FILESPEC_SCRAP_DIR,				"scrap")
-DECLARE_CONST_STRING(FILESPEC_SEGMENTS_DIR,				"segments")
-DECLARE_CONST_STRING(FILESPEC_SEGMENTS_FILTER,			"segments\\*.aseg")
-DECLARE_CONST_STRING(FILESPEC_SEGMENT_CONS,				"%s\\segments\\%04x%04x_%04x.aseg")
-DECLARE_CONST_STRING(FILESPEC_ALL,						"*.*")
+DECLARE_CONST_STRING(FILESPEC_TABLE_DESC_FILE,			"desc.ars");
+DECLARE_CONST_STRING(FILESPEC_FILES_DIR,				"files");
+DECLARE_CONST_STRING(FILESPEC_RECOVERY_DIR,				"recovery");
+DECLARE_CONST_STRING(FILESPEC_SCRAP_CONS,				"%s\\scrap\\%s");
+DECLARE_CONST_STRING(FILESPEC_SCRAP_DIR,				"scrap");
+DECLARE_CONST_STRING(FILESPEC_SEGMENTS_DIR,				"segments");
+DECLARE_CONST_STRING(FILESPEC_SEGMENTS_FILTER,			"segments\\*.aseg");
+DECLARE_CONST_STRING(FILESPEC_SEGMENT_CONS,				"%s\\segments\\%04x%04x_%04x.aseg");
+DECLARE_CONST_STRING(FILESPEC_ALL,						"*.*");
 
-DECLARE_CONST_STRING(FIELD_BACKUP_VOLUMES,				"backupVolumes")
-DECLARE_CONST_STRING(FIELD_DATA,						"data")
-DECLARE_CONST_STRING(FIELD_FILE_DESC,					"fileDesc")
-DECLARE_CONST_STRING(FIELD_FILE_PATH,					"filePath")
-DECLARE_CONST_STRING(FIELD_GLOBAL_ENV,					"globalEnv")
-DECLARE_CONST_STRING(FIELD_ID,							"id")
-DECLARE_CONST_STRING(FIELD_KEY,							"key")
-DECLARE_CONST_STRING(FIELD_KEY_SORT,					"keySort")
-DECLARE_CONST_STRING(FIELD_KEY_TYPE,					"keyType")
-DECLARE_CONST_STRING(FIELD_MODIFIED_BY,					"modifiedBy")
-DECLARE_CONST_STRING(FIELD_MODIFIED_ON,					"modifiedOn")
-DECLARE_CONST_STRING(FIELD_NAME,						"name")
-DECLARE_CONST_STRING(FIELD_PARTIAL_POS,					"partialPos")
-DECLARE_CONST_STRING(FIELD_PRIMARY_KEY,					"primaryKey")
-DECLARE_CONST_STRING(FIELD_PRIMARY_VOLUME,				"primaryVolume")
-DECLARE_CONST_STRING(FIELD_SECONDARY_KEY,				"secondaryKey")
-DECLARE_CONST_STRING(FIELD_SECONDARY_VIEWS,				"secondaryViews")
-DECLARE_CONST_STRING(FIELD_SIZE,						"size")
-DECLARE_CONST_STRING(FIELD_STORAGE_PATH,				"storagePath")
-DECLARE_CONST_STRING(FIELD_TYPE,						"type")
-DECLARE_CONST_STRING(FIELD_UNMODIFIED,					"unmodified")
-DECLARE_CONST_STRING(FIELD_VERSION,						"version")
-DECLARE_CONST_STRING(FIELD_X,							"x")
-DECLARE_CONST_STRING(FIELD_Y,							"y")
-DECLARE_CONST_STRING(FIELD_Z,							"z")
+DECLARE_CONST_STRING(FIELD_BACKUP_VOLUMES,				"backupVolumes");
+DECLARE_CONST_STRING(FIELD_DATA,						"data");
+DECLARE_CONST_STRING(FIELD_FILE_DESC,					"fileDesc");
+DECLARE_CONST_STRING(FIELD_FILE_PATH,					"filePath");
+DECLARE_CONST_STRING(FIELD_GLOBAL_ENV,					"globalEnv");
+DECLARE_CONST_STRING(FIELD_ID,							"id");
+DECLARE_CONST_STRING(FIELD_KEY,							"key");
+DECLARE_CONST_STRING(FIELD_KEY_SORT,					"keySort");
+DECLARE_CONST_STRING(FIELD_KEY_TYPE,					"keyType");
+DECLARE_CONST_STRING(FIELD_MODIFIED_BY,					"modifiedBy");
+DECLARE_CONST_STRING(FIELD_MODIFIED_ON,					"modifiedOn");
+DECLARE_CONST_STRING(FIELD_NAME,						"name");
+DECLARE_CONST_STRING(FIELD_PARTIAL_POS,					"partialPos");
+DECLARE_CONST_STRING(FIELD_PRIMARY_KEY,					"primaryKey");
+DECLARE_CONST_STRING(FIELD_PRIMARY_VOLUME,				"primaryVolume");
+DECLARE_CONST_STRING(FIELD_SECONDARY_KEY,				"secondaryKey");
+DECLARE_CONST_STRING(FIELD_SECONDARY_VIEWS,				"secondaryViews");
+DECLARE_CONST_STRING(FIELD_SIZE,						"size");
+DECLARE_CONST_STRING(FIELD_STORAGE_PATH,				"storagePath");
+DECLARE_CONST_STRING(FIELD_TYPE,						"type");
+DECLARE_CONST_STRING(FIELD_UNMODIFIED,					"unmodified");
+DECLARE_CONST_STRING(FIELD_VERSION,						"version");
+DECLARE_CONST_STRING(FIELD_X,							"x");
+DECLARE_CONST_STRING(FIELD_Y,							"y");
+DECLARE_CONST_STRING(FIELD_Z,							"z");
 
-DECLARE_CONST_STRING(KEY_SORT_ASCENDING,				"ascending")
-DECLARE_CONST_STRING(KEY_SORT_DESCENDING,				"descending")
+DECLARE_CONST_STRING(KEY_SORT_ASCENDING,				"ascending");
+DECLARE_CONST_STRING(KEY_SORT_DESCENDING,				"descending");
 
-DECLARE_CONST_STRING(KEY_TYPE_DATE_TIME,				"dateTime")
-DECLARE_CONST_STRING(KEY_TYPE_INT32,					"int32")
-DECLARE_CONST_STRING(KEY_TYPE_INT64,					"int64")
-DECLARE_CONST_STRING(KEY_TYPE_LIST_UTF8,				"list_utf8")
-DECLARE_CONST_STRING(KEY_TYPE_UTF8,						"utf8")
+DECLARE_CONST_STRING(KEY_TYPE_DATE_TIME,				"dateTime");
+DECLARE_CONST_STRING(KEY_TYPE_INT32,					"int32");
+DECLARE_CONST_STRING(KEY_TYPE_INT64,					"int64");
+DECLARE_CONST_STRING(KEY_TYPE_LIST_UTF8,				"list_utf8");
+DECLARE_CONST_STRING(KEY_TYPE_UTF8,						"utf8");
 
-DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error")
-DECLARE_CONST_STRING(MSG_LOG_INFO,						"Log.info")
+DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error");
+DECLARE_CONST_STRING(MSG_LOG_INFO,						"Log.info");
 
-DECLARE_CONST_STRING(MUTATE_ADD_TO_SET,					"addToSet")
-DECLARE_CONST_STRING(MUTATE_APPEND,						"append")
-DECLARE_CONST_STRING(MUTATE_CODE_8,						"code8")
-DECLARE_CONST_STRING(MUTATE_CONSUME,					"consume")
-DECLARE_CONST_STRING(MUTATE_DATE_CREATED,				"dateCreated")
-DECLARE_CONST_STRING(MUTATE_DATE_MODIFIED,				"dateModified")
-DECLARE_CONST_STRING(MUTATE_DECREMENT,					"decrement")
-DECLARE_CONST_STRING(MUTATE_DELETE,						"delete")
-DECLARE_CONST_STRING(MUTATE_IGNORE,						"ignore")
-DECLARE_CONST_STRING(MUTATE_INCREMENT,					"increment")
-DECLARE_CONST_STRING(MUTATE_MAX,						"max")
-DECLARE_CONST_STRING(MUTATE_MIN,						"min")
-DECLARE_CONST_STRING(MUTATE_PREPEND,					"prepend")
-DECLARE_CONST_STRING(MUTATE_PRIMARY_KEY,				"primaryKey")
-DECLARE_CONST_STRING(MUTATE_REMOVE_FROM_SET,			"removeFromSet")
-DECLARE_CONST_STRING(MUTATE_ROW_ID,						"rowID")
-DECLARE_CONST_STRING(MUTATE_UPDATE_GREATER,				"updateGreater")
-DECLARE_CONST_STRING(MUTATE_UPDATE_GREATER_NO_ERROR,	"updateGreaterNoError")
-DECLARE_CONST_STRING(MUTATE_UPDATE_NIL,					"updateNil")
-DECLARE_CONST_STRING(MUTATE_UPDATE_NIL_NO_ERROR,		"updateNilNoError")
-DECLARE_CONST_STRING(MUTATE_UPDATE_VERSION,				"updateVersion")
-DECLARE_CONST_STRING(MUTATE_UPDATE_VERSION_NO_ERROR,	"updateVersionNoError")
-DECLARE_CONST_STRING(MUTATE_WRITE,						"write")
-DECLARE_CONST_STRING(MUTATE_WRITE_NEW,					"writeNew")
+DECLARE_CONST_STRING(MUTATE_ADD_TO_SET,					"addToSet");
+DECLARE_CONST_STRING(MUTATE_APPEND,						"append");
+DECLARE_CONST_STRING(MUTATE_CODE_8,						"code8");
+DECLARE_CONST_STRING(MUTATE_CONSUME,					"consume");
+DECLARE_CONST_STRING(MUTATE_DATE_CREATED,				"dateCreated");
+DECLARE_CONST_STRING(MUTATE_DATE_MODIFIED,				"dateModified");
+DECLARE_CONST_STRING(MUTATE_DECREMENT,					"decrement");
+DECLARE_CONST_STRING(MUTATE_DELETE,						"delete");
+DECLARE_CONST_STRING(MUTATE_IGNORE,						"ignore");
+DECLARE_CONST_STRING(MUTATE_INCREMENT,					"increment");
+DECLARE_CONST_STRING(MUTATE_MAX,						"max");
+DECLARE_CONST_STRING(MUTATE_MIN,						"min");
+DECLARE_CONST_STRING(MUTATE_PREPEND,					"prepend");
+DECLARE_CONST_STRING(MUTATE_PRIMARY_KEY,				"primaryKey");
+DECLARE_CONST_STRING(MUTATE_REMOVE_FROM_SET,			"removeFromSet");
+DECLARE_CONST_STRING(MUTATE_ROW_ID,						"rowID");
+DECLARE_CONST_STRING(MUTATE_UPDATE_GREATER,				"updateGreater");
+DECLARE_CONST_STRING(MUTATE_UPDATE_GREATER_NO_ERROR,	"updateGreaterNoError");
+DECLARE_CONST_STRING(MUTATE_UPDATE_NIL,					"updateNil");
+DECLARE_CONST_STRING(MUTATE_UPDATE_NIL_NO_ERROR,		"updateNilNoError");
+DECLARE_CONST_STRING(MUTATE_UPDATE_VERSION,				"updateVersion");
+DECLARE_CONST_STRING(MUTATE_UPDATE_VERSION_NO_ERROR,	"updateVersionNoError");
+DECLARE_CONST_STRING(MUTATE_WRITE,						"write");
+DECLARE_CONST_STRING(MUTATE_WRITE_NEW,					"writeNew");
 
-DECLARE_CONST_STRING(OP_CREATE_CORE_DIRECTORIES,		"creating core directories")
-DECLARE_CONST_STRING(OP_INSERT,							"inserting a row")
-DECLARE_CONST_STRING(OP_MUTATE,							"mutating a row")
+DECLARE_CONST_STRING(OP_CREATE_CORE_DIRECTORIES,		"creating core directories");
+DECLARE_CONST_STRING(OP_INSERT,							"inserting a row");
+DECLARE_CONST_STRING(OP_MUTATE,							"mutating a row");
 
-DECLARE_CONST_STRING(OPTION_RECURSIVE,					"recursive")
+DECLARE_CONST_STRING(OPTION_RECURSIVE,					"recursive");
 
-DECLARE_CONST_STRING(TABLE_TYPE_FILE,					"file")
-DECLARE_CONST_STRING(TABLE_TYPE_STANDARD,				"standard")
+DECLARE_CONST_STRING(TABLE_TYPE_FILE,					"file");
+DECLARE_CONST_STRING(TABLE_TYPE_STANDARD,				"standard");
 
-DECLARE_CONST_STRING(TYPENAME_HEXE_FUNCTION,			"hexeFunction")
+DECLARE_CONST_STRING(TYPENAME_HEXE_FUNCTION,			"hexeFunction");
 
-DECLARE_CONST_STRING(STR_ERROR_ABSOLUTE_PATH_REQUIRED,	"Absolute filePath expected.")
-DECLARE_CONST_STRING(STR_ERROR_OUT_OF_DATE,				"Another client uploaded a newer version: %s.")
-DECLARE_CONST_STRING(ERR_CRASH,							"Crash: %s.")
-DECLARE_CONST_STRING(ERR_EXCEPTION,						"Exception (%s): %s")
-DECLARE_CONST_STRING(ERR_CANT_CREATE_KEY_TYPE,			"Unique keys cannot be of type dateTime or int32.")
-DECLARE_CONST_STRING(ERR_CANT_DELETE_DEFAULT_VIEW,		"Default view cannot be deleted.")
-DECLARE_CONST_STRING(STR_ERROR_FILE_TABLE_EXPECTED,		"File table expected.")
-DECLARE_CONST_STRING(ERR_NOT_ENOUGH_DISK_SPACE,			"Insufficient disk space at: %s.")
-DECLARE_CONST_STRING(ERR_INVALID_FILE_PATH,				"Invalid filePath: %s.")
-DECLARE_CONST_STRING(STR_ERROR_INVALID_TABLE_TYPE,		"Invalid table type: %s.")
-DECLARE_CONST_STRING(ERR_INVALID_VOLUME,				"Invalid volume: %s.")
-DECLARE_CONST_STRING(ERR_CANT_CREATE_MULTI_D_KEY,		"Multidimensional keys cannot be generated.")
-DECLARE_CONST_STRING(ERR_PATH_EXISTS,					"Path already exists.")
-DECLARE_CONST_STRING(ERR_KEY_REQUIRED,					"Secondary views must specify key.")
-DECLARE_CONST_STRING(ERR_SEGMENT_FOR_INVALID_VIEW,		"Segment %s refers to unknown view: %x.")
-DECLARE_CONST_STRING(STR_BACKUP_OK,						"Table %s: Backup volume %s is healthy.")
-DECLARE_CONST_STRING(STR_BACKUP_NEEDED,					"Table %s: Backup volume offline.")
-DECLARE_CONST_STRING(STR_BACKUP_LOST,					"Table %s: Backup volume offline. Waiting for new volume.")
-DECLARE_CONST_STRING(STR_BACKUP_ONLINE_RESTORE_NEEDED,	"Table %s: Backup volume reconnected.")
-DECLARE_CONST_STRING(STR_BACKUP_ONLINE_RESTORE_WAITING,	"Table %s: Backup volume reconnected. Waiting for new volume to restore to.")
-DECLARE_CONST_STRING(ERR_NO_DEFAULT_VIEW,				"Table %s: Cannot find default view.")
-DECLARE_CONST_STRING(ERR_UNKNOWN_VIEW_IN_TABLE,			"Table %s: Unknown view: %s.")
-DECLARE_CONST_STRING(STR_MOVING_BACKUP,					"Table %s: Found backup data on volume: %s.")
-DECLARE_CONST_STRING(STR_MOVING_PRIMARY,				"Table %s: Found primary data on volume: %s.")
-DECLARE_CONST_STRING(STR_NO_BACKUP_VOLUME,				"Table %s: No backup volume found.")
-DECLARE_CONST_STRING(STR_LOST_DATA,						"Table %s: Primary and backup volumes offline.")
-DECLARE_CONST_STRING(STR_PRIMARY_AND_BACKUP_ONLINE,		"Table %s: Primary and backup volumes reconnected.")
-DECLARE_CONST_STRING(STR_RESTORE_NEEDED,				"Table %s: Primary volume offline.")
-DECLARE_CONST_STRING(STR_PRIMARY_LOST,					"Table %s: Primary volume offline. Waiting for new volume.")
-DECLARE_CONST_STRING(STR_PRIMARY_ONLINE_BACKUP_NEEDED,	"Table %s: Primary volume reconnected.")
-DECLARE_CONST_STRING(STR_PRIMARY_ONLINE_BACKUP_WAITING,	"Table %s: Primary volume reconnected. Waiting for new volume for backup.")
-DECLARE_CONST_STRING(STR_RECOVERED_ROWS,				"Table %s: Recovered %d row%p.")
-DECLARE_CONST_STRING(STR_RESTORING,						"Table %s: Restoring primary to: %s.")
-DECLARE_CONST_STRING(STR_RESTORE_COMPLETE,				"Table %s: Restore complete.")
-DECLARE_CONST_STRING(STR_SWAP_TO_BACKUP,				"Table %s: Using backup volume as primary.")
-DECLARE_CONST_STRING(STR_NEW_BACKUP,					"Table %s: Using new volume for backup: %s.")
-DECLARE_CONST_STRING(STR_NEW_PRIMARY,					"Table %s: Using new volume for primary: %s.")
-DECLARE_CONST_STRING(ERR_TOO_MANY_VOLUMES,				"Table appears on more then two volumes.")
-DECLARE_CONST_STRING(ERR_TABLE_DESC_DOESNT_MATCH,		"Table desc does not match across volumes.")
-DECLARE_CONST_STRING(STR_ERROR_BAD_TABLE_NAME,			"Table desc name does not match directory: %s.")
-DECLARE_CONST_STRING(STR_ERROR_TABLE_DIR_EXISTS,		"Table directory already exists: %s.")
-DECLARE_CONST_STRING(ERR_NOT_TYPE_FILE,					"Table is not a file table: %s.")
-DECLARE_CONST_STRING(STR_ERROR_NO_TABLE_IN_PATH,		"Table name expected.")
-DECLARE_CONST_STRING(ERR_CANNOT_ADD_ROW,				"Unable to add a row to table: %s.")
-DECLARE_CONST_STRING(ERR_PRIMARY_OFFLINE,				"Unable to access primary volume for table: %s.")
-DECLARE_CONST_STRING(ERR_CANNOT_COPY_FILE,				"Unable to copy from %s to %s.")
-DECLARE_CONST_STRING(ERR_SEGMENT_BACKUP_FAILED,			"Unable to create backup for new segment: %s.")
-DECLARE_CONST_STRING(ERR_CANT_CREATE_DIRECTORY,			"Unable to create directory: %s.")
-DECLARE_CONST_STRING(STR_ERROR_BAD_ITERATOR,			"Unable to create iterator for table: %s.")
-DECLARE_CONST_STRING(STR_ERROR_CANT_CREATE_DIRS,		"Unable to create table directories: %s.")
-DECLARE_CONST_STRING(ERR_CANT_CREATE_WITH_NO_NAME,		"Unable to create table with no name.")
-DECLARE_CONST_STRING(ERR_CANT_FIND_PRIMARY_VOLUME,		"Unable to find table's primary volume.")
-DECLARE_CONST_STRING(ERR_UNABLE_TO_LIST_FILES,			"Unable to list files in: %s.")
-DECLARE_CONST_STRING(ERR_CANT_LOAD_SEGMENT,				"Unable to load segment file: %s.")
-DECLARE_CONST_STRING(STR_ERROR_CANT_PARSE_DESC,			"Unable to parse table desc: %s.")
-DECLARE_CONST_STRING(ERR_UNABLE_TO_READ_STORAGE,		"Unable to read file in arcology storage: %s.")
-DECLARE_CONST_STRING(STR_ERROR_CANT_SAVE_DESC,			"Unable to save table desc: %s.")
-DECLARE_CONST_STRING(STR_ERROR_CANT_WRITE_FILE,			"Unable to write file to table: %s.")
-DECLARE_CONST_STRING(ERR_UNKNOWN,						"Unknown error accessing table: %s.")
-DECLARE_CONST_STRING(ERR_UNKNOWN_MUTATE_OP,				"Unknown mutation: %s.")
-DECLARE_CONST_STRING(ERR_UNKNOWN_VIEW,					"Unknown view: %s.")
-DECLARE_CONST_STRING(ERR_UNKNOWN_VIEW_ID,				"Unknown viewID: %d.")
-DECLARE_CONST_STRING(ERR_UNKNOWN_VOLUME,				"Unknown volume: %s.")
-DECLARE_CONST_STRING(ERR_VIEW_NOT_READY,				"View %s: Unable to query until update is complete.")
-DECLARE_CONST_STRING(ERR_MISSING_FILE,					"Volume does not have required file: %s.")
-DECLARE_CONST_STRING(ERR_OLD_RECOVERY_FILE,				"Table %s: View %s using old version of recovery file.")
-DECLARE_CONST_STRING(ERR_VIEW_INSERT_FAILURE,			"Unable to insert row in view %s: %s.")
-DECLARE_CONST_STRING(ERR_CANT_MOVE_TO_SCRAP,			"Unable to move old file to scrap: %s.")
-DECLARE_CONST_STRING(ERR_UPDATE_GREATER_OUT_OF_DATE,	"Unable to mutate row %s. Field %s value (%s) not greater than original (%s).")
-DECLARE_CONST_STRING(ERR_UPDATE_VERSION_OUT_OF_DATE,	"Unable to mutate row %s. Field %s value (%s) does not match original (%s).")
-DECLARE_CONST_STRING(ERR_CANNOT_CONSUME,				"Unable to mutate row %s. Field %s value (%s) insufficient.")
-DECLARE_CONST_STRING(ERR_UPDATE_NIL,					"Unable to mutate row %s. Field %s is not nil.")
-DECLARE_CONST_STRING(ERR_INVALID_FILE_PATH_CODE,		"Unknown filePath generation code: %s.")
-
-CAeonTable::CAeonTable (void) : 
-		m_pStorage(NULL), 
-		m_bPrimaryLost(false),
-		m_bBackupLost(false),
-		m_bBackupNeeded(false),
-		m_bValidateBackup(false),
-		m_iHousekeeping(stateReady),
-		m_iRowsRecovered(0)
-
-//	CAeonTable constructor
-			
-	{
-	}
+DECLARE_CONST_STRING(STR_ERROR_ABSOLUTE_PATH_REQUIRED,	"Absolute filePath expected.");
+DECLARE_CONST_STRING(STR_ERROR_OUT_OF_DATE,				"Another client uploaded a newer version: %s.");
+DECLARE_CONST_STRING(ERR_CRASH,							"Crash: %s.");
+DECLARE_CONST_STRING(ERR_EXCEPTION,						"Exception (%s): %s");
+DECLARE_CONST_STRING(ERR_CANT_CREATE_KEY_TYPE,			"Unique keys cannot be of type dateTime or int32.");
+DECLARE_CONST_STRING(ERR_CANT_DELETE_DEFAULT_VIEW,		"Default view cannot be deleted.");
+DECLARE_CONST_STRING(STR_ERROR_FILE_TABLE_EXPECTED,		"File table expected.");
+DECLARE_CONST_STRING(ERR_NOT_ENOUGH_DISK_SPACE,			"Insufficient disk space at: %s.");
+DECLARE_CONST_STRING(ERR_INVALID_FILE_PATH,				"Invalid filePath: %s.");
+DECLARE_CONST_STRING(STR_ERROR_INVALID_TABLE_TYPE,		"Invalid table type: %s.");
+DECLARE_CONST_STRING(ERR_INVALID_VOLUME,				"Invalid volume: %s.");
+DECLARE_CONST_STRING(ERR_CANT_CREATE_MULTI_D_KEY,		"Multidimensional keys cannot be generated.");
+DECLARE_CONST_STRING(ERR_PATH_EXISTS,					"Path already exists.");
+DECLARE_CONST_STRING(ERR_KEY_REQUIRED,					"Secondary views must specify key.");
+DECLARE_CONST_STRING(ERR_SEGMENT_FOR_INVALID_VIEW,		"Segment %s refers to unknown view: %x.");
+DECLARE_CONST_STRING(STR_BACKUP_OK,						"Table %s: Backup volume %s is healthy.");
+DECLARE_CONST_STRING(STR_BACKUP_NEEDED,					"Table %s: Backup volume offline.");
+DECLARE_CONST_STRING(STR_BACKUP_LOST,					"Table %s: Backup volume offline. Waiting for new volume.");
+DECLARE_CONST_STRING(STR_BACKUP_ONLINE_RESTORE_NEEDED,	"Table %s: Backup volume reconnected.");
+DECLARE_CONST_STRING(STR_BACKUP_ONLINE_RESTORE_WAITING,	"Table %s: Backup volume reconnected. Waiting for new volume to restore to.");
+DECLARE_CONST_STRING(ERR_NO_DEFAULT_VIEW,				"Table %s: Cannot find default view.");
+DECLARE_CONST_STRING(ERR_UNKNOWN_VIEW_IN_TABLE,			"Table %s: Unknown view: %s.");
+DECLARE_CONST_STRING(STR_MOVING_BACKUP,					"Table %s: Found backup data on volume: %s.");
+DECLARE_CONST_STRING(STR_MOVING_PRIMARY,				"Table %s: Found primary data on volume: %s.");
+DECLARE_CONST_STRING(STR_NO_BACKUP_VOLUME,				"Table %s: No backup volume found.");
+DECLARE_CONST_STRING(STR_LOST_DATA,						"Table %s: Primary and backup volumes offline.");
+DECLARE_CONST_STRING(STR_PRIMARY_AND_BACKUP_ONLINE,		"Table %s: Primary and backup volumes reconnected.");
+DECLARE_CONST_STRING(STR_RESTORE_NEEDED,				"Table %s: Primary volume offline.");
+DECLARE_CONST_STRING(STR_PRIMARY_LOST,					"Table %s: Primary volume offline. Waiting for new volume.");
+DECLARE_CONST_STRING(STR_PRIMARY_ONLINE_BACKUP_NEEDED,	"Table %s: Primary volume reconnected.");
+DECLARE_CONST_STRING(STR_PRIMARY_ONLINE_BACKUP_WAITING,	"Table %s: Primary volume reconnected. Waiting for new volume for backup.");
+DECLARE_CONST_STRING(STR_RECOVERED_ROWS,				"Table %s: Recovered %d row%p.");
+DECLARE_CONST_STRING(STR_RESTORING,						"Table %s: Restoring primary to: %s.");
+DECLARE_CONST_STRING(STR_RESTORE_COMPLETE,				"Table %s: Restore complete.");
+DECLARE_CONST_STRING(STR_SWAP_TO_BACKUP,				"Table %s: Using backup volume as primary.");
+DECLARE_CONST_STRING(STR_NEW_BACKUP,					"Table %s: Using new volume for backup: %s.");
+DECLARE_CONST_STRING(STR_NEW_PRIMARY,					"Table %s: Using new volume for primary: %s.");
+DECLARE_CONST_STRING(ERR_TOO_MANY_VOLUMES,				"Table appears on more then two volumes.");
+DECLARE_CONST_STRING(ERR_TABLE_DESC_DOESNT_MATCH,		"Table desc does not match across volumes.");
+DECLARE_CONST_STRING(STR_ERROR_BAD_TABLE_NAME,			"Table desc name does not match directory: %s.");
+DECLARE_CONST_STRING(STR_ERROR_TABLE_DIR_EXISTS,		"Table directory already exists: %s.");
+DECLARE_CONST_STRING(ERR_NOT_TYPE_FILE,					"Table is not a file table: %s.");
+DECLARE_CONST_STRING(STR_ERROR_NO_TABLE_IN_PATH,		"Table name expected.");
+DECLARE_CONST_STRING(ERR_CANNOT_ADD_ROW,				"Unable to add a row to table: %s.");
+DECLARE_CONST_STRING(ERR_PRIMARY_OFFLINE,				"Unable to access primary volume for table: %s.");
+DECLARE_CONST_STRING(ERR_CANNOT_COPY_FILE,				"Unable to copy from %s to %s.");
+DECLARE_CONST_STRING(ERR_SEGMENT_BACKUP_FAILED,			"Unable to create backup for new segment: %s.");
+DECLARE_CONST_STRING(ERR_CANT_CREATE_DIRECTORY,			"Unable to create directory: %s.");
+DECLARE_CONST_STRING(STR_ERROR_BAD_ITERATOR,			"Unable to create iterator for table: %s.");
+DECLARE_CONST_STRING(STR_ERROR_CANT_CREATE_DIRS,		"Unable to create table directories: %s.");
+DECLARE_CONST_STRING(ERR_CANT_CREATE_WITH_NO_NAME,		"Unable to create table with no name.");
+DECLARE_CONST_STRING(ERR_CANT_FIND_PRIMARY_VOLUME,		"Unable to find table's primary volume.");
+DECLARE_CONST_STRING(ERR_UNABLE_TO_LIST_FILES,			"Unable to list files in: %s.");
+DECLARE_CONST_STRING(ERR_CANT_LOAD_SEGMENT,				"Unable to load segment file: %s.");
+DECLARE_CONST_STRING(STR_ERROR_CANT_PARSE_DESC,			"Unable to parse table desc: %s.");
+DECLARE_CONST_STRING(ERR_UNABLE_TO_READ_STORAGE,		"Unable to read file in arcology storage: %s.");
+DECLARE_CONST_STRING(STR_ERROR_CANT_SAVE_DESC,			"Unable to save table desc: %s.");
+DECLARE_CONST_STRING(STR_ERROR_CANT_WRITE_FILE,			"Unable to write file to table: %s.");
+DECLARE_CONST_STRING(ERR_UNKNOWN,						"Unknown error accessing table: %s.");
+DECLARE_CONST_STRING(ERR_UNKNOWN_MUTATE_OP,				"Unknown mutation: %s.");
+DECLARE_CONST_STRING(ERR_UNKNOWN_VIEW,					"Unknown view: %s.");
+DECLARE_CONST_STRING(ERR_UNKNOWN_VIEW_ID,				"Unknown viewID: %d.");
+DECLARE_CONST_STRING(ERR_UNKNOWN_VOLUME,				"Unknown volume: %s.");
+DECLARE_CONST_STRING(ERR_VIEW_NOT_READY,				"View %s: Unable to query until update is complete.");
+DECLARE_CONST_STRING(ERR_MISSING_FILE,					"Volume does not have required file: %s.");
+DECLARE_CONST_STRING(ERR_OLD_RECOVERY_FILE,				"Table %s: View %s using old version of recovery file.");
+DECLARE_CONST_STRING(ERR_VIEW_INSERT_FAILURE,			"Unable to insert row in view %s: %s.");
+DECLARE_CONST_STRING(ERR_CANT_MOVE_TO_SCRAP,			"Unable to move old file to scrap: %s.");
+DECLARE_CONST_STRING(ERR_UPDATE_GREATER_OUT_OF_DATE,	"Unable to mutate row %s. Field %s value (%s) not greater than original (%s).");
+DECLARE_CONST_STRING(ERR_UPDATE_VERSION_OUT_OF_DATE,	"Unable to mutate row %s. Field %s value (%s) does not match original (%s).");
+DECLARE_CONST_STRING(ERR_CANNOT_CONSUME,				"Unable to mutate row %s. Field %s value (%s) insufficient.");
+DECLARE_CONST_STRING(ERR_UPDATE_NIL,					"Unable to mutate row %s. Field %s is not nil.");
+DECLARE_CONST_STRING(ERR_INVALID_FILE_PATH_CODE,		"Unknown filePath generation code: %s.");
 
 CAeonTable::~CAeonTable (void)
 

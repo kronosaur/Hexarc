@@ -69,7 +69,7 @@ bool CFoundation::Startup (DWORD dwFlags, CString *retsError)
 	if (dwFlags & BOOT_FLAG_COM)
 		{
 		HRESULT hr = ::CoInitializeEx(NULL, COINIT_MULTITHREADED);
-		if (hr)
+		if (hr != S_OK)
 			{
 			if (retsError) *retsError = ERR_CANT_INITIALIZE_COM;
 			return false;

@@ -613,6 +613,8 @@ CPolygonIntersector::SVertexInfo *CPolygonIntersector::CreateVertexList (const C
 	while (true)
 		{
 		SVertexInfo *pNewVertex = AllocVertex(Src.GetVertex(iVertex), dwFlags | flagOriginal, NULL, pPrev);
+		if (pNewVertex == NULL)
+			throw CException(errFail);
 
 		if (pFirst == NULL)
 			{

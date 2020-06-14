@@ -25,11 +25,11 @@ class CAttributeList
 	{
 	public:
 		void Delete (const CString &sAttrib);
-		inline void DeleteAll (void) { m_sAttributes = NULL_STR; }
+		void DeleteAll (void) { m_sAttributes = NULL_STR; }
 		void GetAll (TArray<CString> *retAttribs) const;
-		inline bool HasAttribute (const CString &sAttrib) const { return FindAttribute(strToLower(sAttrib)); }
+		bool HasAttribute (const CString &sAttrib) const { return FindAttribute(strToLower(sAttrib)); }
 		void Insert (const CString &sAttrib);
-		inline bool IsEmpty (void) const { return m_sAttributes.IsEmpty(); }
+		bool IsEmpty (void) const { return m_sAttributes.IsEmpty(); }
 		static bool ValidateAttribute (const CString &sAttrib);
 
 	private:
@@ -64,8 +64,8 @@ class IRefCounted
 		IRefCounted (void) : m_iRefCount(1) { }
 		virtual ~IRefCounted (void) { }
 
-		inline void AddRef (void) { m_iRefCount++; }
-		inline void Release (void) { if (--m_iRefCount == 0) delete this; }
+		void AddRef (void) noexcept { m_iRefCount++; }
+		void Release (void) noexcept { if (--m_iRefCount == 0) delete this; }
 
 	private:
 		int m_iRefCount;
@@ -117,7 +117,7 @@ template <class VALUE> class TSmartRefCountPtr
 		VALUE *operator -> (void)
 			{ return m_pObj; }
 
-		inline bool IsEmpty (void) const { return (m_pObj == NULL); }
+		bool IsEmpty (void) const { return (m_pObj == NULL); }
 
 		void Release (void)
 			{

@@ -122,4 +122,7 @@ class CFoundation
 
 		bool m_bInitialized = false;
 		bool m_bCOMInitialized = false;
+
+		void Test (void) { RECT rcRect; int x = ::RectWidth(&rcRect); }
 	};
+

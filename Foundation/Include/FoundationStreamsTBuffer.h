@@ -66,7 +66,7 @@ class CMallocAllocator
 			Copy(Src);
 			}
 
-		CMallocAllocator (CMallocAllocator &&Src)
+		CMallocAllocator (CMallocAllocator &&Src) noexcept
 			{
 			Move(Src);
 			}
@@ -99,8 +99,8 @@ class CMallocAllocator
 
 			if (iLength > 0)
 				{
-				m_pBuffer = (char *)malloc(iLength + 1);
-				m_dwAllocSize = iLength + 1;
+				m_dwAllocSize = (size_t)iLength + 1;
+				m_pBuffer = (char *)malloc(m_dwAllocSize);
 				utlMemCopy(sString.GetParsePointer(), m_pBuffer, m_dwAllocSize);
 				}
 			else
@@ -121,16 +121,16 @@ class CMallocAllocator
 			Copy(Src);
 			}
 
-		CMallocAllocator &operator= (CMallocAllocator &&Src)
+		CMallocAllocator &operator= (CMallocAllocator &&Src) noexcept
 			{
 			CleanUp();
 			Move(Src);
 			}
 
-		inline size_t GetAllocSize (void) const { return m_dwAllocSize; }
-		inline char *GetPointer (void) const { return m_pBuffer; }
+		size_t GetAllocSize (void) const { return m_dwAllocSize; }
+		char *GetPointer (void) const { return m_pBuffer; }
 
-		inline void GrowToFit (size_t dwNewSize, size_t dwOldSize)
+		void GrowToFit (size_t dwNewSize, size_t dwOldSize)
 			{
 			//	Grow, if necessary
 
@@ -152,7 +152,7 @@ class CMallocAllocator
 				}
 			}
 
-		inline void TakeHandoff (void *pBuffer, size_t dwLength)
+		void TakeHandoff (void *pBuffer, size_t dwLength)
 			{
 			CleanUp();
 
@@ -213,7 +213,7 @@ class CNewAllocator
 			Copy(Src);
 			}
 
-		CNewAllocator (CNewAllocator &&Src)
+		CNewAllocator (CNewAllocator &&Src) noexcept
 			{
 			Move(Src);
 			}
@@ -246,8 +246,8 @@ class CNewAllocator
 
 			if (iLength > 0)
 				{
-				m_pBuffer = new char [iLength + 1];
-				m_dwAllocSize = iLength + 1;
+				m_dwAllocSize = (size_t)iLength + 1;
+				m_pBuffer = new char [m_dwAllocSize];
 				utlMemCopy(sString.GetParsePointer(), m_pBuffer, m_dwAllocSize);
 				}
 			else
@@ -268,16 +268,16 @@ class CNewAllocator
 			Copy(Src);
 			}
 
-		CNewAllocator &operator= (CNewAllocator &&Src)
+		CNewAllocator &operator= (CNewAllocator &&Src) noexcept
 			{
 			CleanUp();
 			Move(Src);
 			}
 
-		inline size_t GetAllocSize (void) const { return m_dwAllocSize; }
-		inline char *GetPointer (void) const { return m_pBuffer; }
+		size_t GetAllocSize (void) const { return m_dwAllocSize; }
+		char *GetPointer (void) const { return m_pBuffer; }
 
-		inline void GrowToFit (size_t dwNewSize, size_t dwOldSize)
+		void GrowToFit (size_t dwNewSize, size_t dwOldSize)
 			{
 			//	Grow, if necessary
 
@@ -299,7 +299,7 @@ class CNewAllocator
 				}
 			}
 
-		inline void TakeHandoff (void *pBuffer, size_t dwLength)
+		void TakeHandoff (void *pBuffer, size_t dwLength)
 			{
 			CleanUp();
 
@@ -375,7 +375,7 @@ class CStaticAllocator
 			{
 			m_pBuffer = (LPSTR)sString + iPos;
 			if (iLength == -1)
-				m_dwAllocSize = sString.GetLength() - iPos;
+				m_dwAllocSize = (size_t)sString.GetLength() - iPos;
 			else
 				m_dwAllocSize = iLength;
 			}
@@ -386,10 +386,10 @@ class CStaticAllocator
 
 		CStaticAllocator &operator= (const CStaticAllocator &Src) = default;
 
-		inline size_t GetAllocSize (void) const { return m_dwAllocSize; }
-		inline char *GetPointer (void) const { return m_pBuffer; }
+		size_t GetAllocSize (void) const { return m_dwAllocSize; }
+		char *GetPointer (void) const { return m_pBuffer; }
 
-		inline void GrowToFit (size_t dwNewSize, size_t dwOldSize)
+		void GrowToFit (size_t dwNewSize, size_t dwOldSize)
 			{
 			//	Grow, if necessary
 
@@ -399,7 +399,7 @@ class CStaticAllocator
 				}
 			}
 
-		inline void TakeHandoff (void *pBuffer, size_t dwLength)
+		void TakeHandoff (void *pBuffer, size_t dwLength)
 			{
 			throw CException(errFail, CString("CStaticAllocator does not support dynamic allocation."));
 			}

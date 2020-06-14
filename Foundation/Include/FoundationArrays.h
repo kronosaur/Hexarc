@@ -39,10 +39,10 @@ class CArrayBase
 
 		void CopyOptions (const CArrayBase &Src);
 		void DeleteBytes (int iOffset, int iLength);
-		inline char *GetBytes (void) const { return (m_pBlock ? (char *)(&m_pBlock[1]) : NULL); }
-		inline int GetGranularity (void) const { return (m_pBlock ? m_pBlock->m_iGranularity : DEFAULT_ARRAY_GRANULARITY); }
-		inline HANDLE GetHeap (void) const { return (m_pBlock ? m_pBlock->m_hHeap : ::GetProcessHeap()); }
-		inline int GetSize (void) const { return (m_pBlock ? m_pBlock->m_iSize : 0); }
+		char *GetBytes (void) const { return (m_pBlock ? (char *)(&m_pBlock[1]) : NULL); }
+		int GetGranularity (void) const { return (m_pBlock ? m_pBlock->m_iGranularity : DEFAULT_ARRAY_GRANULARITY); }
+		HANDLE GetHeap (void) const { return (m_pBlock ? m_pBlock->m_hHeap : ::GetProcessHeap()); }
+		int GetSize (void) const { return (m_pBlock ? m_pBlock->m_iSize : 0); }
 		void InsertBytes (int iOffset, int iLength, int iAllocQuantum);
 		void InsertBytes (int iOffset, void *pData, int iLength, int iAllocQuantum);
 		bool Resize (int iNewSize, bool bPreserve, int iAllocQuantum);
@@ -57,10 +57,10 @@ class CArrayBase
 			int m_iGranularity;			//	Used by descendants to resize block
 			};
 
-		CArrayBase (SHeader *pBlock) : m_pBlock(pBlock)
+		CArrayBase (SHeader *pBlock) noexcept : m_pBlock(pBlock)
 			{ }
 
-		inline bool IsReallocNeeded (int iNewSize) const { return (m_pBlock == NULL || (m_pBlock->m_iAllocSize - (int)sizeof(SHeader) < iNewSize)); }
+		bool IsReallocNeeded (int iNewSize) const { return (m_pBlock == NULL || (m_pBlock->m_iAllocSize - (int)sizeof(SHeader) < iNewSize)); }
 		void Realloc (int iNewSize, bool bPreserve);
 
 		SHeader *m_pBlock;
@@ -84,7 +84,7 @@ template <class VALUE> class TArray : public CArrayBase
 				VALUE *pElement = new(GetBytes() + (i * sizeof(VALUE))) VALUE(Obj[i]);
 				}
 			}
-		TArray (TArray<VALUE> &&Src) : CArrayBase(Src.m_pBlock)
+		TArray (TArray<VALUE> &&Src) noexcept : CArrayBase(Src.m_pBlock)
 			{
 			Src.m_pBlock = NULL;
 			}
@@ -106,7 +106,7 @@ template <class VALUE> class TArray : public CArrayBase
 			return *this;
 			}
 
-		inline VALUE &operator [] (int iIndex) const { return GetAt(iIndex); }
+		VALUE &operator [] (int iIndex) const { return GetAt(iIndex); }
 
 		void Delete (int iIndex, int iCount = 1)
 			{
@@ -166,13 +166,13 @@ template <class VALUE> class TArray : public CArrayBase
 			return false;
 			}
 
-		inline VALUE &GetAt (int iIndex) const
+		VALUE &GetAt (int iIndex) const
 			{
 			VALUE *pElement = (VALUE *)(GetBytes() + iIndex * sizeof(VALUE));
 			return *pElement;
 			}
 
-		inline int GetCount (void) const
+		int GetCount (void) const
 			{
 			return GetSize() / sizeof(VALUE);
 			}
@@ -250,7 +250,7 @@ template <class VALUE> class TArray : public CArrayBase
 			pEntry->TakeHandoff(Value);
 			}
 
-		inline VALUE &Random (void) const
+		VALUE &Random (void) const
 			{
 			int iCount = GetCount();
 			if (iCount == 0)
@@ -450,7 +450,7 @@ template <class VALUE> class TQueue
 			return *this;
 			}
 
-		inline VALUE &operator [] (int iIndex) const { return GetAt(iIndex); }
+		VALUE &operator [] (int iIndex) const { return GetAt(iIndex); }
 
 		void DeleteAll (void)
 			{
@@ -527,7 +527,7 @@ template <class VALUE> class TQueue
 			return false;
 			}
 
-		inline VALUE &GetAt (int iIndex) const
+		VALUE &GetAt (int iIndex) const
 			{
 			ASSERT(iIndex < GetCount());
 			return m_pArray[(m_iHead + iIndex) % m_iSize];
@@ -592,7 +592,7 @@ template <class VALUE> class TQueue
 				}
 			}
 
-		inline VALUE &Head (void) const
+		VALUE &Head (void) const
 			{
 			ASSERT(m_iHead != m_iTail);
 			return m_pArray[m_iHead];
@@ -618,12 +618,12 @@ template <class VALUE> class TQueue
 			m_iTail = 0;
 			}
 
-		inline bool IsEmpty (void) const
+		bool IsEmpty (void) const
 			{
 			return (m_iHead == m_iTail);
 			}
 
-		inline bool IsFull (void) const
+		bool IsFull (void) const
 			{
 			if (m_iSize == 0)
 				return true;
@@ -631,7 +631,7 @@ template <class VALUE> class TQueue
 			return (((m_iTail + 1) % m_iSize) == m_iHead);
 			}
 
-		inline VALUE &Tail (void) const
+		VALUE &Tail (void) const
 			{
 			ASSERT(m_iHead != m_iTail);
 			return m_pArray[(m_iTail + m_iSize - 1) % m_iSize];
@@ -754,10 +754,10 @@ template <class VALUE> class TSharedQueue
 			return true;
 			}
 
-		inline CManualEvent &GetEvent (void) { return m_Event; }
+		CManualEvent &GetEvent (void) { return m_Event; }
 
-		inline bool IsEmpty (void) { return (::WaitForSingleObject(m_Event.GetEvent(), 0) == WAIT_TIMEOUT); }
-		inline bool IsFull (void) { return m_Queue.IsFull(); }
+		bool IsEmpty (void) { return (::WaitForSingleObject(m_Event.GetEvent(), 0) == WAIT_TIMEOUT); }
+		bool IsFull (void) { return m_Queue.IsFull(); }
 
 	private:
 		CCriticalSection m_cs;
@@ -810,7 +810,7 @@ template <class VALUE> class TSparseArray
 			m_Array.InsertEmpty(iBackboneSize);
 			}
 
-		inline const VALUE &operator [] (int iIndex) const
+		const VALUE &operator [] (int iIndex) const
 			{
 			ASSERT(iIndex < m_iTotalSize);
 			TArray<VALUE> &SubUnit = m_Array[iIndex / m_iSubUnitSize];
@@ -820,15 +820,15 @@ template <class VALUE> class TSparseArray
 				return SubUnit[iIndex % m_iSubUnitSize];
 			}
 
-		inline int GetCount (void) const { return m_iTotalSize; }
+		int GetCount (void) const { return m_iTotalSize; }
 
-		inline VALUE &SetAt (int iIndex)
+		VALUE &SetAt (int iIndex)
 			{
 			TArray<VALUE> &SubUnit = SetSubUnit(iIndex);
 			return SubUnit[iIndex % m_iSubUnitSize];
 			}
 
-		inline void SetAt (int iIndex, VALUE rValue)
+		void SetAt (int iIndex, VALUE rValue)
 			{
 			TArray<VALUE> &SubUnit = SetSubUnit(iIndex);
 			SubUnit[iIndex % m_iSubUnitSize] = rValue;

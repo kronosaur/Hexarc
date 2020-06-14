@@ -20,7 +20,7 @@ CRGBA32Image::CRGBA32Image (void) :
 	{
 	}
 
-CRGBA32Image::CRGBA32Image (CRGBA32Image &&Src) :
+CRGBA32Image::CRGBA32Image (CRGBA32Image &&Src) noexcept :
 		CImagePlane(Src),
 		m_pRGBA(Src.m_pRGBA),
 		m_bFreeRGBA(Src.m_bFreeRGBA),

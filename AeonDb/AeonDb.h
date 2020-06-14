@@ -47,7 +47,9 @@ class CRowKey
 	{
 	public:
 		CRowKey (void);
+		CRowKey (const CRowKey &Src);
 		CRowKey (const CTableDimensions &Dims, const CString &sKey);
+
 		~CRowKey (void);
 
 		CRowKey &operator= (const CRowKey &Src);
@@ -62,8 +64,8 @@ class CRowKey
 		static bool ParseKeyForCreate (const CTableDimensions &Dims, CDatum dKey, CRowKey *retpKey, CString *retsError);
 
 		CDatum AsDatum (const CTableDimensions &Dims) const;
-		inline const CString &AsEncodedString (void) const { return *m_psKey; }
-		inline int GetCount (void) const { return m_iCount; }
+		const CString &AsEncodedString (void) const { return *m_psKey; }
+		int GetCount (void) const { return m_iCount; }
 		bool HasNullDimensions (const CTableDimensions &Dims) const;
 		bool MatchesDimensions (const CTableDimensions &Dims) const;
 
@@ -75,9 +77,9 @@ class CRowKey
 		void CleanUp (void);
 		static void WriteKeyPart (CStringBuffer &Buffer, EKeyTypes iKeyType, CDatum dKey);
 
-		int m_iCount;						//	Number of parts
-		const CString *m_psKey;				//	Parts concatenated into a single buffer
-		bool m_bFree;						//	TRUE if we own m_psKey
+		int m_iCount = 0;						//	Number of parts
+		const CString *m_psKey = NULL;			//	Parts concatenated into a single buffer
+		bool m_bFree = false;					//	TRUE if we own m_psKey
 	};
 
 enum EAeonErrorCodes
@@ -116,11 +118,11 @@ class IOrderedRowSet : public IRefCounted
 class CRowIterator
 	{
 	public:
-		inline CRowIterator (void) : m_bIncludeNil(true) { }
-		inline CRowIterator (const CRowIterator &Src) { Copy(Src); }
+		CRowIterator (void) { }
+		CRowIterator (const CRowIterator &Src) { Copy(Src); }
 		~CRowIterator (void);
 
-		inline CRowIterator &operator= (const CRowIterator &Src) { CleanUp(); Copy(Src); return *this; }
+		CRowIterator &operator= (const CRowIterator &Src) { CleanUp(); Copy(Src); return *this; }
 
 		void AddSegment (IOrderedRowSet *pSegment);
 		bool Init (const CTableDimensions &Dims);
@@ -136,7 +138,7 @@ class CRowIterator
 		void WriteNextRow (IByteStream &Stream, DWORD *retdwKeySize, DWORD *retdwDataSize, SEQUENCENUMBER *retRowID = NULL);
 		void Reset (void);
 		bool SelectKey (const CRowKey &Key);
-		inline void SetIncludeNil (bool bInclude = true) { m_bIncludeNil = bInclude; }
+		void SetIncludeNil (bool bInclude = true) { m_bIncludeNil = bInclude; }
 		void SetLimits (const TArray<int> &Limits);
 
 	private:
@@ -164,13 +166,13 @@ class CRowIterator
 		bool CompareToLimit (int *retiDiffKey);
 		void Copy (const CRowIterator &Src);
 		bool DecrementLimit (int iDimIndex, int *retiDimLeft);
-		inline bool HasLimits (void) { return (m_Limits.GetCount() > 0); }
+		bool HasLimits (void) { return (m_Limits.GetCount() > 0); }
 
 		CTableDimensions m_Dims;
 		TArray<SEntry> m_Data;
-		int m_iEntryCursor;
+		int m_iEntryCursor = 0;
 
-		bool m_bIncludeNil;
+		bool m_bIncludeNil = true;
 		TArray<SLimit> m_Limits;
 	};
 
@@ -181,11 +183,12 @@ class CRowIterator
 class CAeonRowValue
 	{
 	public:
-		CAeonRowValue (void);
+		CAeonRowValue (void) { }
 		CAeonRowValue (const CAeonRowValue &Src) { Copy(Src); }
+
 		~CAeonRowValue (void);
 
-		inline CAeonRowValue &operator= (const CAeonRowValue &Src) { CleanUp(); Copy(Src); return *this; }
+		CAeonRowValue &operator= (const CAeonRowValue &Src) { CleanUp(); Copy(Src); return *this; }
 
 		bool FindValue (const CRowKey &Path, CDatum *retData = NULL);
 		int GetSerializedSize (void);
@@ -208,12 +211,12 @@ class CAeonRowValue
 
 		void CleanUp (void);
 		void Copy (const CAeonRowValue &Src);
-		inline SItemHeader *Get0DItem (void) { return (SItemHeader *)(&((SItemHeader *)m_pFixedBlock)[1]); }
+		SItemHeader *Get0DItem (void) { return (SItemHeader *)(&((SItemHeader *)m_pFixedBlock)[1]); }
 		DWORD GetFixedBlockSize (void);
 		CDatum ItemToValue (SItemHeader *pItem);
 
-		DWORD m_dwFixedBlockAlloc;			//	Allocation size of fixed block
-		void *m_pFixedBlock;				//	Fixed block pointer
+		DWORD m_dwFixedBlockAlloc = 0;			//	Allocation size of fixed block
+		void *m_pFixedBlock = NULL;				//	Fixed block pointer
 	};
 
 //	CAeonRowArray
@@ -221,25 +224,25 @@ class CAeonRowValue
 class CAeonRowArray : public IOrderedRowSet
 	{
 	public:
-		CAeonRowArray (void) : m_dwMemoryUsed(0), m_dwChanges(0) { }
+		CAeonRowArray (void) { }
 
 		void DeleteAll (void);
-		inline const CTableDimensions &GetDimensions (void) { return m_Dims; }
-		inline DWORD GetMemoryUsed (void) { return m_dwMemoryUsed; }
-		inline int GetUpdateCount (void) { return m_dwChanges; }
+		const CTableDimensions &GetDimensions (void) { return m_Dims; }
+		DWORD GetMemoryUsed (void) { return m_dwMemoryUsed; }
+		int GetUpdateCount (void) { return m_dwChanges; }
 		void Init (const CTableDimensions &Dims);
 		bool Insert (const CRowKey &Key, CDatum dData, SEQUENCENUMBER RowID);
 
 		//	IOrderedRowSet virtuals
-		virtual bool FindData (const CRowKey &Key, CDatum *retData, SEQUENCENUMBER *retRowID = NULL);
-		virtual bool FindKey (const CRowKey &Key, int *retiIndex);
-		virtual int GetCount (void) { CSmartLock Lock(m_cs); return m_Order.GetCount(); }
-		virtual CDatum GetData (int iIndex);
-		virtual CString GetKey (int iIndex) { CSmartLock Lock(m_cs); return m_Rows[m_Order[iIndex]].sKey; }
-		virtual bool GetRow (int iIndex, CRowKey *retKey, CDatum *retData, SEQUENCENUMBER *retRowID = NULL);
-		virtual SEQUENCENUMBER GetRowID (int iIndex) { CSmartLock Lock(m_cs); return m_Rows[m_Order[iIndex]].RowID; }
-		virtual DWORD GetRowSize (int iIndex);
-		virtual void WriteData (IByteStream &Stream, int iIndex, DWORD *retdwSize = NULL, SEQUENCENUMBER *retRowID = NULL);
+		virtual bool FindData (const CRowKey &Key, CDatum *retData, SEQUENCENUMBER *retRowID = NULL) override;
+		virtual bool FindKey (const CRowKey &Key, int *retiIndex) override;
+		virtual int GetCount (void) override { CSmartLock Lock(m_cs); return m_Order.GetCount(); }
+		virtual CDatum GetData (int iIndex) override;
+		virtual CString GetKey (int iIndex) override { CSmartLock Lock(m_cs); return m_Rows[m_Order[iIndex]].sKey; }
+		virtual bool GetRow (int iIndex, CRowKey *retKey, CDatum *retData, SEQUENCENUMBER *retRowID = NULL) override;
+		virtual SEQUENCENUMBER GetRowID (int iIndex) override { CSmartLock Lock(m_cs); return m_Rows[m_Order[iIndex]].RowID; }
+		virtual DWORD GetRowSize (int iIndex) override;
+		virtual void WriteData (IByteStream &Stream, int iIndex, DWORD *retdwSize = NULL, SEQUENCENUMBER *retRowID = NULL) override;
 
 	private:
 		struct SEntry
@@ -249,12 +252,12 @@ class CAeonRowArray : public IOrderedRowSet
 			SEQUENCENUMBER RowID;
 			};
 
-		inline bool IsInitialized (void) { return (m_Dims.GetCount() != 0); }
+		bool IsInitialized (void) { return (m_Dims.GetCount() != 0); }
 
 		CCriticalSection m_cs;
 		CTableDimensions m_Dims;			//	Dimension descriptors
-		DWORD m_dwMemoryUsed;				//	Memory used for all the rows
-		DWORD m_dwChanges;					//	Number of updates
+		DWORD m_dwMemoryUsed = 0;			//	Memory used for all the rows
+		DWORD m_dwChanges = 0;				//	Number of updates
 		TArray<int> m_Order;				//	Row order
 		TArray<SEntry> m_Rows;				//	Row data
 	};
@@ -264,12 +267,12 @@ class CAeonRowArray : public IOrderedRowSet
 class CRowInsertLog
 	{
 	public:
-		CRowInsertLog (void) : m_dwVersion(0) { }
+		CRowInsertLog (void) { }
 
-		inline void Close (void) { m_File.Close(); }
+		void Close (void) { m_File.Close(); }
 		bool Create (const CString &sFilename);
-		inline const CString &GetFilespec (void) const { return m_File.GetFilespec(); }
-		inline DWORD GetVersion (void) { return m_dwVersion; }
+		const CString &GetFilespec (void) const { return m_File.GetFilespec(); }
+		DWORD GetVersion (void) { return m_dwVersion; }
 		bool Insert (const CRowKey &Key, CDatum dData, SEQUENCENUMBER RowID, CString *retsError = NULL);
 		bool Open (const CString &sFilename, CAeonRowArray *pRows, int *retiRowCount, CString *retsError);
 		bool Reset (void);
@@ -285,7 +288,7 @@ class CRowInsertLog
 
 		CString m_sFilename;
 		CFile m_File;
-		DWORD m_dwVersion;
+		DWORD m_dwVersion = 0;
 	};
 
 //	CSegmentBlockCache
@@ -293,10 +296,16 @@ class CRowInsertLog
 class CSegmentBlockCache
 	{
 	public:
-		CSegmentBlockCache (void) : m_iCacheSize(-1) { }
+		CSegmentBlockCache (void) { }
+		CSegmentBlockCache (const CSegmentBlockCache &Src) = delete;
+		CSegmentBlockCache (CSegmentBlockCache &&Src) = delete;
+
 		~CSegmentBlockCache (void);
 
-		inline DWORDLONG GetFileSize (void) { return m_File.GetSize(); }
+		CSegmentBlockCache &operator= (const CSegmentBlockCache &Src) = delete;
+		CSegmentBlockCache &operator= (CSegmentBlockCache &&Src) = delete;
+
+		DWORDLONG GetFileSize (void) { return m_File.GetSize(); }
 		bool Init (const CString &sFilespec, int iCacheSize);
 		void LoadBlock (DWORD dwOffset, DWORD dwBlockSize, void **retpBlock);
 		void Term (void);
@@ -314,7 +323,7 @@ class CSegmentBlockCache
 
 		CFile m_File;
 
-		int m_iCacheSize;
+		int m_iCacheSize = -1;
 		TSortMap<DWORD, SEntry> m_Cache;
 	};
 
@@ -336,30 +345,38 @@ class CAeonSegment : public IOrderedRowSet
 			};
 
 		CAeonSegment (void);
+		CAeonSegment (const CAeonSegment &Src) = delete;
+		CAeonSegment (CAeonSegment &&Src) = delete;
+
 		~CAeonSegment (void);
+
+		CAeonSegment &operator= (const CAeonSegment &Src) = delete;
+		CAeonSegment &operator= (CAeonSegment &&Src) = delete;
 
 		bool Create (DWORD dwViewID, const CTableDimensions &Dims, SEQUENCENUMBER Seq, CRowIterator &Rows, const CString &sFilespec, DWORD dwFlags, CString *retsError);
 		CDatum DebugDump (void) const;
-		inline DWORDLONG GetFileSize (void) { return m_Blocks.GetFileSize(); }
-		inline const CString &GetFilespec (void) const { return m_sFilespec; }
+		DWORDLONG GetFileSize (void) { return m_Blocks.GetFileSize(); }
+		const CString &GetFilespec (void) const { return m_sFilespec; }
 		static bool GetInfo (const CString &sFilespec, SInfo *retInfo);
-		inline SEQUENCENUMBER GetSequence (void) { return m_Seq; }
-		inline DWORD GetViewID (void) { return m_pHeader->dwViewID; }
-		inline void MarkForDelete (void) { m_bMarkedForDelete = true; }
+		SEQUENCENUMBER GetSequence (void) { return m_Seq; }
+		DWORD GetViewID (void) { return m_pHeader->dwViewID; }
+		void MarkForDelete (void) { m_bMarkedForDelete = true; }
 		bool Open (const CString &sFilespec, CString *retsError);
-		inline void SetDimensions (const CTableDimensions &Dims) { m_Dims = Dims; }
+		void SetDimensions (const CTableDimensions &Dims) { m_Dims = Dims; }
 
 		//	IOrderedRowSet
-		virtual bool FindData (const CRowKey &Key, CDatum *retData, SEQUENCENUMBER *retRowID = NULL);
-		virtual bool FindKey (const CRowKey &Key, int *retiIndex);
-		virtual int GetCount (void) { return (int)m_pHeader->dwRowCount; }
-		virtual CDatum GetData (int iIndex);
-		virtual CString GetKey (int iIndex);
-		virtual bool GetRow (int iIndex, CRowKey *retKey, CDatum *retData, SEQUENCENUMBER *retRowID = NULL);
-		virtual DWORD GetRowSize (int iIndex);
-		virtual void WriteData (IByteStream &Stream, int iIndex, DWORD *retdwSize = NULL, SEQUENCENUMBER *retRowID = NULL);
+		virtual bool FindData (const CRowKey &Key, CDatum *retData, SEQUENCENUMBER *retRowID = NULL) override;
+		virtual bool FindKey (const CRowKey &Key, int *retiIndex) override;
+		virtual int GetCount (void) override { return (int)m_pHeader->dwRowCount; }
+		virtual CDatum GetData (int iIndex) override;
+		virtual CString GetKey (int iIndex) override;
+		virtual bool GetRow (int iIndex, CRowKey *retKey, CDatum *retData, SEQUENCENUMBER *retRowID = NULL) override;
+		virtual DWORD GetRowSize (int iIndex) override;
+		virtual void WriteData (IByteStream &Stream, int iIndex, DWORD *retdwSize = NULL, SEQUENCENUMBER *retRowID = NULL) override;
 
 	private:
+		static constexpr DWORD DEFAULT_BLOCK_SIZE = 64 * 1024;
+
 		struct SSegmentHeader
 			{
 			DWORD dwSignature;				//	Always 'AEOS'
@@ -415,25 +432,25 @@ class CAeonSegment : public IOrderedRowSet
 		bool Delete (void);
 		SIndexEntry *GetBlockByKey (const CString &sKey, int *retiPos = NULL);
 		SIndexEntry *GetBlockByRowPos (int iIndex, int *retiRowInBlock = NULL);
-		inline SBlockIndexEntryExtra *GetBlockIndexEntryExtra (SBlockIndexEntry *pEntry) { return (SBlockIndexEntryExtra *)(&pEntry[1]); }
-		inline int GetBlockIndexEntrySize (void) { return (sizeof(SBlockIndexEntry) + (HasRowID() ? sizeof(SBlockIndexEntryExtra) : 0)); }
-		inline int GetIndexCount (void) const { return m_pHeader->dwIndexCount; }
-		inline SIndexEntry *GetIndexEntry (int iIndex) { ASSERT(iIndex >= 0 && iIndex < GetIndexCount()); return &m_pIndex[iIndex]; }
-		inline const SIndexEntry *GetIndexEntry (int iIndex) const { ASSERT(iIndex >= 0 && iIndex < GetIndexCount()); return &m_pIndex[iIndex]; }
-		inline bool HasRowID (void) { return ((m_pHeader->dwFlags & FLAG_HAS_ROW_ID) ? true : false); }
+		SBlockIndexEntryExtra *GetBlockIndexEntryExtra (SBlockIndexEntry *pEntry) { return (SBlockIndexEntryExtra *)(&pEntry[1]); }
+		int GetBlockIndexEntrySize (void) { return (sizeof(SBlockIndexEntry) + (HasRowID() ? sizeof(SBlockIndexEntryExtra) : 0)); }
+		int GetIndexCount (void) const { return m_pHeader->dwIndexCount; }
+		SIndexEntry *GetIndexEntry (int iIndex) { ASSERT(iIndex >= 0 && iIndex < GetIndexCount()); return &m_pIndex[iIndex]; }
+		const SIndexEntry *GetIndexEntry (int iIndex) const { ASSERT(iIndex >= 0 && iIndex < GetIndexCount()); return &m_pIndex[iIndex]; }
+		bool HasRowID (void) { return ((m_pHeader->dwFlags & FLAG_HAS_ROW_ID) ? true : false); }
 		CString IndexGetKey (const SIndexEntry *pIndex) const;
 
 		CCriticalSection m_cs;
-		CString m_sFilespec;				//	Filespec backing this segment
-		SEQUENCENUMBER m_Seq;				//	Sequence number when segment was created
-		DWORD m_dwDesiredBlockSize;			//	Block size target
-		CTableDimensions m_Dims;			//	Dimension descriptors
+		CString m_sFilespec;						//	Filespec backing this segment
+		SEQUENCENUMBER m_Seq = 0;					//	Sequence number when segment was created
+		DWORD m_dwDesiredBlockSize = DEFAULT_BLOCK_SIZE;	//	Block size target
+		CTableDimensions m_Dims;					//	Dimension descriptors
 
-		SSegmentHeader *m_pHeader;			//	Loaded header
-		SIndexEntry *m_pIndex;				//	Loaded index
-		CSegmentBlockCache m_Blocks;		//	Cached blocks
+		SSegmentHeader *m_pHeader = NULL;			//	Loaded header
+		SIndexEntry *m_pIndex = NULL;				//	Loaded index
+		CSegmentBlockCache m_Blocks;				//	Cached blocks
 
-		bool m_bMarkedForDelete;			//	If TRUE, delete on final release
+		bool m_bMarkedForDelete = false;			//	If TRUE, delete on final release
 	};
 
 //	CAeonUploadSessions
@@ -465,11 +482,17 @@ class CAeonUploadSessions
 			CString sFilespec;				//	Uploaded file
 			};
 
-		CAeonUploadSessions (void) : m_pStorage(NULL) { }
+		CAeonUploadSessions (void) { }
+		CAeonUploadSessions (const CAeonUploadSessions &Src) = delete;
+		CAeonUploadSessions (CAeonUploadSessions &&Src) = delete;
+
 		~CAeonUploadSessions (void);
 
+		CAeonUploadSessions &operator= (const CAeonUploadSessions &Src) = delete;
+		CAeonUploadSessions &operator= (CAeonUploadSessions &&Src) = delete;
+
 		void AbortUpload (const SReceipt &Receipt);
-		inline void Init (CMachineStorage *pStorage, const CString &sTableName, const CString &sPrimaryVolume, const CString &sBackupVolume) { m_pStorage = pStorage; m_sTableName = sTableName; m_sPrimaryVolume = sPrimaryVolume; m_sBackupVolume = sBackupVolume; }
+		void Init (CMachineStorage *pStorage, const CString &sTableName, const CString &sPrimaryVolume, const CString &sBackupVolume) { m_pStorage = pStorage; m_sTableName = sTableName; m_sPrimaryVolume = sPrimaryVolume; m_sBackupVolume = sBackupVolume; }
 		void Mark (void);
 		bool ProcessUpload (CMsgProcessCtx &Ctx, const CString &sSessionID, const CString &sFilePath, CDatum dUploadDesc, CDatum dData, const CString &sCurrentFilespec, SReceipt *retReceipt);
 		void SetVolumes (const CString &sPrimaryVolume, const CString &sBackupVolume);
@@ -505,7 +528,7 @@ class CAeonUploadSessions
 		void DeleteTempFile (SUploadSessionCtx *pSession);
 		void DeleteTempFile (SUploadSessionCtx *pSession, CFileMultiplexer *pFile);
 
-		CMachineStorage *m_pStorage;
+		CMachineStorage *m_pStorage = NULL;
 		CString m_sTableName;
 		CString m_sPrimaryVolume;
 		CString m_sBackupVolume;
@@ -526,9 +549,13 @@ class CAeonView
 			};
 
 		CAeonView (void);
+		CAeonView (const CAeonView &Src) { Copy(Src); }
+		CAeonView (CAeonView &&Src) noexcept { Copy(Src); }
+
 		~CAeonView (void);
 
-		CAeonView &operator= (const CAeonView &Obj) { CleanUp(); Copy(Obj); return *this; }
+		CAeonView &operator= (const CAeonView &Src) { CleanUp(); Copy(Src); return *this; }
+		CAeonView &operator= (CAeonView &&Src) noexcept { CleanUp(); Copy(Src); return *this; }
 
 		bool CanInsert (const CRowKey &Path, CDatum dData, CString *retsError);
 		void CloseRecovery (void);
@@ -537,61 +564,61 @@ class CAeonView
 		bool CreateSegment (const CString &sFilespec, SEQUENCENUMBER Seq, IOrderedRowSet *pRows, CAeonSegment **retpNewSeg, CString *retsError);
 		CDatum DebugDump (void) const;
 		bool GetData (const CRowKey &Path, CDatum *retData, SEQUENCENUMBER *retRowID, CString *retsError);
-		inline const CTableDimensions &GetDimensions (void) { return m_Dims; }
-		inline DWORD GetID (void) { return m_dwID; }
-		inline const CString &GetName (void) { return m_sName; }
-		inline DWORD GetRecoveryFileVersion (void) { return m_Recovery.GetVersion(); }
-		inline const CAeonSegment &GetSegment (int iIndex) const { return *m_Segments[iIndex]; }
-		inline int GetSegmentCount (void) { return m_Segments.GetCount(); }
+		const CTableDimensions &GetDimensions (void) { return m_Dims; }
+		DWORD GetID (void) { return m_dwID; }
+		const CString &GetName (void) { return m_sName; }
+		DWORD GetRecoveryFileVersion (void) { return m_Recovery.GetVersion(); }
+		const CAeonSegment &GetSegment (int iIndex) const { return *m_Segments[iIndex]; }
+		int GetSegmentCount (void) { return m_Segments.GetCount(); }
 		bool GetSegmentsToMerge (CAeonSegment **retpSeg1, CAeonSegment **retpSeg2);
-		inline int GetUpdateCount (void) { return m_pRows->GetUpdateCount(); }
-		inline bool HasRowID (void) { return !IsSecondaryView(); }
-		inline bool HasUnsavedRows (void) { return (m_pRows->GetCount() > 0); }
+		int GetUpdateCount (void) { return m_pRows->GetUpdateCount(); }
+		bool HasRowID (void) { return !IsSecondaryView(); }
+		bool HasUnsavedRows (void) { return (m_pRows->GetCount() > 0); }
 		bool InitAsFileView (const CString &sRecoveryFilespec, int *retiRowsRecovered, CString *retsError);
 		bool InitAsPrimaryView (CDatum dDesc, const CString &sRecoveryFilespec, int *retiRowsRecovered, CString *retsError);
 		bool InitAsSecondaryView (CDatum dDesc, CHexeProcess &Process, const CString &sRecoveryFilespec, bool bForceUpdate, CString *retsError);
 		bool InitIterator (CRowIterator *retIterator, DWORD dwFlags = 0);
 		void Insert (const CTableDimensions &PrimaryDims, CHexeProcess &Process, const CRowKey &PrimaryKey, CDatum dData, CDatum dOldData, SEQUENCENUMBER RowID, bool *retbRecoveryFailed, CString *retsError = NULL);
-		inline void InsertSegment (CAeonSegment *pSeg) { pSeg->SetDimensions(m_Dims); m_Segments.Insert(pSeg->GetSequence(), pSeg); }
-		inline bool IsSecondaryView (void) { return (m_Keys.GetCount() > 0); }
-		inline bool IsUpToDate (void) { return !m_bUpdateNeeded; }
-		inline bool IsValid (void) const { return !m_bInvalid; }
+		void InsertSegment (CAeonSegment *pSeg) { pSeg->SetDimensions(m_Dims); m_Segments.Insert(pSeg->GetSequence(), pSeg); }
+		bool IsSecondaryView (void) { return (m_Keys.GetCount() > 0); }
+		bool IsUpToDate (void) { return !m_bUpdateNeeded; }
+		bool IsValid (void) const { return !m_bInvalid; }
 		bool LoadRecoveryFile (const CString &sRecoveryFilespec, CAeonRowArray **retpRows, int *retiRowsRecovered, CString *retsError);
 		void Mark (void);
 		void SegmentMergeComplete (CAeonSegment *pSeg1, CAeonSegment *pSeg2, CAeonSegment *pNewSeg);
 		void SegmentSaveComplete (CAeonSegment *pSeg);
-		inline void SetID (DWORD dwID) { m_dwID = dwID; }
+		void SetID (DWORD dwID) { m_dwID = dwID; }
 		void SetUnsavedRows (CAeonRowArray *pRows);
-		inline void SetUpToDate (void) { m_bUpdateNeeded = false; }
+		void SetUpToDate (void) { m_bUpdateNeeded = false; }
 		void WriteDesc (CComplexStruct *pDesc);
 
 	private:
 		void CleanUp (void);
 		CDatum ComputeColumns (CHexeProcess &Process, CDatum dRowData);
-		void Copy (const CAeonView &Src);
+		void Copy (const CAeonView &Src) noexcept;
 		void CreatePermutedKeys (const TArray<CDatum> &KeyData, int iDim, const TArray<CDatum> &PrevKey, SEQUENCENUMBER RowID, TArray<CRowKey> *retKeys);
 		void CreateSecondaryData (const CTableDimensions &PrimaryDims, const CRowKey &PrimaryKey, CDatum dFullData, SEQUENCENUMBER RowID, CDatum *retdData);
 		bool CreateSecondaryKeys (CHexeProcess &Process, CDatum dData, SEQUENCENUMBER RowID, TArray<CRowKey> *retKeys);
 		bool InitRows (const CString &sRecoveryFilespec, int *retiRowsRecovered, CString *retsError);
 
-		DWORD m_dwID;						//	ID of view
+		DWORD m_dwID = 0;					//	ID of view
 		CString m_sName;					//	Name of view
 
 		CTableDimensions m_Dims;			//	Dimensions of view
-		CAeonRowArray *m_pRows;				//	Rows
+		CAeonRowArray *m_pRows = NULL;		//	Rows
 		TSortMap<SEQUENCENUMBER, CAeonSegment *> m_Segments;
 		CRowInsertLog m_Recovery;			//	Recovery file
-		bool m_bInvalid;					//	If TRUE, view is not valid.
+		bool m_bInvalid = false;			//	If TRUE, view is not valid.
 
 		//	Used by secondary views only
 		TArray<CDatum> m_Keys;				//	Fields to use as keys (one for each dimension)
 		TArray<CString> m_Columns;			//	Fields to store (if empty, store primaryKey only)
 		CDatum m_ComputedColumns;			//	Computed fields (may be nil)
-		bool m_bExcludeNil;					//	If TRUE, rows with one or more nil keys are excluded
-		bool m_bUsesListKeys;				//	If TRUE, we use list keys, which means more work
+		bool m_bExcludeNil = false;			//	If TRUE, rows with one or more nil keys are excluded
+		bool m_bUsesListKeys = false;		//	If TRUE, we use list keys, which means more work
 
 		//	Used when updating a view
-		bool m_bUpdateNeeded;				//	If TRUE then we are updating the view
+		bool m_bUpdateNeeded = false;		//	If TRUE then we are updating the view
 											//	to add segments saved before the given
 											//	sequence number
 	};
@@ -626,8 +653,14 @@ class CAeonTable
 			typeFile,						//	A table for storing large files.
 			};
 
-		CAeonTable (void);
+		CAeonTable (void) { }
+		CAeonTable (const CAeonTable &Src) = delete;
+		CAeonTable (CAeonTable &&Src) = delete;
+
 		~CAeonTable (void);
+
+		CAeonTable &operator= (const CAeonTable &Src) = delete;
+		CAeonTable &operator= (CAeonTable &&Src) = delete;
 
 		bool Create (IArchonProcessCtx *pProcess, CMachineStorage *pStorage, CDatum dDesc, CString *retsError);
 		bool DebugDumpView (DWORD dwViewID, CDatum *retdResult) const;
@@ -641,7 +674,7 @@ class CAeonTable
 		bool GetFileData (const CString &sFilePath, int iMaxSize, int iPos, const CDateTime &IfModifiedAfter, CDatum *retdFileDownloadDesc, bool bTranspace, CString *retsError);
 		bool GetFileDesc (const CString &sFilePath, CDatum *retdFileDesc, CString *retsError);
 		bool GetKeyRange (int iCount, CDatum *retdResult, CString *retsError);
-		inline const CString &GetName (void) { return m_sName; }
+		const CString &GetName (void) { return m_sName; }
 
 		static constexpr DWORD FLAG_MORE_ROWS =		0x00000001;	//	GetRows: Start with first row AFTER key
 		static constexpr DWORD FLAG_INCLUDE_KEY =	0x00000002;	//	GetRows: Include key in data (instead of interleaving)
@@ -649,13 +682,13 @@ class CAeonTable
 
 		bool GetRows (DWORD dwViewID, CDatum dLastKey, int iRowCount, const TArray<int> &Limits, DWORD dwFlags, CDatum *retdResult, CString *retsError);
 
-		inline Types GetType (void) const { return m_iType; }
+		Types GetType (void) const { return m_iType; }
 		bool GetViewStatus (DWORD dwViewID, bool *retbUpToDate, CString *retsError);
-		inline bool HasSecondaryViews (void) { return (m_Views.GetCount() > 1); }
+		bool HasSecondaryViews (void) { return (m_Views.GetCount() > 1); }
 		bool Housekeeping (DWORD dwMaxMemoryUse);
 		bool InitIterator (DWORD dwViewID, CRowIterator *retIterator, CTableDimensions *retDims = NULL, CString *retsError = NULL);
 		AEONERR Insert (const CRowKey &Path, CDatum dData, bool bInsertNew, CString *retsError);
-		inline bool Insert (const CRowKey &Path, CDatum dData, CString *retsError) { return (Insert(Path, dData, false, retsError) == AEONERR_OK); }
+		bool Insert (const CRowKey &Path, CDatum dData, CString *retsError) { return (Insert(Path, dData, false, retsError) == AEONERR_OK); }
 		void Mark (void);
 		AEONERR Mutate (const CRowKey &Path, CDatum dData, CDatum dMutateDesc, CDatum *retdResult, CString *retsError);
 		bool OnVolumesChanged (const TArray<CString> &VolumesDeleted);
@@ -743,28 +776,28 @@ class CAeonTable
 		static CDatum GetDimensionPathElement (EKeyTypes iKeyType, char **iopPos, char *pPosEnd);
 		static void SetDimensionDesc (CComplexStruct *pDesc, const SDimensionDesc &Dim);
 
-		IArchonProcessCtx *m_pProcess;		//	Process pointer
-		CMachineStorage *m_pStorage;		//	Local storage
+		IArchonProcessCtx *m_pProcess = NULL;		//	Process pointer
+		CMachineStorage *m_pStorage = NULL;			//	Local storage
 
 		CCriticalSection m_cs;
-		CString m_sName;					//	Name of table
-		Types m_iType;						//	Table type
-		SEQUENCENUMBER m_Seq;				//	Current sequence number
+		CString m_sName;							//	Name of table
+		Types m_iType = typeStandard;				//	Table type
+		SEQUENCENUMBER m_Seq = 0;					//	Current sequence number
 
-		TSortMap<DWORD, CAeonView> m_Views;	//	Views
+		TSortMap<DWORD, CAeonView> m_Views;			//	Views
 
-		CString m_sPrimaryVolume;			//	Primary volume where table lives
-		CString m_sBackupVolume;			//	Backup volume
-		bool m_bPrimaryLost;				//	If TRUE the primary volume is invalid or missing.
-		bool m_bBackupLost;					//	If TRUE the backup volume is invalid or missing.
-		bool m_bBackupNeeded;				//	If TRUE back volume is there, but empty (or invalid)
-		bool m_bValidateBackup;				//	If TRUE validate the backup on next housekeeping.
+		CString m_sPrimaryVolume;					//	Primary volume where table lives
+		CString m_sBackupVolume;					//	Backup volume
+		bool m_bPrimaryLost = false;				//	If TRUE the primary volume is invalid or missing.
+		bool m_bBackupLost = false;					//	If TRUE the backup volume is invalid or missing.
+		bool m_bBackupNeeded = false;				//	If TRUE back volume is there, but empty (or invalid)
+		bool m_bValidateBackup = false;				//	If TRUE validate the backup on next housekeeping.
 
-		EHousekeepingState m_iHousekeeping;	//	If not stateReady then we are busy doing something.
+		EHousekeepingState m_iHousekeeping = stateReady;	//	If not stateReady then we are busy doing something.
 		CAeonUploadSessions m_UploadSessions;
-		int m_iRowsRecovered;				//	Number of rows recovered on open.
+		int m_iRowsRecovered = 0;					//	Number of rows recovered on open.
 
-		CHexeProcess m_Process;				//	Hexe process for evaluation
+		CHexeProcess m_Process;						//	Hexe process for evaluation
 	};
 
 class CAeonEngine : public TSimpleEngine<CAeonEngine>
@@ -774,7 +807,7 @@ class CAeonEngine : public TSimpleEngine<CAeonEngine>
 		virtual ~CAeonEngine (void);
 
 		bool GetViewStatus (const CString &sTable, DWORD dwViewID, bool *retbUpToDate, CString *retsError);
-		inline void SetConsoleMode (const CString &sStorage) { m_sConsoleStorage = sStorage; m_bConsoleMode = true; }
+		void SetConsoleMode (const CString &sStorage) { m_sConsoleStorage = sStorage; m_bConsoleMode = true; }
 
 		virtual CString ConsoleCommand (const CString &sCmd, const TArray<CDatum> &Args) override;
 

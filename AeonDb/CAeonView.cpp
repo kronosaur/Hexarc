@@ -36,12 +36,8 @@ DECLARE_CONST_STRING(ERR_DIMENSIONS_REQUIRED,			"Cannot create a table without d
 DECLARE_CONST_STRING(ERR_PRIMARY_KEY_CANT_BE_LIST,		"List-type keys not supported for primary views.");
 DECLARE_CONST_STRING(ERR_INVALID_PATH,					"Path does not have the correct number of dimensions.");
 
-CAeonView::CAeonView (void) : m_pRows(NULL),
-		m_Segments(DescendingSort),
-		m_bInvalid(false),
-		m_bExcludeNil(false),
-		m_bUsesListKeys(false),
-		m_bUpdateNeeded(false)
+CAeonView::CAeonView (void) : 
+		m_Segments(DescendingSort)
 
 //	CAeonView constructor
 
@@ -183,15 +179,13 @@ CDatum CAeonView::ComputeColumns (CHexeProcess &Process, CDatum dRowData)
 		}
 	}
 
-void CAeonView::Copy (const CAeonView &Src)
+void CAeonView::Copy (const CAeonView &Src) noexcept
 
 //	Copy
 //
 //	Make a copy
 
 	{
-	int i;
-
 	m_dwID = Src.m_dwID;
 	m_sName = Src.m_sName;
 	m_Dims = Src.m_Dims;
@@ -200,7 +194,7 @@ void CAeonView::Copy (const CAeonView &Src)
 		m_pRows->AddRef();
 
 	m_Segments = Src.m_Segments;
-	for (i = 0; i < m_Segments.GetCount(); i++)
+	for (int i = 0; i < m_Segments.GetCount(); i++)
 		m_Segments[i]->AddRef();
 
 	m_Keys = Src.m_Keys;

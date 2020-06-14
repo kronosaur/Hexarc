@@ -38,7 +38,7 @@ class CDBValue
 
 		CDBValue (void) : m_dwData(0) { }
 		CDBValue (const CDBValue &Src) { Copy(Src); }
-		CDBValue (CDBValue &&Src) { m_dwData = Src.m_dwData; Src.m_dwData = 0; }
+		CDBValue (CDBValue &&Src) noexcept { m_dwData = Src.m_dwData; Src.m_dwData = 0; }
 		CDBValue (const CString &sValue);
 		CDBValue (const CDateTime &Value);
 		CDBValue (const CTimeSpan &Value);
@@ -58,7 +58,7 @@ class CDBValue
 		operator const CString & () const;
 
 		CDBValue &operator= (const CDBValue &Src) { CleanUp(); Copy(Src); return *this; }
-		CDBValue &operator= (CDBValue &&Src) { CleanUp(); m_dwData = Src.m_dwData; Src.m_dwData = 0; return * this; }
+		CDBValue &operator= (CDBValue &&Src) noexcept { CleanUp(); m_dwData = Src.m_dwData; Src.m_dwData = 0; return *this; }
 
 		CDateTime AsDateTime (void) const;
 		double AsDouble (bool *retbValid = NULL) const;
@@ -107,8 +107,8 @@ class CDBValue
 		static int DecodeInt32 (DWORDLONG dwData) { return (int)(DWORD)(dwData >> 32); }
 		static LPSTR DecodeString (DWORDLONG dwData) { return (LPSTR)(dwData & ~(DWORDLONG)DISCRIMINATOR_1_MASK); }
 		static DWORDLONG EncodeDouble (double rValue);
-		inline static DWORDLONG EncodeInt32 (int iValue) { return ((((DWORDLONG)(DWORD)iValue) << 32) | TYPE_INT_32); }
-		inline static DWORDLONG EncodeObjectPtr (IDBValueObject *pValue) { return (((DWORDLONG)pValue) | TYPE_OBJECT); }
+		static DWORDLONG EncodeInt32 (int iValue) { return ((((DWORDLONG)(DWORD)iValue) << 32) | TYPE_INT_32); }
+		static DWORDLONG EncodeObjectPtr (IDBValueObject *pValue) { return (((DWORDLONG)pValue) | TYPE_OBJECT); }
 		static DWORDLONG EncodeString (const CString &sValue);
 
 		DWORDLONG m_dwData;

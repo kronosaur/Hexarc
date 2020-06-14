@@ -3163,6 +3163,8 @@ bool CExarchEngine::TestFileRead (const CString &sFilespec)
 //	Attempts to read the entire file and returns TRUE if successful.
 
 	{
+	constexpr int BUFFER_SIZE = 65536;
+
 	//	Try opening
 
 	CFile TestFile;
@@ -3174,11 +3176,12 @@ bool CExarchEngine::TestFileRead (const CString &sFilespec)
 	try
 		{
 		int iLeftToRead = TestFile.GetStreamLength();
-		BYTE szBuffer[65536];
+		CBuffer Buffer(BUFFER_SIZE);
+
 		while (iLeftToRead > 0)
 			{
-			int iRead = Min(iLeftToRead, (int)sizeof(szBuffer));
-			TestFile.Read(szBuffer, iRead);
+			int iRead = Min(iLeftToRead, Buffer.GetLength());
+			TestFile.Read(Buffer.GetPointer(), iRead);
 			iLeftToRead -= iRead;
 			}
 		}
