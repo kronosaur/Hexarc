@@ -149,6 +149,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="BootSession.cpp" />
     <ClCompile Include="CCodeSlingerEngine.cpp" />
     <ClCompile Include="CodeSlinger.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

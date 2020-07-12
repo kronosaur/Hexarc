@@ -29,7 +29,7 @@ DECLARE_CONST_STRING(MSG_CODE_STATUS,					"Code.status")
 CCodeSlingerEngine::SMessageHandler CCodeSlingerEngine::m_MsgHandlerList[] =
 	{
 		//	Aeon.onStart
-//		{	MSG_AEON_ON_START,					&CCodeSlingerEngine::MsgAeonOnStart },
+		{	MSG_AEON_ON_START,					&CCodeSlingerEngine::MsgAeonOnStart },
 
 		//	Arc.housekeeping
 		{	MSG_ARC_HOUSEKEEPING,				&TSimpleEngine::MsgNull },
