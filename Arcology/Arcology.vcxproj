@@ -153,6 +153,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <AdditionalDependencies>libeay32.lib;ssleay32.lib;version.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -232,6 +233,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <AdditionalDependencies>libeay32.lib;ssleay32.lib;version.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
