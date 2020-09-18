@@ -377,6 +377,44 @@ CString CMessageTransporter::GenerateMachineAddress (const CString &sMachineName
 	return GenerateAddress(sPort, sProcess, sCanonicalName);
 	}
 
+TArray<CString> CMessageTransporter::GetArcologyPortAddresses (const CString &sPortToFind) const
+
+//	GetArcologyPortAddresses
+//
+//	Returns an array of addresses for all ports of the given name in the entire
+//	arcology.
+
+	{
+	TArray<CString> Result;
+
+	//	Get the list of ports by module
+
+	TArray<CString> Modules;
+	m_pProcess->MnemosynthReadCollection(MNEMO_ARC_PORTS, &Modules);
+
+	//	Loop over all modules in the arcology and find the specific port.
+
+	for (int i = 0; i < Modules.GetCount(); i++)
+		{
+		CDatum dPortList = m_pProcess->MnemosynthRead(MNEMO_ARC_PORTS, Modules[i]);
+
+		for (int j = 0; j < dPortList.GetCount(); j++)
+			{
+			CDatum dPortMapping = dPortList.GetElement(j);
+			const CString &sPort = dPortMapping.GetElement(0);
+			if (strEquals(sPort, sPortToFind))
+				{
+				const CString &sAddress = dPortMapping.GetElement(1);
+				Result.Insert(sAddress);
+				}
+			}
+		}
+
+	//	Done
+
+	return Result;
+	}
+
 TArray<CMessagePort *> CMessageTransporter::GetPortCacheList (void) const
 
 //	GetPortCacheList

@@ -24,6 +24,8 @@ DECLARE_CONST_STRING(RIGHT_ARC_ADMIN,					"Arc.admin")
 DECLARE_CONST_STRING(MSG_AEON_ON_START,					"Aeon.onStart")
 DECLARE_CONST_STRING(MSG_ARC_HOUSEKEEPING,				"Arc.housekeeping")
 
+DECLARE_CONST_STRING(MSG_CODE_MANDELBROT,				"Code.mandelbrot")
+DECLARE_CONST_STRING(MSG_CODE_MANDELBROT_TASK,			"Code.mandelbrotTask")
 DECLARE_CONST_STRING(MSG_CODE_STATUS,					"Code.status")
 
 CCodeSlingerEngine::SMessageHandler CCodeSlingerEngine::m_MsgHandlerList[] =
@@ -33,6 +35,12 @@ CCodeSlingerEngine::SMessageHandler CCodeSlingerEngine::m_MsgHandlerList[] =
 
 		//	Arc.housekeeping
 		{	MSG_ARC_HOUSEKEEPING,				&TSimpleEngine::MsgNull },
+
+		//	Code.mandelbrot
+		{	MSG_CODE_MANDELBROT,				&CCodeSlingerEngine::MsgMandelbrot },
+
+		//	Code.mandelbrotTask
+		{	MSG_CODE_MANDELBROT_TASK,			&CCodeSlingerEngine::MsgMandelbrotTask },
 
 		//	Code.status
 		{	MSG_CODE_STATUS,					&CCodeSlingerEngine::MsgStatus },

@@ -17,6 +17,7 @@ class CCodeSlingerEngine : public TSimpleEngine<CCodeSlingerEngine>
 		CCodeSlingerEngine &operator= (const CCodeSlingerEngine &Src) = delete;
 		CCodeSlingerEngine &operator= (CCodeSlingerEngine &&Src) = delete;
 
+		bool IsVerbose (void) const { return m_bVerbose; }
 		void SetAeonInitialized (bool bInitialized = true) { m_bAeonInitialized = bInitialized; }
 
 		static SMessageHandler m_MsgHandlerList[];
@@ -36,10 +37,13 @@ class CCodeSlingerEngine : public TSimpleEngine<CCodeSlingerEngine>
 		//	Message handlers
 		void MsgAeonOnStart (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 //		void MsgHousekeeping (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
+		void MsgMandelbrot (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
+		void MsgMandelbrotTask (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgStatus (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 
 		CCriticalSection m_cs;
 		bool m_bMachineStarted = false;				//	TRUE if we've received Exarch.onMachineStart message
 		bool m_bAeonInitialized = false;			//	TRUE if AeonDB has initialized
 		bool m_bReady = false;						//	TRUE if we are serving requests
+		bool m_bVerbose = true;						//	TRUE if we're in verbose mode (log extra information)
 	};

@@ -292,6 +292,7 @@ class CMessageTransporter
 		static CString GenerateAddress (const CString &sPort, const CString &sProcessName = NULL_STR, const CString &sMachineName = NULL_STR);
 		CString GenerateMachineAddress (const CString &sMachineName, const CString &sAddress);
 		TArray<CMessagePort *> GetPortCacheList (void) const;
+		TArray<CString> GetArcologyPortAddresses (const CString &sPortToFind) const;
 		bool IsLocalMachine (const CString &sMachineName);
 		bool IsLocalProcess (const CString &sProcessName);
 		void OnModuleDeleted (const CString &sName);

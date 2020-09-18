@@ -158,6 +158,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PreComp.h</PrecompiledHeaderFile>
     </ClCompile>
+    <ClCompile Include="MsgMandelbrot.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CodeSlinger.h" />
