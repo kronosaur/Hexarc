@@ -233,7 +233,7 @@ function OutputData (data)
 
 			var isTable = true;
 			for (i = 0; i < data.length && isTable; i++)
-				if (typeof data[i] != "object")
+				if (typeof data[i] != "object" || data[i].ai2Directive)
 					isTable = false;
 
 			//	Either a table or a plain array.
@@ -243,6 +243,9 @@ function OutputData (data)
 			else
 				displayType = "array";
 			}
+		else if (data.ai2Directive == "imageResult")
+			displayType = "image";
+
 		else
 			displayType = "structure";
 
@@ -297,6 +300,10 @@ function OutputData (data)
 
 			OutputHTML("table", theHTML);
 			}
+		else if (displayType == "image")
+			{
+			OutputImage(data.imageResult);
+			}
 		else
 			{
 			for (i in data)
@@ -340,6 +347,21 @@ function OutputHTML (theTag, theHTML)
 	var lineElement = document.createElement(theTag);
 	lineElement.innerHTML = theHTML;
 	
+	//	Append the response to the console
+	
+	var consoleOutput = document.getElementById("consoleOutput");
+	consoleOutput.appendChild(lineElement);
+	}
+
+function OutputImage (theImage)
+	{
+	//	theImage is a Hexarc encoded image that looks as follows:
+	//
+	//	["aeon2011:image32:v1", Base64-encoded-PNG]
+
+	var lineElement = document.createElement("img");
+	lineElement.setAttribute("src", "data:image/png;base64, " + theImage[1]);
+
 	//	Append the response to the console
 	
 	var consoleOutput = document.getElementById("consoleOutput");

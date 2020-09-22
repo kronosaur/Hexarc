@@ -302,6 +302,7 @@ DECLARE_CONST_STRING(TYPE_BINARY,						"binary")
 DECLARE_CONST_STRING(TYPE_DATE_TIME,					"dateTime")
 DECLARE_CONST_STRING(TYPE_ERROR,						"error")
 DECLARE_CONST_STRING(TYPE_FUNCTION,						"function")
+DECLARE_CONST_STRING(TYPE_IMAGE32,						"image32")
 DECLARE_CONST_STRING(TYPE_INT32,						"int32")
 DECLARE_CONST_STRING(TYPE_INT64,						"int64")
 DECLARE_CONST_STRING(TYPE_INT_IP,						"intIP")
@@ -1795,6 +1796,10 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 
 					case CDatum::typeBinary:
 						*retdResult = TYPE_BINARY;
+						break;
+
+					case CDatum::typeImage32:
+						*retdResult = TYPE_IMAGE32;
 						break;
 
 					default:

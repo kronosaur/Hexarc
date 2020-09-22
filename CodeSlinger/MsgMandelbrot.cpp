@@ -10,7 +10,9 @@ DECLARE_CONST_STRING(PORT_CODE_COMMAND,					"Code.command");
 DECLARE_CONST_STRING(FIELD_CX_TASK,						"cxTask");
 DECLARE_CONST_STRING(FIELD_CY_TASK,						"cyTask");
 DECLARE_CONST_STRING(FIELD_GRID_OPTIONS,				"gridOptions");
+DECLARE_CONST_STRING(FIELD_IMAGE,						"image");
 DECLARE_CONST_STRING(FIELD_TASK_ID,						"taskID");
+DECLARE_CONST_STRING(FIELD_TIME,						"time");
 DECLARE_CONST_STRING(FIELD_X_TASK,						"xTask");
 DECLARE_CONST_STRING(FIELD_Y_TASK,						"yTask");
 
@@ -224,6 +226,7 @@ void CCodeSlingerEngine::MsgMandelbrotTask (const SArchonMessage &Msg, const CHe
 
 	CDatum dResult(CDatum::typeStruct);
 	dResult.SetElement(FIELD_TASK_ID, dTaskID);
+	dResult.SetElement(FIELD_IMAGE, Output);
 	dResult.SetElement(FIELD_X_TASK, xTask);
 	dResult.SetElement(FIELD_Y_TASK, yTask);
 	dResult.SetElement(FIELD_CX_TASK, cxTask);
@@ -470,7 +473,17 @@ bool CMandelbrotSession::OnTaskComplete (const SArchonMessage &Msg)
 
 	if (SetTaskComplete(dTaskID))
 		{
-		SendMessageReply(MSG_REPLY_DATA, CDatum(CString("Success!")));
+		CRGBA32Image Image;
+		Image.Create(100, 100);
+		CImageDraw::Rectangle(Image, 10, 10, 50, 50, CRGBA32(255, 0, 0));
+
+		//	Result is a structure
+
+		CDatum dResult(CDatum::typeStruct);
+		dResult.SetElement(FIELD_TIME, 5);
+		dResult.SetElement(FIELD_IMAGE, Image);
+		
+		SendMessageReply(MSG_REPLY_DATA, dResult);
 		return false;
 		}
 
@@ -530,4 +543,6 @@ void CMandelbrot::Render (int x, int y, int cxWidth, int cyHeight, CRGBA32Image 
 		return;
 
 	retOutput.Create(cxWidth, cyHeight);
+
+
 	}

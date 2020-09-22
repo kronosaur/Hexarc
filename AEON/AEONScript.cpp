@@ -83,6 +83,7 @@ DECLARE_CONST_STRING(STR_NIL,							"nil")
 
 DECLARE_CONST_STRING(TYPENAME_BINARY,					"binary")
 DECLARE_CONST_STRING(TYPENAME_BINARY_FILE,				"binaryFile")
+DECLARE_CONST_STRING(TYPENAME_IMAGE32,					"image32")
 DECLARE_CONST_STRING(TYPENAME_IP_INTEGER,				"ipInteger")
 
 DECLARE_CONST_STRING(ERR_COLON_EXPECTED,				"Colon expected in struct: %s.")
@@ -540,6 +541,8 @@ CAEONScriptParser::ETokens CAEONScriptParser::ParseExternal (CDatum *retDatum)
 		pDatum = new CComplexBinary;
 	else if (strEquals(dTypename, TYPENAME_BINARY_FILE))
 		pDatum = new CComplexBinaryFile;
+	else if (strEquals(dTypename, TYPENAME_IMAGE32))
+		pDatum = new CComplexImage32;
 	else
 		{
 		IComplexFactory *pFactory;

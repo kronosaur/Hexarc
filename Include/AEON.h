@@ -105,6 +105,7 @@ class CDatum
 			typeInteger64 =		10,
 			typeBinary =		11,
 			typeVoid =			12,
+			typeImage32 =		13,
 
 			typeCustom =		100,
 			};
@@ -145,6 +146,7 @@ class CDatum
 		CDatum (IComplexDatum *pValue);
 		CDatum (const CDateTime &DateTime);
 		CDatum (const CIPInteger &Value);
+		CDatum (const CRGBA32Image &Value);
 		explicit CDatum (Types iType);
 		explicit CDatum (bool bValue);
 
@@ -488,6 +490,34 @@ class CComplexDateTime : public IComplexDatum
 			};
 
 		CDateTime m_DateTime;
+	};
+
+class CComplexImage32 : public IComplexDatum
+	{
+	public:
+		CComplexImage32 (void) { }
+		CComplexImage32 (const CRGBA32Image &Src) :
+				m_Image(Src)
+			{ }
+
+		//	IComplexDatum
+		virtual size_t CalcMemorySize (void) const override { return (size_t)m_Image.GetWidth() * (size_t)m_Image.GetHeight() * sizeof(DWORD); }
+		virtual IComplexDatum *Clone (void) const override;
+		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeImage32; }
+		virtual int GetCount (void) const override { return 1; }
+		virtual CDatum GetElement (int iIndex) const override { return CDatum(); }
+		virtual const CString &GetTypename (void) const override;
+		virtual bool IsArray (void) const override { return false; }
+		virtual bool IsNil (void) const override { return m_Image.IsEmpty(); }
+
+	protected:
+		//	IComplexDatum
+		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const;
+		virtual bool OnDeserialize (CDatum::ESerializationFormats iFormat, const CString &sTypename, IByteStream &Stream);
+		virtual void OnSerialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const;
+
+	private:
+		CRGBA32Image m_Image;
 	};
 
 class CComplexInteger : public IComplexDatum

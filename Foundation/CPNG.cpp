@@ -54,3 +54,58 @@ bool CPNG::Load (IMemoryBlock &Data, CRGBA32Image &Image, CString *retsError)
 
 	return true;
 	}
+
+bool CPNG::Save (const CRGBA32Image &Image, IByteStream &Output, CString *retsError)
+
+//	Save
+//
+//	Saves an image as PNG. Returns FALSE if error.
+
+	{
+	//	First convert the image to a 32-bit RGBA buffer.
+
+	CBuffer RGBABuffer(Image.GetWidth() * Image.GetHeight() * sizeof(DWORD));
+	BYTE *pDest = (BYTE *)RGBABuffer.GetPointer();
+
+	CRGBA32 *pSrcRow = Image.GetPixelPos(0, 0);
+	CRGBA32 *pSrcRowEnd = pSrcRow + ((DWORD_PTR)Image.GetWidth() * (DWORD_PTR)Image.GetHeight());
+
+	while (pSrcRow < pSrcRowEnd)
+		{
+		CRGBA32 *pSrc = pSrcRow;
+		CRGBA32 *pSrcEnd = pSrcRow + Image.GetWidth();
+
+		while (pSrc < pSrcEnd)
+			{
+			*pDest++ = pSrc->GetRed();
+			*pDest++ = pSrc->GetGreen();
+			*pDest++ = pSrc->GetBlue();
+			*pDest++ = pSrc->GetAlpha();
+
+			pSrc++;
+			}
+
+		pSrcRow = Image.NextRow(pSrcRow);
+		}
+
+	//	Save to PNG
+
+	unsigned char *pOutput;
+	size_t iOutputSize;
+	unsigned error = lodepng_encode32(&pOutput, &iOutputSize, (unsigned char *)RGBABuffer.GetPointer(), Image.GetWidth(), Image.GetHeight());
+	if (error)
+		{
+		if (retsError) *retsError = CString(lodepng_error_text(error));
+		return false;
+		}
+
+	//	Write to stream
+
+	Output.Write(pOutput, iOutputSize);
+
+	//	Done
+
+	free(pOutput);
+
+	return true;
+	}

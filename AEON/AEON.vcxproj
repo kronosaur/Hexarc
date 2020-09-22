@@ -187,6 +187,7 @@
     <ClCompile Include="CAEONVector.cpp" />
     <ClCompile Include="CComplexBinary.cpp" />
     <ClCompile Include="CComplexBinaryFile.cpp" />
+    <ClCompile Include="CComplexImage32.cpp" />
     <ClCompile Include="CComplexInteger.cpp" />
     <ClCompile Include="CDatum.cpp" />
     <ClCompile Include="HTTP.cpp" />
