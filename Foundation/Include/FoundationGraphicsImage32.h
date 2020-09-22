@@ -29,41 +29,41 @@ class CRGBA32
 
 		operator const COLORREF () { return RGB(GetRed(), GetGreen(), GetBlue()); }
 
-		inline bool operator == (const CRGBA32 &vA) const { return (m_dwPixel == vA.m_dwPixel); }
-		inline bool operator != (const CRGBA32 &vA) const { return (m_dwPixel != vA.m_dwPixel); }
+		bool operator == (const CRGBA32 &vA) const { return (m_dwPixel == vA.m_dwPixel); }
+		bool operator != (const CRGBA32 &vA) const { return (m_dwPixel != vA.m_dwPixel); }
 
-		inline DWORD AsDWORD (void) const { return m_dwPixel; }
-		inline DWORD AsR5G5B5 (void) const { return (((m_dwPixel & 0x00f80000) >> 9) | ((m_dwPixel & 0x0000f800) >> 6) | ((m_dwPixel & 0x000000f8) >> 3)); }
-		inline DWORD AsR5G6B5 (void) const { return (((m_dwPixel & 0x00f80000) >> 8) | ((m_dwPixel & 0x0000fc00) >> 5) | ((m_dwPixel & 0x000000f8) >> 3)); }
-		inline DWORD AsR8G8B8 (void) const { return m_dwPixel; }
-		inline BYTE GetAlpha (void) const { return (BYTE)((m_dwPixel & 0xff000000) >> 24); }
-		inline BYTE GetBlue (void) const { return (BYTE)(m_dwPixel & 0x000000ff); }
-		inline BYTE GetGreen (void) const { return (BYTE)((m_dwPixel & 0x0000ff00) >> 8); }
-		inline BYTE GetMax (void) const { return Max(Max(GetRed(), GetGreen()), GetBlue()); }
-		inline BYTE GetRed (void) const { return (BYTE)((m_dwPixel & 0x00ff0000) >> 16); }
-		inline bool IsNull (void) const { return (m_dwPixel == 0); }
-		inline void SetAlpha (BYTE byValue) { m_dwPixel = (m_dwPixel & 0x00ffffff) | ((DWORD)byValue << 24); }
-		inline void SetBlue (BYTE byValue) { m_dwPixel = (m_dwPixel & 0xffffff00) | (DWORD)byValue; }
-		inline void SetGreen (BYTE byValue) { m_dwPixel = (m_dwPixel & 0xffff00ff) | ((DWORD)byValue << 8); }
-		inline void SetRed (BYTE byValue) { m_dwPixel = (m_dwPixel & 0xff00ffff) | ((DWORD)byValue << 16); }
+		DWORD AsDWORD (void) const { return m_dwPixel; }
+		DWORD AsR5G5B5 (void) const { return (((m_dwPixel & 0x00f80000) >> 9) | ((m_dwPixel & 0x0000f800) >> 6) | ((m_dwPixel & 0x000000f8) >> 3)); }
+		DWORD AsR5G6B5 (void) const { return (((m_dwPixel & 0x00f80000) >> 8) | ((m_dwPixel & 0x0000fc00) >> 5) | ((m_dwPixel & 0x000000f8) >> 3)); }
+		DWORD AsR8G8B8 (void) const { return m_dwPixel; }
+		BYTE GetAlpha (void) const { return (BYTE)((m_dwPixel & 0xff000000) >> 24); }
+		BYTE GetBlue (void) const { return (BYTE)(m_dwPixel & 0x000000ff); }
+		BYTE GetGreen (void) const { return (BYTE)((m_dwPixel & 0x0000ff00) >> 8); }
+		BYTE GetMax (void) const { return Max(Max(GetRed(), GetGreen()), GetBlue()); }
+		BYTE GetRed (void) const { return (BYTE)((m_dwPixel & 0x00ff0000) >> 16); }
+		bool IsNull (void) const { return (m_dwPixel == 0); }
+		void SetAlpha (BYTE byValue) { m_dwPixel = (m_dwPixel & 0x00ffffff) | ((DWORD)byValue << 24); }
+		void SetBlue (BYTE byValue) { m_dwPixel = (m_dwPixel & 0xffffff00) | (DWORD)byValue; }
+		void SetGreen (BYTE byValue) { m_dwPixel = (m_dwPixel & 0xffff00ff) | ((DWORD)byValue << 8); }
+		void SetRed (BYTE byValue) { m_dwPixel = (m_dwPixel & 0xff00ffff) | ((DWORD)byValue << 16); }
 
-		inline static BYTE *AlphaTable (BYTE byOpacity) { return g_Alpha8[byOpacity]; }
+		static BYTE *AlphaTable (BYTE byOpacity) { return g_Alpha8[byOpacity]; }
 
-        //  Single channel operations
+		//  Single channel operations
 
-		inline static BYTE BlendAlpha (BYTE byDest, BYTE bySrc) { return g_Alpha8[byDest][bySrc]; }
-		inline static BYTE CompositeAlpha (BYTE byDest, BYTE bySrc) { return (BYTE)255 - (BYTE)(((DWORD)(255 - byDest) * (DWORD)(255 - bySrc)) / 255); }
+		static BYTE BlendAlpha (BYTE byDest, BYTE bySrc) { return g_Alpha8[byDest][bySrc]; }
+		static BYTE CompositeAlpha (BYTE byDest, BYTE bySrc) { return (BYTE)255 - (BYTE)(((DWORD)(255 - byDest) * (DWORD)(255 - bySrc)) / 255); }
 
-        //  Creates pixels
+		//  Creates pixels
 
-		inline static CRGBA32 Null (void) { return CRGBA32(0, true); }
+		static CRGBA32 Null (void) { return CRGBA32(0, true); }
 
-        //  Expects solid pixels, and always returns solid pixels
+		//  Expects solid pixels, and always returns solid pixels
 
 		static CRGBA32 Blend (CRGBA32 rgbDest, CRGBA32 rgbSrc);
 		static CRGBA32 Blend (CRGBA32 rgbDest, CRGBA32 rgbSrc, BYTE bySrcAlpha);
 
-        //  Works on transparent pixels
+		//  Works on transparent pixels
 
 		static CRGBA32 Composite (CRGBA32 rgbDest, CRGBA32 rgbSrc);
 
@@ -105,29 +105,29 @@ class CRGBA32Image : public CImagePlane
 			FLAG_PRE_MULT_ALPHA =			0x00000001,
 			};
 
-		CRGBA32Image (void);
+		CRGBA32Image (void) { }
 		CRGBA32Image (const CRGBA32Image &Src) { Copy(Src); }
 		CRGBA32Image (CRGBA32Image &&Src) noexcept;
 		virtual ~CRGBA32Image (void) { CleanUp(); }
 
-		inline CRGBA32Image &operator= (const CRGBA32Image &Src) { CleanUp(); Copy(Src); return *this; }
+		CRGBA32Image &operator= (const CRGBA32Image &Src) { CleanUp(); Copy(Src); return *this; }
 
-		inline static CRGBA32Image &Null (void) { return m_NullImage; }
+		static CRGBA32Image &Null (void) { return m_NullImage; }
 
 		//	Basic Interface
 
 		void CleanUp (void);
 		bool Create (int cxWidth, int cyHeight, EAlphaTypes AlphaType = alphaNone);
 		bool Create (int cxWidth, int cyHeight, EAlphaTypes AlphaType, CRGBA32 InitialValue);
-		inline EAlphaTypes GetAlphaType (void) const { return m_AlphaType; }
+		EAlphaTypes GetAlphaType (void) const { return m_AlphaType; }
 		C8bitImage GetChannel (EChannels iChannel) const;
-		inline CRGBA32 GetPixel (int x, int y) const { return *GetPixelPos(x, y); }
-		inline CRGBA32 *GetPixelPos (int x, int y) const { return (CRGBA32 *)((BYTE *)m_pRGBA + (y * m_iPitch)) + x; }
-		inline CRGBA32 *GetPointer (void) const { return m_pRGBA; }
-		inline bool IsEmpty (void) const { return (m_pRGBA == NULL); }
-		inline bool IsMarked (void) const { return m_bMarked; }
-		inline CRGBA32 *NextRow (CRGBA32 *pPos) const { return (CRGBA32 *)((BYTE *)pPos + m_iPitch); }
-		inline void SetMarked (bool bMarked = true) { m_bMarked = bMarked; }
+		CRGBA32 GetPixel (int x, int y) const { return *GetPixelPos(x, y); }
+		CRGBA32 *GetPixelPos (int x, int y) const { return (CRGBA32 *)((BYTE *)m_pRGBA + (y * m_iPitch)) + x; }
+		CRGBA32 *GetPointer (void) const { return m_pRGBA; }
+		bool IsEmpty (void) const { return (m_pRGBA == NULL); }
+		bool IsMarked (void) const { return m_bMarked; }
+		CRGBA32 *NextRow (CRGBA32 *pPos) const { return (CRGBA32 *)((BYTE *)pPos + m_iPitch); }
+		void SetMarked (bool bMarked = true) { m_bMarked = bMarked; }
 
 		//	Windows
 
@@ -140,13 +140,13 @@ class CRGBA32Image : public CImagePlane
 		void Copy (const CRGBA32Image &Src);
 		void InitBMI (BITMAPINFO **retpbi) const;
 
-		CRGBA32 *m_pRGBA;
-		bool m_bFreeRGBA;					//	If TRUE, we own the memory
-		bool m_bMarked;						//	Mark/sweep flag (for use by caller)
-		int m_iPitch;						//	Bytes per row
-		EAlphaTypes m_AlphaType;
+		CRGBA32 *m_pRGBA = NULL;
+		bool m_bFreeRGBA = false;				//	If TRUE, we own the memory
+		bool m_bMarked = false;					//	Mark/sweep flag (for use by caller)
+		int m_iPitch = 0;						//	Bytes per row
+		EAlphaTypes m_AlphaType = alphaNone;
 
-		mutable BITMAPINFO *m_pBMI;			//	Used for blting to a DC
+		mutable BITMAPINFO *m_pBMI = NULL;		//	Used for blting to a DC
 
 		static CRGBA32Image m_NullImage;
 	};

@@ -7,27 +7,13 @@
 
 CRGBA32Image CRGBA32Image::m_NullImage;
 
-CRGBA32Image::CRGBA32Image (void) :
-		m_pRGBA(NULL),
-		m_bFreeRGBA(false),
-		m_bMarked(false),
-		m_iPitch(0),
-		m_AlphaType(alphaNone),
-		m_pBMI(NULL)
-
-//	CRGBA32Image constructor
-
-	{
-	}
-
 CRGBA32Image::CRGBA32Image (CRGBA32Image &&Src) noexcept :
 		CImagePlane(Src),
 		m_pRGBA(Src.m_pRGBA),
 		m_bFreeRGBA(Src.m_bFreeRGBA),
 		m_bMarked(Src.m_bMarked),
 		m_iPitch(Src.m_iPitch),
-		m_AlphaType(Src.m_AlphaType),
-		m_pBMI(NULL)
+		m_AlphaType(Src.m_AlphaType)
 
 //	CRGBA32Image move constructor
 
