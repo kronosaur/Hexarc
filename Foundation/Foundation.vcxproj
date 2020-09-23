@@ -411,6 +411,7 @@
     <ClInclude Include="Include\FoundationMaps.h" />
     <ClInclude Include="Include\FoundationMarkup.h" />
     <ClInclude Include="Include\FoundationMath.h" />
+    <ClInclude Include="Include\FoundationMathComplex.h" />
     <ClInclude Include="Include\FoundationMathGeometry.h" />
     <ClInclude Include="Include\FoundationMathHexGrid.h" />
     <ClInclude Include="Include\FoundationNetworkIO.h" />

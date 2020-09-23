@@ -5,12 +5,16 @@
 
 #include "PreComp.h"
 
+#define FAKE_LOAD
+
 DECLARE_CONST_STRING(PORT_CODE_COMMAND,					"Code.command");
 
+DECLARE_CONST_STRING(FIELD_CORES,						"cores");
 DECLARE_CONST_STRING(FIELD_CX_TASK,						"cxTask");
 DECLARE_CONST_STRING(FIELD_CY_TASK,						"cyTask");
 DECLARE_CONST_STRING(FIELD_GRID_OPTIONS,				"gridOptions");
 DECLARE_CONST_STRING(FIELD_IMAGE,						"image");
+DECLARE_CONST_STRING(FIELD_MACHINES,					"machines");
 DECLARE_CONST_STRING(FIELD_TASK_ID,						"taskID");
 DECLARE_CONST_STRING(FIELD_TIME,						"time");
 DECLARE_CONST_STRING(FIELD_X_TASK,						"xTask");
@@ -33,6 +37,7 @@ class CMandelbrot
 		CMandelbrot (void) { }
 		CMandelbrot (double xCenter, double yCenter, double rPixelSize, int cxImage, int yImage);
 
+		static int Eval (CComplexDouble Point);
 		static CMandelbrot FromDatum (CDatum dDef);
 		double GetCenterX (void) const { return m_xCenter; }
 		double GetCenterY (void) const { return m_yCenter; }
@@ -48,6 +53,12 @@ class CMandelbrot
 		double m_rPixelSize = 0.001;
 		int m_cxImage = 0;
 		int m_cyImage = 0;
+
+		int m_iHue = 240;
+		double m_rHueScale = 2.0;
+
+		double m_xUL = 0.0;
+		double m_yUL = 0.0;
 	};
 
 class CGridTask
@@ -121,6 +132,9 @@ class CMandelbrotSession : public CGridSession
 		CCodeSlingerEngine &m_Engine;
 		States m_iState = States::unknown;
 
+		int m_iMachinesUsed = 0;
+		int m_iCoresUsed = 0;
+		DWORDLONG m_dwStartTime = 0;
 		CRGBA32Image m_Output;						//	Output image
 	};
 
@@ -140,8 +154,8 @@ void CCodeSlingerEngine::MsgMandelbrot (const SArchonMessage &Msg, const CHexeSe
 //
 //		gridOptions: Distributed compute options
 //
-//			nodeCount: Number of nodes to distribute to. If Nil or 0, we default
-//				to 1.
+//			cores: Number of threads to distribute to. If Nil or 0, we default
+//				to a reasonable number.
 //
 //	IMPLEMENTATION
 //
@@ -223,6 +237,10 @@ void CCodeSlingerEngine::MsgMandelbrotTask (const SArchonMessage &Msg, const CHe
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, ERR_INVALID_PARAMS, Msg);
 		return;
 		}
+
+#ifdef FAKE_LOAD
+	::Sleep(cyTask);
+#endif
 
 	CDatum dResult(CDatum::typeStruct);
 	dResult.SetElement(FIELD_TASK_ID, dTaskID);
@@ -361,6 +379,14 @@ bool CMandelbrotSession::OnCreateTasks (const SArchonMessage &Msg, TArray<CGridT
 
 	CDatum dOptions = Msg.dPayload.GetElement(5);
 	CDatum dGridOptions = dOptions.GetElement(FIELD_GRID_OPTIONS);
+	int iRequestedCores = dGridOptions.GetElement(FIELD_CORES);
+	if (iRequestedCores <= 0)
+		iRequestedCores = 16;
+
+	//	Create the output image
+
+	m_dwStartTime = ::sysGetTickCount64();
+	m_Output.Create(MandelbrotDef.GetImageWidth(), MandelbrotDef.GetImageHeight());
 
 	//	Set some properties
 
@@ -378,33 +404,35 @@ bool CMandelbrotSession::OnCreateTasks (const SArchonMessage &Msg, TArray<CGridT
 	//	For each module, we send multiple messages because each module can 
 	//	handle multiple threads.
 
-	constexpr int TASKS_PER_MODULE = 3;
+	constexpr int TASKS_PER_MODULE = 4;
 
 	//	Compute the number of tasks to split the rendering to. We never split
 	//	to more than the height of the image.
 
-	const int iTaskCount = Min(MandelbrotDef.GetImageHeight(), TaskAddresses.GetCount() * TASKS_PER_MODULE);
-	if (iTaskCount == 0)
+	m_iCoresUsed = Min(Min(MandelbrotDef.GetImageHeight(), TaskAddresses.GetCount() * TASKS_PER_MODULE), iRequestedCores);
+	if (m_iCoresUsed == 0)
 		{
 		//	This should never happen, but just in case.
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, ERR_INVALID_PARAMS);
 		return false;
 		}
 
-	const int cySegmentBase = MandelbrotDef.GetImageHeight() / iTaskCount;
-	int cySegmentRemainder = MandelbrotDef.GetImageHeight() % iTaskCount;
+	m_iMachinesUsed = (m_iCoresUsed + (TASKS_PER_MODULE - 1)) / TASKS_PER_MODULE;
+
+	const int cySegmentBase = MandelbrotDef.GetImageHeight() / m_iCoresUsed;
+	int cySegmentRemainder = MandelbrotDef.GetImageHeight() % m_iCoresUsed;
 	int yNextSegment = 0;
 
 	//	Generate tasks
 
-	for (int i = 0; i < iTaskCount; i++)
+	for (int i = 0; i < m_iCoresUsed; i++)
 		{
 		//	Compute the image segment.
 
 		int cySegment = cySegmentBase;
 		if (cySegmentRemainder)
 			{
-			if (i == TaskAddresses.GetCount() - 1)
+			if (i == m_iCoresUsed - 1)
 				cySegment += cySegmentRemainder;
 			else
 				{
@@ -420,7 +448,8 @@ bool CMandelbrotSession::OnCreateTasks (const SArchonMessage &Msg, TArray<CGridT
 
 		//	Generate the message.
 
-		const CString sTaskAddr = TaskAddresses[i % TaskAddresses.GetCount()];
+		int iMachine = (i / TASKS_PER_MODULE);
+		const CString sTaskAddr = TaskAddresses[iMachine % TaskAddresses.GetCount()];
 
 		SArchonMessage TaskMsg;
 		TaskMsg.sMsg = MSG_CODE_MANDELBROT_TASK;
@@ -461,6 +490,7 @@ bool CMandelbrotSession::OnTaskComplete (const SArchonMessage &Msg)
 
 	{
 	CDatum dTaskID = Msg.dPayload.GetElement(FIELD_TASK_ID);
+	const CRGBA32Image &Src = Msg.dPayload.GetElement(FIELD_IMAGE);
 	const int xTask = Msg.dPayload.GetElement(FIELD_X_TASK);
 	const int yTask = Msg.dPayload.GetElement(FIELD_Y_TASK);
 	const int cxTask = Msg.dPayload.GetElement(FIELD_CX_TASK);
@@ -469,19 +499,21 @@ bool CMandelbrotSession::OnTaskComplete (const SArchonMessage &Msg)
 	if (IsVerbose())
 		GetProcessCtx()->Log(MSG_LOG_DEBUG, strPattern("Task %d Complete: %d,%d [%dx%d]", (int)dTaskID, xTask, yTask, cxTask, cyTask));
 
+	//	Blt the image to the output
+
+	CImageDraw::Blt(m_Output, xTask, yTask, Src);
+
 	//	Mark as complete. If all tasks are complete, then we're done.
 
 	if (SetTaskComplete(dTaskID))
 		{
-		CRGBA32Image Image;
-		Image.Create(100, 100);
-		CImageDraw::Rectangle(Image, 10, 10, 50, 50, CRGBA32(255, 0, 0));
-
 		//	Result is a structure
 
 		CDatum dResult(CDatum::typeStruct);
-		dResult.SetElement(FIELD_TIME, 5);
-		dResult.SetElement(FIELD_IMAGE, Image);
+		dResult.SetElement(FIELD_TIME, (DWORD)::sysGetTicksElapsed(m_dwStartTime));
+		dResult.SetElement(FIELD_CORES, m_iCoresUsed);
+		dResult.SetElement(FIELD_MACHINES, m_iMachinesUsed);
+		dResult.SetElement(FIELD_IMAGE, m_Output);
 		
 		SendMessageReply(MSG_REPLY_DATA, dResult);
 		return false;
@@ -499,11 +531,35 @@ CMandelbrot::CMandelbrot (double xCenter, double yCenter, double rPixelSize, int
 		m_yCenter(yCenter),
 		m_rPixelSize(rPixelSize),
 		m_cxImage(cxImage),
-		m_cyImage(cyImage)
+		m_cyImage(cyImage),
+		m_xUL(xCenter - ((cxImage / 2) * rPixelSize)),
+		m_yUL(yCenter + ((cyImage / 2) * rPixelSize))
 
 //	CMandelbrot constructor
 
 	{
+	}
+
+int CMandelbrot::Eval (CComplexDouble C0)
+
+//	Eval
+//
+//	Returns number of iterations before we diverge. If we never diverge, then we
+//	return 0.
+
+	{
+	constexpr int ITERATIONS = 200;
+
+	CComplexDouble C(0.0, 0.0);
+	for (int i = 1; i <= ITERATIONS; i++)
+		{
+		if (C.Abs() > 2.0)
+			return i;
+
+		C = (C * C) + C0;
+		}
+
+	return 0;
 	}
 
 CMandelbrot CMandelbrot::FromDatum (CDatum dDef)
@@ -542,7 +598,33 @@ void CMandelbrot::Render (int x, int y, int cxWidth, int cyHeight, CRGBA32Image 
 	if (cxWidth <= 0 || cyHeight <= 0)
 		return;
 
+	double yPos = m_yUL - (y * m_rPixelSize);
+	double xStart = m_xUL + (x * m_rPixelSize);
+
 	retOutput.Create(cxWidth, cyHeight);
 
+	CRGBA32 *pDestRow = retOutput.GetPixelPos(0, 0);
+	CRGBA32 *pDestRowEnd = retOutput.GetPixelPos(0, cyHeight);
+	
+	while (pDestRow < pDestRowEnd)
+		{
+		double xPos = xStart;
 
+		CRGBA32 *pDest = pDestRow;
+		CRGBA32 *pDestEnd = pDestRow + cxWidth;
+
+		while (pDest < pDestEnd)
+			{
+			int iIterations = Eval(CComplexDouble(xPos, yPos));
+			if (iIterations == 0)
+				*pDest++ = CRGBA32(0, 0, 0);
+			else
+				*pDest++ = CRGBA32::FromHSB(fmod(m_iHue + m_rHueScale * iIterations, 360.0), 1.0, 0.5);
+
+			xPos += m_rPixelSize;
+			}
+
+		yPos -= m_rPixelSize;
+		pDestRow = retOutput.NextRow(pDestRow);
+		}
 	}

@@ -56,6 +56,10 @@ class CRGBA32
 
 		//  Creates pixels
 
+		static CRGBA32 FromHSB (int iHue, int iSaturation, int iBrightness, BYTE byAlpha = 0xff);
+		static CRGBA32 FromHSB (double rHue, double rSaturation, double rBrightness, BYTE byAlpha = 0xff);
+		static CRGBA32 FromReal (double rRed, double rGreen, double rBlue, BYTE byAlpha = 0xff)
+			{ return CRGBA32((BYTE)(rRed * 255.0), (BYTE)(rGreen * 255.0), (BYTE)(rBlue * 255.0), byAlpha); }
 		static CRGBA32 Null (void) { return CRGBA32(0, true); }
 
 		//  Expects solid pixels, and always returns solid pixels

@@ -170,6 +170,7 @@ class CDatum
 		operator const CIPInteger & () const;
 		operator const CString & () const;
 		operator const CDateTime & () const;
+		operator const CRGBA32Image & () const;
 
 		//	Standard interface
 		void Append (CDatum dValue);
@@ -270,6 +271,7 @@ class IComplexDatum
 		virtual bool CanInvoke (void) const { return false; }
 		virtual const CDateTime &CastCDateTime (void) const { return NULL_DATETIME; }
 		virtual const CIPInteger &CastCIPInteger (void) const { return NULL_IPINTEGER; }
+		virtual const CRGBA32Image &CastCRGBA32Image (void) const { return CRGBA32Image::Null(); }
 		virtual const CString &CastCString (void) const { return NULL_STR; }
 		virtual DWORDLONG CastDWORDLONG (void) const { return 0; }
 		virtual int CastInteger32 (void) const { return 0; }
@@ -502,6 +504,7 @@ class CComplexImage32 : public IComplexDatum
 
 		//	IComplexDatum
 		virtual size_t CalcMemorySize (void) const override { return (size_t)m_Image.GetWidth() * (size_t)m_Image.GetHeight() * sizeof(DWORD); }
+		virtual const CRGBA32Image &CastCRGBA32Image (void) const override { return m_Image; }
 		virtual IComplexDatum *Clone (void) const override;
 		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeImage32; }
 		virtual int GetCount (void) const override { return 1; }
@@ -512,9 +515,9 @@ class CComplexImage32 : public IComplexDatum
 
 	protected:
 		//	IComplexDatum
-		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const;
-		virtual bool OnDeserialize (CDatum::ESerializationFormats iFormat, const CString &sTypename, IByteStream &Stream);
-		virtual void OnSerialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const;
+		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const override;
+		virtual bool OnDeserialize (CDatum::ESerializationFormats iFormat, const CString &sTypename, IByteStream &Stream) override;
+		virtual void OnSerialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const override;
 
 	private:
 		CRGBA32Image m_Image;

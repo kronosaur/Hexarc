@@ -48,7 +48,7 @@ CCodeSlingerEngine::SMessageHandler CCodeSlingerEngine::m_MsgHandlerList[] =
 
 int CCodeSlingerEngine::m_iMsgHandlerListCount = SIZEOF_STATIC_ARRAY(CCodeSlingerEngine::m_MsgHandlerList);
 
-CCodeSlingerEngine::CCodeSlingerEngine (void) : TSimpleEngine(ENGINE_NAME_TRANSCENDENCE, 3)
+CCodeSlingerEngine::CCodeSlingerEngine (void) : TSimpleEngine(ENGINE_NAME_TRANSCENDENCE, INITIAL_THREADS)
 
 //	CCodeSlingerEngine constructor
 

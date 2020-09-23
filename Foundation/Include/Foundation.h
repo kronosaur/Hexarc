@@ -77,6 +77,7 @@ struct IUnknown;
 #include "FoundationStreamsTBuffer.h"
 
 #include "FoundationMath.h"
+#include "FoundationMathComplex.h"
 #include "FoundationMathGeometry.h"
 #include "FoundationMathHexGrid.h"
 #include "FoundationThreads.h"

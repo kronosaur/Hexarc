@@ -302,7 +302,7 @@ function OutputData (data)
 			}
 		else if (displayType == "image")
 			{
-			OutputImage(data.imageResult);
+			OutputImage(data.image, data.caption);
 			}
 		else
 			{
@@ -353,7 +353,7 @@ function OutputHTML (theTag, theHTML)
 	consoleOutput.appendChild(lineElement);
 	}
 
-function OutputImage (theImage)
+function OutputImage (theImage, theCaption)
 	{
 	//	theImage is a Hexarc encoded image that looks as follows:
 	//
@@ -366,6 +366,13 @@ function OutputImage (theImage)
 	
 	var consoleOutput = document.getElementById("consoleOutput");
 	consoleOutput.appendChild(lineElement);
+
+	//	Caption
+
+	if (theCaption)
+		{
+		OutputText(theCaption);
+		}
 	}
 
 function OutputText (theText, theClass)

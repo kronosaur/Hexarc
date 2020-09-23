@@ -33,6 +33,8 @@ class CCodeSlingerEngine : public TSimpleEngine<CCodeSlingerEngine>
 		virtual void OnStopRunning (void) override;
 
 	private:
+		static constexpr int DEFAULT_THREADS_PER_MACHINE = 4;
+		static constexpr int INITIAL_THREADS = DEFAULT_THREADS_PER_MACHINE + 2;
 
 		//	Message handlers
 		void MsgAeonOnStart (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);

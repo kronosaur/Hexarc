@@ -491,6 +491,21 @@ CDatum::operator const CDateTime & () const
 		}
 	}
 
+CDatum::operator const CRGBA32Image & () const
+
+//	CRGBA32Image cast operator
+
+	{
+	switch (m_dwData & AEON_TYPE_MASK)
+		{
+		case AEON_TYPE_COMPLEX:
+			return raw_GetComplex()->CastCRGBA32Image();
+
+		default:
+			return CRGBA32Image::Null();
+		}
+	}
+
 CDatum::operator const CIPInteger & () const
 
 //	CIPInteger cast operator

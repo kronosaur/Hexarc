@@ -71,6 +71,69 @@ CRGBA32 CRGBA32::Composite (CRGBA32 rgbDest, CRGBA32 rgbSrc)
 		}
 	}
 
+CRGBA32 CRGBA32::FromHSB (int iHue, int iSaturation, int iBrightness, BYTE byAlpha)
+
+//	FromHSB
+//
+//	Creates a pixel from Hue, Saturation, Brightness.
+//	Hue: 0-359
+//	Sat: 0-100
+//	Bri: 0-100
+
+	{
+	return FromHSB((double)iHue, iSaturation / 100.0, iBrightness / 100.0, byAlpha);
+	}
+
+CRGBA32 CRGBA32::FromHSB (double rHue, double rSaturation, double rBrightness, BYTE byAlpha)
+
+//	FromHSB
+//
+//	Creates a pixel from Hue, Saturation, Brightness.
+//	Hue: 0-359
+//	Sat: 0-100
+//	Bri: 0-100
+
+	{
+	if (rSaturation <= 0.0)
+		{
+		BYTE byValue = (BYTE)round(rBrightness * 255.0);
+		return CRGBA32(byValue, byValue, byValue, byAlpha);
+		}
+	else
+		{
+		Metric rH = (rHue >= 360.0 ? 0.0 : rHue) / 60.0;
+		Metric rI = floor(rH);
+		Metric rF = rH - rI;
+		Metric rP = rBrightness * (1.0 - rSaturation);
+		Metric rQ = rBrightness * (1.0 - rSaturation * rF);
+		Metric rT = rBrightness * (1.0 - rSaturation * (1.0 - rF));
+
+		switch ((int)rI)
+			{
+			case 0:
+				return FromReal(rBrightness, rT, rP, byAlpha);
+
+			case 1:
+				return FromReal(rQ, rBrightness, rP, byAlpha);
+
+			case 2:
+				return FromReal(rP, rBrightness, rT, byAlpha);
+
+			case 3:
+				return FromReal(rP, rQ, rBrightness, byAlpha);
+
+			case 4:
+				return FromReal(rT, rP, rBrightness, byAlpha);
+
+			case 5:
+				return FromReal(rBrightness, rP, rQ, byAlpha);
+
+			default:
+				return FromReal(0.0, 0.0, 0.0, byAlpha);
+			}
+		}
+	}
+
 bool CRGBA32::InitTables (void)
 
 //	InitTables
