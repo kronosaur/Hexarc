@@ -5,13 +5,12 @@
 
 #include "PreComp.h"
 
-#define FAKE_LOAD
-
 DECLARE_CONST_STRING(PORT_CODE_COMMAND,					"Code.command");
 
 DECLARE_CONST_STRING(FIELD_CORES,						"cores");
 DECLARE_CONST_STRING(FIELD_CX_TASK,						"cxTask");
 DECLARE_CONST_STRING(FIELD_CY_TASK,						"cyTask");
+DECLARE_CONST_STRING(FIELD_DEBUG_COMPUTES,				"debugComputes");
 DECLARE_CONST_STRING(FIELD_GRID_OPTIONS,				"gridOptions");
 DECLARE_CONST_STRING(FIELD_IMAGE,						"image");
 DECLARE_CONST_STRING(FIELD_MACHINES,					"machines");
@@ -152,6 +151,7 @@ void CCodeSlingerEngine::MsgMandelbrot (const SArchonMessage &Msg, const CHexeSe
 //	cxImage, cyImage: Size of image in pixels.
 //	options:
 //
+//		debugComputes: Add extra computations to test
 //		gridOptions: Distributed compute options
 //
 //			cores: Number of threads to distribute to. If Nil or 0, we default
@@ -207,6 +207,7 @@ void CCodeSlingerEngine::MsgMandelbrotTask (const SArchonMessage &Msg, const CHe
 //		yTask: Upper-left corner of image for this task to generate
 //		cxTask:
 //		cyTask: Width and height of image for this task to generate.
+//		debugComputes: Extra computes
 //
 //	The result is a struct with the following elements:
 //
@@ -223,6 +224,9 @@ void CCodeSlingerEngine::MsgMandelbrotTask (const SArchonMessage &Msg, const CHe
 	int cxTask = dOptions.GetElement(FIELD_CX_TASK);
 	int cyTask = dOptions.GetElement(FIELD_CY_TASK);
 
+	CDatum dDebugComputes = dOptions.GetElement(FIELD_DEBUG_COMPUTES);
+	double rExtraComputes = (dDebugComputes.IsNil() ? 0.0 : Max(0.0, (double)dDebugComputes));
+
 	CMandelbrot Mandelbrot = CMandelbrot::FromDatum(Msg.dPayload);
 	if (Mandelbrot.IsEmpty())
 		{
@@ -238,9 +242,8 @@ void CCodeSlingerEngine::MsgMandelbrotTask (const SArchonMessage &Msg, const CHe
 		return;
 		}
 
-#ifdef FAKE_LOAD
-	::Sleep(cyTask);
-#endif
+	if (rExtraComputes > 0.0)
+		::Sleep((int)(rExtraComputes * cyTask));
 
 	CDatum dResult(CDatum::typeStruct);
 	dResult.SetElement(FIELD_TASK_ID, dTaskID);
@@ -383,6 +386,8 @@ bool CMandelbrotSession::OnCreateTasks (const SArchonMessage &Msg, TArray<CGridT
 	if (iRequestedCores <= 0)
 		iRequestedCores = 16;
 
+	CDatum dDebugComputes = dOptions.GetElement(FIELD_DEBUG_COMPUTES);
+
 	//	Create the output image
 
 	m_dwStartTime = ::sysGetTickCount64();
@@ -467,6 +472,7 @@ bool CMandelbrotSession::OnCreateTasks (const SArchonMessage &Msg, TArray<CGridT
 		dTaskOptions.SetElement(FIELD_Y_TASK, ySegment);
 		dTaskOptions.SetElement(FIELD_CX_TASK, cxSegment);
 		dTaskOptions.SetElement(FIELD_CY_TASK, cySegment);
+		dTaskOptions.SetElement(FIELD_DEBUG_COMPUTES, dDebugComputes);
 
 		dPayload.Append(dTaskOptions);
 
@@ -548,7 +554,7 @@ int CMandelbrot::Eval (CComplexDouble C0)
 //	return 0.
 
 	{
-	constexpr int ITERATIONS = 200;
+	constexpr int ITERATIONS = 1000;
 
 	CComplexDouble C(0.0, 0.0);
 	for (int i = 1; i <= ITERATIONS; i++)
