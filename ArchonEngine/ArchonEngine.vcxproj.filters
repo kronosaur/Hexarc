@@ -180,6 +180,12 @@
     <ClCompile Include="CArchonTimer.cpp">
       <Filter>Source Files\Utilities</Filter>
     </ClCompile>
+    <ClCompile Include="MsgRemoveMachine.cpp">
+      <Filter>Source Files\Exarch</Filter>
+    </ClCompile>
+    <ClCompile Include="MsgPing.cpp">
+      <Filter>Source Files\Exarch</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Include\ArchonEngine.h">

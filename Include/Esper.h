@@ -83,7 +83,7 @@ class CEsperConnection : public CIOCPSocket
 		virtual bool BeginWrite (const SArchonMessage &Msg, const CString &sData, CString *retsError) { ASSERT(false); return false; }
 		virtual void ClearBusy (void) = 0;
 		virtual const CString &GetHostConnection (void) { return NULL_STR; }
-		virtual bool GetProperty (const CString &sProperty, CDatum *retdValue) { return false; }
+		virtual CDatum GetProperty (const CString &sProperty) const { return CDatum(); }
 		virtual void OnConnect (void) { }
 		virtual bool SetBusy (void) = 0;
 		virtual bool SetProperty (const CString &sProperty, CDatum dValue) { return false; }
@@ -247,6 +247,7 @@ class CEsperConnectionManager
 		bool BeginWrite (const SArchonMessage &Msg, CDatum dConnection, const CString &sData, CString *retsError);
 		void CreateConnection (SConnectionCtx &Ctx, CSocket &NewSocket, const CString &sListener, CEsperConnection::ETypes iType);
 		void DeleteConnection (CDatum dConnection);
+		void DeleteConnectionByAddress (const CString sAddress);
 		void GetResults (TArray<CString> &Results);
 		void GetStatus (CEsperConnection::SStatus *retStatus);
 		CEsperStats &GetStats (void) { return m_Stats; }
@@ -365,6 +366,7 @@ class CEsperEngine : public IArchonEngine, public IArchonMessagePort
 		bool ValidateSandboxAdmin (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 
 		void MsgEsperAMP1 (const SArchonMessage &Msg);
+		void MsgEsperAMP1Disconnect (const SArchonMessage &Msg);
 		void MsgEsperDisconnect (const SArchonMessage &Msg);
 		void MsgEsperGetUsageHistory (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgEsperHTTP (const SArchonMessage &Msg);

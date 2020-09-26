@@ -7,28 +7,29 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(AMP1_AUTH,							"AUTH")
+DECLARE_CONST_STRING(AMP1_AUTH,							"AUTH");
+DECLARE_CONST_STRING(AMP1_LEAVE,						"LEAVE");
 
-DECLARE_CONST_STRING(FIELD_AUTH_KEY,					"authKey")
-DECLARE_CONST_STRING(FIELD_AUTH_NAME,					"authName")
+DECLARE_CONST_STRING(FIELD_ADDRESS,						"address");
+DECLARE_CONST_STRING(FIELD_AUTH_KEY,					"authKey");
+DECLARE_CONST_STRING(FIELD_AUTH_NAME,					"authName");
 
-DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply")
-DECLARE_CONST_STRING(MSG_OK,							"OK")
+DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply");
+DECLARE_CONST_STRING(MSG_OK,							"OK");
 
-DECLARE_CONST_STRING(PROTOCOL_AMP1,						"AMP/1.00")
+DECLARE_CONST_STRING(PROTOCOL_AMP1,						"AMP/1.00");
 
-DECLARE_CONST_STRING(STR_RESERVED_LENGTH,				"ABCDEFGHIJKLMNOP")
+DECLARE_CONST_STRING(STR_RESERVED_LENGTH,				"ABCDEFGHIJKLMNOP");
 
-DECLARE_CONST_STRING(ERR_LOST_CONNECTION,				"AMP1 connection lost.")
-DECLARE_CONST_STRING(ERR_DATA_TOO_BIG,					"Data too big to serialize.")
-DECLARE_CONST_STRING(ERR_INVALID_AMP1_KEYWORD,			"Invalid AMP1 keyword: %s.")
-DECLARE_CONST_STRING(ERR_INVALID_STATE,					"Invalid state for CEsperAMP1ConnectionOut: %x.")
-DECLARE_CONST_STRING(ERR_CANNOT_CONNECT,				"Unable to connect to %s on port %d: %s")
+DECLARE_CONST_STRING(ERR_LOST_CONNECTION,				"AMP1 connection lost.");
+DECLARE_CONST_STRING(ERR_DATA_TOO_BIG,					"Data too big to serialize.");
+DECLARE_CONST_STRING(ERR_INVALID_AMP1_KEYWORD,			"Invalid AMP1 keyword: %s.");
+DECLARE_CONST_STRING(ERR_INVALID_STATE,					"Invalid state for CEsperAMP1ConnectionOut: %x.");
+DECLARE_CONST_STRING(ERR_CANNOT_CONNECT,				"Unable to connect to %s on port %d: %s");
 
 CEsperAMP1ConnectionOut::CEsperAMP1ConnectionOut (CEsperConnectionManager &Manager, const CString &sHostConnection) : CEsperConnection(INVALID_SOCKET),
 		m_Manager(Manager),
-		m_sHostConnection(sHostConnection),
-		m_iState(stateDisconnected)
+		m_sHostConnection(sHostConnection)
 		
 //	CEsperAMP1ConnectionOut constructor
 
@@ -107,6 +108,10 @@ bool CEsperAMP1ConnectionOut::BeginAMP1Request (const SArchonMessage &Msg, const
 	m_bReconnect = true;
 	m_bResetBuffer = true;
 
+	//	If this is a AMP1_LEAVE message, then delete the connection.
+
+	m_bDeleteWhenDone = strEquals(Request.sCommand, AMP1_LEAVE);
+
 	//	If we're not yet connected, we need to connect
 
 	if (m_iState == stateDisconnectedBusy)
@@ -169,6 +174,19 @@ void CEsperAMP1ConnectionOut::ClearBusy (void)
 			m_iState = stateDisconnected;
 			break;
 		}
+	}
+
+CDatum CEsperAMP1ConnectionOut::GetProperty (const CString &sProperty) const
+
+//	GetProperty
+//
+//	Returns properties.
+
+	{
+	if (strEquals(sProperty, FIELD_ADDRESS))
+		return CDatum(m_sAddress);
+	else
+		return CDatum();
 	}
 
 void CEsperAMP1ConnectionOut::OnSocketOperationComplete (EOperations iOp, DWORD dwBytesTransferred)
@@ -247,6 +265,9 @@ void CEsperAMP1ConnectionOut::OnSocketOperationComplete (EOperations iOp, DWORD 
 			m_iState = stateConnected;
 			m_sLastResult = MSG_OK;
 			m_Manager.SendMessageReply(MSG_OK, CDatum(), m_Msg);
+
+			if (m_bDeleteWhenDone)
+				m_Manager.DeleteConnection(CDatum(GetID()));
 			break;
 			}
 		}

@@ -46,16 +46,20 @@ class CMecharcologyDb
 		bool AddMachine (const CString &sDisplayName, const CString &sAddress, const CIPInteger &SecretKey, CString *retsError);
 		bool AuthenticateMachine (const CString &sAuthName, const CIPInteger &AuthKey);
 		bool DeleteMachine (const CString &sName);
+		bool DeleteMachine (const SMachineDesc &Desc);
 		bool DeleteMachineByKey (const CIPInteger &Key);
-		bool FindArcologyPrime (SMachineDesc *retDesc = NULL);
+		bool FindArcologyPrime (SMachineDesc *retDesc = NULL) const;
 		bool FindMachineByAddress (const CString &sAddress, SMachineDesc *retDesc = NULL);
-		bool FindMachineByName (const CString &sName, SMachineDesc *retDesc = NULL);
+		bool FindMachineByName (const CString &sName, SMachineDesc *retDesc = NULL) const;
+		bool FindMachineByPartialName (const CString &sName, SMachineDesc *retDesc = NULL) const;
 		bool GetMachine (const CString &sName, SMachineDesc *retDesc = NULL);
 		bool GetMachine (int iIndex, SMachineDesc *retDesc) const;
-		inline int GetMachineCount (void) const { return m_Machines.GetCount(); }
+		int GetMachineCount (void) const { return m_Machines.GetCount(); }
 		bool GetStatus (CDatum *retStatus);
 		bool HasArcologyKey (void) const;
+		bool IsArcologyPrime (const CString &sName) const;
 		bool JoinArcology (const CString &sPrimeName, const CIPInteger &PrimeKey, CString *retsError);
+		bool LeaveArcology (CString *retsError);
 		bool OnCompleteAuth (const CString &sName);
 		bool ProcessOldMachines (TArray<CString> &OldMachines);
 		bool SetArcologyKey (const CIPInteger &PrimeKey, CString *retsError);
@@ -66,12 +70,12 @@ class CMecharcologyDb
 		bool FindModuleByFilespec (const CString &sFilespec, SModuleDesc *retDesc = NULL);
 		bool GetCentralModule (SModuleDesc *retDesc = NULL);
 		bool GetModule (const CString &sName, SModuleDesc *retDesc = NULL);
-		inline int GetModuleCount (void) { CSmartLock Lock(m_cs); return m_Modules.GetCount(); }
-		inline const CString &GetModuleName (int iIndex) { CSmartLock Lock(m_cs); return m_Modules[iIndex].sName; }
+		int GetModuleCount (void) { CSmartLock Lock(m_cs); return m_Modules.GetCount(); }
+		const CString &GetModuleName (int iIndex) { CSmartLock Lock(m_cs); return m_Modules[iIndex].sName; }
 		CProcess *GetModuleProcess (const CString &sName);
-		inline CProcess &GetModuleProcess (int iIndex) { CSmartLock Lock(m_cs); return m_Modules[iIndex].hProcess; }
+		CProcess &GetModuleProcess (int iIndex) { CSmartLock Lock(m_cs); return m_Modules[iIndex].hProcess; }
 		CTimeSpan GetModuleRunTime (const CString &sName);
-		inline DWORD GetModuleSeq (int iIndex) { CSmartLock Lock(m_cs); return m_Modules[iIndex].dwSeq; }
+		DWORD GetModuleSeq (int iIndex) { CSmartLock Lock(m_cs); return m_Modules[iIndex].dwSeq; }
 		bool IsModuleRemoved (const CString &sName) const;
 		bool LoadModule (const CString &sFilespec, bool bDebug, CString *retsName, CString *retsError);
 		void OnMnemosynthUpdated (void);
@@ -117,6 +121,7 @@ class CMecharcologyDb
 			CDateTime StartTime;				//	Time when module started
 			};
 
+		int FindMachine (const SMachineDesc &Desc) const;
 		int FindMachine (const CString &sName);
 		int FindModule (const CString &sName) const;
 		void SetCurrentModule (const CString &sName);
@@ -169,6 +174,7 @@ class CExarchEngine : public TSimpleEngine<CExarchEngine>, public IArchonExarch
 		CExarchEngine (const SOptions &Options);
 		virtual ~CExarchEngine (void);
 
+		void RemoveMachine (const SMachineDesc &MachineToRemove);
 		bool SendAMP1Command (const CString &sMachineName, const CString &sCommand, CDatum dData);
 
 		static SMessageHandler m_MsgHandlerList[];
@@ -205,6 +211,8 @@ class CExarchEngine : public TSimpleEngine<CExarchEngine>, public IArchonExarch
 		void MsgOnLog (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgOnModuleStart (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgOnModuleStop (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
+		void MsgPing (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
+		void MsgRemoveMachine (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgRemoveModule (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgRemoveVolume (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgReportDiskError (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
@@ -218,6 +226,7 @@ class CExarchEngine : public TSimpleEngine<CExarchEngine>, public IArchonExarch
 		//	AMP1
 		void AMP1Auth (CDatum dData, CDatum dConnection);
 		void AMP1Join (CDatum dData);
+		void AMP1Leave (void);
 		void AMP1Ping (const CString &sSender);
 		void AMP1Rejoin (void);
 		void AMP1Send (CDatum dData);
@@ -241,7 +250,7 @@ class CExarchEngine : public TSimpleEngine<CExarchEngine>, public IArchonExarch
 		bool FindVolume (const CString &sVolume, CDatum *retdVolumeDesc = NULL, CString *retsKey = NULL);
 		CString GenerateResourceNameFromFilespec (const CString &sFilespec);
 		CString GetMachineStatus (void);
-		inline bool IsArcologyPrime (void) const { return m_sArcologyPrime.IsEmpty(); }
+		bool IsArcologyPrime (void) const { return m_sArcologyPrime.IsEmpty(); }
 		bool IsRestartRequired (const CString &sFilename);
 		void OnMachineConnection (const CString &sName);
 		void OnMachineStart (void);

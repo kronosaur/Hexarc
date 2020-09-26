@@ -11,6 +11,8 @@
 
 DECLARE_CONST_STRING(ADDR_NULL,							"Arc.null")
 
+DECLARE_CONST_STRING(FIELD_ADDRESS,						"address")
+
 DECLARE_CONST_STRING(MSG_ESPER_ON_CONNECT,				"Esper.onConnect")
 DECLARE_CONST_STRING(MSG_ESPER_ON_DISCONNECT,			"Esper.onDisconnect")
 DECLARE_CONST_STRING(MSG_ESPER_ON_READ,					"Esper.onRead")
@@ -449,6 +451,30 @@ void CEsperConnectionManager::DeleteConnection (CEsperConnection *pConnection)
 	m_Connections.Delete(pConnection->GetID());
 	m_Outbound.DeleteValue(pConnection);
 	delete pConnection;
+	}
+
+void CEsperConnectionManager::DeleteConnectionByAddress (const CString sAddress)
+
+//	DeleteConnectionByAddress
+//
+//	Deletes any connectio to the given address.
+
+	{
+	CSmartLock Lock(m_cs);
+
+	TArray<CEsperConnection *> ToDelete;
+	for (int i = 0; i < m_Connections.GetCount(); i++)
+		{
+		CDatum dValue = m_Connections[i]->GetProperty(FIELD_ADDRESS);
+		if (!dValue.IsNil()
+				&& strEqualsNoCase(sAddress, dValue))
+			{
+			ToDelete.Insert(m_Connections[i]);
+			}
+		}
+
+	for (int i = 0; i < ToDelete.GetCount(); i++)
+		DeleteConnection(ToDelete[i]);
 	}
 
 bool CEsperConnectionManager::DeleteIfMarked (IIOCPEntry *pConnection)

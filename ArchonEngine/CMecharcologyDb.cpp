@@ -1,37 +1,38 @@
 //	CMecharcologyDb.cpp
 //
 //	CMecharcologyDb class
-//	Copyright (c) 2010 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2010 Kronosaur Productions, LLC. All Rights Reserved.
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(FIELD_ADDRESS,						"address")
-DECLARE_CONST_STRING(FIELD_ID,							"id")
-DECLARE_CONST_STRING(FIELD_FILESPEC,					"filespec")
-DECLARE_CONST_STRING(FIELD_NAME,						"name")
-DECLARE_CONST_STRING(FIELD_STATUS,						"status")
-DECLARE_CONST_STRING(FIELD_VERSION,						"version")
+DECLARE_CONST_STRING(FIELD_ADDRESS,						"address");
+DECLARE_CONST_STRING(FIELD_ID,							"id");
+DECLARE_CONST_STRING(FIELD_FILESPEC,					"filespec");
+DECLARE_CONST_STRING(FIELD_NAME,						"name");
+DECLARE_CONST_STRING(FIELD_STATUS,						"status");
+DECLARE_CONST_STRING(FIELD_VERSION,						"version");
 
-DECLARE_CONST_STRING(STR_ERROR_MODULE_ALREADY_LOADED,	"%s has already been loaded.")
-DECLARE_CONST_STRING(STR_ERROR_CANNOT_FIND_MODULE_PATH,	"Unable to find module %s.")
-DECLARE_CONST_STRING(STR_ERROR_CANNOT_LAUNCH_MODULE,	"Unable to launch module %s : %s")
+DECLARE_CONST_STRING(STR_ERROR_MODULE_ALREADY_LOADED,	"%s has already been loaded.");
+DECLARE_CONST_STRING(STR_ERROR_CANNOT_FIND_MODULE_PATH,	"Unable to find module %s.");
+DECLARE_CONST_STRING(STR_ERROR_CANNOT_LAUNCH_MODULE,	"Unable to launch module %s : %s");
 
-DECLARE_CONST_STRING(STR_ARCOLOGY_PRIME,				"Arcology Prime")
-DECLARE_CONST_STRING(STR_MODULE_EXTENSION,				".exe")
-DECLARE_CONST_STRING(STR_DEBUG_SWITCH,					" /debug")
-DECLARE_CONST_STRING(STR_UNKNOWN_VERSION,				"unknown")
+DECLARE_CONST_STRING(STR_ARCOLOGY_PRIME,				"Arcology Prime");
+DECLARE_CONST_STRING(STR_MODULE_EXTENSION,				".exe");
+DECLARE_CONST_STRING(STR_DEBUG_SWITCH,					" /debug");
+DECLARE_CONST_STRING(STR_UNKNOWN_VERSION,				"unknown");
 
-DECLARE_CONST_STRING(STR_MACHINE_STATUS_ACTIVE,			"running")
-DECLARE_CONST_STRING(STR_MACHINE_STATUS_UNKNOWN,		"unknown")
+DECLARE_CONST_STRING(STR_MACHINE_STATUS_ACTIVE,			"running");
+DECLARE_CONST_STRING(STR_MACHINE_STATUS_UNKNOWN,		"unknown");
 
-DECLARE_CONST_STRING(STR_MODULE_STATUS_LAUNCHED,		"launched")
-DECLARE_CONST_STRING(STR_MODULE_STATUS_ON_START,		"onStart")
-DECLARE_CONST_STRING(STR_MODULE_STATUS_REMOVED,			"removed")
-DECLARE_CONST_STRING(STR_MODULE_STATUS_RUNNING,			"running")
-DECLARE_CONST_STRING(STR_MODULE_STATUS_UNKNOWN,			"unknown")
+DECLARE_CONST_STRING(STR_MODULE_STATUS_LAUNCHED,		"launched");
+DECLARE_CONST_STRING(STR_MODULE_STATUS_ON_START,		"onStart");
+DECLARE_CONST_STRING(STR_MODULE_STATUS_REMOVED,			"removed");
+DECLARE_CONST_STRING(STR_MODULE_STATUS_RUNNING,			"running");
+DECLARE_CONST_STRING(STR_MODULE_STATUS_UNKNOWN,			"unknown");
 
-DECLARE_CONST_STRING(ERR_DUPLICATE_MACHINE,				"Duplicate machine address.")
-DECLARE_CONST_STRING(ERR_CANT_JOIN,						"Unable to join another arcology.")
+DECLARE_CONST_STRING(ERR_DUPLICATE_MACHINE,				"Duplicate machine address.");
+DECLARE_CONST_STRING(ERR_CANT_JOIN,						"Unable to join another arcology.");
+DECLARE_CONST_STRING(ERR_CANT_LEAVE,					"Unable to leave arcology.");
 
 bool CMecharcologyDb::AddMachine (const CString &sDisplayName, const CString &sAddress, const CIPInteger &SecretKey, CString *retsError)
 
@@ -182,6 +183,25 @@ bool CMecharcologyDb::DeleteMachine (const CString &sName)
 	return true;
 	}
 
+bool CMecharcologyDb::DeleteMachine (const SMachineDesc &Desc)
+
+//	DeleteMachine
+//
+//	Removes the machine based on whatever information we have.
+
+	{
+	CSmartLock Lock(m_cs);
+
+	int iMachine;
+	if ((iMachine = FindMachine(Desc)) == -1)
+		return false;
+
+	//	Delete the machine
+
+	m_Machines.Delete(iMachine);
+	return true;
+	}
+
 bool CMecharcologyDb::DeleteMachineByKey (const CIPInteger &Key)
 
 //	DeleteMachineByKey
@@ -222,7 +242,7 @@ bool CMecharcologyDb::DeleteModule (const CString &sName)
 	return true;
 	}
 
-bool CMecharcologyDb::FindArcologyPrime (SMachineDesc *retDesc)
+bool CMecharcologyDb::FindArcologyPrime (SMachineDesc *retDesc) const
 
 //	FindArcologyPrime
 //
@@ -239,6 +259,35 @@ bool CMecharcologyDb::FindArcologyPrime (SMachineDesc *retDesc)
 	retDesc->Key = m_Machines[m_iArcologyPrime].SecretKey;
 
 	return true;
+	}
+
+int CMecharcologyDb::FindMachine (const SMachineDesc &Desc) const
+
+//	FindMachine
+//
+//	Finds the machine by descriptor. Returns -1 if not found.
+
+	{
+	for (int i = 0; i < m_Machines.GetCount(); i++)
+		{
+		if (!Desc.Key.IsEmpty())
+			{
+			if (Desc.Key == m_Machines[i].SecretKey)
+				return i;
+			}
+		else if (!Desc.sName.IsEmpty())
+			{
+			if (strEquals(Desc.sName, m_Machines[i].sName))
+				return i;
+			}
+		else if (!Desc.sAddress.IsEmpty())
+			{
+			if (strEquals(Desc.sAddress, m_Machines[i].sAddress))
+				return i;
+			}
+		}
+
+	return -1;
 	}
 
 int CMecharcologyDb::FindMachine (const CString &sName)
@@ -286,7 +335,7 @@ bool CMecharcologyDb::FindMachineByAddress (const CString &sAddress, SMachineDes
 	return false;
 	}
 
-bool CMecharcologyDb::FindMachineByName (const CString &sName, SMachineDesc *retDesc)
+bool CMecharcologyDb::FindMachineByName (const CString &sName, SMachineDesc *retDesc) const
 
 //	FindMachineByName
 //
@@ -294,12 +343,11 @@ bool CMecharcologyDb::FindMachineByName (const CString &sName, SMachineDesc *ret
 
 	{
 	CSmartLock Lock(m_cs);
-	int i;
 
 	if (sName.IsEmpty())
 		return FindArcologyPrime(retDesc);
 
-	for (i = 0; i < m_Machines.GetCount(); i++)
+	for (int i = 0; i < m_Machines.GetCount(); i++)
 		if (strEquals(sName, m_Machines[i].sName))
 			{
 			if (retDesc)
@@ -313,6 +361,70 @@ bool CMecharcologyDb::FindMachineByName (const CString &sName, SMachineDesc *ret
 			}
 
 	return false;
+	}
+
+bool CMecharcologyDb::FindMachineByPartialName (const CString &sName, SMachineDesc *retDesc) const
+
+//	FindMachineByPartialName
+//
+//	Looks for the given machine by partial name. If we don't the partial name
+//	matches more than one machine, we return FALSE.
+
+	{
+	CSmartLock Lock(m_cs);
+
+	if (sName.IsEmpty())
+		return FindArcologyPrime(retDesc);
+
+	int iMatch = -1;
+	for (int i = 0; i < m_Machines.GetCount(); i++)
+		{
+		//	Use either the name or the address. [Sometimes there is no name
+		//	if there was an error adding the machine.]
+
+		const CString &sTargetName = (m_Machines[i].sName.IsEmpty() ? m_Machines[i].sAddress : m_Machines[i].sName);
+
+		//	If no match, then skip
+
+		if (!strStartsWithNoCase(sTargetName, sName))
+			continue;
+
+		//	If we have an exact match, then we're done.
+
+		if (sTargetName.GetLength() == sName.GetLength())
+			{
+			iMatch = i;
+			break;
+			}
+
+		//	Otherwise, if we've already got a match then it means that multiple
+		//	names match, in which case we return FALSE.
+
+		else if (iMatch != -1)
+			return false;
+
+		//	Else, we have a match, but we need to continue searching to make
+		//	sure there are no duplicates.
+
+		else
+			{
+			iMatch = i;
+			}
+		}
+
+	//	Done
+
+	if (iMatch == -1)
+		return false;
+
+	if (retDesc)
+		{
+		retDesc->sAddress = m_Machines[iMatch].sAddress;
+		retDesc->sName = m_Machines[iMatch].sName;
+		retDesc->Key = m_Machines[iMatch].SecretKey;
+		}
+
+	return true;
 	}
 
 int CMecharcologyDb::FindModule (const CString &sName) const
@@ -634,6 +746,21 @@ bool CMecharcologyDb::HasArcologyKey (void) const
 	return true;
 	}
 
+bool CMecharcologyDb::IsArcologyPrime (const CString &sName) const
+
+//	IsArcologyPrime
+//
+//	Returns TRUE if the given machine (by name) is Arcology Prime.
+
+	{
+	CSmartLock Lock(m_cs);
+
+	if (m_iArcologyPrime == -1)
+		return false;
+
+	return strEquals(sName, m_Machines[m_iArcologyPrime].sName);
+	}
+
 bool CMecharcologyDb::JoinArcology (const CString &sPrimeName, const CIPInteger &PrimeKey, CString *retsError)
 
 //	JoinArcology
@@ -659,6 +786,29 @@ bool CMecharcologyDb::JoinArcology (const CString &sPrimeName, const CIPInteger 
 
 	Prime.sName = sPrimeName;
 	Prime.SecretKey = PrimeKey;
+
+	return true;
+	}
+
+bool CMecharcologyDb::LeaveArcology (CString *retsError)
+
+//	LeaveArcology
+//
+//	We've been asked by Arcology Prime to leave.
+
+	{
+	CSmartLock Lock(m_cs);
+
+	if (m_iArcologyPrime == -1
+			|| m_iArcologyPrime >= m_Machines.GetCount())
+		{
+		*retsError = ERR_CANT_LEAVE;
+		return false;
+		}
+
+	SMachineEntry &Prime = m_Machines[m_iArcologyPrime];
+	Prime.sName = NULL_STR;
+	Prime.SecretKey = CIPInteger();
 
 	return true;
 	}

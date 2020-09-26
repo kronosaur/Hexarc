@@ -21,26 +21,27 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(AMP1_AUTH,							"AUTH")
-DECLARE_CONST_STRING(AMP1_REPLY_OK,						"AMP/1.00 OK\r\n")
+DECLARE_CONST_STRING(AMP1_AUTH,							"AUTH");
+DECLARE_CONST_STRING(AMP1_REPLY_OK,						"AMP/1.00 OK\r\n");
 
-DECLARE_CONST_STRING(FIELD_AUTH_NAME,					"authName")
-DECLARE_CONST_STRING(FIELD_AUTH_KEY,					"authKey")
+DECLARE_CONST_STRING(FIELD_ADDRESS,						"address");
+DECLARE_CONST_STRING(FIELD_AUTH_NAME,					"authName");
+DECLARE_CONST_STRING(FIELD_AUTH_KEY,					"authKey");
 
-DECLARE_CONST_STRING(MSG_ESPER_ON_AMP1,					"Esper.onAMP1")
-DECLARE_CONST_STRING(MSG_LOG_DEBUG,						"Log.debug")
-DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error")
+DECLARE_CONST_STRING(MSG_ESPER_ON_AMP1,					"Esper.onAMP1");
+DECLARE_CONST_STRING(MSG_LOG_DEBUG,						"Log.debug");
+DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error");
 
-DECLARE_CONST_STRING(PROTOCOL_AMP1,						"AMP/1.00")
+DECLARE_CONST_STRING(PROTOCOL_AMP1,						"AMP/1.00");
 
-DECLARE_CONST_STRING(ERR_INVALID_MESSAGE,				"[%x] Cannot understand AMP1 message: %s")
-DECLARE_CONST_STRING(ERR_READ_START_FAILED,				"[%x] Unable to initiate read from AMP1 connection: %s")
-DECLARE_CONST_STRING(ERR_READ_OP_FAILED,				"[%x] Unable to read from AMP1 connection.")
-DECLARE_CONST_STRING(ERR_WRITE_OP_FAILED,				"[%x] Unable to write to AMP1 connection.")
-DECLARE_CONST_STRING(ERR_INVALID_PROTOCOL,				"Unknown protocol: %s.")
-DECLARE_CONST_STRING(ERR_INVALID_HEADER,				"Invalid header.")
-DECLARE_CONST_STRING(ERR_INVALID_DATA_LEN,				"Invalid data length: %s.")
-DECLARE_CONST_STRING(ERR_INVALID_AUTH,					"Invalid machine authentication from %s.")
+DECLARE_CONST_STRING(ERR_INVALID_MESSAGE,				"[%x] Cannot understand AMP1 message: %s");
+DECLARE_CONST_STRING(ERR_READ_START_FAILED,				"[%x] Unable to initiate read from AMP1 connection: %s");
+DECLARE_CONST_STRING(ERR_READ_OP_FAILED,				"[%x] Unable to read from AMP1 connection.");
+DECLARE_CONST_STRING(ERR_WRITE_OP_FAILED,				"[%x] Unable to write to AMP1 connection.");
+DECLARE_CONST_STRING(ERR_INVALID_PROTOCOL,				"Unknown protocol: %s.");
+DECLARE_CONST_STRING(ERR_INVALID_HEADER,				"Invalid header.");
+DECLARE_CONST_STRING(ERR_INVALID_DATA_LEN,				"Invalid data length: %s.");
+DECLARE_CONST_STRING(ERR_INVALID_AUTH,					"Invalid machine authentication from %s.");
 
 CEsperAMP1ConnectionIn::CEsperAMP1ConnectionIn (CEsperConnectionManager &Manager, const CString &sClientAddr, SOCKET hSocket) : CEsperConnection(hSocket),
 		m_Manager(Manager),
@@ -183,6 +184,19 @@ bool CEsperAMP1ConnectionIn::GetHeader (const IMemoryBlock &Data, CString *retsC
 	*retdwPartialDataLen = (int)(pPosEnd - pPos);
 
 	return true;
+	}
+
+CDatum CEsperAMP1ConnectionIn::GetProperty (const CString &sProperty) const
+
+//	GetProperty
+//
+//	Returns properties.
+
+	{
+	if (strEquals(sProperty, FIELD_ADDRESS))
+		return CDatum(m_sClientAddr);
+	else
+		return CDatum();
 	}
 
 void CEsperAMP1ConnectionIn::OnConnect (void)

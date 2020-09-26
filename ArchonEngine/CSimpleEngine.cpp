@@ -8,28 +8,30 @@
 const int DEFAULT_PROCESSING_CHUNK =					1;
 const int DEFAULT_QUEUE_SIZE =							1000;
 
-DECLARE_CONST_STRING(ADDR_NULL,							"Arc.null")
+DECLARE_CONST_STRING(ADDR_NULL,							"Arc.null");
 
-DECLARE_CONST_STRING(FIELD_CLASS,						"class")
-DECLARE_CONST_STRING(FIELD_STATUS,						"status")
+DECLARE_CONST_STRING(FIELD_CLASS,						"class");
+DECLARE_CONST_STRING(FIELD_STATUS,						"status");
 
-DECLARE_CONST_STRING(MSG_ARC_FILE_MSG,					"Arc.fileMsg")
-DECLARE_CONST_STRING(MSG_ARC_SANDBOX_MSG,				"Arc.sandboxMsg")
-DECLARE_CONST_STRING(MSG_ERROR_PREFIX,					"Error.")
-DECLARE_CONST_STRING(MSG_ERROR_NO_RIGHT,				"Error.notAllowed")
-DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply")
-DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error")
-DECLARE_CONST_STRING(MSG_LOG_INFO,						"Log.info")
-DECLARE_CONST_STRING(MSG_OK,							"OK")
+DECLARE_CONST_STRING(MSG_ARC_FILE_MSG,					"Arc.fileMsg");
+DECLARE_CONST_STRING(MSG_ARC_PING,						"Arc.ping");
+DECLARE_CONST_STRING(MSG_ARC_SANDBOX_MSG,				"Arc.sandboxMsg");
+DECLARE_CONST_STRING(MSG_ERROR_PREFIX,					"Error.");
+DECLARE_CONST_STRING(MSG_ERROR_NO_RIGHT,				"Error.notAllowed");
+DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply");
+DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error");
+DECLARE_CONST_STRING(MSG_LOG_INFO,						"Log.info");
+DECLARE_CONST_STRING(MSG_OK,							"OK");
+DECLARE_CONST_STRING(MSG_REPLY_DATA,					"Reply.data");
 
-DECLARE_CONST_STRING(STR_SIMPLE_ENGINE,					"CSimpleEngine")
+DECLARE_CONST_STRING(STR_SIMPLE_ENGINE,					"CSimpleEngine");
 
-DECLARE_CONST_STRING(ERR_CRASH_ON_MSG,					"CRASH: %s [%s]: Unknown crash.")
-DECLARE_CONST_STRING(ERR_EXCEPTION,						"CRASH: %s [%s]: %s")
-DECLARE_CONST_STRING(ERR_INTERNAL_SERVER_ERROR,			"Internal server error.")
-DECLARE_CONST_STRING(ERR_MSG_TIMING,					"%s: %s took %d ms to process.")
-DECLARE_CONST_STRING(ERR_NOT_ADMIN,						"Service does not have Arc.admin right.")
-DECLARE_CONST_STRING(ERR_NOT_IN_SANDBOX,				"Service %s is not authorized to perform that operation.")
+DECLARE_CONST_STRING(ERR_CRASH_ON_MSG,					"CRASH: %s [%s]: Unknown crash.");
+DECLARE_CONST_STRING(ERR_EXCEPTION,						"CRASH: %s [%s]: %s");
+DECLARE_CONST_STRING(ERR_INTERNAL_SERVER_ERROR,			"Internal server error.");
+DECLARE_CONST_STRING(ERR_MSG_TIMING,					"%s: %s took %d ms to process.");
+DECLARE_CONST_STRING(ERR_NOT_ADMIN,						"Service does not have Arc.admin right.");
+DECLARE_CONST_STRING(ERR_NOT_IN_SANDBOX,				"Service %s is not authorized to perform that operation.");
 
 CSimpleEngine::CSimpleEngine (const CString &sName, int iInitialThreads) : 
 		m_sName(sName),
@@ -257,6 +259,22 @@ void CSimpleEngine::LogMessageTiming (const SArchonMessage &Msg, DWORD dwTime)
 	//	Log it.
 
 	Log(MSG_LOG_INFO, strPattern(ERR_MSG_TIMING, GetName(), Msg.sMsg, dwTime));
+	}
+
+bool CSimpleEngine::ProcessMessageDefault (const SArchonMessage &Msg)
+
+//	ProcessMessageDefault
+//
+//	Process some default messages.
+
+	{
+	if (strEquals(Msg.sMsg, MSG_ARC_PING))
+		{
+		SendMessageReply(MSG_REPLY_DATA, Msg.dPayload, Msg);
+		return true;
+		}
+	else
+		return false;
 	}
 
 CDatum CSimpleEngine::MessageToHexeResult (const SArchonMessage &Msg)

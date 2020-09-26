@@ -201,6 +201,8 @@
     <ClCompile Include="CMessageDispatchSession.cpp" />
     <ClCompile Include="CMessagePort.cpp" />
     <ClCompile Include="CMsgProcessKeepAlive.cpp" />
+    <ClCompile Include="MsgPing.cpp" />
+    <ClCompile Include="MsgRemoveMachine.cpp" />
     <ClCompile Include="ISessionHandler.cpp" />
     <ClCompile Include="MsgAddMachine.cpp" />
     <ClCompile Include="MsgAddModule.cpp" />

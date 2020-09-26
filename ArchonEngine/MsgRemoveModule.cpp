@@ -5,13 +5,13 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(ADDRESS_EXARCH_COMMAND,			"Exarch.command@~/CentralModule")
+DECLARE_CONST_STRING(ADDRESS_EXARCH_COMMAND,			"Exarch.command@~/CentralModule");
 
-DECLARE_CONST_STRING(FIELD_MODULES,						"modules")
+DECLARE_CONST_STRING(FIELD_MODULES,						"modules");
 
-DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply")
-DECLARE_CONST_STRING(MSG_EXARCH_ADD_MODULE,				"Exarch.addModule")
-DECLARE_CONST_STRING(MSG_OK,							"OK")
+DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply");
+DECLARE_CONST_STRING(MSG_EXARCH_ADD_MODULE,				"Exarch.addModule");
+DECLARE_CONST_STRING(MSG_OK,							"OK");
 
 void CExarchEngine::MsgRemoveModule (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)
 

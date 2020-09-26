@@ -169,6 +169,7 @@ class CSimpleEngine : public IArchonEngine, public IArchonMessagePort, protected
 		bool IsSandboxMsg (const SArchonMessage &Msg, SArchonMessage *retMsg, CHexeSecurityCtx *retSecurityCtx);
 		void LogCrashProcessingMessage (const SArchonMessage &Msg, const CException &e);
 		void LogMessageTiming (const SArchonMessage &Msg, DWORD dwTime);
+		bool ProcessMessageDefault (const SArchonMessage &Msg);
 
 		//	Overridden by descendants
 		virtual void OnBoot (void) { }
@@ -371,6 +372,9 @@ template <class VALUE> class TSimpleEngine : public CSimpleEngine
 
 				else if (IsSandboxMsg(Msg, &NewMsg, &SecurityCtx)
 						&& ProcessMessageFromTable(NewMsg, &SecurityCtx))
+					;
+
+				else if (ProcessMessageDefault(Msg))
 					;
 
 				//	If we didn't find a handler, then this must be a reply

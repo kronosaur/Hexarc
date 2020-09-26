@@ -17,6 +17,7 @@ class CEsperAMP1ConnectionIn : public CEsperConnection
 		virtual void AccumulateStatus (SStatus *ioStatus) override;
 		virtual void ClearBusy (void) override;
 		virtual void OnConnect (void) override;
+		virtual CDatum GetProperty (const CString &sProperty) const override;
 		virtual bool SetBusy (void) override;
 		virtual bool SetProperty (const CString &sProperty, CDatum dValue) override;
 
@@ -69,6 +70,7 @@ class CEsperAMP1ConnectionOut : public CEsperConnection
 		virtual bool BeginAMP1Request (const SArchonMessage &Msg, const SAMP1Request &Request, CString *retsError) override;
 		virtual void ClearBusy (void) override;
 		virtual const CString &GetHostConnection (void) override { return m_sHostConnection; }
+		virtual CDatum GetProperty (const CString &sProperty) const override;
 		virtual bool SetBusy (void) override;
 
 	protected:
@@ -108,19 +110,20 @@ class CEsperAMP1ConnectionOut : public CEsperConnection
 		CEsperConnectionManager &m_Manager;
 		CString m_sHostConnection;
 		CString m_sAddress;
-		DWORD m_dwPort;
+		DWORD m_dwPort = 0;
 		CString m_sAuthName;
 		CIPInteger m_AuthKey;
 
-		EStates m_iState;
+		EStates m_iState = stateDisconnected;
 
 		//	Set per request
 
 		SArchonMessage m_Msg;
 		CStringBuffer m_RequestBuffer;
 		CString m_sLastResult;
-		bool m_bReconnect;
-		bool m_bResetBuffer;
+		bool m_bReconnect = false;
+		bool m_bResetBuffer = false;
+		bool m_bDeleteWhenDone = false;
 	};
 
 class CEsperHTTPOutConnection : public CEsperConnection

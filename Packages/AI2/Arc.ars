@@ -181,11 +181,15 @@ function arc.machines
 				(&& (= command 'add) (!= p1 ""))
 					(invoke 'Exarch.addMachine p1)
 
+				(&& (= command 'remove) (!= p1 ""))
+					(invoke 'Exarch.removeMachine p1)
+
 				(cat
 					"USAGE\n\n"
 
 					"arc.machines\n"
-					"arc.machine add {machineAddress}"
+					"arc.machine add {machineAddress}\n"
+					"arc.machine remove {machineName}"
 					)
 				)
 			)
@@ -264,6 +268,21 @@ function arc.packages
 					"arc.packages"
 					)
 				)
+			)
+		)
+
+function arc.ping
+		{
+		attributes: (AI2.console AI2.authAdminOnly)
+		export: public
+		help: "Pings a machine or all machines."
+		}
+
+	(lambda (params)
+		(block (
+			(machine (@ params 0))
+			)
+			(invoke 'Exarch.ping machine)
 			)
 		)
 

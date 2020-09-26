@@ -5,12 +5,12 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(FIELD_LOCAL_PATH,					"localPath")
-DECLARE_CONST_STRING(FIELD_SPACE_FREE_GB,				"spaceFreeGB")
+DECLARE_CONST_STRING(FIELD_LOCAL_PATH,					"localPath");
+DECLARE_CONST_STRING(FIELD_SPACE_FREE_GB,				"spaceFreeGB");
 
-DECLARE_CONST_STRING(MNEMO_ARC_STORAGE,					"Arc.storage")
+DECLARE_CONST_STRING(MNEMO_ARC_STORAGE,					"Arc.storage");
 
-DECLARE_CONST_STRING(MSG_REPLY_DATA,					"Reply.data")
+DECLARE_CONST_STRING(MSG_REPLY_DATA,					"Reply.data");
 
 void CExarchEngine::MsgGetStorageList (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)
 

@@ -63,6 +63,7 @@ DECLARE_CONST_STRING(MSG_ARC_SANDBOX_MSG,				"Arc.sandboxMsg")
 DECLARE_CONST_STRING(MSG_ERROR_NO_RIGHT,				"Error.notAllowed")
 DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply")
 DECLARE_CONST_STRING(MSG_ESPER_AMP1,					"Esper.amp1")
+DECLARE_CONST_STRING(MSG_ESPER_AMP1_DISCONNECT,			"Esper.amp1Disconnect")
 DECLARE_CONST_STRING(MSG_ESPER_DISCONNECT,				"Esper.disconnect")
 DECLARE_CONST_STRING(MSG_ESPER_GET_USAGE_HISTORY,		"Esper.getUsageHistory")
 DECLARE_CONST_STRING(MSG_ESPER_HTTP,					"Esper.http")
@@ -364,6 +365,17 @@ void CEsperEngine::MsgEsperAMP1 (const SArchonMessage &Msg)
 		}
 
 	//	We reply when the async operation completes (or we get an error).
+	}
+
+void CEsperEngine::MsgEsperAMP1Disconnect (const SArchonMessage &Msg)
+
+//	MsgEsperAMP1Disconnect
+//
+//	Esper.amp1Disconnect {machine-address}
+
+	{
+	m_Connections.DeleteConnectionByAddress(Msg.dPayload.GetElement(0));
+	SendMessageReply(MSG_OK, CDatum(), Msg);
 	}
 
 void CEsperEngine::MsgEsperDisconnect (const SArchonMessage &Msg)
@@ -832,6 +844,9 @@ bool CEsperEngine::SendMessage (const SArchonMessage &Msg)
 
 		if (strEquals(Msg.sMsg, MSG_ESPER_AMP1))
 			MsgEsperAMP1(Msg);
+
+		else if (strEquals(Msg.sMsg, MSG_ESPER_AMP1_DISCONNECT))
+			MsgEsperAMP1Disconnect(Msg);
 
 		else if (strEquals(Msg.sMsg, MSG_ESPER_DISCONNECT))
 			MsgEsperDisconnect(Msg);

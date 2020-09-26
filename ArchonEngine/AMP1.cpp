@@ -5,47 +5,51 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(ADDRESS_ESPER_COMMAND,				"Esper.command@~/~")
-DECLARE_CONST_STRING(ADDRESS_EXARCH_COMMAND,			"Exarch.command@~/CentralModule")
+DECLARE_CONST_STRING(ADDRESS_ESPER_COMMAND,				"Esper.command@~/~");
+DECLARE_CONST_STRING(ADDRESS_EXARCH_COMMAND,			"Exarch.command@~/CentralModule");
 
-DECLARE_CONST_STRING(AMP1_AUTH,							"AUTH")
-DECLARE_CONST_STRING(AMP1_JOIN,							"JOIN")
-DECLARE_CONST_STRING(AMP1_PING,							"PING")
-DECLARE_CONST_STRING(AMP1_REJOIN,						"REJOIN")
-DECLARE_CONST_STRING(AMP1_SEND,							"SEND")
-DECLARE_CONST_STRING(AMP1_WELCOME,						"WELCOME")
+DECLARE_CONST_STRING(AMP1_AUTH,							"AUTH");
+DECLARE_CONST_STRING(AMP1_JOIN,							"JOIN");
+DECLARE_CONST_STRING(AMP1_LEAVE,						"LEAVE");
+DECLARE_CONST_STRING(AMP1_PING,							"PING");
+DECLARE_CONST_STRING(AMP1_REJOIN,						"REJOIN");
+DECLARE_CONST_STRING(AMP1_SEND,							"SEND");
+DECLARE_CONST_STRING(AMP1_WELCOME,						"WELCOME");
 
-DECLARE_CONST_STRING(FIELD_ARCOLOGY_PRIME_KEY,			"arcologyPrimeKey")
-DECLARE_CONST_STRING(FIELD_AUTH_KEY,					"authKey")
-DECLARE_CONST_STRING(FIELD_AUTH_NAME,					"authName")
-DECLARE_CONST_STRING(FIELD_HOST_ADDRESS,				"hostAddress")
-DECLARE_CONST_STRING(FIELD_STATUS,						"status")
+DECLARE_CONST_STRING(FIELD_ARCOLOGY_PRIME_KEY,			"arcologyPrimeKey");
+DECLARE_CONST_STRING(FIELD_AUTH_KEY,					"authKey");
+DECLARE_CONST_STRING(FIELD_AUTH_NAME,					"authName");
+DECLARE_CONST_STRING(FIELD_HOST_ADDRESS,				"hostAddress");
+DECLARE_CONST_STRING(FIELD_STATUS,						"status");
 
-DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply")
-DECLARE_CONST_STRING(MSG_ESPER_AMP1,					"Esper.amp1")
-DECLARE_CONST_STRING(MSG_ESPER_SET_CONNECTION_PROPERTY,	"Esper.setConnectionProperty")
-DECLARE_CONST_STRING(MSG_LOG_DEBUG,						"Log.debug")
-DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error")
-DECLARE_CONST_STRING(MSG_LOG_INFO,						"Log.info")
-DECLARE_CONST_STRING(MSG_OK,							"OK")
+DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply");
+DECLARE_CONST_STRING(MSG_ESPER_AMP1,					"Esper.amp1");
+DECLARE_CONST_STRING(MSG_ESPER_AMP1_DISCONNECT,			"Esper.amp1Disconnect");
+DECLARE_CONST_STRING(MSG_ESPER_SET_CONNECTION_PROPERTY,	"Esper.setConnectionProperty");
+DECLARE_CONST_STRING(MSG_LOG_DEBUG,						"Log.debug");
+DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error");
+DECLARE_CONST_STRING(MSG_LOG_INFO,						"Log.info");
+DECLARE_CONST_STRING(MSG_OK,							"OK");
 
-DECLARE_CONST_STRING(MNEMO_ARC_MACHINES,				"Arc.machines")
+DECLARE_CONST_STRING(MNEMO_ARC_MACHINES,				"Arc.machines");
 
-DECLARE_CONST_STRING(MNEMO_STATUS_RUNNING,				"running")
+DECLARE_CONST_STRING(MNEMO_STATUS_RUNNING,				"running");
 
-DECLARE_CONST_STRING(STR_ANONYMOUS_PING,				"Received unauthenticated ping.")
-DECLARE_CONST_STRING(STR_PING,							"Ping from arcology machine: %s.")
-DECLARE_CONST_STRING(STR_AMP1_SEND_DISPATCH,			"Dispatching %s to %s from %s.")
+DECLARE_CONST_STRING(STR_ANONYMOUS_PING,				"Received unauthenticated ping.");
+DECLARE_CONST_STRING(STR_PING,							"Ping from arcology machine: %s.");
+DECLARE_CONST_STRING(STR_AMP1_SEND_DISPATCH,			"Dispatching %s to %s from %s.");
 
-DECLARE_CONST_STRING(ERR_INVALID_JOIN,					"Arcology Prime cannot join another arcology.")
-DECLARE_CONST_STRING(ERR_INVALID_AUTH,					"Invalid machine authentication.")
-DECLARE_CONST_STRING(ERR_CANT_JOIN,						"Unable to join arcology: %s")
-DECLARE_CONST_STRING(ERR_AMP1_NO_AUTH,					"[%x] Unable to obey AMP1 command without authentication: %s.")
-DECLARE_CONST_STRING(ERR_CANT_BIND,						"Unable to bind to address: %s.")
-DECLARE_CONST_STRING(ERR_CANT_SEND,						"Unable to send to address: %s.")
-DECLARE_CONST_STRING(ERR_CANT_SEND_AMP1_COMMAND,		"Unable to send AMP1 command to %s.")
-DECLARE_CONST_STRING(ERR_CANT_WRITE_CONFIG_FILE,		"Unable to write configuration file.")
-DECLARE_CONST_STRING(ERR_UNKNOWN_AMP1_COMMAND,			"Unknown AMP1 command: %s.")
+DECLARE_CONST_STRING(ERR_INVALID_JOIN,					"Arcology Prime cannot join another arcology.");
+DECLARE_CONST_STRING(ERR_INVALID_LEAVE,					"Arcology Prime cannot leave the arcology.");
+DECLARE_CONST_STRING(ERR_INVALID_AUTH,					"Invalid machine authentication.");
+DECLARE_CONST_STRING(ERR_CANT_JOIN,						"Unable to join arcology: %s");
+DECLARE_CONST_STRING(ERR_CANT_LEAVE,					"Unable to leave arcology: %s");
+DECLARE_CONST_STRING(ERR_AMP1_NO_AUTH,					"[%x] Unable to obey AMP1 command without authentication: %s.");
+DECLARE_CONST_STRING(ERR_CANT_BIND,						"Unable to bind to address: %s.");
+DECLARE_CONST_STRING(ERR_CANT_SEND,						"Unable to send to address: %s.");
+DECLARE_CONST_STRING(ERR_CANT_SEND_AMP1_COMMAND,		"Unable to send AMP1 command to %s.");
+DECLARE_CONST_STRING(ERR_CANT_WRITE_CONFIG_FILE,		"Unable to write configuration file.");
+DECLARE_CONST_STRING(ERR_UNKNOWN_AMP1_COMMAND,			"Unknown AMP1 command: %s.");
 
 void CExarchEngine::MsgEsperOnAMP1 (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)
 
@@ -82,6 +86,9 @@ void CExarchEngine::MsgEsperOnAMP1 (const SArchonMessage &Msg, const CHexeSecuri
 
 	else if (strEquals(sCommand, AMP1_AUTH))
 		AMP1Auth(dData, dConnection);
+
+	else if (strEquals(sCommand, AMP1_LEAVE))
+		AMP1Leave();
 
 	else if (strEquals(sCommand, AMP1_REJOIN))
 		AMP1Rejoin();
@@ -215,6 +222,47 @@ void CExarchEngine::AMP1Join (CDatum dData)
 	//	Ping Arcology Prime
 
 	SendAMP1Command(sPrimeName, AMP1_PING, CDatum());
+	}
+
+void CExarchEngine::AMP1Leave (void)
+
+//	AMP1Leave
+//
+//	Arcology Prime is asking us to leave.
+
+	{
+	//	If we're Arcology Prime, then this is invalid and we don't need to 
+	//	respond.
+
+	if (IsArcologyPrime())
+		{
+		Log(MSG_LOG_ERROR, ERR_INVALID_LEAVE);
+		return;
+		}
+
+	//	Tell Esper to shut down our outbound connection to Arcology Prime.
+
+	SMachineDesc APDesc;
+	if (m_MecharcologyDb.FindArcologyPrime(&APDesc)
+			&& !APDesc.sAddress.IsEmpty())
+		{
+		CDatum dPayload(CDatum::typeArray);
+		dPayload.Append(APDesc.sAddress);
+
+		SendMessageCommand(ADDRESS_ESPER_COMMAND, MSG_ESPER_AMP1_DISCONNECT, NULL_STR, 0, dPayload);
+		}
+
+	//	Leave the arcology
+
+	CString sError;
+	if (!m_MecharcologyDb.LeaveArcology(&sError))
+		Log(MSG_LOG_ERROR, strPattern(ERR_CANT_LEAVE, sError));
+
+	//	Save the secret key
+
+	m_dMachineConfig.SetElement(FIELD_ARCOLOGY_PRIME_KEY, CDatum());
+	if (!WriteConfig())
+		Log(MSG_LOG_ERROR, ERR_CANT_WRITE_CONFIG_FILE);
 	}
 
 void CExarchEngine::AMP1Ping (const CString &sSender)

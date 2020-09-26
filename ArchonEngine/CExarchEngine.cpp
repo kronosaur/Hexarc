@@ -16,6 +16,7 @@ DECLARE_CONST_STRING(STR_DEFAULT_ARCOLOGY_NAME,			"Unnamed Arcology")
 DECLARE_CONST_STRING(FILESPEC_UPGRADE_ARS,				"Upgrade.ars")
 DECLARE_CONST_STRING(FILESPEC_UPGRADE_FOLDER,			"Upgrade")
 
+DECLARE_CONST_STRING(AMP1_LEAVE,						"LEAVE")
 DECLARE_CONST_STRING(AMP1_PING,							"PING")
 DECLARE_CONST_STRING(AMP1_REJOIN,						"REJOIN")
 
@@ -67,6 +68,7 @@ DECLARE_CONST_STRING(MSG_ARC_HOUSEKEEPING,				"Arc.housekeeping")
 DECLARE_CONST_STRING(MSG_ERROR_ALREADY_EXISTS,			"Error.alreadyExists")
 DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply")
 DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_INTERPRET,		"Error.unableToInterpret")
+DECLARE_CONST_STRING(MSG_ESPER_AMP1,					"Esper.amp1")
 DECLARE_CONST_STRING(MSG_ESPER_CREATE_LISTENER,			"Esper.startListener")
 DECLARE_CONST_STRING(MSG_ESPER_ON_AMP1,					"Esper.onAMP1")
 DECLARE_CONST_STRING(MSG_ESPER_ON_CONNECT,				"Esper.onConnect")
@@ -156,6 +158,7 @@ DECLARE_CONST_STRING(ERR_CANT_CREATE_PATH,				"Unable to create path: %s.")
 DECLARE_CONST_STRING(ERR_CANT_DELETE_BAD_FILE,			"Unable to delete bad file: %s.")
 DECLARE_CONST_STRING(ERR_CANT_DELETE_DRIVE,				"Unable to delete test drive: %s.")
 DECLARE_CONST_STRING(ERR_CANT_DELETE_FOLDER_CONTENTS,	"Unable to delete folder contents: %s.")
+DECLARE_CONST_STRING(ERR_CANT_WRITE_CONFIG,				"Unable to write configuration file.")
 DECLARE_CONST_STRING(ERR_NO_DISK_ERROR_FOUND,			"Unable to determine cause of disk error on: %s.")
 DECLARE_CONST_STRING(ERR_CANT_READ_VOLUME_DIR,			"Unable to get file list from volume %s at path: %s.")
 DECLARE_CONST_STRING(ERR_CANT_GET_VERSION_INFO,			"Unable to obtain file version info: %s.")
@@ -168,6 +171,7 @@ DECLARE_CONST_STRING(ERR_CANT_OPEN_CONFIG_FILE,			"Unable to open arcology confi
 DECLARE_CONST_STRING(ERR_CANT_PARSE_CONFIG_FILE,		"Unable to parse arcology configuration file: %s.")
 DECLARE_CONST_STRING(ERR_CANT_READ_FILE,				"Unable to read file on volume %s: %s.")
 DECLARE_CONST_STRING(ERR_CANT_READ_LOG,					"Unable to read log file.")
+DECLARE_CONST_STRING(ERR_CANT_REMOVE_ARCOLOGY_PRIME,	"Unable to remove Arcology Prime.")
 DECLARE_CONST_STRING(ERR_CANT_REMOVE_MODULE,			"Unable to remove module: %s.")
 DECLARE_CONST_STRING(ERR_CANT_RENAME_FILE,				"Unable to rename file from %s to %s.")
 DECLARE_CONST_STRING(ERR_CANT_RESTART,					"Unable to restart machine.")
@@ -185,6 +189,7 @@ DECLARE_CONST_STRING(ERR_MODULE_STOPPED,				"[%s] Module terminated.")
 DECLARE_CONST_STRING(ERR_DISK_ERROR_OP,					"Disk error when %s on filespec: %s.")
 DECLARE_CONST_STRING(ERR_TOO_MANY_LINES,				"Unable to return %d lines; maximum is %d.")
 DECLARE_CONST_STRING(ERR_MODULE_NOT_RESTARTED,			"[%s] Module not restarted because it failed quickly.")
+DECLARE_CONST_STRING(ERR_NOT_ARCOLOGY_PRIME,			"Unable to comply because we are not Arcology Prime.")
 
 //	Message Table --------------------------------------------------------------
 
@@ -201,6 +206,8 @@ DECLARE_CONST_STRING(MSG_EXARCH_GET_STATUS,				"Exarch.getStatus")
 DECLARE_CONST_STRING(MSG_EXARCH_GET_STORAGE_LIST,		"Exarch.getStorageList")
 DECLARE_CONST_STRING(MSG_EXARCH_MNEMOSYNTH_ENDPOINT_LIST,	"Exarch.mnemosynthEndpointList")
 DECLARE_CONST_STRING(MSG_EXARCH_MNEMOSYNTH_READ,		"Exarch.mnemosynthRead")
+DECLARE_CONST_STRING(MSG_EXARCH_PING,					"Exarch.ping")
+DECLARE_CONST_STRING(MSG_EXARCH_REMOVE_MACHINE,			"Exarch.removeMachine")
 DECLARE_CONST_STRING(MSG_EXARCH_REMOVE_MODULE,			"Exarch.removeModule")
 DECLARE_CONST_STRING(MSG_EXARCH_REMOVE_VOLUME,			"Exarch.removeVolume")
 DECLARE_CONST_STRING(MSG_EXARCH_REPORT_DISK_ERROR,		"Exarch.reportDiskError")
@@ -283,6 +290,12 @@ CExarchEngine::SMessageHandler CExarchEngine::m_MsgHandlerList[] =
 
 		//	Exarch.onModuleStop
 		{	MSG_EXARCH_ON_MODULE_STOP,			&CExarchEngine::MsgOnModuleStop },
+
+		//	Exarch.ping [{machineName}]
+		{	MSG_EXARCH_PING,					&CExarchEngine::MsgPing },
+
+		//	Exarch.removeMachine {machineName}
+		{	MSG_EXARCH_REMOVE_MACHINE,			&CExarchEngine::MsgRemoveMachine },
 
 		//	Exarch.removeModule {module}
 		{	MSG_EXARCH_REMOVE_MODULE,			&CExarchEngine::MsgRemoveModule },
@@ -3037,6 +3050,41 @@ void CExarchEngine::RegisterForMnemosynthUpdate (void)
 	//	Send the message
 
 	SendMessageCommand(ADDRESS_MNEMOSYNTH_COMMAND, MSG_MNEMOSYNTH_NOTIFY_ON_ARCOLOGY_UPDATE, ADDRESS_EXARCH_COMMAND, 0, CDatum(pPayload));
+	}
+
+void CExarchEngine::RemoveMachine (const SMachineDesc &MachineToRemove)
+
+//	RemoveMachine
+//
+//	Removes the machine from the arcology.
+
+	{
+	m_MecharcologyDb.DeleteMachine(MachineToRemove);
+
+	//	Remove from Mnemosynth
+
+	if (!MachineToRemove.sName.IsEmpty())
+		{
+		GetMnemosynth().RemoveMachineEndpoints(MachineToRemove.sName);
+		DeleteMachineResources(MachineToRemove.sName);
+		}
+
+	//	Update the config file. Create a new list without the machine.
+
+	if (!MachineToRemove.sAddress.IsEmpty())
+		{
+		CDatum dNewMachineList(CDatum::typeArray);
+		CDatum dMachineList = m_dMachineConfig.GetElement(FIELD_MACHINES);
+		for (int i = 0; i < dMachineList.GetCount(); i++)
+			{
+			if (!strEquals(MachineToRemove.sAddress, dMachineList.GetElement(i).GetElement(FIELD_ADDRESS)))
+				dNewMachineList.Append(dMachineList.GetElement(i));
+			}
+
+		m_dMachineConfig.SetElement(FIELD_MACHINES, dNewMachineList);
+		if (!WriteConfig())
+			GetProcessCtx()->Log(MSG_LOG_ERROR, ERR_CANT_WRITE_CONFIG);
+		}
 	}
 
 bool CExarchEngine::RemoveModule (const CString &sModuleName, CString *retsError)
