@@ -5,12 +5,12 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(FIELD_CLASS,						"class")
-DECLARE_CONST_STRING(FIELD_STATUS,						"status")
+DECLARE_CONST_STRING(FIELD_CLASS,						"class");
+DECLARE_CONST_STRING(FIELD_STATUS,						"status");
 
-DECLARE_CONST_STRING(STR_INTERPROCESS_PORT,				"CInterprocessPort")
+DECLARE_CONST_STRING(STR_INTERPROCESS_PORT,				"CInterprocessPort");
 
-DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error")
+DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error");
 
 CDatum CInterprocessPort::GetPortStatus (void) const
 

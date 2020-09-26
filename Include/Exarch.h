@@ -152,7 +152,7 @@ class CArcologySession : public ISessionCtx
 	public:
 		CArcologySession (SOCKET hSocket) : ISessionCtx(hSocket) { }
 
-		virtual int GetType (void) { return stypeArcology; }
+		virtual int GetType (void) override { return stypeArcology; }
 	};
 
 //	CExarchEngine --------------------------------------------------------------
@@ -182,14 +182,14 @@ class CExarchEngine : public TSimpleEngine<CExarchEngine>, public IArchonExarch
 
 		//	IArchonExarch
 
-		virtual bool ExarchAuthenticateMachine (const CString &sMachineName, const CIPInteger &Key);
+		virtual bool ExarchAuthenticateMachine (const CString &sMachineName, const CIPInteger &Key) override;
 
 	protected:
 		//	TSimpleEngine override
-		virtual void OnBoot (void);
-		virtual void OnMarkEx (void);
-		virtual void OnStartRunning (void);
-		virtual void OnStopRunning (void);
+		virtual void OnBoot (void) override;
+		virtual void OnMarkEx (void) override;
+		virtual void OnStartRunning (void) override;
+		virtual void OnStopRunning (void) override;
 
 	private:
 		//	Message handlers

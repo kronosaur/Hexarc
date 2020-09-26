@@ -5,19 +5,19 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(FIELD_LOCAL_PATH,					"localPath")
-DECLARE_CONST_STRING(FIELD_STATUS,						"status")
-DECLARE_CONST_STRING(FIELD_VOLUME_NAME,					"volumeName")
+DECLARE_CONST_STRING(FIELD_LOCAL_PATH,					"localPath");
+DECLARE_CONST_STRING(FIELD_STATUS,						"status");
+DECLARE_CONST_STRING(FIELD_VOLUME_NAME,					"volumeName");
 
-DECLARE_CONST_STRING(MNEMO_ARC_STORAGE,					"Arc.storage")
+DECLARE_CONST_STRING(MNEMO_ARC_STORAGE,					"Arc.storage");
 
-DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error")
+DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error");
 
-DECLARE_CONST_STRING(STATUS_ONLINE,						"online")
+DECLARE_CONST_STRING(STATUS_ONLINE,						"online");
 
-DECLARE_CONST_STRING(ERR_DUPLICATE_VOLUME_NAME,			"New volume conflicts with existing volume name: %s.")
-DECLARE_CONST_STRING(ERR_UNABLE_TO_CREATE_STORAGE,		"Unable to create storage path: %s.")
-DECLARE_CONST_STRING(ERR_BAD_PATH,						"Unable to open storage path: %s.")
+DECLARE_CONST_STRING(ERR_DUPLICATE_VOLUME_NAME,			"New volume conflicts with existing volume name: %s.");
+DECLARE_CONST_STRING(ERR_UNABLE_TO_CREATE_STORAGE,		"Unable to create storage path: %s.");
+DECLARE_CONST_STRING(ERR_BAD_PATH,						"Unable to open storage path: %s.");
 
 CString CMachineStorage::CanonicalToMachine (const CString &sFilespec)
 

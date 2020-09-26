@@ -5,12 +5,12 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(ADDR_NULL,							"Arc.null")
+DECLARE_CONST_STRING(ADDR_NULL,							"Arc.null");
 
-DECLARE_CONST_STRING(FIELD_ADDRESS,						"address")
-DECLARE_CONST_STRING(FIELD_CLASS,						"class")
+DECLARE_CONST_STRING(FIELD_ADDRESS,						"address");
+DECLARE_CONST_STRING(FIELD_CLASS,						"class");
 
-DECLARE_CONST_STRING(STR_NULL_CLASS,					"(unbound)")
+DECLARE_CONST_STRING(STR_NULL_CLASS,					"(unbound)");
 
 CDatum CMessagePort::GetStatus (void) const
 

@@ -14,26 +14,26 @@ class CArchonProcess;
 //  Basic Classes --------------------------------------------------------------
 
 class CMsgProcessCtx
-    {
-    public:
-        CMsgProcessCtx (IArchonProcessCtx &Process, const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx) :
-                m_Process(Process),
-                m_Msg(Msg),
-                m_pSecurityCtx(pSecurityCtx)
-            { }
+	{
+	public:
+		CMsgProcessCtx (IArchonProcessCtx &Process, const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx) :
+				m_Process(Process),
+				m_Msg(Msg),
+				m_pSecurityCtx(pSecurityCtx)
+			{ }
 
-        const SArchonMessage &GetMsg (void) const { return m_Msg; }
-        IArchonProcessCtx &GetProcess (void) const { return m_Process; }
-        inline void SendMessageReply (const CString &sReplyMsg, CDatum dPayload)
-            {
-            m_Process.SendMessageReply(sReplyMsg, dPayload, m_Msg);
-            }
+		const SArchonMessage &GetMsg (void) const { return m_Msg; }
+		IArchonProcessCtx &GetProcess (void) const { return m_Process; }
+		void SendMessageReply (const CString &sReplyMsg, CDatum dPayload)
+			{
+			m_Process.SendMessageReply(sReplyMsg, dPayload, m_Msg);
+			}
 
-    private:
-        IArchonProcessCtx &m_Process;
-        const SArchonMessage &m_Msg;
-        const CHexeSecurityCtx *m_pSecurityCtx;
-    };
+	private:
+		IArchonProcessCtx &m_Process;
+		const SArchonMessage &m_Msg;
+		const CHexeSecurityCtx *m_pSecurityCtx;
+	};
 
 //	CSimpleEngine --------------------------------------------------------------
 
@@ -47,12 +47,12 @@ class CSimpleProcessingThread : public TThread<CSimpleProcessingThread>
 		CSimpleProcessingThread (CSimpleEngine *pEngine);
 
 		EProcessingState GetState (DWORD *retdwDuration = NULL);
-		inline void WaitForPause (void) { m_PausedEvent.Wait(); }
+		void WaitForPause (void) { m_PausedEvent.Wait(); }
 
 		void Run (void);
 
 	private:
-		inline void SetState (EProcessingState iState) { m_iState = iState; m_dwLastStateChange = ::GetTickCount(); }
+		void SetState (EProcessingState iState) { m_iState = iState; m_dwLastStateChange = ::GetTickCount(); }
 
 		CSimpleEngine *m_pEngine;
 		int m_iProcessingChunk;
@@ -67,7 +67,7 @@ class CSimpleEventThread : public TThread<CSimpleEventThread>
 	public:
 		CSimpleEventThread (CSimpleEngine *pEngine);
 
-		inline void WaitForPause (void) { m_PausedEvent.Wait(); }
+		void WaitForPause (void) { m_PausedEvent.Wait(); }
 
 		void Run (void);
 
@@ -98,31 +98,31 @@ class CSimpleEngine : public IArchonEngine, public IArchonMessagePort, protected
 
 		//	Used by threads
 		int AddEvents (CWaitArray *retWait);
-		inline bool Dequeue (int iMaxCount, CArchonMessageList *retList) { return m_Queue.Dequeue(iMaxCount, retList); }
-		inline IArchonProcessCtx *GetProcessCtx (void) const { return m_pProcess; }
-		inline CManualEvent &GetQueueEvent (void) { return m_Queue.GetEvent(); }
-		inline CManualEvent &GetQuitEvent (void) { return *m_pQuitEvent; }
-		inline CManualEvent &GetRefreshEvent (void) { return m_RefreshEvent; }
-		inline CManualEvent &GetRunEvent (void) { return *m_pRunEvent; }
-		inline CManualEvent &GetPauseEvent (void) { return *m_pPauseEvent; }
-		inline CManualEvent &GetTimedMessageEvent (void) { return m_TimedQueue.GetEvent(); }
-		inline DWORD GetTimedMessageWait (void) { return m_TimedQueue.GetTimeForNextMessage(); }
+		bool Dequeue (int iMaxCount, CArchonMessageList *retList) { return m_Queue.Dequeue(iMaxCount, retList); }
+		IArchonProcessCtx *GetProcessCtx (void) const { return m_pProcess; }
+		CManualEvent &GetQueueEvent (void) { return m_Queue.GetEvent(); }
+		CManualEvent &GetQuitEvent (void) { return *m_pQuitEvent; }
+		CManualEvent &GetRefreshEvent (void) { return m_RefreshEvent; }
+		CManualEvent &GetRunEvent (void) { return *m_pRunEvent; }
+		CManualEvent &GetPauseEvent (void) { return *m_pPauseEvent; }
+		CManualEvent &GetTimedMessageEvent (void) { return m_TimedQueue.GetEvent(); }
+		DWORD GetTimedMessageWait (void) { return m_TimedQueue.GetTimeForNextMessage(); }
 		void ProcessEvent (const CString &sEventID);
-		inline void ProcessMessages (CArchonMessageList &List) { OnProcessMessages(List); }
-		inline void ProcessTimedMessages (void) { m_TimedQueue.ProcessMessages(m_pProcess); }
+		void ProcessMessages (CArchonMessageList &List) { OnProcessMessages(List); }
+		void ProcessTimedMessages (void) { m_TimedQueue.ProcessMessages(m_pProcess); }
 		void ProcessRefresh (void);
 
 		//	Used by CSession
-		inline void DeleteTimedMessage (DWORD dwID) { m_TimedQueue.DeleteMessage(dwID); }
-		inline void KeepAliveTimedMessage (DWORD dwID) { m_TimedQueue.KeepAliveMessage(dwID); }
-		inline void SendTimedMessage (DWORD dwDelay, const CString &sAddr, const CString &sMsg, const CString &sReplyAddr, DWORD dwTicket, CDatum dPayload, DWORD *retdwID = NULL)	{ m_TimedQueue.AddMessage(dwDelay, sAddr, sMsg, sReplyAddr, dwTicket, dPayload, retdwID); }
-		inline void SendTimeoutMessage (DWORD dwDelay, const CString &sAddr, const CString &sMsg, DWORD dwTicket, DWORD *retdwID) { m_TimedQueue.AddTimeoutMessage(dwDelay, sAddr, sMsg, dwTicket, retdwID); }
+		void DeleteTimedMessage (DWORD dwID) { m_TimedQueue.DeleteMessage(dwID); }
+		void KeepAliveTimedMessage (DWORD dwID) { m_TimedQueue.KeepAliveMessage(dwID); }
+		void SendTimedMessage (DWORD dwDelay, const CString &sAddr, const CString &sMsg, const CString &sReplyAddr, DWORD dwTicket, CDatum dPayload, DWORD *retdwID = NULL)	{ m_TimedQueue.AddMessage(dwDelay, sAddr, sMsg, sReplyAddr, dwTicket, dPayload, retdwID); }
+		void SendTimeoutMessage (DWORD dwDelay, const CString &sAddr, const CString &sMsg, DWORD dwTicket, DWORD *retdwID) { m_TimedQueue.AddTimeoutMessage(dwDelay, sAddr, sMsg, dwTicket, retdwID); }
 
 		//	Helpers
 		static bool IsError (const SArchonMessage &Msg);
 		static CDatum MessageToHexeResult (const SArchonMessage &Msg);
-		inline void SendMessageNotify (const CString &sAddress, const CString &sMsg, CDatum dPayload) { m_pProcess->SendMessageCommand(sAddress, sMsg, NULL_STR, 0, dPayload); }
-		inline void SendMessageReplyError (const CString &sMsg, const CString &sText, const SArchonMessage &OriginalMsg) { m_pProcess->SendMessageReply(sMsg, CDatum(sText), OriginalMsg); }
+		void SendMessageNotify (const CString &sAddress, const CString &sMsg, CDatum dPayload) { m_pProcess->SendMessageCommand(sAddress, sMsg, NULL_STR, 0, dPayload); }
+		void SendMessageReplyError (const CString &sMsg, const CString &sText, const SArchonMessage &OriginalMsg) { m_pProcess->SendMessageReply(sMsg, CDatum(sText), OriginalMsg); }
 		bool ValidateSandbox (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx, const CString &sSandbox);
 		bool ValidateSandboxAdmin (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 
@@ -162,8 +162,8 @@ class CSimpleEngine : public IArchonEngine, public IArchonMessagePort, protected
 		virtual void TranspaceDownload (const CString &sAddress, const CString &sReplyAddr, DWORD dwTicket, CDatum dDownloadDesc, const CHexeSecurityCtx *pSecurityCtx) override { m_pProcess->TranspaceDownload(sAddress, sReplyAddr, dwTicket, dDownloadDesc, pSecurityCtx); }
 
 		//	Helpers
-		inline void AddPort (const CString &sPort) { AddPort(sPort, this); }
-		inline int GetThreadCount (void) { return m_Threads.GetCount(); }
+		void AddPort (const CString &sPort) { AddPort(sPort, this); }
+		int GetThreadCount (void) { return m_Threads.GetCount(); }
 		void GetThreadStatus (int iThread, SThreadStatus *retStatus);
 		bool IsFileMsg (const SArchonMessage &Msg, CArchonMessageList *retList);
 		bool IsSandboxMsg (const SArchonMessage &Msg, SArchonMessage *retMsg, CHexeSecurityCtx *retSecurityCtx);
@@ -220,13 +220,13 @@ class ISessionHandler
 		ISessionHandler (void) : m_pProcess(NULL), m_pEngine(NULL), m_pSessionManager(NULL), m_dwTicket(0), m_dwTimeoutID(0) { }
 		virtual ~ISessionHandler (void) { }
 
-		inline void EndSession (DWORD dwTicket) { OnEndSession(dwTicket); }
+		void EndSession (DWORD dwTicket) { OnEndSession(dwTicket); }
 		CDatum GetStatusReport (void) const;
-		inline void Mark (void) { m_OriginalMsg.dPayload.Mark(); OnMark(); }
-        bool ProcessKeepAlive (const SArchonMessage &Msg);
+		void Mark (void) { m_OriginalMsg.dPayload.Mark(); OnMark(); }
+		bool ProcessKeepAlive (const SArchonMessage &Msg);
 		bool ProcessMessage (const SArchonMessage &Msg);
 		bool ProcessTimeout (const SArchonMessage &Msg);
-		inline bool StartSession (IArchonProcessCtx *pProcess, CSimpleEngine *pEngine, CSessionManager *pSessionManager, DWORD dwTicket, const SArchonMessage &Msg) { m_pProcess = pProcess; m_pEngine = pEngine; m_pSessionManager = pSessionManager; m_dwTicket = dwTicket; m_OriginalMsg = Msg; return OnStartSession(Msg, dwTicket); }
+		bool StartSession (IArchonProcessCtx *pProcess, CSimpleEngine *pEngine, CSessionManager *pSessionManager, DWORD dwTicket, const SArchonMessage &Msg) { m_pProcess = pProcess; m_pEngine = pEngine; m_pSessionManager = pSessionManager; m_dwTicket = dwTicket; m_OriginalMsg = Msg; return OnStartSession(Msg, dwTicket); }
 		
 	protected:
 		//	ISession virtuals
@@ -238,10 +238,10 @@ class ISessionHandler
 		virtual bool OnTimeout (const SArchonMessage &Msg) { return OnProcessMessage(Msg); }
 
 		//	Utilities
-		inline CString GenerateAddress (const CString &sPort) { return m_pProcess->GenerateAddress(sPort); }
-		inline const SArchonMessage &GetOriginalMsg (void) { return m_OriginalMsg; }
-		inline IArchonProcessCtx *GetProcessCtx (void) { return m_pProcess; }
-		inline DWORD GetTicket (void) const { return m_dwTicket; }
+		CString GenerateAddress (const CString &sPort) { return m_pProcess->GenerateAddress(sPort); }
+		const SArchonMessage &GetOriginalMsg (void) { return m_OriginalMsg; }
+		IArchonProcessCtx *GetProcessCtx (void) { return m_pProcess; }
+		DWORD GetTicket (void) const { return m_dwTicket; }
 		bool IsError (const SArchonMessage &Msg);
 		void ResetTimeout (const CString &sReplyAddr, DWORD dwTimeout);
 		bool SendMessageCommand (const CString &sAddress, const CString &sMsg, const CString &sReplyAddr, CDatum dPayload, DWORD dwTimeout = 0);
@@ -273,10 +273,10 @@ class CSessionManager
 
 		void Delete (DWORD dwTicket);
 		ISessionHandler *GetAt (DWORD dwTicket);
-		inline int GetCount (void) { CSmartLock Lock(m_cs); return m_Sessions.GetCount(); }
+		int GetCount (void) { CSmartLock Lock(m_cs); return m_Sessions.GetCount(); }
 		void GetSessions (TArray<ISessionHandler *> *retSessions);
 		DWORD Insert (ISessionHandler *pHandler);
-		inline DWORD MakeCustomTicket (void) { return m_Sessions.MakeCustomID(); }
+		DWORD MakeCustomTicket (void) { return m_Sessions.MakeCustomID(); }
 		void Mark (void);
 		void ProcessMessage (CSimpleEngine *pEngine, const SArchonMessage &Msg);
 
@@ -317,7 +317,7 @@ template <class VALUE> class TSimpleEngine : public CSimpleEngine
 		int GetSessionCount (void) { return m_Sessions.GetCount(); }
 		void GetSessions (TArray<ISessionHandler *> *retSessions) { m_Sessions.GetSessions(retSessions); }
 
-		inline DWORD MakeCustomTicket (void) { return m_Sessions.MakeCustomTicket(); }
+		DWORD MakeCustomTicket (void) { return m_Sessions.MakeCustomTicket(); }
 
 		void MsgNull (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx) { }
 
@@ -457,7 +457,7 @@ class CEventProcessingThread : public TThread<CEventProcessingThread>
 
 		void AddEvent (const CString &sName, COSObject &Event, IArchonMessagePort *pPort, const CString &sMsg, DWORD dwTicket);
 		void Mark (void) { }
-		inline void WaitForPause (void) { m_PausedEvent.Wait(); }
+		void WaitForPause (void) { m_PausedEvent.Wait(); }
 
 		void Run (void);
 
@@ -491,7 +491,7 @@ class CInterprocessMessageThread : public TThread<CInterprocessMessageThread>
 
 		void Boot (IArchonProcessCtx *pProcess, const CString &sName, CManualEvent &RunEvent, CManualEvent &PauseEvent, CManualEvent &QuitEvent);
 		void Mark (void) { }
-		inline void WaitForPause (void) { m_PausedEvent.Wait(); }
+		void WaitForPause (void) { m_PausedEvent.Wait(); }
 
 		void Run (void);
 
@@ -509,16 +509,16 @@ class CInterprocessMessageThread : public TThread<CInterprocessMessageThread>
 	};
 
 class CMsgProcessKeepAlive : public IProgressEvents
-    {
-    public:
-        CMsgProcessKeepAlive (CMsgProcessCtx &Ctx) :
-                m_Ctx(Ctx),
-                m_dwStart(sysGetTickCount64())
-            { }
+	{
+	public:
+		CMsgProcessKeepAlive (CMsgProcessCtx &Ctx) :
+				m_Ctx(Ctx),
+				m_dwStart(sysGetTickCount64())
+			{ }
 
-        virtual void OnProgress (int iPercent, const CString &sStatus) override;
+		virtual void OnProgress (int iPercent, const CString &sStatus) override;
 
-    private:
-        CMsgProcessCtx &m_Ctx;
-        DWORDLONG m_dwStart;
-    };
+	private:
+		CMsgProcessCtx &m_Ctx;
+		DWORDLONG m_dwStart;
+	};

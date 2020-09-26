@@ -5,10 +5,10 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(FIELD_CLASS,						"class")
-DECLARE_CONST_STRING(FIELD_STATUS,						"status")
+DECLARE_CONST_STRING(FIELD_CLASS,						"class");
+DECLARE_CONST_STRING(FIELD_STATUS,						"status");
 
-DECLARE_CONST_STRING(STR_PROXY_PORT,					"CProxyPort")
+DECLARE_CONST_STRING(STR_PROXY_PORT,					"CProxyPort");
 
 CProxyPort::CProxyPort (const CString &sMsg, CMessagePort *pPort) :
 		m_sMsg(sMsg),

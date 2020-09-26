@@ -5,13 +5,6 @@
 
 #include "stdafx.h"
 
-CMessagePortMap::CMessagePortMap (void) : m_bPortCountValid(false)
-
-//	CMessagePortMap contructor
-
-	{
-	}
-
 void CMessagePortMap::AddPort (LPSTR sName, IArchonMessagePort *pPort, DWORD dwFlags)
 
 //	AddPort

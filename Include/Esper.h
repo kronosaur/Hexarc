@@ -95,11 +95,11 @@ class CEsperListenerThread : public TThread<CEsperListenerThread>
 		CEsperListenerThread (CEsperEngine *pEngine, CEsperConnection::ETypes iType, const SArchonMessage &Msg);
 		~CEsperListenerThread (void);
 
-		inline const CString &GetName (void) const { return m_sName; }
-		inline void Mark (void) { }
+		const CString &GetName (void) const { return m_sName; }
+		void Mark (void) { }
 		void Run (void);
 		void SignalShutdown (void);
-		inline void WaitForPause (void) { m_PausedEvent.Wait(); }
+		void WaitForPause (void) { m_PausedEvent.Wait(); }
 
 	private:
 		void SendMessageReplyError (const CString &sMsg, const CString &sText);
@@ -133,12 +133,12 @@ class CEsperProcessingThread : public TThread<CEsperProcessingThread>
 				m_bQuit(false)
 			{ m_PausedEvent.Create(); }
 
-		inline IIOCPEntry *GetPauseSignal (void) const { return m_pPauseSignal; }
+		IIOCPEntry *GetPauseSignal (void) const { return m_pPauseSignal; }
 		void Mark (void);
 		void Run (void);
-		inline void SetQuit (void) { m_bQuit = true; }
+		void SetQuit (void) { m_bQuit = true; }
 		void Stop (void);
-		inline void WaitForPause (void) { m_PausedEvent.Wait(); }
+		void WaitForPause (void) { m_PausedEvent.Wait(); }
 
 	private:
 		CEsperEngine *m_pEngine;			//	The engine
@@ -154,12 +154,12 @@ class CEsperMsgProcessingThread : public TThread<CEsperMsgProcessingThread>
 		CEsperMsgProcessingThread (CEsperEngine &Engine);
 
 		EProcessingState GetState (DWORD *retdwDuration = NULL);
-		inline void WaitForPause (void) { m_PausedEvent.Wait(); }
+		void WaitForPause (void) { m_PausedEvent.Wait(); }
 
 		void Run (void);
 
 	private:
-		inline void SetState (EProcessingState iState) { m_iState = iState; m_dwLastStateChange = ::GetTickCount(); }
+		void SetState (EProcessingState iState) { m_iState = iState; m_dwLastStateChange = ::GetTickCount(); }
 
 		CEsperEngine &m_Engine;
 
@@ -207,7 +207,7 @@ class CEsperStats
 			SAMPLE_COUNT =					60,		//	Track the last hour of samples
 			};
 
-		inline DWORD GetTimePoint (void) const { return (DWORD)(::sysGetTickCount64() / (DWORDLONG)SAMPLE_TIME); }
+		DWORD GetTimePoint (void) const { return (DWORD)(::sysGetTickCount64() / (DWORDLONG)SAMPLE_TIME); }
 		bool IsHistoryTime (void);
 
 		CCriticalSection m_cs;
@@ -240,7 +240,7 @@ class CEsperConnectionManager
 				m_dwLastTimeoutCheck(0)
 			{ }
 
-		inline bool AuthenticateMachine (const CString &sMachineName, const CIPInteger &Key) { if (m_pArchon) return m_pArchon->AuthenticateMachine(sMachineName, Key); else return NULL; }
+		bool AuthenticateMachine (const CString &sMachineName, const CIPInteger &Key) { if (m_pArchon) return m_pArchon->AuthenticateMachine(sMachineName, Key); else return NULL; }
 		bool BeginAMP1Request (const SArchonMessage &Msg, const CString &sFullAddress, const CString &sCommand, CDatum dData, const CString &sAuthName, const CIPInteger &AuthKey, CString *retsError);
 		bool BeginHTTPRequest (const SArchonMessage &Msg, const CString &sMethod, const CString &sURL, CDatum dHeader, CDatum dBody, CDatum dOptions, CString *retsError);
 		bool BeginRead (const SArchonMessage &Msg, CDatum dConnection, CString *retsError);
@@ -252,21 +252,21 @@ class CEsperConnectionManager
 		void GetStatus (CEsperConnection::SStatus *retStatus);
 		CEsperStats &GetStats (void) { return m_Stats; }
 		bool IsIdle (void);
-		inline void Log (const CString &sMsg, const CString &sText) { if (m_pArchon) m_pArchon->Log(sMsg, sText); }
+		void Log (const CString &sMsg, const CString &sText) { if (m_pArchon) m_pArchon->Log(sMsg, sText); }
 		void LogTrace (const CString &sText);
 		bool Process (void);
 		void ResetConnection (CDatum dConnection);
-		inline void SendMessageCommand (const CString &sAddress, const CString &sMsg, const CString &sReplyAddr, DWORD dwTicket, CDatum dPayload) { if (m_pArchon) m_pArchon->SendMessageCommand(sAddress, sMsg, sReplyAddr, dwTicket, dPayload); }
-		inline void SendMessageReply (const CString &sReplyMsg, CDatum dPayload, const SArchonMessage &OriginalMsg) { if (m_pArchon) m_pArchon->SendMessageReply(sReplyMsg, dPayload, OriginalMsg); }
+		void SendMessageCommand (const CString &sAddress, const CString &sMsg, const CString &sReplyAddr, DWORD dwTicket, CDatum dPayload) { if (m_pArchon) m_pArchon->SendMessageCommand(sAddress, sMsg, sReplyAddr, dwTicket, dPayload); }
+		void SendMessageReply (const CString &sReplyMsg, CDatum dPayload, const SArchonMessage &OriginalMsg) { if (m_pArchon) m_pArchon->SendMessageReply(sReplyMsg, dPayload, OriginalMsg); }
 		void SendMessageReplyData (CDatum dPayload, const SArchonMessage &OriginalMsg);
 		void SendMessageReplyDisconnect (const SArchonMessage &OriginalMsg);
-		inline void SendMessageReplyError (const CString &sMsg, const CString &sText, const SArchonMessage &OriginalMsg) { if (m_pArchon) m_pArchon->SendMessageReply(sMsg, CDatum(sText), OriginalMsg); }
+		void SendMessageReplyError (const CString &sMsg, const CString &sText, const SArchonMessage &OriginalMsg) { if (m_pArchon) m_pArchon->SendMessageReply(sMsg, CDatum(sText), OriginalMsg); }
 		void SendMessageReplyOnConnect (CDatum dConnection, const CString &sListener, const CString &sAddressName, const SArchonMessage &OriginalMsg);
 		void SendMessageReplyOnRead (CDatum dConnection, CString &sData, const SArchonMessage &OriginalMsg);
 		void SendMessageReplyOnWrite (CDatum dConnection, DWORD dwBytesTransferred, const SArchonMessage &OriginalMsg);
-		inline void SetArchonCtx (IArchonProcessCtx *pArchon) { m_pArchon = pArchon; }
+		void SetArchonCtx (IArchonProcessCtx *pArchon) { m_pArchon = pArchon; }
 		bool SetProperty (CDatum dConnection, const CString &sProperty, CDatum dValue, CString *retsError);
-		inline void SignalEvent (IIOCPEntry *pObject) { m_IOCP.SignalEvent(pObject); }
+		void SignalEvent (IIOCPEntry *pObject) { m_IOCP.SignalEvent(pObject); }
 
 	private:
 		void AddConnection (CEsperConnection *pConnection, CDatum *retdConnection = NULL);
@@ -326,29 +326,29 @@ class CEsperEngine : public IArchonEngine, public IArchonMessagePort
 		virtual void WaitForPause (void) override;
 
 		//	Functions used by CEsperListenerThread
-		inline bool AuthenticateMachine (const CString &sMachineName, const CIPInteger &Key) { return m_pProcess->AuthenticateMachine(sMachineName, Key); }
+		bool AuthenticateMachine (const CString &sMachineName, const CIPInteger &Key) { return m_pProcess->AuthenticateMachine(sMachineName, Key); }
 		CMessagePort *Bind (const CString &sAddr);
-		inline void DeleteConnection (CDatum dConnection) { m_Connections.DeleteConnection(dConnection); }
-		inline bool Dequeue (int iMaxCount, CArchonMessageList *retList) { return m_Queue.Dequeue(iMaxCount, retList); }
-		inline CManualEvent &GetQueueEvent (void) { return m_Queue.GetEvent(); }
-		inline CManualEvent &GetQuitEvent (void) { return *m_pQuitEvent; }
-		inline CManualEvent &GetRunEvent (void) { return *m_pRunEvent; }
-		inline CManualEvent &GetPauseEvent (void) { return *m_pPauseEvent; }
-		inline IArchonProcessCtx *GetProcessCtx (void) { return m_pProcess; }
-		inline void Log (const CString &sMsg, const CString &sText) { m_pProcess->Log(sMsg, sText); }
+		void DeleteConnection (CDatum dConnection) { m_Connections.DeleteConnection(dConnection); }
+		bool Dequeue (int iMaxCount, CArchonMessageList *retList) { return m_Queue.Dequeue(iMaxCount, retList); }
+		CManualEvent &GetQueueEvent (void) { return m_Queue.GetEvent(); }
+		CManualEvent &GetQuitEvent (void) { return *m_pQuitEvent; }
+		CManualEvent &GetRunEvent (void) { return *m_pRunEvent; }
+		CManualEvent &GetPauseEvent (void) { return *m_pPauseEvent; }
+		IArchonProcessCtx *GetProcessCtx (void) { return m_pProcess; }
+		void Log (const CString &sMsg, const CString &sText) { m_pProcess->Log(sMsg, sText); }
 		void LogTrace (const CString &sText);
 		void OnConnect (const SArchonMessage &Msg, CSocket &NewSocket, const CString &sListener, CEsperConnection::ETypes iType);
-		inline bool ProcessConnections (void) { return m_Connections.Process(); }
+		bool ProcessConnections (void) { return m_Connections.Process(); }
 		void ProcessMessage (const SArchonMessage &Msg, CHexeSecurityCtx *pSecurityCtx = NULL);
-		inline void ReportShutdown (const CString &sName) { RemoveListener(sName); }
-		inline void ResetConnection (CDatum dConnection) { m_Connections.ResetConnection(dConnection); }
+		void ReportShutdown (const CString &sName) { RemoveListener(sName); }
+		void ResetConnection (CDatum dConnection) { m_Connections.ResetConnection(dConnection); }
 
 		//	Helpers
-		inline void SendMessageCommand (const CString &sAddress, const CString &sMsg, const CString &sReplyAddr, DWORD dwTicket, CDatum dPayload) { m_pProcess->SendMessageCommand(sAddress, sMsg, sReplyAddr, dwTicket, dPayload); }
-		inline void SendMessageReply (const CString &sReplyMsg, CDatum dPayload, const SArchonMessage &OriginalMsg) { m_pProcess->SendMessageReply(sReplyMsg, dPayload, OriginalMsg); }
+		void SendMessageCommand (const CString &sAddress, const CString &sMsg, const CString &sReplyAddr, DWORD dwTicket, CDatum dPayload) { m_pProcess->SendMessageCommand(sAddress, sMsg, sReplyAddr, dwTicket, dPayload); }
+		void SendMessageReply (const CString &sReplyMsg, CDatum dPayload, const SArchonMessage &OriginalMsg) { m_pProcess->SendMessageReply(sReplyMsg, dPayload, OriginalMsg); }
 		void SendMessageReplyDisconnect (const SArchonMessage &OriginalMsg);
 		void SendMessageReplyData (CDatum dPayload, const SArchonMessage &OriginalMsg);
-		inline void SendMessageReplyError (const CString &sMsg, const CString &sText, const SArchonMessage &OriginalMsg) { m_pProcess->SendMessageReply(sMsg, CDatum(sText), OriginalMsg); }
+		void SendMessageReplyError (const CString &sMsg, const CString &sText, const SArchonMessage &OriginalMsg) { m_pProcess->SendMessageReply(sMsg, CDatum(sText), OriginalMsg); }
 		void SendMessageReplyOnRead (CDatum dConnection, CString &sData, const SArchonMessage &OriginalMsg);
 		void SendMessageReplyOnWrite (CDatum dConnection, DWORD dwBytesTransferred, const SArchonMessage &OriginalMsg);
 

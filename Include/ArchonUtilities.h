@@ -18,7 +18,7 @@ class CArchonTimer
 		CArchonTimer (void) { Start(); }
 
 		void LogTime (IArchonProcessCtx *pProcess, const CString &sText, DWORDLONG dwMinTime = 1000) const;
-		inline void Start (void) { m_dwStart = ::sysGetTickCount64(); }
+		void Start (void) { m_dwStart = ::sysGetTickCount64(); }
 
 	private:
 		DWORDLONG m_dwStart;
@@ -39,7 +39,7 @@ class CMessagePortMap
 			flagProcessWidePorts =		0x00000400,
 			};
 
-		CMessagePortMap (void);
+		CMessagePortMap (void) { }
 
 		void AddPort (LPSTR sName, IArchonMessagePort *pPort, DWORD dwFlags);
 		void GetPorts (LPSTR sName, DWORD dwFlags, TArray<IArchonMessagePort *> *retResult);
@@ -48,16 +48,16 @@ class CMessagePortMap
 		struct SPortDesc
 			{
 			CString sPortName;					//	Name of port
-			int iCount;							//	Number of ports with the same name
-			IArchonMessagePort *pPort;			//	Port interface (may be NULL if not in this process)
-			DWORD dwFlags;						//	Port flags
+			int iCount = 0;						//	Number of ports with the same name
+			IArchonMessagePort *pPort = NULL;	//	Port interface (may be NULL if not in this process)
+			DWORD dwFlags = 0;					//	Port flags
 			};
 
 		void FixupPortCount (void);
 		bool IsVisible (SPortDesc *pDesc, DWORD dwFlags);
 
 		TSortMap<CString, SPortDesc> m_PortList;
-		bool m_bPortCountValid;
+		bool m_bPortCountValid = false;
 	};
 
 //	CMessageQueue --------------------------------------------------------------
@@ -69,7 +69,7 @@ class CMessageQueue
 
 		bool Dequeue (int iMaxCount, CArchonMessageList *retList);
 		bool Enqueue (const SArchonMessage &Msg);
-		inline CManualEvent &GetEvent (void) { return m_HasMessages; }
+		CManualEvent &GetEvent (void) { return m_HasMessages; }
 		void Mark (void);
 
 	private:
@@ -83,13 +83,13 @@ class CMessageQueue
 class CInterprocessMessageQueue
 	{
 	public:
-		CInterprocessMessageQueue (void) : m_pHeader(NULL) { }
+		CInterprocessMessageQueue (void) { }
 
 		bool Create (IArchonProcessCtx *pCtx, const CString &sMachine, const CString &sProcess, int iMaxSize);
 		bool Dequeue (int iMaxCount, TArray<CString> *retList);
 		bool Enqueue (const SArchonEnvelope &Env, CString *retsError);
-		inline CManualEvent &GetEvent (void) { return m_HasMessages; }
-		inline bool Open (IArchonProcessCtx *pCtx, const CString &sMachine, const CString &sProcess) 
+		CManualEvent &GetEvent (void) { return m_HasMessages; }
+		bool Open (IArchonProcessCtx *pCtx, const CString &sMachine, const CString &sProcess) 
 			{ 
 			m_pProcess = pCtx;
 			m_sName = strPattern("%s-%s", sMachine, sProcess);
@@ -136,19 +136,19 @@ class CInterprocessMessageQueue
 		bool Enqueue (CMemoryBuffer &Buffer, CString *retsError);
 		DWORD FindFreeBlock (int iMinSize, SFreeEntry **retpPrev);
 		void FreeEntry (DWORD dwOffset);
-		inline SEntry *GetEntry (DWORD dwOffset) { return (SEntry *)(((char *)m_pHeader) + dwOffset); }
-		inline SFreeEntry *GetFreeEntry (DWORD dwOffset) { return (dwOffset == 0 ? NULL : (SFreeEntry *)(((char *)m_pHeader) + dwOffset)); }
-		inline DWORD GetNextEntry (DWORD dwOffset) { return dwOffset + sizeof(SEntry) + Abs(GetEntry(dwOffset)->iSize); }
-		inline SQueueSlot *GetQueueSlot (DWORD dwPos) { return (SQueueSlot *)(((char *)m_pHeader) + (sizeof(SHeader) + (dwPos * sizeof(DWORD)))); }
-		inline CString GetEventName (const CString &sName) { return strPattern("%s-Event", sName); }
-		inline CString GetMemoryName (const CString &sName) { return strPattern("%s-Memory", sName); }
-		inline CString GetSemaphoreName (const CString &sName) { return strPattern("%s-Semaphore", sName); }
-		inline bool IsEmpty (void) const { return (m_pHeader->dwHead == m_pHeader->dwTail); }
-		inline bool IsFree (DWORD dwOffset) { return (GetFreeEntry(dwOffset)->iSize < 0); }
-		inline bool IsFull (void) const	{ return (((m_pHeader->dwTail + 1) % m_pHeader->dwSize) == m_pHeader->dwHead); }
-		inline bool IsOpen (void) const { return (m_pHeader != NULL); }
+		SEntry *GetEntry (DWORD dwOffset) { return (SEntry *)(((char *)m_pHeader) + dwOffset); }
+		SFreeEntry *GetFreeEntry (DWORD dwOffset) { return (dwOffset == 0 ? NULL : (SFreeEntry *)(((char *)m_pHeader) + dwOffset)); }
+		DWORD GetNextEntry (DWORD dwOffset) { return dwOffset + sizeof(SEntry) + Abs(GetEntry(dwOffset)->iSize); }
+		SQueueSlot *GetQueueSlot (DWORD dwPos) { return (SQueueSlot *)(((char *)m_pHeader) + (sizeof(SHeader) + (dwPos * sizeof(DWORD)))); }
+		CString GetEventName (const CString &sName) { return strPattern("%s-Event", sName); }
+		CString GetMemoryName (const CString &sName) { return strPattern("%s-Memory", sName); }
+		CString GetSemaphoreName (const CString &sName) { return strPattern("%s-Semaphore", sName); }
+		bool IsEmpty (void) const { return (m_pHeader->dwHead == m_pHeader->dwTail); }
+		bool IsFree (DWORD dwOffset) { return (GetFreeEntry(dwOffset)->iSize < 0); }
+		bool IsFull (void) const	{ return (((m_pHeader->dwTail + 1) % m_pHeader->dwSize) == m_pHeader->dwHead); }
+		bool IsOpen (void) const { return (m_pHeader != NULL); }
 		bool Open (void);
-		inline void SetFree (SFreeEntry *pEntry, int iSize, DWORD dwNext) { pEntry->iSize = -iSize; pEntry->dwNext = dwNext; }
+		void SetFree (SFreeEntry *pEntry, int iSize, DWORD dwNext) { pEntry->iSize = -iSize; pEntry->dwNext = dwNext; }
 
 		IArchonProcessCtx *m_pProcess = NULL;
 		CString m_sName;
@@ -157,7 +157,7 @@ class CInterprocessMessageQueue
 		CManualEvent m_HasMessages;
 
 		//	Valid only after we open
-		SHeader *m_pHeader;
+		SHeader *m_pHeader = NULL;
 		CString m_sTempPath;
 	};
 
@@ -172,24 +172,24 @@ class CMessagePort
 		static bool IsNullAddr (const CString &sAddr);
 
 	private:
-		inline CMessagePort (CMessageTransporter &Transporter, const CString &sAddress) : 
+		CMessagePort (CMessageTransporter &Transporter, const CString &sAddress) : 
 				m_Transporter(Transporter),
 				m_sAddress(sAddress),
 				m_pPort(NULL),
 				m_bFreePort(false)
 			{ }
 
-		inline ~CMessagePort (void) { CleanUpPort(); }
+		~CMessagePort (void) { CleanUpPort(); }
 
 		//	CMessageTransporter must either lock this port or otherwise 
 		//	ensure exclusive access before calling these methods.
 
-		inline void CleanUpPort (void) { if (m_pPort && m_bFreePort) delete m_pPort; m_pPort = NULL; }
-		inline const CString &GetAddress (void) const { return m_sAddress; }
-		inline CCriticalSection &GetLock (void) { return m_cs; }
-		inline IArchonMessagePort *GetPort (void) const { return m_pPort; }
-		inline void InvalidatePort (void) { CSmartLock Lock(m_cs); CleanUpPort(); }
-		inline void SetPort (IArchonMessagePort *pPort, bool bFreePort = false) { CleanUpPort(); m_pPort = pPort; m_bFreePort = bFreePort; }
+		void CleanUpPort (void) { if (m_pPort && m_bFreePort) delete m_pPort; m_pPort = NULL; }
+		const CString &GetAddress (void) const { return m_sAddress; }
+		CCriticalSection &GetLock (void) { return m_cs; }
+		IArchonMessagePort *GetPort (void) const { return m_pPort; }
+		void InvalidatePort (void) { CSmartLock Lock(m_cs); CleanUpPort(); }
+		void SetPort (IArchonMessagePort *pPort, bool bFreePort = false) { CleanUpPort(); m_pPort = pPort; m_bFreePort = bFreePort; }
 
 		CCriticalSection m_cs;				//	This controls access to m_pPort
 		CMessageTransporter &m_Transporter;
@@ -214,7 +214,7 @@ class CIntermachinePort : public IArchonMessagePort
 		virtual bool SendMessage (const SArchonMessage &Msg) override;
 
 	private:
-		IArchonProcessCtx *m_pProcess;
+		IArchonProcessCtx *m_pProcess = NULL;
 		CString m_sMachine;
 		CString m_sAddr;
 	};
@@ -233,8 +233,8 @@ class CInterprocessPort : public IArchonMessagePort
 		virtual bool SendMessage (const SArchonMessage &Msg) override;
 
 	private:
-		IArchonProcessCtx *m_pProcess;
-		CInterprocessMessageQueue *m_pQueue;
+		IArchonProcessCtx *m_pProcess = NULL;
+		CInterprocessMessageQueue *m_pQueue = NULL;
 		CString m_sAddr;
 	};
 
@@ -263,26 +263,30 @@ class CProxyPort : public IArchonMessagePort
 
 	private:
 		CString m_sMsg;
-		CMessagePort *m_pPort;
+		CMessagePort *m_pPort = NULL;
 	};
 
-enum EVirtualPortFlags
-	{
-	FLAG_PORT_ALWAYS =				0x00000001,	//	Always send to this port
-	FLAG_PORT_NEAREST =				0x00000002,	//	Send to this port if it is the nearest (of all marked NEAREST)
-	FLAG_PORT_RANDOM =				0x00000004,	//	Send to 1 random port among all marked as RANDOM
-	FLAG_PORT_ALWAYS_MODULE =		0x00000008,	//	Always send to this port, if in the same module
-	FLAG_PORT_ALWAYS_MACHINE =		0x00000010,	//	Always send to this port, if in the same machine
+constexpr DWORD FLAG_PORT_ALWAYS =				0x00000001;	//	Always send to this port
+constexpr DWORD FLAG_PORT_NEAREST =				0x00000002;	//	Send to this port if it is the nearest (of all marked NEAREST)
+constexpr DWORD FLAG_PORT_RANDOM =				0x00000004;	//	Send to 1 random port among all marked as RANDOM
+constexpr DWORD FLAG_PORT_ALWAYS_MODULE =		0x00000008;	//	Always send to this port, if in the same module
+constexpr DWORD FLAG_PORT_ALWAYS_MACHINE =		0x00000010;	//	Always send to this port, if in the same machine
 
-	FLAG_PORT_LOCAL_MODULE =		0x08000000,	//	This port is local to the module
-	FLAG_PORT_LOCAL_MACHINE =		0x10000000,	//	This port is local to the machine
-	FLAG_PORT_LOCATION_MASK =		0x18000000,
-	};
+constexpr DWORD FLAG_PORT_LOCAL_MODULE =		0x08000000;	//	This port is local to the module
+constexpr DWORD FLAG_PORT_LOCAL_MACHINE =		0x10000000;	//	This port is local to the machine
+constexpr DWORD FLAG_PORT_LOCATION_MASK =		0x18000000;
 
 class CMessageTransporter
 	{
 	public:
-		~CMessageTransporter (void);
+		CMessageTransporter () { }
+		CMessageTransporter (const CMessageTransporter &Src) = delete;
+		CMessageTransporter (CMessageTransporter &&Src) = delete;
+
+		~CMessageTransporter ();
+
+		CMessageTransporter &operator= (const CMessageTransporter &Src) = delete;
+		CMessageTransporter &operator= (CMessageTransporter &&Src) = delete;
 
 		void AddLocalPort (const CString &sPort, IArchonMessagePort *pPort);
 		void AddVirtualPort (const CString &sPort, const CString &sAddress, DWORD dwFlags);
@@ -303,13 +307,13 @@ class CMessageTransporter
 	private:
 		struct SCacheEntry
 			{
-			IArchonMessagePort *pPort;
+			IArchonMessagePort *pPort = NULL;
 			};
 
 		struct SVirtualPortEntry
 			{
 			CString sAddress;
-			DWORD dwFlags;
+			DWORD dwFlags = 0;
 			};
 
 		typedef TArray<SVirtualPortEntry> CVirtualPortArray;
@@ -319,7 +323,7 @@ class CMessageTransporter
 		CDatum GetVirtualPortList (void);
 
 		CCriticalSection m_cs;
-		IArchonProcessCtx *m_pProcess;
+		IArchonProcessCtx *m_pProcess = NULL;
 		TSortMap<CString, CMessagePort *> m_Ports;
 
 		TArray<CMessagePort *> m_EngineBinding;
@@ -342,7 +346,7 @@ class CBlackBox
 
 		void Boot (const CString &sPath);
 		void Log (const CString &sLine);
-		inline void SetConsoleOutput (bool bEnabled = true) { ::SetConsoleOutputCP(65001); m_bConsoleOut = bEnabled; }
+		void SetConsoleOutput (bool bEnabled = true) { ::SetConsoleOutputCP(65001); m_bConsoleOut = bEnabled; }
 		void Shutdown (void);
 
 		static bool ReadRecent (const CString &sPath, const CString &sFind, int iLines, TArray<CString> *retLines);
@@ -362,9 +366,9 @@ class CTimedMessageQueue
 		void AddMessage (DWORD dwDelay, const CString &sAddr, const CString &sMsg, const CString &sReplyAddr, DWORD dwTicket, CDatum dPayload, DWORD *retdwID = NULL);
 		void AddTimeoutMessage (DWORD dwDelay, const CString &sAddr, const CString &sMsg, DWORD dwTicket, DWORD *retdwID = NULL);
 		void DeleteMessage (DWORD dwID);
-		inline CManualEvent &GetEvent (void) { return m_HasMessages; }
+		CManualEvent &GetEvent (void) { return m_HasMessages; }
 		DWORD GetTimeForNextMessage (void);
-        void KeepAliveMessage (DWORD dwID);
+		void KeepAliveMessage (DWORD dwID);
 		void Mark (void);
 		void ProcessMessages (IArchonProcessCtx *pProcess);
 
@@ -510,7 +514,7 @@ class ISessionCtx
 		ISessionCtx (SOCKET hSocket) : m_hSocket(hSocket) { }
 		virtual ~ISessionCtx (void) { }
 
-		inline SOCKET GetSocket (void) { return m_hSocket; }
+		SOCKET GetSocket (void) { return m_hSocket; }
 		virtual int GetType (void) = 0;
 
 	private:
@@ -532,8 +536,8 @@ class CSessionManagerOld
 		void PurgeDeleted (void);
 
 	private:
-		inline ISessionCtx *GetSession (SESSIONID dwSessionID) { return (ISessionCtx *)dwSessionID; }
-		inline SESSIONID GetSessionID (ISessionCtx *pSession) { return (SESSIONID)pSession; }
+		ISessionCtx *GetSession (SESSIONID dwSessionID) { return (ISessionCtx *)dwSessionID; }
+		SESSIONID GetSessionID (ISessionCtx *pSession) { return (SESSIONID)pSession; }
 
 		CCriticalSection m_cs;
 		TArray<ISessionCtx *> m_Sessions;
@@ -545,16 +549,16 @@ class CSessionManagerOld
 class CMachineStorage
 	{
 	public:
-		inline const CString &operator [] (int iIndex) const { return GetPath(iIndex); }
+		const CString &operator [] (int iIndex) const { return GetPath(iIndex); }
 
 		CString CanonicalToMachine (const CString &sFilespec);
 		CString CanonicalRelativeToMachine (const CString &sVolume, const CString &sFilespec);
 		bool FindVolume (const CString &sVolume, int *retiIndex = NULL) const;
-		inline int GetCount (void) const { CSmartLock Lock(m_cs); return m_Volumes.GetCount(); }
-		inline const CString &GetPath (int iIndex) const { CSmartLock Lock(m_cs); return m_Volumes[iIndex].sMachineRoot; }
+		int GetCount (void) const { CSmartLock Lock(m_cs); return m_Volumes.GetCount(); }
+		const CString &GetPath (int iIndex) const { CSmartLock Lock(m_cs); return m_Volumes[iIndex].sMachineRoot; }
 		const CString &GetPath (const CString &sVolume) const;
 		const CString &GetRedundantVolume (const CString &sVolume) const;
-		inline const CString &GetVolume (int iIndex) const { CSmartLock Lock(m_cs); return m_Volumes[iIndex].sVolumeName; }
+		const CString &GetVolume (int iIndex) const { CSmartLock Lock(m_cs); return m_Volumes[iIndex].sVolumeName; }
 		CString GetVolumePath (const CString &sFilespec);
 		bool Init (IArchonProcessCtx *pProcess, const CString &sEngineDirectory, CString *retsError);
 		bool InitLocal (const CString &sStoragePath, const CString &sEngineDirectory, CString *retsError);
@@ -571,7 +575,7 @@ class CMachineStorage
 
 			CString sCanonicalRoot;				//	Volume name + engine directory
 			CString sMachineRoot;				//	Path + engine directory
-			bool bMarked;						//	Temp while reinit
+			bool bMarked = false;				//	Temp while reinit
 			};
 
 		CCriticalSection m_cs;
