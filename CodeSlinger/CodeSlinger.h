@@ -2,6 +2,84 @@
 //
 //	CodeSlinger
 //	Copyright (c) 2020 Kronosaur Productions, LLC. All Rights Reserved.
+//
+//	ARC.CODE
+//
+//	Arc.code has cached compiled code for every program.
+//
+//	ARC.INSTALL
+//
+//	Arc.install is a table storing the program installations for every user
+//			We also use this to store any per-user, per-program config data,
+//			such as permissions.
+//
+//	ARC.PROGRAMS
+//
+//	Arc.programs is the authoritative table of program descriptors. Each row is
+//	a structure with the following fields:
+//
+//		id: The ID of the program. This is an 8-character unique ID generated at
+//				create time.
+//
+//		name: The human-readable name of the program. This is case insensitive 
+//				and can contain any characters (including spaces), except for
+//				':', '/',  '\'. The name cannot have leading or trailing 
+//				spaces, or any embedded non-printable characters except space.
+//
+//		createdBy: User who created the program. This cannot be changed.
+//		createdOn: DateTime when the program was created.
+//
+//		canEdit: A list of users who can edit the program. In addition,
+//				administrators can always edit the program. This default to the
+//				creator, but can be edited.
+//
+//		canRun: If empty, then anyone can run the program. Otherwise, a list of
+//				users who can run it. We default to the creator.
+//
+//		history: A reverse chronological list of changes to the descriptor. This
+//				does not include changes to source code.
+//
+//		programType: The type of program. One of the following:
+//
+//				application: An interactive application.
+//				console: A console program.
+//
+//		properties: A list of user-defined properties for the program. When 
+//				running a program we can specify zero or more of these 
+//				properties.
+//
+//		ports: The list of initial ports to create when running the program 
+//				(more can be created at runtime). Each port is defined as a 
+//				struct with the following fields:
+//
+//				id: A unique ID for the port. Code can use this ID to 
+//						communicate via the port. IDs are case-sensitive and
+//						are strictly alphanumeric (no symbols or whitespace).
+//						We allow '_'.
+//
+//						We define the following IDs for all programs (i.e., they
+//						do not have to be specified in this list):
+//
+//						CON: Always maps to a console port.
+//						LOG: Always maps to a log port.
+//						PROGRESS: Always maps to a progress port.
+//						RESULT: Always maps to a return port.
+//
+//				protocol: One of:
+//
+//						console: A standard console interface.
+//
+//						log: A write-only port, generally used to report errors
+//								and debug output.
+//
+//						progress: A port for reporting progress and current
+//								running status.
+//
+//						return: A single datum result.
+//
+//	ARC.SOURCE
+//
+//	Arc.source stores the source code (including resources) for all programs.
 
 #pragma once
 
