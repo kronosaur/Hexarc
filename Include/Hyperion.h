@@ -163,7 +163,7 @@ class IHyperionService
 		void InsertSession (CHyperionSession *pSession) { CSmartLock Lock(m_cs); m_Sessions.Insert(pSession); }
 		bool IsAccessible (const CString &sName);
 		bool IsListener (void) const { return OnIsListener(); }
-		bool IsSandboxed (void) { return !m_SecurityCtx.GetSandbox().IsEmpty(); }
+		bool IsSandboxed (void) const { return !m_SecurityCtx.GetSandbox().IsEmpty(); }
 		void Mark (void) { OnMark(); }
 
 		static bool ParseObjectName (const CString &sName, CString *retsSandbox, CString *retsLocalName);
@@ -490,6 +490,7 @@ class CHyperionEngine : public TSimpleEngine<CHyperionEngine>
 		void MsgFileDownload (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgGetOptions (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgGetPackageList (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
+		void MsgGetServiceList (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgGetSessionList (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgGetTaskList (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgGetStatus (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);

@@ -21,6 +21,9 @@ DECLARE_CONST_STRING(FIELD_FILE_PATH,					"filePath")
 DECLARE_CONST_STRING(FIELD_MODIFIED_BY,					"modifiedBy")
 DECLARE_CONST_STRING(FIELD_MODIFIED_ON,					"modifiedOn")
 DECLARE_CONST_STRING(FIELD_NAME,						"name")
+DECLARE_CONST_STRING(FIELD_PACKAGE,						"package")
+DECLARE_CONST_STRING(FIELD_PROTOCOL,					"protocol")
+DECLARE_CONST_STRING(FIELD_SANDBOX,						"sandbox")
 DECLARE_CONST_STRING(FIELD_VERSION,						"version")
 
 DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply")
@@ -49,6 +52,7 @@ DECLARE_CONST_STRING(MSG_ESPER_ON_LISTENER_STOPPED,		"Esper.onListenerStopped")
 DECLARE_CONST_STRING(MSG_HYPERION_FILE_DOWNLOAD,		"Hyperion.fileDownload")
 DECLARE_CONST_STRING(MSG_HYPERION_GET_OPTIONS,			"Hyperion.getOptions")
 DECLARE_CONST_STRING(MSG_HYPERION_GET_PACKAGE_LIST,		"Hyperion.getPackageList")
+DECLARE_CONST_STRING(MSG_HYPERION_GET_SERVICE_LIST,		"Hyperion.getServiceList")
 DECLARE_CONST_STRING(MSG_HYPERION_GET_SESSION_LIST,		"Hyperion.getSessionList")
 DECLARE_CONST_STRING(MSG_HYPERION_GET_TASK_LIST,		"Hyperion.getTaskList")
 DECLARE_CONST_STRING(MSG_HYPERION_REFRESH,				"Hyperion.refresh")
@@ -81,6 +85,9 @@ CHyperionEngine::SMessageHandler CHyperionEngine::m_MsgHandlerList[] =
 
 		//	Hyperion.getPackageList
 		{	MSG_HYPERION_GET_PACKAGE_LIST,		&CHyperionEngine::MsgGetPackageList },
+
+		//	Hyperion.getServiceList
+		{	MSG_HYPERION_GET_SERVICE_LIST,		&CHyperionEngine::MsgGetServiceList },
 
 		//	Hyperion.getSessionList
 		{	MSG_HYPERION_GET_SESSION_LIST,		&CHyperionEngine::MsgGetSessionList },
@@ -312,6 +319,42 @@ void CHyperionEngine::MsgGetPackageList (const SArchonMessage &Msg, const CHexeS
 		}
 
 	SendMessageReply(MSG_REPLY_DATA, CDatum(pReply), Msg);
+	}
+
+void CHyperionEngine::MsgGetServiceList (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)
+
+//	MsgGetServiceList
+//
+//	Hyperion.getServiceList
+
+	{
+	//	Must be admin service
+
+	if (!ValidateSandboxAdmin(Msg, pSecurityCtx))
+		return;
+
+	TArray<CHyperionPackageList::SServiceInfo> List;
+	m_Packages.GetServices(&List);
+	if (List.GetCount() == 0)
+		SendMessageReply(MSG_REPLY_DATA, CDatum(), Msg);
+
+	CDatum dReply(CDatum::typeArray);
+	for (int i = 0; i < List.GetCount(); i++)
+		{
+		const IHyperionService *pService = List[i].pService;
+
+		CDatum dEntry(CDatum::typeStruct);
+		dEntry.SetElement(FIELD_NAME, List[i].sName);
+		dEntry.SetElement(FIELD_PACKAGE, pService->GetPackageName());
+		dEntry.SetElement(FIELD_PROTOCOL, pService->GetProtocol());
+
+		if (pService->IsSandboxed())
+			dEntry.SetElement(FIELD_SANDBOX, pService->GetSecurityCtx().GetSandboxName());
+
+		dReply.Append(dEntry);
+		}
+
+	SendMessageReply(MSG_REPLY_DATA, dReply, Msg);
 	}
 
 void CHyperionEngine::MsgGetSessionList (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)

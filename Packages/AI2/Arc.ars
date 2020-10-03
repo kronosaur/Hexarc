@@ -286,6 +286,31 @@ function arc.ping
 			)
 		)
 
+function arc.services
+		{
+		attributes: (AI2.console AI2.authAdminOnly)
+		export: public
+		help: "Manages services in the arcology. HELP: arc.services help"
+		}
+
+	(lambda (params)
+		(block (
+			(command (@ params 0))
+			)
+
+			(switch
+				(= command "")
+					(invoke 'Hyperion.getServiceList)
+
+				(cat
+					"USAGE\n\n"
+
+					"arc.services"
+					)
+				)
+			)
+		)
+
 function arc.sessions
 		{
 		attributes: (AI2.console AI2.authAdminOnly)
