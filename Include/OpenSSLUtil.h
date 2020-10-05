@@ -321,6 +321,7 @@ class CSSLAsyncEngine
 		void Accept (void);
 		void Connect (void);
 		inline const IMemoryBlock &GetBuffer (void) const { return m_Buffer; }
+		int GetInternalState (void) const { return (int)m_iState; }
 		void Send (IMemoryBlock &Data);
 		void Receive (void);
 

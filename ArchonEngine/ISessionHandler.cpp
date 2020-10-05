@@ -5,9 +5,9 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(MSG_ERROR_PREFIX,					"Error.")
-DECLARE_CONST_STRING(MSG_SIMPLE_ENGINE_TIMEOUT,			"Error.timeout")
-DECLARE_CONST_STRING(MSG_REPLY_PROGRESS,				"Reply.progress")
+DECLARE_CONST_STRING(MSG_ERROR_PREFIX,					"Error.");
+DECLARE_CONST_STRING(MSG_SIMPLE_ENGINE_TIMEOUT,			"Error.timeout");
+DECLARE_CONST_STRING(MSG_REPLY_PROGRESS,				"Reply.progress");
 
 CDatum ISessionHandler::GetStatusReport (void) const
 

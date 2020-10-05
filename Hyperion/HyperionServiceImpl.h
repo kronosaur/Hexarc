@@ -202,15 +202,15 @@ class CHTTPSession : public CHyperionSession
 			FLAG_PROXY =					0x00000002,
 			};
 
-		enum EStates
+		enum class State
 			{
-			stateUnknown,
-			stateWaitingForRequest,
-			stateResponseSent,
-			stateResponseSentPartial,
-			stateWaitingForRPCResult,
-			stateWaitingForFileData,
-			stateDisconnected,
+			unknown,
+			waitingForRequest,
+			responseSent,
+			responseSentPartial,
+			waitingForRPCResult,
+			waitingForFileData,
+			disconnected,
 			};
 
 		bool CalcRequestIP (const CHTTPMessage &Msg, CString *retsAddress) const;
@@ -231,11 +231,11 @@ class CHTTPSession : public CHyperionSession
 		bool SendResponseChunk (const SArchonMessage &Msg, CHTTPMessage &Response);
 		bool SendRPC (SHTTPRequestCtx &Ctx);
 
-		EStates m_iState;					//	State of session
-		SHTTPRequestCtx m_Ctx;				//	Processing context
+		State m_iState = State::unknown;		//	State of session
+		SHTTPRequestCtx m_Ctx;					//	Processing context
 
-		DWORD m_dwStartRequest;				//	Tick when we started a request
-		DWORD m_dwPartialSend;				//	Total bytes already sent on a partial response
+		DWORDLONG m_dwStartRequest = 0;			//	Tick when we started a request
+		DWORD m_dwPartialSend = 0;				//	Total bytes already sent on a partial response
 
 		//	We store some status information here. These variables are accessed
 		//	by OnGetHyperionStatusReport and should be protected by the main
@@ -244,7 +244,7 @@ class CHTTPSession : public CHyperionSession
 		CString m_sLastRequestMethod;
 		CString m_sLastRequestURL;
 		CString m_sLastRequestIP;
-		DWORD m_dwLastRequestTime;			//	Tick count of last request
+		DWORDLONG m_dwLastRequestTime = 0;		//	Tick count of last request
 	};
 
 class CHTTPService : public IHyperionService

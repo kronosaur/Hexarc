@@ -159,4 +159,5 @@ inline DWORD sysGetTickCount (void) { return ::GetTickCount(); }
 inline DWORDLONG sysGetTickCount64 (void) { return ::GetTickCount64(); }
 DWORD sysGetTicksElapsed (DWORD dwTick, DWORD *retdwNow = NULL);
 DWORDLONG sysGetTicksElapsed (DWORDLONG dwTick, DWORDLONG *retdwNow = NULL);
+DWORD sysGetSecondsElapsed (DWORDLONG dwTick, DWORDLONG *retdwNow = NULL);
 bool sysIsBigEndian (void);

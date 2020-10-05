@@ -14,7 +14,7 @@ DECLARE_CONST_STRING(ERR_CONNECT_INVALID_STATE,			"Connect: Invalid state.")
 DECLARE_CONST_STRING(ERR_PROCESS_INVALID_STATE,			"Process: Invalid state.")
 DECLARE_CONST_STRING(ERR_OUT_OF_MEMORY,					"SSL: Out of memory.")
 DECLARE_CONST_STRING(ERR_CONNECT_FAILED,				"SSL: Connect failed.")
-DECLARE_CONST_STRING(ERR_ACCEPT_FAILED,					"SSL: Accept failed.")
+DECLARE_CONST_STRING(ERR_ACCEPT_FAILED,					"SSL: Accept failed error = %d.")
 
 const int BUFFER_SIZE =									16 * 1024;
 
@@ -232,7 +232,7 @@ CSSLAsyncEngine::EResults CSSLAsyncEngine::Process (CString *retsError)
 						return resSendData;
 					else
 						{
-						if (retsError) *retsError = ERR_ACCEPT_FAILED;
+						if (retsError) *retsError = strPattern(ERR_ACCEPT_FAILED, iError);
 						return resError;
 						}
 					}

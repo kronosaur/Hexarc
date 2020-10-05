@@ -364,8 +364,6 @@ void CHyperionEngine::MsgGetSessionList (const SArchonMessage &Msg, const CHexeS
 //	Hyperion.getSessionList
 
 	{
-	int i;
-
 	//	Must be admin service
 
 	if (!ValidateSandboxAdmin(Msg, pSecurityCtx))
@@ -374,15 +372,15 @@ void CHyperionEngine::MsgGetSessionList (const SArchonMessage &Msg, const CHexeS
 	TArray<ISessionHandler *> Sessions;
 	GetSessions(&Sessions);
 
-	CComplexArray *pResult = new CComplexArray;
-	pResult->GrowToFit(Sessions.GetCount());
+	CDatum dResult(CDatum::typeArray);
+	dResult.GrowToFit(Sessions.GetCount());
 
-	for (i = 0; i < Sessions.GetCount(); i++)
-		pResult->Append(Sessions[i]->GetStatusReport());
+	for (int i = 0; i < Sessions.GetCount(); i++)
+		dResult.Append(Sessions[i]->GetStatusReport());
 
 	//	Result the list of sessions
 
-	SendMessageReply(MSG_REPLY_DATA, CDatum(pResult), Msg);
+	SendMessageReply(MSG_REPLY_DATA, dResult, Msg);
 	}
 
 void CHyperionEngine::MsgGetTaskList (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)

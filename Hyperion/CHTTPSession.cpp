@@ -15,71 +15,79 @@
 
 const int DEFAULT_TIMEOUT =								30 * 1000;
 
-DECLARE_CONST_STRING(ADDRESS_ESPER_COMMAND,				"Esper.command")
+DECLARE_CONST_STRING(ADDRESS_ESPER_COMMAND,				"Esper.command");
 
-DECLARE_CONST_STRING(EXTENSION_HEXM,					".hexm")
+DECLARE_CONST_STRING(EXTENSION_HEXM,					".hexm");
 
-DECLARE_CONST_STRING(FIELD_DATA,						"data")
-DECLARE_CONST_STRING(FIELD_FILE_DESC,					"fileDesc")
-DECLARE_CONST_STRING(FIELD_FILE_PATH,					"filePath")
-DECLARE_CONST_STRING(FIELD_HTTP_METHOD,					"method")
-DECLARE_CONST_STRING(FIELD_ORIGINAL_ADDR,				"originalAddr")
-DECLARE_CONST_STRING(FIELD_MODIFIED_ON,					"modifiedOn")
-DECLARE_CONST_STRING(FIELD_PROTOCOL,					"protocol")
-DECLARE_CONST_STRING(FIELD_REQUEST_TIME,				"requestTime")
-DECLARE_CONST_STRING(FIELD_SIZE,						"size")
-DECLARE_CONST_STRING(FIELD_UNMODIFIED,					"unmodified")
-DECLARE_CONST_STRING(FIELD_HTTP_URL,					"url")
+DECLARE_CONST_STRING(FIELD_CLIENT_ADDR,					"clientAddr");
+DECLARE_CONST_STRING(FIELD_DATA,						"data");
+DECLARE_CONST_STRING(FIELD_FILE_DESC,					"fileDesc");
+DECLARE_CONST_STRING(FIELD_FILE_PATH,					"filePath");
+DECLARE_CONST_STRING(FIELD_HTTP_METHOD,					"method");
+DECLARE_CONST_STRING(FIELD_MODIFIED_ON,					"modifiedOn");
+DECLARE_CONST_STRING(FIELD_PROTOCOL,					"protocol");
+DECLARE_CONST_STRING(FIELD_REQUEST_TIME,				"requestTime");
+DECLARE_CONST_STRING(FIELD_SIZE,						"size");
+DECLARE_CONST_STRING(FIELD_SOCKET,						"socket");
+DECLARE_CONST_STRING(FIELD_STATE,						"state");
+DECLARE_CONST_STRING(FIELD_UNMODIFIED,					"unmodified");
+DECLARE_CONST_STRING(FIELD_HTTP_URL,					"url");
 
-DECLARE_CONST_STRING(HEADER_CF_CONNECTING_IP,			"CF-Connecting-IP")
-DECLARE_CONST_STRING(HEADER_CONNECTION,					"Connection")
-DECLARE_CONST_STRING(HEADER_DATE,						"Date")
-DECLARE_CONST_STRING(HEADER_IF_MODIFIED_SINCE,			"If-Modified-Since")
-DECLARE_CONST_STRING(HEADER_LAST_MODIFIED,				"Last-Modified")
-DECLARE_CONST_STRING(HEADER_SERVER,						"Server")
+DECLARE_CONST_STRING(HEADER_CF_CONNECTING_IP,			"CF-Connecting-IP");
+DECLARE_CONST_STRING(HEADER_CONNECTION,					"Connection");
+DECLARE_CONST_STRING(HEADER_DATE,						"Date");
+DECLARE_CONST_STRING(HEADER_IF_MODIFIED_SINCE,			"If-Modified-Since");
+DECLARE_CONST_STRING(HEADER_LAST_MODIFIED,				"Last-Modified");
+DECLARE_CONST_STRING(HEADER_SERVER,						"Server");
 
-DECLARE_CONST_STRING(MSG_AEON_FILE_DOWNLOAD,			"Aeon.fileDownload")
-DECLARE_CONST_STRING(MSG_AEON_FILE_DOWNLOAD_DESC,		"Aeon.fileDownloadDesc")
-DECLARE_CONST_STRING(MSG_ERROR_TIMEOUT,					"Error.timeout")
-DECLARE_CONST_STRING(MSG_ESPER_DISCONNECT,				"Esper.disconnect")
-DECLARE_CONST_STRING(MSG_ESPER_ON_DISCONNECT,			"Esper.onDisconnect")
-DECLARE_CONST_STRING(MSG_ESPER_ON_READ,					"Esper.onRead")
-DECLARE_CONST_STRING(MSG_ESPER_ON_WRITE,				"Esper.onWrite")
-DECLARE_CONST_STRING(MSG_ESPER_READ,					"Esper.read")
-DECLARE_CONST_STRING(MSG_ESPER_WRITE,					"Esper.write")
-DECLARE_CONST_STRING(MSG_LOG_DEBUG,						"Log.debug")
-DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error")
-DECLARE_CONST_STRING(MSG_LOG_INFO,						"Log.info")
+DECLARE_CONST_STRING(MSG_AEON_FILE_DOWNLOAD,			"Aeon.fileDownload");
+DECLARE_CONST_STRING(MSG_AEON_FILE_DOWNLOAD_DESC,		"Aeon.fileDownloadDesc");
+DECLARE_CONST_STRING(MSG_ERROR_TIMEOUT,					"Error.timeout");
+DECLARE_CONST_STRING(MSG_ESPER_DISCONNECT,				"Esper.disconnect");
+DECLARE_CONST_STRING(MSG_ESPER_ON_DISCONNECT,			"Esper.onDisconnect");
+DECLARE_CONST_STRING(MSG_ESPER_ON_READ,					"Esper.onRead");
+DECLARE_CONST_STRING(MSG_ESPER_ON_WRITE,				"Esper.onWrite");
+DECLARE_CONST_STRING(MSG_ESPER_READ,					"Esper.read");
+DECLARE_CONST_STRING(MSG_ESPER_WRITE,					"Esper.write");
+DECLARE_CONST_STRING(MSG_LOG_DEBUG,						"Log.debug");
+DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error");
+DECLARE_CONST_STRING(MSG_LOG_INFO,						"Log.info");
 
-DECLARE_CONST_STRING(PORT_HYPERION_COMMAND,				"Hyperion.command")
+DECLARE_CONST_STRING(PORT_HYPERION_COMMAND,				"Hyperion.command");
 
-DECLARE_CONST_STRING(PROTOCOL_HTTP,						"http")
+DECLARE_CONST_STRING(PROTOCOL_HTTP,						"http");
 
-DECLARE_CONST_STRING(STR_CLOSE,							"Close")
-DECLARE_CONST_STRING(STR_OK,							"OK")
-DECLARE_CONST_STRING(STR_SERVER_VERSION,				"Hexarc/1.0")
-DECLARE_CONST_STRING(STR_KEEP_ALIVE,					"Keep-Alive")
+DECLARE_CONST_STRING(STATE_DISCONNECTED,				"disconnected");
+DECLARE_CONST_STRING(STATE_RESPONSE_SENT,				"responseSent");
+DECLARE_CONST_STRING(STATE_RESPONSE_SENT_PARTIAL,		"responseSentPartial");
+DECLARE_CONST_STRING(STATE_UNKNOWN,						"unknown");
+DECLARE_CONST_STRING(STATE_WAITING_FOR_FILE_DATA,		"waitingForFileData");
+DECLARE_CONST_STRING(STATE_WAITING_FOR_REQUEST,			"waitingForRequest");
+DECLARE_CONST_STRING(STATE_WAITING_FOR_RPC,				"waitingForRPC");
 
-DECLARE_CONST_STRING(ERR_304_NOT_MODIFIED,				"Not Modified")
-DECLARE_CONST_STRING(ERR_400_BAD_REQUEST,				"Bad Request")
-DECLARE_CONST_STRING(ERR_RPC_TIMEOUT,					"No response from RPC message.")
-DECLARE_CONST_STRING(ERR_404_NOT_FOUND,					"Not Found")
-DECLARE_CONST_STRING(ERR_FILE_RECURSION,				"Too many HEXM file loads to handle a request. Possible infinite recursion.")
-DECLARE_CONST_STRING(ERR_CANT_SERIALIZE,				"Unable to serialize response.")
-DECLARE_CONST_STRING(ERR_UNEXPECTED_MSG,				"[%x] Unexpected msg in state %d: %s.")
-DECLARE_CONST_STRING(ERR_CRASH_PROCESS_FILE_HEXM,		"Crash processing HEXM file: %s.")
-DECLARE_CONST_STRING(ERR_CRASH_PROCESS_FILE_RAW,		"Crash processing file: %s.")
-DECLARE_CONST_STRING(ERR_CRASH_PROCESS_MSG,				"Crash in state %d processing message: %s.")
-DECLARE_CONST_STRING(ERR_CRASH_PROCESS_SERVICE,			"Crash processing service status %d. Message: %s.")
-DECLARE_CONST_STRING(ERR_UNKNOWN_SESSION_STATE,			"Unknown session state in OnProcessMessage.")
-DECLARE_CONST_STRING(ERR_HTTP_SESSION_TIMING,			"[%x] %s%s took %d ms to process.")
+DECLARE_CONST_STRING(STR_CLOSE,							"Close");
+DECLARE_CONST_STRING(STR_OK,							"OK");
+DECLARE_CONST_STRING(STR_SERVER_VERSION,				"Hexarc/1.0");
+DECLARE_CONST_STRING(STR_KEEP_ALIVE,					"Keep-Alive");
+
+DECLARE_CONST_STRING(ERR_304_NOT_MODIFIED,				"Not Modified");
+DECLARE_CONST_STRING(ERR_400_BAD_REQUEST,				"Bad Request");
+DECLARE_CONST_STRING(ERR_RPC_TIMEOUT,					"No response from RPC message.");
+DECLARE_CONST_STRING(ERR_404_NOT_FOUND,					"Not Found");
+DECLARE_CONST_STRING(ERR_FILE_RECURSION,				"Too many HEXM file loads to handle a request. Possible infinite recursion.");
+DECLARE_CONST_STRING(ERR_CANT_SERIALIZE,				"Unable to serialize response.");
+DECLARE_CONST_STRING(ERR_UNEXPECTED_MSG,				"[%x] Unexpected msg in state %d: %s.");
+DECLARE_CONST_STRING(ERR_CRASH_PROCESS_FILE_HEXM,		"Crash processing HEXM file: %s.");
+DECLARE_CONST_STRING(ERR_CRASH_PROCESS_FILE_RAW,		"Crash processing file: %s.");
+DECLARE_CONST_STRING(ERR_CRASH_PROCESS_MSG,				"Crash in state %d processing message: %s.");
+DECLARE_CONST_STRING(ERR_CRASH_PROCESS_SERVICE,			"Crash processing service status %d. Message: %s.");
+DECLARE_CONST_STRING(ERR_UNKNOWN_SESSION_STATE,			"Unknown session state in OnProcessMessage.");
+DECLARE_CONST_STRING(ERR_HTTP_SESSION_TIMING,			"[%x] %s%s took %d ms to process.");
 
 const DWORD MAX_SINGLE_BODY_SIZE =						100000;
 
 CHTTPSession::CHTTPSession (CHyperionEngine *pEngine, const CString &sListener, const CString &sProtocol, CDatum dSocket, const CString &sNetAddress) : 
-		CHyperionSession(pEngine, sListener, sProtocol, dSocket, sNetAddress),
-		m_iState(stateUnknown),
-		m_dwLastRequestTime(0)
+		CHyperionSession(pEngine, sListener, sProtocol, dSocket, sNetAddress)
 
 //	CHTTPSession constructor
 
@@ -111,7 +119,7 @@ bool CHTTPSession::Disconnect (const SArchonMessage &Msg)
 	{
 	//	Initialize context state
 
-	m_iState = stateDisconnected;
+	m_iState = State::disconnected;
 
 	//	Compose message
 
@@ -152,7 +160,7 @@ bool CHTTPSession::GetRequest (const SArchonMessage &Msg, bool bContinued)
 	{
 	//	Initialize context state
 
-	m_iState = stateWaitingForRequest;
+	m_iState = State::waitingForRequest;
 	m_Ctx.pSession = this;
 
 	if (!bContinued)
@@ -218,9 +226,47 @@ void CHTTPSession::OnGetHyperionStatusReport (CComplexStruct *pStatus) const
 	m_pEngine->GetCS().Lock();
 	pStatus->SetElement(FIELD_HTTP_METHOD, m_sLastRequestMethod);
 	pStatus->SetElement(FIELD_HTTP_URL, m_sLastRequestURL);
-	pStatus->SetElement(FIELD_ORIGINAL_ADDR, m_sLastRequestIP);
+	pStatus->SetElement(FIELD_CLIENT_ADDR, m_sLastRequestIP);
 	if (m_dwLastRequestTime != 0)
-		pStatus->SetElement(FIELD_REQUEST_TIME, sysGetTicksElapsed(m_dwLastRequestTime));
+		pStatus->SetElement(FIELD_REQUEST_TIME, ::sysGetSecondsElapsed(m_dwLastRequestTime));
+
+	pStatus->SetElement(FIELD_SOCKET, strPattern("%x", CEsperInterface::ConnectionToFriendlyID(m_dSocket)));
+
+	switch (m_iState)
+		{
+		case State::unknown:
+			pStatus->SetElement(FIELD_STATE, STATE_UNKNOWN);
+			break;
+
+		case State::waitingForRequest:
+			pStatus->SetElement(FIELD_STATE, STATE_WAITING_FOR_REQUEST);
+			break;
+
+		case State::responseSent:
+			pStatus->SetElement(FIELD_STATE, STATE_RESPONSE_SENT);
+			break;
+
+		case State::responseSentPartial:
+			pStatus->SetElement(FIELD_STATE, STATE_RESPONSE_SENT_PARTIAL);
+			break;
+
+		case State::waitingForRPCResult:
+			pStatus->SetElement(FIELD_STATE, STATE_WAITING_FOR_RPC);
+			break;
+
+		case State::waitingForFileData:
+			pStatus->SetElement(FIELD_STATE, STATE_WAITING_FOR_FILE_DATA);
+			break;
+
+		case State::disconnected:
+			pStatus->SetElement(FIELD_STATE, STATE_DISCONNECTED);
+			break;
+
+		default:
+			pStatus->SetElement(FIELD_STATE, strPattern("Unknown: %d", (int)m_iState));
+			break;
+		}
+
 	m_pEngine->GetCS().Unlock();
 	}
 
@@ -529,7 +575,7 @@ bool CHTTPSession::ProcessStateWaitingForRequest (const SArchonMessage &Msg)
 
 		//	Time how long it takes us to process a request
 
-		m_dwStartRequest = ::sysGetTickCount();
+		m_dwStartRequest = ::sysGetTickCount64();
 
 		//	See if this is a proxy request (e.g., via CloudFlare)
 
@@ -546,11 +592,8 @@ bool CHTTPSession::ProcessStateWaitingForRequest (const SArchonMessage &Msg)
 			{
 			m_sLastRequestMethod = m_Ctx.Request.GetMethod();
 			m_sLastRequestURL = m_Ctx.Request.GetRequestedURL();
-			if (bNewProxyIP)
-				m_sLastRequestIP = sOriginalAddr;
-			else if (bFirstRequest)
-				m_sLastRequestIP = m_sNetAddress;
-			m_dwLastRequestTime = ::GetTickCount();
+			m_sLastRequestIP = (bHasProxyIP ? sOriginalAddr : m_sNetAddress);
+			m_dwLastRequestTime = ::sysGetTickCount64();
 			}
 		catch (...)
 			{
@@ -637,22 +680,22 @@ bool CHTTPSession::OnProcessMessage (const SArchonMessage &Msg)
 		{
 		switch (m_iState)
 			{
-			case stateWaitingForRequest:
+			case State::waitingForRequest:
 				return ProcessStateWaitingForRequest(Msg);
 
-			case stateResponseSent:
+			case State::responseSent:
 				return ProcessStateResponseSent(Msg);
 
-			case stateResponseSentPartial:
+			case State::responseSentPartial:
 				return ProcessStateResponseSentPartial(Msg);
 
-			case stateWaitingForRPCResult:
+			case State::waitingForRPCResult:
 				return ProcessStateWaitingForRPCResult(Msg);
 
-			case stateWaitingForFileData:
+			case State::waitingForFileData:
 				return ProcessStateWaitingForFileData(Msg);
 
-			case stateDisconnected:
+			case State::disconnected:
 				return ProcessStateDisconnected(Msg);
 
 			default:
@@ -856,7 +899,7 @@ bool CHTTPSession::SendReadFileRequest (SHTTPRequestCtx &Ctx, const SArchonMessa
 
 	//	Set state
 
-	m_iState = stateWaitingForFileData;
+	m_iState = State::waitingForFileData;
 	Ctx.iStatus = pstatNone;
 
 	//	Send the message
@@ -883,14 +926,13 @@ bool CHTTPSession::SendResponse (SHTTPRequestCtx &Ctx, const SArchonMessage &Msg
 
 	//	Compute how long it took us to generate the response (in milliseconds)
 
-	DWORD dwTime = ::sysGetTicksElapsed(m_dwStartRequest);
+	DWORDLONG dwTime = ::sysGetTicksElapsed(m_dwStartRequest);
 #ifdef DEBUG_SESSION_TIMING
-	GetProcessCtx()->Log(MSG_LOG_INFO, strPattern(ERR_HTTP_SESSION_TIMING, CEsperInterface::ConnectionToFriendlyID(m_dSocket), Ctx.Request.GetRequestedHost(), Ctx.Request.GetRequestedURL(), dwTime));
+	GetProcessCtx()->Log(MSG_LOG_INFO, strPattern(ERR_HTTP_SESSION_TIMING, CEsperInterface::ConnectionToFriendlyID(m_dSocket), Ctx.Request.GetRequestedHost(), Ctx.Request.GetRequestedURL(), (DWORD)dwTime));
 #else
 	if (dwTime >= 1000)
 		GetProcessCtx()->Log(MSG_LOG_INFO, strPattern(ERR_HTTP_SESSION_TIMING, CEsperInterface::ConnectionToFriendlyID(m_dSocket), Ctx.Request.GetRequestedHost(), Ctx.Request.GetRequestedPath(), dwTime));
 #endif
-		
 
 	//	Add some standard headers
 
@@ -972,7 +1014,7 @@ bool CHTTPSession::SendResponse (SHTTPRequestCtx &Ctx, const SArchonMessage &Msg
 	//	NOTE: We always set the state before sending the message because we
 	//	might get a response on a different thread.
 
-	m_iState = (bPartial ? stateResponseSentPartial : stateResponseSent);
+	m_iState = (bPartial ? State::responseSentPartial : State::responseSent);
 	Ctx.iStatus = pstatNone;
 
 	//	Send a write command
@@ -1064,7 +1106,7 @@ bool CHTTPSession::SendRPC (SHTTPRequestCtx &Ctx)
 	{
 	//	Initialize context state
 
-	m_iState = stateWaitingForRPCResult;
+	m_iState = State::waitingForRPCResult;
 	Ctx.iStatus = pstatNone;
 
 	//	Send the message

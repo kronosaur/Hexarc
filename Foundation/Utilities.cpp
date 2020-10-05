@@ -125,6 +125,17 @@ CString sysGetOSErrorText (DWORD dwError)
 	return sText;
 	}
 
+DWORD sysGetSecondsElapsed (DWORDLONG dwTick, DWORDLONG *retdwNow)
+
+//	sysGetSecondsElapsed
+//
+//	Returns the number of seconds elapsed (rounded)
+
+	{
+	DWORDLONG dwElapsed = sysGetTicksElapsed(dwTick, retdwNow);
+	return (DWORD)((dwElapsed + 500) / 1000);
+	}
+
 DWORD sysGetTicksElapsed (DWORD dwTick, DWORD *retdwNow)
 
 //	sysGetTicksElapsed

@@ -153,6 +153,8 @@ void CEsperTLSConnectionIn::OnConnect (void)
 //	Someone connected to us
 
 	{
+	m_Manager.LogTrace(strPattern("[%x] TLS Connection OnConnect", CEsperInterface::ConnectionToFriendlyID(CDatum(GetID()))));
+
 	m_pSSL->Accept();
 
 	m_iSSLSavedState = stateReplyOnConnect;
@@ -313,6 +315,8 @@ bool CEsperTLSConnectionIn::OpProcessSSL (CString *retsError)
 //	Process SSL until we are ready.
 
 	{
+	m_Manager.LogTrace(strPattern("[%x] TLS Process SSL state: %d", CEsperInterface::ConnectionToFriendlyID(CDatum(GetID())), m_pSSL->GetInternalState()));
+
 	CString sError;
 	switch (m_pSSL->Process(&sError))
 		{
@@ -344,8 +348,13 @@ bool CEsperTLSConnectionIn::OpProcessSSL (CString *retsError)
 
 		case CSSLAsyncEngine::resError:
 			m_iState = stateNone;
-			m_Manager.LogTrace(strPattern(ERR_SSL_ERROR, CEsperInterface::ConnectionToFriendlyID(CDatum(GetID())), sError));
-			m_Manager.DeleteConnection(CDatum(GetID()));
+			if (!IsDeleted())
+				{
+				m_Manager.LogTrace(strPattern(ERR_SSL_ERROR, CEsperInterface::ConnectionToFriendlyID(CDatum(GetID())), sError));
+				m_Manager.SendMessageReplyDisconnect(m_Msg);
+				m_Manager.DeleteConnection(CDatum(GetID()));
+				}
+
 			if (retsError) *retsError = sError;
 			return false;
 
@@ -371,8 +380,12 @@ bool CEsperTLSConnectionIn::OpRead (EStates iNewState)
 	m_iState = iNewState;
 	if (!IIOCPEntry::BeginRead(&sError))
 		{
-		m_Manager.LogTrace(strPattern(ERR_READ_OP_FAILED, CEsperInterface::ConnectionToFriendlyID(CDatum(GetID())), sError));
-		m_Manager.DeleteConnection(CDatum(GetID()));
+		if (!IsDeleted())
+			{
+			m_Manager.LogTrace(strPattern(ERR_READ_OP_FAILED, CEsperInterface::ConnectionToFriendlyID(CDatum(GetID())), sError));
+			m_Manager.SendMessageReplyDisconnect(m_Msg);
+			m_Manager.DeleteConnection(CDatum(GetID()));
+			}
 		return false;
 		}
 
@@ -396,8 +409,12 @@ bool CEsperTLSConnectionIn::OpWrite (const CString &sData, EStates iNewState)
 	m_iState = iNewState;
 	if (!IIOCPEntry::BeginWrite(sData, &sError))
 		{
-		m_Manager.LogTrace(strPattern(ERR_WRITE_OP_FAILED, CEsperInterface::ConnectionToFriendlyID(CDatum(GetID()))));
-		m_Manager.DeleteConnection(CDatum(GetID()));
+		if (!IsDeleted())
+			{
+			m_Manager.LogTrace(strPattern(ERR_WRITE_OP_FAILED, CEsperInterface::ConnectionToFriendlyID(CDatum(GetID()))));
+			m_Manager.SendMessageReplyDisconnect(m_Msg);
+			m_Manager.DeleteConnection(CDatum(GetID()));
+			}
 		return false;
 		}
 

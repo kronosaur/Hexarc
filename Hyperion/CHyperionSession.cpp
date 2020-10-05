@@ -5,7 +5,7 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(FIELD_CLIENT_ADDR,					"clientAddr")
+DECLARE_CONST_STRING(FIELD_CONNECT_ADDR,				"connectAddr")
 DECLARE_CONST_STRING(FIELD_SOCKET,						"socket")
 
 DECLARE_CONST_STRING(MSG_LOG_INFO,						"Log.info")
@@ -52,7 +52,7 @@ void CHyperionSession::OnGetStatusReport (CComplexStruct *pStatus) const
 	//	Add our information
 
 	pStatus->SetElement(FIELD_SOCKET, CEsperInterface::ConnectionToFriendlyID(m_dSocket));
-	pStatus->SetElement(FIELD_CLIENT_ADDR, m_sNetAddress);
+	pStatus->SetElement(FIELD_CONNECT_ADDR, m_sNetAddress);
 
 	//	Let our subclasses add status
 
