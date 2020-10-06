@@ -11,6 +11,7 @@ DECLARE_CONST_STRING(AUTH_TYPE_SHA1,					"SHA1")
 
 DECLARE_CONST_STRING(FIELD_AUTH_DESC,					"authDesc")
 DECLARE_CONST_STRING(FIELD_CREDENTIALS,					"credentials")
+DECLARE_CONST_STRING(FIELD_SCOPE,						"scope")
 DECLARE_CONST_STRING(FIELD_TYPE,						"type")
 
 DECLARE_CONST_STRING(MSG_AEON_GET_VALUE,				"Aeon.getValue")
@@ -96,9 +97,17 @@ void CCryptosaurEngine::MsgCreateScopedCredentials (const SArchonMessage &Msg, c
 
 	CDatum dAuthDesc = Msg.dPayload.GetElement(1);
 
-	//	Make sure we have a scope
+	//	Make sure we have a scope. If we have no security context then it means
+	//	that we're being called by an admin level service, which means they are
+	//	responsible for passing in the scope.
 
+	CString sScope;
 	if (pSecurityCtx == NULL || pSecurityCtx->GetSandbox().IsEmpty())
+		sScope = ValidateSandbox(dAuthDesc.GetElement(FIELD_SCOPE));
+	else
+		sScope = pSecurityCtx->GetSandbox();
+
+	if (sScope.IsEmpty())
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, ERR_SCOPE_REQUIRED, Msg);
 		return;
@@ -108,7 +117,7 @@ void CCryptosaurEngine::MsgCreateScopedCredentials (const SArchonMessage &Msg, c
 
 	StartSession(Msg, new CCreateScopedCredentialsSession(this, 
 			sUsername,
-			pSecurityCtx->GetSandbox(),
+			sScope,
 			dAuthDesc,
 			!Msg.dPayload.GetElement(2).IsNil()
 			));

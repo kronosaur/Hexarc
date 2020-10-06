@@ -30,6 +30,7 @@ class CCryptosaurEngine : public TSimpleEngine<CCryptosaurEngine>
 
 		//	Helpers
 		CDatum GenerateAuthToken (CDatum dData, DWORD dwLifetime);
+		static CString ValidateSandbox (const CString &sSandbox);
 		static bool ValidateUsername (const CString &sUsername, CString *retsError);
 
 		//	TSimpleEngine

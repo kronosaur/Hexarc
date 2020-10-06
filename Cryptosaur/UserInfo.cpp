@@ -325,8 +325,11 @@ bool CUserInfoSession::OnProcessMessage (const SArchonMessage &Msg)
 					m_dwAuthTokenLifetime = DEFAULT_AUTH_TOKEN_TIMEOUT;
 				}
 
-			//	If we're not actual and have no scope, then we can't continue
+			//	If we're not actual and have no scope, then we are an admin-level
+			//	service and we must get the scope from parameters.
 
+			if (m_sScope.IsEmpty())
+				m_sScope = CCryptosaurEngine::ValidateSandbox(dRequestAuthDesc.GetElement(FIELD_SCOPE));
 			if (!m_bActual && m_sScope.IsEmpty())
 				{
 				SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, ERR_SCOPE_REQUIRED);

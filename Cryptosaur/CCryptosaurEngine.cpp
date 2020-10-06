@@ -448,6 +448,34 @@ bool CCryptosaurEngine::ValidateRightsGrant (const SArchonMessage &Msg, const CH
 	return true;
 	}
 
+CString CCryptosaurEngine::ValidateSandbox (const CString &sSandbox)
+
+//	ValidateSandbox
+//
+//	Makes sure the sandbox name is in the proper format.
+
+	{
+	bool bFoundDot = false;
+	const char *pPos = sSandbox.GetParsePointer();
+	const char *pPosEnd = pPos + sSandbox.GetLength();
+
+	const char *pStart = pPos;
+	while (pPos < pPosEnd)
+		if (*pPos == '.')
+			{
+			pPos++;
+			bFoundDot = true;
+			break;
+			}
+		else
+			pPos++;
+
+	if (bFoundDot)
+		return CString(sSandbox.GetParsePointer(), pPos - pStart);
+	else
+		return strPattern("%s.", sSandbox);
+	}
+
 bool CCryptosaurEngine::ValidateUsername (const CString &sUsername, CString *retsError)
 
 //	ValidateUsername
