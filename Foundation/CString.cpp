@@ -2965,6 +2965,28 @@ CString strToSimilarMatch (const CString &sString)
 	return CString::CreateFromHandoff(Buffer);
 	}
 
+CString strToUpper (const CString &sString)
+
+//	strToUpper
+//
+//	Converts the string to UPPERCASE
+
+	{
+	CMemoryBuffer Stream(4096);
+
+	char *pPos = (LPSTR)sString;
+	char *pEndPos = pPos + sString.GetLength();
+	char *pStart = pPos;
+	while (pPos < pEndPos)
+		{
+		UTF32 dwCodePoint = strParseUTF8Char(&pPos, pEndPos);
+		UTF32 dwLower = strToUpperChar(dwCodePoint);
+		strEncodeUTF8Char(dwLower, Stream);
+		}
+
+	return CString(Stream.GetPointer(), Stream.GetLength());
+	}
+
 //	Functions
 
 int KeyCompare (const LPSTR &pKey1, const LPSTR &pKey2)

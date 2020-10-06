@@ -213,6 +213,7 @@ double strToDouble (const CString &sString);
 inline int strToInt (const CString &sString, int iFailResult = 0, bool *retbFailed = NULL) { return strParseInt(sString, iFailResult, NULL, retbFailed); }
 CString strToLower (const CString &sString);
 CString strToSimilarMatch (const CString &sString);
+CString strToUpper (const CString &sString);
 
 CString strEncodeUTF8Char (UTF32 dwCodePoint);
 void strEncodeUTF8Char (UTF32 dwCodePoint, IByteStream &Stream);

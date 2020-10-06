@@ -263,7 +263,12 @@ DECLARE_CONST_STRING(STR_TYPE_OF_NAME,					"typeof")
 DECLARE_CONST_STRING(STR_TYPE_OF_ARGS,					"*")
 DECLARE_CONST_STRING(STR_TYPE_OF_HELP,					"(typeof value) -> type")
 
-const DWORD STR_URL_PARAM =								16;
+const DWORD STR_UPPERCASE =								16;
+DECLARE_CONST_STRING(STR_UPPERCASE_NAME,				"uppercase")
+DECLARE_CONST_STRING(STR_UPPERCASE_ARGS,				"*")
+DECLARE_CONST_STRING(STR_UPPERCASE_HELP,				"(uppercase string) -> string")
+
+const DWORD STR_URL_PARAM =								17;
 DECLARE_CONST_STRING(STR_URL_PARAM_NAME,				"urlParam")
 DECLARE_CONST_STRING(STR_URL_PARAM_ARGS,				"*")
 DECLARE_CONST_STRING(STR_URL_PARAM_HELP,				"(urlParam string) -> string")
@@ -393,6 +398,7 @@ SLibraryFuncDef g_CoreLibraryDef[] =
 	DECLARE_DEF_LIBRARY_FUNC(STR_SUBSTRING, coreStrings, 0),
 	DECLARE_DEF_LIBRARY_FUNC(STR_TO_JSON, coreStrings, 0),
 	DECLARE_DEF_LIBRARY_FUNC(STR_TYPE_OF, coreStrings, 0),
+	DECLARE_DEF_LIBRARY_FUNC(STR_UPPERCASE, coreStrings, 0),
 	DECLARE_DEF_LIBRARY_FUNC(STR_URL_PARAM, coreStrings, 0),
 
 	DECLARE_DEF_LIBRARY_FUNC(SYS_TICKS, coreSystem, 0),
@@ -1813,6 +1819,16 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 					}
 				}
 			return true;
+
+		case STR_UPPERCASE:
+			{
+			CString sString = dLocalEnv.GetElement(0).AsString();
+			if (sString.IsEmpty())
+				*retdResult = CDatum();
+			else
+				*retdResult = strToUpper(sString);
+			return true;
+			}
 
 		case STR_URL_PARAM:
 			{
