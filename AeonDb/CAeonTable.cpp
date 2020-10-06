@@ -62,6 +62,9 @@
 
 const int MAX_CHANGES_IN_MEMORY =						100;
 
+DECLARE_CONST_STRING(FILE_DATA_TYPE_BINARY,				"binary");
+DECLARE_CONST_STRING(FILE_DATA_TYPE_TEXT,				"text");
+
 DECLARE_CONST_STRING(FILESPEC_TABLE_DESC_FILE,			"desc.ars");
 DECLARE_CONST_STRING(FILESPEC_FILES_DIR,				"files");
 DECLARE_CONST_STRING(FILESPEC_RECOVERY_DIR,				"recovery");
@@ -74,16 +77,19 @@ DECLARE_CONST_STRING(FILESPEC_ALL,						"*.*");
 
 DECLARE_CONST_STRING(FIELD_BACKUP_VOLUMES,				"backupVolumes");
 DECLARE_CONST_STRING(FIELD_DATA,						"data");
+DECLARE_CONST_STRING(FIELD_DATA_TYPE,					"dataType");
 DECLARE_CONST_STRING(FIELD_FILE_DESC,					"fileDesc");
 DECLARE_CONST_STRING(FIELD_FILE_PATH,					"filePath");
 DECLARE_CONST_STRING(FIELD_GLOBAL_ENV,					"globalEnv");
 DECLARE_CONST_STRING(FIELD_ID,							"id");
+DECLARE_CONST_STRING(FIELD_IF_MODIFIED_AFTER,			"ifModifiedAfter")
 DECLARE_CONST_STRING(FIELD_KEY,							"key");
 DECLARE_CONST_STRING(FIELD_KEY_SORT,					"keySort");
 DECLARE_CONST_STRING(FIELD_KEY_TYPE,					"keyType");
 DECLARE_CONST_STRING(FIELD_MODIFIED_BY,					"modifiedBy");
 DECLARE_CONST_STRING(FIELD_MODIFIED_ON,					"modifiedOn");
 DECLARE_CONST_STRING(FIELD_NAME,						"name");
+DECLARE_CONST_STRING(FIELD_PARTIAL_MAX_SIZE,			"partialMaxSize")
 DECLARE_CONST_STRING(FIELD_PARTIAL_POS,					"partialPos");
 DECLARE_CONST_STRING(FIELD_PRIMARY_KEY,					"primaryKey");
 DECLARE_CONST_STRING(FIELD_PRIMARY_VOLUME,				"primaryVolume");
@@ -219,6 +225,8 @@ DECLARE_CONST_STRING(ERR_UPDATE_VERSION_OUT_OF_DATE,	"Unable to mutate row %s. F
 DECLARE_CONST_STRING(ERR_CANNOT_CONSUME,				"Unable to mutate row %s. Field %s value (%s) insufficient.");
 DECLARE_CONST_STRING(ERR_UPDATE_NIL,					"Unable to mutate row %s. Field %s is not nil.");
 DECLARE_CONST_STRING(ERR_INVALID_FILE_PATH_CODE,		"Unknown filePath generation code: %s.");
+DECLARE_CONST_STRING(ERR_PARTIAL_POS_CANNOT_BE_NEGATIVE,"partialPos cannot be negative.");
+DECLARE_CONST_STRING(ERR_INVALID_FILE_DATA_TYPE,		"Invalid dataType: %s");
 
 CAeonTable::~CAeonTable (void)
 
@@ -1522,7 +1530,7 @@ CDatum CAeonTable::GetDimensionPathElement (EKeyTypes iKeyType, char **iopPos, c
 		}
 	}
 
-bool CAeonTable::GetFileData (const CString &sFilePath, int iMaxSize, int iPos, const CDateTime &IfModifiedAfter, CDatum *retdFileDownloadDesc, bool bTranspace, CString *retsError)
+bool CAeonTable::GetFileData (const CString &sFilePath, const SFileDataOptions &Options, CDatum *retdFileDownloadDesc, CString *retsError)
 
 //	GetFileData
 //
@@ -1546,12 +1554,12 @@ bool CAeonTable::GetFileData (const CString &sFilePath, int iMaxSize, int iPos, 
 
 	//	If the file has not been modified since the given date, then we return
 
-	if (IfModifiedAfter.IsValid()
-			&& IfModifiedAfter >= (const CDateTime &)dFileDesc.GetElement(FIELD_MODIFIED_ON))
+	if (Options.IfModifiedAfter.IsValid()
+			&& Options.IfModifiedAfter >= (const CDateTime &)dFileDesc.GetElement(FIELD_MODIFIED_ON))
 		{
 		CComplexStruct *pFileDownloadDesc = new CComplexStruct;
 		pFileDownloadDesc->SetElement(FIELD_UNMODIFIED, CDatum(CDatum::constTrue));
-		pFileDownloadDesc->SetElement(FIELD_FILE_DESC, PrepareFileDesc(m_sName, sFilePath, dFileDesc, (bTranspace ? FLAG_TRANSPACE : 0)));
+		pFileDownloadDesc->SetElement(FIELD_FILE_DESC, PrepareFileDesc(m_sName, sFilePath, dFileDesc, (Options.bTranspace ? FLAG_TRANSPACE : 0)));
 
 		*retdFileDownloadDesc = CDatum(pFileDownloadDesc);
 		return true;
@@ -1572,8 +1580,8 @@ bool CAeonTable::GetFileData (const CString &sFilePath, int iMaxSize, int iPos, 
 
 	try
 		{
-		if (iPos != 0)
-			theFile.Seek(iPos);
+		if (Options.iPos != 0)
+			theFile.Seek(Options.iPos);
 		}
 	catch (...)
 		{
@@ -1589,12 +1597,42 @@ bool CAeonTable::GetFileData (const CString &sFilePath, int iMaxSize, int iPos, 
 
 	//	Read the file into a datum
 
+	CString sDataType;
 	CDatum dData;
-	if (!CDatum::CreateBinary(theFile, iMaxSize, &dData))
+	switch (Options.iDataType)
 		{
-		if (retsError)
-			*retsError = strPattern(ERR_UNABLE_TO_READ_STORAGE, sFilespec);
-		return false;
+		case FileDataType::text:
+			{
+			int iDataRemaining = theFile.GetStreamLength() - theFile.GetPos();
+			int iBufferSize = (Options.iMaxSize < 0 ? iDataRemaining : Min(iDataRemaining, Options.iMaxSize));
+			if (iBufferSize > 0)
+				{
+				CStringBuffer Buffer;
+				Buffer.SetLength(iBufferSize);
+				theFile.Read(Buffer.GetPointer(), iBufferSize);
+
+				if (!CDatum::CreateStringFromHandoff(Buffer, &dData))
+					{
+					if (retsError)
+						*retsError = strPattern(ERR_UNABLE_TO_READ_STORAGE, sFilespec);
+					return false;
+					}
+				}
+
+			sDataType = FILE_DATA_TYPE_TEXT;
+			break;
+			}
+
+		default:
+			if (!CDatum::CreateBinary(theFile, Options.iMaxSize, &dData))
+				{
+				if (retsError)
+					*retsError = strPattern(ERR_UNABLE_TO_READ_STORAGE, sFilespec);
+				return false;
+				}
+
+			sDataType = FILE_DATA_TYPE_BINARY;
+			break;
 		}
 
 	//	Close
@@ -1610,14 +1648,35 @@ bool CAeonTable::GetFileData (const CString &sFilePath, int iMaxSize, int iPos, 
 
 	//	Transpace message has a slightly different format
 
-	pFileDownloadDesc->SetElement(FIELD_FILE_DESC, PrepareFileDesc(m_sName, sFilePath, dFileDesc, (bTranspace ? FLAG_TRANSPACE : 0)));
-	pFileDownloadDesc->SetElement(FIELD_PARTIAL_POS, iPos);
+	pFileDownloadDesc->SetElement(FIELD_FILE_DESC, PrepareFileDesc(m_sName, sFilePath, dFileDesc, (Options.bTranspace ? FLAG_TRANSPACE : 0)));
+	pFileDownloadDesc->SetElement(FIELD_PARTIAL_POS, Options.iPos);
 	pFileDownloadDesc->SetElement(FIELD_DATA, dData);
+	pFileDownloadDesc->SetElement(FIELD_DATA_TYPE, sDataType);
 
 	//	Done
 
 	*retdFileDownloadDesc = CDatum(pFileDownloadDesc);
 	return true;
+	}
+
+CString CAeonTable::GetFileDataTypeID (FileDataType iDataType)
+
+//	GetFileDataTypeID
+//
+//	Returns the ID.
+
+	{
+	switch (iDataType)
+		{
+		case FileDataType::binary:
+			return FILE_DATA_TYPE_BINARY;
+
+		case FileDataType::text:
+			return FILE_DATA_TYPE_TEXT;
+
+		default:
+			return NULL_STR;
+		}
 	}
 
 bool CAeonTable::GetFileDesc (const CString &sFilePath, CDatum *retdFileDesc, CString *retsError)
@@ -2189,6 +2248,41 @@ bool CAeonTable::Init (const CString &sTablePath, CDatum dDesc, CString *retsErr
 	m_Seq = 1;
 
 	//	Done
+
+	return true;
+	}
+
+bool CAeonTable::InitFromFileDownloadDesc (CDatum dFileDownloadDesc, SFileDataOptions &retOptions, CString *retsError)
+
+//	InitFromFileDownloadDesc
+//
+//	Initializes options from a fileDownloadDesc structure. Returns FALSE if 
+//	the parameters are invalid.
+
+	{
+	CDatum dPartialMaxSize = dFileDownloadDesc.GetElement(FIELD_PARTIAL_MAX_SIZE);
+	retOptions.iMaxSize = (dPartialMaxSize.IsNil() ? -1 : (int)dPartialMaxSize);
+
+	CDatum dPartialPos = dFileDownloadDesc.GetElement(FIELD_PARTIAL_POS);
+	retOptions.iPos = (dPartialPos.IsNil() ? 0 : (int)dPartialPos);
+	if (retOptions.iPos < 0)
+		{
+		if (retsError) *retsError = ERR_PARTIAL_POS_CANNOT_BE_NEGATIVE;
+		return false;
+		}
+
+	retOptions.IfModifiedAfter = dFileDownloadDesc.GetElement(FIELD_IF_MODIFIED_AFTER);
+
+	const CString &sDataType = dFileDownloadDesc.GetElement(FIELD_DATA_TYPE);
+	if (sDataType.IsEmpty() || strEquals(sDataType, FILE_DATA_TYPE_BINARY))
+		retOptions.iDataType = FileDataType::binary;
+	else if (strEquals(sDataType, FILE_DATA_TYPE_TEXT))
+		retOptions.iDataType = FileDataType::text;
+	else
+		{
+		if (retsError) *retsError = strPattern(ERR_INVALID_FILE_DATA_TYPE, sDataType);
+		return false;
+		}
 
 	return true;
 	}

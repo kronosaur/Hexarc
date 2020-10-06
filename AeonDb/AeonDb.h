@@ -653,6 +653,25 @@ class CAeonTable
 			typeFile,						//	A table for storing large files.
 			};
 
+		enum class FileDataType
+			{
+			unknown,
+
+			binary,
+			text,
+			};
+
+		struct SFileDataOptions
+			{
+			FileDataType iDataType = FileDataType::binary;
+
+			int iMaxSize = -1;
+			int iPos = 0;
+			CDateTime IfModifiedAfter;
+
+			bool bTranspace = false;
+			};
+
 		CAeonTable (void) { }
 		CAeonTable (const CAeonTable &Src) = delete;
 		CAeonTable (CAeonTable &&Src) = delete;
@@ -671,7 +690,7 @@ class CAeonTable
 		bool FindViewAndPath (const CString &sView, DWORD *retdwViewID, CDatum dKey, CRowKey *retKey, CString *retsError);
 		bool GetData (DWORD dwViewID, const CRowKey &Path, CDatum *retData, SEQUENCENUMBER *retRowID, CString *retsError);
 		CDatum GetDesc (void);
-		bool GetFileData (const CString &sFilePath, int iMaxSize, int iPos, const CDateTime &IfModifiedAfter, CDatum *retdFileDownloadDesc, bool bTranspace, CString *retsError);
+		bool GetFileData (const CString &sFilePath, const SFileDataOptions &Options, CDatum *retdFileDownloadDesc, CString *retsError);
 		bool GetFileDesc (const CString &sFilePath, CDatum *retdFileDesc, CString *retsError);
 		bool GetKeyRange (int iCount, CDatum *retdResult, CString *retsError);
 		const CString &GetName (void) { return m_sName; }
@@ -703,6 +722,8 @@ class CAeonTable
 		static CDatum GetDimensionDesc (SDimensionDesc &Dim);
 		static CDatum GetDimensionDescForSecondaryView (SDimensionDesc &Dim, CDatum dKey);
 		static CDatum GetDimensionPath (const CTableDimensions &Dims, const CString &sKey);
+		static CString GetFileDataTypeID (FileDataType iDataType);
+		static bool InitFromFileDownloadDesc (CDatum dFileDownloadDesc, SFileDataOptions &retOptions, CString *retsError = NULL);
 		static bool LastComponentOfKeyIsDirectory (const CString &sKey);
 		static bool ParseDimensionDesc (CDatum dDimDesc, SDimensionDesc *retDimDesc, CString *retsError);
 		static bool ParseDimensionDescForSecondaryView (CDatum dDimDesc, CHexeProcess &Process, SDimensionDesc *retDimDesc, CDatum *retdKey, CString *retsError);
@@ -713,7 +734,6 @@ class CAeonTable
 		static constexpr DWORD FLAG_STORAGE_PATH =	0x00000002;
 
 		static CDatum PrepareFileDesc (const CString &sTable, const CString &sFilePath, CDatum dFileDesc, DWORD dwFlags = 0);
-
 		static bool ValidateTableName (const CString &sName);
 
 	private:

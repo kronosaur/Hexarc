@@ -613,18 +613,14 @@ void CAeonEngine::MsgFileDownload (const SArchonMessage &Msg, const CHexeSecurit
 	if (!ValidateTableAccess(Msg, pSecurityCtx, sTable))
 		return;
 
-	//	See if we have a fileDownloadDesc
+	//	Initialize options from a fileDownloadDesc
 
-	CDatum dFileDownloadDesc = Msg.dPayload.GetElement(1);
-	int iPartialMaxSize = (dFileDownloadDesc.IsNil() ? -1 : (int)dFileDownloadDesc.GetElement(FIELD_PARTIAL_MAX_SIZE));
-	int iPartialPos = (dFileDownloadDesc.IsNil() ? 0 : (int)dFileDownloadDesc.GetElement(FIELD_PARTIAL_POS));
-	if (iPartialPos < 0)
+	CAeonTable::SFileDataOptions Options;
+	if (!CAeonTable::InitFromFileDownloadDesc(Msg.dPayload.GetElement(1), Options))
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, ERR_INVALID_PARAMETERS, Msg);
 		return;
 		}
-
-	CDateTime IfModifiedAfter = dFileDownloadDesc.GetElement(FIELD_IF_MODIFIED_AFTER);
 
 	//	Get the table
 
@@ -641,7 +637,8 @@ void CAeonEngine::MsgFileDownload (const SArchonMessage &Msg, const CHexeSecurit
 
 	//	Get the data
 
-	if (!pTable->GetFileData(sFilePath, iPartialMaxSize, iPartialPos, IfModifiedAfter, &dFileDownloadDesc, false, &sError))
+	CDatum dFileDownloadDesc;
+	if (!pTable->GetFileData(sFilePath, Options, &dFileDownloadDesc, &sError))
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, sError, Msg);
 		return;
@@ -1420,15 +1417,14 @@ void CAeonEngine::MsgTranspaceDownload (const SArchonMessage &Msg, const CHexeSe
 
 	//	See if we have a fileDownloadDesc
 
-	int iPartialMaxSize = (dFileDownloadDesc.IsNil() ? -1 : (int)dFileDownloadDesc.GetElement(FIELD_PARTIAL_MAX_SIZE));
-	int iPartialPos = (dFileDownloadDesc.IsNil() ? 0 : (int)dFileDownloadDesc.GetElement(FIELD_PARTIAL_POS));
-	if (iPartialPos < 0)
+	CAeonTable::SFileDataOptions Options;
+	if (!CAeonTable::InitFromFileDownloadDesc(dFileDownloadDesc, Options))
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, ERR_INVALID_PARAMETERS, Msg);
 		return;
 		}
 
-	CDateTime IfModifiedAfter = dFileDownloadDesc.GetElement(FIELD_IF_MODIFIED_AFTER);
+	Options.bTranspace = true;
 
 	//	Get the table
 
@@ -1441,7 +1437,7 @@ void CAeonEngine::MsgTranspaceDownload (const SArchonMessage &Msg, const CHexeSe
 
 	//	Get the data
 
-	if (!pTable->GetFileData(sFilePath, iPartialMaxSize, iPartialPos, IfModifiedAfter, &dFileDownloadDesc, true, &sError))
+	if (!pTable->GetFileData(sFilePath, Options, &dFileDownloadDesc, &sError))
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, sError, Msg);
 		return;
