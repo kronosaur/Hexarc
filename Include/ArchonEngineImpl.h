@@ -175,8 +175,11 @@ class CSimpleEngine : public IArchonEngine, public IArchonMessagePort, protected
 		virtual void OnBoot (void) { }
 		virtual void OnMark (void) { }
 		virtual void OnProcessMessages (CArchonMessageList &List) { }
+		virtual void OnProcessReply (const SArchonMessage &Msg) { }
 		virtual void OnStartRunning (void) { }
 		virtual void OnStopRunning (void) { }
+		virtual void OnWaitForPause (void) { }
+		virtual void OnWaitForShutdown (void) { }
 
 	private:
 		struct SEvent
@@ -276,6 +279,7 @@ class CSessionManager
 		int GetCount (void) { CSmartLock Lock(m_cs); return m_Sessions.GetCount(); }
 		void GetSessions (TArray<ISessionHandler *> *retSessions);
 		DWORD Insert (ISessionHandler *pHandler);
+		bool IsCustomTicket (DWORD dwTicket) const { return m_Sessions.IsCustomID(dwTicket); }
 		DWORD MakeCustomTicket (void) { return m_Sessions.MakeCustomID(); }
 		void Mark (void);
 		void ProcessMessage (CSimpleEngine *pEngine, const SArchonMessage &Msg);
@@ -378,6 +382,9 @@ template <class VALUE> class TSimpleEngine : public CSimpleEngine
 					;
 
 				//	If we didn't find a handler, then this must be a reply
+
+				else if (m_Sessions.IsCustomTicket(Msg.dwTicket))
+					OnProcessReply(Msg);
 
 				else
 					m_Sessions.ProcessMessage(this, Msg);

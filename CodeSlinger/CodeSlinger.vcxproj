@@ -153,16 +153,25 @@
   <ItemGroup>
     <ClCompile Include="BootSession.cpp" />
     <ClCompile Include="CCodeSlingerEngine.cpp" />
+    <ClCompile Include="CConsolePort.cpp" />
     <ClCompile Include="CodeSlinger.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PreComp.h</PrecompiledHeaderFile>
     </ClCompile>
+    <ClCompile Include="CodeSlingerLib.cpp" />
+    <ClCompile Include="CPortSet.cpp" />
+    <ClCompile Include="CProgramExecPool.cpp" />
+    <ClCompile Include="CProgramExecThread.cpp" />
+    <ClCompile Include="CProgramInstance.cpp" />
+    <ClCompile Include="CProgramSet.cpp" />
     <ClCompile Include="MsgMandelbrot.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CodeSlinger.h" />
+    <ClInclude Include="CodeSlingerRuntime.h" />
     <ClInclude Include="PreComp.h" />
+    <ClInclude Include="ProgramPortImpl.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>

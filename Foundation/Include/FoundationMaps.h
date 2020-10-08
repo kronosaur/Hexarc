@@ -710,6 +710,8 @@ template <class VALUE> class TIDTable
 			m_Free.TakeHandoff(Obj.m_Free);
 			}
 
+		static bool IsCustomID (DWORD dwID) { return (dwID && GetCounter(dwID) == 0); }
+
 	private:
 		struct SEntry
 			{
@@ -717,9 +719,9 @@ template <class VALUE> class TIDTable
 			VALUE Value;
 			};
 
-		int GetCounter (DWORD dwID) const { return (dwID >> 24); }
-		int GetIndex (DWORD dwID) const { return (dwID & 0x00ffffff); }
-		DWORD MakeID (int iIndex, int iCounter) const { return ((((DWORD)iCounter) << 24) | (iIndex & 0x00ffffff)); }
+		static int GetCounter (DWORD dwID) { return (dwID >> 24); }
+		static int GetIndex (DWORD dwID) { return (dwID & 0x00ffffff); }
+		static DWORD MakeID (int iIndex, int iCounter) { return ((((DWORD)iCounter) << 24) | (iIndex & 0x00ffffff)); }
 
 		TArray<SEntry> m_Array;
 		TArray<DWORD> m_Free;

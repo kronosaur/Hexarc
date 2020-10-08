@@ -243,6 +243,7 @@ class CHexeFunction : public TExternalDatum<CHexeFunction>
 class CHexeLibraryFunction : public TExternalDatum<CHexeLibraryFunction>
 	{
 	public:
+
 		static void Create (const SLibraryFuncDef &Def, CDatum *retdFunc);
 		static const CString &StaticGetTypename (void);
 

@@ -28,6 +28,7 @@ DECLARE_CONST_STRING(ERR_TYPE_EXPECTED,					"Type expected: %s.")
 DECLARE_CONST_STRING(ERR_UNABLE_TO_PARSE_TOKEN,			"Unable to parse token.")
 DECLARE_CONST_STRING(ERR_BOM_NOT_SUPPORTED,				"UTF8 Byte Order Mark not supported.")
 DECLARE_CONST_STRING(ERR_CODE_EXPECTED,					"Code expected.")
+DECLARE_CONST_STRING(ERR_CRASH_PARSING,					"Crash parsing Lisp expression.")
 
 DECLARE_CONST_STRING(STR_LAMBDA_PREFIX,					"(lambda")
 
@@ -764,11 +765,19 @@ bool CHexeDocument::ParseLispExpression (const CString &sExpression, CDatum *ret
 //	security context).
 
 	{
-	CStringBuffer Stream(sExpression);
-	CCharStream CharStream;
-	CharStream.Init(Stream);
+	try
+		{
+		CStringBuffer Stream(sExpression);
+		CCharStream CharStream;
+		CharStream.Init(Stream);
 
-	return ParseHexeLispDef(&CharStream, NULL, NULL, retdExpression, retsError);
+		return ParseHexeLispDef(&CharStream, NULL, NULL, retdExpression, retsError);
+		}
+	catch (...)
+		{
+		if (retsError) *retsError = ERR_CRASH_PARSING;
+		return false;
+		}
 	}
 
 bool CHexeDocument::ParseHexeLispDef (CCharStream *pStream, CString *retsName, CString *retsType, CDatum *retdDatum, CString *retsError)

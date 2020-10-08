@@ -83,6 +83,8 @@
 
 #pragma once
 
+#include "CodeSlingerRuntime.h"
+
 class CCodeSlingerEngine : public TSimpleEngine<CCodeSlingerEngine>
 	{
 	public:
@@ -96,6 +98,7 @@ class CCodeSlingerEngine : public TSimpleEngine<CCodeSlingerEngine>
 		CCodeSlingerEngine &operator= (CCodeSlingerEngine &&Src) = delete;
 
 		bool IsVerbose (void) const { return m_bVerbose; }
+		void MakeAsyncRequest (SRunResult &Result);
 		void SetAeonInitialized (bool bInitialized = true) { m_bAeonInitialized = bInitialized; }
 
 		static SMessageHandler m_MsgHandlerList[];
@@ -107,23 +110,34 @@ class CCodeSlingerEngine : public TSimpleEngine<CCodeSlingerEngine>
 
 		virtual void OnBoot (void) override;
 		virtual void OnMarkEx (void) override;
+		virtual void OnProcessReply (const SArchonMessage &Msg) override;
 		virtual void OnStartRunning (void) override;
 		virtual void OnStopRunning (void) override;
+		virtual void OnWaitForPause (void) override { m_ExecPool.WaitForPause(); }
+		virtual void OnWaitForShutdown (void) override { m_ExecPool.WaitForShutdown(); }
 
 	private:
-		static constexpr int DEFAULT_THREADS_PER_MACHINE = 4;
-		static constexpr int INITIAL_THREADS = DEFAULT_THREADS_PER_MACHINE + 2;
+		static constexpr int DEFAULT_EXEC_THREADS_PER_MACHINE = 4;
+		static constexpr int DEFAULT_EXEC_THREAD_COUNT = DEFAULT_EXEC_THREADS_PER_MACHINE;
+		static constexpr int INITIAL_THREADS = 3;
 
 		//	Message handlers
 		void MsgAeonOnStart (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 //		void MsgHousekeeping (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
+		void MsgGetView (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgMandelbrot (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgMandelbrotTask (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
+		void MsgRun (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgStatus (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 
 		CCriticalSection m_cs;
+		CProgramSet m_Programs;						//	Set of running programs.
+		CProgramExecPool m_ExecPool;				//	Worker threads execution programs.
+
 		bool m_bMachineStarted = false;				//	TRUE if we've received Exarch.onMachineStart message
 		bool m_bAeonInitialized = false;			//	TRUE if AeonDB has initialized
 		bool m_bReady = false;						//	TRUE if we are serving requests
 		bool m_bVerbose = true;						//	TRUE if we're in verbose mode (log extra information)
 	};
+
+void RegisterCodeSlingerLibrary (void);

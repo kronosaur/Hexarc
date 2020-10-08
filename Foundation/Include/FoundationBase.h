@@ -9,6 +9,12 @@
 
 #pragma once
 
+//	Undefine some definitions used by Windows
+
+#undef AddPort
+#undef LoadLibrary
+#undef SendMessage
+
 //	Forward declarations
 
 class IByteStream;

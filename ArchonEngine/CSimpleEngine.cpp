@@ -455,6 +455,8 @@ void CSimpleEngine::WaitForShutdown (void)
 		m_Threads[i]->Wait();
 
 	m_pTimedMessageThread->Wait();
+
+	OnWaitForShutdown();
 	}
 
 void CSimpleEngine::WaitForPause (void)
@@ -468,6 +470,8 @@ void CSimpleEngine::WaitForPause (void)
 		m_Threads[i]->WaitForPause();
 
 	m_pTimedMessageThread->WaitForPause();
+
+	OnWaitForPause();
 	}
 
 //	CSimpleProcessingThread ----------------------------------------------------
