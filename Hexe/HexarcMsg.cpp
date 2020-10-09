@@ -340,6 +340,28 @@ bool CHexeProcess::ParseHyperionServiceMessage (const CString &sMsg, CDatum dPay
 	return true;
 	}
 
+bool CHexeProcess::SendHexarcMessage (const CString &sMsg, CDatum dPayload, CDatum *retdResult)
+
+//	SendHexarcMessage
+//
+//	Sends a message to the appropriate engine. This version checks to make sure
+//	the caller has rights to call invoke.
+
+	{
+	CHexeSecurityCtx Ctx; 
+	GetCurrentSecurityCtx(&Ctx); 
+	
+	//	Validate the security context
+
+	if (!(Ctx.GetExecutionRights() & CHexeSecurityCtx::EXEC_RIGHT_INVOKE))
+		{
+		CHexeError::Create(MSG_ERROR_NOT_ALLOWED, ERR_CANNOT_INVOKE, retdResult);
+		return false;
+		}
+
+	return SendHexarcMessage(Ctx, sMsg, dPayload, retdResult);
+	}
+
 bool CHexeProcess::SendHexarcMessage (const CHexeSecurityCtx &SecurityCtx, const CString &sAddr, const CString &sMsg, CDatum dPayload, CDatum *retdResult)
 
 //	SendHexarcMessage
@@ -356,14 +378,6 @@ bool CHexeProcess::SendHexarcMessage (const CHexeSecurityCtx &SecurityCtx, const
 //	2: payload
 
 	{
-	//	Validate the security context
-
-	if (!(SecurityCtx.GetExecutionRights() & CHexeSecurityCtx::EXEC_RIGHT_INVOKE))
-		{
-		CHexeError::Create(MSG_ERROR_NOT_ALLOWED, ERR_CANNOT_INVOKE, retdResult);
-		return false;
-		}
-
 	//	Encode
 
 	CString sEncodedMsg;

@@ -8,6 +8,9 @@
 static constexpr int MAX_ARRAY_SIZE =					10000000;
 static constexpr int STOP_CHECK_COUNT =					10000;
 
+DECLARE_CONST_STRING(FIELD_MSG,							"msg");
+DECLARE_CONST_STRING(FIELD_PAYLOAD,						"payload");
+
 DECLARE_CONST_STRING(ERR_COLON_EXPECTED,				"':' expected: %s.");
 DECLARE_CONST_STRING(ERR_DIVISION_BY_ZERO,				"Divide by zero error.");
 DECLARE_CONST_STRING(ERR_INVALID_KEY,					"Invalid key: %s.");
@@ -494,12 +497,12 @@ CHexeProcess::ERunCodes CHexeProcess::Execute (CDatum *retResult)
 					case CDatum::funcLibrary:
 						{
 						CDatum dResult;
-						if (!dNewExpression.Invoke(this, m_dLocalEnv, m_UserSecurity.GetExecutionRights(), &dResult))
+						CDatum::InvokeResult iResult = dNewExpression.Invoke(this, m_dLocalEnv, m_UserSecurity.GetExecutionRights(), &dResult);
+						if (iResult != CDatum::InvokeResult::ok)
 							{
-							if (ExecuteHandleInvokeResult(dNewExpression, dResult, retResult))
-								break;
-
-							return runError;
+							ERunCodes iRunResult = ExecuteHandleInvokeResult(iResult, dNewExpression, dResult, retResult);
+							if (iRunResult != runOK)
+								return iRunResult;
 							}
 
 						//	Restore the environment
@@ -613,12 +616,12 @@ CHexeProcess::ERunCodes CHexeProcess::Execute (CDatum *retResult)
 					//	Continue library invocation
 
 					CDatum dResult;
-					if (!dPrimitive.InvokeContinues(this, dContext, dSubResult, &dResult))
+					CDatum::InvokeResult iResult = dPrimitive.InvokeContinues(this, dContext, dSubResult, &dResult);
+					if (iResult != CDatum::InvokeResult::ok)
 						{
-						if (ExecuteHandleInvokeResult(dPrimitive, dResult, retResult))
-							break;
-
-						return runError;
+						ERunCodes iRunResult = ExecuteHandleInvokeResult(iResult, dPrimitive, dResult, retResult);
+						if (iRunResult != runOK)
+							return iRunResult;
 						}
 
 					m_LocalEnvStack.Restore(&m_dCurGlobalEnv, &m_pCurGlobalEnv, &m_dLocalEnv, &m_pLocalEnv);
@@ -1215,7 +1218,7 @@ int CHexeProcess::ExecuteCompare (CDatum dValue1, CDatum dValue2)
 		return KeyCompare(dValue1.AsString(), dValue2.AsString());
 	}
 
-bool CHexeProcess::ExecuteHandleInvokeResult (CDatum dExpression, CDatum dInvokeResult, CDatum *retResult)
+CHexeProcess::ERunCodes CHexeProcess::ExecuteHandleInvokeResult (CDatum::InvokeResult iInvokeResult, CDatum dExpression, CDatum dInvokeResult, CDatum *retResult)
 
 //	ExecuteHandleInvokeResult
 //
@@ -1223,80 +1226,116 @@ bool CHexeProcess::ExecuteHandleInvokeResult (CDatum dExpression, CDatum dInvoke
 //	We return FALSE if an error should be returned.
 
 	{
-	int i;
-
-	if (dInvokeResult.IsError())
+	switch (iInvokeResult)
 		{
-		*retResult = dInvokeResult;
-		return false;
-		}
+		case CDatum::InvokeResult::ok:
+			*retResult = dInvokeResult;
+			return runOK;
 
-	//	If the primitive returns FALSE with an array then it means
-	//	that we are calling a subroutine. The array has the following 
-	//	elements:
-	//
-	//	0.	Function to call
-	//	1.	Array of parameters to function
-	//	2.	Context data for InvokeContinues
+		case CDatum::InvokeResult::error:
+			if (dInvokeResult.IsNil())
+				CHexeError::Create(NULL_STR, strPattern(ERR_NOT_A_FUNCTION, dExpression.AsString()), retResult);
+			else
+				*retResult = dInvokeResult;
+			return runError;
 
-	else if (dInvokeResult.GetBasicType() == CDatum::typeArray)
-		{
-		CDatum dFunction = dInvokeResult.GetElement(0);
-		CDatum dArgs = dInvokeResult.GetElement(1);
-		CDatum dContext = dInvokeResult.GetElement(2);
+		//	If the primitive returns FALSE with an array then it means
+		//	that we are calling a subroutine. The array has the following 
+		//	elements:
+		//
+		//	0.	Function to call
+		//	1.	Array of parameters to function
+		//	2.	Context data for InvokeContinues
 
-		//	Validate function
-
-		CDatum dNewCodeBank;
-		DWORD *pNewIP;
-		if (dFunction.GetCallInfo(&dNewCodeBank, &pNewIP) != CDatum::funcCall)
+		case CDatum::InvokeResult::runFunction:
 			{
-			CHexeError::Create(NULL_STR, ERR_INVALID_PRIMITIVE_SUB, retResult);
-			return false;
+			CDatum dFunction = dInvokeResult.GetElement(0);
+			CDatum dArgs = dInvokeResult.GetElement(1);
+			CDatum dContext = dInvokeResult.GetElement(2);
+
+			//	Validate function
+
+			CDatum dNewCodeBank;
+			DWORD *pNewIP;
+			if (dFunction.GetCallInfo(&dNewCodeBank, &pNewIP) != CDatum::funcCall)
+				{
+				CHexeError::Create(NULL_STR, ERR_INVALID_PRIMITIVE_SUB, retResult);
+				return runError;
+				}
+
+			//	Encode everything we need to save into the code bank
+			//	datum (we unpack it in opReturn).
+
+			CComplexArray *pSaved = new CComplexArray;
+			pSaved->Insert(dContext);
+			pSaved->Insert(m_dExpression);
+			pSaved->Insert(m_dCodeBank);
+
+			//	Save the library function in the call stack so we return to it 
+			//	when we're done
+
+			m_CallStack.Save(dExpression, CDatum(pSaved), m_pIP);
+
+			//	Set up environment
+
+			m_LocalEnvStack.Save(m_dCurGlobalEnv, m_pCurGlobalEnv, m_dLocalEnv, m_pLocalEnv);
+			m_pLocalEnv = new CHexeLocalEnvironment;
+			m_dLocalEnv = CDatum(m_pLocalEnv);
+
+			int iArgCount = dArgs.GetCount();
+			for (int i = 0; i < iArgCount; i++)
+				m_pLocalEnv->SetArgumentValue(0, i, dArgs.GetElement(i));
+
+			//	Make the call
+
+			m_dExpression = dFunction;
+			m_dCodeBank = dNewCodeBank;
+			m_pCodeBank = CHexeCode::Upconvert(m_dCodeBank);
+
+			m_pIP = pNewIP;
+
+			//	Continue processing
+
+			return runOK;
 			}
 
-		//	Encode everything we need to save into the code bank
-		//	datum (we unpack it in opReturn).
+		//	Convert to a Hexarc message send.
 
-		CComplexArray *pSaved = new CComplexArray;
-		pSaved->Insert(dContext);
-		pSaved->Insert(m_dExpression);
-		pSaved->Insert(m_dCodeBank);
+		case CDatum::InvokeResult::runInvoke:
+			{
+			const CString &sMsg = dInvokeResult.GetElement(FIELD_MSG);
+			CDatum dPayload = dInvokeResult.GetElement(FIELD_PAYLOAD);
 
-		//	Save the library function in the call stack so we return to it 
-		//	when we're done
+			//	Restore the environment and advance IP
 
-		m_CallStack.Save(dExpression, CDatum(pSaved), m_pIP);
+			m_LocalEnvStack.Restore(&m_dCurGlobalEnv, &m_pCurGlobalEnv, &m_dLocalEnv, &m_pLocalEnv);
+			m_pIP++;
 
-		//	Set up environment
+			//	Send message. NOTE: We call the version that does not check to
+			//	see if the user has invoke rights. Since we've wrapped this 
+			//	inside a library function, we assume the library is responsible
+			//	for security.
 
-		m_LocalEnvStack.Save(m_dCurGlobalEnv, m_pCurGlobalEnv, m_dLocalEnv, m_pLocalEnv);
-		m_pLocalEnv = new CHexeLocalEnvironment;
-		m_dLocalEnv = CDatum(m_pLocalEnv);
+			CDatum dValue;
+			if (!SendHexarcMessageSafe(sMsg, dPayload, &dValue))
+				{
+				*retResult = dValue;
+				return runError;
+				}
 
-		int iArgCount = dArgs.GetCount();
-		for (i = 0; i < iArgCount; i++)
-			m_pLocalEnv->SetArgumentValue(0, i, dArgs.GetElement(i));
+			//	Async request
 
-		//	Make the call
+			*retResult = dValue;
+			return runAsyncRequest;
+			}
 
-		m_dExpression = dFunction;
-		m_dCodeBank = dNewCodeBank;
-		m_pCodeBank = CHexeCode::Upconvert(m_dCodeBank);
+		//	Otherwise, generic error (this should never happen).
 
-		m_pIP = pNewIP;
-
-		//	Continue processing
-
-		return true;
-		}
-
-	//	Otherwise, generic error
-
-	else
-		{
-		CHexeError::Create(NULL_STR, strPattern(ERR_NOT_A_FUNCTION, dExpression.AsString()), retResult);
-		return false;
+		default:
+			{
+			CHexeError::Create(NULL_STR, strPattern(ERR_NOT_A_FUNCTION, dExpression.AsString()), retResult);
+			return runError;
+			}
 		}
 	}
 

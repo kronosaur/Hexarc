@@ -250,10 +250,12 @@ class CHexeLibraryFunction : public TExternalDatum<CHexeLibraryFunction>
 		//	IComplexDatum
 		virtual bool CanInvoke (void) const override { return true; }
 		virtual CDatum::ECallTypes GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) const override { return CDatum::funcLibrary; }
-		virtual bool Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, DWORD dwExecutionRights, CDatum *retdResult) override;
-		virtual bool InvokeContinues (IInvokeCtx *pCtx, CDatum dContext, CDatum dResult, CDatum *retdResult) override;
+		virtual CDatum::InvokeResult Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, DWORD dwExecutionRights, CDatum *retdResult) override;
+		virtual CDatum::InvokeResult InvokeContinues (IInvokeCtx *pCtx, CDatum dContext, CDatum dResult, CDatum *retdResult) override;
 
 	private:
+		static CDatum::InvokeResult HandleSpecialResult (CDatum *retdResult);
+
 		CString m_sName;
 		FHexeLibraryFunc m_pfFunc;
 		DWORD m_dwData;

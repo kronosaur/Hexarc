@@ -129,6 +129,16 @@ class CDatum
 			formatTextUTF8 =	3,			//	Plain text (unstructured)
 			};
 
+		enum class InvokeResult
+			{
+			unknown,
+
+			error,
+			ok,
+			runFunction,
+			runInvoke,
+			};
+
 		enum Constants
 			{
 			constTrue =			0xaaaa0001,
@@ -218,8 +228,8 @@ class CDatum
 		//	Function related methods
 		bool CanInvoke (void) const;
 		ECallTypes GetCallInfo (CDatum *retdCodeBank = NULL, DWORD **retpIP = NULL) const;
-		bool Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, DWORD dwExecutionRights, CDatum *retdResult);
-		bool InvokeContinues (IInvokeCtx *pCtx, CDatum dContext, CDatum dResult, CDatum *retdResult);
+		InvokeResult Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, DWORD dwExecutionRights, CDatum *retdResult);
+		InvokeResult InvokeContinues (IInvokeCtx *pCtx, CDatum dContext, CDatum dResult, CDatum *retdResult);
 
 		//	Utilities
 		void AsAttributeList (CAttributeList *retAttribs) const;
@@ -293,8 +303,8 @@ class IComplexDatum
 		virtual CDatum::Types GetNumberType (int *retiValue) { return CDatum::typeUnknown; }
 		virtual const CString &GetTypename (void) const = 0;
 		virtual void GrowToFit (int iCount) { }
-		virtual bool Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, DWORD dwExecutionRights, CDatum *retdResult) { *retdResult = CDatum(); return false; }
-		virtual bool InvokeContinues (IInvokeCtx *pCtx, CDatum dContext, CDatum dResult, CDatum *retdResult) { *retdResult = CDatum(); return false; }
+		virtual CDatum::InvokeResult Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, DWORD dwExecutionRights, CDatum *retdResult) { *retdResult = CDatum(); return CDatum::InvokeResult::ok; }
+		virtual CDatum::InvokeResult InvokeContinues (IInvokeCtx *pCtx, CDatum dContext, CDatum dResult, CDatum *retdResult) { *retdResult = CDatum(); return CDatum::InvokeResult::ok; }
 		virtual bool IsArray (void) const = 0;
 		virtual bool IsError (void) const { return false; }
 		virtual bool IsIPInteger (void) const { return false; }

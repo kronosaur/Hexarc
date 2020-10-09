@@ -5,8 +5,13 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(FIELD_TYPE,						"type")
+
+DECLARE_CONST_STRING(TYPE_HEXARC_MSG,					"hexarcMsg")
+
 DECLARE_CONST_STRING(ERR_CRASH,							"Crash in primitive %s.")
 DECLARE_CONST_STRING(ERR_NOT_ALLOWED,					"You are not authorized to call %s.")
+DECLARE_CONST_STRING(ERR_UNKNOWN_TYPE,					"Unknown invoke result type: %s.")
 
 DECLARE_CONST_STRING(TYPENAME_HEXE_LIBRARY_FUNCTION,	"hexeLibraryFunction")
 const CString &CHexeLibraryFunction::StaticGetTypename (void) { return TYPENAME_HEXE_LIBRARY_FUNCTION; }
@@ -29,7 +34,35 @@ void CHexeLibraryFunction::Create (const SLibraryFuncDef &Def, CDatum *retdFunc)
 	*retdFunc = CDatum(pFunc);
 	}
 
-bool CHexeLibraryFunction::Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, DWORD dwExecutionRights, CDatum *retdResult)
+CDatum::InvokeResult CHexeLibraryFunction::HandleSpecialResult (CDatum *retdResult)
+
+//	HandleResult
+//
+//	Converts to appropriate result.
+
+	{
+	if (retdResult->IsError())
+		return CDatum::InvokeResult::error;
+	else if (retdResult->GetBasicType() == CDatum::typeArray)
+		return CDatum::InvokeResult::runFunction;
+	else if (retdResult->GetBasicType() == CDatum::typeStruct)
+		{
+		const CString &sType = retdResult->GetElement(FIELD_TYPE);
+		if (strEquals(sType, TYPE_HEXARC_MSG))
+			{
+			return CDatum::InvokeResult::runInvoke;
+			}
+		else
+			{
+			CHexeError::Create(NULL_STR, strPattern(ERR_UNKNOWN_TYPE, sType), retdResult);
+			return CDatum::InvokeResult::error;
+			}
+		}
+	else
+		return CDatum::InvokeResult::error;
+	}
+
+CDatum::InvokeResult CHexeLibraryFunction::Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, DWORD dwExecutionRights, CDatum *retdResult)
 
 //	Invoke
 //
@@ -41,23 +74,26 @@ bool CHexeLibraryFunction::Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, DWORD dwE
 	if ((m_dwExecutionRights & dwExecutionRights) != m_dwExecutionRights)
 		{
 		CHexeError::Create(NULL_STR, strPattern(ERR_NOT_ALLOWED, m_sName), retdResult);
-		return false;
+		return CDatum::InvokeResult::error;
 		}
 
 	//	Invoke
 
 	try
 		{
-		return m_pfFunc(pCtx, m_dwData, dLocalEnv, CDatum(), retdResult);
+		if (!m_pfFunc(pCtx, m_dwData, dLocalEnv, CDatum(), retdResult))
+			return HandleSpecialResult(retdResult);
+
+		return CDatum::InvokeResult::ok;
 		}
 	catch (...)
 		{
 		CHexeError::Create(NULL_STR, strPattern(ERR_CRASH, m_sName), retdResult);
-		return false;
+		return CDatum::InvokeResult::error;
 		}
 	}
 
-bool CHexeLibraryFunction::InvokeContinues (IInvokeCtx *pCtx, CDatum dContext, CDatum dResult, CDatum *retdResult)
+CDatum::InvokeResult CHexeLibraryFunction::InvokeContinues (IInvokeCtx *pCtx, CDatum dContext, CDatum dResult, CDatum *retdResult)
 
 //	InvokeContinues
 //
@@ -66,11 +102,15 @@ bool CHexeLibraryFunction::InvokeContinues (IInvokeCtx *pCtx, CDatum dContext, C
 	{
 	try
 		{
-		return m_pfFunc(pCtx, m_dwData, dResult, dContext, retdResult);
+		if (!m_pfFunc(pCtx, m_dwData, dResult, dContext, retdResult))
+			return HandleSpecialResult(retdResult);
+
+		return CDatum::InvokeResult::ok;
 		}
 	catch (...)
 		{
 		CHexeError::Create(NULL_STR, strPattern(ERR_CRASH, m_sName), retdResult);
-		return false;
+		return CDatum::InvokeResult::error;
 		}
 	}
+

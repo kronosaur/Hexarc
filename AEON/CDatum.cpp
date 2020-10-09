@@ -2101,7 +2101,7 @@ const CString &CDatum::GetTypename (void) const
 		}
 	}
 
-bool CDatum::Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, DWORD dwExecutionRights, CDatum *retdResult)
+CDatum::InvokeResult CDatum::Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, DWORD dwExecutionRights, CDatum *retdResult)
 
 //	Invoke
 //
@@ -2114,11 +2114,12 @@ bool CDatum::Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, DWORD dwExecutionRights
 			return raw_GetComplex()->Invoke(pCtx, dLocalEnv, dwExecutionRights, retdResult);
 
 		default:
-			return false;
+			*retdResult = CDatum();
+			return InvokeResult::error;
 		}
 	}
 
-bool CDatum::InvokeContinues (IInvokeCtx *pCtx, CDatum dContext, CDatum dResult, CDatum *retdResult)
+CDatum::InvokeResult CDatum::InvokeContinues (IInvokeCtx *pCtx, CDatum dContext, CDatum dResult, CDatum *retdResult)
 
 //	InvokeContinues
 //
@@ -2131,7 +2132,8 @@ bool CDatum::InvokeContinues (IInvokeCtx *pCtx, CDatum dContext, CDatum dResult,
 			return raw_GetComplex()->InvokeContinues(pCtx, dContext, dResult, retdResult);
 
 		default:
-			return false;
+			*retdResult = CDatum();
+			return InvokeResult::error;
 		}
 	}
 

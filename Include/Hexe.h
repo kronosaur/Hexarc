@@ -237,7 +237,6 @@ class CHexeProcess : public IInvokeCtx
 		static void CreateFunctionCall (int iArgCount, CDatum *retdExpression);
 		static void CreateInvokeCall (const TArray<CDatum> &Args, CDatum *retdExpression);
 		static bool IsHexarcMessage (const CString &sMsg, CString *retsAddress = NULL) { return FindHexarcMessage(sMsg, retsAddress); }
-		static bool SendHexarcMessage (const CHexeSecurityCtx &SecurityCtx, const CString &sAddr, const CString &sMsg, CDatum dPayload, CDatum *retdResult);
 
 		void DefineGlobal (const CString &sIdentifier, CDatum dValue);
 		void DeleteAll (void);
@@ -290,12 +289,14 @@ class CHexeProcess : public IInvokeCtx
 		void InitGlobalEnv (CHexeGlobalEnvironment **retpGlobalEnv = NULL);
 		static bool ParseHyperionServiceMessage (const CString &sMsg, CDatum dPayload, CString &sAddr, CString &sNewMsg, CDatum &dNewPayload);
 		ERunCodes RunWithStack (CDatum dExpression, CDatum *retResult);
-		bool SendHexarcMessage (const CString &sMsg, CDatum dPayload, CDatum *retdResult) { CHexeSecurityCtx Ctx; GetCurrentSecurityCtx(&Ctx); return SendHexarcMessage(Ctx, sMsg, dPayload, retdResult); }
+		bool SendHexarcMessage (const CString &sMsg, CDatum dPayload, CDatum *retdResult);
 		bool SendHexarcMessage (const CHexeSecurityCtx &SecurityCtx, const CString &sMsg, CDatum dPayload, CDatum *retdResult);
+		static bool SendHexarcMessage (const CHexeSecurityCtx &SecurityCtx, const CString &sAddr, const CString &sMsg, CDatum dPayload, CDatum *retdResult);
+		bool SendHexarcMessageSafe (const CString &sMsg, CDatum dPayload, CDatum *retdResult) { CHexeSecurityCtx Ctx; GetCurrentSecurityCtx(&Ctx); return SendHexarcMessage(Ctx, sMsg, dPayload, retdResult); }
 		static bool ValidateHexarcMessage (const CString &sMsg, CDatum dPayload, CString *retsAddr, CDatum *retdResult);
 
 		//	Execution helpers
-		bool ExecuteHandleInvokeResult (CDatum dExpression, CDatum dInvokeResult, CDatum *retResult);
+		ERunCodes ExecuteHandleInvokeResult (CDatum::InvokeResult iInvokeResult, CDatum dExpression, CDatum dInvokeResult, CDatum *retResult);
 		static bool ExecuteMakeFlagsFromArray (CDatum dOptions, CDatum dMap, CDatum *retdResult);
 		static bool ExecuteSetAt (CDatum dOriginal, CDatum dKey, CDatum dValue, CDatum *retdResult);
 
