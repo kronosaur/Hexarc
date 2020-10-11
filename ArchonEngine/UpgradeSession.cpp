@@ -32,6 +32,7 @@ DECLARE_CONST_STRING(FILESPEC_UPGRADE_FOLDER,			"Upgrade");
 
 DECLARE_CONST_STRING(MSG_AEON_FILE_UPLOAD,				"Aeon.fileUpload")
 DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply");
+DECLARE_CONST_STRING(MSG_EXARCH_RESTART_MODULE,			"Exarch.restartModule")
 DECLARE_CONST_STRING(MSG_EXARCH_SHUTDOWN,				"Exarch.shutdown");
 DECLARE_CONST_STRING(MSG_LOG_DEBUG,						"Log.debug");
 DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error");
@@ -79,6 +80,7 @@ class CExarchUpgradeSession : public ISessionHandler
 			unknown,
 
 			waitingForAeonSave,
+			restartingModule,
 			done,
 			};
 
@@ -89,17 +91,25 @@ class CExarchUpgradeSession : public ISessionHandler
 			CString sFilespec;
 			CString sPlatform;
 			DWORD dwChecksum = 0;
+
+			bool bIsModuleExe = false;
 			SFileVersionInfo VersionInfo;
+
+			bool bMoved = false;
+			bool bUpgraded = false;
 			};
 
+		int FindFirstModuleIndex () const;
+		int FindNextModuleIndex (int iIndex) const;
 		bool IsRestartNeeded () const;
 		void LogUpgrade ();
-		bool MoveOriginalFiles (TArray<CString> &retMoved);
+		bool MoveOriginalFiles ();
 		bool ReadFileList (const CString &sConfigFilespec, CString *retsError);
 		bool RestartMachine ();
+		bool RestartModule (const SFileEntry &Entry, CString *retsError);
 		bool SaveFile (const SFileEntry &Entry, CString *retsError);
 		void UndoUpgrade ();
-		bool UpgradeFiles (TArray<CString> &retUpgraded);
+		bool UpgradeFiles ();
 		bool UpgradeMachine ();
 		bool ValidateChecksums (CString *retsError);
 
@@ -108,11 +118,8 @@ class CExarchUpgradeSession : public ISessionHandler
 		CString m_sUpgradeFolder;
 		TArray<SFileEntry> m_Files;
 
-		TArray<CString> m_FilesMoved;
-		TArray<CString> m_FilesUpgraded;
-
 		State m_iState = State::unknown;
-		int m_iSavingIndex = -1;			//	File that we're currently saving.
+		int m_iStateIndex = -1;			//	File that we're currently processing.
 
 	};
 
@@ -130,6 +137,34 @@ void CExarchEngine::MsgCompleteUpgrade (const SArchonMessage &Msg, const CHexeSe
 
 //	CExarchUpgradeSession ------------------------------------------------------
 
+int CExarchUpgradeSession::FindFirstModuleIndex () const
+
+//	FindFirstModuleIndex
+//
+//	Returns the index of the first file that represents a module.
+
+	{
+	for (int i = 0; i < m_Files.GetCount(); i++)
+		if (m_Files[i].bIsModuleExe)
+			return i;
+
+	return -1;
+	}
+
+int CExarchUpgradeSession::FindNextModuleIndex (int iIndex) const
+
+//	FindNextModuleIndex
+//
+//	Finds the next module index.
+
+	{
+	for (int i = iIndex + 1; i < m_Files.GetCount(); i++)
+		if (m_Files[i].bIsModuleExe)
+			return i;
+
+	return -1;
+	}
+
 bool CExarchUpgradeSession::IsRestartNeeded () const
 
 //	IsRestartNeeded
@@ -137,8 +172,8 @@ bool CExarchUpgradeSession::IsRestartNeeded () const
 //	Returns TRUE if a restart is needed.
 
 	{
-	for (int i = 0; i < m_FilesUpgraded.GetCount(); i++)
-		if (m_Engine.IsRestartRequired(m_FilesUpgraded[i]))
+	for (int i = 0; i < m_Files.GetCount(); i++)
+		if (m_Files[i].bIsModuleExe && m_Engine.IsRestartRequired(m_Files[i].sFilename))
 			return true;
 
 	return false;
@@ -151,13 +186,13 @@ void CExarchUpgradeSession::LogUpgrade ()
 //	Report upgrade status.
 
 	{
-	for (int i = 0; i < m_FilesUpgraded.GetCount(); i++)
+	for (int i = 0; i < m_Files.GetCount(); i++)
 		{
-		GetProcessCtx()->Log(MSG_LOG_INFO, strPattern(ERR_UPGRADED_FILE, m_FilesUpgraded[i]));
+		GetProcessCtx()->Log(MSG_LOG_INFO, strPattern(ERR_UPGRADED_FILE, m_Files[i].sFilename));
 		}
 	}
 
-bool CExarchUpgradeSession::MoveOriginalFiles (TArray<CString> &retMoved)
+bool CExarchUpgradeSession::MoveOriginalFiles ()
 
 //	MoveOriginalFiles
 //
@@ -190,7 +225,7 @@ bool CExarchUpgradeSession::MoveOriginalFiles (TArray<CString> &retMoved)
 			return false;
 			}
 
-		retMoved.Insert(m_Files[i].sFilename);
+		m_Files[i].bMoved = true;
 		}
 
 	return true;
@@ -216,17 +251,51 @@ bool CExarchUpgradeSession::OnProcessMessage (const SArchonMessage &Msg)
 
 			GetProcessCtx()->Log(MSG_LOG_INFO, 
 				strPattern(STR_UPDATED_FILE, 
-						m_Files[m_iSavingIndex].sFilename, 
-						m_Files[m_iSavingIndex].VersionInfo.sProductVersion,
-						m_Files[m_iSavingIndex].sModuleName,
-						m_Files[m_iSavingIndex].sPlatform,
-						m_Files[m_iSavingIndex].sFilename)
+						m_Files[m_iStateIndex].sFilename, 
+						m_Files[m_iStateIndex].VersionInfo.sProductVersion,
+						m_Files[m_iStateIndex].sModuleName,
+						m_Files[m_iStateIndex].sPlatform,
+						m_Files[m_iStateIndex].sFilename)
 				);
 
-			m_iSavingIndex++;
-			if (m_iSavingIndex < m_Files.GetCount())
+			//	If we've got more files to save, do it.
+
+			m_iStateIndex++;
+			if (m_iStateIndex < m_Files.GetCount())
 				{
-				if (!SaveFile(m_Files[m_iSavingIndex], &sError))
+				if (!SaveFile(m_Files[m_iStateIndex], &sError))
+					{
+					SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, sError);
+					return false;
+					}
+
+				return true;
+				}
+
+			//	Otherwise, upgrade machine
+
+			if (!UpgradeMachine())
+				return false;
+
+			//	If we need to restart, do it now.
+
+			if (IsRestartNeeded())
+				{
+				if (!RestartMachine())
+					return false;
+
+				SendMessageReply(MSG_OK, CDatum());
+				return false;
+				}
+
+			//	Otherwise, we restart all modules.
+
+			m_iStateIndex = FindFirstModuleIndex();
+			if (m_iStateIndex != -1)
+				{
+				m_iState = State::restartingModule;
+
+				if (!RestartModule(m_Files[m_iStateIndex], &sError))
 					{
 					SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, sError);
 					return false;
@@ -236,12 +305,39 @@ bool CExarchUpgradeSession::OnProcessMessage (const SArchonMessage &Msg)
 				}
 			else
 				{
-				UpgradeMachine();
-
 				SendMessageReply(MSG_OK, CDatum());
 				return false;
 				}
-			break;
+			}
+
+		case State::restartingModule:
+			{
+			CString sError;
+
+			if (IsError(Msg))
+				{
+				SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, Msg.dPayload.AsString());
+				return false;
+				}
+
+			//	Restart the next module in our list
+
+			m_iStateIndex = FindNextModuleIndex(m_iStateIndex);
+			if (m_iStateIndex != -1)
+				{
+				if (!RestartModule(m_Files[m_iStateIndex], &sError))
+					{
+					SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, sError);
+					return false;
+					}
+
+				return true;
+				}
+			else
+				{
+				SendMessageReply(MSG_OK, CDatum());
+				return false;
+				}
 			}
 
 		default:
@@ -285,7 +381,7 @@ bool CExarchUpgradeSession::OnStartSession (const SArchonMessage &Msg, DWORD dwT
 	//	Upload all the files to AeonDB.
 
 	m_iState = State::waitingForAeonSave;
-	m_iSavingIndex = 0;
+	m_iStateIndex = 0;
 	if (!SaveFile(m_Files[0], &sError))
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, sError);
@@ -325,7 +421,10 @@ bool CExarchUpgradeSession::ReadFileList (const CString &sConfigFilespec, CStrin
 		CString sName;
 		CString sExt = fileGetExtension(fileGetFilename(pNewEntry->sFilename), &sName);
 		if (strEqualsNoCase(sExt, EXT_EXE))
+			{
 			pNewEntry->sModuleName = sName;
+			pNewEntry->bIsModuleExe = true;
+			}
 
 		if (::fileChecksumAdler32(pNewEntry->sFilespec) != pNewEntry->dwChecksum)
 			{
@@ -333,23 +432,26 @@ bool CExarchUpgradeSession::ReadFileList (const CString &sConfigFilespec, CStrin
 			return false;
 			}
 
-		//	NOTE: If we don't calculate the checksum here, the call to get 
+		//	NOTE: If we don't calculate the checksum above, the call to get 
 		//	version info fails. I believe this is a race condition with some
 		//	antivirus software. The file is opened by the antivirus software
 		//	just after we're done adding it, and interferes with the call to get
 		//	version history. Adding a delay also solves the problem.
 
-		CString sError;
-		if (!::fileGetVersionInfo(pNewEntry->sFilespec, &pNewEntry->VersionInfo, &sError))
+		if (pNewEntry->bIsModuleExe)
 			{
-			GetProcessCtx()->Log(MSG_LOG_INFO, strPattern(ERR_NO_VERSION_INFO, pNewEntry->sFilespec, sError));
+			CString sError;
+			if (!::fileGetVersionInfo(pNewEntry->sFilespec, &pNewEntry->VersionInfo, &sError))
+				{
+				GetProcessCtx()->Log(MSG_LOG_INFO, strPattern(ERR_NO_VERSION_INFO, pNewEntry->sFilespec, sError));
 
-			pNewEntry->VersionInfo.sCompanyName = STR_UNKNOWN;
-			pNewEntry->VersionInfo.sProductName = pNewEntry->sModuleName;
-			pNewEntry->VersionInfo.sProductVersion = STR_UNKNOWN;
+				pNewEntry->VersionInfo.sCompanyName = STR_UNKNOWN;
+				pNewEntry->VersionInfo.sProductName = pNewEntry->sModuleName;
+				pNewEntry->VersionInfo.sProductVersion = STR_UNKNOWN;
 
-			pNewEntry->VersionInfo.dwFileVersion = 0;
-			pNewEntry->VersionInfo.dwProductVersion = 0;
+				pNewEntry->VersionInfo.dwFileVersion = 0;
+				pNewEntry->VersionInfo.dwProductVersion = 0;
+				}
 			}
 
 		pNewEntry->sPlatform = dFileDesc.GetElement(FIELD_PLATFORM);
@@ -390,6 +492,25 @@ bool CExarchUpgradeSession::RestartMachine ()
 	if (!bSuccess)
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, ERR_CANT_RESTART);
+		return false;
+		}
+
+	return true;
+	}
+
+bool CExarchUpgradeSession::RestartModule (const SFileEntry &Entry, CString *retsError)
+
+//	RestartModule
+//
+//	Restart the given module.
+
+	{
+	CDatum dPayload(CDatum::typeArray);
+	dPayload.Append(Entry.sModuleName);
+
+	if (!SendMessageCommand(ADDRESS_EXARCH_COMMAND, MSG_EXARCH_RESTART_MODULE, ADDRESS_EXARCH_COMMAND, dPayload, MESSAGE_TIMEOUT))
+		{
+		if (retsError) *retsError = strPattern(ERR_CANT_SEND_MESSAGE, ADDRESS_EXARCH_COMMAND);
 		return false;
 		}
 
@@ -463,26 +584,29 @@ void CExarchUpgradeSession::UndoUpgrade ()
 //	Undo the upgrade.
 
 	{
-	for (int i = 0; i < m_FilesUpgraded.GetCount(); i++)
+	for (int i = 0; i < m_Files.GetCount(); i++)
 		{
-		CString sSrc = ::fileAppend(m_sRootFolder, m_FilesUpgraded[i]);
-		if (!fileDelete(sSrc))
-			GetProcessCtx()->Log(MSG_LOG_ERROR, strPattern(ERR_CANT_RECOVER_UPGRADED_FILE, sSrc));
-		}
+		if (m_Files[i].bUpgraded)
+			{
+			CString sSrc = ::fileAppend(m_sRootFolder, m_Files[i].sFilename);
+			if (!fileDelete(sSrc))
+				GetProcessCtx()->Log(MSG_LOG_ERROR, strPattern(ERR_CANT_RECOVER_UPGRADED_FILE, sSrc));
+			}
 
-	for (int i = 0; i < m_FilesMoved.GetCount(); i++)
-		{
-		CString sSrc = fileAppend(m_sRootFolder, strPattern("Original_%s", m_FilesMoved[i]));
-		CString sDest = fileAppend(m_sRootFolder, m_FilesMoved[i]);
+		if (m_Files[i].bMoved)
+			{
+			CString sSrc = fileAppend(m_sRootFolder, strPattern("Original_%s", m_Files[i].sFilename));
+			CString sDest = fileAppend(m_sRootFolder, m_Files[i].sFilename);
 
-		if (!::fileMove(sSrc, sDest))
-			GetProcessCtx()->Log(MSG_LOG_ERROR, strPattern(ERR_CANT_RECOVER_UPGRADED_FILE, sDest));
+			if (!::fileMove(sSrc, sDest))
+				GetProcessCtx()->Log(MSG_LOG_ERROR, strPattern(ERR_CANT_RECOVER_UPGRADED_FILE, sDest));
+			}
 		}
 
 	SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, ERR_UPGRADE_FAILED);
 	}
 
-bool CExarchUpgradeSession::UpgradeFiles (TArray<CString> &retUpgraded)
+bool CExarchUpgradeSession::UpgradeFiles ()
 
 //	UpgradeFiles
 //
@@ -500,7 +624,7 @@ bool CExarchUpgradeSession::UpgradeFiles (TArray<CString> &retUpgraded)
 			return false;
 			}
 
-		retUpgraded.Insert(m_Files[i].sFilename);
+		m_Files[i].bUpgraded = true;
 		}
 
 	return true;
@@ -519,24 +643,19 @@ bool CExarchUpgradeSession::UpgradeMachine ()
 
 	//	Rename files that we want to replace.
 
-	if (!MoveOriginalFiles(m_FilesMoved))
+	if (!MoveOriginalFiles())
 		{
 		UndoUpgrade();
 		return false;
 		}
 
-	if (!UpgradeFiles(m_FilesUpgraded))
+	if (!UpgradeFiles())
 		{
 		UndoUpgrade();
 		return false;
 		}
 
 	LogUpgrade();
-
-	if (IsRestartNeeded())
-		RestartMachine();
-	else
-		m_Engine.RestartModules(m_FilesUpgraded);
 
 	return true;
 	}

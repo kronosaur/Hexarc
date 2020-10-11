@@ -12,6 +12,7 @@
 //	Undefine some definitions used by Windows
 
 #undef AddPort
+#undef InitiateShutdown
 #undef LoadLibrary
 #undef SendMessage
 

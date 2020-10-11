@@ -189,6 +189,7 @@ DECLARE_CONST_STRING(ERR_DISK_ERROR_OP,					"Disk error when %s on filespec: %s.
 DECLARE_CONST_STRING(ERR_TOO_MANY_LINES,				"Unable to return %d lines; maximum is %d.")
 DECLARE_CONST_STRING(ERR_MODULE_NOT_RESTARTED,			"[%s] Module not restarted because it failed quickly.")
 DECLARE_CONST_STRING(ERR_NOT_ARCOLOGY_PRIME,			"Unable to comply because we are not Arcology Prime.")
+DECLARE_CONST_STRING(ERR_CANT_START_MODULE,				"Unable to start module %s.")
 
 //	Message Table --------------------------------------------------------------
 
@@ -1640,8 +1641,7 @@ void CExarchEngine::MsgOnModuleStop (const SArchonMessage &Msg, const CHexeSecur
 	//	long, then don't restart.
 
 	bool bRemove = m_MecharcologyDb.IsModuleRemoved(sModule);
-	bool bRestart = (m_MecharcologyDb.GetModuleRunTime(sModule).Seconds64() > MIN_RUN_TIME_TO_RESTART)
-			&& !bRemove;
+	bool bRestart = !bRemove && m_MecharcologyDb.CanRestartModule(sModule);
 
 	//	Delete ourselves from the list of modules.
 
@@ -2048,6 +2048,9 @@ void CExarchEngine::MsgRestartModule (const SArchonMessage &Msg, const CHexeSecu
 	{
 	CSmartLock Lock(m_cs);
 
+	constexpr int TIME_OUT = 30000;		//	Milliseconds to wait for module to restart
+	constexpr int CHECK_INTERVAL = 200;	//	Milliseconds to wait between checks
+
 	//	Must be admin service
 
 	if (!ValidateSandboxAdmin(Msg, pSecurityCtx))
@@ -2071,6 +2074,10 @@ void CExarchEngine::MsgRestartModule (const SArchonMessage &Msg, const CHexeSecu
 		return;
 		}
 
+	//	Mark the module as being restarted.
+
+	m_MecharcologyDb.OnModuleRestart(ModuleDesc.sName);
+
 	//	Restart the module
 
 	SendMessageCommand(CMessageTransporter::GenerateAddress(PORT_MNEMOSYNTH_COMMAND, ModuleDesc.sName),
@@ -2079,9 +2086,24 @@ void CExarchEngine::MsgRestartModule (const SArchonMessage &Msg, const CHexeSecu
 			0, 
 			CDatum());
 
+	//	Wait for the module to restart.
+
+	Lock.Unlock();
+
+	int iTimeout = TIME_OUT;
+	while (iTimeout > 0
+			&& !m_MecharcologyDb.IsModuleRunning(ModuleDesc.sName))
+		{
+		Sleep(CHECK_INTERVAL);
+		iTimeout -= CHECK_INTERVAL;
+		}
+
 	//	Done
 
-	SendMessageReply(MSG_OK, CDatum(), Msg);
+	if (iTimeout <= 0)
+		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_CANT_START_MODULE, ModuleDesc.sName), Msg);
+	else
+		SendMessageReply(MSG_OK, CDatum(), Msg);
 	}
 
 void CExarchEngine::MsgShutdown (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)
@@ -2940,44 +2962,6 @@ bool CExarchEngine::RemoveModule (const CString &sModuleName, CString *retsError
 	//	Done
 
 	return true;
-	}
-
-bool CExarchEngine::RestartModule (const CString &sFilename, CString *retsError)
-
-//	RestartModule
-//
-//	Restarts the given module.
-
-	{
-	CSmartLock Lock(m_cs);
-
-	return false;
-	}
-
-void CExarchEngine::RestartModules (TArray<CString> &Modules)
-
-//	RestartModule
-//
-//	Restarts the given list of modules (by filespec).
-
-	{
-	CSmartLock Lock(m_cs);
-
-	for (int i = 0; i < Modules.GetCount(); i++)
-		{
-		//	Look for this file in the list of loaded modules. If we find it
-		//	then stop it (it will get restarted automatically).
-
-		SModuleDesc ModuleDesc;
-		if (m_MecharcologyDb.FindModuleByFilespec(Modules[i], &ModuleDesc))
-			{
-			SendMessageCommand(CMessageTransporter::GenerateAddress(PORT_MNEMOSYNTH_COMMAND, ModuleDesc.sName),
-					MSG_EXARCH_SHUTDOWN,
-					NULL_STR, 
-					0, 
-					CDatum());
-			}
-		}
 	}
 
 void CExarchEngine::SendReadRequest (CDatum dSocket)

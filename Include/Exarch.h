@@ -66,6 +66,7 @@ class CMecharcologyDb
 
 		//	Module functions
 
+		bool CanRestartModule (const CString &sName) const;
 		bool DeleteModule (const CString &sName);
 		bool FindModuleByFilespec (const CString &sFilespec, SModuleDesc *retDesc = NULL);
 		bool GetCentralModule (SModuleDesc *retDesc = NULL);
@@ -74,15 +75,19 @@ class CMecharcologyDb
 		const CString &GetModuleName (int iIndex) { CSmartLock Lock(m_cs); return m_Modules[iIndex].sName; }
 		CProcess *GetModuleProcess (const CString &sName);
 		CProcess &GetModuleProcess (int iIndex) { CSmartLock Lock(m_cs); return m_Modules[iIndex].hProcess; }
-		CTimeSpan GetModuleRunTime (const CString &sName);
+		CTimeSpan GetModuleRunTime (const CString &sName) const;
 		DWORD GetModuleSeq (int iIndex) { CSmartLock Lock(m_cs); return m_Modules[iIndex].dwSeq; }
 		bool IsModuleRemoved (const CString &sName) const;
+		bool IsModuleRunning (const CString &sName) const;
 		bool LoadModule (const CString &sFilespec, bool bDebug, CString *retsName, CString *retsError);
 		void OnMnemosynthUpdated (void);
 		void OnModuleStart (const CString &sName, DWORD dwMnemosynthSeq, bool *retbAllComplete);
+		void OnModuleRestart (const CString &sName);
 		void SetModuleRemoved (const CString &sName);
 
 	private:
+		static constexpr DWORDLONG MIN_RUN_TIME_TO_RESTART =				60;	//	seconds
+
 		enum EConnectStates
 			{
 			connectNone,						//	No connection
@@ -98,7 +103,7 @@ class CMecharcologyDb
 			CString sAddress;					//	Machine address
 			CIPInteger SecretKey;				//	Shared secret
 
-			EConnectStates iStatus;				//	Status of our connection to the machine
+			EConnectStates iStatus = connectNone;	//	Status of our connection to the machine
 			};
 
 		enum EModuleStates
@@ -107,6 +112,9 @@ class CMecharcologyDb
 			moduleOnStart,						//	We've received an OnModuleStart
 			moduleRunning,						//	Module is running and we have its initial Mnemosynth state
 			moduleRemoved,						//	Module has been removed
+
+			moduleRestarted,					//	We've deliberately shutdown the module and are
+												//	expecting it to restart.
 			};
 
 		struct SModuleEntry
@@ -115,8 +123,8 @@ class CMecharcologyDb
 			CString sFilespec;					//	Absolute filespec to executable
 
 			CProcess hProcess;					//	Running process
-			EModuleStates iStatus;				//	Current module status
-			DWORD dwSeq;						//	Seq (used during startup)
+			EModuleStates iStatus = moduleLaunched;		//	Current module status
+			DWORD dwSeq = 0;					//	Seq (used during startup)
 			CString sVersion;					//	Module version
 			CDateTime StartTime;				//	Time when module started
 			};
@@ -178,7 +186,6 @@ class CExarchEngine : public TSimpleEngine<CExarchEngine>, public IArchonExarch
 
 		bool IsRestartRequired (const CString &sFilename) const;
 		void RemoveMachine (const SMachineDesc &MachineToRemove);
-		void RestartModules (TArray<CString> &Modules);
 		bool SendAMP1Command (const CString &sMachineName, const CString &sCommand, CDatum dData);
 		void SetAeonInitialized (bool bInitialized = true) { m_bAeonInitialized = bInitialized; }
 
@@ -264,7 +271,6 @@ class CExarchEngine : public TSimpleEngine<CExarchEngine>, public IArchonExarch
 		SessionTypes ParseProtocol (const CString &sInput, CString *retsCommand);
 		bool ReadConfig (void);
 		void RegisterForMnemosynthUpdate (void);
-		bool RestartModule (const CString &sFilename, CString *retsError);
 		bool SendAMP1Command (const SMachineDesc &Desc, const CString &sCommand, CDatum dData);
 		void SendReadRequest (CDatum dSocket);
 		void SendWriteRequest (CDatum dSocket, const CString &sData);

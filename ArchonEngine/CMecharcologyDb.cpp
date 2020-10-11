@@ -27,6 +27,7 @@ DECLARE_CONST_STRING(STR_MACHINE_STATUS_UNKNOWN,		"unknown");
 DECLARE_CONST_STRING(STR_MODULE_STATUS_LAUNCHED,		"launched");
 DECLARE_CONST_STRING(STR_MODULE_STATUS_ON_START,		"onStart");
 DECLARE_CONST_STRING(STR_MODULE_STATUS_REMOVED,			"removed");
+DECLARE_CONST_STRING(STR_MODULE_STATUS_RESTARTED,		"restarted");
 DECLARE_CONST_STRING(STR_MODULE_STATUS_RUNNING,			"running");
 DECLARE_CONST_STRING(STR_MODULE_STATUS_UNKNOWN,			"unknown");
 
@@ -161,6 +162,38 @@ void CMecharcologyDb::Boot (const SInit &Init)
 		}
 	else
 		m_iArcologyPrime = -1;
+	}
+
+bool CMecharcologyDb::CanRestartModule (const CString &sName) const
+
+//	CanRestartModule
+//
+//	Returns TRUE if we can restart the module.
+
+	{
+	CSmartLock Lock(m_cs);
+
+	//	Find the module by name (if not found, then OK to restart).
+
+	int iModule;
+	if ((iModule = FindModule(sName)) == -1)
+		return true;
+
+	//	If we've been asked to restart then do it.
+
+	if (m_Modules[iModule].iStatus == moduleRestarted)
+		return true;
+
+	//	How long has the module been running, if it hasn't been too long, then
+	//	don't restart, in case we've got a crash bug.
+
+	CTimeSpan Uptime = timeSpan(m_Modules[iModule].StartTime, CDateTime(CDateTime::Now));
+	if (Uptime.Seconds64() < MIN_RUN_TIME_TO_RESTART)
+		return false;
+
+	//	OK to restart.
+
+	return true;
 	}
 
 bool CMecharcologyDb::DeleteMachine (const CString &sName)
@@ -628,7 +661,7 @@ CProcess *CMecharcologyDb::GetModuleProcess (const CString &sName)
 	return &m_Modules[iModule].hProcess;
 	}
 
-CTimeSpan CMecharcologyDb::GetModuleRunTime (const CString &sName)
+CTimeSpan CMecharcologyDb::GetModuleRunTime (const CString &sName) const
 
 //	GetModuleRunTime
 //
@@ -662,6 +695,24 @@ bool CMecharcologyDb::IsModuleRemoved (const CString &sName) const
 		return true;
 
 	return (m_Modules[iModule].iStatus == moduleRemoved);
+	}
+
+bool CMecharcologyDb::IsModuleRunning (const CString &sName) const
+
+//	IsModuleRunning
+//
+//	Returns TRUE if the given module is running.
+
+	{
+	CSmartLock Lock(m_cs);
+
+	//	Find the module by name
+
+	int iModule;
+	if ((iModule = FindModule(sName)) == -1)
+		return true;
+
+	return (m_Modules[iModule].iStatus == moduleRunning);
 	}
 
 bool CMecharcologyDb::GetStatus (CDatum *retStatus)
@@ -938,6 +989,22 @@ bool CMecharcologyDb::OnCompleteAuth (const CString &sName)
 	return false;
 	}
 
+void CMecharcologyDb::OnModuleRestart (const CString &sName)
+
+//	OnModuleRestart
+//
+//	We're going to restart the given module.
+
+	{
+	CSmartLock Lock(m_cs);
+
+	int iModule;
+	if ((iModule = FindModule(sName)) == -1)
+		return;
+
+	m_Modules[iModule].iStatus = moduleRestarted;
+	}
+
 void CMecharcologyDb::OnModuleStart (const CString &sName, DWORD dwMnemosynthSeq, bool *retbAllComplete)
 
 //	OnModuleStart
@@ -1130,6 +1197,9 @@ CString CMecharcologyDb::StatusToID (EModuleStates iStatus) const
 
 		case moduleRemoved:
 			return STR_MODULE_STATUS_REMOVED;
+
+		case moduleRestarted:
+			return STR_MODULE_STATUS_RESTARTED;
 
 		case moduleRunning:
 			return STR_MODULE_STATUS_RUNNING;
