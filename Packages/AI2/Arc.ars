@@ -225,6 +225,30 @@ function arc.modules
 						(invoke 'Exarch.addModule p1)
 						)
 
+				(= command 'catalog)
+					(map (invoke 'Aeon.fileDirectory "/Arc.install/" nil 'recursive) 'excludeNil theEntry
+						(block (
+							(pieces (split (@ theEntry 'filePath) "/"))
+							(module (@ pieces 1))
+							(platform (@ pieces 2))
+							(filename (@ pieces 3))
+							(extension (substring filename (- (length filename) 4)))
+							(versionInfo (@ theEntry 'versionInfo))
+							)
+							(if (= extension ".exe")
+								{
+									module: module
+									platform: platform
+									modifiedOn: (@ theEntry 'modifiedOn)
+									size: (@ theEntry 'size)
+									version: (@ versionInfo 'productVersion)
+									name: (@ versionInfo 'productName)
+									company: (@ versionInfo 'companyName)
+									}
+								)
+							)
+						)
+
 				(&& (= command 'remove) (!= p1 ""))
 					(invoke 'Exarch.removeModule p1)
 
@@ -239,6 +263,7 @@ function arc.modules
 
 					"arc.modules\n"
 					"arc.modules add [{machineName}] {module} [{debug}]\n"
+					"arc.modules catalog\n"
 					"arc.modules remove {[machineName/]module}\n"
 					"arc.modules restart {module}"
 					)

@@ -192,8 +192,8 @@ struct SFileVersionInfo
 	CString sCompanyName;
 	CString sCopyright;
 
-	DWORDLONG dwFileVersion;
-	DWORDLONG dwProductVersion;
+	DWORDLONG dwFileVersion = 0;
+	DWORDLONG dwProductVersion = 0;
 	};
 
 //	Utility functions ----------------------------------------------------------
@@ -224,7 +224,7 @@ CDateTime fileGetModifiedTime (const CString &sFilespec);
 CString fileGetPath (const CString &sFilespec);
 DWORDLONG fileGetSize (const CString &sFilespec);
 CString fileGetTempPath (void);
-bool fileGetVersionInfo (const CString &sFilespec, SFileVersionInfo *retInfo);
+bool fileGetVersionInfo (const CString &sFilespec, SFileVersionInfo *retInfo, CString *retsError = NULL);
 bool fileGetVolumeList (DWORD dwFlags, TArray<CString> *retVolumes);
 CString fileGetWorkingDirectory (void);
 bool fileIsAbsolute (const CString &sFilespec);

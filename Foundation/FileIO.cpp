@@ -778,7 +778,7 @@ CString fileGetTempPath (void)
 	return CString(CString16(szBuffer, iLen));
 	}
 
-bool fileGetVersionInfo (const CString &sFilespec, SFileVersionInfo *retInfo)
+bool fileGetVersionInfo (const CString &sFilespec, SFileVersionInfo *retInfo, CString *retsError)
 
 //	fileGetVersionInfo
 //
@@ -806,13 +806,19 @@ bool fileGetVersionInfo (const CString &sFilespec, SFileVersionInfo *retInfo)
 	DWORD dwDummy;
 	DWORD dwSize = ::GetFileVersionInfoSize(sPath, &dwDummy);
 	if (dwSize == 0)
+		{
+		if (retsError) *retsError = strPattern("No version info found: %x", ::GetLastError());
 		return false;
+		}
 
 	//	Load the info
 
 	CString sData((char *)NULL, dwSize);
 	if (!::GetFileVersionInfo(sPath, 0, dwSize, (char *)sData))
+		{
+		if (retsError) *retsError = strPattern("Error in GetFileVersionInfo: %x", ::GetLastError());
 		return false;
+		}
 
 	//	Get the fixed-size portion
 

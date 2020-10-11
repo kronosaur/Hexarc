@@ -1322,6 +1322,9 @@ bool CDatum::Deserialize (ESerializationFormats iFormat, IByteStream &Stream, IA
 			case formatAEONLocal:
 				return DeserializeAEONScript(Stream, pExtension, retDatum);
 
+			case formatBinary:
+				return CDatum::CreateBinary(Stream, Stream.GetStreamLength() - Stream.GetPos(), retDatum);
+
 			case formatJSON:
 				return DeserializeJSON(Stream, retDatum);
 

@@ -24,6 +24,7 @@ DECLARE_CONST_STRING(MODULE_ARCOLOGY,					"Arcology.exe")
 DECLARE_CONST_STRING(MODULE_AEON_DB,					"AeonDB.exe")
 DECLARE_CONST_STRING(MODULE_NAME_AEON_DB,				"AeonDB")
 
+DECLARE_CONST_STRING(PORT_AEON_NOTIFY,					"Aeon.notify")
 DECLARE_CONST_STRING(PORT_EXARCH_COMMAND,				"Exarch.command")
 DECLARE_CONST_STRING(PORT_EXARCH_LOG,					"Exarch.log")
 DECLARE_CONST_STRING(PORT_MNEMOSYNTH_COMMAND,			"Mnemosynth.command")
@@ -64,7 +65,6 @@ DECLARE_CONST_STRING(FIELD_VERSION,						"version")
 DECLARE_CONST_STRING(FIELD_VOLUME_NAME,					"volumeName")
 DECLARE_CONST_STRING(FIELD_VOLUMES,						"volumes")
 
-DECLARE_CONST_STRING(MSG_ARC_HOUSEKEEPING,				"Arc.housekeeping")
 DECLARE_CONST_STRING(MSG_ERROR_ALREADY_EXISTS,			"Error.alreadyExists")
 DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply")
 DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_INTERPRET,		"Error.unableToInterpret")
@@ -141,7 +141,6 @@ DECLARE_CONST_STRING(ERR_NO_ARCOLOGY,					"%s is not yet part of an arcology.")
 DECLARE_CONST_STRING(ERR_INVALID_ARCOLOGY_NAME,			"\"%s\" is not a valid arcology name.")
 DECLARE_CONST_STRING(ERR_NOTHING_TO_UPGRADE,			"All files already up to date.")
 DECLARE_CONST_STRING(ERR_CANT_RESTART_CENTRAL_MODULE,	"Cannot restart CentralModule.")
-DECLARE_CONST_STRING(ERR_BAD_UPGRADE_CHECKSUM,			"Checksum for file does not match: %s.")
 DECLARE_CONST_STRING(ERR_DELETING_BAD_FILE,				"Deleting bad file on volume %s: %s.")
 DECLARE_CONST_STRING(ERR_UNKNOWN_MSG,					"Exarch: Unknown message: %s.")
 DECLARE_CONST_STRING(ERR_UPGRADE_FAILED,				"Failed upgrading; please check the log for errors.")
@@ -193,6 +192,8 @@ DECLARE_CONST_STRING(ERR_NOT_ARCOLOGY_PRIME,			"Unable to comply because we are 
 
 //	Message Table --------------------------------------------------------------
 
+DECLARE_CONST_STRING(MSG_AEON_ON_START,					"Aeon.onStart")
+DECLARE_CONST_STRING(MSG_ARC_HOUSEKEEPING,				"Arc.housekeeping")
 DECLARE_CONST_STRING(MSG_EXARCH_ADD_MACHINE,			"Exarch.addMachine")
 DECLARE_CONST_STRING(MSG_EXARCH_ADD_MODULE,				"Exarch.addModule")
 DECLARE_CONST_STRING(MSG_EXARCH_ADD_VOLUME,				"Exarch.addVolume")
@@ -218,8 +219,6 @@ DECLARE_CONST_STRING(MSG_EXARCH_SEND_TO_MACHINE,		"Exarch.sendToMachine")
 DECLARE_CONST_STRING(MSG_EXARCH_SHUTDOWN,				"Exarch.shutdown")
 DECLARE_CONST_STRING(MSG_EXARCH_UPLOAD_UPGRADE,			"Exarch.uploadUpgrade")
 
-const DWORD DEFAULT_AMP1_PORT =							7397;
-
 const DWORDLONG LOW_DISK_SPACE_ERROR =					MEGABYTE_DISK;
 const DWORDLONG LOW_DISK_SPACE_WARNING =				200 * MEGABYTE_DISK;
 
@@ -234,6 +233,9 @@ const DWORDLONG MIN_RUN_TIME_TO_RESTART =				60;	//	seconds
 
 CExarchEngine::SMessageHandler CExarchEngine::m_MsgHandlerList[] =
 	{
+		//	Aeon.onStart
+		{	MSG_AEON_ON_START,					&CExarchEngine::MsgAeonOnStart },
+
 		//	Arc.housekeeping
 		{	MSG_ARC_HOUSEKEEPING,				&TSimpleEngine::MsgNull },
 
@@ -332,10 +334,7 @@ int CExarchEngine::m_iMsgHandlerListCount = SIZEOF_STATIC_ARRAY(CExarchEngine::m
 
 CExarchEngine::CExarchEngine (const SOptions &Options) : TSimpleEngine(ENGINE_NAME_EXARCH, 3),
 		m_sArcologyPrime(Options.sArcologyPrime),
-		m_sConfigFilename(Options.sConfigFilename),
-		m_pLoggingPort(NULL),
-		m_dwNextVolume(0),
-		m_bInStopRunning(false)
+		m_sConfigFilename(Options.sConfigFilename)
 
 //	CExarchEngine constructor
 
@@ -1003,7 +1002,7 @@ CString CExarchEngine::GetMachineStatus (void)
 	return (const CString &)dData.GetElement(FIELD_STATUS);
 	}
 
-bool CExarchEngine::IsRestartRequired (const CString &sFilename)
+bool CExarchEngine::IsRestartRequired (const CString &sFilename) const
 
 //	IsRestartRequired
 //
@@ -1125,207 +1124,6 @@ void CExarchEngine::MsgAddVolume (const SArchonMessage &Msg, const CHexeSecurity
 	//	Write the storage config file.
 
 	WriteStorageConfig();
-
-	//	Done
-
-	SendMessageReply(MSG_OK, CDatum(), Msg);
-	}
-
-void CExarchEngine::MsgCompleteUpgrade (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)
-
-//	CompleteUpgrade
-//
-//	Exarch.completeUpgrade
-//
-//	Upgrades the machine after files have been uploaded.
-
-	{
-	CSmartLock Lock(m_cs);
-	int i;
-	CString sError;
-
-	//	Must be admin service
-
-	if (!ValidateSandboxAdmin(Msg, pSecurityCtx))
-		return;
-
-	//	Get a path to the upgrade folder.
-
-	CString sRootFolder = fileGetPath(fileGetExecutableFilespec());
-	CString sUpgradeFolder = fileAppend(sRootFolder, FILESPEC_UPGRADE_FOLDER);
-	CString sUpgradeConfig = fileAppend(sUpgradeFolder, FILESPEC_UPGRADE_ARS);
-
-	//	Load the config file
-
-	CDatum dConfig;
-	if (!CDatum::CreateFromFile(sUpgradeConfig, CDatum::formatAEONScript, &dConfig, &sError))
-		{
-		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, sError, Msg);
-		return;
-		}
-
-	CDatum dUpgradeDesc = dConfig.GetElement(FIELD_UPGRADE_DESC);
-
-	//	Loop over all files to upgrade and make sure the checksum is valid.
-
-	for (i = 0; i < dUpgradeDesc.GetCount(); i++)
-		{
-		CDatum dFileDesc = dUpgradeDesc.GetElement(i);
-		const CString &sFilename = dFileDesc.GetElement(FIELD_FILENAME);
-		CString sFilespec = fileAppend(sUpgradeFolder, sFilename);
-
-		DWORD dwChecksum = fileChecksumAdler32(sFilespec);
-		if (dwChecksum != (DWORD)(int)dFileDesc.GetElement(FIELD_CHECKSUM))
-			{
-			SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_BAD_UPGRADE_CHECKSUM, sFilename), Msg);
-			return;
-			}
-		}
-
-	//	Rename all the files that we want to replace. On Windows we can rename a
-	//	a file even if it is open.
-	//
-	//	We keep track of files that we moved so that if we fail we can recover.
-
-	bool bFailed = false;
-	TArray<CString> Moved;
-	for (i = 0; i < dUpgradeDesc.GetCount(); i++)
-		{
-		CDatum dFileDesc = dUpgradeDesc.GetElement(i);
-		const CString &sFilename = dFileDesc.GetElement(FIELD_FILENAME);
-		CString sFilespec = fileAppend(sRootFolder, sFilename);
-		CString sDest = fileAppend(sRootFolder, strPattern("Original_%s", sFilename));
-
-		//	If the file doesn't exist it means that there is no original
-		//	(We are uploading a brand new file.)
-
-		if (!fileExists(sFilespec))
-			continue;
-
-		//	If the backup file exists then we need to delete it.
-
-		if (fileExists(sDest))
-			fileDelete(sDest);
-
-		//	Rename the original file
-
-		if (!fileMove(sFilespec, sDest))
-			{
-			Log(MSG_LOG_ERROR, strPattern(ERR_CANT_RENAME_FILE, sFilespec, sDest));
-
-			bFailed = true;
-			break;
-			}
-
-		Moved.Insert(sFilename);
-		}
-
-	//	If the move succeeded then we move the upgraded files to the proper place
-
-	TArray<CString> Upgraded;
-	if (!bFailed)
-		{
-		for (i = 0; i < Moved.GetCount(); i++)
-			{
-			CString sSource = fileAppend(sUpgradeFolder, Moved[i]);
-			CString sDest = fileAppend(sRootFolder, Moved[i]);
-
-			if (!fileMove(sSource, sDest))
-				{
-				Log(MSG_LOG_ERROR, strPattern(ERR_CANT_MOVE_FILE, sSource, sDest));
-
-				bFailed = true;
-				break;
-				}
-
-			Upgraded.Insert(Moved[i]);
-			}
-		}
-
-	//	If we failed either step then we need to recover
-
-	if (bFailed)
-		{
-		//	Delete any files that got upgraded
-
-		for (i = 0; i < Upgraded.GetCount(); i++)
-			{
-			CString sFilespec = fileAppend(sRootFolder, Upgraded[i]);
-			if (!fileDelete(sFilespec))
-				Log(MSG_LOG_ERROR, strPattern(ERR_CANT_RECOVER_UPGRADED_FILE, sFilespec));
-			}
-
-		//	Move back the original files
-
-		for (i = 0; i < Moved.GetCount(); i++)
-			{
-			CString sSource = fileAppend(sRootFolder, strPattern("Original_%s", Moved[i]));
-			CString sDest = fileAppend(sRootFolder, Moved[i]);
-
-			if (!fileMove(sSource, sDest))
-				Log(MSG_LOG_ERROR, strPattern(ERR_CANT_RECOVER_UPGRADED_FILE, sDest));
-			}
-
-		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, ERR_UPGRADE_FAILED, Msg);
-		return;
-		}
-
-	//	Log the upgrade and see if we need to restart
-
-	bool bRestartNeeded = false;
-	for (i = 0; i < Upgraded.GetCount(); i++)
-		{
-		Log(MSG_LOG_INFO, strPattern(ERR_UPGRADED_FILE, Upgraded[i]));
-
-		if (IsRestartRequired(Upgraded[i]))
-			bRestartNeeded = true;
-		}
-
-	//	If we need to restart, do it.
-
-	if (bRestartNeeded)
-		{
-		//	Launch a process that will shutdown and restart the service.
-
-		bool bSuccess;
-		CProcess Restart;
-		try
-			{
-			Restart.Create(CString("Arcology.exe /restart"));
-			bSuccess = true;
-			}
-		catch (...)
-			{
-			bSuccess = false;
-			}
-
-		if (!bSuccess)
-			{
-			SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, ERR_CANT_RESTART, Msg);
-			return;
-			}
-		}
-
-	//	Otherwise, we restart specific modules.
-
-	else
-		{
-		for (i = 0; i < Upgraded.GetCount(); i++)
-			{
-			//	Look for this file in the list of loaded modules. If we find it
-			//	then stop it (it will get restarted automatically).
-
-			SModuleDesc ModuleDesc;
-			if (m_MecharcologyDb.FindModuleByFilespec(Upgraded[i], &ModuleDesc))
-				{
-				SendMessageCommand(CMessageTransporter::GenerateAddress(PORT_MNEMOSYNTH_COMMAND, ModuleDesc.sName),
-						MSG_EXARCH_SHUTDOWN,
-						NULL_STR, 
-						0, 
-						CDatum());
-				}
-			}
-		}
 
 	//	Done
 
@@ -1755,12 +1553,12 @@ void CExarchEngine::MsgOnLog (const SArchonMessage &Msg, const CHexeSecurityCtx 
 	//	Parse the log type
 
 	CString sPrefix;
-    if (strEquals(sMsg, MSG_LOG_DEBUG))
-        sPrefix = STR_DEBUG_LOG_PREFIX;
-    else if (strEquals(sMsg, MSG_LOG_ERROR))
-        sPrefix = STR_ERROR_LOG_PREFIX;
-    else if (strEquals(sMsg, MSG_LOG_WARNING))
-        sPrefix = STR_WARNING_LOG_PREFIX;
+	if (strEquals(sMsg, MSG_LOG_DEBUG))
+		sPrefix = STR_DEBUG_LOG_PREFIX;
+	else if (strEquals(sMsg, MSG_LOG_ERROR))
+		sPrefix = STR_ERROR_LOG_PREFIX;
+	else if (strEquals(sMsg, MSG_LOG_WARNING))
+		sPrefix = STR_WARNING_LOG_PREFIX;
 
 	//	Log
 
@@ -2344,6 +2142,7 @@ void CExarchEngine::MsgUploadUpgrade (const SArchonMessage &Msg, const CHexeSecu
 		{
 		theFile.Seek((int)dwOffset);
 		theFile.Write(dData);
+
 		bSuccess = true;
 		}
 	catch (...)
@@ -2400,6 +2199,10 @@ void CExarchEngine::OnBoot (void)
 
 	m_pLoggingPort = new CProxyPort(MSG_EXARCH_ON_LOG, Bind(ADDRESS_EXARCH_COMMAND));
 	AddPort(PORT_EXARCH_LOG, m_pLoggingPort);
+
+	//	Subscribe to Aeon notifications
+
+	AddVirtualPort(PORT_AEON_NOTIFY, ADDRESS_EXARCH_COMMAND, FLAG_PORT_ALWAYS);
 
 	//	Clean up in case we upgraded
 
@@ -3149,6 +2952,32 @@ bool CExarchEngine::RestartModule (const CString &sFilename, CString *retsError)
 	CSmartLock Lock(m_cs);
 
 	return false;
+	}
+
+void CExarchEngine::RestartModules (TArray<CString> &Modules)
+
+//	RestartModule
+//
+//	Restarts the given list of modules (by filespec).
+
+	{
+	CSmartLock Lock(m_cs);
+
+	for (int i = 0; i < Modules.GetCount(); i++)
+		{
+		//	Look for this file in the list of loaded modules. If we find it
+		//	then stop it (it will get restarted automatically).
+
+		SModuleDesc ModuleDesc;
+		if (m_MecharcologyDb.FindModuleByFilespec(Modules[i], &ModuleDesc))
+			{
+			SendMessageCommand(CMessageTransporter::GenerateAddress(PORT_MNEMOSYNTH_COMMAND, ModuleDesc.sName),
+					MSG_EXARCH_SHUTDOWN,
+					NULL_STR, 
+					0, 
+					CDatum());
+			}
+		}
 	}
 
 void CExarchEngine::SendReadRequest (CDatum dSocket)

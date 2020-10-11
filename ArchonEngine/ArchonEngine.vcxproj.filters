@@ -186,6 +186,12 @@
     <ClCompile Include="MsgPing.cpp">
       <Filter>Source Files\Exarch</Filter>
     </ClCompile>
+    <ClCompile Include="BootSession.cpp">
+      <Filter>Source Files\Exarch</Filter>
+    </ClCompile>
+    <ClCompile Include="UpgradeSession.cpp">
+      <Filter>Source Files\Exarch</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Include\ArchonEngine.h">

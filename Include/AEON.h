@@ -127,6 +127,7 @@ class CDatum
 			formatJSON =		1,
 			formatAEONLocal =	2,			//	Serialized to a local machine
 			formatTextUTF8 =	3,			//	Plain text (unstructured)
+			formatBinary =		4,			//	Binary
 			};
 
 		enum class InvokeResult

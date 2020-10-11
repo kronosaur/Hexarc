@@ -160,6 +160,8 @@ class CArcologySession : public ISessionCtx
 class CExarchEngine : public TSimpleEngine<CExarchEngine>, public IArchonExarch
 	{
 	public:
+		static constexpr DWORD DEFAULT_AMP1_PORT =					7397;
+
 		struct SOptions
 			{
 			SOptions (void) :
@@ -174,8 +176,11 @@ class CExarchEngine : public TSimpleEngine<CExarchEngine>, public IArchonExarch
 		CExarchEngine (const SOptions &Options);
 		virtual ~CExarchEngine (void);
 
+		bool IsRestartRequired (const CString &sFilename) const;
 		void RemoveMachine (const SMachineDesc &MachineToRemove);
+		void RestartModules (TArray<CString> &Modules);
 		bool SendAMP1Command (const CString &sMachineName, const CString &sCommand, CDatum dData);
+		void SetAeonInitialized (bool bInitialized = true) { m_bAeonInitialized = bInitialized; }
 
 		static SMessageHandler m_MsgHandlerList[];
 		static int m_iMsgHandlerListCount;
@@ -196,6 +201,7 @@ class CExarchEngine : public TSimpleEngine<CExarchEngine>, public IArchonExarch
 		void MsgAddMachine (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgAddModule (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgAddVolume (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
+		void MsgAeonOnStart (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgCompleteUpgrade (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgCreateTestVolume (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgDeleteTestDrive (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
@@ -251,7 +257,6 @@ class CExarchEngine : public TSimpleEngine<CExarchEngine>, public IArchonExarch
 		CString GenerateResourceNameFromFilespec (const CString &sFilespec);
 		CString GetMachineStatus (void);
 		bool IsArcologyPrime (void) const { return m_sArcologyPrime.IsEmpty(); }
-		bool IsRestartRequired (const CString &sFilename);
 		void OnMachineConnection (const CString &sName);
 		void OnMachineStart (void);
 		bool ParseMachineName (const CString &sValue, CString *retsMachineName) const;
@@ -277,14 +282,15 @@ class CExarchEngine : public TSimpleEngine<CExarchEngine>, public IArchonExarch
 
 		CString m_sArcologyPrime;				//	Address for Arcology Prime machine (if NULL, then we are Arcology Prime)
 		CIPInteger m_ArcologyKey;				//	Key to use to communicate
-		DWORD m_dwAMP1Port;						//	Port on which we listen to AMP1 commands
+		DWORD m_dwAMP1Port = DEFAULT_AMP1_PORT;	//	Port on which we listen to AMP1 commands
 
 		CDatum m_dMachineConfig;				//	Configuration for this machine
 		CMecharcologyDb m_MecharcologyDb;		//	Machine arcology database
 		CSessionManagerOld m_Sessions;			//	Keeping track of sessions
-		CProxyPort *m_pLoggingPort;
+		CProxyPort *m_pLoggingPort = NULL;
 
-		DWORD m_dwNextVolume;					//	Next volume number
+		DWORD m_dwNextVolume = 0;				//	Next volume number
 		TArray<CString> m_DeletedVolumes;		//	Keep track of deleted volumes (for UI purposes)
-		bool m_bInStopRunning;					//	If TRUE, we're shutting down the machine
+		bool m_bInStopRunning = false;			//	If TRUE, we're shutting down the machine
+		bool m_bAeonInitialized = false;		//	If TRUE, Aeon has already started
 	};

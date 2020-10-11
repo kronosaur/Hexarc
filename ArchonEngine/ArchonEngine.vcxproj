@@ -209,6 +209,7 @@
     <ClCompile Include="MsgGetStatus.cpp" />
     <ClCompile Include="MsgGetStorageList.cpp" />
     <ClCompile Include="MsgRemoveModule.cpp" />
+    <ClCompile Include="BootSession.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -237,6 +238,7 @@
     <ClCompile Include="CMessageQueue.cpp" />
     <ClCompile Include="CMessageTransporter.cpp" />
     <ClCompile Include="CProxyPort.cpp" />
+    <ClCompile Include="UpgradeSession.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Include\ArchonEngine.h" />
