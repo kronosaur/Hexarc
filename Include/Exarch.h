@@ -43,8 +43,9 @@ class CMecharcologyDb
 
 		//	Machine functions
 
-		bool AddMachine (const CString &sDisplayName, const CString &sAddress, const CIPInteger &SecretKey, CString *retsError);
+		bool AddMachine (const CString &sDisplayName, const CString &sAddress, const CIPInteger &SecretKey, bool bCheckUpgrade, CString *retsError);
 		bool AuthenticateMachine (const CString &sAuthName, const CIPInteger &AuthKey);
+		bool CheckForUpgrade (const CString &sMachineName);
 		bool DeleteMachine (const CString &sName);
 		bool DeleteMachine (const SMachineDesc &Desc);
 		bool DeleteMachineByKey (const CIPInteger &Key);
@@ -70,7 +71,7 @@ class CMecharcologyDb
 		bool DeleteModule (const CString &sName);
 		bool FindModuleByFilespec (const CString &sFilespec, SModuleDesc *retDesc = NULL);
 		bool GetCentralModule (SModuleDesc *retDesc = NULL);
-		bool GetModule (const CString &sName, SModuleDesc *retDesc = NULL);
+		bool GetModule (const CString &sName, SModuleDesc *retDesc = NULL) const;
 		int GetModuleCount (void) { CSmartLock Lock(m_cs); return m_Modules.GetCount(); }
 		const CString &GetModuleName (int iIndex) { CSmartLock Lock(m_cs); return m_Modules[iIndex].sName; }
 		CProcess *GetModuleProcess (const CString &sName);
@@ -102,6 +103,7 @@ class CMecharcologyDb
 			CString sDisplayName;				//	Name assigned by user
 			CString sAddress;					//	Machine address
 			CIPInteger SecretKey;				//	Shared secret
+			bool bCheckUpgrade = false;			//	If TRUE, ask this machine to check for upgrades
 
 			EConnectStates iStatus = connectNone;	//	Status of our connection to the machine
 			};
@@ -184,6 +186,9 @@ class CExarchEngine : public TSimpleEngine<CExarchEngine>, public IArchonExarch
 		CExarchEngine (const SOptions &Options);
 		virtual ~CExarchEngine (void);
 
+		CMecharcologyDb &GetMecharcologyDb () { return m_MecharcologyDb; }
+		bool IsArcologyPrime () const { return m_sArcologyPrime.IsEmpty(); }
+		bool IsLocalModule (const CString &sModuleName) const { return m_MecharcologyDb.GetModule(sModuleName); }
 		bool IsRestartRequired (const CString &sFilename) const;
 		void RemoveMachine (const SMachineDesc &MachineToRemove);
 		bool SendAMP1Command (const CString &sMachineName, const CString &sCommand, CDatum dData);
@@ -209,6 +214,7 @@ class CExarchEngine : public TSimpleEngine<CExarchEngine>, public IArchonExarch
 		void MsgAddModule (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgAddVolume (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgAeonOnStart (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
+		void MsgCheckUpgrade (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgCompleteUpgrade (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgCreateTestVolume (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgDeleteTestDrive (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
@@ -254,7 +260,7 @@ class CExarchEngine : public TSimpleEngine<CExarchEngine>, public IArchonExarch
 		bool RemoveModule (const CString &sModuleName, CString *retsError);
 
 		//	Other helper methods
-		void CleanUpUpgrade (void);
+		bool CleanUpUpgrade (void);
 		bool CheckArcology (CString *retsError);
 		void DeleteMachineResources (const CString &sName);
 		void DeleteModuleResources (const CString &sName, bool bDeleteModule = false);
@@ -263,7 +269,6 @@ class CExarchEngine : public TSimpleEngine<CExarchEngine>, public IArchonExarch
 		bool FindVolume (const CString &sVolume, CDatum *retdVolumeDesc = NULL, CString *retsKey = NULL);
 		CString GenerateResourceNameFromFilespec (const CString &sFilespec);
 		CString GetMachineStatus (void);
-		bool IsArcologyPrime (void) const { return m_sArcologyPrime.IsEmpty(); }
 		void OnMachineConnection (const CString &sName);
 		void OnMachineStart (void);
 		bool ParseMachineName (const CString &sValue, CString *retsMachineName) const;
@@ -299,4 +304,5 @@ class CExarchEngine : public TSimpleEngine<CExarchEngine>, public IArchonExarch
 		TArray<CString> m_DeletedVolumes;		//	Keep track of deleted volumes (for UI purposes)
 		bool m_bInStopRunning = false;			//	If TRUE, we're shutting down the machine
 		bool m_bAeonInitialized = false;		//	If TRUE, Aeon has already started
+		bool m_bBroadcastCheckUpgrade = false;	//	If TRUE, remember to tell other machines to check for upgrade
 	};

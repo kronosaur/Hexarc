@@ -190,6 +190,7 @@ DECLARE_CONST_STRING(ERR_TOO_MANY_LINES,				"Unable to return %d lines; maximum 
 DECLARE_CONST_STRING(ERR_MODULE_NOT_RESTARTED,			"[%s] Module not restarted because it failed quickly.")
 DECLARE_CONST_STRING(ERR_NOT_ARCOLOGY_PRIME,			"Unable to comply because we are not Arcology Prime.")
 DECLARE_CONST_STRING(ERR_CANT_START_MODULE,				"Unable to start module %s.")
+DECLARE_CONST_STRING(ERR_CANT_SEND_MESSAGE,				"Unable to send %s to %s.")
 
 //	Message Table --------------------------------------------------------------
 
@@ -198,6 +199,7 @@ DECLARE_CONST_STRING(MSG_ARC_HOUSEKEEPING,				"Arc.housekeeping")
 DECLARE_CONST_STRING(MSG_EXARCH_ADD_MACHINE,			"Exarch.addMachine")
 DECLARE_CONST_STRING(MSG_EXARCH_ADD_MODULE,				"Exarch.addModule")
 DECLARE_CONST_STRING(MSG_EXARCH_ADD_VOLUME,				"Exarch.addVolume")
+DECLARE_CONST_STRING(MSG_EXARCH_CHECK_UPGRADE,			"Exarch.checkUpgrade")
 DECLARE_CONST_STRING(MSG_EXARCH_COMPLETE_UPGRADE,		"Exarch.completeUpgrade")
 DECLARE_CONST_STRING(MSG_EXARCH_CREATE_TEST_VOLUME,		"Exarch.createTestVolume")
 DECLARE_CONST_STRING(MSG_EXARCH_DELETE_TEST_DRIVE,		"Exarch.deleteTestDrive")
@@ -257,6 +259,9 @@ CExarchEngine::SMessageHandler CExarchEngine::m_MsgHandlerList[] =
 
 		//	Exarch.completeUpgrade
 		{	MSG_EXARCH_COMPLETE_UPGRADE,		&CExarchEngine::MsgCompleteUpgrade },
+
+		//	Exarch.checkUpgrade {volume}
+		{	MSG_EXARCH_CHECK_UPGRADE,			&CExarchEngine::MsgCheckUpgrade },
 
 		//	Exarch.createTestVolume {volume}
 		{	MSG_EXARCH_CREATE_TEST_VOLUME,		&CExarchEngine::MsgCreateTestVolume },
@@ -477,20 +482,19 @@ bool CExarchEngine::CheckArcology (CString *retsError)
 	return true;
 	}
 
-void CExarchEngine::CleanUpUpgrade (void)
+bool CExarchEngine::CleanUpUpgrade (void)
 
 //	CleanUpUpgrade
 //
-//	Cleans up temp files after an upgrade
+//	Cleans up temp files after an upgrade. Returns TRUE if an upgrade folder was
+//	found.
 
 	{
-	int i;
-
 	CString sRootFolder = fileGetPath(fileGetExecutableFilespec());
 	CString sUpgradeFolder = fileAppend(sRootFolder, FILESPEC_UPGRADE_FOLDER);
 
 	if (!fileExists(sUpgradeFolder))
-		return;
+		return false;
 
 	//	Clean up the upgrade directory
 
@@ -504,7 +508,7 @@ void CExarchEngine::CleanUpUpgrade (void)
 		Log(MSG_LOG_ERROR, ERR_CANT_DELETE_ORIGINALS);
 
 	bool bSucceded = true;
-	for (i = 0; i < FileList.GetCount(); i++)
+	for (int i = 0; i < FileList.GetCount(); i++)
 		if (!fileDelete(FileList[i]))
 			bSucceded = false;
 
@@ -514,6 +518,8 @@ void CExarchEngine::CleanUpUpgrade (void)
 		Log(MSG_LOG_ERROR, ERR_CANT_DELETE_ORIGINALS);
 
 	//	Done
+
+	return true;
 	}
 
 bool CExarchEngine::CreateArcology (const CString &sName, const CString &sHostAddress, CString *retsError)
@@ -2228,7 +2234,15 @@ void CExarchEngine::OnBoot (void)
 
 	//	Clean up in case we upgraded
 
-	CleanUpUpgrade();
+	if (CleanUpUpgrade() 
+			&& IsArcologyPrime())
+		{
+		//	If we cleaned up the upgrade directory, then we must have just 
+		//	upgrades. In that case, notify other machines that they need to
+		//	check for upgrade.
+
+		m_bBroadcastCheckUpgrade = true;
+		}
 	}
 
 void CExarchEngine::OnMachineConnection (const CString &sName)
@@ -2466,6 +2480,7 @@ void CExarchEngine::OnStartRunning (void)
 			if (!m_MecharcologyDb.AddMachine(dMachineDesc.GetElement(FIELD_NAME),
 					dMachineDesc.GetElement(FIELD_ADDRESS),
 					dMachineDesc.GetElement(FIELD_KEY),
+					m_bBroadcastCheckUpgrade,
 					&sError))
 				{
 				Log(MSG_LOG_ERROR, sError);

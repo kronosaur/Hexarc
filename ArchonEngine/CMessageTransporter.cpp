@@ -5,9 +5,9 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(STR_ARCOLOGY_PRIME,				"ArcologyPrime");
-DECLARE_CONST_STRING(STR_LOCAL_SYMBOL,					"~");
-DECLARE_CONST_STRING(STR_LOCALHOST_MACHINE_NAME,		"localhost");
+DECLARE_CONST_STRING(ADDR_NULL,							"Arc.null")
+
+DECLARE_CONST_STRING(PORT_EXARCH_COMMAND,				"Exarch.command");
 
 DECLARE_CONST_STRING(FIELD_NAME,						"name");
 
@@ -15,6 +15,10 @@ DECLARE_CONST_STRING(MNEMO_ARC_MACHINES,				"Arc.machines");
 DECLARE_CONST_STRING(MNEMO_ARC_PORTS,					"Arc.ports");
 
 DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error");
+
+DECLARE_CONST_STRING(STR_ARCOLOGY_PRIME,				"ArcologyPrime");
+DECLARE_CONST_STRING(STR_LOCAL_SYMBOL,					"~");
+DECLARE_CONST_STRING(STR_LOCALHOST_MACHINE_NAME,		"localhost");
 
 DECLARE_CONST_STRING(ERR_CANT_BIND,						"Unable to bind to address: %s.");
 
@@ -265,7 +269,7 @@ CString CMessageTransporter::GenerateAbsoluteAddress (const CString &sAddress)
 	{
 	//	OK if address is null.
 
-	if (sAddress.IsEmpty())
+	if (sAddress.IsEmpty() || strEquals(sAddress, ADDR_NULL))
 		return sAddress;
 
 	CString sPort;
@@ -377,7 +381,7 @@ CString CMessageTransporter::GenerateMachineAddress (const CString &sMachineName
 	return GenerateAddress(sPort, sProcess, sCanonicalName);
 	}
 
-TArray<CString> CMessageTransporter::GetArcologyPortAddresses (const CString &sPortToFind) const
+TArray<CString> CMessageTransporter::GetArcologyPortAddresses (const CString &sPortToFind, DWORD dwFlags) const
 
 //	GetArcologyPortAddresses
 //
@@ -385,34 +389,79 @@ TArray<CString> CMessageTransporter::GetArcologyPortAddresses (const CString &sP
 //	arcology.
 
 	{
-	TArray<CString> Result;
+	//	LATER: Exarch does not register a virtual port, so we handle this as
+	//	a special case (since we know that every machine must have a 
+	//	CentralModule.
 
-	//	Get the list of ports by module
-
-	TArray<CString> Modules;
-	m_pProcess->MnemosynthReadCollection(MNEMO_ARC_PORTS, &Modules);
-
-	//	Loop over all modules in the arcology and find the specific port.
-
-	for (int i = 0; i < Modules.GetCount(); i++)
+	if (strEquals(sPortToFind, PORT_EXARCH_COMMAND))
 		{
-		CDatum dPortList = m_pProcess->MnemosynthRead(MNEMO_ARC_PORTS, Modules[i]);
+		TArray<CString> Result;
 
-		for (int j = 0; j < dPortList.GetCount(); j++)
+		//	Get the list of all machines
+
+		TArray<CString> Machines;
+		m_pProcess->MnemosynthReadCollection(MNEMO_ARC_MACHINES, &Machines);
+
+		//	Add one address per machine
+
+		for (int i = 0; i < Machines.GetCount(); i++)
 			{
-			CDatum dPortMapping = dPortList.GetElement(j);
-			const CString &sPort = dPortMapping.GetElement(0);
-			if (strEquals(sPort, sPortToFind))
-				{
-				const CString &sAddress = dPortMapping.GetElement(1);
-				Result.Insert(sAddress);
-				}
+			//	Skip, if we're excluding this machine.
+
+			if ((dwFlags & FLAG_EXCLUDE_LOCAL_MACHINE)
+					&& IsLocalMachine(Machines[i]))
+				continue;
+
+			//	Empty module implies CentralModule.
+			Result.Insert(GenerateAddress(PORT_EXARCH_COMMAND, NULL_STR, Machines[i]));
 			}
+
+		//	Done
+
+		return Result;
 		}
 
-	//	Done
+	//	Otherwise, look up the virtual port in Mnemosynth.
 
-	return Result;
+	else
+		{
+		TArray<CString> Result;
+
+		//	Get the list of ports by module
+
+		TArray<CString> Modules;
+		m_pProcess->MnemosynthReadCollection(MNEMO_ARC_PORTS, &Modules);
+
+		//	Loop over all modules in the arcology and find the specific port.
+
+		for (int i = 0; i < Modules.GetCount(); i++)
+			{
+			CDatum dPortList = m_pProcess->MnemosynthRead(MNEMO_ARC_PORTS, Modules[i]);
+
+			//	Skip, if we're excluding this machine.
+
+			if ((dwFlags & FLAG_EXCLUDE_LOCAL_MACHINE)
+					&& strStartsWith(Modules[i], strPattern("%s/", m_pProcess->GetMachineName())))
+				continue;
+
+			//	Add all ports for this module.
+
+			for (int j = 0; j < dPortList.GetCount(); j++)
+				{
+				CDatum dPortMapping = dPortList.GetElement(j);
+				const CString &sPort = dPortMapping.GetElement(0);
+				if (strEquals(sPort, sPortToFind))
+					{
+					const CString &sAddress = dPortMapping.GetElement(1);
+					Result.Insert(sAddress);
+					}
+				}
+			}
+
+		//	Done
+
+		return Result;
+		}
 	}
 
 TArray<CMessagePort *> CMessageTransporter::GetPortCacheList (void) const
@@ -666,7 +715,7 @@ CDatum CMessageTransporter::GetVirtualPortList (void)
 	return CDatum(pList);
 	}
 
-bool CMessageTransporter::IsLocalMachine (const CString &sMachineName)
+bool CMessageTransporter::IsLocalMachine (const CString &sMachineName) const
 
 //	IsLocalMachine
 //
@@ -679,7 +728,7 @@ bool CMessageTransporter::IsLocalMachine (const CString &sMachineName)
 			|| strEquals(sMachineName, m_pProcess->GetMachineName()));
 	}
 
-bool CMessageTransporter::IsLocalProcess (const CString &sProcessName)
+bool CMessageTransporter::IsLocalProcess (const CString &sProcessName) const
 
 //	IsLocalProcess
 //

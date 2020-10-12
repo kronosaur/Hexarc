@@ -5,7 +5,7 @@
 
 #include "stdafx.h"
 
-#define DEBUG_COMPLETE_UPGRADE
+//#define DEBUG_COMPLETE_UPGRADE
 
 DECLARE_CONST_STRING(ADDRESS_AEON_COMMAND,				"Aeon.command")
 DECLARE_CONST_STRING(ADDRESS_EXARCH_COMMAND,			"Exarch.command@~/CentralModule")
@@ -27,11 +27,15 @@ DECLARE_CONST_STRING(FIELD_UPGRADE_ID,					"upgradeID");
 DECLARE_CONST_STRING(FIELD_VERSION,						"version");
 DECLARE_CONST_STRING(FIELD_VERSION_INFO,				"versionInfo");
 
+DECLARE_CONST_STRING(FILENAME_ARCOLOGY,					"Arcology.exe");
 DECLARE_CONST_STRING(FILESPEC_UPGRADE_ARS,				"Upgrade.ars");
 DECLARE_CONST_STRING(FILESPEC_UPGRADE_FOLDER,			"Upgrade");
 
+DECLARE_CONST_STRING(MODULE_CENTRAL_MODULE,				"CentralModule")
+
 DECLARE_CONST_STRING(MSG_AEON_FILE_UPLOAD,				"Aeon.fileUpload")
 DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply");
+DECLARE_CONST_STRING(MSG_EXARCH_CHECK_UPGRADE,			"Exarch.checkUpgrade")
 DECLARE_CONST_STRING(MSG_EXARCH_RESTART_MODULE,			"Exarch.restartModule")
 DECLARE_CONST_STRING(MSG_EXARCH_SHUTDOWN,				"Exarch.shutdown");
 DECLARE_CONST_STRING(MSG_LOG_DEBUG,						"Log.debug");
@@ -42,10 +46,14 @@ DECLARE_CONST_STRING(MSG_REPLY_DATA,					"Reply.data");
 
 DECLARE_CONST_STRING(PLATFORM_WIN10,					"Win10");
 
+DECLARE_CONST_STRING(PORT_EXARCH_COMMAND,				"Exarch.command")
 DECLARE_CONST_STRING(PORT_MNEMOSYNTH_COMMAND,			"Mnemosynth.command");
 
 DECLARE_CONST_STRING(STR_UNKNOWN,						"Unknown");
 DECLARE_CONST_STRING(STR_UPDATED_FILE,					"Uploaded file %s %s to /Arc.install/%s/%s/%s.");
+DECLARE_CONST_STRING(STR_UPGRADED_FILE,					"Upgraded %s/%s.");
+DECLARE_CONST_STRING(STR_UPGRADED_MODULE_FILE,			"Upgraded %s to version %s.");
+DECLARE_CONST_STRING(STR_REQUEST_UPGRADE,				"Requesting %s to check for upgrades.");
 
 DECLARE_CONST_STRING(ERR_BAD_UPGRADE_CHECKSUM,			"Checksum for file does not match: %s.");
 DECLARE_CONST_STRING(ERR_UPGRADE_FAILED,				"Failed upgrading; please check the log for errors.");
@@ -53,7 +61,6 @@ DECLARE_CONST_STRING(ERR_NO_FILES_FOUND,				"No files to upgrade.");
 DECLARE_CONST_STRING(ERR_CANT_RENAME_FILE,				"Unable to rename file from %s to %s.");
 DECLARE_CONST_STRING(ERR_CANT_MOVE_FILE,				"Unable to copy upgrade file from %s to %s.");
 DECLARE_CONST_STRING(ERR_CANT_RECOVER_UPGRADED_FILE,	"Unable to restore original file after failed upgrade: %s.");
-DECLARE_CONST_STRING(ERR_UPGRADED_FILE,					"Upgraded arcology system file: %s.");
 DECLARE_CONST_STRING(ERR_CANT_RESTART,					"Unable to restart machine.");
 DECLARE_CONST_STRING(ERR_CANT_LOAD_FILE,				"Unable to read file: %s.");
 DECLARE_CONST_STRING(ERR_CANT_SEND_MESSAGE,				"Unable to send message to %s.");
@@ -111,6 +118,7 @@ class CExarchUpgradeSession : public ISessionHandler
 		void UndoUpgrade ();
 		bool UpgradeFiles ();
 		bool UpgradeMachine ();
+		bool UpgradeOtherMachines (CString *retsError);
 		bool ValidateChecksums (CString *retsError);
 
 		CExarchEngine &m_Engine;
@@ -145,7 +153,7 @@ int CExarchUpgradeSession::FindFirstModuleIndex () const
 
 	{
 	for (int i = 0; i < m_Files.GetCount(); i++)
-		if (m_Files[i].bIsModuleExe)
+		if (m_Files[i].bIsModuleExe && m_Engine.IsLocalModule(m_Files[i].sModuleName))
 			return i;
 
 	return -1;
@@ -159,7 +167,7 @@ int CExarchUpgradeSession::FindNextModuleIndex (int iIndex) const
 
 	{
 	for (int i = iIndex + 1; i < m_Files.GetCount(); i++)
-		if (m_Files[i].bIsModuleExe)
+		if (m_Files[i].bIsModuleExe && m_Engine.IsLocalModule(m_Files[i].sModuleName))
 			return i;
 
 	return -1;
@@ -173,7 +181,9 @@ bool CExarchUpgradeSession::IsRestartNeeded () const
 
 	{
 	for (int i = 0; i < m_Files.GetCount(); i++)
-		if (m_Files[i].bIsModuleExe && m_Engine.IsRestartRequired(m_Files[i].sFilename))
+		if (m_Files[i].bIsModuleExe 
+				&& m_Engine.IsLocalModule(m_Files[i].sModuleName)
+				&& m_Engine.IsRestartRequired(m_Files[i].sFilename))
 			return true;
 
 	return false;
@@ -188,7 +198,10 @@ void CExarchUpgradeSession::LogUpgrade ()
 	{
 	for (int i = 0; i < m_Files.GetCount(); i++)
 		{
-		GetProcessCtx()->Log(MSG_LOG_INFO, strPattern(ERR_UPGRADED_FILE, m_Files[i].sFilename));
+		if (m_Files[i].bIsModuleExe)
+			GetProcessCtx()->Log(MSG_LOG_INFO, strPattern(STR_UPGRADED_MODULE_FILE, m_Files[i].sFilename, m_Files[i].VersionInfo.sProductVersion));
+		else
+			GetProcessCtx()->Log(MSG_LOG_INFO, strPattern(STR_UPGRADED_FILE, m_Files[i].sModuleName, m_Files[i].sFilename));
 		}
 	}
 
@@ -303,11 +316,17 @@ bool CExarchUpgradeSession::OnProcessMessage (const SArchonMessage &Msg)
 
 				return true;
 				}
-			else
-				{
-				SendMessageReply(MSG_OK, CDatum());
-				return false;
-				}
+
+			//	We only get here if we've updated files without updating
+			//	modules. This should never happen (callers should always 
+			//	update the module EXE when updating files).
+			//
+			//	LATER: In the future we can be smarter about support files.
+			//	We can restart a module if a support file changes, even if
+			//	the module EXE has not.
+
+			SendMessageReply(MSG_OK, CDatum());
+			return false;
 			}
 
 		case State::restartingModule:
@@ -333,11 +352,25 @@ bool CExarchUpgradeSession::OnProcessMessage (const SArchonMessage &Msg)
 
 				return true;
 				}
-			else
+
+			//	If there are no more modules to restart, then send messages to
+			//	upgrade all machines.
+
+			if (m_Engine.IsArcologyPrime())
 				{
-				SendMessageReply(MSG_OK, CDatum());
-				return false;
+				if (!UpgradeOtherMachines(&sError))
+					{
+					SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, sError);
+					return false;
+					}
+
+				//	Fall through because we don't wait for replies.
 				}
+
+			//	Either way, we're done.
+
+			SendMessageReply(MSG_OK, CDatum());
+			return false;
 			}
 
 		default:
@@ -422,7 +455,10 @@ bool CExarchUpgradeSession::ReadFileList (const CString &sConfigFilespec, CStrin
 		CString sExt = fileGetExtension(fileGetFilename(pNewEntry->sFilename), &sName);
 		if (strEqualsNoCase(sExt, EXT_EXE))
 			{
-			pNewEntry->sModuleName = sName;
+			if (strEqualsNoCase(pNewEntry->sFilename, FILENAME_ARCOLOGY))
+				pNewEntry->sModuleName = MODULE_CENTRAL_MODULE;
+			else
+				pNewEntry->sModuleName = sName;
 			pNewEntry->bIsModuleExe = true;
 			}
 
@@ -542,18 +578,23 @@ bool CExarchUpgradeSession::SaveFile (const SFileEntry &Entry, CString *retsErro
 		return false;
 		}
 
-	CDatum dVersionInfo(CDatum::typeStruct);
-	dVersionInfo.SetElement(FIELD_COMPANY_NAME, Entry.VersionInfo.sCompanyName);
-	dVersionInfo.SetElement(FIELD_COPYRIGHT, Entry.VersionInfo.sCopyright);
-	dVersionInfo.SetElement(FIELD_PRODUCT_NAME, Entry.VersionInfo.sProductName);
-	dVersionInfo.SetElement(FIELD_PRODUCT_VERSION, Entry.VersionInfo.sProductVersion);
-	dVersionInfo.SetElement(FIELD_PRODUCT_VERSION_NUMBER, Entry.VersionInfo.dwProductVersion);
-
 	//	Upload to AEON
 
 	CString sFilePath = strPattern("/Arc.install/%s/%s/%s", Entry.sModuleName, Entry.sPlatform, Entry.sFilename);
 	CDatum dFileDesc(CDatum::typeStruct);
-	dFileDesc.SetElement(FIELD_VERSION_INFO, dVersionInfo);
+	dFileDesc.SetElement(FIELD_CHECKSUM, Entry.dwChecksum);
+
+	if (Entry.VersionInfo.dwProductVersion)
+		{
+		CDatum dVersionInfo(CDatum::typeStruct);
+		dVersionInfo.SetElement(FIELD_COMPANY_NAME, Entry.VersionInfo.sCompanyName);
+		dVersionInfo.SetElement(FIELD_COPYRIGHT, Entry.VersionInfo.sCopyright);
+		dVersionInfo.SetElement(FIELD_PRODUCT_NAME, Entry.VersionInfo.sProductName);
+		dVersionInfo.SetElement(FIELD_PRODUCT_VERSION, Entry.VersionInfo.sProductVersion);
+		dVersionInfo.SetElement(FIELD_PRODUCT_VERSION_NUMBER, Entry.VersionInfo.dwProductVersion);
+
+		dFileDesc.SetElement(FIELD_VERSION_INFO, dVersionInfo);
+		}
 
 	CDatum dFileUploadDesc(CDatum::typeStruct);
 	dFileUploadDesc.SetElement(FIELD_FILE_DESC, dFileDesc);
@@ -615,6 +656,13 @@ bool CExarchUpgradeSession::UpgradeFiles ()
 	{
 	for (int i = 0; i < m_Files.GetCount(); i++)
 		{
+		//	Skip modules that aren't installed.
+
+		if (!m_Engine.IsLocalModule(m_Files[i].sModuleName))
+			continue;
+
+		//	Upgrade
+
 		CString sSrc = fileAppend(m_sUpgradeFolder, m_Files[i].sFilename);
 		CString sDest = fileAppend(m_sRootFolder, m_Files[i].sFilename);
 
@@ -625,6 +673,24 @@ bool CExarchUpgradeSession::UpgradeFiles ()
 			}
 
 		m_Files[i].bUpgraded = true;
+		}
+
+	return true;
+	}
+
+bool CExarchUpgradeSession::UpgradeOtherMachines (CString *retsError)
+
+//	UpgradeOtherMachines
+//
+//	Send messages to all other machines to upgrade.
+
+	{
+	TArray<CString> Addresses = GetProcessCtx()->GetTransporter().GetArcologyPortAddresses(PORT_EXARCH_COMMAND, CMessageTransporter::FLAG_EXCLUDE_LOCAL_MACHINE);
+
+	for (int i = 0; i < Addresses.GetCount(); i++)
+		{
+		GetProcessCtx()->Log(MSG_LOG_INFO, strPattern(STR_REQUEST_UPGRADE, Addresses[i]));
+		SendMessageCommand(Addresses[i], MSG_EXARCH_CHECK_UPGRADE, NULL_STR, CDatum(), MESSAGE_TIMEOUT);
 		}
 
 	return true;

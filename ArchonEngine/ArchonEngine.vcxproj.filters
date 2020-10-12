@@ -192,6 +192,9 @@
     <ClCompile Include="UpgradeSession.cpp">
       <Filter>Source Files\Exarch</Filter>
     </ClCompile>
+    <ClCompile Include="MsgCheckUpgrade.cpp">
+      <Filter>Source Files\Exarch</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Include\ArchonEngine.h">

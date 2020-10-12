@@ -35,7 +35,7 @@ DECLARE_CONST_STRING(ERR_DUPLICATE_MACHINE,				"Duplicate machine address.");
 DECLARE_CONST_STRING(ERR_CANT_JOIN,						"Unable to join another arcology.");
 DECLARE_CONST_STRING(ERR_CANT_LEAVE,					"Unable to leave arcology.");
 
-bool CMecharcologyDb::AddMachine (const CString &sDisplayName, const CString &sAddress, const CIPInteger &SecretKey, CString *retsError)
+bool CMecharcologyDb::AddMachine (const CString &sDisplayName, const CString &sAddress, const CIPInteger &SecretKey, bool bCheckUpgrade, CString *retsError)
 
 //	AddMachine
 //
@@ -64,6 +64,7 @@ bool CMecharcologyDb::AddMachine (const CString &sDisplayName, const CString &sA
 	pMachine->sAddress = sAddress;
 	pMachine->sDisplayName = sDisplayName;
 	pMachine->SecretKey = SecretKey;
+	pMachine->bCheckUpgrade = bCheckUpgrade;
 
 	return true;
 	}
@@ -193,6 +194,27 @@ bool CMecharcologyDb::CanRestartModule (const CString &sName) const
 
 	//	OK to restart.
 
+	return true;
+	}
+
+bool CMecharcologyDb::CheckForUpgrade (const CString &sMachineName)
+
+//	CheckForUpgrade
+//
+//	Returns TRUE if we need to ask this machine to check for upgrades, and then
+//	clears the flag.
+
+	{
+	CSmartLock Lock(m_cs);
+
+	int iMachine;
+	if ((iMachine = FindMachine(sMachineName)) == -1)
+		return false;
+
+	if (!m_Machines[iMachine].bCheckUpgrade)
+		return false;
+
+	m_Machines[iMachine].bCheckUpgrade = false;
 	return true;
 	}
 
@@ -586,7 +608,7 @@ bool CMecharcologyDb::GetMachine (int iIndex, SMachineDesc *retDesc) const
 	return true;
 	}
 
-bool CMecharcologyDb::GetModule (const CString &sName, SModuleDesc *retDesc)
+bool CMecharcologyDb::GetModule (const CString &sName, SModuleDesc *retDesc) const
 
 //	GetModule
 //

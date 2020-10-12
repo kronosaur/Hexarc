@@ -96,7 +96,7 @@ void CExarchEngine::MsgAddMachine (const SArchonMessage &Msg, const CHexeSecurit
 	//	Add the machine (with its secret key) to the arcology.
 
 	CString sError;
-	if (!m_MecharcologyDb.AddMachine(sDisplayName, sFullAddress, SecretKey, &sError))
+	if (!m_MecharcologyDb.AddMachine(sDisplayName, sFullAddress, SecretKey, true, &sError))
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, sError, Msg);
 		return;
