@@ -20,7 +20,10 @@ template <class OBJ> class TSharedPtr
 		TSharedPtr (const TSharedPtr<OBJ> &Src)
 			{
 			if (Src.m_pPtr)
-				m_pPtr = Src.m_pPtr->AddRef();
+				{
+				Src.m_pPtr->AddRef();
+				m_pPtr = Src.m_pPtr;
+				}
 			else
 				m_pPtr = NULL;
 			}
@@ -41,7 +44,10 @@ template <class OBJ> class TSharedPtr
 			OBJ *pOld = m_pPtr;
 
 			if (Src.m_pPtr)
-				m_pPtr = Src.m_pPtr->AddRef();
+				{
+				Src.m_pPtr->AddRef();
+				m_pPtr = Src.m_pPtr;
+				}
 			else
 				m_pPtr = NULL;
 
