@@ -39,7 +39,7 @@ class CMsgProcessCtx
 
 class CSimpleEngine;
 
-const int DEFAULT_THREAD_COUNT = 3;
+constexpr int DEFAULT_THREAD_COUNT = 3;
 
 class CSimpleProcessingThread : public TThread<CSimpleProcessingThread>
 	{

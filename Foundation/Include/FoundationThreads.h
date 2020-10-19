@@ -152,18 +152,24 @@ class CCriticalSection
 		mutable CRITICAL_SECTION m_cs;
 	};
 
-class CSmartLock
+template <typename T> class TSmartLock
 	{
 	public:
-		CSmartLock(const CCriticalSection &cs) : m_cs(cs), m_bLocked(false) { Lock(); }
-		~CSmartLock (void) { Unlock(); }
+		TSmartLock(const T &obj) : m_obj(obj) { Lock(); }
+		~TSmartLock (void) { Unlock(); }
 
-		void Lock (void) const { if (!m_bLocked) { m_cs.Lock(); m_bLocked = true; } }
-		void Unlock (void) const { if (m_bLocked) { m_cs.Unlock(); m_bLocked = false; } }
+		void Lock (void) const { if (!m_bLocked) { m_obj.Lock(); m_bLocked = true; } }
+		void Unlock (void) const { if (m_bLocked) { m_obj.Unlock(); m_bLocked = false; } }
 
 	private:
-		const CCriticalSection &m_cs;
-		mutable bool m_bLocked;
+		const T &m_obj;
+		mutable bool m_bLocked = false;
+	};
+
+class CSmartLock : public TSmartLock<CCriticalSection>
+	{
+	public:
+		CSmartLock (const CCriticalSection &cs) : TSmartLock<CCriticalSection>(cs) { }
 	};
 
 class CManualEvent : public COSObject
@@ -207,10 +213,12 @@ class CSemaphore : public COSObject
 	public:
 		void Create (int iMaxCount) { Create(NULL_STR, iMaxCount); }
 		void Create (const CString &sName, int iMaxCount, bool *retbExists = NULL);
-		void Decrement (int iCount = 1);
+		void Decrement (int iCount = 1) const;
 		int GetMaxCount (void) const { return m_iMaxCount; }
-		void Increment (int iCount = 1);
+		void Increment (int iCount = 1) const;
+		void Lock () const { Increment(); }
 		bool TryIncrement (int iCount = 1, DWORD dwTimeout = 0);
+		void Unlock () const { Decrement(); }
 
 	private:
 		int m_iMaxCount;

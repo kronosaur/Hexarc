@@ -175,8 +175,14 @@ class CMemoryBuffer : public CMemoryBlockImpl
 class CSharedMemoryBuffer : public CMemoryBlockImpl
 	{
 	public:
-		CSharedMemoryBuffer (void);
+		CSharedMemoryBuffer (void) { }
+		CSharedMemoryBuffer (const CSharedMemoryBuffer &Src) = delete;
+		CSharedMemoryBuffer (CSharedMemoryBuffer &&Src) noexcept;
+
 		virtual ~CSharedMemoryBuffer (void);
+
+		CSharedMemoryBuffer &operator= (const CSharedMemoryBuffer &Src) = delete;
+		CSharedMemoryBuffer &operator= (CSharedMemoryBuffer &&Src) noexcept;
 
 		void Close (void);
 		void Create (LPSTR sName, int iMaxSize, bool *retbExists = NULL);
@@ -188,9 +194,9 @@ class CSharedMemoryBuffer : public CMemoryBlockImpl
 		virtual char *GetPointer (void) const override { return m_pBlock; }
 
 	private:
-		HANDLE m_hMapFile;
-		int m_iMaxSize;
-		char *m_pBlock;
+		HANDLE m_hMapFile = INVALID_HANDLE_VALUE;
+		int m_iMaxSize = 0;
+		char *m_pBlock = NULL;
 	};
 
 class CStringBuffer : public CMemoryBlockImpl

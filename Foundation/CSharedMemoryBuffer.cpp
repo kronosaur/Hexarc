@@ -5,16 +5,20 @@
 
 #include "stdafx.h"
 
-const int DEFAULT_MAX_SIZE =				1024 * 1024;
+constexpr int DEFAULT_MAX_SIZE =				1024 * 1024;
 
-CSharedMemoryBuffer::CSharedMemoryBuffer (void) :
-		m_hMapFile(INVALID_HANDLE_VALUE),
-		m_iMaxSize(0),
-		m_pBlock(NULL)
+CSharedMemoryBuffer::CSharedMemoryBuffer (CSharedMemoryBuffer &&Src) noexcept
 
-//	CSharedMemoryBuffer constructor
+//	CSharedMemoryBuffer move constructor
 
 	{
+	m_hMapFile = Src.m_hMapFile;
+	m_iMaxSize = Src.m_iMaxSize;
+	m_pBlock = Src.m_pBlock;
+
+	Src.m_hMapFile = INVALID_HANDLE_VALUE;
+	Src.m_iMaxSize = 0;
+	Src.m_pBlock = NULL;
 	}
 
 CSharedMemoryBuffer::~CSharedMemoryBuffer (void)
@@ -23,6 +27,29 @@ CSharedMemoryBuffer::~CSharedMemoryBuffer (void)
 
 	{
 	Close();
+	}
+
+CSharedMemoryBuffer &CSharedMemoryBuffer::operator= (CSharedMemoryBuffer &&Src) noexcept
+
+//	CSharedMemoryBuffer move operator
+
+	{
+	//	If assigning to itself, then no change.
+
+	if (m_pBlock == Src.m_pBlock)
+		return *this;
+		
+	Close();
+
+	m_hMapFile = Src.m_hMapFile;
+	m_iMaxSize = Src.m_iMaxSize;
+	m_pBlock = Src.m_pBlock;
+
+	Src.m_hMapFile = INVALID_HANDLE_VALUE;
+	Src.m_iMaxSize = 0;
+	Src.m_pBlock = NULL;
+
+	return *this;
 	}
 
 void CSharedMemoryBuffer::Close (void)

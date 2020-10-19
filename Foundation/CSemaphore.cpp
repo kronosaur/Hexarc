@@ -31,7 +31,7 @@ void CSemaphore::Create (const CString &sName, int iMaxCount, bool *retbExists)
 		*retbExists = (::GetLastError() == ERROR_ALREADY_EXISTS);
 	}
 
-void CSemaphore::Decrement (int iCount)
+void CSemaphore::Decrement (int iCount) const
 
 //	Decrement
 //
@@ -42,7 +42,7 @@ void CSemaphore::Decrement (int iCount)
 	::ReleaseSemaphore(m_hHandle, iCount, NULL);
 	}
 
-void CSemaphore::Increment (int iCount)
+void CSemaphore::Increment (int iCount) const
 
 //	Increment the semaphore
 //
