@@ -23,17 +23,16 @@ bool CProgramSet::CreateInstance (CDatum dCode, const SRunOptions &Options, DWOR
 	{
 	CSmartLock Lock(m_cs);
 
-	CProgramInstance *pNewInstance = new CProgramInstance(m_dwNextID++);
-	if (!pNewInstance->Create(dCode, Options, retsError))
+	TSharedPtr<IProgramInstance> pNewInstance = IProgramInstance::Create(m_dwNextID++, dCode, Options, retsError);
+	if (!pNewInstance)
 		{
-		delete pNewInstance;
 		return false;
 		}
 
 	if (retdwID)
 		*retdwID = pNewInstance->GetID();
 
-	m_Instances.SetAt(pNewInstance->GetID())->Set(pNewInstance);
+	m_Instances.SetAt(pNewInstance->GetID(), pNewInstance);
 
 	//	Wake up the threads to start processing.
 
@@ -72,7 +71,7 @@ bool CProgramSet::GetInstanceView (DWORD dwID, const CString &sUsername, Sequenc
 	return true;
 	}
 
-CProgramInstance *CProgramSet::LockNextInstance ()
+IProgramInstance *CProgramSet::LockNextInstance ()
 
 //	LockNextInstance
 //
@@ -92,7 +91,7 @@ CProgramInstance *CProgramSet::LockNextInstance ()
 	const int iStartInstance = m_iNextInstance;
 	do
 		{
-		CProgramInstance *pInstance = m_Instances[m_iNextInstance];
+		auto pInstance = m_Instances[m_iNextInstance];
 		m_iNextInstance = (m_iNextInstance + 1) % m_Instances.GetCount();
 
 		if (pInstance->RunLock())
@@ -130,7 +129,7 @@ void CProgramSet::OnAsyncResult (const SArchonMessage &Msg)
 
 	//	Find the program
 
-	CProgramInstance **ppInstance = m_TicketToInstance.GetAt(Msg.dwTicket);
+	IProgramInstance **ppInstance = m_TicketToInstance.GetAt(Msg.dwTicket);
 	if (!ppInstance)
 		return;
 
@@ -153,7 +152,7 @@ SRunResult CProgramSet::Run ()
 	{
 	//	Figure out which program we're going to run next
 
-	CProgramInstance *pInstance = LockNextInstance();
+	IProgramInstance *pInstance = LockNextInstance();
 	if (pInstance == NULL)
 		return SRunResult(NULL, CHexeProcess::runOK, CDatum());
 
@@ -162,7 +161,7 @@ SRunResult CProgramSet::Run ()
 	return pInstance->Run();
 	}
 
-void CProgramSet::SetAsyncTicket (CProgramInstance &Program, DWORD dwTicket)
+void CProgramSet::SetAsyncTicket (IProgramInstance &Program, DWORD dwTicket)
 
 //	SetAsyncTicket
 //

@@ -7,7 +7,7 @@
 
 class CCodeSlingerEngine;
 class CPortSet;
-class CProgramInstance;
+class IProgramInstance;
 
 typedef DWORDLONG SequenceNumber;
 
@@ -66,32 +66,38 @@ enum class ProgramState
 
 struct SRunResult
 	{
-	SRunResult (CProgramInstance *pProgramArg, CHexeProcess::ERunCodes iRunCodeArg, CDatum dResultArg) :
+	SRunResult (IProgramInstance *pProgramArg, CHexeProcess::ERunCodes iRunCodeArg, CDatum dResultArg) :
 			pProgram(pProgramArg),
 			iRunCode(iRunCodeArg),
 			dResult(dResultArg)
 		{ }
 
-	CProgramInstance *pProgram = NULL;			//	May be NULL if no work was done.
+	IProgramInstance *pProgram = NULL;			//	May be NULL if no work was done.
 	CHexeProcess::ERunCodes iRunCode = CHexeProcess::runOK;
 	CDatum dResult;
 	};
 
 struct SRunOptions
 	{
-	CString sProgramID;
-	CString sRunBy;
+	CString sEnvironment;					//	Program Type
+	CString sProgramID;						//	Program ID
+	CString sRunBy;							//	User running the program
 	};
 
-class CProgramInstance
+class IProgramInstance : public TRefCounted<IProgramInstance>
 	{
 	public:
-		CProgramInstance (DWORD dwID) :
+		IProgramInstance (DWORD dwID) :
 				m_dwID(dwID)
 			{ }
 
+		virtual ~IProgramInstance ()
+			{
+			DebugBreak();
+			}
+
 		bool CanView (const CString &sUsername) const;
-		bool Create (CDatum dCode, const SRunOptions &Options, CString *retsError = NULL);
+		static TSharedPtr<IProgramInstance> Create (DWORD dwID, CDatum dCode, const SRunOptions &Options, CString *retsError = NULL);
 		DWORD GetID () const { return m_dwID; }
 		CDatum GetView (SequenceNumber Seq) const;
 		void Mark ();
@@ -100,10 +106,20 @@ class CProgramInstance
 		bool RunLock ();
 		void SetAsyncResult (CDatum dValue);
 
+	protected:
+		virtual bool OnCreate (CDatum dCode, const SRunOptions &Options, CString *retsError = NULL) { return true; }
+		virtual void OnMark () { }
+		virtual SRunResult OnRun () { return SRunResult(NULL, CHexeProcess::runOK, CDatum()); }
+
+		ProgramState GetRunState () const { return m_iState; }
+		CDatum GetRunStateValue () const { return m_dValue; }
+		void SetRunState (ProgramState iState) { m_iState = iState; }
+		void SetRunState (ProgramState iState, CDatum dValue) { m_iState = iState; m_dValue = dValue; }
+
 	private:
 		void CreateDefaultPorts ();
+		static TSharedPtr<IProgramInstance> CreateFromType (const CString &sType, DWORD dwID);
 		CDatum GetStatusCode () const;
-		SRunResult HandleRunResult (CHexeProcess::ERunCodes iRunCode, CDatum dResult);
 
 		CCriticalSection m_cs;
 		DWORD m_dwID = 0;
@@ -114,10 +130,7 @@ class CProgramInstance
 		CDatum m_dValue;					//	Depends on state
 		bool m_bRunLock = false;			//	If TRUE, a caller is about to call Run.
 
-		CHexeProcess m_Process;
-		CPortSet m_Ports;
-
-		static constexpr DWORD EXECUTION_QUANTUM = 30 * 1000;
+		CPortSet m_Ports;					//	Ports to communicate with environment
 	};
 
 class CProgramSet
@@ -131,14 +144,14 @@ class CProgramSet
 		void Mark ();
 		void OnAsyncResult (const SArchonMessage &Msg);
 		SRunResult Run ();
-		void SetAsyncTicket (CProgramInstance &Program, DWORD dwTicket);
+		void SetAsyncTicket (IProgramInstance &Program, DWORD dwTicket);
 
 	private:
-		CProgramInstance *LockNextInstance ();
+		IProgramInstance *LockNextInstance ();
 
 		CCriticalSection m_cs;
-		TSortMap<DWORD, TUniquePtr<CProgramInstance>> m_Instances;
-		TSortMap<DWORD, CProgramInstance *> m_TicketToInstance;
+		TSortMap<DWORD, TSharedPtr<IProgramInstance>> m_Instances;
+		TSortMap<DWORD, IProgramInstance *> m_TicketToInstance;
 
 		DWORD m_dwNextID = 1;
 		CManualEvent m_HasWork;

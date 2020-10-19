@@ -35,7 +35,7 @@ DECLARE_CONST_STRING(CODE_PRINT_NAME,					"print");
 DECLARE_CONST_STRING(CODE_PRINT_ARGS,					"s");
 DECLARE_CONST_STRING(CODE_PRINT_HELP,					"(print ...) -> string");
 
-CProgramInstance *GetProgramInstance (IInvokeCtx &Ctx, CDatum *retdResult);
+CHexeLispEnvironment *GetProgramInstance (IInvokeCtx &Ctx, CDatum *retdResult);
 
 //	Library --------------------------------------------------------------------
 
@@ -123,7 +123,7 @@ bool codeImpl (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinu
 
 		case CODE_PRINT:
 			{
-			CProgramInstance *pInstance = GetProgramInstance(*pCtx, retdResult);
+			CHexeLispEnvironment *pInstance = GetProgramInstance(*pCtx, retdResult);
 			if (!pInstance)
 				return false;
 
@@ -159,9 +159,9 @@ bool codeImpl (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinu
 		}
 	}
 
-CProgramInstance *GetProgramInstance (IInvokeCtx &Ctx, CDatum *retdResult)
+CHexeLispEnvironment *GetProgramInstance (IInvokeCtx &Ctx, CDatum *retdResult)
 	{
-	CProgramInstance *pInstance = (CProgramInstance *)Ctx.GetLibraryCtx(LIBRARY_INSTANCE_CTX);
+	CHexeLispEnvironment *pInstance = (CHexeLispEnvironment *)Ctx.GetLibraryCtx(LIBRARY_INSTANCE_CTX);
 	if (!pInstance)
 		{
 		CHexeError::Create(NULL_STR, strPattern("No instanceCtx"), retdResult);
