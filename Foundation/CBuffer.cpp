@@ -19,28 +19,6 @@ CBuffer::CBuffer (int iSize)
 	m_bAllocated = true;
 	}
 
-CBuffer::CBuffer (LPVOID pBuffer, int iLength, bool bCopy)
-
-//	CBuffer constructor
-
-	{
-	if (bCopy)
-		{
-		m_bAllocated = true;
-		m_iLength = iLength;
-		m_pBuffer = new char [iLength];
-		m_iAllocation = iLength;
-		utlMemCopy(pBuffer, m_pBuffer, iLength);
-		}
-	else
-		{
-		m_pBuffer = (char *)pBuffer;
-		m_iAllocation = 0;
-		m_iLength = iLength;
-		m_bAllocated = false;
-		}
-	}
-
 CBuffer::CBuffer (const CString &sString, int iPos, int iLength)
 
 //	CBuffer constructor
@@ -156,6 +134,34 @@ LPVOID CBuffer::GetHandoff (int *retiAllocation)
 		}
 
 	return pAlloc;
+	}
+
+void CBuffer::Init (const void *pBuffer, size_t dwLength, bool bCopy)
+
+//	Init
+//
+//	Initialize from a buffer. NOTE: We assume all member variables are 
+//	uninitialized.
+
+	{
+	if (dwLength > INT_MAX)
+		throw CException(errOutOfMemory);
+
+	if (bCopy)
+		{
+		m_bAllocated = true;
+		m_iLength = (int)dwLength;
+		m_pBuffer = new char [dwLength];
+		m_iAllocation = (int)dwLength;
+		utlMemCopy(pBuffer, m_pBuffer, dwLength);
+		}
+	else
+		{
+		m_pBuffer = (char *)pBuffer;
+		m_iAllocation = 0;
+		m_iLength = (int)dwLength;
+		m_bAllocated = false;
+		}
 	}
 
 void CBuffer::SetLength (int iLength)

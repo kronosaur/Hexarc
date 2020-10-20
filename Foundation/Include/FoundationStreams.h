@@ -97,7 +97,14 @@ class CBuffer : public CMemoryBlockImpl
 
 		explicit CBuffer (int iSize);
 		CBuffer (const CString &sString, int iPos = 0, int iLength = -1);
-		CBuffer (LPVOID pBuffer, int iLength, bool bCopy = true);
+		CBuffer (const char *pBuffer, int iLength, bool bCopy = true) { Init(pBuffer, iLength, bCopy); }
+		CBuffer (const void *pBuffer, int iLength, bool bCopy = true) { Init(pBuffer, iLength, bCopy); }
+		CBuffer (const char *pBuffer, DWORD iLength, bool bCopy = true) { Init(pBuffer, iLength, bCopy); }
+		CBuffer (const void *pBuffer, DWORD iLength, bool bCopy = true) { Init(pBuffer, iLength, bCopy); }
+		CBuffer (const char *pBuffer, size_t iLength, bool bCopy = true) { Init(pBuffer, iLength, bCopy); }
+		CBuffer (const void *pBuffer, size_t iLength, bool bCopy = true) { Init(pBuffer, iLength, bCopy); }
+		CBuffer (const char *pBuffer, std::ptrdiff_t iLength, bool bCopy = true) { Init(pBuffer, iLength, bCopy); }
+		CBuffer (const void *pBuffer, std::ptrdiff_t iLength, bool bCopy = true) { Init(pBuffer, iLength, bCopy); }
 
 		virtual ~CBuffer (void);
 
@@ -116,6 +123,7 @@ class CBuffer : public CMemoryBlockImpl
 
 	private:
 		void Copy (const CBuffer &Src);
+		void Init (const void *pBuffer, size_t dwLength, bool bCopy);
 
 		int m_iLength = 0;
 		char *m_pBuffer = NULL;
