@@ -6,7 +6,7 @@
 #include "stdafx.h"
 #include "Psapi.h"
 
-void CProcess::Create (const CString sCmdLine)
+void CProcess::Create (const CString sCmdLine, const SOptions &Options)
 
 //	Create
 //
@@ -18,15 +18,29 @@ void CProcess::Create (const CString sCmdLine)
 	STARTUPINFO StartupInfo;
 	utlMemSet(&StartupInfo, sizeof(StartupInfo));
 	StartupInfo.cb = sizeof(StartupInfo);
+	StartupInfo.hStdInput = Options.hStdIn;
+	StartupInfo.hStdOutput = Options.hStdOut;
+	StartupInfo.hStdError = Options.hStdError;
+
+	if (Options.hStdError != INVALID_HANDLE_VALUE || Options.hStdIn != INVALID_HANDLE_VALUE || Options.hStdOut != INVALID_HANDLE_VALUE)
+		StartupInfo.dwFlags |= STARTF_USESTDHANDLES;
+
+	LPVOID pEnvironment = NULL;
+	CBuffer EnvironmentBlock;
+	if (Options.EnvironmentVars.GetCount())
+		{
+		EnvironmentBlock = CreateEnvironmentBlock(Options.EnvironmentVars);
+		pEnvironment = (LPVOID)EnvironmentBlock.GetPointer();
+		}
 
 	PROCESS_INFORMATION ProcessInfo;
 	if (!::CreateProcess(NULL,
 			CString16(sCmdLine),
 			NULL,
 			NULL,
-			FALSE,
+			TRUE,
 			0,
-			NULL,
+			pEnvironment,
 			NULL,
 			&StartupInfo,
 			&ProcessInfo))
@@ -39,6 +53,31 @@ void CProcess::Create (const CString sCmdLine)
 	//	Close the thread handle (since we don't need it)
 
 	::CloseHandle(ProcessInfo.hThread);
+	}
+
+CBuffer CProcess::CreateEnvironmentBlock (const TSortMap<CString, CString> &EnvironmentVars)
+
+//	CreateEnvironmentBlock
+//
+//	Returns a buffer structured as an environment block.
+
+	{
+	constexpr int DEFAULT_SIZE = 4096;
+	CBuffer Block(DEFAULT_SIZE);
+	for (int i = 0; i < EnvironmentVars.GetCount(); i++)
+		{
+		const CString &sVar = EnvironmentVars.GetKey(i);
+		const CString &sValue = EnvironmentVars[i];
+
+		Block.Write(sVar);
+		Block.WriteChar('=');
+		Block.Write(sValue);
+		Block.WriteChar('\0');
+		}
+
+	Block.WriteChar('\0');
+
+	return Block;
 	}
 
 CString CProcess::GetExecutableFilespec (void) const

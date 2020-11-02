@@ -22,6 +22,29 @@ CRGBA32Image::CRGBA32Image (CRGBA32Image &&Src) noexcept :
 	Src.m_bFreeRGBA = false;
 	}
 
+CRGBA32Image &CRGBA32Image::operator= (CRGBA32Image &&Src) noexcept
+
+//	Move operator
+
+	{
+	CleanUp();
+
+	m_cxWidth = Src.m_cxWidth;
+	m_cyHeight = Src.m_cyHeight;
+	m_rcClip = Src.m_rcClip;
+
+	m_pRGBA = Src.m_pRGBA;
+	Src.m_pRGBA = NULL;
+	m_bFreeRGBA = Src.m_bFreeRGBA;
+	Src.m_bFreeRGBA = false;
+	m_bMarked = Src.m_bMarked;
+	m_iPitch = Src.m_iPitch;
+	m_AlphaType = Src.m_AlphaType;
+	m_pBMI = NULL;
+
+	Src.CleanUp();
+	}
+
 void CRGBA32Image::BltToDC (HDC hDC, int x, int y) const
 
 //	BltToDC

@@ -766,6 +766,18 @@ DWORDLONG fileGetSize (const CString &sFilespec)
 	return liSize.QuadPart;
 	}
 
+CString fileGetSystemPath ()
+
+//	fileGetSystemPath
+//
+//	Returns the c:\windows path.
+
+	{
+	TCHAR szBuffer[MAX_PATH+1];
+	int iLen = ::GetWindowsDirectoryW(szBuffer, MAX_PATH);
+	return CString(CString16(szBuffer, iLen));
+	}
+
 CString fileGetTempPath (void)
 
 //	fileGetTempPath

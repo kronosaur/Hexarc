@@ -269,6 +269,22 @@ CDatum::CDatum (const CRGBA32Image &Value)
 	m_dwData = ((DWORD_PTR)pValue | AEON_TYPE_COMPLEX);
 	}
 
+CDatum::CDatum (CRGBA32Image &&Value)
+
+//	CDatum constructor
+
+	{
+	CComplexImage32 *pValue = new CComplexImage32(std::move(Value));
+
+	//	Take ownership of the complex type
+
+	g_ComplexAlloc.New(pValue);
+
+	//	Store the pointer and assign type
+
+	m_dwData = ((DWORD_PTR)pValue | AEON_TYPE_COMPLEX);
+	}
+
 CDatum::CDatum (bool bValue)
 
 //	CDatum constructor

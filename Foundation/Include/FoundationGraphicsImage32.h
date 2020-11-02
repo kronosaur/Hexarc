@@ -115,6 +115,7 @@ class CRGBA32Image : public CImagePlane
 		virtual ~CRGBA32Image (void) { CleanUp(); }
 
 		CRGBA32Image &operator= (const CRGBA32Image &Src) { CleanUp(); Copy(Src); return *this; }
+		CRGBA32Image &operator= (CRGBA32Image &&Src) noexcept;
 
 		static CRGBA32Image &Null (void) { return m_NullImage; }
 

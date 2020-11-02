@@ -201,11 +201,22 @@ class CProcess : public COSObject
 			DWORDLONG dwPeakReserved;		//	Peak reserved size for the process (peak working set)
 			};
 
-		void Create (const CString sCmdLine);
+		struct SOptions
+			{
+			HANDLE hStdIn = INVALID_HANDLE_VALUE;
+			HANDLE hStdOut = INVALID_HANDLE_VALUE;
+			HANDLE hStdError = INVALID_HANDLE_VALUE;
+			TSortMap<CString, CString> EnvironmentVars;
+			};
+
+		void Create (const CString sCmdLine, const SOptions &Options = SOptions());
 		void CreateCurrentProcess (void) { Close(); m_hHandle = ::GetCurrentProcess(); }
 		CString GetExecutableFilespec (void) const;
 		DWORD GetID (void) const { return (m_hHandle == INVALID_HANDLE_VALUE ? 0 : ::GetProcessId(m_hHandle)); }
 		bool GetMemoryInfo (SMemoryInfo *retInfo) const;
+
+	private:
+		static CBuffer CreateEnvironmentBlock (const TSortMap<CString, CString> &EnvironmentVars);
 	};
 
 class CSemaphore : public COSObject

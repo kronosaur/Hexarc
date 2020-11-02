@@ -96,6 +96,7 @@ struct IUnknown;
 #include "FoundationMarkup.h"
 #include "FoundationNetworkIO.h"
 #include "FoundationParsers.h"
+#include "FoundationPipes.h"
 #include "FoundationXML.h"
 
 //	Graphics subsystem

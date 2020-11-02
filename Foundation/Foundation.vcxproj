@@ -262,6 +262,7 @@
     <ClCompile Include="CMemoryBlockImpl64.cpp" />
     <ClCompile Include="CMemoryBuffer.cpp" />
     <ClCompile Include="CMutex.cpp" />
+    <ClCompile Include="CNamedPipe.cpp" />
     <ClCompile Include="Compression.cpp" />
     <ClCompile Include="CPNG.cpp" />
     <ClCompile Include="CPolygon2D.cpp" />
@@ -416,6 +417,7 @@
     <ClInclude Include="Include\FoundationMathHexGrid.h" />
     <ClInclude Include="Include\FoundationNetworkIO.h" />
     <ClInclude Include="Include\FoundationParsers.h" />
+    <ClInclude Include="Include\FoundationPipes.h" />
     <ClInclude Include="Include\FoundationSmartPtr.h" />
     <ClInclude Include="Include\FoundationStreams.h" />
     <ClInclude Include="Include\FoundationStreams64.h" />

@@ -357,6 +357,9 @@
     <ClCompile Include="CDBValueStruct.cpp">
       <Filter>Source Files\DB</Filter>
     </ClCompile>
+    <ClCompile Include="CNamedPipe.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -522,6 +525,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Include\FoundationMathComplex.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\FoundationPipes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

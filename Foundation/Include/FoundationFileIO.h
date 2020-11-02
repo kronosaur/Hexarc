@@ -223,6 +223,7 @@ CString fileGetFilename (const CString &sFilespec);
 CDateTime fileGetModifiedTime (const CString &sFilespec);
 CString fileGetPath (const CString &sFilespec);
 DWORDLONG fileGetSize (const CString &sFilespec);
+CString fileGetSystemPath ();
 CString fileGetTempPath (void);
 bool fileGetVersionInfo (const CString &sFilespec, SFileVersionInfo *retInfo, CString *retsError = NULL);
 bool fileGetVolumeList (DWORD dwFlags, TArray<CString> *retVolumes);

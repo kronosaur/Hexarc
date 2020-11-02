@@ -158,6 +158,7 @@ class CDatum
 		CDatum (const CDateTime &DateTime);
 		CDatum (const CIPInteger &Value);
 		CDatum (const CRGBA32Image &Value);
+		CDatum (CRGBA32Image &&Value);
 		explicit CDatum (Types iType);
 		explicit CDatum (bool bValue);
 
@@ -513,7 +514,12 @@ class CComplexImage32 : public IComplexDatum
 				m_Image(Src)
 			{ }
 
+		CComplexImage32 (CRGBA32Image &&Src) :
+				m_Image(std::move(Src))
+			{ }
+
 		//	IComplexDatum
+		virtual CString AsString (void) const override { return strPattern("Image %dx%d", m_Image.GetWidth(), m_Image.GetHeight()); }
 		virtual size_t CalcMemorySize (void) const override { return (size_t)m_Image.GetWidth() * (size_t)m_Image.GetHeight() * sizeof(DWORD); }
 		virtual const CRGBA32Image &CastCRGBA32Image (void) const override { return m_Image; }
 		virtual IComplexDatum *Clone (void) const override;
