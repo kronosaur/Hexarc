@@ -1,7 +1,33 @@
 //	Cryptosaur.h
 //
 //	Cryptosaur Engine Implementation
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 Kronosaur Productions. All Rights Reserved.
+//
+//	ARC.ACCOUNTS
+//
+//	Arc.accounts allows users to connect to external accounts, such as Google 
+//	Drive, etc. It has one entry per user per account. It is indexed by
+//	accountID, which is globally unique.
+//
+//	Each entry has the following fields:
+//
+//		accessCode: A structure containing access code information. The actual
+//			fields depend on the type of account. For a Google account, this
+//			includes:
+//
+//				access_token
+//				expires_in
+//				refresh_token
+//				scope
+//				token_type
+//
+//		createdOn: DateTime when the account entry was created.
+//		name: Human-readable name (which may be changed by user)
+//		type: The type of account. One of:
+//
+//			googleDrive
+//
+//		username: The username this account belongs to.
 
 #pragma once
 
@@ -67,6 +93,7 @@ class CCryptosaurEngine : public TSimpleEngine<CCryptosaurEngine>
 		void MsgRequestLogin (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgResetPasswordManual (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgSetCertificate (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
+		void MsgSetKey (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgSignData (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgValidateAuthToken (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 

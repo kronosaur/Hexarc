@@ -61,6 +61,7 @@ DECLARE_CONST_STRING(MSG_CRYPTOSAUR_REMOVE_RIGHTS,		"Cryptosaur.removeRights")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_REQUEST_LOGIN,		"Cryptosaur.requestLogin")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_RESET_PASSWORD_MANUAL,	"Cryptosaur.resetPasswordManual")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_SET_CERTIFICATE,	"Cryptosaur.setCertificate")
+DECLARE_CONST_STRING(MSG_CRYPTOSAUR_SET_KEY,			"Cryptosaur.setKey")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_SIGN_DATA,			"Cryptosaur.signData")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_VALIDATE_AUTH_TOKEN,"Cryptosaur.validateAuthToken")
 
@@ -116,6 +117,9 @@ CCryptosaurEngine::SMessageHandler CCryptosaurEngine::m_MsgHandlerList[] =
 
 		//	Cryptosaur.setCertificate {type} {data}
 		{	MSG_CRYPTOSAUR_SET_CERTIFICATE,				&CCryptosaurEngine::MsgSetCertificate },
+
+		//	Cryptosaur.setKey {type} {data}
+		{	MSG_CRYPTOSAUR_SET_KEY,						&CCryptosaurEngine::MsgSetKey },
 
 		//	Cryptosaur.signData {keyName} {data}
 		{	MSG_CRYPTOSAUR_SIGN_DATA,					&CCryptosaurEngine::MsgSignData },

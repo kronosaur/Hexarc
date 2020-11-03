@@ -24,6 +24,24 @@ DECLARE_CONST_STRING(MSG_CRYPTOSAUR_ON_START,			"Cryptosaur.onStart")
 DECLARE_CONST_STRING(MSG_ERROR_ALREADY_EXISTS,			"Error.alreadyExists")
 DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error")
 
+DECLARE_CONST_STRING(ACCOUNTS_TABLE_NAME,				"Arc.accounts")
+DECLARE_CONST_STRING(ACCOUNTS_TABLE_DESC,				"{"
+														"name:\"Arc.accounts\" "
+														"x:{keyType:utf8} "
+
+														"secondaryViews: ("
+															"{ name:byUsername "
+																"x: {"
+																"	key:username "
+																"	keyType:utf8 "
+																"	keySort:ascending "
+																"	} "
+																"columns: (primaryKey *) "
+																"excludeNilKeys: true "
+																"}"
+															")"
+														"}")
+
 DECLARE_CONST_STRING(CERTIFICATES_TABLE_NAME,			"Arc.certificates")
 DECLARE_CONST_STRING(CERTIFICATES_TABLE_DESC,			"{name:\"Arc.certificates\" x:{keyType:utf8} y:{keyType:utf8}}")
 
@@ -53,6 +71,7 @@ DECLARE_CONST_STRING(USERS_TABLE_DESC,					"Arc.table Arc.users "
 														"}")
 
 DECLARE_CONST_STRING(ERR_INVALID_KEY,					"Invalid Arc.keys entry: %s")
+DECLARE_CONST_STRING(ERR_UNABLE_TO_CREATE_ACCOUNTS_TABLE,	"Unable to create Arc.accounts table: %s")
 DECLARE_CONST_STRING(ERR_UNABLE_TO_CREATE_CERTIFICATES_TABLE,	"Unable to create Arc.certificates table: %s")
 DECLARE_CONST_STRING(ERR_UNABLE_TO_CREATE_KEYS_TABLE,	"Unable to create Arc.keys table: %s")
 DECLARE_CONST_STRING(ERR_UNABLE_TO_CREATE_USERS_TABLE,	"Unable to create Arc.users table: %s")
@@ -71,7 +90,7 @@ class CBootSession : public ISessionHandler
 	public:
 		CBootSession (CCryptosaurEngine *pEngine) : 
 				m_pEngine(pEngine),
-				m_iState(stateUnknown)
+				m_iState(State::unknown)
 			{ }
 
 	protected:
@@ -80,20 +99,21 @@ class CBootSession : public ISessionHandler
 		virtual bool OnStartSession (const SArchonMessage &Msg, DWORD dwTicket);
 
 	private:
-		enum States
+		enum class State
 			{
-			stateUnknown,
-			stateCreatingUserTable,
-			stateCreatingKeyTable,
-			stateCreatingCertificatesTable,
-			stateReadingKeys,
-			stateCreatingAuthToken,
-			stateReadingCertificates,
-			stateReadingUsers,
+			unknown,
+			creatingUserTable,
+			creatingKeyTable,
+			creatingCertificatesTable,
+			creatingAccountsTable,
+			readingKeys,
+			creatingAuthToken,
+			readingCertificates,
+			readingUsers,
 			};
 
 		CCryptosaurEngine *m_pEngine;
-		States m_iState;
+		State m_iState;
 	};
 
 void CCryptosaurEngine::MsgAeonOnStart (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)
@@ -152,7 +172,7 @@ bool CBootSession::OnProcessMessage (const SArchonMessage &Msg)
 
 	switch (m_iState)
 		{
-		case stateCreatingUserTable:
+		case State::creatingUserTable:
 			{
 			//	If we got an error creating the table, then something is
 			//	seriously wrong with the arcology. [So we log it and wait for
@@ -166,7 +186,7 @@ bool CBootSession::OnProcessMessage (const SArchonMessage &Msg)
 
 			//	Now create the Arc.keys table
 
-			m_iState = stateCreatingKeyTable;
+			m_iState = State::creatingKeyTable;
 
 			CDatum dTableDesc;
 			CDatum::Deserialize(CDatum::formatAEONScript, CStringBuffer(KEYS_TABLE_DESC), &dTableDesc);
@@ -179,7 +199,7 @@ bool CBootSession::OnProcessMessage (const SArchonMessage &Msg)
 			return true;
 			}
 
-		case stateCreatingKeyTable:
+		case State::creatingKeyTable:
 			{
 			//	If we got an error creating the table, then something is
 			//	seriously wrong with the arcology. [So we log it and wait for
@@ -193,7 +213,7 @@ bool CBootSession::OnProcessMessage (const SArchonMessage &Msg)
 
 			//	Now create the Arc.certificates table
 
-			m_iState = stateCreatingCertificatesTable;
+			m_iState = State::creatingCertificatesTable;
 
 			CDatum dTableDesc;
 			CDatum::Deserialize(CDatum::formatAEONScript, CStringBuffer(CERTIFICATES_TABLE_DESC), &dTableDesc);
@@ -206,7 +226,7 @@ bool CBootSession::OnProcessMessage (const SArchonMessage &Msg)
 			return true;
 			}
 
-		case stateCreatingCertificatesTable:
+		case State::creatingCertificatesTable:
 			{
 			//	If we got an error creating the table, then something is
 			//	seriously wrong with the arcology. [So we log it and wait for
@@ -218,13 +238,40 @@ bool CBootSession::OnProcessMessage (const SArchonMessage &Msg)
 				return false;
 				}
 
+			//	Now create the Arc.accounts table
+
+			m_iState = State::creatingAccountsTable;
+
+			CDatum dTableDesc;
+			CDatum::Deserialize(CDatum::formatAEONScript, CStringBuffer(ACCOUNTS_TABLE_DESC), &dTableDesc);
+
+			CDatum dPayload(CDatum::typeArray);
+			dPayload.Append(dTableDesc);
+
+			SendMessageCommand(ADDR_AEON_COMMAND, MSG_AEON_CREATE_TABLE, GenerateAddress(PORT_CRYPTOSAUR_COMMAND), dPayload, MESSAGE_TIMEOUT);
+
+			return true;
+			}
+
+		case State::creatingAccountsTable:
+			{
+			//	If we got an error creating the table, then something is
+			//	seriously wrong with the arcology. [So we log it and wait for
+			//	someone to fix it.]
+
+			if (IsError(Msg) && !strEquals(Msg.sMsg, MSG_ERROR_ALREADY_EXISTS))
+				{
+				GetProcessCtx()->Log(MSG_LOG_ERROR, strPattern(ERR_UNABLE_TO_CREATE_ACCOUNTS_TABLE, Msg.dPayload.AsString()));
+				return false;
+				}
+
 			//	Aeon is running
 
 			m_pEngine->SetAeonInitialized();
 
 			//	Read the table of keys
 
-			m_iState = stateReadingKeys;
+			m_iState = State::readingKeys;
 
 			CComplexArray *pPayload = new CComplexArray;
 			pPayload->Insert(KEYS_TABLE_NAME);
@@ -235,7 +282,7 @@ bool CBootSession::OnProcessMessage (const SArchonMessage &Msg)
 			return true;
 			}
 
-		case stateReadingKeys:
+		case State::readingKeys:
 			{
 			//	If we got an error then something is seriously wrong. We log
 			//	it and wait for someone to fix it.
@@ -269,7 +316,7 @@ bool CBootSession::OnProcessMessage (const SArchonMessage &Msg)
 
 			if (!m_pEngine->FindKey(KEY_CRYPTOSAUR_AUTH_TOKEN))
 				{
-				m_iState = stateCreatingAuthToken;
+				m_iState = State::creatingAuthToken;
 
 				CIPInteger AuthTokenKey;
 				cryptoRandom(DEFAULT_KEY_SIZE_BYTES, &AuthTokenKey);
@@ -293,7 +340,7 @@ bool CBootSession::OnProcessMessage (const SArchonMessage &Msg)
 				{
 				//	Now read the certificates table
 
-				m_iState = stateReadingCertificates;
+				m_iState = State::readingCertificates;
 
 				CComplexArray *pPayload = new CComplexArray;
 				pPayload->Insert(CERTIFICATES_TABLE_NAME);
@@ -305,7 +352,7 @@ bool CBootSession::OnProcessMessage (const SArchonMessage &Msg)
 				}
 			}
 
-		case stateCreatingAuthToken:
+		case State::creatingAuthToken:
 			{
 			//	If we got an error then something is seriously wrong. We log
 			//	it and wait for someone to fix it.
@@ -318,7 +365,7 @@ bool CBootSession::OnProcessMessage (const SArchonMessage &Msg)
 
 			//	Now read the certificates table
 
-			m_iState = stateReadingCertificates;
+			m_iState = State::readingCertificates;
 
 			CComplexArray *pPayload = new CComplexArray;
 			pPayload->Insert(CERTIFICATES_TABLE_NAME);
@@ -329,7 +376,7 @@ bool CBootSession::OnProcessMessage (const SArchonMessage &Msg)
 			return true;
 			}
 
-		case stateReadingCertificates:
+		case State::readingCertificates:
 			{
 			//	If we got an error then something is seriously wrong. We log
 			//	it and wait for someone to fix it.
@@ -360,7 +407,7 @@ bool CBootSession::OnProcessMessage (const SArchonMessage &Msg)
 
 			//	Now read the Users table to see if we have at least one username
 
-			m_iState = stateReadingUsers;
+			m_iState = State::readingUsers;
 
 			CComplexArray *pPayload = new CComplexArray;
 			pPayload->Insert(USERS_TABLE_NAME);
@@ -370,7 +417,7 @@ bool CBootSession::OnProcessMessage (const SArchonMessage &Msg)
 			return true;
 			}
 
-		case stateReadingUsers:
+		case State::readingUsers:
 			{
 			//	If we got an error then something is seriously wrong. We log
 			//	it and wait for someone to fix it.
@@ -416,7 +463,7 @@ bool CBootSession::OnStartSession (const SArchonMessage &Msg, DWORD dwTicket)
 
 	{
 	CString sError;
-	m_iState = stateCreatingUserTable;
+	m_iState = State::creatingUserTable;
 
 	//	Create the /Arc.users table
 	//	NOTE: We always create the table and leave it to Aeon to send back an "already exists"

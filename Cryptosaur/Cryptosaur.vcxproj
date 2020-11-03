@@ -181,6 +181,7 @@
     <ClCompile Include="CreateUser.cpp" />
     <ClCompile Include="MsgGetKey.cpp" />
     <ClCompile Include="MsgSetCertificate.cpp" />
+    <ClCompile Include="MsgSetKey.cpp" />
     <ClCompile Include="MsgSignData.cpp" />
     <ClCompile Include="RequestLogin.cpp" />
     <ClCompile Include="stdafx.cpp">
