@@ -43,6 +43,8 @@ CRGBA32Image &CRGBA32Image::operator= (CRGBA32Image &&Src) noexcept
 	m_pBMI = NULL;
 
 	Src.CleanUp();
+
+	return *this;
 	}
 
 void CRGBA32Image::BltToDC (HDC hDC, int x, int y) const
