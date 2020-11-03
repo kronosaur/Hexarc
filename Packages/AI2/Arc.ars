@@ -7,6 +7,43 @@
 	AI2.CONSOLE INTERFACE
 ----------------------------------------------------------------------------- */
 
+function arc.keys
+		{
+		attributes: (AI2.console AI2.authAdminOnly)
+		export: public
+		help: "Manages security keys. HELP: arc.keys help"
+		}
+
+	(lambda (params)
+		(block (
+			(command (@ params 0))
+			)
+
+			(switch
+				(= command "")
+					(invoke 'Cryptosaur.listKeys)
+
+				(= command 'set)
+					(block (
+						(id (@ params 1))
+						(value (@ params 2))
+						)
+						(invoke 'Cryptosaur.setKey id value)
+						(print "Key " id " set by " (userGetName))
+						)
+
+				(cat
+					"USAGE\n\n"
+
+					"arc.keys\n"
+					"arc.keys set Google.appKey {value}"
+					"arc.keys set Google.clientID {value}"
+					"arc.keys set Google.clientSecret {value}"
+					)
+				)
+			)
+		)
+
 function arc.log
 		{
 		attributes: (AI2.console AI2.authAdminOnly)

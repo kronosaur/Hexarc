@@ -5,46 +5,88 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(TYPE_KEY_ENVELOPE,					"keyEnvelope")
-DECLARE_CONST_STRING(TYPE_KEY_GOOGLE_OAUTH,					"keyEnvelope")
+DECLARE_CONST_STRING(ID_GOOGLE_APP_KEY,						"Google.appKey")
+DECLARE_CONST_STRING(ID_GOOGLE_CLIENT_ID,					"Google.clientID")
+DECLARE_CONST_STRING(ID_GOOGLE_CLIENT_SECRET,				"Google.clientSecret")
+
+DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,			"Error.unableToComply")
+DECLARE_CONST_STRING(MSG_REPLY_DATA,					"Reply.data")
+
+DECLARE_CONST_STRING(PORT_CRYPTOSAUR_COMMAND,				"Cryptosaur.command")
+
+DECLARE_CONST_STRING(TABLE_ARC_KEYS,						"Arc.keys")
+
+DECLARE_CONST_STRING(ERR_UNKNOWN_KEY_ID,					"Unknown key ID: %s.")
+
+class CSetKeySession : public CAeonInsertSession
+	{
+	public:
+		CSetKeySession (CCryptosaurEngine *pEngine, const CString &sReplyAddr, const CString &sTableName, CDatum dKeyPath, CDatum dData) :
+			CAeonInsertSession(sReplyAddr, sTableName, dKeyPath, dData),
+			m_pEngine(pEngine)
+			{ }
+
+	protected:
+		virtual void OnSuccess (void);
+
+	private:
+		CCryptosaurEngine *m_pEngine;
+	};
+
+bool CCryptosaurEngine::IsKnownExternalKey (const CString &sID)
+
+//	IsKnownExternalKey
+//
+//	Returns TRUE if this is one of our known external keys.
+
+	{
+	return (strEquals(sID, ID_GOOGLE_APP_KEY)
+		|| strEquals(sID, ID_GOOGLE_CLIENT_ID)
+		|| strEquals(sID, ID_GOOGLE_CLIENT_SECRET));
+	}
 
 void CCryptosaurEngine::MsgSetKey (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)
 
 //	MsgSetKey
 //
-//	Cryptosaur.setKey {type} {data}
+//	Cryptosaur.setKey {id} {data}
 
 	{
-#if 0
-	CString sType = Msg.dPayload.GetElement(0);
+	CString sID = Msg.dPayload.GetElement(0);
 	CDatum dData = Msg.dPayload.GetElement(1);
 
-	//	Handle each type
+	//	We support an explicit list of keys
 
-	if (strEqualsNoCase(sType, TYPE_SSL_CERTIFICATE))
+	if (IsKnownExternalKey(sID))
 		{
-		//	Generate a record for Arc.certificates.
-
-		CDatum dKey;
-		CDatum dRecord;
-		CString sError;
-		if (!LoadPEMCertAndKey(dData, &dKey, &dRecord, &sError))
-			{
-			SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, sError, Msg);
-			return;
-			}
-
-		//	Start a session to write the record to Arc.certificates. We will
-		//	return MSG_OK on success.
-
-		StartSession(Msg, new CSaveCertSession(*this, dKey, dRecord));
+		StartSession(Msg, new CSetKeySession(
+			this, 
+			GenerateAddress(PORT_CRYPTOSAUR_COMMAND),
+			TABLE_ARC_KEYS,
+			sID,
+			dData));
 		}
 
-	//	Otherwise, unknown type
+	//	Otherwise, unsupported
 
 	else
 		{
-		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_UNKNOWN_CERT_TYPE, sType), Msg);
+		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_UNKNOWN_KEY_ID, sID), Msg);
 		}
-#endif
+	}
+
+void CSetKeySession::OnSuccess (void)
+
+//	OnSuccess
+//
+//	Successfully wrote the key to Arc.keys.
+
+	{
+	//	Since we were successful, store the key in our store
+
+	m_pEngine->InsertKey((const CString &)GetKeyPath(), GetData());
+
+	//	Return the key that we just stored to the user
+
+	SendMessageReply(MSG_REPLY_DATA, GetData());
 	}

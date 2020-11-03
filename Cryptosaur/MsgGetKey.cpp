@@ -50,6 +50,24 @@ void CCryptosaurEngine::MsgGetKey (const SArchonMessage &Msg, const CHexeSecurit
 	
 	//	Look for the key name in our cache. If we find it, return it.
 
+	CSmartLock Lock(m_cs);
+
+	//	For known external keys, we look up in the cache, but don't create a key
+	//	if not found.
+
+	if (IsKnownExternalKey(sKeyName))
+		{
+		CString *pValue = m_ExternalKeys.GetAt(sKeyName);
+		if (!pValue)
+			SendMessageReply(MSG_REPLY_DATA, CDatum(), Msg);
+		else
+			SendMessageReply(MSG_REPLY_DATA, CDatum(*pValue), Msg);
+
+		return;
+		}
+
+	//	Otherwise, we look for the key in our cache
+
 	CIPInteger Key;
 	if (m_Keys.Find(sKeyName, &Key))
 		{
@@ -59,6 +77,8 @@ void CCryptosaurEngine::MsgGetKey (const SArchonMessage &Msg, const CHexeSecurit
 		SendMessageReply(MSG_REPLY_DATA, dKey, Msg);
 		return;
 		}
+
+	Lock.Unlock();
 
 	//	Otherwise, we need to create a new key, store it in Arc.keys and then
 	//	return it to the user.

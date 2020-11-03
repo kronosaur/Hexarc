@@ -54,6 +54,7 @@ DECLARE_CONST_STRING(MSG_CRYPTOSAUR_CREATE_USER,		"Cryptosaur.createUser")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_GET_CERTIFICATE,	"Cryptosaur.getCertificate")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_GET_KEY,			"Cryptosaur.getKey")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_GET_USER,			"Cryptosaur.getUser")
+DECLARE_CONST_STRING(MSG_CRYPTOSAUR_LIST_KEYS,			"Cryptosaur.listKeys")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_CHECK_PASSWORD_SHA1,"Cryptosaur.login_SHA1")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_HAS_RIGHTS,			"Cryptosaur.hasRights")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_LOGIN_USER,			"Cryptosaur.loginUser")
@@ -102,6 +103,9 @@ CCryptosaurEngine::SMessageHandler CCryptosaurEngine::m_MsgHandlerList[] =
 
 		//	Cryptosaur.hasRights {username} {rights}
 		{	MSG_CRYPTOSAUR_HAS_RIGHTS,					&CCryptosaurEngine::MsgHasRights },
+
+		//	Cryptosaur.listKeys
+		{	MSG_CRYPTOSAUR_LIST_KEYS,					&CCryptosaurEngine::MsgListKeys },
 
 		//	Cryptosaur.loginUser {username} {authDesc}
 		{	MSG_CRYPTOSAUR_LOGIN_USER,					&CCryptosaurEngine::MsgLoginUser },
@@ -180,6 +184,21 @@ CDatum CCryptosaurEngine::GenerateAuthToken (CDatum dData, DWORD dwLifetime)
 	return CDatum(sToken);
 	}
 
+void CCryptosaurEngine::InsertKey (const CString &sKeyName, CDatum dKey)
+
+//	InsertKey
+//
+//	Insert a key to our cache
+
+	{
+	CSmartLock Lock(m_cs);
+	
+	if (dKey.GetBasicType() == CDatum::typeIntegerIP)
+		m_Keys.SetAt(sKeyName, dKey); 
+	else
+		m_ExternalKeys.SetAt(sKeyName, dKey.AsString());
+	}
+
 bool CCryptosaurEngine::IsRunning (CString *retsError)
 
 //	IsRunning
@@ -198,6 +217,39 @@ bool CCryptosaurEngine::IsRunning (CString *retsError)
 	//	Running
 
 	return true;
+	}
+
+void CCryptosaurEngine::MsgListKeys (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)
+
+//	MsgListKeys
+//
+//	Cryptosaur.listKeys
+
+	{
+	//	Must be admin service
+
+	if (!ValidateSandboxAdmin(Msg, pSecurityCtx))
+		return;
+
+	//	Generate a list of keys in sorted order
+
+	CSmartLock Lock(m_cs);
+	TArray<CString> Keys;
+	for (int i = 0; i < m_Keys.GetCount(); i++)
+		Keys.Insert(m_Keys.GetKey(i));
+
+	for (int i = 0; i < m_ExternalKeys.GetCount(); i++)
+		Keys.Insert(m_ExternalKeys.GetKey(i));
+
+	Lock.Unlock();
+	Keys.Sort();
+
+	CDatum dResult(CDatum::typeArray);
+	dResult.GrowToFit(Keys.GetCount());
+	for (int i = 0; i < Keys.GetCount(); i++)
+		dResult.Append(Keys[i]);
+
+	SendMessageReply(MSG_REPLY_DATA, dResult, Msg);
 	}
 
 void CCryptosaurEngine::MsgValidateAuthToken (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)
