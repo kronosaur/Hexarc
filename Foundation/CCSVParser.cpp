@@ -92,7 +92,7 @@ CCSVParser::EFormat CCSVParser::ParseBOM (void)
 		}
 	}
 
-bool CCSVParser::ParseRow (TArray<CString> &Row, CString *retsError)
+bool CCSVParser::ParseRow (TArray<CString> *retRow, CString *retsError)
 
 //	ParseRow
 //
@@ -110,7 +110,8 @@ bool CCSVParser::ParseRow (TArray<CString> &Row, CString *retsError)
 		stateLF,
 		};
 
-	Row.DeleteAll();
+	if (retRow)
+		retRow->DeleteAll();
 
 	//	Parse the BOM, if any
 
@@ -138,7 +139,8 @@ bool CCSVParser::ParseRow (TArray<CString> &Row, CString *retsError)
 						break;
 
 					case ',':
-						Row.Insert(NULL_STR);
+						if (retRow)
+							retRow->Insert(NULL_STR);
 						break;
 
 					case '\r':
@@ -158,7 +160,8 @@ bool CCSVParser::ParseRow (TArray<CString> &Row, CString *retsError)
 						break;
 
 					default:
-						Value.WriteChar(GetCurChar());
+						if (retRow)
+							Value.WriteChar(GetCurChar());
 						iState = stateInPlainValue;
 						break;
 					}
@@ -170,17 +173,22 @@ bool CCSVParser::ParseRow (TArray<CString> &Row, CString *retsError)
 				switch (GetCurChar())
 					{
 					case '\0':
-						Row.Insert(CString(Value.GetPointer(), Value.GetLength()));
+						if (retRow)
+							retRow->Insert(CString(Value.GetPointer(), Value.GetLength()));
 						return true;
 
 					case '\'':
-						Row.Insert(CString(Value.GetPointer(), Value.GetLength()));
-						Value.SetLength(0);
+						if (retRow)
+							{
+							retRow->Insert(CString(Value.GetPointer(), Value.GetLength()));
+							Value.SetLength(0);
+							}
 						iState = stateEndOfValue;
 						break;
 
 					default:
-						Value.WriteChar(GetCurChar());
+						if (retRow)
+							Value.WriteChar(GetCurChar());
 						break;
 					}
 				break;
@@ -191,17 +199,22 @@ bool CCSVParser::ParseRow (TArray<CString> &Row, CString *retsError)
 				switch (GetCurChar())
 					{
 					case '\0':
-						Row.Insert(CString(Value.GetPointer(), Value.GetLength()));
+						if (retRow)
+							retRow->Insert(CString(Value.GetPointer(), Value.GetLength()));
 						return true;
 
 					case '\"':
-						Row.Insert(CString(Value.GetPointer(), Value.GetLength()));
-						Value.SetLength(0);
+						if (retRow)
+							{
+							retRow->Insert(CString(Value.GetPointer(), Value.GetLength()));
+							Value.SetLength(0);
+							}
 						iState = stateEndOfValue;
 						break;
 
 					default:
-						Value.WriteChar(GetCurChar());
+						if (retRow)
+							Value.WriteChar(GetCurChar());
 						break;
 					}
 				break;
@@ -241,29 +254,40 @@ bool CCSVParser::ParseRow (TArray<CString> &Row, CString *retsError)
 				switch (GetCurChar())
 					{
 					case '\0':
-						Row.Insert(CString(Value.GetPointer(), Value.GetLength()));
+						if (retRow)
+							retRow->Insert(CString(Value.GetPointer(), Value.GetLength()));
 						return true;
 
 					case ',':
-						Row.Insert(CString(Value.GetPointer(), Value.GetLength()));
-						Value.SetLength(0);
+						if (retRow)
+							{
+							retRow->Insert(CString(Value.GetPointer(), Value.GetLength()));
+							Value.SetLength(0);
+							}
 						iState = stateStart;
 						break;
 
 					case '\r':
-						Row.Insert(CString(Value.GetPointer(), Value.GetLength()));
-						Value.SetLength(0);
+						if (retRow)
+							{
+							retRow->Insert(CString(Value.GetPointer(), Value.GetLength()));
+							Value.SetLength(0);
+							}
 						iState = stateCR;
 						break;
 
 					case '\n':
-						Row.Insert(CString(Value.GetPointer(), Value.GetLength()));
-						Value.SetLength(0);
+						if (retRow)
+							{
+							retRow->Insert(CString(Value.GetPointer(), Value.GetLength()));
+							Value.SetLength(0);
+							}
 						iState = stateLF;
 						break;
 
 					default:
-						Value.WriteChar(GetCurChar());
+						if (retRow)
+							Value.WriteChar(GetCurChar());
 						break;
 					}
 				break;

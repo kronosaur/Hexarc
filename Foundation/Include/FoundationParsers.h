@@ -17,7 +17,10 @@ class CCSVParser
 		const TArray<CString> &GetHeader (void) const { return m_Header; }
 		bool HasMore (void) const { return (GetCurChar() != '\0'); }
 		bool ParseHeader (CString *retsError) { return ParseRow(m_Header, retsError); }
-		bool ParseRow (TArray<CString> &Row, CString *retsError = NULL);
+		bool ParseRow (TArray<CString> *retRow = NULL, CString *retsError = NULL);
+		bool ParseRow (TArray<CString> &Row, CString *retsError = NULL)
+			{ return ParseRow(&Row, retsError); }
+		void Reset () { m_Stream.Seek(0); m_chCur = m_Stream.ReadChar(); m_iFormat = formatUnknown; }
 		void SetUTF8Format (void) { m_iFormat = formatUTF8; }
 
 	private:

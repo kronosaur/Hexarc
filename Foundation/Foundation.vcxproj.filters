@@ -360,6 +360,9 @@
     <ClCompile Include="CNamedPipe.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CBuffer64.cpp">
+      <Filter>Source Files\Streams</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
