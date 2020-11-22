@@ -770,11 +770,11 @@ CString fileGetSystemPath ()
 
 //	fileGetSystemPath
 //
-//	Returns the c:\windows path.
+//	Returns the c:\windows\system32 path.
 
 	{
 	TCHAR szBuffer[MAX_PATH+1];
-	int iLen = ::GetWindowsDirectoryW(szBuffer, MAX_PATH);
+	int iLen = ::GetSystemDirectoryW(szBuffer, MAX_PATH);
 	return CString(CString16(szBuffer, iLen));
 	}
 
@@ -868,6 +868,18 @@ bool fileGetVolumeList (DWORD dwFlags, TArray<CString> *retVolumes)
 	//	LATER
 	ASSERT(false);
 	return false;
+	}
+
+CString fileGetWindowsPath ()
+
+//	fileGetWindowsPath
+//
+//	Returns the c:\windows path.
+
+	{
+	TCHAR szBuffer[MAX_PATH+1];
+	int iLen = ::GetWindowsDirectoryW(szBuffer, MAX_PATH);
+	return CString(CString16(szBuffer, iLen));
 	}
 
 bool fileIsAbsolute (const CString &sFilespec)

@@ -153,6 +153,14 @@ CString::CString (const CString &sStr)
 		Init(sStr, sStr.GetLength());
 	}
 
+CString::CString (CStringBuffer &&Src) noexcept
+
+//	CString move constructor
+
+	{
+	m_pString = Src.Handoff();
+	}
+
 CString::CString (LPSTR pStr, int iLen, bool bLiteral)
 
 //	CString constructor
@@ -1951,14 +1959,14 @@ int strParseInt (const char *pStart, int iNullResult, const char **retpEnd, bool
 	return iInt;
 	}
 
-int strParseIntOfBase (char *pStart, int iBase, int iNullResult, char **retpEnd, bool *retbNullValue)
+int strParseIntOfBase (const char *pStart, int iBase, int iNullResult, const char **retpEnd, bool *retbNullValue)
 
 //	strParseIntOfBase
 //
 //	Parses an integer of the given base
 
 	{
-	char *pPos;
+	const char *pPos;
 	bool bNegative;
 	bool bFoundNumber;
 	int iInt;

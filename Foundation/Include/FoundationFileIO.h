@@ -227,6 +227,7 @@ CString fileGetSystemPath ();
 CString fileGetTempPath (void);
 bool fileGetVersionInfo (const CString &sFilespec, SFileVersionInfo *retInfo, CString *retsError = NULL);
 bool fileGetVolumeList (DWORD dwFlags, TArray<CString> *retVolumes);
+CString fileGetWindowsPath ();
 CString fileGetWorkingDirectory (void);
 bool fileIsAbsolute (const CString &sFilespec);
 bool fileIsDotted (const CString &sFilespec);

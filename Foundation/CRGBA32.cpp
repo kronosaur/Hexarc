@@ -8,6 +8,22 @@
 CRGBA32::AlphaArray8 CRGBA32::g_Alpha8 [256];
 bool CRGBA32::m_bAlphaInitialized = CRGBA32::InitTables();
 
+CString CRGBA32::AsHTMLColor () const
+
+//	AsHTMLColor
+//
+//	Returns an HTML style color.
+
+	{
+	if (GetAlpha() == 0xff)
+		return strPattern("#%02x%02x%02x", GetRed(), GetGreen(), GetBlue());
+	else
+		{
+		double rAlpha = GetAlpha() / 255.0;
+		return strPattern("rgba(%d,%d,%d,%s)", (int)GetRed(), (int)GetGreen(), (int)GetBlue(), strFromDouble(rAlpha, 2));
+		}
+	}
+
 CRGBA32 CRGBA32::Blend (CRGBA32 rgbDest, CRGBA32 rgbSrc)
 
 //	Blend
@@ -158,4 +174,70 @@ bool CRGBA32::InitTables (void)
 #endif
 
 	return true;
+	}
+
+CRGBA32 CRGBA32::Parse (const CString &sValue)
+
+//	Parse
+//
+//	Parse from a string. We support the following formats:
+//
+//	#rrggbb
+
+	{
+	const char *pPos = sValue.GetParsePointer();
+	const char *pPosEnd = pPos + sValue.GetLength();
+
+	if (*pPos == '#')
+		{
+		pPos++;
+
+		DWORD dwHex = strParseIntOfBase(pPos, 16, 0);
+		return CRGBA32((dwHex >> 16) & 0xff, (dwHex >> 8) & 0xff, dwHex & 0xff);
+		}
+	else if (*pPos == 'r' || *pPos == 'R')
+		{
+		pPos++;
+		if (*pPos != 'g' && *pPos != 'G')
+			return CRGBA32(0, 0, 0);
+
+		pPos++;
+		if (*pPos != 'b' && *pPos != 'B')
+			return CRGBA32(0, 0, 0);
+
+		bool bHasAlpha = (*pPos == 'a' || *pPos == 'A');
+		if (bHasAlpha)
+			pPos++;
+
+		if (*pPos != '(')
+			return CRGBA32(0, 0, 0);
+
+		pPos++;
+		int iRed = strParseInt(pPos, 0, &pPos);
+		while (*pPos == ' ') pPos++;
+		if (*pPos == ',')
+			pPos++;
+
+		int iGreen = strParseInt(pPos, 0, &pPos);
+		while (*pPos == ' ') pPos++;
+		if (*pPos == ',')
+			pPos++;
+
+		int iBlue = strParseInt(pPos, 0, &pPos);
+
+		if (bHasAlpha)
+			{
+			while (*pPos == ' ') pPos++;
+			if (*pPos == ',')
+				pPos++;
+
+			int iAlpha = strParseInt(pPos, 0, &pPos);
+
+			return CRGBA32(iRed, iGreen, iBlue, iAlpha);
+			}
+		else
+			return CRGBA32(iRed, iGreen, iBlue);
+		}
+	else
+		return CRGBA32(0, 0, 0);
 	}

@@ -36,6 +36,7 @@ class CRGBA32
 		DWORD AsR5G5B5 (void) const { return (((m_dwPixel & 0x00f80000) >> 9) | ((m_dwPixel & 0x0000f800) >> 6) | ((m_dwPixel & 0x000000f8) >> 3)); }
 		DWORD AsR5G6B5 (void) const { return (((m_dwPixel & 0x00f80000) >> 8) | ((m_dwPixel & 0x0000fc00) >> 5) | ((m_dwPixel & 0x000000f8) >> 3)); }
 		DWORD AsR8G8B8 (void) const { return m_dwPixel; }
+		CString AsHTMLColor () const;
 		BYTE GetAlpha (void) const { return (BYTE)((m_dwPixel & 0xff000000) >> 24); }
 		BYTE GetBlue (void) const { return (BYTE)(m_dwPixel & 0x000000ff); }
 		BYTE GetGreen (void) const { return (BYTE)((m_dwPixel & 0x0000ff00) >> 8); }
@@ -61,6 +62,7 @@ class CRGBA32
 		static CRGBA32 FromReal (double rRed, double rGreen, double rBlue, BYTE byAlpha = 0xff)
 			{ return CRGBA32((BYTE)(rRed * 255.0), (BYTE)(rGreen * 255.0), (BYTE)(rBlue * 255.0), byAlpha); }
 		static CRGBA32 Null (void) { return CRGBA32(0, true); }
+		static CRGBA32 Parse (const CString &sValue);
 
 		//  Expects solid pixels, and always returns solid pixels
 

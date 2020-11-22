@@ -39,6 +39,7 @@ class CString
 		CString (LPTSTR pStr, size_t iLen);
 		CString (LPTSTR pStr, std::ptrdiff_t iLen);
 		CString (const CString16 &sStr);
+		CString (CStringBuffer &&Src) noexcept;
 
 		explicit CString (int iLen);
 		explicit CString (DWORD iLen);
@@ -204,7 +205,7 @@ bool strOverflowsInteger32 (const CString &sValue);
 double strParseDouble (const char *pStart, double rNullResult, const char **retpEnd = NULL, bool *retbNullValue = NULL);
 int strParseHexChar (char chChar, int iNullResult = 0);
 int strParseInt (const char *pStart, int iNullResult = 0, const char **retpEnd = NULL, bool *retbNullValue = NULL);
-int strParseIntOfBase (char *pStart, int iBase, int iNullResult = 0, char **retpEnd = NULL, bool *retbNullValue = NULL);
+int strParseIntOfBase (const char *pStart, int iBase, int iNullResult = 0, const char **retpEnd = NULL, bool *retbNullValue = NULL);
 CString strRepeat (char chChar, int iCount);
 bool strStartsWith (const CString &sString, const CString &sPartial);
 bool strStartsWithNoCase (const CString &sString, const CString &sPartial);
