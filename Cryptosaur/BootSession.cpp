@@ -302,7 +302,7 @@ bool CBootSession::OnProcessMessage (const SArchonMessage &Msg)
 				CDatum dKey = dKeyList.GetElement(i + 1);
 
 				if (dKeyName.IsNil() || ((const CString &)dKeyName).IsEmpty() 
-						|| dKey.IsNil() || dKey.GetBasicType() != CDatum::typeIntegerIP)
+						|| dKey.IsNil())
 					{
 					GetProcessCtx()->Log(MSG_LOG_ERROR, strPattern(ERR_INVALID_KEY, dKeyName.AsString()));
 					return false;
