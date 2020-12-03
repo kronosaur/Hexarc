@@ -501,8 +501,10 @@ CHexeProcess::ERunCodes CHexeProcess::Execute (CDatum *retResult)
 						if (iResult != CDatum::InvokeResult::ok)
 							{
 							ERunCodes iRunResult = ExecuteHandleInvokeResult(iResult, dNewExpression, dResult, retResult);
-							if (iRunResult != runOK)
-								return iRunResult;
+							if (iRunResult == runOK)
+								break;
+
+							return iRunResult;
 							}
 
 						//	Restore the environment
@@ -620,8 +622,10 @@ CHexeProcess::ERunCodes CHexeProcess::Execute (CDatum *retResult)
 					if (iResult != CDatum::InvokeResult::ok)
 						{
 						ERunCodes iRunResult = ExecuteHandleInvokeResult(iResult, dPrimitive, dResult, retResult);
-						if (iRunResult != runOK)
-							return iRunResult;
+						if (iRunResult == runOK)
+							break;
+
+						return iRunResult;
 						}
 
 					m_LocalEnvStack.Restore(&m_dCurGlobalEnv, &m_pCurGlobalEnv, &m_dLocalEnv, &m_pLocalEnv);
