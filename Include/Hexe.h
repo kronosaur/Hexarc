@@ -1,7 +1,7 @@
 //	Hexe.h
 //
 //	Hexe EXecution Environment
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 Kronosaur Productions, LLC. All Rights Reserved.
 //
 //	USAGE
 //
@@ -14,6 +14,7 @@
 #pragma once
 
 #include "AEON.h"
+#include "HexeVM.h"
 
 class CHexeCode;
 class CHexeGlobalEnvironment;

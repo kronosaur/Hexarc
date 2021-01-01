@@ -287,6 +287,12 @@ template <class KEY, class VALUE> class TSortMap
 			*pValue = value;
 			}
 
+		void SetAt (const KEY &key, VALUE &&value, bool *retbInserted = NULL)
+			{
+			VALUE *pValue = SetAt(key, retbInserted);
+			*pValue = std::move(value);
+			}
+
 		void SetAtHandoff (const KEY &key, VALUE &value, bool *retbInserted = NULL)
 			{
 			VALUE *pValue = SetAt(key, retbInserted);
