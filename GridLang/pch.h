@@ -10,4 +10,6 @@
 
 #include "GridLang.h"
 #include "GridLangParser.h"
-#include "GridLangAST.h"
+
+#include "GLASTImpl.h"
+#include "GLTypesImpl.h"

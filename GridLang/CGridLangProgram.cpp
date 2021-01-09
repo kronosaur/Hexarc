@@ -18,8 +18,10 @@ bool CGridLangProgram::Load (IMemoryBlock &Stream, CString *retsError)
 	if (!AST.Load(Stream, retsError))
 		return false;
 
-	AST.DebugDump();
+	//	Initialize the type system
 
+	if (!m_Types.InitFromAST(AST, retsError))
+		return false;
 
 	//	Done
 

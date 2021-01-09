@@ -671,7 +671,9 @@ bool CGridLangAST::ParseSequence (CGridLangParser &Parser, TSharedPtr<IASTNode> 
 			}
 		}
 
-	retpNode = CASTSequence::Create(Program);
+	retpNode = CASTSequence::Create(Program, retsError);
+	if (!retpNode)
+		return false;
 
 	return true;
 	}

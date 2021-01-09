@@ -1,67 +1,9 @@
-//	GridLangAST.h
+//	GLASTImpl.h
 //
-//	GridLang Internals
-//	Copyright (c) 2020 Kronosaur Productions, LLC. All Rights Reserved.
+//	IASTNode Implementations
+//	Copyright (c) 2021 Kronosaur Productions, LLC. All Rights Reserved.
 
 #pragma once
-
-enum class EASTType
-	{
-	Unknown,
-
-	ArgDef,
-	ClassDef,
-	ConstDef,
-	DoIf,
-	FunctionCall,
-	FunctionDef,
-	GlobalDef,
-	LiteralNull,
-	LiteralFloat,
-	LiteralInteger,
-	LiteralString,
-	LiteralTrue,
-	OpArithmeticAnd,
-	OpArithmeticOr,
-	OpAssignment,
-	OpDivide,
-	OpEquals,
-	OpFunctionCall,
-	OpGreaterThan,
-	OpGreaterThanEquals,
-	OpLessThan,
-	OpLessThanEquals,
-	OpLogicalAnd,
-	OpLogicalOr,
-	OpMemberAccess,
-	OpMinus,
-	OpNot,
-	OpNotEquals,
-	OpPlus,
-	OpTimes,
-	OpReturn,
-	OrdinalDef,
-	PropertyDef,
-	Sequence,
-	TypeRef,
-	VarDef,
-	VarRef,
-	};
-
-class IASTNode
-	{
-	public:
-		virtual ~IASTNode () { }
-
-		virtual void DebugDump (const CString &sIndent) const { }
-		virtual EASTType GetType () const = 0;
-
-		IASTNode *AddRef (void) { m_dwRefCount++; return this; }
-		void Delete (void) { if (--m_dwRefCount == 0) delete this; }
-
-	private:
-		int m_dwRefCount = 1;
-	};
 
 class CASTArgDef : public IASTNode
 	{
@@ -75,7 +17,9 @@ class CASTArgDef : public IASTNode
 			}
 
 		virtual void DebugDump (const CString &sIndent) const override;
+		virtual const CString &GetName () const override { return m_sArg; }
 		virtual EASTType GetType () const override { return EASTType::ArgDef; }
+		virtual const IASTNode &GetTypeRef () const override { return *m_pTypeRef; }
 
 	private:
 		CString m_sArg;
@@ -95,6 +39,22 @@ class CASTBinaryOp : public IASTNode
 			}
 		
 		virtual void DebugDump (const CString &sIndent) const override;
+		virtual IASTNode &GetChild (int iIndex) const override
+			{
+			switch (iIndex)
+				{
+				case 0:
+					return *m_pLeft;
+
+				case 1:
+					return *m_pRight;
+
+				default:
+					throw CException(errFail);
+				}
+			}
+
+		virtual int GetChildCount () const override { return 2; }
 		virtual EASTType GetType () const override { return m_iOp; }
 
 	private:
@@ -116,6 +76,10 @@ class CASTClassDef : public IASTNode
 			}
 
 		virtual void DebugDump (const CString &sIndent) const override;
+		virtual const CString &GetBaseName () const override { return m_sBaseID; }
+		virtual IASTNode &GetChild (int iIndex) const override { if (iIndex == 0) return *m_pBody; else throw CException(errFail); }
+		virtual int GetChildCount () const override { return 1; }
+		virtual const CString &GetName () const override { return m_sID; }
 		virtual EASTType GetType () const override { return EASTType::ClassDef; }
 
 	private:
@@ -138,6 +102,7 @@ class CASTFunctionCall : public IASTNode
 		virtual void DebugDump (const CString &sIndent) const override;
 		const IASTNode &GetArg (int iIndex) const { return *m_Args[iIndex]; }
 		int GetArgCount () const { return m_Args.GetCount(); }
+		virtual const CString &GetName () const override { return m_pFunction->GetName(); }
 		virtual EASTType GetType () const override { return EASTType::FunctionCall; }
 
 	private:
@@ -158,7 +123,9 @@ class CASTFunctionDef : public IASTNode
 			}
 
 		virtual void DebugDump (const CString &sIndent) const override;
+		virtual const CString &GetName () const override { return m_sFunction; }
 		virtual EASTType GetType () const override { return EASTType::FunctionDef; }
+		virtual const IASTNode &GetTypeRef () const override { return *m_pTypeDef; }
 
 	private:
 		CString m_sFunction;
@@ -268,6 +235,9 @@ class CASTOrdinalDef : public IASTNode
 			}
 
 		virtual void DebugDump (const CString &sIndent) const override;
+		virtual int GetDefinitionCount () const override { return m_Ordinals.GetCount(); }
+		virtual const CString &GetDefinitionString (int iIndex) const override { if (iIndex >= 0 && iIndex < GetDefinitionCount()) return m_Ordinals[iIndex]; else throw CException(errFail); }
+		virtual const CString &GetName () const override { return m_sName; }
 		virtual EASTType GetType () const override { return EASTType::OrdinalDef; }
 
 	private:
@@ -278,21 +248,20 @@ class CASTOrdinalDef : public IASTNode
 class CASTSequence : public IASTNode
 	{
 	public:
-		static TSharedPtr<IASTNode> Create (TArray<TSharedPtr<IASTNode>> Nodes)
-			{
-			CASTSequence *pSeq = new CASTSequence;
-			pSeq->m_Node = std::move(Nodes);
-			return TSharedPtr<IASTNode>(pSeq);
-			}
+		static TSharedPtr<IASTNode> Create (TArray<TSharedPtr<IASTNode>> Nodes, CString *retsError);
 
 		void AddNode (TSharedPtr<IASTNode> pChild) { m_Node.Insert(pChild); }
 		virtual void DebugDump (const CString &sIndent) const override;
-		const IASTNode &GetNode (int iIndex) const { return *m_Node[iIndex]; }
-		int GetNodeCount () const { return m_Node.GetCount(); }
+		virtual const IASTNode *FindDefinition (const CString &sID) const override;
+		virtual IASTNode &GetChild (int iIndex) const override { if (iIndex >= 0 && iIndex < GetChildCount()) return *m_Node[iIndex]; else throw CException(errFail); }
+		virtual int GetChildCount () const override { return m_Node.GetCount(); }
+		virtual const IASTNode &GetDefinition (int iIndex) const override { if (iIndex >= 0 && iIndex < GetDefinitionCount()) return *m_Types[iIndex]; else throw CException(errFail); }
+		virtual int GetDefinitionCount () const override { return m_Types.GetCount(); }
 		virtual EASTType GetType () const override { return EASTType::Sequence; }
 
 	private:
 		TArray<TSharedPtr<IASTNode>> m_Node;
+		TSortMap<CString, IASTNode *> m_Types;
 	};
 
 class CASTTypeRef : public IASTNode
@@ -306,6 +275,7 @@ class CASTTypeRef : public IASTNode
 			}
 
 		virtual void DebugDump (const CString &sIndent) const override;
+		virtual const CString &GetName () const override { return m_sType; }
 		virtual EASTType GetType () const override { return EASTType::TypeRef; }
 
 	private:
@@ -324,6 +294,8 @@ class CASTUnaryOp : public IASTNode
 			}
 		
 		virtual void DebugDump (const CString &sIndent) const override;
+		virtual IASTNode &GetChild (int iIndex) const override { if (iIndex == 0) return *m_pOperand; else throw CException(errFail); }
+		virtual int GetChildCount () const override { return 1; }
 		virtual EASTType GetType () const override { return m_iOp; }
 
 	private:
@@ -345,7 +317,9 @@ class CASTVarDef : public IASTNode
 			}
 
 		virtual void DebugDump (const CString &sIndent) const override;
+		virtual const CString &GetName () const override { return m_sName; }
 		virtual EASTType GetType () const override { return m_iVarType; }
+		virtual const IASTNode &GetTypeRef () const override { return *m_pTypeDef; }
 
 	private:
 		EASTType m_iVarType = EASTType::Unknown;
@@ -365,36 +339,10 @@ class CASTVarRef : public IASTNode
 			}
 		
 		virtual void DebugDump (const CString &sIndent) const override;
+		virtual const CString &GetName () const override { return m_sVar; }
 		virtual EASTType GetType () const override { return EASTType::VarRef; }
 
 	private:
 		CString m_sVar;
 	};
 
-class CGridLangAST
-	{
-	public:
-		void DebugDump () const { if (m_pRoot) m_pRoot->DebugDump(NULL_STR); }
-		bool Load (IMemoryBlock &Stream, CString *retsError = NULL);
-		
-	private:
-		static EASTType GetOperator (EGridLangToken iToken);
-		static int GetOperatorPrecedence (EASTType iOperator);
-		static bool IsGreaterPrecedence (EASTType iOperator, EASTType iTest);
-		static bool IsOperator (EGridLangToken iToken);
-
-		bool ParseArgDef (CGridLangParser &Parser, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
-		bool ParseClassDef (CGridLangParser &Parser, const CString &sBaseType, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
-		bool ParseExpression (CGridLangParser &Parser, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL) { return ParseExpression(Parser, EASTType::Unknown, retpNode, retsError); }
-		bool ParseExpression (CGridLangParser &Parser, EASTType iLeftOperator, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
-		bool ParseFunctionCall (CGridLangParser &Parser, TSharedPtr<IASTNode> pFunction, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
-		bool ParseFunctionDef (CGridLangParser &Parser, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
-		bool ParseIf (CGridLangParser &Parser, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
-		bool ParseOrdinalDef (CGridLangParser &Parser, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
-		bool ParseSequence (CGridLangParser &Parser, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
-		bool ParseTerm (CGridLangParser &Parser, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
-		bool ParseTypeRef (CGridLangParser &Parser, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
-		bool ParseVarDef (CGridLangParser &Parser, EASTType iVarType, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
-
-		TSharedPtr<IASTNode> m_pRoot;
-	};

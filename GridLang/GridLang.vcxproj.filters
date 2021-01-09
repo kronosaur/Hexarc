@@ -21,10 +21,19 @@
     <ClInclude Include="..\Include\GridLang.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="GridLangParser.h">
+    <ClInclude Include="..\Include\GridLangTypes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="GridLangAST.h">
+    <ClInclude Include="GLTypesImpl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GLASTImpl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\GridLangAST.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\GridLangParser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -87,6 +96,30 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CASTIf.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CGLTypeNamespace.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CGLTypeSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="IGLType.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CGLNumberType.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CGLNamespaceCtx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="IASTNode.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CGLPropertyType.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CGLTypeTree.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

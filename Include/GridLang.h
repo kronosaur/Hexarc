@@ -5,13 +5,16 @@
 
 #pragma once
 
+#include "GridLangAST.h"
+#include "GridLangTypes.h"
+
 class CGridLangProgram
 	{
 	public:
 		bool Load (IMemoryBlock &Stream, CString *retsError);
 
 	private:
-		
+		CGLTypeSystem m_Types;
 	};
 
 class CGridLangProcess
