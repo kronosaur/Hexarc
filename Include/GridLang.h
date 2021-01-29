@@ -11,6 +11,7 @@
 class CGridLangProgram
 	{
 	public:
+		const CGLTypeNamespace &GetGlobals () const { return m_Types.GetGlobals(); }
 		bool Load (IMemoryBlock &Stream, CString *retsError);
 
 	private:

@@ -113,6 +113,7 @@ class CGLTypeSystem
 	{
 	public:
 		IGLType &GetCoreType (GLCoreType iType) const { if ((int)iType < 0 || iType >= GLCoreType::enumCount) throw CException(errFail); return *m_Core[(int)iType]; }
+		const CGLTypeNamespace &GetGlobals () const { return m_Types; }
 		CGLTypeNamespace &GetGlobals () { return m_Types; }
 		bool InitFromAST (const CGridLangAST &AST, CString *retsError = NULL);
 		bool Insert (TSharedPtr<IGLType> pType) { return m_Types.Insert(pType); }
