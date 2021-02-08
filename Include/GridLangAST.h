@@ -48,6 +48,8 @@ enum class EASTType
 	TypeRef,
 	VarDef,
 	VarRef,
+
+	LastType,
 	};
 
 class IASTNode
@@ -59,20 +61,37 @@ class IASTNode
 		virtual void DebugDump (const CString &sIndent) const { }
 		virtual const IASTNode *FindDefinition (const CString &sID) const { return NULL; }
 		virtual const CString &GetBaseName () const { return NULL_STR; }
-		virtual IASTNode &GetChild (int iIndex) const { throw CException(errFail); }
+		virtual const IASTNode &GetChild (int iIndex) const { throw CException(errFail); }
 		virtual int GetChildCount () const { return 0; }
 		virtual const IASTNode &GetDefinition (int iIndex) const { throw CException(errFail); }
 		virtual int GetDefinitionCount () const { return 0; }
 		virtual const CString &GetDefinitionString (int iIndex) const { throw CException(errFail); }
 		virtual const CString &GetName () const { return NULL_STR; }
+		virtual const IASTNode &GetRoot () const { return *this; }
+		virtual const IASTNode &GetStatement (int iIndex) const { throw CException(errFail); }
+		virtual int GetStatementCount () const { return 0; }
 		virtual EASTType GetType () const = 0;
+		CString GetTypeName () const { return GetTypeName(GetType()); }
 		virtual const IASTNode &GetTypeRef () const { throw CException(errFail); }
+		virtual CDatum GetValue () const { return CDatum(); }
+		virtual bool IsDefinition () const { return false; }
+		virtual bool IsStatement () const { return false; }
 
 		IASTNode *AddRef (void) { m_dwRefCount++; return this; }
 		void Delete (void) { if (--m_dwRefCount == 0) delete this; }
 
+		static CString GetTypeName (EASTType iType);
+
 	private:
 		int m_dwRefCount = 1;
+
+		struct STypeDesc
+			{
+			EASTType iType = EASTType::Unknown;
+			CString sName;
+			};
+
+		static const STypeDesc m_TypeDesc[(int)EASTType::LastType];
 	};
 
 class CGridLangAST
@@ -91,7 +110,7 @@ class CGridLangAST
 		static bool IsGreaterPrecedence (EASTType iOperator, EASTType iTest);
 		static bool IsOperator (EGridLangToken iToken);
 
-		IASTNode &GetNode (int iIndex) { if (m_pRoot) return m_pRoot->GetChild(iIndex); else throw CException(errFail); }
+		const IASTNode &GetNode (int iIndex) { if (m_pRoot) return m_pRoot->GetChild(iIndex); else throw CException(errFail); }
 		bool ParseArgDef (CGridLangParser &Parser, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
 		bool ParseClassDef (CGridLangParser &Parser, const CString &sBaseType, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
 		bool ParseExpression (CGridLangParser &Parser, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL) { return ParseExpression(Parser, EASTType::Unknown, retpNode, retsError); }

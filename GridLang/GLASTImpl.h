@@ -81,6 +81,7 @@ class CASTClassDef : public IASTNode
 		virtual int GetChildCount () const override { return 1; }
 		virtual const CString &GetName () const override { return m_sID; }
 		virtual EASTType GetType () const override { return EASTType::ClassDef; }
+		virtual bool IsDefinition () const override { return true; }
 
 	private:
 		CString m_sID;
@@ -102,8 +103,12 @@ class CASTFunctionCall : public IASTNode
 		virtual void DebugDump (const CString &sIndent) const override;
 		const IASTNode &GetArg (int iIndex) const { return *m_Args[iIndex]; }
 		int GetArgCount () const { return m_Args.GetCount(); }
+		virtual const IASTNode &GetChild (int iIndex) const override { return GetArg(iIndex); }
+		virtual int GetChildCount () const override { return GetArgCount(); }
 		virtual const CString &GetName () const override { return m_pFunction->GetName(); }
+		virtual const IASTNode &GetRoot () const override { return *m_pFunction; }
 		virtual EASTType GetType () const override { return EASTType::FunctionCall; }
+		virtual bool IsStatement () const override { return true; }
 
 	private:
 		TSharedPtr<IASTNode> m_pFunction;
@@ -126,6 +131,7 @@ class CASTFunctionDef : public IASTNode
 		virtual const CString &GetName () const override { return m_sFunction; }
 		virtual EASTType GetType () const override { return EASTType::FunctionDef; }
 		virtual const IASTNode &GetTypeRef () const override { return *m_pTypeDef; }
+		virtual bool IsDefinition () const override { return true; }
 
 	private:
 		CString m_sFunction;
@@ -148,6 +154,7 @@ class CASTIf : public IASTNode
 
 		virtual void DebugDump (const CString &sIndent) const override;
 		virtual EASTType GetType () const override { return EASTType::DoIf; }
+		virtual bool IsStatement () const override { return true; }
 
 	private:
 		TSharedPtr<IASTNode> m_pCondition;
@@ -167,6 +174,7 @@ class CASTLiteralFloat : public IASTNode
 
 		virtual void DebugDump (const CString &sIndent) const override;
 		virtual EASTType GetType () const override { return EASTType::LiteralFloat; }
+		virtual CDatum GetValue () const { return CDatum(m_rValue); }
 
 	private:
 		double m_rValue = 0.0;
@@ -201,6 +209,7 @@ class CASTLiteralInteger : public IASTNode
 
 		virtual void DebugDump (const CString &sIndent) const override;
 		virtual EASTType GetType () const override { return EASTType::LiteralInteger; }
+		virtual CDatum GetValue () const { return CDatum(m_iValue); }
 
 	private:
 		int m_iValue = 0;
@@ -218,6 +227,7 @@ class CASTLiteralString : public IASTNode
 
 		virtual void DebugDump (const CString &sIndent) const override;
 		virtual EASTType GetType () const override { return EASTType::LiteralString; }
+		virtual CDatum GetValue () const { return CDatum(m_sValue); }
 
 	private:
 		CString m_sValue;
@@ -239,6 +249,7 @@ class CASTOrdinalDef : public IASTNode
 		virtual const CString &GetDefinitionString (int iIndex) const override { if (iIndex >= 0 && iIndex < GetDefinitionCount()) return m_Ordinals[iIndex]; else throw CException(errFail); }
 		virtual const CString &GetName () const override { return m_sName; }
 		virtual EASTType GetType () const override { return EASTType::OrdinalDef; }
+		virtual bool IsDefinition () const override { return true; }
 
 	private:
 		CString m_sName;
@@ -257,11 +268,14 @@ class CASTSequence : public IASTNode
 		virtual int GetChildCount () const override { return m_Node.GetCount(); }
 		virtual const IASTNode &GetDefinition (int iIndex) const override { if (iIndex >= 0 && iIndex < GetDefinitionCount()) return *m_Types[iIndex]; else throw CException(errFail); }
 		virtual int GetDefinitionCount () const override { return m_Types.GetCount(); }
+		virtual const IASTNode &GetStatement (int iIndex) const { if (iIndex >= 0 && iIndex < GetStatementCount()) return *m_Statements[iIndex]; else throw CException(errFail); }
+		virtual int GetStatementCount () const { return m_Statements.GetCount(); }
 		virtual EASTType GetType () const override { return EASTType::Sequence; }
 
 	private:
 		TArray<TSharedPtr<IASTNode>> m_Node;
 		TSortMap<CString, IASTNode *> m_Types;
+		TArray<IASTNode *> m_Statements;
 	};
 
 class CASTTypeRef : public IASTNode
@@ -320,6 +334,8 @@ class CASTVarDef : public IASTNode
 		virtual const CString &GetName () const override { return m_sName; }
 		virtual EASTType GetType () const override { return m_iVarType; }
 		virtual const IASTNode &GetTypeRef () const override { return *m_pTypeDef; }
+		virtual bool IsDefinition () const override { return true; }
+		virtual bool IsStatement () const override;
 
 	private:
 		EASTType m_iVarType = EASTType::Unknown;

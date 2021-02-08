@@ -5,7 +5,7 @@
 
 #include "pch.h"
 
-CGLNumberType::CGLNumberType (IGLType *pParent, const CString &sName, GLCoreType iType) : IGLType(pParent, sName)
+CGLNumberType::CGLNumberType (const IGLType *pParent, const IGLType *pScope, const CString &sName, GLCoreType iType) : IGLType(pParent, pScope, sName)
 
 //	CGLNumberType constructor
 

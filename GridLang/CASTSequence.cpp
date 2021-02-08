@@ -25,25 +25,25 @@ TSharedPtr<IASTNode> CASTSequence::Create (TArray<TSharedPtr<IASTNode>> Nodes, C
 		{
 		IASTNode &Node = *pSeq->m_Node[i];
 
-		switch (Node.GetType())
+		//	If this is a definition, then add to the map.
+
+		if (Node.IsDefinition())
 			{
-			case EASTType::ClassDef:
-			case EASTType::ConstDef:
-			case EASTType::FunctionDef:
-			case EASTType::GlobalDef:
-			case EASTType::OrdinalDef:
-			case EASTType::PropertyDef:
-			case EASTType::VarDef:
+			bool bNew;
+			pSeq->m_Types.SetAt(strToLower(Node.GetName()), &Node, &bNew);
+			if (!bNew)
 				{
-				bool bNew;
-				pSeq->m_Types.SetAt(strToLower(Node.GetName()), &Node, &bNew);
-				if (!bNew)
-					{
-					if (retsError) *retsError = strPattern(ERR_DUPLICATE_DEFINITION, Node.GetName());
-					return NULL;
-					}
-				break;
+				if (retsError) *retsError = strPattern(ERR_DUPLICATE_DEFINITION, Node.GetName());
+				return NULL;
 				}
+			}
+
+		//	If this is a statement, then add to the ordered list of statements.
+		//	NOTE: It is possible to be in both (e.g., var s = 1).
+
+		if (Node.IsStatement())
+			{
+			pSeq->m_Statements.Insert(&Node);
 			}
 		}
 

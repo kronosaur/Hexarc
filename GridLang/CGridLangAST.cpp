@@ -13,6 +13,7 @@ DECLARE_CONST_STRING(KEYWORD_FALSE,						"false");
 DECLARE_CONST_STRING(KEYWORD_FUNCTION,					"function");
 DECLARE_CONST_STRING(KEYWORD_GLOBAL,					"global");
 DECLARE_CONST_STRING(KEYWORD_IF,						"if");
+DECLARE_CONST_STRING(KEYWORD_METHOD,					"method");
 DECLARE_CONST_STRING(KEYWORD_NULL,						"null");
 DECLARE_CONST_STRING(KEYWORD_ORDINAL,					"ordinal");
 DECLARE_CONST_STRING(KEYWORD_PROPERTY,					"property");
@@ -590,6 +591,16 @@ bool CGridLangAST::ParseSequence (CGridLangParser &Parser, TSharedPtr<IASTNode> 
 				{
 				TSharedPtr<IASTNode> pNode;
 				if (!ParseIf(Parser, pNode, retsError))
+					return false;
+
+				Program.Insert(pNode);
+				}
+			else if (strEqualsNoCase(Parser.GetTokenValue(), KEYWORD_METHOD))
+				{
+				Parser.NextToken();
+
+				TSharedPtr<IASTNode> pNode;
+				if (!ParseFunctionDef(Parser, pNode, retsError))
 					return false;
 
 				Program.Insert(pNode);

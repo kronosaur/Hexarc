@@ -42,6 +42,18 @@ int CHexeCodeIntermediate::CreateDatumBlock (CDatum dDatum)
 	return iID;
 	}
 
+CDatum CHexeCodeIntermediate::CreateOutput (int iBlock) const
+
+//	CreateOutput
+//
+//	Creates a compiled code block.
+
+	{
+	CDatum dResult;
+	CHexeCode::Create(*this, iBlock, &dResult);
+	return dResult;
+	}
+
 void CHexeCodeIntermediate::RewriteShortOpCode (int iBlock, int iPos, OPCODE opCode, DWORD dwOperand)
 
 //	RewriteShortOpCode

@@ -5,16 +5,16 @@
 
 #include "pch.h"
 
-CGLNamespaceCtx::CGLNamespaceCtx (CGLTypeSystem &Types) :
+CGLNamespaceCtx::CGLNamespaceCtx (const CGLTypeSystem &Types) :
 		m_Types(Types)
 
 //	CGLNamespaceCtx constructor
 
 	{
-	Push(m_Types.GetGlobals());
+	Push(m_Types.GetDefinitions());
 	}
 
-IGLType *CGLNamespaceCtx::Find (const CString &sName) const
+const IGLType *CGLNamespaceCtx::Find (const CString &sName) const
 
 //	Find
 //
@@ -25,7 +25,7 @@ IGLType *CGLNamespaceCtx::Find (const CString &sName) const
 
 	for (int i = m_Scopes.GetCount() - 1; i >= 0; i--)
 		{
-		IGLType *pType = m_Scopes[i]->GetAt(sID);
+		const IGLType *pType = m_Scopes[i]->GetAt(sID);
 		if (pType)
 			return pType;
 		}

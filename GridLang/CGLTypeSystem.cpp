@@ -39,39 +39,39 @@ void CGLTypeSystem::AddCoreTypes ()
 
 	//	Null
 
-	m_Core[(int)GLCoreType::NullType] = InsertOrThrow(IGLType::CreateConcrete(GetCoreType(GLCoreType::Type), TYPENAME_NULL_TYPE));
+	m_Core[(int)GLCoreType::NullType] = InsertOrThrow(IGLType::CreateConcrete(GetCoreType(GLCoreType::Type), NULL, TYPENAME_NULL_TYPE));
 
 	//	Bool
 
-	m_Core[(int)GLCoreType::Bool] = InsertOrThrow(IGLType::CreateAbstract(GetCoreType(GLCoreType::Type), TYPENAME_BOOL));
+	m_Core[(int)GLCoreType::Bool] = InsertOrThrow(IGLType::CreateAbstract(GetCoreType(GLCoreType::Type), NULL, TYPENAME_BOOL));
 
 	//	Numbers
 
-	m_Core[(int)GLCoreType::Number] = InsertOrThrow(IGLType::CreateAbstract(GetCoreType(GLCoreType::Type), TYPENAME_NUMBER));
-	m_Core[(int)GLCoreType::Real] = InsertOrThrow(IGLType::CreateAbstract(GetCoreType(GLCoreType::Number), TYPENAME_REAL));
+	m_Core[(int)GLCoreType::Number] = InsertOrThrow(IGLType::CreateAbstract(GetCoreType(GLCoreType::Type), NULL, TYPENAME_NUMBER));
+	m_Core[(int)GLCoreType::Real] = InsertOrThrow(IGLType::CreateAbstract(GetCoreType(GLCoreType::Number), NULL, TYPENAME_REAL));
 
-	m_Core[(int)GLCoreType::Float] = InsertOrThrow(IGLType::CreateAbstract(GetCoreType(GLCoreType::Real), TYPENAME_FLOAT));
-	m_Core[(int)GLCoreType::Float64] = InsertOrThrow(IGLType::CreateConcreteNumber(GetCoreType(GLCoreType::Float), TYPENAME_FLOAT_64, GLCoreType::Float64));
+	m_Core[(int)GLCoreType::Float] = InsertOrThrow(IGLType::CreateAbstract(GetCoreType(GLCoreType::Real), NULL, TYPENAME_FLOAT));
+	m_Core[(int)GLCoreType::Float64] = InsertOrThrow(IGLType::CreateConcreteNumber(GetCoreType(GLCoreType::Float), NULL, TYPENAME_FLOAT_64, GLCoreType::Float64));
 
-	m_Core[(int)GLCoreType::Integer] = InsertOrThrow(IGLType::CreateAbstract(GetCoreType(GLCoreType::Real), TYPENAME_INTEGER));
+	m_Core[(int)GLCoreType::Integer] = InsertOrThrow(IGLType::CreateAbstract(GetCoreType(GLCoreType::Real), NULL, TYPENAME_INTEGER));
 
-	m_Core[(int)GLCoreType::Signed] = InsertOrThrow(IGLType::CreateAbstract(GetCoreType(GLCoreType::Integer), TYPENAME_SIGNED));
-	m_Core[(int)GLCoreType::Int32] = InsertOrThrow(IGLType::CreateConcreteNumber(GetCoreType(GLCoreType::Signed), TYPENAME_INT_32, GLCoreType::Int32));
-	m_Core[(int)GLCoreType::Int64] = InsertOrThrow(IGLType::CreateConcreteNumber(GetCoreType(GLCoreType::Signed), TYPENAME_INT_64, GLCoreType::Int64));
-	m_Core[(int)GLCoreType::IntIP] = InsertOrThrow(IGLType::CreateConcreteNumber(GetCoreType(GLCoreType::Signed), TYPENAME_INT_IP, GLCoreType::IntIP));
+	m_Core[(int)GLCoreType::Signed] = InsertOrThrow(IGLType::CreateAbstract(GetCoreType(GLCoreType::Integer), NULL, TYPENAME_SIGNED));
+	m_Core[(int)GLCoreType::Int32] = InsertOrThrow(IGLType::CreateConcreteNumber(GetCoreType(GLCoreType::Signed), NULL, TYPENAME_INT_32, GLCoreType::Int32));
+	m_Core[(int)GLCoreType::Int64] = InsertOrThrow(IGLType::CreateConcreteNumber(GetCoreType(GLCoreType::Signed), NULL, TYPENAME_INT_64, GLCoreType::Int64));
+	m_Core[(int)GLCoreType::IntIP] = InsertOrThrow(IGLType::CreateConcreteNumber(GetCoreType(GLCoreType::Signed), NULL, TYPENAME_INT_IP, GLCoreType::IntIP));
 
-	m_Core[(int)GLCoreType::Unsigned] = InsertOrThrow(IGLType::CreateAbstract(GetCoreType(GLCoreType::Integer), TYPENAME_UNSIGNED));
-	m_Core[(int)GLCoreType::UInt32] = InsertOrThrow(IGLType::CreateConcreteNumber(GetCoreType(GLCoreType::Unsigned), TYPENAME_UINT_32, GLCoreType::UInt32));
-	m_Core[(int)GLCoreType::UInt64] = InsertOrThrow(IGLType::CreateConcreteNumber(GetCoreType(GLCoreType::Unsigned), TYPENAME_UINT_64, GLCoreType::UInt64));
+	m_Core[(int)GLCoreType::Unsigned] = InsertOrThrow(IGLType::CreateAbstract(GetCoreType(GLCoreType::Integer), NULL, TYPENAME_UNSIGNED));
+	m_Core[(int)GLCoreType::UInt32] = InsertOrThrow(IGLType::CreateConcreteNumber(GetCoreType(GLCoreType::Unsigned), NULL, TYPENAME_UINT_32, GLCoreType::UInt32));
+	m_Core[(int)GLCoreType::UInt64] = InsertOrThrow(IGLType::CreateConcreteNumber(GetCoreType(GLCoreType::Unsigned), NULL, TYPENAME_UINT_64, GLCoreType::UInt64));
 
-	m_Core[(int)GLCoreType::Ordinal] = InsertOrThrow(IGLType::CreateAbstract(GetCoreType(GLCoreType::Unsigned), TYPENAME_ORDINAL));
+	m_Core[(int)GLCoreType::Ordinal] = InsertOrThrow(IGLType::CreateAbstract(GetCoreType(GLCoreType::Unsigned), NULL, TYPENAME_ORDINAL));
 
 	//	Other Core Types
 
-	m_Core[(int)GLCoreType::String] = InsertOrThrow(IGLType::CreateConcrete(GetCoreType(GLCoreType::Type), TYPENAME_STRING));
-	m_Core[(int)GLCoreType::Object] = InsertOrThrow(IGLType::CreateAbstract(GetCoreType(GLCoreType::Type), TYPENAME_OBJECT));
-	m_Core[(int)GLCoreType::Property] = InsertOrThrow(IGLType::CreateAbstract(GetCoreType(GLCoreType::Type), TYPENAME_PROPERTY));
-	m_Core[(int)GLCoreType::Function] = InsertOrThrow(IGLType::CreateAbstract(GetCoreType(GLCoreType::Type), TYPENAME_FUNCTION));
+	m_Core[(int)GLCoreType::String] = InsertOrThrow(IGLType::CreateConcrete(GetCoreType(GLCoreType::Type), NULL, TYPENAME_STRING));
+	m_Core[(int)GLCoreType::Object] = InsertOrThrow(IGLType::CreateAbstract(GetCoreType(GLCoreType::Type), NULL, TYPENAME_OBJECT));
+	m_Core[(int)GLCoreType::Property] = InsertOrThrow(IGLType::CreateAbstract(GetCoreType(GLCoreType::Type), NULL, TYPENAME_PROPERTY));
+	m_Core[(int)GLCoreType::Function] = InsertOrThrow(IGLType::CreateAbstract(GetCoreType(GLCoreType::Type), NULL, TYPENAME_FUNCTION));
 	}
 
 bool CGLTypeSystem::InitFromAST (const CGridLangAST &AST, CString *retsError)
@@ -86,16 +86,25 @@ bool CGLTypeSystem::InitFromAST (const CGridLangAST &AST, CString *retsError)
 
 	AddCoreTypes();
 
+	//	Define all core library functions
+
+	CGridLangCoreLibrary::Define(GetCoreType(GLCoreType::Function), m_Types);
+
+	//	Load the AST
+
 	if (AST.IsEmpty())
 		return true;
 
 	//	Declare all types (not yet defined, however).
 
 	CGLNamespaceCtx Ctx(*this);
-	if (!m_Types.DeclareTypes(Ctx, AST.GetRoot(), retsError))
+	if (!m_Types.DeclareTypes(Ctx, NULL, AST.GetRoot(), retsError))
 		return false;
 
-	m_Types.Dump();
+	//	Now finish defining all the types.
+
+	if (!m_Types.DefineTypes(Ctx, retsError))
+		return false;
 
 	//	Success!
 

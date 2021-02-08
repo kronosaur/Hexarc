@@ -5,7 +5,7 @@
 
 #include "pch.h"
 
-CGLPropertyType::CGLPropertyType (IGLType *pParent, const CString &sName, const IGLType &Type, const IASTNode &Node) : IGLType(pParent, sName),
+CGLPropertyType::CGLPropertyType (const IGLType *pParent, const IGLType *pScope, const CString &sName, const IGLType &Type, const IASTNode &Node) : IGLType(pParent, pScope, sName),
 		m_Type(Type),
 		m_pDef(const_cast<IASTNode &>(Node).AddRef())
 

@@ -9,7 +9,7 @@ DECLARE_CONST_STRING(ERR_UNDECLARED_IDENTIFIER,			"Undeclared identifier: %s");
 DECLARE_CONST_STRING(ERR_NOT_AN_OBJECT,					"%s is not an Object. Cannot inherit from this type.");
 DECLARE_CONST_STRING(ERR_INVALID_TYPE_REF,				"Invalid type reference.");
 
-bool CGLTypeNamespace::DeclareClass (CGLNamespaceCtx &Ctx, const IASTNode &AST, const IASTNode &Def, CString *retsError)
+bool CGLTypeNamespace::DeclareClass (CGLNamespaceCtx &Ctx, IGLType *pScope, const IASTNode &AST, const IASTNode &Def, CString *retsError)
 
 //	DeclareClass
 //
@@ -23,12 +23,12 @@ bool CGLTypeNamespace::DeclareClass (CGLNamespaceCtx &Ctx, const IASTNode &AST, 
 
 	//	First look for the base class in our AST (essentially, our local scope).
 
-	if (!DeclareIfNeeded(Ctx, AST, sBaseID, retsError))
+	if (!DeclareIfNeeded(Ctx, pScope, AST, sBaseID, retsError))
 		return false;
 
 	//	Look up the base type
 
-	IGLType *pParentObj = Ctx.Find(sBaseName);
+	const IGLType *pParentObj = Ctx.Find(sBaseName);
 	if (!pParentObj)
 		return Def.ComposeError(strPattern(ERR_UNDECLARED_IDENTIFIER, sBaseName));
 
@@ -39,18 +39,23 @@ bool CGLTypeNamespace::DeclareClass (CGLNamespaceCtx &Ctx, const IASTNode &AST, 
 
 	//	Now create the object
 
-	TSharedPtr<IGLType> pType = IGLType::CreateObject(*pParentObj, Def.GetName(), Def);
+	TSharedPtr<IGLType> pType = IGLType::CreateObject(*pParentObj, pScope, Def.GetName(), Def);
 	if (!Insert(pType))
 		//	Should never fail because we've already check that this is
 		//	not a duplicate.
 		throw CException(errFail);
+
+	//	Give the object a chance to initialize its scope
+
+	if (!pType->Declare(Ctx, Def, retsError))
+		return false;
 
 	//	Success!
 
 	return true;
 	}
 
-bool CGLTypeNamespace::DeclareIfNeeded (CGLNamespaceCtx &Ctx, const IASTNode &AST, const CString &sTypeID, CString *retsError)
+bool CGLTypeNamespace::DeclareIfNeeded (CGLNamespaceCtx &Ctx, IGLType *pScope, const IASTNode &AST, const CString &sTypeID, CString *retsError)
 
 //	DeclareIfNeeded
 //
@@ -66,7 +71,7 @@ bool CGLTypeNamespace::DeclareIfNeeded (CGLNamespaceCtx &Ctx, const IASTNode &AS
 
 	if (pASTDef && !m_Types.GetAt(sTypeID))
 		{
-		if (!DeclareType(Ctx, AST, *pASTDef, retsError))
+		if (!DeclareType(Ctx, pScope, AST, *pASTDef, retsError))
 			return false;
 		}
 
@@ -75,7 +80,7 @@ bool CGLTypeNamespace::DeclareIfNeeded (CGLNamespaceCtx &Ctx, const IASTNode &AS
 	return true;
 	}
 
-bool CGLTypeNamespace::DeclareOrdinal (CGLNamespaceCtx &Ctx, const IASTNode &AST, const IASTNode &Def, CString *retsError)
+bool CGLTypeNamespace::DeclareOrdinal (CGLNamespaceCtx &Ctx, IGLType *pScope, const IASTNode &AST, const IASTNode &Def, CString *retsError)
 
 //	DeclareOrdinal
 //
@@ -89,7 +94,7 @@ bool CGLTypeNamespace::DeclareOrdinal (CGLNamespaceCtx &Ctx, const IASTNode &AST
 
 	//	Create the property type.
 
-	TSharedPtr<IGLType> pType = IGLType::CreateOrdinals(Ctx.GetCoreType(GLCoreType::Ordinal), Def.GetName(), Ordinals);
+	TSharedPtr<IGLType> pType = IGLType::CreateOrdinals(Ctx.GetCoreType(GLCoreType::Ordinal), pScope, Def.GetName(), Ordinals);
 	if (!Insert(pType))
 		//	Should never fail because we've already check that this is
 		//	not a duplicate.
@@ -100,7 +105,7 @@ bool CGLTypeNamespace::DeclareOrdinal (CGLNamespaceCtx &Ctx, const IASTNode &AST
 	return true;
 	}
 
-bool CGLTypeNamespace::DeclareProperty (CGLNamespaceCtx &Ctx, const IASTNode &AST, const IASTNode &Def, CString *retsError)
+bool CGLTypeNamespace::DeclareProperty (CGLNamespaceCtx &Ctx, IGLType *pScope, const IASTNode &AST, const IASTNode &Def, CString *retsError)
 
 //	DeclareProperty
 //
@@ -109,13 +114,13 @@ bool CGLTypeNamespace::DeclareProperty (CGLNamespaceCtx &Ctx, const IASTNode &AS
 	{
 	//	Get the property type.
 
-	IGLType *pTypeRef;
-	if (!InterpretTypeRef(Ctx, AST, Def.GetTypeRef(), pTypeRef, retsError) || !pTypeRef)
+	const IGLType *pTypeRef;
+	if (!InterpretTypeRef(Ctx, pScope, AST, Def.GetTypeRef(), pTypeRef, retsError) || !pTypeRef)
 		return false;
 
 	//	Create the property type.
 
-	TSharedPtr<IGLType> pType = IGLType::CreateProperty(Ctx.GetCoreType(GLCoreType::Property), *pTypeRef, Def.GetName(), Def);
+	TSharedPtr<IGLType> pType = IGLType::CreateProperty(Ctx.GetCoreType(GLCoreType::Property), pScope, *pTypeRef, Def.GetName(), Def);
 	if (!Insert(pType))
 		//	Should never fail because we've already check that this is
 		//	not a duplicate.
@@ -126,7 +131,7 @@ bool CGLTypeNamespace::DeclareProperty (CGLNamespaceCtx &Ctx, const IASTNode &AS
 	return true;
 	}
 
-bool CGLTypeNamespace::DeclareType (CGLNamespaceCtx &Ctx, const IASTNode &AST, const IASTNode &Def, CString *retsError)
+bool CGLTypeNamespace::DeclareType (CGLNamespaceCtx &Ctx, IGLType *pScope, const IASTNode &AST, const IASTNode &Def, CString *retsError)
 
 //	DeclareType
 //
@@ -136,27 +141,27 @@ bool CGLTypeNamespace::DeclareType (CGLNamespaceCtx &Ctx, const IASTNode &AST, c
 	switch (Def.GetType())
 		{
 		case EASTType::ClassDef:
-			if (!DeclareClass(Ctx, AST, Def, retsError))
+			if (!DeclareClass(Ctx, pScope, AST, Def, retsError))
 				return false;
 			break;
 
-#if 0
 		case EASTType::FunctionDef:
+#if 0
 			if (!DeclareFunction(Ctx, AST, Def, retsError))
 				return false;
-			break;
 #endif
+			break;
 
 		case EASTType::ConstDef:
 		case EASTType::GlobalDef:
 		case EASTType::PropertyDef:
 		case EASTType::VarDef:
-			if (!DeclareProperty(Ctx, AST, Def, retsError))
+			if (!DeclareProperty(Ctx, pScope, AST, Def, retsError))
 				return false;
 			break;
 
 		case EASTType::OrdinalDef:
-			if (!DeclareOrdinal(Ctx, AST, Def, retsError))
+			if (!DeclareOrdinal(Ctx, pScope, AST, Def, retsError))
 				return false;
 			break;
 
@@ -167,11 +172,11 @@ bool CGLTypeNamespace::DeclareType (CGLNamespaceCtx &Ctx, const IASTNode &AST, c
 	return true;
 	}
 
-bool CGLTypeNamespace::DeclareTypes (CGLNamespaceCtx &Ctx, const IASTNode &AST, CString *retsError)
+bool CGLTypeNamespace::DeclareTypes (CGLNamespaceCtx &Ctx, IGLType *pScope, const IASTNode &AST, CString *retsError)
 
 //	DeclareTypes
 //
-//	Looks over all definitions in the given AST and declares them as appropriate
+//	Loops over all definitions in the given AST and declares them as appropriate
 //	in the namespace.
 
 	{
@@ -187,8 +192,24 @@ bool CGLTypeNamespace::DeclareTypes (CGLNamespaceCtx &Ctx, const IASTNode &AST, 
 
 		//	Create the type as appropriate
 
-		if (!DeclareType(Ctx, AST, Def, retsError))
+		if (!DeclareType(Ctx, pScope, AST, Def, retsError))
 			return false;
+		}
+
+	return true;
+	}
+
+bool CGLTypeNamespace::DefineTypes (CGLNamespaceCtx &Ctx, CString *retsError)
+
+//	DefineTypes
+//
+//	Loops over all declared types and completes their definition based on the 
+//	stored AST.
+
+	{
+	for (int i = 0; i < m_Types.GetCount(); i++)
+		{
+
 		}
 
 	return true;
@@ -208,7 +229,7 @@ void CGLTypeNamespace::Dump () const
 	Tree.Dump();
 	}
 
-bool CGLTypeNamespace::InterpretTypeRef (CGLNamespaceCtx &Ctx, const IASTNode &AST, const IASTNode &TypeRef, IGLType *&retpType, CString *retsError)
+bool CGLTypeNamespace::InterpretTypeRef (CGLNamespaceCtx &Ctx, IGLType *pScope, const IASTNode &AST, const IASTNode &TypeRef, const IGLType *&retpType, CString *retsError)
 
 //	InterpretTypeRef
 //
@@ -222,7 +243,7 @@ bool CGLTypeNamespace::InterpretTypeRef (CGLNamespaceCtx &Ctx, const IASTNode &A
 
 		//	Make sure the type is declared
 
-		if (!DeclareIfNeeded(Ctx, AST, sTypeID, retsError))
+		if (!DeclareIfNeeded(Ctx, pScope, AST, sTypeID, retsError))
 			return false;
 
 		//	Now find the type.
@@ -237,7 +258,7 @@ bool CGLTypeNamespace::InterpretTypeRef (CGLNamespaceCtx &Ctx, const IASTNode &A
 		return TypeRef.ComposeError(ERR_INVALID_TYPE_REF, retsError);
 	}
 
-IGLType *CGLTypeNamespace::GetAt (const CString &sID) const
+const IGLType *CGLTypeNamespace::GetAt (const CString &sID) const
 
 //	GetAt
 //
@@ -266,4 +287,46 @@ bool CGLTypeNamespace::Insert (TSharedPtr<IGLType> pType)
 
 	*pSlot = pType;
 	return true;
+	}
+
+const IGLType *CGLTypeNamespace::ResolveSymbol (const CString &sSymbol) const
+
+//	ResolveSymbol
+//
+//	Resolves a symbol and returns the type. If the symbol is not found, or if we
+//	cannot find a unique type with that symbol, then we return NULL.
+//
+//	SYNTAX
+//
+//	{identifier}
+//	{identifier}:{identifier}
+//	{functionName}:{type}&{type}
+//	{identifier}:{functionName}&{type}&{type}
+
+	{
+	//	Parse the first part of the symbol
+
+	const char *pPos = sSymbol.GetParsePointer();
+	const char *pStart = pPos;
+	while (*pPos != ':' && *pPos != '\0')
+		pPos++;
+
+	CString sRoot(pStart, pPos - pStart);
+	if (sRoot.IsEmpty())
+		return NULL;
+
+	//	Look up
+
+	auto pEntry = m_Types.GetAt(::strToLower(sRoot));
+	if (!pEntry)
+		return NULL;
+
+	//	If we don't have more, then we just return this type.
+
+	if (*pPos == '\0')
+		return (*pEntry);
+
+	//	Otherwise, we returns
+
+	return (*pEntry)->ResolveSymbol(CString(pPos));
 	}

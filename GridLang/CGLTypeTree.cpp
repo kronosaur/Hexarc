@@ -5,7 +5,7 @@
 
 #include "pch.h"
 
-void CGLTypeTree::AddType (IGLType &Type)
+void CGLTypeTree::AddType (const IGLType &Type)
 	{
 	SetAt(&Type);
 	}
@@ -27,7 +27,7 @@ void CGLTypeTree::DumpNode (const SNode &Node, const CString &sIndent) const
 		DumpNode(*Node.Children[i], sNewIndent);
 	}
 
-CGLTypeTree::SNode *CGLTypeTree::SetAt (IGLType *pType)
+CGLTypeTree::SNode *CGLTypeTree::SetAt (const IGLType *pType)
 
 //	SetAt
 //
