@@ -10,7 +10,7 @@ CDBColumnDef::CDBColumnDef (const CString &sID, CDBValue::ETypes iType, int iOrd
 //	CDBColumnDef constructor
 
 	{
-	m_sID = strToLower(sID);
+	m_sID = GenerateID(sID);
 	m_sName = sID;
 	m_iType = iType;
 
@@ -19,6 +19,28 @@ CDBColumnDef::CDBColumnDef (const CString &sID, CDBValue::ETypes iType, int iOrd
 
 	m_iDisplayType = iType;
 	m_sDisplayName = sID;
+	}
+
+CString CDBColumnDef::GenerateID (const CString &sValue)
+
+//	GenerateID
+//
+//	Creates an ID from the given value.
+
+	{
+	CString sID = sValue;
+	char *pPos = sID.GetParsePointer();
+	while (*pPos != '\0')
+		{
+		if (strIsWhitespace(pPos))
+			*pPos = '_';
+		else if (strIsASCIISymbol(pPos))
+			*pPos = '$';
+
+		pPos++;
+		}
+
+	return strToLower(sID);
 	}
 
 void CDBColumnDef::SetID (const CString &sID)
@@ -31,3 +53,4 @@ void CDBColumnDef::SetID (const CString &sID)
 	m_sID = strToLower(sID);
 	m_sName = sID;
 	}
+

@@ -223,7 +223,7 @@ inline int strGetUTF8EncodeLength (UTF32 dwCodePoint) { return (dwCodePoint <= 0
 inline bool strIsAlphaNumeric (UTF32 dwCodePoint) { return (::IsCharAlphaNumericW(LOWORD(dwCodePoint)) ? true : false); }
 inline bool strIsASCII (UTF32 dwCodePoint) { return (dwCodePoint < 0x7f); }
 bool strIsPrintableChar (UTF32 dwCodePoint);
-UTF32 strParseUTF8Char (char **iopPos, char *pEndPos);
+UTF32 strParseUTF8Char (const char **iopPos, const char *pEndPos);
 UTF32 strToLowerChar (UTF32 dwCodePoint);
 UTF32 strToUpperChar (UTF32 dwCodePoint);
 

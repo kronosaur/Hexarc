@@ -156,6 +156,8 @@ class CDBColumnDef
 		void SetOrdinal (int iOrdinal) { m_iOrdinal = iOrdinal; }
 		void SetType (CDBValue::ETypes iType) { m_iType = iType; m_iDisplayType = iType; }
 
+		static CString GenerateID (const CString &sValue);
+
 	private:
 		CString m_sID;						//	ID of column (always lowercase; must be unique)
 		CString m_sName;					//	Same as ID, but with case preserved
@@ -218,4 +220,12 @@ class CDBFormatCSV
 
 	private:
 		static constexpr int EstimateRowCount (DWORDLONG dwStreamSize);
+	};
+
+class CDBFormatRTF
+	{
+	public:
+		static void WriteEoF (IByteStream &Stream);
+		static void WriteHeader (IByteStream &Stream);
+		static void WriteText (IByteStream &Stream, const CString &sText);
 	};

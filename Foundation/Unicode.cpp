@@ -257,7 +257,7 @@ bool strIsPrintableChar (UTF32 dwCodePoint)
 		}
 	}
 
-UTF32 strParseUTF8Char (char **iopPos, char *pEndPos)
+UTF32 strParseUTF8Char (const char **iopPos, const char *pEndPos)
 
 //	strParseUTF8Char
 //

@@ -108,6 +108,7 @@ bool CCSVParser::ParseRow (TArray<CString> *retRow, CString *retsError)
 		stateEndOfValue,
 		stateCR,
 		stateLF,
+		stateDoubleQuoteEnd,
 		};
 
 	if (retRow)
@@ -204,17 +205,75 @@ bool CCSVParser::ParseRow (TArray<CString> *retRow, CString *retsError)
 						return true;
 
 					case '\"':
+						//if (retRow)
+						//	{
+						//	retRow->Insert(CString(Value.GetPointer(), Value.GetLength()));
+						//	Value.SetLength(0);
+						//	}
+						iState = stateDoubleQuoteEnd;
+						break;
+
+					default:
+						if (retRow)
+							Value.WriteChar(GetCurChar());
+						break;
+					}
+				break;
+				}
+
+			case stateDoubleQuoteEnd:
+				{
+				switch (GetCurChar())
+					{
+					case '\0':
+						if (retRow)
+							retRow->Insert(CString(Value.GetPointer(), Value.GetLength()));
+						return true;
+
+					//	Two double-quotes in a row is an escape for an embedded
+					//	double-quote.
+
+					case '\"':
+						Value.WriteChar('\"');
+						iState = stateDoubleQuote;
+						break;
+
+					case ',':
+						if (retRow)
+							{
+							retRow->Insert(CString(Value.GetPointer(), Value.GetLength()));
+							Value.SetLength(0);
+							}
+						iState = stateStart;
+						break;
+						
+					case '\r':
+						if (retRow)
+							{
+							retRow->Insert(CString(Value.GetPointer(), Value.GetLength()));
+							Value.SetLength(0);
+							}
+						iState = stateCR;
+						break;
+
+					case '\n':
+						if (retRow)
+							{
+							retRow->Insert(CString(Value.GetPointer(), Value.GetLength()));
+							Value.SetLength(0);
+							}
+						iState = stateLF;
+						break;
+
+					case ' ':
+					case '\t':
+					default:
 						if (retRow)
 							{
 							retRow->Insert(CString(Value.GetPointer(), Value.GetLength()));
 							Value.SetLength(0);
 							}
 						iState = stateEndOfValue;
-						break;
-
-					default:
-						if (retRow)
-							Value.WriteChar(GetCurChar());
 						break;
 					}
 				break;

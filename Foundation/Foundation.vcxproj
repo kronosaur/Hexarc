@@ -234,6 +234,7 @@
     <ClCompile Include="CDateTime.cpp" />
     <ClCompile Include="CDBColumnDef.cpp" />
     <ClCompile Include="CDBFormatCSV.cpp" />
+    <ClCompile Include="CDBFormatRTF.cpp" />
     <ClCompile Include="CDBTable.cpp" />
     <ClCompile Include="CDBValue.cpp" />
     <ClCompile Include="CDBValueArray.cpp" />

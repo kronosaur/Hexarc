@@ -959,10 +959,10 @@ bool fileIsPathEqual (const CString &sFilespec1, const CString &sFilespec2)
 //	and lowercase/uppercase.
 
 	{
-	char *pPos1 = (LPSTR)sFilespec1;
-	char *pEndPos1 = pPos1 + sFilespec1.GetLength();
-	char *pPos2 = (LPSTR)sFilespec2;
-	char *pEndPos2 = pPos2 + sFilespec2.GetLength();
+	const char *pPos1 = (LPSTR)sFilespec1;
+	const char *pEndPos1 = pPos1 + sFilespec1.GetLength();
+	const char *pPos2 = (LPSTR)sFilespec2;
+	const char *pEndPos2 = pPos2 + sFilespec2.GetLength();
 	while (pPos1 < pEndPos1 && pPos2 < pEndPos2)
 		{
 		UTF32 dwCodePoint1 = strParseUTF8Char(&pPos1, pEndPos1);

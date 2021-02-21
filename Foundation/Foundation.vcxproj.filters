@@ -363,6 +363,9 @@
     <ClCompile Include="CBuffer64.cpp">
       <Filter>Source Files\Streams</Filter>
     </ClCompile>
+    <ClCompile Include="CDBFormatRTF.cpp">
+      <Filter>Source Files\DB</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">

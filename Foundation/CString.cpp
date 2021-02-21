@@ -918,12 +918,12 @@ CString strCapitalize (const CString &sString)
 //	Capitalizes the string
 
 	{
-	char *pSrc = sString.GetParsePointer();
-	char *pSrcEnd = pSrc + sString.GetLength();
+	const char *pSrc = sString.GetParsePointer();
+	const char *pSrcEnd = pSrc + sString.GetLength();
 
 	//	Get the first character
 
-	char *pPos = pSrc;
+	const char *pPos = pSrc;
 	UTF32 dwFirstChar = strParseUTF8Char(&pPos, pSrcEnd);
 
 	//	If already upper-case then we're done
@@ -1136,10 +1136,10 @@ bool strEqualsNoCase (const CString &sKey1, const CString &sKey2)
 
 	//	Prepare
 
-	char *pPos1 = (LPSTR)sKey1;
-	char *pPos1End = pPos1 + iKey1Len;
-	char *pPos2 = (LPSTR)sKey2;
-	char *pPos2End = pPos2 + iKey2Len;
+	const char *pPos1 = (LPSTR)sKey1;
+	const char *pPos1End = pPos1 + iKey1Len;
+	const char *pPos2 = (LPSTR)sKey2;
+	const char *pPos2End = pPos2 + iKey2Len;
 
 	//	Handle NULL
 
@@ -2343,14 +2343,14 @@ void strSplit (const CString &sString, const CString &sSeparators, TArray<CStrin
 
 	//	Prepare some stuff
 
-	char *pPos = sString.GetParsePointer();
-	char *pPosEnd = pPos + sString.GetLength();
+	const char *pPos = sString.GetParsePointer();
+	const char *pPosEnd = pPos + sString.GetLength();
 
-	char *pSep = sSeparators.GetParsePointer();
-	char *pSepEnd = pSep + sSeparators.GetLength();
+	const char *pSep = sSeparators.GetParsePointer();
+	const char *pSepEnd = pSep + sSeparators.GetLength();
 
 	bool bDone = false;
-	char *pStart = pPos;
+	const char *pStart = pPos;
 	int iCount = 0;
 	EStates iState = stateStart;
 
@@ -2514,7 +2514,7 @@ void strSplit (const CString &sString, const CString &sSeparators, TArray<CStrin
 
 					else
 						{
-						char *pPosAdvance = pPos;
+						const char *pPosAdvance = pPos;
 						UTF32 dwCodePoint = strParseUTF8Char(&pPosAdvance, pPosEnd);
 						if (strIsAlphaNumeric(dwCodePoint))
 							{
@@ -2529,7 +2529,7 @@ void strSplit (const CString &sString, const CString &sSeparators, TArray<CStrin
 				case stateItem:
 					{
 					bool bWordDone = false;
-					char *pPosAdvance = pPos + 1;
+					const char *pPosAdvance = pPos + 1;
 					if (pPos == pPosEnd)
 						bWordDone = true;
 
@@ -2849,10 +2849,10 @@ bool strStartsWithNoCase (const CString &sString, const CString &sPartial)
 //	have embedded 0s.
 
 	{
-	char *pString = (LPSTR)sString;
-	char *pStringEnd = pString + sString.GetLength();
-	char *pPartial = (LPSTR)sPartial;
-	char *pPartialEnd = pPartial + sPartial.GetLength();
+	const char *pString = (LPSTR)sString;
+	const char *pStringEnd = pString + sString.GetLength();
+	const char *pPartial = (LPSTR)sPartial;
+	const char *pPartialEnd = pPartial + sPartial.GetLength();
 
 	//	Some edge conditions
 
@@ -2912,9 +2912,9 @@ CString strToLower (const CString &sString)
 	{
 	CMemoryBuffer Stream(4096);
 
-	char *pPos = (LPSTR)sString;
-	char *pEndPos = pPos + sString.GetLength();
-	char *pStart = pPos;
+	const char *pPos = (LPSTR)sString;
+	const char *pEndPos = pPos + sString.GetLength();
+	const char *pStart = pPos;
 	while (pPos < pEndPos)
 		{
 		UTF32 dwCodePoint = strParseUTF8Char(&pPos, pEndPos);
@@ -2982,9 +2982,9 @@ CString strToUpper (const CString &sString)
 	{
 	CMemoryBuffer Stream(4096);
 
-	char *pPos = (LPSTR)sString;
-	char *pEndPos = pPos + sString.GetLength();
-	char *pStart = pPos;
+	const char *pPos = (LPSTR)sString;
+	const char *pEndPos = pPos + sString.GetLength();
+	const char *pStart = pPos;
 	while (pPos < pEndPos)
 		{
 		UTF32 dwCodePoint = strParseUTF8Char(&pPos, pEndPos);
@@ -3052,8 +3052,8 @@ int KeyCompareNoCase (const LPSTR &pKey1, int iKey1Len, const LPSTR &pKey2, int 
 //	-1 if Key1 < Key2
 
 	{
-	char *pPos1 = pKey1;
-	char *pPos2 = pKey2;
+	const char *pPos1 = pKey1;
+	const char *pPos2 = pKey2;
 
 	//	Handle NULL
 
@@ -3064,8 +3064,8 @@ int KeyCompareNoCase (const LPSTR &pKey1, int iKey1Len, const LPSTR &pKey2, int 
 
 	//	Compare
 
-	char *pPos1End = pPos1 + iKey1Len;
-	char *pPos2End = pPos2 + iKey2Len;
+	const char *pPos1End = pPos1 + iKey1Len;
+	const char *pPos2End = pPos2 + iKey2Len;
 
 	while (pPos1 < pPos1End && pPos2 < pPos2End)
 		{
