@@ -7,6 +7,8 @@
 
 DECLARE_CONST_STRING(LIBRARY_GRID_LANG_CORE,			"gridLangCore");
 
+DECLARE_CONST_STRING(PORT_CON,							"CON");
+
 bool consoleMisc (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinueCtx, CDatum *retdResult);
 
 const DWORD CONSOLE_PRINT =								0;
@@ -61,8 +63,33 @@ bool consoleMisc (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 		{
 		case CONSOLE_PRINT:
 			{
-			const CString &sLine = dLocalEnv.GetElement(0);
-			printf("%s\n", (LPSTR)sLine);
+			IGridLangEnvironment *pEnv = IGridLangEnvironment::Get(*pCtx, retdResult);
+			if (!pEnv)
+				return false;
+
+			if (dLocalEnv.GetCount() == 1)
+				{
+				pEnv->Output(PORT_CON, dLocalEnv.GetElement(0));
+				}
+			else
+				{
+				//	Concatenate the args
+
+				CStringBuffer Buffer;
+
+				for (int i = 0; i < dLocalEnv.GetCount(); i++)
+					{
+					CString sString = dLocalEnv.GetElement(i).AsString();
+					Buffer.Write((LPSTR)sString, sString.GetLength());
+					}
+
+				CDatum dResult;
+				CDatum::CreateStringFromHandoff(Buffer, &dResult);
+
+				pEnv->Output(PORT_CON, dResult);
+				}
+
+			*retdResult = CDatum(CDatum::constTrue);
 			return true;
 			}
 

@@ -6,6 +6,21 @@
 #include "pch.h"
 
 DECLARE_CONST_STRING(LIBRARY_GRID_LANG_CORE,			"gridLangCore");
+DECLARE_CONST_STRING(LIBRARY_GRID_LANG_ENV,				"gridLangEnv");
+
+void CGridLangProcess::Init (const CGridLangProgram &Program)
+
+//	Init
+//
+//	Initialize.
+
+	{
+	m_pProgram = &Program;
+	m_iState = EState::None;
+
+	m_pDefaultEnv.Set(new CGLDefaultEnvironment);
+	m_pEnvironment = m_pDefaultEnv;
+	}
 
 bool CGridLangProcess::Load (CDatum &dResult)
 
@@ -14,7 +29,7 @@ bool CGridLangProcess::Load (CDatum &dResult)
 //	Load the program into the process.
 
 	{
-	if (m_iState != EState::None)
+	if (m_iState != EState::None || !m_pProgram)
 		throw CException(errFail);
 
 	//	Load the core library
@@ -28,9 +43,12 @@ bool CGridLangProcess::Load (CDatum &dResult)
 		return false;
 		}
 
+	if (m_pEnvironment)
+		m_Hexe.SetLibraryCtx(LIBRARY_GRID_LANG_ENV, m_pEnvironment);
+
 	//	Add all symbols to the process
 
-	if (!m_Hexe.LoadEntryPoints(m_Program.GetCode().GetCodeAsEntryPointTable(), &sError))
+	if (!m_Hexe.LoadEntryPoints(m_pProgram->GetCode().GetCodeAsEntryPointTable(), &sError))
 		{
 		dResult = sError;
 		return false;
@@ -49,6 +67,9 @@ CHexeProcess::ERunCodes CGridLangProcess::Run (CDatum &dResult)
 //	Run the program.
 
 	{
+	if (!m_pProgram)
+		throw CException(errFail);
+
 	//	Load the Hexe process, if necessary.
 
 	if (m_iState == EState::None)
@@ -63,7 +84,7 @@ CHexeProcess::ERunCodes CGridLangProcess::Run (CDatum &dResult)
 	//	Run
 
 	CDatum dCode;
-	CHexeDocument::CreateFunctionCall(m_Program.GetMainFunction(), TArray<CDatum>(), &dCode);
+	CHexeDocument::CreateFunctionCall(m_pProgram->GetMainFunction(), TArray<CDatum>(), &dCode);
 
 	CHexeProcess::ERunCodes iRun = m_Hexe.Run(dCode, &dResult);
 
@@ -82,4 +103,26 @@ CHexeProcess::ERunCodes CGridLangProcess::RunContinues (CDatum dAsyncResult, CDa
 		throw CException(errFail);
 
 	return m_Hexe.RunContinues(dAsyncResult, &dResult);
+	}
+
+void CGridLangProcess::SetExecutionRights (DWORD dwFlags)
+
+//	SetExecutionRights
+//
+//	Sets rights.
+
+	{
+	CHexeSecurityCtx SecurityCtx;
+	SecurityCtx.SetExecutionRights(dwFlags);
+	m_Hexe.SetSecurityCtx(SecurityCtx);
+	}
+
+void CGridLangProcess::SetMaxExecutionTime (DWORD dwMaxTime)
+
+//	SetMaxExecutionTime
+//
+//	Sets the maximum execution time.
+
+	{
+	m_Hexe.SetMaxExecutionTime(dwMaxTime);
 	}

@@ -12,4 +12,5 @@
 #include "GridLangParser.h"
 
 #include "GLASTImpl.h"
+#include "GLDefaultEnv.h"
 #include "GLTypesImpl.h"

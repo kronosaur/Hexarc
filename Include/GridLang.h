@@ -35,16 +35,29 @@ class CGridLangProgram
 		CGridLangCodeBank m_Code;
 	};
 
+class IGridLangEnvironment
+	{
+	public:
+		virtual ~IGridLangEnvironment () { }
+		virtual void Output (const CString &sPort, CDatum dValue) = 0;
+
+		static IGridLangEnvironment *Get (IInvokeCtx &Ctx, CDatum *retdResult);
+	};
+
 class CGridLangProcess
 	{
 	public:
-		CGridLangProcess (const CGridLangProgram &Program) :
-				m_Program(Program)
-			{ }
+		CGridLangProcess () { }
+		CGridLangProcess (const CGridLangProgram &Program)
+			{ Init(Program); }
 
+		void Init (const CGridLangProgram &Program);
 		void Mark () { m_Hexe.Mark(); }
 		CHexeProcess::ERunCodes Run (CDatum &dResult);
 		CHexeProcess::ERunCodes RunContinues (CDatum dAsyncResult, CDatum &dResult);
+		void SetEnvironment (IGridLangEnvironment &Environment) { m_pEnvironment = &Environment; m_pDefaultEnv.Delete(); }
+		void SetExecutionRights (DWORD dwFlags);
+		void SetMaxExecutionTime (DWORD dwMaxTime);
 
 	private:
 		enum class EState
@@ -57,8 +70,11 @@ class CGridLangProcess
 
 		bool Load (CDatum &dResult);
 
-		const CGridLangProgram &m_Program;
+		const CGridLangProgram *m_pProgram = NULL;
+		IGridLangEnvironment *m_pEnvironment = NULL;
 		CHexeProcess m_Hexe;
 
 		EState m_iState = EState::None;
+
+		TUniquePtr<IGridLangEnvironment> m_pDefaultEnv;
 	};
