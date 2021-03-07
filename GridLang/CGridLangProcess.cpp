@@ -15,11 +15,23 @@ void CGridLangProcess::Init (const CGridLangProgram &Program)
 //	Initialize.
 
 	{
+	if (!m_pDefaultEnv)
+		m_pDefaultEnv.Set(new CGLDefaultEnvironment);
+
+	Init(Program, *m_pDefaultEnv);
+	}
+
+void CGridLangProcess::Init (const CGridLangProgram &Program, IGridLangEnvironment &Environment)
+
+//	Init
+//
+//	Initialize.
+
+	{
 	m_pProgram = &Program;
 	m_iState = EState::None;
 
-	m_pDefaultEnv.Set(new CGLDefaultEnvironment);
-	m_pEnvironment = m_pDefaultEnv;
+	m_pEnvironment = &Environment;
 	}
 
 bool CGridLangProcess::Load (CDatum &dResult)

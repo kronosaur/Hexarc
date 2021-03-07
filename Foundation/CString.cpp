@@ -1729,52 +1729,52 @@ double strParseDouble (const char *pStart, double rNullResult, const char **retp
 //
 //  Parses a double precision value.
 
-    {
-    const char *pPos = pStart;
+	{
+	const char *pPos = pStart;
 
-    //  Skip any leading whitespace
+	//  Skip any leading whitespace
 
-    while (strIsWhitespace(pPos))
-        pPos++;
+	while (strIsWhitespace(pPos))
+		pPos++;
 
-    //  We copy what we've got to a buffer, because we're going to use atof.
+	//  We copy what we've got to a buffer, because we're going to use atof.
 
-    const int MAX_SIZE = 64;
-    const char *pSrc = pPos;
-    char szBuffer[MAX_SIZE];
-    char *pDest = szBuffer;
-    char *pDestEnd = szBuffer + MAX_SIZE;
+	const int MAX_SIZE = 64;
+	const char *pSrc = pPos;
+	char szBuffer[MAX_SIZE];
+	char *pDest = szBuffer;
+	char *pDestEnd = szBuffer + MAX_SIZE;
 
-    while (pDest < pDestEnd
-            && ((*pSrc >= '0' && *pSrc <= '9')
-                || *pSrc == '+'
-                || *pSrc == '-'
-                || *pSrc == '.'
-                || *pSrc == 'e'
-                || *pSrc == 'E'))
-        *pDest++ = *pSrc++;
+	while (pDest < pDestEnd
+			&& ((*pSrc >= '0' && *pSrc <= '9')
+				|| *pSrc == '+'
+				|| *pSrc == '-'
+				|| *pSrc == '.'
+				|| *pSrc == 'e'
+				|| *pSrc == 'E'))
+		*pDest++ = *pSrc++;
 
-    if (retpEnd) *retpEnd = pSrc;
+	if (retpEnd) *retpEnd = pSrc;
 
-    //  If we hit the end of the buffer, or we didn't find any valid characters,
-    //  then we fail.
+	//  If we hit the end of the buffer, or we didn't find any valid characters,
+	//  then we fail.
 
-    if (pDest == pDestEnd
-            || pDest == szBuffer)
-        {
-        if (retbNullValue) *retbNullValue = true;
-        return rNullResult;
-        }
+	if (pDest == pDestEnd
+			|| pDest == szBuffer)
+		{
+		if (retbNullValue) *retbNullValue = true;
+		return rNullResult;
+		}
 
-    //  Null-terminate our buffer
+	//  Null-terminate our buffer
 
-    *pDest++ = '\0';
+	*pDest++ = '\0';
 
-    //  Success 
+	//  Success 
 
-    if (retbNullValue) *retbNullValue = false;
-    return atof(szBuffer);
-    }
+	if (retbNullValue) *retbNullValue = false;
+	return atof(szBuffer);
+	}
 
 int strParseHexChar (char chChar, int iNullResult)
 
@@ -2971,6 +2971,91 @@ CString strToSimilarMatch (const CString &sString)
 		}
 
 	return CString::CreateFromHandoff(Buffer);
+	}
+
+bool strIsTitleCapitalWord (const CString &sWord)
+
+//	strIsTitleCapitalWord
+//
+//	Returns TRUE if this is a word that we normally capitalize in titles. We
+//	assume that sWord is always lowercase.
+
+	{
+	static CString TITLE_CAP_EXCEPTIONS_SHORT[] =
+		{
+		"a",
+		"an",
+		"and",
+		"at",
+		"by",
+		"for",
+		"in",
+		"near",
+		"not",
+		"of",
+		"on",
+		"or",
+		"the",
+		"to",
+		"under",
+		"upon",
+		};
+
+	static int TITLE_CAP_EXCEPTIONS_SHORT_COUNT = sizeof(TITLE_CAP_EXCEPTIONS_SHORT) / sizeof(TITLE_CAP_EXCEPTIONS_SHORT[0]);
+
+	if (sWord.GetLength() <= 4)
+		{
+		for (int i = 0; i < TITLE_CAP_EXCEPTIONS_SHORT_COUNT; i++)
+			{
+			if (strEquals(sWord, TITLE_CAP_EXCEPTIONS_SHORT[i]))
+				return false;
+			}
+		}
+
+	return true;
+	}
+
+CString strToTitleCase (const CString &sString)
+
+//	strToTitleCase
+//
+//	Converts the string to title case.
+
+	{
+	//	First split into words and force to lowercase
+
+	TArray<CString> Words;
+	strSplit(sString, NULL_STR, &Words, -1, SSP_FLAG_WHITESPACE_SEPARATOR | SSP_FLAG_FORCE_LOWERCASE);
+
+	//	Now join back, setting case appropriately.
+
+	CStringBuffer Result;
+	for (int i = 0; i < Words.GetCount(); i++)
+		{
+		bool bLastWord = (i == Words.GetCount() - 1);
+		const char *pPos = Words[i].GetParsePointer();
+		const char *pEndPos = pPos + Words[i].GetLength();
+
+		//	Add a space, if necessary.
+
+		if (i != 0)
+			Result.WriteChar(' ');
+
+		//	Should we capitalize this word?
+
+		if (i == 0 || bLastWord || strIsTitleCapitalWord(Words[i]))
+			{
+			UTF32 dwCodePoint = strParseUTF8Char(&pPos, pEndPos);
+			UTF32 dwNew = strToUpperChar(dwCodePoint);
+			strEncodeUTF8Char(dwNew, Result);
+			}
+
+		//	Everything else is lowercase
+
+		Result.Write(pPos, pEndPos - pPos);
+		}
+
+	return Result;
 	}
 
 CString strToUpper (const CString &sString)

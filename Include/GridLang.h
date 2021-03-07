@@ -39,6 +39,7 @@ class IGridLangEnvironment
 	{
 	public:
 		virtual ~IGridLangEnvironment () { }
+		virtual bool GetInput (const CString &sPort, const CString &sPrompt, CDatum *retdResult) = 0;
 		virtual void Output (const CString &sPort, CDatum dValue) = 0;
 
 		static IGridLangEnvironment *Get (IInvokeCtx &Ctx, CDatum *retdResult);
@@ -52,6 +53,7 @@ class CGridLangProcess
 			{ Init(Program); }
 
 		void Init (const CGridLangProgram &Program);
+		void Init (const CGridLangProgram &Program, IGridLangEnvironment &Environment);
 		void Mark () { m_Hexe.Mark(); }
 		CHexeProcess::ERunCodes Run (CDatum &dResult);
 		CHexeProcess::ERunCodes RunContinues (CDatum dAsyncResult, CDatum &dResult);

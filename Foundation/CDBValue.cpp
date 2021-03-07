@@ -1205,6 +1205,23 @@ const CString &CDBValue::GetElementKey (int iIndex) const
 		}
 	}
 
+void CDBValue::Push (const CDBValue &Value)
+
+//	Push
+//
+//	Appends the element to the end of an array.
+
+	{
+	switch (DecodeDiscriminator1(m_dwData))
+		{
+		case TYPE_OBJECT:
+			{
+			IDBValueObject *pObj = DecodeObject(m_dwData);
+			return pObj->Push(Value);
+			}
+		}
+	}
+
 void CDBValue::SetElement (const CString &sKey, const CDBValue &Value)
 
 //	SetElement

@@ -81,6 +81,13 @@ bool CGridLangVMCompiler::CompileExpression (SCompilerCtx &Ctx, const IASTNode &
 			break;
 			}
 
+		case EASTType::FunctionCall:
+			{
+			if (!CompileFunctionCall(Ctx, AST, retsError))
+				return false;
+			break;
+			}
+
 		case EASTType::VarRef:
 			{
 			if (!CompileVariableReference(Ctx, AST, retsError))

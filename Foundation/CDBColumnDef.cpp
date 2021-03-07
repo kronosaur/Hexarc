@@ -34,7 +34,7 @@ CString CDBColumnDef::GenerateID (const CString &sValue)
 		{
 		if (strIsWhitespace(pPos))
 			*pPos = '_';
-		else if (strIsASCIISymbol(pPos))
+		else if (strIsASCIISymbol(pPos) && *pPos != '_')
 			*pPos = '$';
 
 		pPos++;

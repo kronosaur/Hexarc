@@ -197,6 +197,7 @@ inline bool strIsASCIIHigh (const char *pPos) { return ((BYTE)*pPos >= (BYTE)0x8
 bool strIsASCIISymbol (char *pPos);
 inline bool strIsDigit (const char *pPos) { return (*pPos >= '0' && *pPos <= '9'); }
 bool strIsInt (const CString &sString, int *retiValue = NULL);
+bool strIsTitleCapitalWord (const CString &sWord);
 inline bool strIsWhitespace (char chChar) { return (chChar == ' ' || chChar == '\t' || chChar == '\r' || chChar == '\n'); }
 inline bool strIsWhitespace (const char *pPos) { return strIsWhitespace(*pPos); }
 int strLength (LPCSTR pStr);
@@ -214,6 +215,7 @@ double strToDouble (const CString &sString);
 inline int strToInt (const CString &sString, int iFailResult = 0, bool *retbFailed = NULL) { return strParseInt(sString, iFailResult, NULL, retbFailed); }
 CString strToLower (const CString &sString);
 CString strToSimilarMatch (const CString &sString);
+CString strToTitleCase (const CString &sString);
 CString strToUpper (const CString &sString);
 
 CString strEncodeUTF8Char (UTF32 dwCodePoint);

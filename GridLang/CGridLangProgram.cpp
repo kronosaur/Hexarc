@@ -48,13 +48,23 @@ bool CGridLangProgram::Load (IMemoryBlock &Stream, CString *retsError)
 		auto &Def = Root.GetDefinition(i);
 
 		if (!Compiler.CompileDefinition(Def, retsError))
+			{
+#ifdef DEBUG
+			AST.DebugDump();
+#endif
 			return false;
+			}
 		}
 
 	//	Now compile main statements.
 
 	if (!Compiler.CompileSequence(Root, SYMBOL_MAIN, retsError))
+		{
+#ifdef DEBUG
+		AST.DebugDump();
+#endif
 		return false;
+		}
 
 	//	Done
 

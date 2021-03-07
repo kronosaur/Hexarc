@@ -71,6 +71,7 @@ class CDBValue
 		const CString &GetElementKey (int iIndex) const;
 		ETypes GetType (void) const;
 		bool IsNil (void) const { return m_dwData == 0; }
+		void Push (const CDBValue &Value);
 		void SetElement (const CString &sKey, const CDBValue &Value);
 
 		static ETypes Coerce (ETypes iType1, ETypes iType2);
@@ -133,6 +134,7 @@ class IDBValueObject
 		virtual int GetElementCount (void) const { return 1; }
 		virtual const CString &GetElementKey (int iIndex) const { return NULL_STR; }
 		virtual CDBValue::ETypes GetType (void) const = 0;
+		virtual void Push (const CDBValue &Value) { }
 		virtual void SetElement (const CString &sKey, const CDBValue &Value) { }
 	};
 

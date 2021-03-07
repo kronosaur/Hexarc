@@ -16,6 +16,7 @@ class CDBValueArray : public IDBValueObject
 		virtual const CDBValue &GetElement (int iIndex) const override { return (iIndex >= 0 && iIndex < m_Array.GetCount() ? m_Array[iIndex] : CDBValue::Null); }
 		virtual int GetElementCount (void) const override { return m_Array.GetCount(); }
 		virtual CDBValue::ETypes GetType (void) const override { return CDBValue::typeArray; }
+		virtual void Push (const CDBValue &Value) override { m_Array.Insert(Value); }
 
 	private:
 		TArray<CDBValue> m_Array;

@@ -8,5 +8,6 @@
 class CGLDefaultEnvironment : public IGridLangEnvironment
 	{
 	public:
+		virtual bool GetInput (const CString &sPort, const CString &sPrompt, CDatum *retdResult) override;
 		virtual void Output (const CString &sPort, CDatum dValue) override;
 	};
