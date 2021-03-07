@@ -144,7 +144,7 @@ bool CAI1Session::ExecuteHexeCommand (const CString &sCommand, CDatum dPayload)
 	//	Run
 
 	CDatum dResult;
-	CHexeProcess::ERunCodes iRun = m_Process.Run(dCode, &dResult);
+	CHexeProcess::ERun iRun = m_Process.Run(dCode, &dResult);
 
 	//	Handle the result
 
@@ -623,7 +623,7 @@ bool CAI1Session::ProcessRPC (const SArchonMessage &RPCMsg)
 		//	Call the function
 
 		CDatum dResult;
-		CHexeProcess::ERunCodes iRun = m_Process.RunContinues(CSimpleEngine::MessageToHexeResult(RPCMsg), &dResult);
+		CHexeProcess::ERun iRun = m_Process.RunContinues(CSimpleEngine::MessageToHexeResult(RPCMsg), &dResult);
 
 		//	Handle the result
 
@@ -631,7 +631,7 @@ bool CAI1Session::ProcessRPC (const SArchonMessage &RPCMsg)
 		}
 	}
 
-bool CAI1Session::ProcessRunResult (CHexeProcess::ERunCodes iRun, CDatum dRunResult)
+bool CAI1Session::ProcessRunResult (CHexeProcess::ERun iRun, CDatum dRunResult)
 
 //	ProcessRunResult
 //
@@ -640,10 +640,10 @@ bool CAI1Session::ProcessRunResult (CHexeProcess::ERunCodes iRun, CDatum dRunRes
 	{
 	switch (iRun)
 		{
-		case CHexeProcess::runOK:
+		case CHexeProcess::ERun::OK:
 			return SendReply(CMD_OK, dRunResult);
 
-		case CHexeProcess::runAsyncRequest:
+		case CHexeProcess::ERun::AsyncRequest:
 			{
 			const CString &sAddr = dRunResult.GetElement(0);
 
@@ -654,7 +654,7 @@ bool CAI1Session::ProcessRunResult (CHexeProcess::ERunCodes iRun, CDatum dRunRes
 			return SendRPC(sAddr, Msg);
 			}
 
-		case CHexeProcess::runError:
+		case CHexeProcess::ERun::Error:
 			return SendReplyError(dRunResult);
 
 		default:

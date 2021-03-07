@@ -36,7 +36,7 @@ class CRunSession : public ISessionHandler
 			stateWaitingForHexarcReply,
 			};
 
-		bool HandleResult (CHexeProcess::ERunCodes iRun, CDatum dResult);
+		bool HandleResult (CHexeProcess::ERun iRun, CDatum dResult);
 
 		States m_iState;
 		CHexeProcess m_Process;
@@ -54,7 +54,7 @@ void CHexeEngine::MsgRun (const SArchonMessage &Msg, const CHexeSecurityCtx *pSe
 
 //	CRunSession ----------------------------------------------------------------
 
-bool CRunSession::HandleResult (CHexeProcess::ERunCodes iRun, CDatum dResult)
+bool CRunSession::HandleResult (CHexeProcess::ERun iRun, CDatum dResult)
 
 //	HandleResult
 //
@@ -63,13 +63,13 @@ bool CRunSession::HandleResult (CHexeProcess::ERunCodes iRun, CDatum dResult)
 	{
 	switch (iRun)
 		{
-		case CHexeProcess::runOK:
-		case CHexeProcess::runError:
+		case CHexeProcess::ERun::OK:
+		case CHexeProcess::ERun::Error:
 			SendMessageReply(MSG_REPLY_DATA, dResult);
 			//	FALSE means we're done with the session
 			return false;
 
-		case CHexeProcess::runAsyncRequest:
+		case CHexeProcess::ERun::AsyncRequest:
 			{
 			SendMessageCommand(dResult.GetElement(0), 
 					dResult.GetElement(1), 
@@ -113,7 +113,7 @@ bool CRunSession::OnProcessMessage (const SArchonMessage &Msg)
 		//	continue with execution
 
 		CDatum dResult;
-		CHexeProcess::ERunCodes iRun = m_Process.RunContinues(CSimpleEngine::MessageToHexeResult(Msg), &dResult);
+		CHexeProcess::ERun iRun = m_Process.RunContinues(CSimpleEngine::MessageToHexeResult(Msg), &dResult);
 
 		//	Handle it
 
@@ -176,7 +176,7 @@ bool CRunSession::OnStartSession (const SArchonMessage &Msg, DWORD dwTicket)
 	//	Run the code
 
 	CDatum dResult;
-	CHexeProcess::ERunCodes iRun = m_Process.Run(dExpression, &dResult);
+	CHexeProcess::ERun iRun = m_Process.Run(dExpression, &dResult);
 
 	//	Deal with the result
 

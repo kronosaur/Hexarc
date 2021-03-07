@@ -46,7 +46,7 @@ class CRunTaskSession : public ISessionHandler
 			stateWaitingForHexarcReply,
 			};
 
-		bool HandleResult (CHexeProcess::ERunCodes iRun, CDatum dResult);
+		bool HandleResult (CHexeProcess::ERun iRun, CDatum dResult);
 
 		CHyperionEngine *m_pEngine;
 		CHyperionScheduler &m_Scheduler;
@@ -67,7 +67,7 @@ void CHyperionEngine::MsgRunTask (const SArchonMessage &Msg, const CHexeSecurity
 
 //	CRunTaskSession ------------------------------------------------------------
 
-bool CRunTaskSession::HandleResult (CHexeProcess::ERunCodes iRun, CDatum dResult)
+bool CRunTaskSession::HandleResult (CHexeProcess::ERun iRun, CDatum dResult)
 
 //	HandleResult
 //
@@ -76,12 +76,12 @@ bool CRunTaskSession::HandleResult (CHexeProcess::ERunCodes iRun, CDatum dResult
 	{
 	switch (iRun)
 		{
-		case CHexeProcess::runOK:
-		case CHexeProcess::runError:
+		case CHexeProcess::ERun::OK:
+		case CHexeProcess::ERun::Error:
 			{
 			//	If we got an error, then log it.
 
-			if (iRun == CHexeProcess::runError)
+			if (iRun == CHexeProcess::ERun::Error)
 				GetProcessCtx()->Log(MSG_LOG_ERROR, strPattern(ERR_RUN_ERROR, m_sTask, dResult.AsString()));
 
 			//	Either way we're done running
@@ -93,7 +93,7 @@ bool CRunTaskSession::HandleResult (CHexeProcess::ERunCodes iRun, CDatum dResult
 			return false;
 			}
 
-		case CHexeProcess::runAsyncRequest:
+		case CHexeProcess::ERun::AsyncRequest:
 			{
 			//	Check to see if we've been signalled to quit. If so, we stop.
 
@@ -149,7 +149,7 @@ bool CRunTaskSession::OnProcessMessage (const SArchonMessage &Msg)
 		//	continue with execution
 
 		CDatum dResult;
-		CHexeProcess::ERunCodes iRun = m_Process.RunContinues(CSimpleEngine::MessageToHexeResult(Msg), &dResult);
+		CHexeProcess::ERun iRun = m_Process.RunContinues(CSimpleEngine::MessageToHexeResult(Msg), &dResult);
 
 		//	Handle it
 
@@ -190,7 +190,7 @@ bool CRunTaskSession::OnStartSession (const SArchonMessage &Msg, DWORD dwTicket)
 	//	Run the function
 
 	CDatum dResult;
-	CHexeProcess::ERunCodes iRun = m_Process.Run(dFunction, TArray<CDatum>(), &dResult);
+	CHexeProcess::ERun iRun = m_Process.Run(dFunction, TArray<CDatum>(), &dResult);
 
 	//	Deal with the result
 

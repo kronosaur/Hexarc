@@ -241,20 +241,20 @@ bool CHexeProcess::LoadHexeDefinitions (const TArray<CDatum> &Definitions, CStri
 	for (i = 0; i < Definitions.GetCount(); i++)
 		{
 		CDatum dResult;
-		ERunCodes iRun = Run(Definitions[i], &dResult);
+		ERun iRun = Run(Definitions[i], &dResult);
 		
 		//	Process the result
 
 		switch (iRun)
 			{
-			case runOK:
+			case ERun::OK:
 				break;
 
-			case runError:
+			case ERun::Error:
 				*retsError = dResult;
 				return false;
 
-			case runAsyncRequest:
+			case ERun::AsyncRequest:
 				*retsError = ERR_ASYNC_REQUEST_NOT_ALLOWED;
 				return false;
 
@@ -335,7 +335,7 @@ void CHexeProcess::Mark (void)
 //	m_dSecurityCtx.Mark();
 	}
 
-CHexeProcess::ERunCodes CHexeProcess::Run (const CString &sExpression, CDatum *retdResult)
+CHexeProcess::ERun CHexeProcess::Run (const CString &sExpression, CDatum *retdResult)
 
 //	Run
 //
@@ -348,13 +348,13 @@ CHexeProcess::ERunCodes CHexeProcess::Run (const CString &sExpression, CDatum *r
 	if (!CHexeDocument::ParseLispExpression(sExpression, &dExpression, &sError))
 		{
 		*retdResult = CDatum(sError);
-		return runError;
+		return ERun::Error;
 		}
 
 	return Run(dExpression, retdResult);
 	}
 
-CHexeProcess::ERunCodes CHexeProcess::Run (CDatum dExpression, CDatum *retResult)
+CHexeProcess::ERun CHexeProcess::Run (CDatum dExpression, CDatum *retResult)
 	
 //	Run
 //
@@ -365,7 +365,7 @@ CHexeProcess::ERunCodes CHexeProcess::Run (CDatum dExpression, CDatum *retResult
 	return RunWithStack(dExpression, retResult);
 	}
 
-CHexeProcess::ERunCodes CHexeProcess::Run (CDatum dFunc, const TArray<CDatum> &Args, CDatum *retResult)
+CHexeProcess::ERun CHexeProcess::Run (CDatum dFunc, const TArray<CDatum> &Args, CDatum *retResult)
 
 //	Run
 //
@@ -392,7 +392,7 @@ CHexeProcess::ERunCodes CHexeProcess::Run (CDatum dFunc, const TArray<CDatum> &A
 	return RunWithStack(dExpression, retResult);
 	}
 
-CHexeProcess::ERunCodes CHexeProcess::Run (CDatum dFunc, CDatum dCallExpression, const TArray<CDatum> *pInitialStack, CDatum *retResult)
+CHexeProcess::ERun CHexeProcess::Run (CDatum dFunc, CDatum dCallExpression, const TArray<CDatum> *pInitialStack, CDatum *retResult)
 
 //	Run
 //
@@ -417,7 +417,7 @@ CHexeProcess::ERunCodes CHexeProcess::Run (CDatum dFunc, CDatum dCallExpression,
 	return RunWithStack(dCallExpression, retResult);
 	}
 
-CHexeProcess::ERunCodes CHexeProcess::RunContinues (CDatum dAsyncResult, CDatum *retResult)
+CHexeProcess::ERun CHexeProcess::RunContinues (CDatum dAsyncResult, CDatum *retResult)
 
 //	RunContinues
 //
@@ -429,7 +429,7 @@ CHexeProcess::ERunCodes CHexeProcess::RunContinues (CDatum dAsyncResult, CDatum 
 	if (dAsyncResult.IsError())
 		{
 		*retResult = dAsyncResult;
-		return runError;
+		return ERun::Error;
 		}
 
 	//	Push the result on the stack
@@ -438,7 +438,7 @@ CHexeProcess::ERunCodes CHexeProcess::RunContinues (CDatum dAsyncResult, CDatum 
 
 	//	Continue execution
 
-	ERunCodes iRun;
+	ERun iRun;
 	try
 		{
 		iRun = Execute(retResult);
@@ -446,13 +446,13 @@ CHexeProcess::ERunCodes CHexeProcess::RunContinues (CDatum dAsyncResult, CDatum 
 	catch (...)
 		{
 		*retResult = strPattern(ERR_COMPUTE_CRASH);
-		return runError;
+		return ERun::Error;
 		}
 
 	return iRun;
 	}
 
-CHexeProcess::ERunCodes CHexeProcess::RunWithStack (CDatum dExpression, CDatum *retResult)
+CHexeProcess::ERun CHexeProcess::RunWithStack (CDatum dExpression, CDatum *retResult)
 
 //	RunWithStack
 //
@@ -479,21 +479,21 @@ CHexeProcess::ERunCodes CHexeProcess::RunWithStack (CDatum dExpression, CDatum *
 	if (pExpression == NULL)
 		{
 		*retResult = strPattern(ERR_HEXE_CODE_EXPECTED, dExpression.AsString());
-		return runError;
+		return ERun::Error;
 		}
 
 	m_pIP = pExpression->GetCode(&m_dCodeBank);
 	if (m_pIP == NULL)
 		{
 		*retResult = strPattern(ERR_HEXE_CODE_EXPECTED, dExpression.AsString());
-		return runError;
+		return ERun::Error;
 		}
 
 	m_pCodeBank = CHexeCode::Upconvert(m_dCodeBank);
 	if (m_pCodeBank == NULL)
 		{
 		*retResult = strPattern(ERR_HEXE_CODE_EXPECTED, dExpression.AsString());
-		return runError;
+		return ERun::Error;
 		}
 
 	//	Initialize the environment
@@ -507,7 +507,7 @@ CHexeProcess::ERunCodes CHexeProcess::RunWithStack (CDatum dExpression, CDatum *
 
 	//	Run
 
-	ERunCodes iRun;
+	ERun iRun;
 	try
 		{
 		iRun = Execute(retResult);
@@ -515,7 +515,7 @@ CHexeProcess::ERunCodes CHexeProcess::RunWithStack (CDatum dExpression, CDatum *
 	catch (...)
 		{
 		*retResult = strPattern(ERR_COMPUTE_CRASH);
-		return runError;
+		return ERun::Error;
 		}
 
 	return iRun;

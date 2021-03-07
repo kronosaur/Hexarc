@@ -367,13 +367,13 @@ bool CBBRLogFiles::SearchLine (const SCursor &Cursor, const CString &sSearch, bo
 	try
 		{
 		ASSERT(FileData.iStatus == statusReady);
-		char *pPos = FileData.File.GetPointer() + Cursor.dwOffset;
-		char *pPosEnd = pPos + Cursor.dwLength;
+		const char *pPos = FileData.File.GetPointer() + Cursor.dwOffset;
+		const char *pPosEnd = pPos + Cursor.dwLength;
 
-		char *pSearch = sSearch.GetPointer();
-		char *pSearchEnd = pSearch + sSearch.GetLength();
+		const char *pSearch = sSearch.GetPointer();
+		const char *pSearchEnd = pSearch + sSearch.GetLength();
 
-		char *pPosLast = pPosEnd - sSearch.GetLength();
+		const char *pPosLast = pPosEnd - sSearch.GetLength();
 
 		//	If we're doing a case-sensitive search, then it's pretty easy.
 
@@ -385,8 +385,8 @@ bool CBBRLogFiles::SearchLine (const SCursor &Cursor, const CString &sSearch, bo
 					{
 					//	See how far we match
 
-					char *pTarget = pPos + 1;
-					char *pToFind = pSearch + 1;
+					const char *pTarget = pPos + 1;
+					const char *pToFind = pSearch + 1;
 					while (pToFind < pSearchEnd && *pTarget == *pToFind)
 						{
 						pTarget++;
@@ -424,8 +424,8 @@ bool CBBRLogFiles::SearchLine (const SCursor &Cursor, const CString &sSearch, bo
 					//	See how far we match
 
 					bool bFound = true;
-					char *pTarget = pPos;
-					char *pToFind = pSearch;
+					const char *pTarget = pPos;
+					const char *pToFind = pSearch;
 					while (pToFind < pSearchEnd)
 						{
 						UTF32 dwTarget = strParseUTF8Char(&pTarget, pPosEnd);

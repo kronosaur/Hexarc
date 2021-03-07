@@ -548,8 +548,8 @@ bool CCryptosaurEngine::ValidateUsername (const CString &sUsername, CString *ret
 	bool bTrailingWhitespace = false;
 	bool bDoubleWhitespace = false;
 	bool bHasPrintableChars = false;
-	char *pPos = sUsername.GetParsePointer();
-	char *pPosEnd = pPos + sUsername.GetLength();
+	const char *pPos = sUsername.GetParsePointer();
+	const char *pPosEnd = pPos + sUsername.GetLength();
 
 	//	Can't lead with certain symbols
 

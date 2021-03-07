@@ -201,11 +201,11 @@ CString ExecuteLispCommand (const CString &sInput)
 		return sOutput;
 
 	CDatum dResult;
-	CHexeProcess::ERunCodes iRun = g_Process.Run(dExpression, &dResult);
+	CHexeProcess::ERun iRun = g_Process.Run(dExpression, &dResult);
 	switch (iRun)
 		{
-		case CHexeProcess::runOK:
-		case CHexeProcess::runError:
+		case CHexeProcess::ERun::OK:
+		case CHexeProcess::ERun::Error:
 			return dResult.AsString();
 
 		default:

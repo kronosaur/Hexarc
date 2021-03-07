@@ -22,7 +22,7 @@ DECLARE_CONST_STRING(ERR_NOT_ARRAY_OR_STRUCT,			"Unable to set item: not an arra
 DECLARE_CONST_STRING(ERR_UNBOUND_VARIABLE,				"Undefined identifier: %s.");
 DECLARE_CONST_STRING(ERR_EXECUTION_TOOK_TOO_LONG,		"Execution took too long.");
 
-CHexeProcess::ERunCodes CHexeProcess::Execute (CDatum *retResult)
+CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 
 //	Execute
 //
@@ -92,7 +92,7 @@ CHexeProcess::ERunCodes CHexeProcess::Execute (CDatum *retResult)
 				if (!m_pCurGlobalEnv->Find(m_pCodeBank->GetStringLiteral(GetOperand(*m_pIP)), &dValue))
 					{
 					CHexeError::Create(NULL_STR, strPattern(ERR_UNBOUND_VARIABLE, m_pCodeBank->GetStringLiteral(GetOperand(*m_pIP))), retResult);
-					return runError;
+					return ERun::Error;
 					}
 				m_Stack.Push(dValue);
 				m_pIP++;
@@ -104,7 +104,7 @@ CHexeProcess::ERunCodes CHexeProcess::Execute (CDatum *retResult)
 				if (!m_pCurGlobalEnv->FindPos(m_pCodeBank->GetStringLiteral(GetOperand(*m_pIP)), &iPos))
 					{
 					CHexeError::Create(NULL_STR, strPattern(ERR_UNBOUND_VARIABLE, m_pCodeBank->GetStringLiteral(GetOperand(*m_pIP))), retResult);
-					return runError;
+					return ERun::Error;
 					}
 				m_pCurGlobalEnv->SetAt(iPos, m_Stack.Get());
 				m_pIP++;
@@ -117,7 +117,7 @@ CHexeProcess::ERunCodes CHexeProcess::Execute (CDatum *retResult)
 				if (!m_pCurGlobalEnv->FindPos(m_pCodeBank->GetStringLiteral(GetOperand(*m_pIP)), &iPos))
 					{
 					CHexeError::Create(NULL_STR, strPattern(ERR_UNBOUND_VARIABLE, m_pCodeBank->GetStringLiteral(GetOperand(*m_pIP))), retResult);
-					return runError;
+					return ERun::Error;
 					}
 
 				CDatum dValue = m_Stack.Pop();
@@ -126,7 +126,7 @@ CHexeProcess::ERunCodes CHexeProcess::Execute (CDatum *retResult)
 				if (!ExecuteSetAt(m_pCurGlobalEnv->GetAt(iPos), dKey, dValue, &dResult))
 					{
 					*retResult = dResult;
-					return runError;
+					return ERun::Error;
 					}
 
 				m_pCurGlobalEnv->SetAt(iPos, dResult);
@@ -500,8 +500,8 @@ CHexeProcess::ERunCodes CHexeProcess::Execute (CDatum *retResult)
 						CDatum::InvokeResult iResult = dNewExpression.Invoke(this, m_dLocalEnv, m_UserSecurity.GetExecutionRights(), &dResult);
 						if (iResult != CDatum::InvokeResult::ok)
 							{
-							ERunCodes iRunResult = ExecuteHandleInvokeResult(iResult, dNewExpression, dResult, retResult);
-							if (iRunResult == runOK)
+							ERun iRunResult = ExecuteHandleInvokeResult(iResult, dNewExpression, dResult, retResult);
+							if (iRunResult == ERun::OK)
 								break;
 
 							return iRunResult;
@@ -540,7 +540,7 @@ CHexeProcess::ERunCodes CHexeProcess::Execute (CDatum *retResult)
 						if (m_dwAbortTime && ::sysGetTickCount64() >= m_dwAbortTime)
 							{
 							CHexeError::Create(NULL_STR, ERR_EXECUTION_TOOK_TOO_LONG, retResult);
-							return runError;
+							return ERun::Error;
 							}
 
 						//	Send the message
@@ -548,18 +548,18 @@ CHexeProcess::ERunCodes CHexeProcess::Execute (CDatum *retResult)
 						if (!SendHexarcMessage(dMsg, CDatum(pArray), &dValue))
 							{
 							*retResult = dValue;
-							return runError;
+							return ERun::Error;
 							}
 
 						//	Async request
 
 						*retResult = dValue;
-						return runAsyncRequest;
+						return ERun::AsyncRequest;
 						}
 
 					default:
 						CHexeError::Create(NULL_STR, strPattern(ERR_NOT_A_FUNCTION, dNewExpression.AsString()), retResult);
-						return runError;
+						return ERun::Error;
 					}
 
 				break;
@@ -577,7 +577,7 @@ CHexeProcess::ERunCodes CHexeProcess::Execute (CDatum *retResult)
 				if (m_dwAbortTime && ::sysGetTickCount64() >= m_dwAbortTime)
 					{
 					CHexeError::Create(NULL_STR, ERR_EXECUTION_TOOK_TOO_LONG, retResult);
-					return runError;
+					return ERun::Error;
 					}
 
 				//	Send the message
@@ -585,13 +585,13 @@ CHexeProcess::ERunCodes CHexeProcess::Execute (CDatum *retResult)
 				if (!SendHexarcMessage(dMsg, dPayload, &dValue))
 					{
 					*retResult = dValue;
-					return runError;
+					return ERun::Error;
 					}
 
 				//	Async request
 
 				*retResult = dValue;
-				return runAsyncRequest;
+				return ERun::AsyncRequest;
 				}
 
 			case opReturn:
@@ -621,8 +621,8 @@ CHexeProcess::ERunCodes CHexeProcess::Execute (CDatum *retResult)
 					CDatum::InvokeResult iResult = dPrimitive.InvokeContinues(this, dContext, dSubResult, &dResult);
 					if (iResult != CDatum::InvokeResult::ok)
 						{
-						ERunCodes iRunResult = ExecuteHandleInvokeResult(iResult, dPrimitive, dResult, retResult);
-						if (iRunResult == runOK)
+						ERun iRunResult = ExecuteHandleInvokeResult(iResult, dPrimitive, dResult, retResult);
+						if (iRunResult == ERun::OK)
 							break;
 
 						return iRunResult;
@@ -716,7 +716,7 @@ CHexeProcess::ERunCodes CHexeProcess::Execute (CDatum *retResult)
 				if (!ExecuteSetAt(m_pLocalEnv->GetArgument((dwOperand >> 8), (dwOperand & 0xff)), dKey, dValue, &dResult))
 					{
 					*retResult = dResult;
-					return runError;
+					return ERun::Error;
 					}
 
 				m_pLocalEnv->SetArgumentValue((dwOperand >> 8), (dwOperand & 0xff), dResult);
@@ -849,7 +849,7 @@ CHexeProcess::ERunCodes CHexeProcess::Execute (CDatum *retResult)
 					if (!Dividend.Divide(dDivisor))
 						{
 						CHexeError::Create(NULL_STR, ERR_DIVISION_BY_ZERO, retResult);
-						return runError;
+						return ERun::Error;
 						}
 
 					m_Stack.Push(Dividend.GetDatum());
@@ -861,7 +861,7 @@ CHexeProcess::ERunCodes CHexeProcess::Execute (CDatum *retResult)
 					if (!Dividend.Divide(dDivisor))
 						{
 						CHexeError::Create(NULL_STR, ERR_DIVISION_BY_ZERO, retResult);
-						return runError;
+						return ERun::Error;
 						}
 
 					m_Stack.Push(Dividend.GetDatum());
@@ -877,7 +877,7 @@ CHexeProcess::ERunCodes CHexeProcess::Execute (CDatum *retResult)
 					if (!Result.DivideReversed(m_Stack.Pop()))
 						{
 						CHexeError::Create(NULL_STR, ERR_DIVISION_BY_ZERO, retResult);
-						return runError;
+						return ERun::Error;
 						}
 
 					m_Stack.Push(Result.GetDatum());
@@ -1004,7 +1004,7 @@ CHexeProcess::ERunCodes CHexeProcess::Execute (CDatum *retResult)
 				if (!ExecuteMakeFlagsFromArray(dArray, dMap, &dResult))
 					{
 					*retResult = dResult;
-					return runError;
+					return ERun::Error;
 					}
 
 				m_Stack.Push(dResult);
@@ -1053,16 +1053,16 @@ CHexeProcess::ERunCodes CHexeProcess::Execute (CDatum *retResult)
 				CDatum dErrorDesc = (iCount > 1 ? m_Stack.Pop() : CDatum());
 				CDatum dErrorCode = (iCount > 0 ? m_Stack.Pop() : CDatum());
 				CHexeError::Create(dErrorCode.AsString(), dErrorDesc.AsString(), retResult);
-				return runError;
+				return ERun::Error;
 				}
 
 			case opHalt:
 				*retResult = m_Stack.Pop();
-				return runOK;
+				return ERun::OK;
 
 			default:
 				CHexeError::Create(NULL_STR, ERR_INVALID_OP_CODE, retResult);
-				return runError;
+				return ERun::Error;
 			}
 
 		//	Check to make sure we're not in an infinite loop.
@@ -1072,14 +1072,14 @@ CHexeProcess::ERunCodes CHexeProcess::Execute (CDatum *retResult)
 			if (::sysGetTickCount64() >= m_dwAbortTime)
 				{
 				CHexeError::Create(NULL_STR, ERR_EXECUTION_TOOK_TOO_LONG, retResult);
-				return runError;
+				return ERun::Error;
 				}
 
 			iStopCheck = STOP_CHECK_COUNT;
 			}
 		}
 
-	return runOK;
+	return ERun::OK;
 	}
 
 int CHexeProcess::ExecuteCompare (CDatum dValue1, CDatum dValue2)
@@ -1222,7 +1222,7 @@ int CHexeProcess::ExecuteCompare (CDatum dValue1, CDatum dValue2)
 		return KeyCompare(dValue1.AsString(), dValue2.AsString());
 	}
 
-CHexeProcess::ERunCodes CHexeProcess::ExecuteHandleInvokeResult (CDatum::InvokeResult iInvokeResult, CDatum dExpression, CDatum dInvokeResult, CDatum *retResult)
+CHexeProcess::ERun CHexeProcess::ExecuteHandleInvokeResult (CDatum::InvokeResult iInvokeResult, CDatum dExpression, CDatum dInvokeResult, CDatum *retResult)
 
 //	ExecuteHandleInvokeResult
 //
@@ -1234,14 +1234,14 @@ CHexeProcess::ERunCodes CHexeProcess::ExecuteHandleInvokeResult (CDatum::InvokeR
 		{
 		case CDatum::InvokeResult::ok:
 			*retResult = dInvokeResult;
-			return runOK;
+			return ERun::OK;
 
 		case CDatum::InvokeResult::error:
 			if (dInvokeResult.IsNil())
 				CHexeError::Create(NULL_STR, strPattern(ERR_NOT_A_FUNCTION, dExpression.AsString()), retResult);
 			else
 				*retResult = dInvokeResult;
-			return runError;
+			return ERun::Error;
 
 		//	If the primitive returns FALSE with an array then it means
 		//	that we are calling a subroutine. The array has the following 
@@ -1264,7 +1264,7 @@ CHexeProcess::ERunCodes CHexeProcess::ExecuteHandleInvokeResult (CDatum::InvokeR
 			if (dFunction.GetCallInfo(&dNewCodeBank, &pNewIP) != CDatum::funcCall)
 				{
 				CHexeError::Create(NULL_STR, ERR_INVALID_PRIMITIVE_SUB, retResult);
-				return runError;
+				return ERun::Error;
 				}
 
 			//	Encode everything we need to save into the code bank
@@ -1300,7 +1300,7 @@ CHexeProcess::ERunCodes CHexeProcess::ExecuteHandleInvokeResult (CDatum::InvokeR
 
 			//	Continue processing
 
-			return runOK;
+			return ERun::OK;
 			}
 
 		//	Convert to a Hexarc message send.
@@ -1324,13 +1324,13 @@ CHexeProcess::ERunCodes CHexeProcess::ExecuteHandleInvokeResult (CDatum::InvokeR
 			if (!SendHexarcMessageSafe(sMsg, dPayload, &dValue))
 				{
 				*retResult = dValue;
-				return runError;
+				return ERun::Error;
 				}
 
 			//	Async request
 
 			*retResult = dValue;
-			return runAsyncRequest;
+			return ERun::AsyncRequest;
 			}
 
 		//	Otherwise, generic error (this should never happen).
@@ -1338,7 +1338,7 @@ CHexeProcess::ERunCodes CHexeProcess::ExecuteHandleInvokeResult (CDatum::InvokeR
 		default:
 			{
 			CHexeError::Create(NULL_STR, strPattern(ERR_NOT_A_FUNCTION, dExpression.AsString()), retResult);
-			return runError;
+			return ERun::Error;
 			}
 		}
 	}

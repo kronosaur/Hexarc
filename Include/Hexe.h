@@ -213,20 +213,20 @@ class CHexeProcess : public IInvokeCtx
 			FLAG_MAP_ORIGINAL =				0x00000002,
 			};
 
-		enum ERunCodes
+		enum class ERun
 			{
-			runOK,					//	Run completed successfully
+			OK,						//	Run completed successfully
 									//	Result is the function result.
 
-			runAsyncRequest,		//	Run needs an async result.
+			AsyncRequest,			//	Run needs an async result.
 									//	Result is a structure describing
 									//	the required async operation
 									//	(call RunContinues when ready).
 
-			runStopCheck,			//	Check to see if user wants to
+			StopCheck,				//	Check to see if user wants to
 									//	abort execution.
 
-			runError,				//	Runtime error.
+			Error,					//	Runtime error.
 									//	Result is the error.
 			};
 
@@ -252,11 +252,11 @@ class CHexeProcess : public IInvokeCtx
 		bool LoadLibrary (const CString &sName, CString *retsError = NULL);
 		bool LoadStandardLibraries (CString *retsError);
 		void Mark (void);
-		ERunCodes Run (const CString &sExpression, CDatum *retdResult);
-		ERunCodes Run (CDatum dFunc, const TArray<CDatum> &Args, CDatum *retResult);
-		ERunCodes Run (CDatum dExpression, CDatum *retResult);
-		ERunCodes Run (CDatum dFunc, CDatum dCallExpression, const TArray<CDatum> *pInitialStack, CDatum *retResult);
-		ERunCodes RunContinues (CDatum dAsyncResult, CDatum *retResult);
+		ERun Run (const CString &sExpression, CDatum *retdResult);
+		ERun Run (CDatum dFunc, const TArray<CDatum> &Args, CDatum *retResult);
+		ERun Run (CDatum dExpression, CDatum *retResult);
+		ERun Run (CDatum dFunc, CDatum dCallExpression, const TArray<CDatum> *pInitialStack, CDatum *retResult);
+		ERun RunContinues (CDatum dAsyncResult, CDatum *retResult);
 		inline void SetMaxExecutionTime (DWORDLONG dwMilliseconds) { m_dwMaxExecutionTime = dwMilliseconds; }
 		void *SetLibraryCtx (const CString &sLibrary, void *pCtx);
 		void SetSecurityCtx (const CHexeSecurityCtx &Ctx);
@@ -283,13 +283,13 @@ class CHexeProcess : public IInvokeCtx
 			CString sAddr;
 			};
 
-		ERunCodes Execute (CDatum *retResult);
+		ERun Execute (CDatum *retResult);
 		static bool FindHexarcMessage (const CString &sMsg, CString *retsAddr = NULL);
 		void GetCurrentSecurityCtx (CHexeSecurityCtx *retCtx);
 		CDatum GetCurrentSecurityCtx (void);
 		void InitGlobalEnv (CHexeGlobalEnvironment **retpGlobalEnv = NULL);
 		static bool ParseHyperionServiceMessage (const CString &sMsg, CDatum dPayload, CString &sAddr, CString &sNewMsg, CDatum &dNewPayload);
-		ERunCodes RunWithStack (CDatum dExpression, CDatum *retResult);
+		ERun RunWithStack (CDatum dExpression, CDatum *retResult);
 		bool SendHexarcMessage (const CString &sMsg, CDatum dPayload, CDatum *retdResult);
 		bool SendHexarcMessage (const CHexeSecurityCtx &SecurityCtx, const CString &sMsg, CDatum dPayload, CDatum *retdResult);
 		static bool SendHexarcMessage (const CHexeSecurityCtx &SecurityCtx, const CString &sAddr, const CString &sMsg, CDatum dPayload, CDatum *retdResult);
@@ -297,7 +297,7 @@ class CHexeProcess : public IInvokeCtx
 		static bool ValidateHexarcMessage (const CString &sMsg, CDatum dPayload, CString *retsAddr, CDatum *retdResult);
 
 		//	Execution helpers
-		ERunCodes ExecuteHandleInvokeResult (CDatum::InvokeResult iInvokeResult, CDatum dExpression, CDatum dInvokeResult, CDatum *retResult);
+		ERun ExecuteHandleInvokeResult (CDatum::InvokeResult iInvokeResult, CDatum dExpression, CDatum dInvokeResult, CDatum *retResult);
 		static bool ExecuteMakeFlagsFromArray (CDatum dOptions, CDatum dMap, CDatum *retdResult);
 		static bool ExecuteSetAt (CDatum dOriginal, CDatum dKey, CDatum dValue, CDatum *retdResult);
 

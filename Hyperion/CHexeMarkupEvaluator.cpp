@@ -128,7 +128,7 @@ bool CHexeMarkupEvaluator::EvalContinues (SHTTPRequestCtx &Ctx, const SArchonMes
 
 	{
 	CDatum dResult;
-	CHexeProcess::ERunCodes iRun = m_pProcess->RunContinues(CSimpleEngine::MessageToHexeResult(RPCResult), &dResult);
+	CHexeProcess::ERun iRun = m_pProcess->RunContinues(CSimpleEngine::MessageToHexeResult(RPCResult), &dResult);
 
 	//	Output the result of the last processing instruction. This can return
 	//	FALSE if we need to return (e.g., we have a file to load).
@@ -416,7 +416,7 @@ bool CHexeMarkupEvaluator::ProcessEval (SHTTPRequestCtx &Ctx, TagTypes iDirectiv
 	//	Run
 
 	CDatum dResult;
-	CHexeProcess::ERunCodes iRun = m_pProcess->Run(dCode, &dResult);
+	CHexeProcess::ERun iRun = m_pProcess->Run(dCode, &dResult);
 
 	//	Process the result
 
@@ -499,7 +499,7 @@ bool CHexeMarkupEvaluator::ProcessHeader (SHTTPRequestCtx &Ctx, CDatum dResult)
 	return true;
 	}
 
-bool CHexeMarkupEvaluator::ProcessResult (SHTTPRequestCtx &Ctx, CHexeProcess::ERunCodes iRun, CDatum dResult)
+bool CHexeMarkupEvaluator::ProcessResult (SHTTPRequestCtx &Ctx, CHexeProcess::ERun iRun, CDatum dResult)
 
 //	ProcessResult
 //
@@ -509,7 +509,7 @@ bool CHexeMarkupEvaluator::ProcessResult (SHTTPRequestCtx &Ctx, CHexeProcess::ER
 	{
 	//	If we have more async calls then return
 
-	if (iRun == CHexeProcess::runAsyncRequest)
+	if (iRun == CHexeProcess::ERun::AsyncRequest)
 		{
 		Ctx.iStatus = pstatRPCReady;
 		Ctx.sRPCAddr = dResult.GetElement(0);
@@ -534,7 +534,7 @@ bool CHexeMarkupEvaluator::ProcessResult (SHTTPRequestCtx &Ctx, CHexeProcess::ER
 		case tagFile:
 			//	If this is an error, then we return with 404
 
-			if (iRun == CHexeProcess::runError)
+			if (iRun == CHexeProcess::ERun::Error)
 				{
 				Ctx.iStatus = pstatResponseReady;
 				Ctx.Response.InitResponse(http_NOT_FOUND, dResult.AsString());
@@ -576,7 +576,7 @@ bool CHexeMarkupEvaluator::ProcessResult (SHTTPRequestCtx &Ctx, CHexeProcess::ER
 		case tagRedirect:
 			//	If this is an error, then we return with 404
 
-			if (iRun == CHexeProcess::runError)
+			if (iRun == CHexeProcess::ERun::Error)
 				{
 				Ctx.iStatus = pstatResponseReady;
 				Ctx.Response.InitResponse(http_NOT_FOUND, dResult.AsString());
@@ -596,7 +596,7 @@ bool CHexeMarkupEvaluator::ProcessResult (SHTTPRequestCtx &Ctx, CHexeProcess::ER
 			break;
 
 		case tagResponse:
-			if (iRun == CHexeProcess::runError)
+			if (iRun == CHexeProcess::ERun::Error)
 				{
 				Ctx.iStatus = pstatResponseReady;
 				Ctx.Response.InitResponse(http_NOT_FOUND, dResult.AsString());

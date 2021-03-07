@@ -45,7 +45,7 @@ class CAI1Session : public CHyperionSession
 		bool HandleOnWrite (const SArchonMessage &Msg);
 		bool ProcessCommand (const CString &sCommand, CDatum dPayload);
 		bool ProcessRPC (const SArchonMessage &RPCMsg);
-		bool ProcessRunResult (CHexeProcess::ERunCodes iRun, CDatum dRunResult);
+		bool ProcessRunResult (CHexeProcess::ERun iRun, CDatum dRunResult);
 		void SendDisconnect (void);
 		bool SendProgress (CDatum dPayload);
 		bool SendReply (const CString &sCommand, CDatum dPayload, EStates iNewState = stateWaitingForWriteConfirm);
@@ -329,7 +329,7 @@ class CHexeCodeRPCService : public CHTTPService
 		virtual void OnHTTPMark (void) override;
 
 	private:
-		bool ComposeResponse (SHTTPRequestCtx &Ctx, CHexeProcess::ERunCodes iRun, CDatum dResult);
+		bool ComposeResponse (SHTTPRequestCtx &Ctx, CHexeProcess::ERun iRun, CDatum dResult);
 
 		CHexeProcess m_ProcessTemplate;
 		CString m_sOutputContentType;

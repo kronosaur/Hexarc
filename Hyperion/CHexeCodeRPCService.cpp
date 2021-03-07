@@ -37,7 +37,7 @@ DECLARE_CONST_STRING(ERR_404_NOT_FOUND,					"Not Found")
 DECLARE_CONST_STRING(ERR_UNSUPPORTED_MEDIA_TYPE,		"Unsupported media type: %s.")
 DECLARE_CONST_STRING(ERR_JSON_SERIALIZE_TIME_WARNING,	"Serialized JSON response.")
 
-bool CHexeCodeRPCService::ComposeResponse (SHTTPRequestCtx &Ctx, CHexeProcess::ERunCodes iRun, CDatum dResult)
+bool CHexeCodeRPCService::ComposeResponse (SHTTPRequestCtx &Ctx, CHexeProcess::ERun iRun, CDatum dResult)
 
 //	ComposeResponse
 //
@@ -46,7 +46,7 @@ bool CHexeCodeRPCService::ComposeResponse (SHTTPRequestCtx &Ctx, CHexeProcess::E
 	{
 	//	If we have an async result, we return the required message
 
-	if (iRun == CHexeProcess::runAsyncRequest)
+	if (iRun == CHexeProcess::ERun::AsyncRequest)
 		{
 		Ctx.iStatus = pstatRPCReady;
 		Ctx.sRPCAddr = dResult.GetElement(0);
@@ -60,7 +60,7 @@ bool CHexeCodeRPCService::ComposeResponse (SHTTPRequestCtx &Ctx, CHexeProcess::E
 
 	//	If error, log it
 
-	if (iRun == CHexeProcess::runError)
+	if (iRun == CHexeProcess::ERun::Error)
 		{
 		const CString &sError = dResult;
 		if (strStartsWith(sError, STR_ERROR_PREFIX)
@@ -255,7 +255,7 @@ bool CHexeCodeRPCService::OnHandleRequest (SHTTPRequestCtx &Ctx)
 	//	Run
 
 	CDatum dResult;
-	CHexeProcess::ERunCodes iRun = Ctx.pProcess->Run(dCode, Args, &dResult);
+	CHexeProcess::ERun iRun = Ctx.pProcess->Run(dCode, Args, &dResult);
 
 	//	Handle it
 
@@ -270,9 +270,9 @@ bool CHexeCodeRPCService::OnHandleRPCResult (SHTTPRequestCtx &Ctx, const SArchon
 
 	{
 	CDatum dResult;
-	CHexeProcess::ERunCodes iRun = Ctx.pProcess->RunContinues(CSimpleEngine::MessageToHexeResult(RPCResult), &dResult);
+	CHexeProcess::ERun iRun = Ctx.pProcess->RunContinues(CSimpleEngine::MessageToHexeResult(RPCResult), &dResult);
 
-	if (iRun == CHexeProcess::runAsyncRequest)
+	if (iRun == CHexeProcess::ERun::AsyncRequest)
 		{
 		Ctx.iStatus = pstatRPCReady;
 		Ctx.sRPCAddr = dResult.GetElement(0);

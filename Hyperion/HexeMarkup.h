@@ -102,7 +102,7 @@ class CHexeMarkupEvaluator
 		bool ProcessDirective (SHTTPRequestCtx &Ctx, const CString &sDirective, const CString &sValue);
 		bool ProcessEval (SHTTPRequestCtx &Ctx, TagTypes iDirective, const CString &sCode);
 		bool ProcessHeader (SHTTPRequestCtx &Ctx, CDatum dResult);
-		bool ProcessResult (SHTTPRequestCtx &Ctx, CHexeProcess::ERunCodes iRun, CDatum dResult);
+		bool ProcessResult (SHTTPRequestCtx &Ctx, CHexeProcess::ERun iRun, CDatum dResult);
 
 		CDatum m_dFileDesc;
 		CDatum m_dData;

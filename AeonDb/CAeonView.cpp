@@ -150,11 +150,11 @@ CDatum CAeonView::ComputeColumns (CHexeProcess &Process, CDatum dRowData)
 	Args.Insert(dRowData);
 
 	CDatum dResult;
-	CHexeProcess::ERunCodes iRun = Process.Run(m_ComputedColumns, Args, &dResult);
+	CHexeProcess::ERun iRun = Process.Run(m_ComputedColumns, Args, &dResult);
 
 	switch (iRun)
 		{
-		case CHexeProcess::runOK:
+		case CHexeProcess::ERun::OK:
 			{
 			//	dResult is a struct containing zero or more columns
 
@@ -163,7 +163,7 @@ CDatum CAeonView::ComputeColumns (CHexeProcess &Process, CDatum dRowData)
 			return dNewRowData;
 			}
 
-		case CHexeProcess::runError:
+		case CHexeProcess::ERun::Error:
 			{
 			CDatum dNewRowData(new CComplexStruct(dRowData));
 			dNewRowData.SetElement(FIELD_ERROR, strPattern("ERROR: %s", dResult.AsString()));
@@ -358,15 +358,15 @@ bool CAeonView::CreateSecondaryKeys (CHexeProcess &Process, CDatum dData, SEQUEN
 			TArray<CDatum> Args;
 			Args.Insert(dData);
 
-			CHexeProcess::ERunCodes iRun = Process.Run(dKeyDesc, Args, &dValue);
+			CHexeProcess::ERun iRun = Process.Run(dKeyDesc, Args, &dValue);
 
 			switch (iRun)
 				{
-				case CHexeProcess::runOK:
+				case CHexeProcess::ERun::OK:
 					//	dValue is a valid value for a key
 					break;
 
-				case CHexeProcess::runError:
+				case CHexeProcess::ERun::Error:
 					dValue = CDatum(strPattern("(%s)", dValue.AsString()));
 					break;
 

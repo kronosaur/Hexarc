@@ -53,7 +53,7 @@ class CHexarcMsgSession : public CHyperionSession
 		virtual void OnGetHyperionStatusReport (CComplexStruct *pStatus) const override;
 
 	private:
-		bool ComposeResponse (CHexeProcess::ERunCodes iRun, CDatum dResult);
+		bool ComposeResponse (CHexeProcess::ERun iRun, CDatum dResult);
 
 		IHyperionService *m_pService;		//	Service handling the request
 		const CHexeSecurityCtx *m_pCallerSecurityCtx;	//	Security ctx of caller
@@ -135,7 +135,7 @@ CHexarcMsgSession::CHexarcMsgSession (CHyperionEngine *pEngine, IHyperionService
 	{
 	}
 
-bool CHexarcMsgSession::ComposeResponse (CHexeProcess::ERunCodes iRun, CDatum dResult)
+bool CHexarcMsgSession::ComposeResponse (CHexeProcess::ERun iRun, CDatum dResult)
 
 //	ComposeResponse
 //
@@ -144,7 +144,7 @@ bool CHexarcMsgSession::ComposeResponse (CHexeProcess::ERunCodes iRun, CDatum dR
 	{
 	switch (iRun)
 		{
-		case CHexeProcess::runOK:
+		case CHexeProcess::ERun::OK:
 			{
 			//	Parse the response. We expect one of the following formats:
 			//
@@ -217,7 +217,7 @@ bool CHexarcMsgSession::ComposeResponse (CHexeProcess::ERunCodes iRun, CDatum dR
 			return false;
 			}
 
-		case CHexeProcess::runAsyncRequest:
+		case CHexeProcess::ERun::AsyncRequest:
 			{
 			const CString &sAddr = dResult.GetElement(0);
 			CString sMsg = dResult.GetElement(1);
@@ -236,7 +236,7 @@ bool CHexarcMsgSession::ComposeResponse (CHexeProcess::ERunCodes iRun, CDatum dR
 			return true;
 			}
 
-		case CHexeProcess::runError:
+		case CHexeProcess::ERun::Error:
 			{
 			ISessionHandler::SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, dResult);
 			return false;
@@ -309,7 +309,7 @@ bool CHexarcMsgSession::OnProcessMessage (const SArchonMessage &Msg)
 	//	Call the function
 
 	CDatum dResult;
-	CHexeProcess::ERunCodes iRun = m_Process.RunContinues(CSimpleEngine::MessageToHexeResult(Msg), &dResult);
+	CHexeProcess::ERun iRun = m_Process.RunContinues(CSimpleEngine::MessageToHexeResult(Msg), &dResult);
 
 	//	Handle the result
 
@@ -391,7 +391,7 @@ bool CHexarcMsgSession::OnStartSession (const SArchonMessage &Msg, DWORD dwTicke
 	//	Run
 
 	CDatum dResult;
-	CHexeProcess::ERunCodes iRun = m_Process.Run(dCode, Args, &dResult);
+	CHexeProcess::ERun iRun = m_Process.Run(dCode, Args, &dResult);
 
 	//	Handle it
 

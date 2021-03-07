@@ -75,17 +75,17 @@ int ExecuteHexeDocument (const SOptions &Options)
 
 	TArray<CDatum> Args;
 	CDatum dResult;
-	CHexeProcess::ERunCodes iRun = Process.Run(dCode, Args, &dResult);
+	CHexeProcess::ERun iRun = Process.Run(dCode, Args, &dResult);
 
 	//	Handle result
 
 	switch (iRun)
 		{
-		case CHexeProcess::runOK:
+		case CHexeProcess::ERun::OK:
 			printf("%s\n", (LPSTR)dResult.AsString());
 			break;
 
-		case CHexeProcess::runError:
+		case CHexeProcess::ERun::Error:
 			printf("ERROR: %s\n", (LPSTR)dResult.AsString());
 			break;
 

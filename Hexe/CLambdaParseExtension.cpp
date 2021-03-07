@@ -58,13 +58,13 @@ bool CLambdaParseExtension::ParseAEONArray (CCharStream &Stream, CDatum *retDatu
 	//	NOTE: These functions inherit the global environment of the
 	//	process.
 
-	CHexeProcess::ERunCodes iRun = m_Process.Run(dExpression, retDatum);
-	if (iRun == CHexeProcess::runAsyncRequest)
+	CHexeProcess::ERun iRun = m_Process.Run(dExpression, retDatum);
+	if (iRun == CHexeProcess::ERun::AsyncRequest)
 		{
 		CHexeError::Create(NULL_STR, ERR_NO_ASYNC_CALLS, retDatum);
 		return true;
 		}
-	else if (iRun != CHexeProcess::runOK && iRun != CHexeProcess::runError)
+	else if (iRun != CHexeProcess::ERun::OK && iRun != CHexeProcess::ERun::Error)
 		{
 		CHexeError::Create(NULL_STR, strPattern(ERR_UNKNOWN_RUN_RESULT, iRun), retDatum);
 		return true;
