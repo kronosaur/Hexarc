@@ -55,8 +55,8 @@ class CGridLangProcess
 		void Init (const CGridLangProgram &Program);
 		void Init (const CGridLangProgram &Program, IGridLangEnvironment &Environment);
 		void Mark () { m_Hexe.Mark(); }
-		CHexeProcess::ERunCodes Run (CDatum &dResult);
-		CHexeProcess::ERunCodes RunContinues (CDatum dAsyncResult, CDatum &dResult);
+		CHexeProcess::ERun Run (CDatum &dResult);
+		CHexeProcess::ERun RunContinues (CDatum dAsyncResult, CDatum &dResult);
 		void SetEnvironment (IGridLangEnvironment &Environment) { m_pEnvironment = &Environment; m_pDefaultEnv.Delete(); }
 		void SetExecutionRights (DWORD dwFlags);
 		void SetMaxExecutionTime (DWORD dwMaxTime);

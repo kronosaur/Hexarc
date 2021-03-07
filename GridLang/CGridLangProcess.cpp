@@ -72,7 +72,7 @@ bool CGridLangProcess::Load (CDatum &dResult)
 	return true;
 	}
 
-CHexeProcess::ERunCodes CGridLangProcess::Run (CDatum &dResult)
+CHexeProcess::ERun CGridLangProcess::Run (CDatum &dResult)
 
 //	Run
 //
@@ -87,7 +87,7 @@ CHexeProcess::ERunCodes CGridLangProcess::Run (CDatum &dResult)
 	if (m_iState == EState::None)
 		{
 		if (!Load(dResult))
-			return CHexeProcess::runError;
+			return CHexeProcess::ERun::Error;
 		}
 
 	if (m_iState != EState::Loaded)
@@ -98,13 +98,13 @@ CHexeProcess::ERunCodes CGridLangProcess::Run (CDatum &dResult)
 	CDatum dCode;
 	CHexeDocument::CreateFunctionCall(m_pProgram->GetMainFunction(), TArray<CDatum>(), &dCode);
 
-	CHexeProcess::ERunCodes iRun = m_Hexe.Run(dCode, &dResult);
+	CHexeProcess::ERun iRun = m_Hexe.Run(dCode, &dResult);
 
 	m_iState = EState::Done;
 	return iRun;
 	}
 
-CHexeProcess::ERunCodes CGridLangProcess::RunContinues (CDatum dAsyncResult, CDatum &dResult)
+CHexeProcess::ERun CGridLangProcess::RunContinues (CDatum dAsyncResult, CDatum &dResult)
 
 //	RunContinues
 //

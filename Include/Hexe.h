@@ -207,11 +207,8 @@ class CHexeSecurityCtx
 class CHexeProcess : public IInvokeCtx
 	{
 	public:
-		enum EFlags
-			{
-			FLAG_MAP_EXCLUDE_NIL =			0x00000001,
-			FLAG_MAP_ORIGINAL =				0x00000002,
-			};
+		static constexpr DWORD FLAG_MAP_EXCLUDE_NIL =		0x00000001;
+		static constexpr DWORD FLAG_MAP_ORIGINAL =			0x00000002;
 
 		enum class ERun
 			{
