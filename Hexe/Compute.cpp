@@ -1303,6 +1303,21 @@ CHexeProcess::ERun CHexeProcess::ExecuteHandleInvokeResult (CDatum::InvokeResult
 			return ERun::OK;
 			}
 
+		//	Input Request
+
+		case CDatum::InvokeResult::runInputRequest:
+			{
+			//	Restore the environment and advance IP
+
+			m_LocalEnvStack.Restore(&m_dCurGlobalEnv, &m_pCurGlobalEnv, &m_dLocalEnv, &m_pLocalEnv);
+			m_pIP++;
+
+			//	Block until we get input
+
+			*retResult = CDatum();
+			return ERun::InputRequest;
+			}
+
 		//	Convert to a Hexarc message send.
 
 		case CDatum::InvokeResult::runInvoke:

@@ -100,7 +100,19 @@ CHexeProcess::ERun CGridLangProcess::Run (CDatum &dResult)
 
 	CHexeProcess::ERun iRun = m_Hexe.Run(dCode, &dResult);
 
-	m_iState = EState::Done;
+	switch (iRun)
+		{
+		case CHexeProcess::ERun::AsyncRequest:
+		case CHexeProcess::ERun::InputRequest:
+		case CHexeProcess::ERun::StopCheck:
+			m_iState = EState::WaitingToContinue;
+			break;
+
+		default:
+			m_iState = EState::Done;
+			break;
+		}
+
 	return iRun;
 	}
 
@@ -111,7 +123,7 @@ CHexeProcess::ERun CGridLangProcess::RunContinues (CDatum dAsyncResult, CDatum &
 //	Continues after async result.
 
 	{
-	if (m_iState != EState::WaitingForAsync)
+	if (m_iState != EState::WaitingToContinue)
 		throw CException(errFail);
 
 	return m_Hexe.RunContinues(dAsyncResult, &dResult);

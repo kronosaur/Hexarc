@@ -137,6 +137,7 @@ class CDatum
 			error,
 			ok,
 			runFunction,
+			runInputRequest,
 			runInvoke,
 			};
 

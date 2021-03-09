@@ -8,6 +8,7 @@
 DECLARE_CONST_STRING(FIELD_TYPE,						"type")
 
 DECLARE_CONST_STRING(TYPE_HEXARC_MSG,					"hexarcMsg")
+DECLARE_CONST_STRING(TYPE_INPUT_REQUEST,				"inputRequest")
 
 DECLARE_CONST_STRING(ERR_CRASH,							"Crash in primitive %s.")
 DECLARE_CONST_STRING(ERR_NOT_ALLOWED,					"You are not authorized to call %s.")
@@ -43,14 +44,33 @@ CDatum::InvokeResult CHexeLibraryFunction::HandleSpecialResult (CDatum *retdResu
 	{
 	if (retdResult->IsError())
 		return CDatum::InvokeResult::error;
+
 	else if (retdResult->GetBasicType() == CDatum::typeArray)
 		return CDatum::InvokeResult::runFunction;
+
+	else if (retdResult->GetBasicType() == CDatum::typeString)
+		{
+		const CString &sType = *retdResult;
+		if (strEquals(sType, TYPE_INPUT_REQUEST))
+			{
+			return CDatum::InvokeResult::runInputRequest;
+			}
+		else
+			{
+			CHexeError::Create(NULL_STR, strPattern(ERR_UNKNOWN_TYPE, sType), retdResult);
+			return CDatum::InvokeResult::error;
+			}
+		}
 	else if (retdResult->GetBasicType() == CDatum::typeStruct)
 		{
 		const CString &sType = retdResult->GetElement(FIELD_TYPE);
 		if (strEquals(sType, TYPE_HEXARC_MSG))
 			{
 			return CDatum::InvokeResult::runInvoke;
+			}
+		else if (strEquals(sType, TYPE_INPUT_REQUEST))
+			{
+			return CDatum::InvokeResult::runInputRequest;
 			}
 		else
 			{

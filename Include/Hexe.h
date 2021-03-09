@@ -219,6 +219,17 @@ class CHexeProcess : public IInvokeCtx
 									//	Result is a structure describing
 									//	the required async operation
 									//	(call RunContinues when ready).
+									//
+									//	NOTE: This is actually a misnomer. The
+									//	code blocks while waiting for the 
+									//	result, so technically this should be a
+									//	"blocking request". Should probably 
+									//	rename to HexarcRequest.
+
+			InputRequest,			//	Run needs input (usually from the user).
+									//	Result is a struct describing the 
+									//	request. Call RunContinues when the data
+									//	is available.
 
 			StopCheck,				//	Check to see if user wants to
 									//	abort execution.

@@ -59,18 +59,22 @@ bool CLambdaParseExtension::ParseAEONArray (CCharStream &Stream, CDatum *retDatu
 	//	process.
 
 	CHexeProcess::ERun iRun = m_Process.Run(dExpression, retDatum);
-	if (iRun == CHexeProcess::ERun::AsyncRequest)
+	switch (iRun)
 		{
-		CHexeError::Create(NULL_STR, ERR_NO_ASYNC_CALLS, retDatum);
-		return true;
-		}
-	else if (iRun != CHexeProcess::ERun::OK && iRun != CHexeProcess::ERun::Error)
-		{
-		CHexeError::Create(NULL_STR, strPattern(ERR_UNKNOWN_RUN_RESULT, iRun), retDatum);
-		return true;
-		}
+		case CHexeProcess::ERun::OK:
+		case CHexeProcess::ERun::Error:
+			//	retDatum is properly initialized.
+			return true;
 
-	return true;
+		case CHexeProcess::ERun::AsyncRequest:
+		case CHexeProcess::ERun::InputRequest:
+			CHexeError::Create(NULL_STR, ERR_NO_ASYNC_CALLS, retDatum);
+			return true;
+
+		default:
+			CHexeError::Create(NULL_STR, strPattern(ERR_UNKNOWN_RUN_RESULT, iRun), retDatum);
+			return true;
+		}
 	}
 
 bool CLambdaParseExtension::ParseHexeLispDef (CCharStream *pStream, CDatum *retdDatum, CString *retsError)

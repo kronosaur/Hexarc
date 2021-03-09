@@ -255,6 +255,7 @@ bool CHexeProcess::LoadHexeDefinitions (const TArray<CDatum> &Definitions, CStri
 				return false;
 
 			case ERun::AsyncRequest:
+			case ERun::InputRequest:
 				*retsError = ERR_ASYNC_REQUEST_NOT_ALLOWED;
 				return false;
 

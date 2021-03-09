@@ -66,7 +66,7 @@ class CGridLangProcess
 			{
 			None,						//	Need to load program
 			Loaded,						//	Program loaded, not yet run
-			WaitingForAsync,			//	Waiting for async result.
+			WaitingToContinue,			//	Waiting for async result.
 			Done,						//	Run complete
 			};
 
