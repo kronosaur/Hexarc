@@ -1205,6 +1205,59 @@ const CString &CDBValue::GetElementKey (int iIndex) const
 		}
 	}
 
+CDBValue CDBValue::GetProperty (const CString &sProperty) const
+
+//	GetProperty
+//
+//	Returns a property
+
+	{
+	switch (DecodeDiscriminator1(m_dwData))
+		{
+		case TYPE_OBJECT:
+			{
+			IDBValueObject *pObj = DecodeObject(m_dwData);
+			return pObj->GetProperty(sProperty);
+			}
+
+		default:
+			return Null;
+		}
+	}
+
+bool CDBValue::IsBlank (void) const
+
+//	IsBlank
+//
+//	Returns TRUE if value is null or empty.
+
+	{
+	if (m_dwData == 0)
+		return true;
+
+	switch (DecodeDiscriminator1(m_dwData))
+		{
+		case TYPE_STRING:
+			return ((CString *)&m_dwData)->IsEmpty();
+
+		case TYPE_OBJECT:
+			{
+			IDBValueObject *pObj = DecodeObject(m_dwData);
+			switch (pObj->GetType())
+				{
+				case typeDateTime:
+					return !pObj->CastDateTime().IsValid();
+
+				default:
+					return (pObj->GetElementCount() == 0);
+				}
+			}
+
+		default:
+			return false;
+		}
+	}
+
 void CDBValue::Push (const CDBValue &Value)
 
 //	Push

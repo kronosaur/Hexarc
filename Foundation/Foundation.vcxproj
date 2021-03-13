@@ -238,6 +238,7 @@
     <ClCompile Include="CDBTable.cpp" />
     <ClCompile Include="CDBValue.cpp" />
     <ClCompile Include="CDBValueArray.cpp" />
+    <ClCompile Include="CDBValueDateTime.cpp" />
     <ClCompile Include="CDBValueStruct.cpp" />
     <ClCompile Include="CEntityResolverList.cpp" />
     <ClCompile Include="CExternalEntityTable.cpp" />

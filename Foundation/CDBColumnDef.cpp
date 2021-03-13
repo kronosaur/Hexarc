@@ -21,6 +21,22 @@ CDBColumnDef::CDBColumnDef (const CString &sID, CDBValue::ETypes iType, int iOrd
 	m_sDisplayName = sID;
 	}
 
+CDBColumnDef::CDBColumnDef (const CString &sID, const CString &sName, CDBValue::ETypes iType, int iOrdinal, int iSize)
+
+//	CDBColumnDef constructor
+
+	{
+	m_sID = GenerateID(sID);
+	m_sName = sName;
+	m_iType = iType;
+
+	m_iOrdinal = iOrdinal;
+	m_iSize = iSize;
+
+	m_iDisplayType = iType;
+	m_sDisplayName = sID;
+	}
+
 CString CDBColumnDef::GenerateID (const CString &sValue)
 
 //	GenerateID
@@ -50,7 +66,6 @@ void CDBColumnDef::SetID (const CString &sID)
 //	Sets the column ID.
 
 	{
-	m_sID = strToLower(sID);
+	m_sID = GenerateID(sID);
 	m_sName = sID;
 	}
-

@@ -45,6 +45,7 @@ class CDBValueDateTime : public IDBValueObject
 
 		virtual const CDateTime &CastDateTime (void) const { return m_Value; }
 		virtual IDBValueObject *Clone (void) const override { return new CDBValueDateTime(m_Value); }
+		virtual CDBValue GetProperty (const CString &sProperty) const;
 		virtual CDBValue::ETypes GetType (void) const override { return CDBValue::typeDateTime; }
 
 	private:

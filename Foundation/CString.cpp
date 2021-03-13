@@ -2999,6 +2999,8 @@ bool strIsTitleCapitalWord (const CString &sWord)
 		"to",
 		"under",
 		"upon",
+		"with",
+		"without",
 		};
 
 	static int TITLE_CAP_EXCEPTIONS_SHORT_COUNT = sizeof(TITLE_CAP_EXCEPTIONS_SHORT) / sizeof(TITLE_CAP_EXCEPTIONS_SHORT[0]);

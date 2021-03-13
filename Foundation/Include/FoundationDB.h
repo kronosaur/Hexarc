@@ -69,7 +69,9 @@ class CDBValue
 		const CDBValue &GetElement (const CString &sKey) const;
 		int GetElementCount (void) const;
 		const CString &GetElementKey (int iIndex) const;
+		CDBValue GetProperty (const CString &sProperty) const;
 		ETypes GetType (void) const;
+		bool IsBlank (void) const;
 		bool IsNil (void) const { return m_dwData == 0; }
 		void Push (const CDBValue &Value);
 		void SetElement (const CString &sKey, const CDBValue &Value);
@@ -133,6 +135,7 @@ class IDBValueObject
 		virtual const CDBValue &GetElement (const CString &sKey) const { return CDBValue::Null; }
 		virtual int GetElementCount (void) const { return 1; }
 		virtual const CString &GetElementKey (int iIndex) const { return NULL_STR; }
+		virtual CDBValue GetProperty (const CString &sProperty) const { return GetElement(sProperty); }
 		virtual CDBValue::ETypes GetType (void) const = 0;
 		virtual void Push (const CDBValue &Value) { }
 		virtual void SetElement (const CString &sKey, const CDBValue &Value) { }
@@ -143,6 +146,7 @@ class CDBColumnDef
 	public:
 		CDBColumnDef (void) { }
 		CDBColumnDef (const CString &sID, CDBValue::ETypes iType, int iOrdinal = -1, int iSize = -1);
+		CDBColumnDef (const CString &sID, const CString &sName, CDBValue::ETypes iType, int iOrdinal = -1, int iSize = -1);
 
 		const CString &GetDesc (void) const { return m_sDesc; }
 		const CString &GetDisplayName (void) const { return m_sDisplayName; }
@@ -170,7 +174,7 @@ class CDBColumnDef
 		DWORD m_dwExtra = 0;
 
 		CString m_sDisplayName;				//	Display name of column
-		CDBValue::ETypes m_iDisplayType;	//	Convert to this type on display or export
+		CDBValue::ETypes m_iDisplayType = CDBValue::typeUnknown;	//	Convert to this type on display or export
 	};
 
 class CDBTable
