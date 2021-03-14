@@ -13,6 +13,10 @@ void CASTUnaryOp::DebugDump (const CString &sIndent) const
 			printf("%soperator !\n", (LPSTR)sIndent);
 			break;
 
+		case EASTType::OpReturn:
+			printf("%soperator return\n", (LPSTR)sIndent);
+			break;
+
 		default:
 			printf("%soperator %d\n", (LPSTR)sIndent, (int)m_iOp);
 			break;

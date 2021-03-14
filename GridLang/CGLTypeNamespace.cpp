@@ -9,6 +9,17 @@ DECLARE_CONST_STRING(ERR_UNDECLARED_IDENTIFIER,			"Undeclared identifier: %s");
 DECLARE_CONST_STRING(ERR_NOT_AN_OBJECT,					"%s is not an Object. Cannot inherit from this type.");
 DECLARE_CONST_STRING(ERR_INVALID_TYPE_REF,				"Invalid type reference.");
 
+void CGLTypeNamespace::AccumulateSymbols (TSortMap<CString, const IGLType *> &retSymbols) const
+
+//	AccumulateSymbols
+//
+//	Accumulates a list of all symbols.
+
+	{
+	for (int i = 0; i < m_Types.GetCount(); i++)
+		m_Types[i]->AccumulateSymbols(retSymbols);
+	}
+
 bool CGLTypeNamespace::DeclareClass (CGLNamespaceCtx &Ctx, IGLType *pScope, const IASTNode &AST, const IASTNode &Def, CString *retsError)
 
 //	DeclareClass

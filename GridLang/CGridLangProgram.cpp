@@ -51,6 +51,8 @@ bool CGridLangProgram::Load (IMemoryBlock &Stream, CString *retsError)
 			{
 #ifdef DEBUG
 			AST.DebugDump();
+			printf("\n");
+			m_Types.DebugDump();
 #endif
 			return false;
 			}
@@ -62,6 +64,8 @@ bool CGridLangProgram::Load (IMemoryBlock &Stream, CString *retsError)
 		{
 #ifdef DEBUG
 		AST.DebugDump();
+		printf("\n");
+		m_Types.DebugDump();
 #endif
 		return false;
 		}

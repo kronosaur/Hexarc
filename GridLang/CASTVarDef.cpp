@@ -7,7 +7,15 @@
 
 void CASTVarDef::DebugDump (const CString &sIndent) const 
 	{
-	printf("%s%s\n", (LPSTR)sIndent, (LPSTR)m_sName);
+	CString sType;
+	if (m_pTypeDef)
+		sType = m_pTypeDef->GetName();
+	else
+		sType = CString("(null)");
+
+	printf("%s%s:%s\n", (LPSTR)sIndent, (LPSTR)m_sName, (LPSTR)sType);
+	if (m_pBody)
+		m_pBody->DebugDump(strPattern("%s\t", sIndent));
 	}
 
 bool CASTVarDef::IsStatement () const

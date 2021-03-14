@@ -74,6 +74,22 @@ void CGLTypeSystem::AddCoreTypes ()
 	m_Core[(int)GLCoreType::Function] = InsertOrThrow(IGLType::CreateAbstract(GetCoreType(GLCoreType::Type), NULL, TYPENAME_FUNCTION));
 	}
 
+void CGLTypeSystem::DebugDump () const
+
+//	DebugDump
+//
+//	Output all types.
+
+	{
+	TSortMap<CString, const IGLType *> Symbols;
+	m_Types.AccumulateSymbols(Symbols);
+
+	for (int i = 0; i < Symbols.GetCount(); i++)
+		{
+		printf("%s\n", (LPSTR)Symbols.GetKey(i));
+		}
+	}
+
 bool CGLTypeSystem::InitFromAST (const CGridLangAST &AST, CString *retsError)
 
 //	InitFromAST

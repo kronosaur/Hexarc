@@ -69,6 +69,7 @@ class IGLType
 		virtual ~IGLType () { }
 
 		virtual GLTypeClass GetClass () const = 0;
+		void AccumulateSymbols (TSortMap<CString, const IGLType *> &retSymbols) const { retSymbols.Insert(m_sSymbol, this); OnAccumulateSymbols(retSymbols); }
 		bool Declare (CGLNamespaceCtx &Ctx, const IASTNode &Def, CString *retsError);
 		bool Define (CGLNamespaceCtx &Ctx, CString *retsError = NULL);
 		const CString &GetName () const { return m_sName; }
@@ -85,12 +86,14 @@ class IGLType
 		IGLType (const IGLType *pParent, const IGLType *pScope, const CString &sName) :
 				m_pParent(pParent),
 				m_pScope(pScope),
-				m_sName(sName)
+				m_sName(sName),
+				m_sSymbol(!pScope ? sName : NULL_STR)
 			{ }
 
 		void GenerateSymbol ();
 
 	private:
+		virtual void OnAccumulateSymbols (TSortMap<CString, const IGLType *> &retSymbols) const { }
 		virtual bool OnDeclare (CGLNamespaceCtx &Ctx, const IASTNode &Def, CString *retsError = NULL) { return true; }
 		virtual bool OnDefine (CGLNamespaceCtx &Ctx, CString *retsError = NULL) = 0;
 		virtual CString OnGenerateLocalSymbol () const { return ::strToLower(m_sName); }
@@ -111,6 +114,7 @@ class CGLTypeSystem;
 class CGLTypeNamespace
 	{
 	public:
+		void AccumulateSymbols (TSortMap<CString, const IGLType *> &retSymbols) const;
 		bool DeclareTypes (CGLNamespaceCtx &Ctx, IGLType *pScope, const IASTNode &AST, CString *retsError = NULL);
 		bool DefineTypes (CGLNamespaceCtx &Ctx, CString *retsError = NULL);
 		void DeletAll () { m_Types.DeleteAll(); }
@@ -138,6 +142,7 @@ class CGLTypeNamespace
 class CGLTypeSystem
 	{
 	public:
+		void DebugDump () const;
 		const IGLType &GetCoreType (GLCoreType iType) const { if ((int)iType < 0 || iType >= GLCoreType::enumCount) throw CException(errFail); return *m_Core[(int)iType]; }
 		const CGLTypeNamespace &GetDefinitions () const { return m_Types; }
 		CGLTypeNamespace &GetDefinitions () { return m_Types; }
