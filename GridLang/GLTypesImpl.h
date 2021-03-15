@@ -55,8 +55,7 @@ class CGLNumberType : public IGLType
 class CGLObjectType : public IGLType
 	{
 	public:
-		CGLObjectType (const IGLType *pParent, const IGLType *pScope, const CString &sName, const IASTNode &Node) : IGLType(pParent, pScope, sName),
-				m_pDef(const_cast<IASTNode &>(Node).AddRef())
+		CGLObjectType (const CString &sName, const CString &sCanonical) : IGLType(sName, sCanonical)
 			{ }
 
 		virtual GLTypeClass GetClass () const override { return GLTypeClass::Object; }
@@ -67,8 +66,6 @@ class CGLObjectType : public IGLType
 		virtual const IGLType *OnResolveSymbol (const CString &sSymbol) const override { return m_Types.ResolveSymbol(sSymbol); }
 
 		CGLTypeNamespace m_Types;
-
-		TSharedPtr<IASTNode> m_pDef;
 	};
 
 class CGLOrdinalType : public IGLType

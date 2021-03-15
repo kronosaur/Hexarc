@@ -15,6 +15,7 @@ class CGridLangCoreLibrary
 	{
 	public:
 		static void Define (const IGLType &IsA, CGLTypeNamespace &Namespace);
+		static TArray<TSharedPtr<IASTNode>> GetDefinitions ();
 		static void Register ();
 
 	private:

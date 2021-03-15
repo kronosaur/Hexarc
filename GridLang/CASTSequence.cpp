@@ -7,14 +7,97 @@
 
 DECLARE_CONST_STRING(ERR_DUPLICATE_DEFINITION,			"Duplicate definition: %s");
 
-TSharedPtr<IASTNode> CASTSequence::Create (TArray<TSharedPtr<IASTNode>> Nodes, CString *retsError)
+bool CASTSequence::AddChild (const TArray<TSharedPtr<IASTNode>> &Nodes, CString *retsError)
+
+//	AddChild
+//
+//	Adds all the nodes as children.
+
+	{
+	for (int i = 0; i < Nodes.GetCount(); i++)
+		{
+		m_Node.Insert(Nodes[i]);
+
+		if (!AddToIndex(*Nodes[i], retsError))
+			return false;
+		}
+
+	return true;
+	}
+
+bool CASTSequence::AddToIndex (IASTNode &Node, CString *retsError)
+
+//	AddToIndex
+//
+//	Adds the node to the index. We assume that the node is already in our list
+//	of nodes.
+
+	{
+	//	If this is a definition, then add to the map.
+
+	if (Node.IsFunctionDefinition())
+		{
+		if (!AddSymbol(Node, retsError))
+			return false;
+
+		m_Functions.SetAt(strToLower(Node.GetName()), &Node);
+		}
+
+	else if (Node.IsTypeDefinition())
+		{
+		if (!AddSymbol(Node, retsError))
+			return false;
+
+		m_Types.SetAt(strToLower(Node.GetName()), &Node);
+		}
+
+	//	Otherwise, if this is a variable, then add to map.
+
+	else if (Node.IsVarDefinition())
+		{
+		if (!AddSymbol(Node, retsError))
+			return false;
+
+		m_Vars.SetAt(strToLower(Node.GetName()), &Node);
+		}
+
+	//	If this is a statement, then add to the ordered list of statements.
+	//	NOTE: It is possible to be in both (e.g., var s = 1).
+
+	if (Node.IsStatement())
+		{
+		m_Statements.Insert(&Node);
+		}
+
+	return true;
+	}
+
+bool CASTSequence::AddSymbol (IASTNode &Node, CString *retsError)
+
+//	AddSymbol
+//
+//	Adds a new symbol
+
+	{
+	bool bNew;
+	m_Symbols.SetAt(strToLower(Node.GetName()), &Node, &bNew);
+	if (!bNew)
+		{
+		if (retsError) *retsError = strPattern(ERR_DUPLICATE_DEFINITION, Node.GetName());
+		return false;
+		}
+
+	return true;
+	}
+
+TSharedPtr<IASTNode> CASTSequence::Create (IASTNode *pParent, TArray<TSharedPtr<IASTNode>> Nodes, CString *retsError)
 
 //	Create
 //
 //	Creates the sequence.
 
 	{
-	CASTSequence *pSeq = new CASTSequence;
+	CASTSequence *pSeq = new CASTSequence(pParent);
 	TSharedPtr<IASTNode> pResult(pSeq);
 
 	pSeq->m_Node = std::move(Nodes);
@@ -25,26 +108,8 @@ TSharedPtr<IASTNode> CASTSequence::Create (TArray<TSharedPtr<IASTNode>> Nodes, C
 		{
 		IASTNode &Node = *pSeq->m_Node[i];
 
-		//	If this is a definition, then add to the map.
-
-		if (Node.IsDefinition())
-			{
-			bool bNew;
-			pSeq->m_Types.SetAt(strToLower(Node.GetName()), &Node, &bNew);
-			if (!bNew)
-				{
-				if (retsError) *retsError = strPattern(ERR_DUPLICATE_DEFINITION, Node.GetName());
-				return NULL;
-				}
-			}
-
-		//	If this is a statement, then add to the ordered list of statements.
-		//	NOTE: It is possible to be in both (e.g., var s = 1).
-
-		if (Node.IsStatement())
-			{
-			pSeq->m_Statements.Insert(&Node);
-			}
+		if (!pSeq->AddToIndex(Node, retsError))
+			return NULL;
 		}
 
 	return pResult;

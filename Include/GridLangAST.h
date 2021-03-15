@@ -7,6 +7,8 @@
 
 #include "GridLangParser.h"
 
+class IGLType;
+
 enum class EASTType
 	{
 	Unknown,
@@ -18,6 +20,7 @@ enum class EASTType
 	FunctionCall,
 	FunctionDef,
 	GlobalDef,
+	LibraryFunctionDef,
 	LiteralNull,
 	LiteralFloat,
 	LiteralInteger,
@@ -55,17 +58,24 @@ enum class EASTType
 class IASTNode
 	{
 	public:
+		IASTNode (IASTNode *pParent) :
+				m_pParent(pParent)
+			{ }
+
 		virtual ~IASTNode () { }
 
 		bool ComposeError (const CString &sError, CString *retsError = NULL) const;
+		virtual bool AddChild (const TArray<TSharedPtr<IASTNode>> &Nodes, CString *retsError = NULL) { throw CException(errFail); }
 		virtual void DebugDump (const CString &sIndent) const { }
 		virtual const IASTNode *FindDefinition (const CString &sID) const { return NULL; }
 		virtual const CString &GetBaseName () const { return NULL_STR; }
-		virtual const IASTNode &GetChild (int iIndex) const { throw CException(errFail); }
+		virtual IASTNode &GetChild (int iIndex) { throw CException(errFail); }
+		const IASTNode &GetChild (int iIndex) const { return const_cast<IASTNode *>(this)->GetChild(iIndex); }
 		virtual int GetChildCount () const { return 0; }
 		virtual const IASTNode &GetDefinition (int iIndex) const { throw CException(errFail); }
 		virtual int GetDefinitionCount () const { return 0; }
 		virtual const CString &GetDefinitionString (int iIndex) const { throw CException(errFail); }
+		virtual int GetOrdinal () const { return 0; }
 		virtual const CString &GetName () const { return NULL_STR; }
 		virtual const IASTNode &GetRoot () const { return *this; }
 		virtual const IASTNode &GetStatement (int iIndex) const { throw CException(errFail); }
@@ -74,8 +84,13 @@ class IASTNode
 		CString GetTypeName () const { return GetTypeName(GetType()); }
 		virtual const IASTNode &GetTypeRef () const { throw CException(errFail); }
 		virtual CDatum GetValue () const { return CDatum(); }
-		virtual bool IsDefinition () const { return false; }
+		virtual IASTNode &GetVarDef (int iIndex) { throw CException(errFail); }
+		virtual int GetVarDefCount () const { return 0; }
+		virtual bool IsFunctionDefinition () const { return false; }
 		virtual bool IsStatement () const { return false; }
+		virtual bool IsTypeDefinition () const { return false; }
+		virtual bool IsVarDefinition () const { return false; }
+		virtual void SetTypeDef (IGLType &Type) { throw CException(errFail); }
 
 		IASTNode *AddRef (void) { m_dwRefCount++; return this; }
 		void Delete (void) { if (--m_dwRefCount == 0) delete this; }
@@ -83,6 +98,7 @@ class IASTNode
 		static CString GetTypeName (EASTType iType);
 
 	private:
+		IASTNode *m_pParent = NULL;
 		int m_dwRefCount = 1;
 
 		struct STypeDesc
@@ -100,6 +116,7 @@ class CGridLangAST
 		void DebugDump () const { if (m_pRoot) m_pRoot->DebugDump(NULL_STR); }
 		const IASTNode &GetNode (int iIndex) const { if (m_pRoot) return m_pRoot->GetChild(iIndex); else throw CException(errFail); }
 		int GetNodeCount () const { return (m_pRoot ? m_pRoot->GetChildCount() : 0); }
+		IASTNode &GetRoot () { if (m_pRoot) return *m_pRoot; else throw CException(errFail); }
 		const IASTNode &GetRoot () const { if (m_pRoot) return *m_pRoot; else throw CException(errFail); }
 		bool IsEmpty () const { return !m_pRoot; }
 		bool Load (IMemoryBlock &Stream, CString *retsError = NULL);
@@ -111,18 +128,18 @@ class CGridLangAST
 		static bool IsOperator (EGridLangToken iToken);
 
 		const IASTNode &GetNode (int iIndex) { if (m_pRoot) return m_pRoot->GetChild(iIndex); else throw CException(errFail); }
-		bool ParseArgDef (CGridLangParser &Parser, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
-		bool ParseClassDef (CGridLangParser &Parser, const CString &sBaseType, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
-		bool ParseExpression (CGridLangParser &Parser, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL) { return ParseExpression(Parser, EASTType::Unknown, retpNode, retsError); }
-		bool ParseExpression (CGridLangParser &Parser, EASTType iLeftOperator, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
-		bool ParseFunctionCall (CGridLangParser &Parser, TSharedPtr<IASTNode> pFunction, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
-		bool ParseFunctionDef (CGridLangParser &Parser, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
-		bool ParseIf (CGridLangParser &Parser, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
-		bool ParseOrdinalDef (CGridLangParser &Parser, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
-		bool ParseSequence (CGridLangParser &Parser, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
-		bool ParseTerm (CGridLangParser &Parser, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
-		bool ParseTypeRef (CGridLangParser &Parser, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
-		bool ParseVarDef (CGridLangParser &Parser, EASTType iVarType, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
+		bool ParseArgDef (CGridLangParser &Parser, IASTNode *pParent, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
+		bool ParseClassDef (CGridLangParser &Parser, IASTNode *pParent, const CString &sBaseType, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
+		bool ParseExpression (CGridLangParser &Parser, IASTNode *pParent, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL) { return ParseExpression(Parser, pParent, EASTType::Unknown, retpNode, retsError); }
+		bool ParseExpression (CGridLangParser &Parser, IASTNode *pParent, EASTType iLeftOperator, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
+		bool ParseFunctionCall (CGridLangParser &Parser, IASTNode *pParent, TSharedPtr<IASTNode> pFunction, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
+		bool ParseFunctionDef (CGridLangParser &Parser, IASTNode *pParent, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
+		bool ParseIf (CGridLangParser &Parser, IASTNode *pParent, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
+		bool ParseOrdinalDef (CGridLangParser &Parser, IASTNode *pParent, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
+		bool ParseSequence (CGridLangParser &Parser, IASTNode *pParent, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
+		bool ParseTerm (CGridLangParser &Parser, IASTNode *pParent, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
+		bool ParseTypeRef (CGridLangParser &Parser, IASTNode *pParent, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
+		bool ParseVarDef (CGridLangParser &Parser, IASTNode *pParent, EASTType iVarType, int iOrdinal, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
 
 		TSharedPtr<IASTNode> m_pRoot;
 	};

@@ -50,7 +50,7 @@ bool CGLTypeNamespace::DeclareClass (CGLNamespaceCtx &Ctx, IGLType *pScope, cons
 
 	//	Now create the object
 
-	TSharedPtr<IGLType> pType = IGLType::CreateObject(*pParentObj, pScope, Def.GetName(), Def);
+	TSharedPtr<IGLType> pType = IGLType::CreateObject(Def.GetName(), NULL_STR);
 	if (!Insert(pType))
 		//	Should never fail because we've already check that this is
 		//	not a duplicate.
@@ -292,7 +292,7 @@ bool CGLTypeNamespace::Insert (TSharedPtr<IGLType> pType)
 
 	{
 	bool bInserted;
-	auto pSlot = m_Types.SetAt(::strToLower(pType->GetName()), &bInserted);
+	auto pSlot = m_Types.SetAt(::strToLower(pType->GetSymbol()), &bInserted);
 	if (!bInserted)
 		return false;
 

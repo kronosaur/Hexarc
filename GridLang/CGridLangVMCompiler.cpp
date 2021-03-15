@@ -36,10 +36,24 @@ bool CGridLangVMCompiler::CompileSequence (const IASTNode &AST, const CString &s
 
 	else
 		{
+		//	If we have local variables, then we create a local environment.
+
+		if (AST.GetVarDefCount() > 0)
+			{
+			Ctx.WriteShortOpCode(opMakeBlockEnv);
+			}
+
+		//	Compile statements
+
 		for (int i = 0; i < AST.GetStatementCount(); i++)
 			{
 			if (!CompileStatement(Ctx, AST.GetStatement(i), retsError))
 				return false;
+			}
+
+		if (AST.GetVarDefCount() > 0)
+			{
+			Ctx.WriteShortOpCode(opExitEnv);
 			}
 		}
 
@@ -145,9 +159,47 @@ bool CGridLangVMCompiler::CompileStatement (SCompilerCtx &Ctx, const IASTNode &A
 				return false;
 			break;
 
+		case EASTType::VarDef:
+			if (!CompileVariableDefinition(Ctx, AST, retsError))
+				return false;
+			break;
+
 		default:
 			return ComposeError(Ctx, strPattern("Not a statement: %s", AST.GetTypeName()), retsError);
 		}
+
+	return true;
+	}
+
+bool CGridLangVMCompiler::CompileVariableDefinition (SCompilerCtx &Ctx, const IASTNode &AST, CString *retsError)
+
+//	CompileVariableDefinition
+//
+//	Compiles a variable definition and assignment.
+
+	{
+	//	If we have a value to assign it to, compile it now.
+
+	if (AST.GetChildCount() > 0)
+		{
+		if (!CompileExpression(Ctx, AST.GetChild(0), retsError))
+			return false;
+		}
+
+	//	Otherwise, push nil
+
+	else
+		{
+		Ctx.WriteShortOpCode(opPushNil);
+		}
+
+	//	Define it
+
+	int iSymbol = Ctx.CreateDataBlock(AST.GetName());
+	Ctx.WriteShortOpCode(opDefineArg, iSymbol);
+
+	DWORD dwArgPos = (((DWORD)0) << 8) | ((DWORD)AST.GetOrdinal());
+	Ctx.WriteShortOpCode(opPopLocal, dwArgPos);
 
 	return true;
 	}

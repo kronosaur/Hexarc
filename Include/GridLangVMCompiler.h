@@ -53,6 +53,11 @@ class CGridLangVMCompiler
 				iBlock = Code.CreateCodeBlock();
 				}
 
+			int CreateDataBlock (CDatum dValue)
+				{
+				return Code.CreateDatumBlock(dValue);
+				}
+
 			void WriteLongOpCode (OPCODE opCode, DWORD dwData)
 				{
 				Code.WriteLongOpCode(iBlock, opCode, dwData);
@@ -71,12 +76,16 @@ class CGridLangVMCompiler
 			CHexeCodeIntermediate Code;
 			int iBlock = -1;
 
+			CDatum m_dCurrentEnv;
+			CHexeLocalEnvironment *m_pCurrentEnv = NULL;
+
 			CGLNamespaceCtx Scope;
 			};
 
 		bool CompileExpression (SCompilerCtx &Ctx, const IASTNode &AST, CString *retsError = NULL);
 		bool CompileFunctionCall (SCompilerCtx &Ctx, const IASTNode &AST, CString *retsError = NULL);
 		bool CompileStatement (SCompilerCtx &Ctx, const IASTNode &AST, CString *retsError = NULL);
+		bool CompileVariableDefinition (SCompilerCtx &Ctx, const IASTNode &AST, CString *retsError = NULL);
 		bool CompileVariableReference (SCompilerCtx &Ctx, const IASTNode &AST, CString *retsError = NULL);
 		bool ComposeError (SCompilerCtx &Ctx, const CString &sError, CString *retsError) const;
 

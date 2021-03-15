@@ -30,7 +30,7 @@ bool CASTVarDef::IsStatement () const
 		case EASTType::ConstDef:
 		case EASTType::GlobalDef:
 		case EASTType::VarDef:
-			return (m_pBody && m_pBody->GetType() != EASTType::LiteralNull);
+			return true;
 
 		default:
 			return false;

@@ -181,13 +181,13 @@ bool CGridLangAST::Load (IMemoryBlock &Stream, CString *retsError)
 
 	TArray<TSharedPtr<IASTNode>> Program;
 
-	if (!ParseSequence(Parser, m_pRoot, retsError))
+	if (!ParseSequence(Parser, NULL, m_pRoot, retsError))
 		return false;
 
 	return true;
 	}
 
-bool CGridLangAST::ParseArgDef (CGridLangParser &Parser, TSharedPtr<IASTNode> &retpNode, CString *retsError)
+bool CGridLangAST::ParseArgDef (CGridLangParser &Parser, IASTNode *pParent, TSharedPtr<IASTNode> &retpNode, CString *retsError)
 
 //	ParseArgDef
 //
@@ -210,22 +210,22 @@ bool CGridLangAST::ParseArgDef (CGridLangParser &Parser, TSharedPtr<IASTNode> &r
 	if (Parser.GetToken() == EGridLangToken::Colon)
 		{
 		Parser.NextToken();
-		if (!ParseTypeRef(Parser, pType, retsError))
+		if (!ParseTypeRef(Parser, pParent, pType, retsError))
 			return false;
 		}
 	else
 		{
-		pType = CASTTypeRef::Create(KEYWORD_TYPE);
+		pType = CASTTypeRef::Create(pParent, KEYWORD_TYPE);
 		}
 
 	//	Done
 
-	retpNode = CASTArgDef::Create(sArg, pType);
+	retpNode = CASTArgDef::Create(pParent, sArg, pType);
 
 	return true;
 	}
 
-bool CGridLangAST::ParseClassDef (CGridLangParser &Parser, const CString &sBaseType, TSharedPtr<IASTNode> &retpNode, CString *retsError)
+bool CGridLangAST::ParseClassDef (CGridLangParser &Parser, IASTNode *pParent, const CString &sBaseType, TSharedPtr<IASTNode> &retpNode, CString *retsError)
 
 //	ParseSubClassDef
 //
@@ -255,12 +255,12 @@ bool CGridLangAST::ParseClassDef (CGridLangParser &Parser, const CString &sBaseT
 	//	Parse the body
 
 	TSharedPtr<IASTNode> pBody;
-	if (!ParseSequence(Parser, pBody, retsError))
+	if (!ParseSequence(Parser, pParent, pBody, retsError))
 		return false;
 
 	//	Create the definition
 
-	retpNode = CASTClassDef::Create(sID, sBaseType, pBody);
+	retpNode = CASTClassDef::Create(pParent, sID, sBaseType, pBody);
 
 	//	Skip the END keyword
 
@@ -269,7 +269,7 @@ bool CGridLangAST::ParseClassDef (CGridLangParser &Parser, const CString &sBaseT
 	return true;
 	}
 
-bool CGridLangAST::ParseExpression (CGridLangParser &Parser, EASTType iLeftOperator, TSharedPtr<IASTNode> &retpNode, CString *retsError)
+bool CGridLangAST::ParseExpression (CGridLangParser &Parser, IASTNode *pParent, EASTType iLeftOperator, TSharedPtr<IASTNode> &retpNode, CString *retsError)
 
 //	ParseExpression
 //
@@ -279,7 +279,7 @@ bool CGridLangAST::ParseExpression (CGridLangParser &Parser, EASTType iLeftOpera
 	{
 	TSharedPtr<IASTNode> pLeft;
 
-	if (!ParseTerm(Parser, pLeft, retsError))
+	if (!ParseTerm(Parser, pParent, pLeft, retsError))
 		return false;
 
 	while (IsOperator(Parser.GetToken()) 
@@ -291,7 +291,7 @@ bool CGridLangAST::ParseExpression (CGridLangParser &Parser, EASTType iLeftOpera
 			{
 			TSharedPtr<IASTNode> pFunc;
 
-			if (!ParseFunctionCall(Parser, pLeft, pFunc, retsError))
+			if (!ParseFunctionCall(Parser, pParent, pLeft, pFunc, retsError))
 				return false;
 
 			pLeft = pFunc;
@@ -301,10 +301,10 @@ bool CGridLangAST::ParseExpression (CGridLangParser &Parser, EASTType iLeftOpera
 			Parser.NextToken();
 
 			TSharedPtr<IASTNode> pRight;
-			if (!ParseExpression(Parser, iOp, pRight, retsError))
+			if (!ParseExpression(Parser, pParent, iOp, pRight, retsError))
 				return false;
 
-			pLeft = CASTBinaryOp::Create(iOp, pLeft, pRight);
+			pLeft = CASTBinaryOp::Create(pParent, iOp, pLeft, pRight);
 			}
 		}
 
@@ -312,7 +312,7 @@ bool CGridLangAST::ParseExpression (CGridLangParser &Parser, EASTType iLeftOpera
 	return true;
 	}
 
-bool CGridLangAST::ParseFunctionCall (CGridLangParser &Parser, TSharedPtr<IASTNode> pFunction, TSharedPtr<IASTNode> &retpNode, CString *retsError)
+bool CGridLangAST::ParseFunctionCall (CGridLangParser &Parser, IASTNode *pParent, TSharedPtr<IASTNode> pFunction, TSharedPtr<IASTNode> &retpNode, CString *retsError)
 
 //	ParseFunctionCall
 //
@@ -328,7 +328,7 @@ bool CGridLangAST::ParseFunctionCall (CGridLangParser &Parser, TSharedPtr<IASTNo
 	while (Parser.GetToken() != EGridLangToken::CloseParen)
 		{
 		TSharedPtr<IASTNode> pArg;
-		if (!ParseExpression(Parser, pArg, retsError))
+		if (!ParseExpression(Parser, pParent, pArg, retsError))
 			return false;
 
 		Args.Insert(pArg);
@@ -338,12 +338,12 @@ bool CGridLangAST::ParseFunctionCall (CGridLangParser &Parser, TSharedPtr<IASTNo
 
 	Parser.NextToken();
 
-	retpNode = CASTFunctionCall::Create(pFunction, std::move(Args));
+	retpNode = CASTFunctionCall::Create(pParent, pFunction, std::move(Args));
 
 	return true;
 	}
 
-bool CGridLangAST::ParseFunctionDef (CGridLangParser &Parser, TSharedPtr<IASTNode> &retpNode, CString *retsError)
+bool CGridLangAST::ParseFunctionDef (CGridLangParser &Parser, IASTNode *pParent, TSharedPtr<IASTNode> &retpNode, CString *retsError)
 
 //	ParseFunctionDef
 //
@@ -374,7 +374,7 @@ bool CGridLangAST::ParseFunctionDef (CGridLangParser &Parser, TSharedPtr<IASTNod
 	while (Parser.GetToken() != EGridLangToken::CloseParen)
 		{
 		TSharedPtr<IASTNode> pArg;
-		if (!ParseArgDef(Parser, pArg, retsError))
+		if (!ParseArgDef(Parser, pParent, pArg, retsError))
 			return false;
 
 		Args.Insert(pArg);
@@ -388,12 +388,12 @@ bool CGridLangAST::ParseFunctionDef (CGridLangParser &Parser, TSharedPtr<IASTNod
 	if (Parser.NextToken() == EGridLangToken::Colon)
 		{
 		Parser.NextToken();
-		if (!ParseTypeRef(Parser, pReturnType, retsError))
+		if (!ParseTypeRef(Parser, pParent, pReturnType, retsError))
 			return false;
 		}
 	else
 		{
-		pReturnType = CASTTypeRef::Create(KEYWORD_TYPE);
+		pReturnType = CASTTypeRef::Create(pParent, KEYWORD_TYPE);
 		}
 
 	//	Expect BEGIN keyword
@@ -409,12 +409,12 @@ bool CGridLangAST::ParseFunctionDef (CGridLangParser &Parser, TSharedPtr<IASTNod
 	//	Parse the body
 
 	TSharedPtr<IASTNode> pBody;
-	if (!ParseSequence(Parser, pBody, retsError))
+	if (!ParseSequence(Parser, pParent, pBody, retsError))
 		return false;
 
 	//	Create the definition
 
-	retpNode = CASTFunctionDef::Create(sFunctionName, pReturnType, Args, pBody);
+	retpNode = CASTFunctionDef::Create(pParent, sFunctionName, pReturnType, Args, pBody);
 
 	//	Skip the END keyword
 
@@ -423,7 +423,7 @@ bool CGridLangAST::ParseFunctionDef (CGridLangParser &Parser, TSharedPtr<IASTNod
 	return true;
 	}
 
-bool CGridLangAST::ParseIf (CGridLangParser &Parser, TSharedPtr<IASTNode> &retpNode, CString *retsError)
+bool CGridLangAST::ParseIf (CGridLangParser &Parser, IASTNode *pParent, TSharedPtr<IASTNode> &retpNode, CString *retsError)
 
 //	ParseIf
 //
@@ -434,7 +434,7 @@ bool CGridLangAST::ParseIf (CGridLangParser &Parser, TSharedPtr<IASTNode> &retpN
 	Parser.NextToken();
 
 	TSharedPtr<IASTNode> pCondition;
-	if (!ParseExpression(Parser, pCondition, retsError))
+	if (!ParseExpression(Parser, pParent, pCondition, retsError))
 		return false;
 
 	//	Expect THEN or BEGIN
@@ -451,7 +451,7 @@ bool CGridLangAST::ParseIf (CGridLangParser &Parser, TSharedPtr<IASTNode> &retpN
 	//	Parse then
 
 	TSharedPtr<IASTNode> pThen;
-	if (!ParseSequence(Parser, pThen, retsError))
+	if (!ParseSequence(Parser, pParent, pThen, retsError))
 		return false;
 
 	//	Parse optional else
@@ -462,7 +462,7 @@ bool CGridLangAST::ParseIf (CGridLangParser &Parser, TSharedPtr<IASTNode> &retpN
 		{
 		Parser.NextToken();
 
-		if (!ParseSequence(Parser, pElse, retsError))
+		if (!ParseSequence(Parser, pParent, pElse, retsError))
 			return false;
 		}
 
@@ -470,12 +470,12 @@ bool CGridLangAST::ParseIf (CGridLangParser &Parser, TSharedPtr<IASTNode> &retpN
 
 	//	Done
 
-	retpNode = CASTIf::Create(pCondition, pThen, pElse);
+	retpNode = CASTIf::Create(pParent, pCondition, pThen, pElse);
 
 	return true;
 	}
 
-bool CGridLangAST::ParseOrdinalDef (CGridLangParser &Parser, TSharedPtr<IASTNode> &retpNode, CString *retsError)
+bool CGridLangAST::ParseOrdinalDef (CGridLangParser &Parser, IASTNode *pParent, TSharedPtr<IASTNode> &retpNode, CString *retsError)
 
 //	ParseOrdinalDef
 //
@@ -526,12 +526,12 @@ bool CGridLangAST::ParseOrdinalDef (CGridLangParser &Parser, TSharedPtr<IASTNode
 
 	//	Done
 
-	retpNode = CASTOrdinalDef::Create(sName, Ordinals);
+	retpNode = CASTOrdinalDef::Create(pParent, sName, Ordinals);
 		
 	return true;
 	}
 
-bool CGridLangAST::ParseSequence (CGridLangParser &Parser, TSharedPtr<IASTNode> &retpNode, CString *retsError)
+bool CGridLangAST::ParseSequence (CGridLangParser &Parser, IASTNode *pParent, TSharedPtr<IASTNode> &retpNode, CString *retsError)
 
 //	ParseSequence
 //
@@ -541,6 +541,7 @@ bool CGridLangAST::ParseSequence (CGridLangParser &Parser, TSharedPtr<IASTNode> 
 
 	{
 	TArray<TSharedPtr<IASTNode>> Program;
+	int iVarOrdinal = 0;
 
 	while (true)
 		{
@@ -557,7 +558,7 @@ bool CGridLangAST::ParseSequence (CGridLangParser &Parser, TSharedPtr<IASTNode> 
 				Parser.NextToken();
 
 				TSharedPtr<IASTNode> pNode;
-				if (!ParseVarDef(Parser, EASTType::ConstDef, pNode, retsError))
+				if (!ParseVarDef(Parser, pParent, EASTType::ConstDef, iVarOrdinal++, pNode, retsError))
 					return false;
 
 				Program.Insert(pNode);
@@ -572,7 +573,7 @@ bool CGridLangAST::ParseSequence (CGridLangParser &Parser, TSharedPtr<IASTNode> 
 				Parser.NextToken();
 
 				TSharedPtr<IASTNode> pNode;
-				if (!ParseFunctionDef(Parser, pNode, retsError))
+				if (!ParseFunctionDef(Parser, pParent, pNode, retsError))
 					return false;
 
 				Program.Insert(pNode);
@@ -582,7 +583,7 @@ bool CGridLangAST::ParseSequence (CGridLangParser &Parser, TSharedPtr<IASTNode> 
 				Parser.NextToken();
 
 				TSharedPtr<IASTNode> pNode;
-				if (!ParseVarDef(Parser, EASTType::GlobalDef, pNode, retsError))
+				if (!ParseVarDef(Parser, pParent, EASTType::GlobalDef, iVarOrdinal++, pNode, retsError))
 					return false;
 
 				Program.Insert(pNode);
@@ -590,7 +591,7 @@ bool CGridLangAST::ParseSequence (CGridLangParser &Parser, TSharedPtr<IASTNode> 
 			else if (strEqualsNoCase(Parser.GetTokenValue(), KEYWORD_IF))
 				{
 				TSharedPtr<IASTNode> pNode;
-				if (!ParseIf(Parser, pNode, retsError))
+				if (!ParseIf(Parser, pParent, pNode, retsError))
 					return false;
 
 				Program.Insert(pNode);
@@ -600,7 +601,7 @@ bool CGridLangAST::ParseSequence (CGridLangParser &Parser, TSharedPtr<IASTNode> 
 				Parser.NextToken();
 
 				TSharedPtr<IASTNode> pNode;
-				if (!ParseFunctionDef(Parser, pNode, retsError))
+				if (!ParseFunctionDef(Parser, pParent, pNode, retsError))
 					return false;
 
 				Program.Insert(pNode);
@@ -610,7 +611,7 @@ bool CGridLangAST::ParseSequence (CGridLangParser &Parser, TSharedPtr<IASTNode> 
 				Parser.NextToken();
 
 				TSharedPtr<IASTNode> pNode;
-				if (!ParseOrdinalDef(Parser, pNode, retsError))
+				if (!ParseOrdinalDef(Parser, pParent, pNode, retsError))
 					return false;
 
 				Program.Insert(pNode);
@@ -620,7 +621,7 @@ bool CGridLangAST::ParseSequence (CGridLangParser &Parser, TSharedPtr<IASTNode> 
 				Parser.NextToken();
 
 				TSharedPtr<IASTNode> pNode;
-				if (!ParseVarDef(Parser, EASTType::PropertyDef, pNode, retsError))
+				if (!ParseVarDef(Parser, pParent, EASTType::PropertyDef, iVarOrdinal++, pNode, retsError))
 					return false;
 
 				Program.Insert(pNode);
@@ -630,17 +631,17 @@ bool CGridLangAST::ParseSequence (CGridLangParser &Parser, TSharedPtr<IASTNode> 
 				Parser.NextToken();
 
 				TSharedPtr<IASTNode> pNode;
-				if (!ParseExpression(Parser, pNode, retsError))
+				if (!ParseExpression(Parser, pParent, pNode, retsError))
 					return false;
 
-				Program.Insert(CASTUnaryOp::Create(EASTType::OpReturn, pNode));
+				Program.Insert(CASTUnaryOp::Create(pParent, EASTType::OpReturn, pNode));
 				}
 			else if (strEqualsNoCase(Parser.GetTokenValue(), KEYWORD_VAR))
 				{
 				Parser.NextToken();
 
 				TSharedPtr<IASTNode> pNode;
-				if (!ParseVarDef(Parser, EASTType::VarDef, pNode, retsError))
+				if (!ParseVarDef(Parser, pParent, EASTType::VarDef, iVarOrdinal++, pNode, retsError))
 					return false;
 
 				Program.Insert(pNode);
@@ -657,7 +658,7 @@ bool CGridLangAST::ParseSequence (CGridLangParser &Parser, TSharedPtr<IASTNode> 
 					Parser.NextToken();
 
 					TSharedPtr<IASTNode> pNode;
-					if (!ParseClassDef(Parser, sIdentifier, pNode, retsError))
+					if (!ParseClassDef(Parser, pParent, sIdentifier, pNode, retsError))
 						return false;
 
 					Program.Insert(pNode);
@@ -668,7 +669,7 @@ bool CGridLangAST::ParseSequence (CGridLangParser &Parser, TSharedPtr<IASTNode> 
 				else
 					{
 					TSharedPtr<IASTNode> pNode;
-					if (!ParseExpression(Parser, pNode, retsError))
+					if (!ParseExpression(Parser, pParent, pNode, retsError))
 						return false;
 
 					Program.Insert(pNode);
@@ -682,14 +683,14 @@ bool CGridLangAST::ParseSequence (CGridLangParser &Parser, TSharedPtr<IASTNode> 
 			}
 		}
 
-	retpNode = CASTSequence::Create(Program, retsError);
+	retpNode = CASTSequence::Create(pParent, Program, retsError);
 	if (!retpNode)
 		return false;
 
 	return true;
 	}
 
-bool CGridLangAST::ParseTerm (CGridLangParser &Parser, TSharedPtr<IASTNode> &retpNode, CString *retsError)
+bool CGridLangAST::ParseTerm (CGridLangParser &Parser, IASTNode *pParent, TSharedPtr<IASTNode> &retpNode, CString *retsError)
 
 //	ParseTerm
 //
@@ -701,7 +702,7 @@ bool CGridLangAST::ParseTerm (CGridLangParser &Parser, TSharedPtr<IASTNode> &ret
 		{
 		Parser.NextToken();
 
-		if (!ParseExpression(Parser, retpNode, retsError))
+		if (!ParseExpression(Parser, pParent, retpNode, retsError))
 			return false;
 
 		if (Parser.GetToken() != EGridLangToken::CloseParen)
@@ -716,7 +717,7 @@ bool CGridLangAST::ParseTerm (CGridLangParser &Parser, TSharedPtr<IASTNode> &ret
 		{
 		Parser.NextToken();
 
-		if (!ParseTerm(Parser, retpNode, retsError))
+		if (!ParseTerm(Parser, pParent, retpNode, retsError))
 			return false;
 		}
 	else if (Parser.GetToken() == EGridLangToken::Minus)
@@ -724,10 +725,10 @@ bool CGridLangAST::ParseTerm (CGridLangParser &Parser, TSharedPtr<IASTNode> &ret
 		Parser.NextToken();
 
 		TSharedPtr<IASTNode> pNode;
-		if (!ParseTerm(Parser, pNode, retsError))
+		if (!ParseTerm(Parser, pParent, pNode, retsError))
 			return false;
 
-		retpNode = CASTUnaryOp::Create(EASTType::OpMinus, pNode);
+		retpNode = CASTUnaryOp::Create(pParent, EASTType::OpMinus, pNode);
 		}
 	else if (Parser.GetToken() == EGridLangToken::Identifier)
 		{
@@ -736,19 +737,19 @@ bool CGridLangAST::ParseTerm (CGridLangParser &Parser, TSharedPtr<IASTNode> &ret
 
 		if (strEqualsNoCase(sIdentifier, KEYWORD_FALSE))
 			{
-			retpNode = CASTLiteralIdentifier::Create(EASTType::LiteralNull);
+			retpNode = CASTLiteralIdentifier::Create(pParent, EASTType::LiteralNull);
 			}
 		else if (strEqualsNoCase(sIdentifier, KEYWORD_NULL))
 			{
-			retpNode = CASTLiteralIdentifier::Create(EASTType::LiteralNull);
+			retpNode = CASTLiteralIdentifier::Create(pParent, EASTType::LiteralNull);
 			}
 		else if (strEqualsNoCase(sIdentifier, KEYWORD_TRUE))
 			{
-			retpNode = CASTLiteralIdentifier::Create(EASTType::LiteralTrue);
+			retpNode = CASTLiteralIdentifier::Create(pParent, EASTType::LiteralTrue);
 			}
 		else
 			{
-			retpNode = CASTVarRef::Create(sIdentifier);
+			retpNode = CASTVarRef::Create(pParent, sIdentifier);
 			}
 		}
 	else if (Parser.GetToken() == EGridLangToken::Integer || Parser.GetToken() == EGridLangToken::HexInteger)
@@ -761,7 +762,7 @@ bool CGridLangAST::ParseTerm (CGridLangParser &Parser, TSharedPtr<IASTNode> &ret
 			return false;
 			}
 
-		retpNode = CASTLiteralInteger::Create(iValue);
+		retpNode = CASTLiteralInteger::Create(pParent, iValue);
 
 		Parser.NextToken();
 		}
@@ -769,13 +770,13 @@ bool CGridLangAST::ParseTerm (CGridLangParser &Parser, TSharedPtr<IASTNode> &ret
 		{
 		double rValue = strToDouble(Parser.GetTokenValue());
 
-		retpNode = CASTLiteralFloat::Create(rValue);
+		retpNode = CASTLiteralFloat::Create(pParent, rValue);
 
 		Parser.NextToken();
 		}
 	else if (Parser.GetToken() == EGridLangToken::String)
 		{
-		retpNode = CASTLiteralString::Create(Parser.GetTokenValue());
+		retpNode = CASTLiteralString::Create(pParent, Parser.GetTokenValue());
 
 		Parser.NextToken();
 		}
@@ -788,7 +789,7 @@ bool CGridLangAST::ParseTerm (CGridLangParser &Parser, TSharedPtr<IASTNode> &ret
 	return true;
 	}
 
-bool CGridLangAST::ParseTypeRef (CGridLangParser &Parser, TSharedPtr<IASTNode> &retpNode, CString *retsError)
+bool CGridLangAST::ParseTypeRef (CGridLangParser &Parser, IASTNode *pParent, TSharedPtr<IASTNode> &retpNode, CString *retsError)
 
 //	ParseTypeRef
 //
@@ -805,12 +806,12 @@ bool CGridLangAST::ParseTypeRef (CGridLangParser &Parser, TSharedPtr<IASTNode> &
 	CString sType = Parser.GetTokenValue();
 	Parser.NextToken();
 
-	retpNode = CASTTypeRef::Create(sType);
+	retpNode = CASTTypeRef::Create(pParent, sType);
 
 	return true;
 	}
 
-bool CGridLangAST::ParseVarDef (CGridLangParser &Parser, EASTType iVarType, TSharedPtr<IASTNode> &retpNode, CString *retsError)
+bool CGridLangAST::ParseVarDef (CGridLangParser &Parser, IASTNode *pParent, EASTType iVarType, int iOrdinal, TSharedPtr<IASTNode> &retpNode, CString *retsError)
 
 //	ParseVarDef
 //
@@ -833,12 +834,12 @@ bool CGridLangAST::ParseVarDef (CGridLangParser &Parser, EASTType iVarType, TSha
 	if (Parser.GetToken() == EGridLangToken::Colon)
 		{
 		Parser.NextToken();
-		if (!ParseTypeRef(Parser, pType, retsError))
+		if (!ParseTypeRef(Parser, pParent, pType, retsError))
 			return false;
 		}
 	else
 		{
-		pType = CASTTypeRef::Create(KEYWORD_TYPE);
+		pType = CASTTypeRef::Create(pParent, KEYWORD_TYPE);
 		}
 
 	//	Parse either a value or body
@@ -848,26 +849,26 @@ bool CGridLangAST::ParseVarDef (CGridLangParser &Parser, EASTType iVarType, TSha
 		{
 		Parser.NextToken();
 
-		if (!ParseExpression(Parser, pBody, retsError))
+		if (!ParseExpression(Parser, pParent, pBody, retsError))
 			return false;
 		}
 	else if (Parser.GetToken() == EGridLangToken::Identifier && strEqualsNoCase(Parser.GetTokenValue(), KEYWORD_BEGIN))
 		{
 		Parser.NextToken();
 
-		if (!ParseSequence(Parser, pBody, retsError))
+		if (!ParseSequence(Parser, pParent, pBody, retsError))
 			return false;
 
 		Parser.NextToken();
 		}
 	else
 		{
-		pBody = CASTLiteralIdentifier::Create(EASTType::LiteralNull);
+		pBody = CASTLiteralIdentifier::Create(pParent, EASTType::LiteralNull);
 		}
 
 	//	Done
 
-	retpNode = CASTVarDef::Create(iVarType, sName, pType, pBody);
+	retpNode = CASTVarDef::Create(pParent, iVarType, iOrdinal, sName, pType, pBody);
 
 	return true;
 	}

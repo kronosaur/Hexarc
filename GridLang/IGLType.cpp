@@ -55,14 +55,14 @@ TSharedPtr<IGLType> IGLType::CreateFunction (const IGLType &IsA, const IGLType *
 	return TSharedPtr<IGLType>(pType);
 	}
 
-TSharedPtr<IGLType> IGLType::CreateObject (const IGLType &IsA, const IGLType *pScope, const CString &sName, const IASTNode &Def)
+TSharedPtr<IGLType> IGLType::CreateObject (const CString &sName, const CString &sCanonical)
 
 //	CreateObject
 //
 //	Creates an object definition.
 
 	{
-	CGLObjectType *pType = new CGLObjectType(&IsA, pScope, sName, Def);
+	CGLObjectType *pType = new CGLObjectType(sName, sCanonical);
 	return TSharedPtr<IGLType>(pType);
 	}
 

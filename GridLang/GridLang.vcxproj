@@ -179,6 +179,7 @@
     <ClCompile Include="CASTClassDef.cpp" />
     <ClCompile Include="CASTFunctionCall.cpp" />
     <ClCompile Include="CASTFunctionDef.cpp" />
+    <ClCompile Include="CASTLibraryFunctionDef.cpp" />
     <ClCompile Include="CASTLiteralFloat.cpp" />
     <ClCompile Include="CASTLiteralIdentifier.cpp" />
     <ClCompile Include="CASTLiteralInteger.cpp" />
@@ -203,6 +204,7 @@
     <ClCompile Include="CGridLangParser.cpp" />
     <ClCompile Include="CGridLangProcess.cpp" />
     <ClCompile Include="CGridLangProgram.cpp" />
+    <ClCompile Include="CGridLangTypeLoader.cpp" />
     <ClCompile Include="CGridLangVMCompiler.cpp" />
     <ClCompile Include="IASTNode.cpp" />
     <ClCompile Include="IGLType.cpp" />

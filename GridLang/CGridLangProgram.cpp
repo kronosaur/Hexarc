@@ -33,14 +33,29 @@ bool CGridLangProgram::Load (IMemoryBlock &Stream, CString *retsError)
 	if (AST.IsEmpty())
 		return true;
 
-	const IASTNode &Root = AST.GetRoot();
+	//	Process the AST and declare all types. The type system is initialized
+	//	and we modify the AST to point to appropriate types.
 
+	CGridLangTypeLoader TypeLoader(AST, m_Types);
+	if (!TypeLoader.Load(retsError))
+		return false;
+
+	//	Now load all library functions into the AST so that they can be looked
+	//	up.
+
+	if (!AST.GetRoot().AddChild(CGridLangCoreLibrary::GetDefinitions(), retsError))
+		return false;
+
+#if 0
 	//	Initialize the type system
 
 	if (!m_Types.InitFromAST(AST, retsError))
 		return false;
+#endif
 
 	//	Compile all definitions
+
+	const IASTNode &Root = AST.GetRoot();
 
 	CGridLangVMCompiler Compiler(m_Types, m_Code);
 	for (int i = 0; i < Root.GetDefinitionCount(); i++)

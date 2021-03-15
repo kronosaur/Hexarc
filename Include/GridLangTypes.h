@@ -61,7 +61,7 @@ class IGLType
 		static TSharedPtr<IGLType> CreateConcrete (const IGLType &IsA, const IGLType *pScope, const CString &sName);
 		static TSharedPtr<IGLType> CreateConcreteNumber (const IGLType &IsA, const IGLType *pScope, const CString &sName, GLCoreType iType);
 		static TSharedPtr<IGLType> CreateFunction (const IGLType &IsA, const IGLType *pScope, const CString &sName);
-		static TSharedPtr<IGLType> CreateObject (const IGLType &IsA, const IGLType *pScope, const CString &sName, const IASTNode &Def);
+		static TSharedPtr<IGLType> CreateObject (const CString &sName, const CString &sCanonical);
 		static TSharedPtr<IGLType> CreateOrdinals (const IGLType &IsA, const IGLType *pScope, const CString &sName, const TArray<CString> &Ordinals);
 		static TSharedPtr<IGLType> CreateProperty (const IGLType &IsA, const IGLType *pScope, const IGLType &Type, const CString &sName, const IASTNode &Def);
 		static TSharedPtr<IGLType> CreateRoot ();
@@ -78,11 +78,17 @@ class IGLType
 		bool IsA (const IGLType &Type) const;
 		bool IsDefined () const { return m_bDefined; }
 		const IGLType *ResolveSymbol (const CString &sSymbol) const { return OnResolveSymbol(sSymbol); }
+		void SetParent (const IGLType &IsA) { m_pParent = &IsA; }
 
 		IGLType *AddRef (void) { m_dwRefCount++; return this; }
 		void Delete (void) { if (--m_dwRefCount == 0) delete this; }
 
 	protected:
+		IGLType (const CString &sName, const CString &sCanonical) :
+				m_sName(sName),
+				m_sSymbol(sCanonical)
+			{ }
+
 		IGLType (const IGLType *pParent, const IGLType *pScope, const CString &sName) :
 				m_pParent(pParent),
 				m_pScope(pScope),
@@ -146,6 +152,7 @@ class CGLTypeSystem
 		const IGLType &GetCoreType (GLCoreType iType) const { if ((int)iType < 0 || iType >= GLCoreType::enumCount) throw CException(errFail); return *m_Core[(int)iType]; }
 		const CGLTypeNamespace &GetDefinitions () const { return m_Types; }
 		CGLTypeNamespace &GetDefinitions () { return m_Types; }
+		bool Init (CString *retsError = NULL);
 		bool InitFromAST (const CGridLangAST &AST, CString *retsError = NULL);
 		bool Insert (TSharedPtr<IGLType> pType) { return m_Types.Insert(pType); }
 		bool IsDefined (const CString &sName) const;
@@ -156,6 +163,27 @@ class CGLTypeSystem
 
 		CGLTypeNamespace m_Types;
 		IGLType *m_Core[(int)GLCoreType::enumCount] = { NULL };
+	};
+
+class CGridLangTypeLoader
+	{
+	public:
+		CGridLangTypeLoader (CGridLangAST &AST, CGLTypeSystem &Types) :
+				m_AST(AST),
+				m_Types(Types)
+			{ }
+
+		bool Load (CString *retsError = NULL);
+
+		static CString CreateSymbol (const CString &sScopePrefix, const CString &sName) { return strPattern("%s%s", sScopePrefix, sName); }
+
+	private:
+		bool DeclareClass (IASTNode &Node, const CString &sScopePrefix, CString *retsError = NULL);
+		bool DeclareOrdinal (IASTNode &Node, const CString &sScopePrefix, CString *retsError = NULL);
+		bool DeclareTypes (IASTNode &Node, const CString &sScopePrefix, CString *retsError = NULL);
+
+		CGridLangAST &m_AST;
+		CGLTypeSystem &m_Types;
 	};
 
 class CGLNamespaceCtx

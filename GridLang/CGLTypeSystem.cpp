@@ -90,6 +90,20 @@ void CGLTypeSystem::DebugDump () const
 		}
 	}
 
+bool CGLTypeSystem::Init (CString *retsError)
+
+//	Init
+//
+//	Initialize type system.
+
+	{
+	m_Types.DeletAll();
+
+	AddCoreTypes();
+
+	return true;
+	}
+
 bool CGLTypeSystem::InitFromAST (const CGridLangAST &AST, CString *retsError)
 
 //	InitFromAST

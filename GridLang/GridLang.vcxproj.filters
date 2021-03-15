@@ -13,6 +13,18 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Source Files\AST">
+      <UniqueIdentifier>{15aa7707-01b0-4e3f-84f1-2e03910cee3b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Type System">
+      <UniqueIdentifier>{8a397aab-99ee-4537-b8d0-d512411f889f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\VMCompiler">
+      <UniqueIdentifier>{513fa484-3f6a-4bf2-bc08-472959c14d2e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Core Library">
+      <UniqueIdentifier>{08b5a686-e31e-49f5-96fa-1b957b26e0d3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -50,100 +62,16 @@
     <ClCompile Include="CGridLangProgram.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CGridLangAST.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="CGridLangParser.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CASTArgDef.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CASTBinaryOp.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CASTClassDef.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CASTFunctionCall.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CASTFunctionDef.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CASTLiteralFloat.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CASTLiteralIdentifier.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CASTLiteralInteger.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CASTLiteralString.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CASTOrdinalDef.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CASTSequence.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CASTTypeRef.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CASTUnaryOp.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CASTVarDef.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CASTVarRef.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CASTIf.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CGLTypeNamespace.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CGLTypeSystem.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="IGLType.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CGLNumberType.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CGLNamespaceCtx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="IASTNode.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CGLPropertyType.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CGLTypeTree.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CGLObjectType.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="CGridLangProcess.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CGridLangVMCompiler.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="CGridLangCodeBank.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CGridLangCoreLibrary.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CGLFunctionType.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CGLDefaultEnvironment.cpp">
@@ -151,6 +79,96 @@
     </ClCompile>
     <ClCompile Include="IGridLangEnvironment.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CASTArgDef.cpp">
+      <Filter>Source Files\AST</Filter>
+    </ClCompile>
+    <ClCompile Include="CASTBinaryOp.cpp">
+      <Filter>Source Files\AST</Filter>
+    </ClCompile>
+    <ClCompile Include="CASTClassDef.cpp">
+      <Filter>Source Files\AST</Filter>
+    </ClCompile>
+    <ClCompile Include="CASTFunctionCall.cpp">
+      <Filter>Source Files\AST</Filter>
+    </ClCompile>
+    <ClCompile Include="CASTFunctionDef.cpp">
+      <Filter>Source Files\AST</Filter>
+    </ClCompile>
+    <ClCompile Include="CASTIf.cpp">
+      <Filter>Source Files\AST</Filter>
+    </ClCompile>
+    <ClCompile Include="CASTLiteralFloat.cpp">
+      <Filter>Source Files\AST</Filter>
+    </ClCompile>
+    <ClCompile Include="CASTLiteralIdentifier.cpp">
+      <Filter>Source Files\AST</Filter>
+    </ClCompile>
+    <ClCompile Include="CASTLiteralInteger.cpp">
+      <Filter>Source Files\AST</Filter>
+    </ClCompile>
+    <ClCompile Include="CASTLiteralString.cpp">
+      <Filter>Source Files\AST</Filter>
+    </ClCompile>
+    <ClCompile Include="CASTOrdinalDef.cpp">
+      <Filter>Source Files\AST</Filter>
+    </ClCompile>
+    <ClCompile Include="CASTSequence.cpp">
+      <Filter>Source Files\AST</Filter>
+    </ClCompile>
+    <ClCompile Include="CASTTypeRef.cpp">
+      <Filter>Source Files\AST</Filter>
+    </ClCompile>
+    <ClCompile Include="CASTUnaryOp.cpp">
+      <Filter>Source Files\AST</Filter>
+    </ClCompile>
+    <ClCompile Include="CASTVarDef.cpp">
+      <Filter>Source Files\AST</Filter>
+    </ClCompile>
+    <ClCompile Include="CASTVarRef.cpp">
+      <Filter>Source Files\AST</Filter>
+    </ClCompile>
+    <ClCompile Include="CGLFunctionType.cpp">
+      <Filter>Source Files\Type System</Filter>
+    </ClCompile>
+    <ClCompile Include="CGLNumberType.cpp">
+      <Filter>Source Files\Type System</Filter>
+    </ClCompile>
+    <ClCompile Include="CGLObjectType.cpp">
+      <Filter>Source Files\Type System</Filter>
+    </ClCompile>
+    <ClCompile Include="CGLPropertyType.cpp">
+      <Filter>Source Files\Type System</Filter>
+    </ClCompile>
+    <ClCompile Include="CGLTypeNamespace.cpp">
+      <Filter>Source Files\Type System</Filter>
+    </ClCompile>
+    <ClCompile Include="CGLTypeSystem.cpp">
+      <Filter>Source Files\Type System</Filter>
+    </ClCompile>
+    <ClCompile Include="CGLTypeTree.cpp">
+      <Filter>Source Files\Type System</Filter>
+    </ClCompile>
+    <ClCompile Include="CGridLangTypeLoader.cpp">
+      <Filter>Source Files\Type System</Filter>
+    </ClCompile>
+    <ClCompile Include="IGLType.cpp">
+      <Filter>Source Files\Type System</Filter>
+    </ClCompile>
+    <ClCompile Include="CGridLangAST.cpp">
+      <Filter>Source Files\AST</Filter>
+    </ClCompile>
+    <ClCompile Include="IASTNode.cpp">
+      <Filter>Source Files\AST</Filter>
+    </ClCompile>
+    <ClCompile Include="CGridLangVMCompiler.cpp">
+      <Filter>Source Files\VMCompiler</Filter>
+    </ClCompile>
+    <ClCompile Include="CGridLangCoreLibrary.cpp">
+      <Filter>Source Files\Core Library</Filter>
+    </ClCompile>
+    <ClCompile Include="CASTLibraryFunctionDef.cpp">
+      <Filter>Source Files\AST</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

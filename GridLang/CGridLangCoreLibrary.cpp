@@ -50,6 +50,28 @@ void CGridLangCoreLibrary::Define (const IGLType &IsA, CGLTypeNamespace &Namespa
 		}
 	}
 
+TArray<TSharedPtr<IASTNode>> CGridLangCoreLibrary::GetDefinitions ()
+
+//	GetDefinitions
+//
+//	Returns an array of definitions.
+
+	{
+	TArray<TSharedPtr<IASTNode>> Result;
+	Result.InsertEmpty(g_iGridLangLibraryDefCount);
+
+	for (int i = 0; i < Result.GetCount(); i++)
+		{
+		TSharedPtr<IASTNode> pFunction = CASTLibraryFunctionDef::Create(g_GridLangLibraryDef[i].sName);
+		if (!pFunction)
+			throw CException(errFail);
+
+		Result[i] = pFunction;
+		}
+
+	return Result;
+	}
+
 void CGridLangCoreLibrary::Register ()
 
 //	Register
