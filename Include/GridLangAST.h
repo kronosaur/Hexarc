@@ -77,8 +77,8 @@ class IASTNode
 		virtual int GetDefinitionCount () const { return 0; }
 		virtual const CString &GetDefinitionString (int iIndex) const { throw CException(errFail); }
 		virtual const CString &GetName () const { return NULL_STR; }
-		virtual const IASTNode &GetRoot () const { return *this; }
-		virtual const IASTNode &GetStatement (int iIndex) const { throw CException(errFail); }
+		virtual IASTNode &GetRoot () { return *this; }
+		virtual IASTNode &GetStatement (int iIndex) { throw CException(errFail); }
 		virtual int GetStatementCount () const { return 0; }
 		virtual EASTType GetType () const = 0;
 		CString GetTypeName () const { return GetTypeName(GetType()); }

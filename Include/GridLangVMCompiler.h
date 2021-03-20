@@ -63,17 +63,16 @@ class CGridLangVMCompiler
 
 	private:
 
-		bool CompileDefinition (const IASTNode &AST, CString *retsError = NULL);
+		bool CompileDefinition (IASTNode &AST, CString *retsError = NULL);
+		bool CompileExpression (IASTNode &AST, CString *retsError = NULL);
+		bool CompileFunctionCall (IASTNode &AST, CString *retsError = NULL);
 		bool CompileFunctionDef (IASTNode &AST, CString *retsError = NULL);
 		bool CompileReturn (IASTNode &AST, CString *retsError = NULL);
-		bool CompileSequence (const IASTNode &AST, CString *retsError = NULL);
+		bool CompileSequence (IASTNode &AST, CString *retsError = NULL);
+		bool CompileStatement (IASTNode &AST, CString *retsError = NULL);
+		bool CompileVariableDefinition (IASTNode &AST, CString *retsError = NULL);
+		bool CompileVariableReference (IASTNode &AST, CString *retsError = NULL);
 
-
-		bool CompileExpression (const IASTNode &AST, CString *retsError = NULL);
-		bool CompileFunctionCall (const IASTNode &AST, CString *retsError = NULL);
-		bool CompileStatement (const IASTNode &AST, CString *retsError = NULL);
-		bool CompileVariableDefinition (const IASTNode &AST, CString *retsError = NULL);
-		bool CompileVariableReference (const IASTNode &AST, CString *retsError = NULL);
 		bool ComposeError (const CString &sError, CString *retsError) const;
 
 		CGLTypeSystem *m_pTypes = NULL;
