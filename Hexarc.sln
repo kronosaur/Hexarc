@@ -33,8 +33,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zlibstat", "zlib-1.2.7\cont
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AI2", "Packages\AI2.vcxproj", "{D719F2DF-919F-4219-B020-5525E8552056}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CodeSlinger", "CodeSlinger\CodeSlinger.vcxproj", "{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Itanium = Debug|Itanium
@@ -553,40 +551,6 @@ Global
 		{D719F2DF-919F-4219-B020-5525E8552056}.RelWithDebInfo|x64.Build.0 = Release|x64
 		{D719F2DF-919F-4219-B020-5525E8552056}.RelWithDebInfo|x86.ActiveCfg = Release|Win32
 		{D719F2DF-919F-4219-B020-5525E8552056}.RelWithDebInfo|x86.Build.0 = Release|Win32
-		{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}.Debug|Itanium.ActiveCfg = Debug|Win32
-		{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}.Debug|x64.ActiveCfg = Debug|x64
-		{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}.Debug|x64.Build.0 = Debug|x64
-		{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}.Debug|x86.ActiveCfg = Debug|Win32
-		{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}.Debug|x86.Build.0 = Debug|Win32
-		{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}.DebugSecondary|Itanium.ActiveCfg = Release|x64
-		{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}.DebugSecondary|Itanium.Build.0 = Release|x64
-		{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}.DebugSecondary|x64.ActiveCfg = Debug|x64
-		{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}.DebugSecondary|x64.Build.0 = Debug|x64
-		{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}.DebugSecondary|x86.ActiveCfg = Debug|Win32
-		{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}.DebugSecondary|x86.Build.0 = Debug|Win32
-		{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}.MinSizeRel|Itanium.ActiveCfg = Release|x64
-		{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}.MinSizeRel|Itanium.Build.0 = Release|x64
-		{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}.MinSizeRel|x64.ActiveCfg = Release|x64
-		{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}.MinSizeRel|x64.Build.0 = Release|x64
-		{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}.MinSizeRel|x86.ActiveCfg = Release|Win32
-		{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}.MinSizeRel|x86.Build.0 = Release|Win32
-		{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}.Release|Itanium.ActiveCfg = Release|Win32
-		{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}.Release|x64.ActiveCfg = Release|x64
-		{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}.Release|x64.Build.0 = Release|x64
-		{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}.Release|x86.ActiveCfg = Release|Win32
-		{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}.Release|x86.Build.0 = Release|Win32
-		{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}.ReleaseWithoutAsm|Itanium.ActiveCfg = Release|x64
-		{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}.ReleaseWithoutAsm|Itanium.Build.0 = Release|x64
-		{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}.ReleaseWithoutAsm|x64.ActiveCfg = Release|x64
-		{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}.ReleaseWithoutAsm|x64.Build.0 = Release|x64
-		{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}.ReleaseWithoutAsm|x86.ActiveCfg = Release|Win32
-		{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}.ReleaseWithoutAsm|x86.Build.0 = Release|Win32
-		{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}.RelWithDebInfo|Itanium.ActiveCfg = Release|x64
-		{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}.RelWithDebInfo|Itanium.Build.0 = Release|x64
-		{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}.RelWithDebInfo|x64.ActiveCfg = Release|x64
-		{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}.RelWithDebInfo|x64.Build.0 = Release|x64
-		{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}.RelWithDebInfo|x86.ActiveCfg = Release|Win32
-		{1C34EAAC-AE19-4552-B3B5-C3EEFCFFD124}.RelWithDebInfo|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
