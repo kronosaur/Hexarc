@@ -28,7 +28,7 @@ bool CGridLangTypeLoader::Load (CString *retsError)
 	//	1.	Add the new type to the type system
 	//	2.	Add a pointer from the AST to the new type.
 
-	if (!DeclareTypes(m_AST.GetRoot(), SCOPE_ROOT, retsError))
+	if (!DeclareTypes(m_Root, SCOPE_ROOT, retsError))
 		return false;
 
 #if 0

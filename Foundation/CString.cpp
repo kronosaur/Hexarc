@@ -1270,6 +1270,71 @@ int strFind (const CString &sString, const CString &sStringToFind)
 	return -1;
 	}
 
+int strFindNoCase (const CString &sString, const CString &sStringToFind)
+
+//	strFindNoCase
+//
+//	Case-insensitive find.
+
+	{
+	const char *pPos1Start = (LPSTR)sString;
+	const char *pPos1 = pPos1Start;
+	const char *pPos1End = pPos1 + sString.GetLength();
+	const char *pPos2 = (LPSTR)sStringToFind;
+	const char *pPos2End = pPos2 + sStringToFind.GetLength();
+
+	//	Handle NULL
+
+	if (pPos1 == NULL || pPos1 == pPos1End)
+		return -1;
+	else if (pPos2 == NULL || pPos2 == pPos2End)
+		return 0;
+
+	const char *pFirstPos = pPos2;
+	UTF32 dwFirstCodePoint = strParseUTF8Char(&pFirstPos, pPos2End);
+
+	//	Look
+
+	const char *pPos1Last = pPos1End - sStringToFind.GetLength();
+	while (pPos1 <= pPos1Last)
+		{
+		const char *pAdvance = pPos1;
+		UTF32 dwCodePoint1 = strParseUTF8Char(&pAdvance, pPos1End);
+
+		if (strToLowerChar(dwCodePoint1) == strToLowerChar(dwFirstCodePoint))
+			{
+			bool bFound = true;
+
+			//	See how far we match
+
+			const char *pTarget = pPos1;
+			const char *pToFind = pPos2;
+			while (pToFind < pPos2End)
+				{
+				UTF32 dwCodePoint1 = strParseUTF8Char(&pTarget, pPos1End);
+				UTF32 dwCodePoint2 = strParseUTF8Char(&pToFind, pPos2End);
+
+				if (strToLowerChar(dwCodePoint1) != strToLowerChar(dwCodePoint2))
+					{
+					bFound = false;
+					break;
+					}
+				}
+
+			//	Found it?
+
+			if (bFound)
+				return (int)(pPos1 - pPos1Start);
+			}
+
+		pPos1 = pAdvance;
+		}
+
+	//	Not found
+
+	return -1;
+	}
+
 CString strFormatInteger (int iValue, int iMinFieldWidth, DWORD dwFlags)
 
 //	strFormatInteger

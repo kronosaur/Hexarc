@@ -146,16 +146,23 @@ class CASTFunctionDef : public IASTNode
 			{ }
 
 		virtual void DebugDump (const CString &sIndent) const override;
+		virtual IASTNode &GetChild (int iIndex) override { if (iIndex >= 0 && iIndex < m_ArgDefs.GetCount()) return *m_ArgDefs[iIndex]; else throw CException(errFail); }
+		virtual int GetChildCount () const override { return m_ArgDefs.GetCount(); }
+		virtual int GetCodeID () const override { return m_iBlock; }
 		virtual const CString &GetName () const override { return m_sFunction; }
+		virtual const IASTNode &GetRoot () const override { return *m_pBody; }
 		virtual EASTType GetType () const override { return EASTType::FunctionDef; }
 		virtual const IASTNode &GetTypeRef () const override { return *m_pTypeDef; }
 		virtual bool IsFunctionDefinition () const override { return true; }
+		virtual void SetCodeID (int iID) override { m_iBlock = iID; }
 
 	private:
 		CString m_sFunction;
 		TSharedPtr<IASTNode> m_pTypeDef;
 		TArray<TSharedPtr<IASTNode>> m_ArgDefs;
 		TSharedPtr<IASTNode> m_pBody;
+
+		int m_iBlock = -1;
 	};
 
 class CASTIf : public IASTNode
@@ -413,8 +420,8 @@ class CASTVarDef : public IASTNode
 		virtual void DebugDump (const CString &sIndent) const override;
 		virtual IASTNode &GetChild (int iIndex) { if (m_pBody && m_pBody->GetType() != EASTType::LiteralNull && iIndex == 0) return *m_pBody; else throw CException(errFail); }
 		virtual int GetChildCount () const { return ((m_pBody && m_pBody->GetType() != EASTType::LiteralNull) ? 1 : 0); }
+		virtual int GetCodeID () const override { return m_iOrdinal; }
 		virtual const CString &GetName () const override { return m_sName; }
-		virtual int GetOrdinal () const override { return m_iOrdinal; }
 		virtual EASTType GetType () const override { return m_iVarType; }
 		virtual const IASTNode &GetTypeRef () const override { return *m_pTypeDef; }
 		virtual bool IsStatement () const override;

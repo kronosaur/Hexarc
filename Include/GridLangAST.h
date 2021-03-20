@@ -66,16 +66,16 @@ class IASTNode
 
 		bool ComposeError (const CString &sError, CString *retsError = NULL) const;
 		virtual bool AddChild (const TArray<TSharedPtr<IASTNode>> &Nodes, CString *retsError = NULL) { throw CException(errFail); }
-		virtual void DebugDump (const CString &sIndent) const { }
+		virtual void DebugDump (const CString &sIndent = NULL_STR) const { }
 		virtual const IASTNode *FindDefinition (const CString &sID) const { return NULL; }
 		virtual const CString &GetBaseName () const { return NULL_STR; }
 		virtual IASTNode &GetChild (int iIndex) { throw CException(errFail); }
 		const IASTNode &GetChild (int iIndex) const { return const_cast<IASTNode *>(this)->GetChild(iIndex); }
 		virtual int GetChildCount () const { return 0; }
+		virtual int GetCodeID () const { return 0; }
 		virtual const IASTNode &GetDefinition (int iIndex) const { throw CException(errFail); }
 		virtual int GetDefinitionCount () const { return 0; }
 		virtual const CString &GetDefinitionString (int iIndex) const { throw CException(errFail); }
-		virtual int GetOrdinal () const { return 0; }
 		virtual const CString &GetName () const { return NULL_STR; }
 		virtual const IASTNode &GetRoot () const { return *this; }
 		virtual const IASTNode &GetStatement (int iIndex) const { throw CException(errFail); }
@@ -90,6 +90,7 @@ class IASTNode
 		virtual bool IsStatement () const { return false; }
 		virtual bool IsTypeDefinition () const { return false; }
 		virtual bool IsVarDefinition () const { return false; }
+		virtual void SetCodeID (int iID) { throw CException(errFail); }
 		virtual void SetTypeDef (IGLType &Type) { throw CException(errFail); }
 
 		IASTNode *AddRef (void) { m_dwRefCount++; return this; }

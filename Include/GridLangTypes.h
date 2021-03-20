@@ -168,8 +168,8 @@ class CGLTypeSystem
 class CGridLangTypeLoader
 	{
 	public:
-		CGridLangTypeLoader (CGridLangAST &AST, CGLTypeSystem &Types) :
-				m_AST(AST),
+		CGridLangTypeLoader (IASTNode &Root, CGLTypeSystem &Types) :
+				m_Root(Root),
 				m_Types(Types)
 			{ }
 
@@ -182,7 +182,7 @@ class CGridLangTypeLoader
 		bool DeclareOrdinal (IASTNode &Node, const CString &sScopePrefix, CString *retsError = NULL);
 		bool DeclareTypes (IASTNode &Node, const CString &sScopePrefix, CString *retsError = NULL);
 
-		CGridLangAST &m_AST;
+		IASTNode &m_Root;
 		CGLTypeSystem &m_Types;
 	};
 

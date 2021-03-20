@@ -182,6 +182,7 @@ bool strEquals (const CString &sKey1, const CString &sKey2);
 bool strEqualsNoCase (const CString &sKey1, const CString &sKey2);
 CString strEscapePrintf (const CString &sString);
 int strFind (const CString &sString, const CString &sStringToFind);
+int strFindNoCase (const CString &sString, const CString &sStringToFind);
 
 const DWORD FORMAT_LEADING_ZERO =			0x00000001;
 const DWORD FORMAT_THOUSAND_SEPARATOR =		0x00000002;

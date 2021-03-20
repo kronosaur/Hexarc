@@ -33,62 +33,49 @@ class CGridLangCodeBank
 		TSortMap<CString, SEntry> m_Map;
 	};
 
+class CGLVMCodeGenerator
+	{
+	public:
+		CGLVMCodeGenerator () { }
+
+		int CreateDataBlock (CDatum dValue);
+		CDatum CreateOutput ();
+		void EnterCodeBlock ();
+		void ExitCodeBlock ();
+		int GetCodeBlock () const { return m_iBlock; }
+		void Init ();
+		void WriteLongOpCode (OPCODE opCode, DWORD dwData);
+		void WriteShortOpCode (OPCODE opCode, DWORD dwOperand = 0);
+
+	private:
+		CHexeCodeIntermediate m_Code;
+		int m_iBlock = -1;
+
+		TArray<int> m_SavedBlocks;
+	};
+
 class CGridLangVMCompiler
 	{
 	public:
-		CGridLangVMCompiler (const CGLTypeSystem &Types, CGridLangCodeBank &Output) :
-				m_Types(Types),
-				m_Output(Output)
-			{ }
+		CGridLangVMCompiler () { }
 
-		bool CompileDefinition (const IASTNode &AST, CString *retsError = NULL);
-		bool CompileSequence (const IASTNode &AST, const CString &sSymbol, CString *retsError = NULL);
+		bool CompileProgram (IASTNode &Root, CGLTypeSystem &retTypes, CGridLangCodeBank &retOutput, CString *retsError = NULL);
 
 	private:
-		struct SCompilerCtx
-			{
-			SCompilerCtx (const CGLTypeSystem &Types) :
-					Scope(Types)
-				{
-				iBlock = Code.CreateCodeBlock();
-				}
 
-			int CreateDataBlock (CDatum dValue)
-				{
-				return Code.CreateDatumBlock(dValue);
-				}
+		bool CompileDefinition (const IASTNode &AST, CString *retsError = NULL);
+		bool CompileFunctionDef (IASTNode &AST, CString *retsError = NULL);
+		bool CompileSequence (const IASTNode &AST, CString *retsError = NULL);
 
-			void WriteLongOpCode (OPCODE opCode, DWORD dwData)
-				{
-				Code.WriteLongOpCode(iBlock, opCode, dwData);
-				}
 
-			void WriteLongOpCode (OPCODE opCode, CDatum dData)
-				{
-				Code.WriteLongOpCode(iBlock, opCode, dData);
-				}
+		bool CompileExpression (const IASTNode &AST, CString *retsError = NULL);
+		bool CompileFunctionCall (const IASTNode &AST, CString *retsError = NULL);
+		bool CompileStatement (const IASTNode &AST, CString *retsError = NULL);
+		bool CompileVariableDefinition (const IASTNode &AST, CString *retsError = NULL);
+		bool CompileVariableReference (const IASTNode &AST, CString *retsError = NULL);
+		bool ComposeError (const CString &sError, CString *retsError) const;
 
-			void WriteShortOpCode (OPCODE opCode, DWORD dwOperand = 0)
-				{
-				Code.WriteShortOpCode(iBlock, opCode, dwOperand);
-				}
+		CGLTypeSystem *m_pTypes = NULL;
 
-			CHexeCodeIntermediate Code;
-			int iBlock = -1;
-
-			CDatum m_dCurrentEnv;
-			CHexeLocalEnvironment *m_pCurrentEnv = NULL;
-
-			CGLNamespaceCtx Scope;
-			};
-
-		bool CompileExpression (SCompilerCtx &Ctx, const IASTNode &AST, CString *retsError = NULL);
-		bool CompileFunctionCall (SCompilerCtx &Ctx, const IASTNode &AST, CString *retsError = NULL);
-		bool CompileStatement (SCompilerCtx &Ctx, const IASTNode &AST, CString *retsError = NULL);
-		bool CompileVariableDefinition (SCompilerCtx &Ctx, const IASTNode &AST, CString *retsError = NULL);
-		bool CompileVariableReference (SCompilerCtx &Ctx, const IASTNode &AST, CString *retsError = NULL);
-		bool ComposeError (SCompilerCtx &Ctx, const CString &sError, CString *retsError) const;
-
-		const CGLTypeSystem &m_Types;
-		CGridLangCodeBank &m_Output;
+		CGLVMCodeGenerator m_Code;
 	};

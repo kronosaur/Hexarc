@@ -170,5 +170,8 @@
     <ClCompile Include="CASTLibraryFunctionDef.cpp">
       <Filter>Source Files\AST</Filter>
     </ClCompile>
+    <ClCompile Include="CGLVMCodeGenerator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

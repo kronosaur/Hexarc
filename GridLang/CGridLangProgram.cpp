@@ -33,57 +33,11 @@ bool CGridLangProgram::Load (IMemoryBlock &Stream, CString *retsError)
 	if (AST.IsEmpty())
 		return true;
 
-	//	Process the AST and declare all types. The type system is initialized
-	//	and we modify the AST to point to appropriate types.
+	//	Compile
 
-	CGridLangTypeLoader TypeLoader(AST, m_Types);
-	if (!TypeLoader.Load(retsError))
+	CGridLangVMCompiler Compiler;
+	if (!Compiler.CompileProgram(AST.GetRoot(), m_Types, m_Code, retsError))
 		return false;
-
-	//	Now load all library functions into the AST so that they can be looked
-	//	up.
-
-	if (!AST.GetRoot().AddChild(CGridLangCoreLibrary::GetDefinitions(), retsError))
-		return false;
-
-#if 0
-	//	Initialize the type system
-
-	if (!m_Types.InitFromAST(AST, retsError))
-		return false;
-#endif
-
-	//	Compile all definitions
-
-	const IASTNode &Root = AST.GetRoot();
-
-	CGridLangVMCompiler Compiler(m_Types, m_Code);
-	for (int i = 0; i < Root.GetDefinitionCount(); i++)
-		{
-		auto &Def = Root.GetDefinition(i);
-
-		if (!Compiler.CompileDefinition(Def, retsError))
-			{
-#ifdef DEBUG
-			AST.DebugDump();
-			printf("\n");
-			m_Types.DebugDump();
-#endif
-			return false;
-			}
-		}
-
-	//	Now compile main statements.
-
-	if (!Compiler.CompileSequence(Root, SYMBOL_MAIN, retsError))
-		{
-#ifdef DEBUG
-		AST.DebugDump();
-		printf("\n");
-		m_Types.DebugDump();
-#endif
-		return false;
-		}
 
 	//	Done
 

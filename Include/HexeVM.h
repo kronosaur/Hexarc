@@ -91,7 +91,7 @@ class CHexeCodeIntermediate
 		void RewriteShortOpCode (int iBlock, int iPos, OPCODE opCode, DWORD dwOperand = 0);
 		void WriteShortOpCode (int iBlock, OPCODE opCode, DWORD dwOperand = 0);
 		void WriteLongOpCode (int iBlock, OPCODE opCode, DWORD dwData);
-		void WriteLongOpCode (int iBlock, OPCODE opCode, CDatum dData);
+//		void WriteLongOpCode (int iBlock, OPCODE opCode, CDatum dData);
 
 		const CBuffer &GetCodeBlock (int iIndex) const { return m_CodeBlocks[iIndex]; }
 		int GetCodeBlockCount (void) const { return m_CodeBlocks.GetCount(); }

@@ -198,6 +198,7 @@
     <ClCompile Include="CGLTypeNamespace.cpp" />
     <ClCompile Include="CGLTypeSystem.cpp" />
     <ClCompile Include="CGLTypeTree.cpp" />
+    <ClCompile Include="CGLVMCodeGenerator.cpp" />
     <ClCompile Include="CGridLangAST.cpp" />
     <ClCompile Include="CGridLangCodeBank.cpp" />
     <ClCompile Include="CGridLangCoreLibrary.cpp" />
