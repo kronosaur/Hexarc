@@ -24,3 +24,15 @@ void CASTUnaryOp::DebugDump (const CString &sIndent) const
 
 	m_pOperand->DebugDump(strPattern("%s\t", sIndent));
 	}
+
+bool CASTUnaryOp::IsStatement () const
+	{
+	switch (m_iOp)
+		{
+		case EASTType::OpReturn:
+			return true;
+
+		default:
+			return false;
+		}
+	}

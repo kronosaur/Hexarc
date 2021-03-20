@@ -229,6 +229,24 @@ bool CGridLangVMCompiler::CompileExpression (const IASTNode &AST, CString *retsE
 	{
 	switch (AST.GetType())
 		{
+		case EASTType::LiteralInteger:
+			{
+			DWORD dwValue = (DWORD)AST.GetCodeID();
+			DWORD dwHighByte = (dwValue & 0xff000000);
+
+			//	If the value fits in a short opcode, use that
+
+			if (dwHighByte == 0 || dwHighByte == 0xff000000)
+				m_Code.WriteShortOpCode(opPushIntShort, dwValue);
+
+			//	Otherwise, long
+
+			else
+				m_Code.WriteLongOpCode(opPushInt, dwValue);
+
+			break;
+			}
+
 		case EASTType::LiteralString:
 			{
 			int iDataBlock = m_Code.CreateDataBlock(AST.GetValue());
@@ -286,6 +304,16 @@ bool CGridLangVMCompiler::CompileFunctionCall (const IASTNode &AST, CString *ret
 	return true;
 	}
 
+bool CGridLangVMCompiler::CompileReturn (IASTNode &AST, CString *retsError)
+
+//	CompileReturn
+//
+//	Compiles a return statement.
+
+	{
+	return true;
+	}
+
 bool CGridLangVMCompiler::CompileStatement (const IASTNode &AST, CString *retsError)
 
 //	CompileStatement
@@ -297,6 +325,11 @@ bool CGridLangVMCompiler::CompileStatement (const IASTNode &AST, CString *retsEr
 		{
 		case EASTType::FunctionCall:
 			if (!CompileFunctionCall(AST, retsError))
+				return false;
+			break;
+
+		case EASTType::OpReturn:
+			if (!CompileReturn(AST, retsError))
 				return false;
 			break;
 

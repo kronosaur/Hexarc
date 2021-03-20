@@ -65,6 +65,7 @@ class CGridLangVMCompiler
 
 		bool CompileDefinition (const IASTNode &AST, CString *retsError = NULL);
 		bool CompileFunctionDef (IASTNode &AST, CString *retsError = NULL);
+		bool CompileReturn (IASTNode &AST, CString *retsError = NULL);
 		bool CompileSequence (const IASTNode &AST, CString *retsError = NULL);
 
 

@@ -267,6 +267,7 @@ class CASTLiteralInteger : public IASTNode
 			{ }
 
 		virtual void DebugDump (const CString &sIndent) const override;
+		virtual int GetCodeID () const override { return m_iValue; }
 		virtual EASTType GetType () const override { return EASTType::LiteralInteger; }
 		virtual CDatum GetValue () const { return CDatum(m_iValue); }
 
@@ -394,6 +395,7 @@ class CASTUnaryOp : public IASTNode
 		virtual IASTNode &GetChild (int iIndex) override { if (iIndex == 0) return *m_pOperand; else throw CException(errFail); }
 		virtual int GetChildCount () const override { return 1; }
 		virtual EASTType GetType () const override { return m_iOp; }
+		virtual bool IsStatement () const override;
 
 	private:
 		EASTType m_iOp = EASTType::Unknown;
