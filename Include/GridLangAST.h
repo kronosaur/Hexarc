@@ -52,6 +52,10 @@ enum class EASTType
 	VarDef,
 	VarRef,
 
+	//	NOTE:
+	//
+	//	When adding a new type, make sure to update IASTNode::m_TypeDesc.
+
 	LastType,
 	};
 
@@ -77,6 +81,8 @@ class IASTNode
 		virtual int GetDefinitionCount () const { return 0; }
 		virtual const CString &GetDefinitionString (int iIndex) const { throw CException(errFail); }
 		virtual const CString &GetName () const { return NULL_STR; }
+		virtual int GetOrdinal () const { return -1; }
+		IASTNode &GetParent () { if (m_pParent) return *m_pParent; else throw CException(errFail); }
 		virtual IASTNode &GetRoot () { return *this; }
 		virtual IASTNode &GetStatement (int iIndex) { throw CException(errFail); }
 		virtual int GetStatementCount () const { return 0; }
@@ -86,11 +92,14 @@ class IASTNode
 		virtual CDatum GetValue () const { return CDatum(); }
 		virtual IASTNode &GetVarDef (int iIndex) { throw CException(errFail); }
 		virtual int GetVarDefCount () const { return 0; }
+		bool HasParent () const { return m_pParent != NULL; }
+		virtual bool HasScope () const { return false;}
 		virtual bool IsFunctionDefinition () const { return false; }
 		virtual bool IsStatement () const { return false; }
 		virtual bool IsTypeDefinition () const { return false; }
 		virtual bool IsVarDefinition () const { return false; }
 		virtual void SetCodeID (int iID) { throw CException(errFail); }
+		void SetParent (IASTNode &Parent) { m_pParent = &Parent; }
 		virtual void SetTypeDef (IGLType &Type) { throw CException(errFail); }
 
 		IASTNode *AddRef (void) { m_dwRefCount++; return this; }
@@ -98,8 +107,17 @@ class IASTNode
 
 		static CString GetTypeName (EASTType iType);
 
+	protected:
+
+		void AddChild (TSharedPtr<IASTNode> &pPointer, TSharedPtr<IASTNode> pChild)
+			{
+			pPointer = pChild;
+			if (pChild)
+				pChild->SetParent(*this);
+			}
+
 	private:
-		IASTNode *m_pParent = NULL;
+		IASTNode *m_pParent = NULL;			//	Lexical parent
 		int m_dwRefCount = 1;
 
 		struct STypeDesc
@@ -129,12 +147,12 @@ class CGridLangAST
 		static bool IsOperator (EGridLangToken iToken);
 
 		const IASTNode &GetNode (int iIndex) { if (m_pRoot) return m_pRoot->GetChild(iIndex); else throw CException(errFail); }
-		bool ParseArgDef (CGridLangParser &Parser, IASTNode *pParent, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
+		bool ParseArgDef (CGridLangParser &Parser, IASTNode *pParent, int iOrdinal, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
 		bool ParseClassDef (CGridLangParser &Parser, IASTNode *pParent, const CString &sBaseType, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
 		bool ParseExpression (CGridLangParser &Parser, IASTNode *pParent, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL) { return ParseExpression(Parser, pParent, EASTType::Unknown, retpNode, retsError); }
 		bool ParseExpression (CGridLangParser &Parser, IASTNode *pParent, EASTType iLeftOperator, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
 		bool ParseFunctionCall (CGridLangParser &Parser, IASTNode *pParent, TSharedPtr<IASTNode> pFunction, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
-		bool ParseFunctionDef (CGridLangParser &Parser, IASTNode *pParent, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
+		bool ParseFunctionDef (CGridLangParser &Parser, IASTNode *pParent, int iOrdinal, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
 		bool ParseIf (CGridLangParser &Parser, IASTNode *pParent, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
 		bool ParseOrdinalDef (CGridLangParser &Parser, IASTNode *pParent, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
 		bool ParseSequence (CGridLangParser &Parser, IASTNode *pParent, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);

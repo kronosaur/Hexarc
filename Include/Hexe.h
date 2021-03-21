@@ -42,15 +42,15 @@ class CHexeDocument
 
 		CDatum AsDatum (void) const;
 		bool FindEntry (const CString &sName, CString *retsType = NULL, CDatum *retdData = NULL) const;
-		inline int GetCount (void) const { return m_Doc.GetCount(); }
-		inline CDatum GetData (int iIndex) const { return m_Doc[iIndex].dData; }
+		int GetCount (void) const { return m_Doc.GetCount(); }
+		CDatum GetData (int iIndex) const { return m_Doc[iIndex].dData; }
 		void GetEntryPoints (TArray<SEntryPoint> *retList) const;
 		void GetHexeDefinitions (TArray<CDatum> *retList) const;
-		inline const CString &GetName (int iIndex) const { return m_Doc[iIndex].sName; }
-		inline const CString &GetType (int iIndex) const { return m_Doc[iIndex].sType; }
-		inline int GetTypeIndexCount (int iTypeIndex) const { return (iTypeIndex == -1 ? 0 : m_TypeIndex[iTypeIndex].GetCount()); }
-		inline CDatum GetTypeIndexData (int iTypeIndex, int iIndex) const { return (iTypeIndex == -1 ? CDatum() : m_Doc[m_TypeIndex[iTypeIndex].GetAt(iIndex)].dData); }
-		inline const CString &GetTypeIndexName (int iTypeIndex, int iIndex) const { return (iTypeIndex == -1 ? NULL_STR : m_Doc[m_TypeIndex[iTypeIndex].GetAt(iIndex)].sName); }
+		const CString &GetName (int iIndex) const { return m_Doc[iIndex].sName; }
+		const CString &GetType (int iIndex) const { return m_Doc[iIndex].sType; }
+		int GetTypeIndexCount (int iTypeIndex) const { return (iTypeIndex == -1 ? 0 : m_TypeIndex[iTypeIndex].GetCount()); }
+		CDatum GetTypeIndexData (int iTypeIndex, int iIndex) const { return (iTypeIndex == -1 ? CDatum() : m_Doc[m_TypeIndex[iTypeIndex].GetAt(iIndex)].dData); }
+		const CString &GetTypeIndexName (int iTypeIndex, int iIndex) const { return (iTypeIndex == -1 ? NULL_STR : m_Doc[m_TypeIndex[iTypeIndex].GetAt(iIndex)].sName); }
 		int GetTypeIndex (const CString &sType) const;
 		bool InitFromData (CDatum dData, CHexeProcess &Process, CString *retsError);
 		bool InitFromStream (IByteStream &Stream, CHexeProcess &Process, CString *retsError);
@@ -67,7 +67,7 @@ class CHexeDocument
 
 		void AddEntry (const CString &sName, const CString &sType, CDatum dData);
 		void InitTypeIndex (void) const;
-		inline void InvalidateTypeIndex (void) { m_TypeIndex.DeleteAll(); }
+		void InvalidateTypeIndex (void) { m_TypeIndex.DeleteAll(); }
 		bool ParseAEONDef (CCharStream *pStream, CHexeProcess &Process, CString *retsName, CString *retsType, CDatum *retdDatum, CString *retsError);
 		bool ParseComments (CCharStream *pStream, CString *retsError);
 		bool ParseDefine (CAEONScriptParser &Parser, CHexeProcess &Process, const CString &sType, CString *retsName, CDatum *retdDatum, CString *retsError);
@@ -101,7 +101,7 @@ class CHexeLibrarian
 		bool FindLibrary (const CString &sName, DWORD *retdwLibraryID);
 		const CString &GetEntry (DWORD dwLibrary, int iIndex, CDatum *retdFunction);
 		int GetEntryCount (DWORD dwLibrary);
-		inline int GetLibraryCount (void) { return m_Catalog.GetCount(); }
+		int GetLibraryCount (void) { return m_Catalog.GetCount(); }
 		void Mark (void);
 		void RegisterCoreLibraries (void);
 		void RegisterLibrary (const CString &sName, int iCount, SLibraryFuncDef *pNewLibrary);
@@ -249,9 +249,9 @@ class CHexeProcess : public IInvokeCtx
 
 		void DefineGlobal (const CString &sIdentifier, CDatum dValue);
 		void DeleteAll (void);
-		inline void DeleteLibraryCtx (const CString &sLibrary) { m_LibraryCtx.DeleteAt(sLibrary); }
+		void DeleteLibraryCtx (const CString &sLibrary) { m_LibraryCtx.DeleteAt(sLibrary); }
 		bool FindGlobalDef (const CString &sIdentifier, CDatum *retdValue = NULL);
-		inline CDatum GetGlobalEnv (void) { return m_dGlobalEnv; }
+		CDatum GetGlobalEnv (void) { return m_dGlobalEnv; }
 		bool InitFrom (const CHexeProcess &Process, CString *retsError = NULL);
 		bool LoadEntryPoints (const TArray<CHexeDocument::SEntryPoint> &EntryPoints, CString *retsError);
 		bool LoadEntryPoints (const CHexeDocument &Program, CString *retsError);
@@ -265,7 +265,8 @@ class CHexeProcess : public IInvokeCtx
 		ERun Run (CDatum dExpression, CDatum *retResult);
 		ERun Run (CDatum dFunc, CDatum dCallExpression, const TArray<CDatum> *pInitialStack, CDatum *retResult);
 		ERun RunContinues (CDatum dAsyncResult, CDatum *retResult);
-		inline void SetMaxExecutionTime (DWORDLONG dwMilliseconds) { m_dwMaxExecutionTime = dwMilliseconds; }
+		void SetMaxExecutionTime (DWORDLONG dwMilliseconds) { m_dwMaxExecutionTime = dwMilliseconds; }
+		void SetOptionAddConcatenatesStrings (bool bValue = true) { m_bAddConcatenatesStrings = bValue; }
 		void *SetLibraryCtx (const CString &sLibrary, void *pCtx);
 		void SetSecurityCtx (const CHexeSecurityCtx &Ctx);
 
@@ -309,11 +310,17 @@ class CHexeProcess : public IInvokeCtx
 		static bool ExecuteMakeFlagsFromArray (CDatum dOptions, CDatum dMap, CDatum *retdResult);
 		static bool ExecuteSetAt (CDatum dOriginal, CDatum dKey, CDatum dValue, CDatum *retdResult);
 
+		//	Options
+
 		DWORDLONG m_dwMaxExecutionTime = 0;			//	Do not allow execution to exceed this amount of time (in ms)
 		DWORDLONG m_dwAbortTime = 0;				//	Abort at this tick (0 = never abort)
-		CHexeStack m_Stack;							//	Stack
+		bool m_bAddConcatenatesStrings = false;	//	If TRUE, then + will concatenate string (instead of converting 
+													//		them to numbers).
+
+		//	Execution State
 
 		CDatum m_dExpression;						//	Current expression being executed
+		CHexeStack m_Stack;							//	Stack
 		DWORD *m_pIP = NULL;						//	Current instruction pointer
 		CDatum m_dCodeBank;							//	Current code bank
 		CHexeCode *m_pCodeBank = NULL;				//	Current code bank

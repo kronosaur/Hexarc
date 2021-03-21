@@ -40,7 +40,7 @@ class CGLVMCodeGenerator
 
 		int CreateDataBlock (CDatum dValue);
 		CDatum CreateOutput ();
-		void EnterCodeBlock ();
+		int EnterCodeBlock ();
 		void ExitCodeBlock ();
 		int GetCodeBlock () const { return m_iBlock; }
 		void Init ();
@@ -63,15 +63,19 @@ class CGridLangVMCompiler
 
 	private:
 
+		bool CompileBinaryOp (IASTNode &AST, EOpCodes iOpCode, CString *retsError = NULL);
 		bool CompileDefinition (IASTNode &AST, CString *retsError = NULL);
+		bool CompileExitFunction (IASTNode &AST, CString *retsError = NULL);
 		bool CompileExpression (IASTNode &AST, CString *retsError = NULL);
 		bool CompileFunctionCall (IASTNode &AST, CString *retsError = NULL);
-		bool CompileFunctionDef (IASTNode &AST, CString *retsError = NULL);
+		bool CompileFunctionBlock (IASTNode &AST, CString *retsError = NULL);
+		bool CompileFunctionDefinition (IASTNode &AST, CString *retsError = NULL);
+		bool CompileGlobalReference (IASTNode &VarRef, CString *retsError = NULL);
 		bool CompileReturn (IASTNode &AST, CString *retsError = NULL);
 		bool CompileSequence (IASTNode &AST, CString *retsError = NULL);
 		bool CompileStatement (IASTNode &AST, CString *retsError = NULL);
 		bool CompileVariableDefinition (IASTNode &AST, CString *retsError = NULL);
-		bool CompileVariableReference (IASTNode &AST, CString *retsError = NULL);
+		bool CompileVariableReference (IASTNode &VarRef, IASTNode &Scope, IASTNode &Pos, int iLevel, CString *retsError = NULL);
 
 		bool ComposeError (const CString &sError, CString *retsError) const;
 

@@ -205,6 +205,11 @@ CDatum::CDatum (CString &&sString)
 	CreateStringFromHandoff(sString, this);
 	}
 
+CDatum::CDatum (CStringBuffer &&String)
+	{
+	CreateStringFromHandoff(String, this);
+	}
+
 CDatum::CDatum (IComplexDatum *pValue)
 
 //	CDatum constructor

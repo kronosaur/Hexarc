@@ -154,6 +154,7 @@ class CDatum
 		CDatum (DWORDLONG ilValue);
 		CDatum (const CString &sString);
 		CDatum (CString &&sString);
+		CDatum (CStringBuffer &&sString);
 		CDatum (double rValue);
 		CDatum (IComplexDatum *pValue);
 		CDatum (const CDateTime &DateTime);

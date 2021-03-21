@@ -816,6 +816,29 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 							m_Stack.Push(CDatum(iResult));
 #endif
 						}
+					else if (m_bAddConcatenatesStrings
+							&& (dA.GetBasicType() == CDatum::typeString && dB.GetBasicType() == CDatum::typeString))
+						{
+						const CString &sA = dA;
+						const CString &sB = dB;
+						CString sResult(sA.GetLength() + sB.GetLength());
+						utlMemCopy(sA.GetParsePointer(), sResult.GetParsePointer(), sA.GetLength());
+						utlMemCopy(sB.GetParsePointer(), sResult.GetParsePointer() + sA.GetLength(), sB.GetLength());
+						m_Stack.Push(CDatum(std::move(sResult)));
+						}
+					else if (m_bAddConcatenatesStrings
+							&& (dA.GetBasicType() == CDatum::typeString || dB.GetBasicType() == CDatum::typeString))
+						{
+						CStringBuffer Result;
+
+						CString sA = dA.AsString();
+						Result.Write((LPSTR)sA, sA.GetLength());
+
+						CString sB = dB.AsString();
+						Result.Write((LPSTR)sB, sB.GetLength());
+
+						m_Stack.Push(CDatum(std::move(Result)));
+						}
 					else
 						{
 						CNumberValue Result(dA);
