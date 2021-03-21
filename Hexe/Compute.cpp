@@ -1014,6 +1014,26 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				m_pIP++;
 				break;
 
+			case opArrayIndex:
+				iCount = GetOperand(*m_pIP);
+
+				if (iCount == 2)
+					{
+					int iIndex = m_Stack.Pop();
+					CDatum dArray = m_Stack.Pop();
+					if (iIndex >= 0 && iIndex < dArray.GetCount())
+						m_Stack.Push(dArray.GetElement(iIndex));
+					else
+						m_Stack.Push(CDatum());
+					}
+				else
+					{
+					m_Stack.Push(CDatum());
+					}
+
+				m_pIP++;
+				break;
+
 			case opPop:
 				m_Stack.Pop(GetOperand(*m_pIP));
 				m_pIP++;

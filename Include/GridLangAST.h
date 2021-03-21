@@ -21,6 +21,7 @@ enum class EASTType
 	FunctionDef,
 	GlobalDef,
 	LibraryFunctionDef,
+	LiteralArray,
 	LiteralNull,
 	LiteralFloat,
 	LiteralInteger,
@@ -28,6 +29,7 @@ enum class EASTType
 	LiteralTrue,
 	OpArithmeticAnd,
 	OpArithmeticOr,
+	OpArray,
 	OpAssignment,
 	OpDivide,
 	OpEquals,
@@ -148,6 +150,8 @@ class CGridLangAST
 
 		const IASTNode &GetNode (int iIndex) { if (m_pRoot) return m_pRoot->GetChild(iIndex); else throw CException(errFail); }
 		bool ParseArgDef (CGridLangParser &Parser, IASTNode *pParent, int iOrdinal, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
+		bool ParseArrayElement (CGridLangParser &Parser, IASTNode *pParent, TSharedPtr<IASTNode> pArray, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
+		bool ParseArrayLiteral (CGridLangParser &Parser, IASTNode *pParent, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
 		bool ParseClassDef (CGridLangParser &Parser, IASTNode *pParent, const CString &sBaseType, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
 		bool ParseExpression (CGridLangParser &Parser, IASTNode *pParent, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL) { return ParseExpression(Parser, pParent, EASTType::Unknown, retpNode, retsError); }
 		bool ParseExpression (CGridLangParser &Parser, IASTNode *pParent, EASTType iLeftOperator, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
