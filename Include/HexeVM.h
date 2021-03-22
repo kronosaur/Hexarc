@@ -88,7 +88,7 @@ class CHexeCodeIntermediate
 		int CreateCodeBlock (void);
 		int CreateDatumBlock (CDatum dDatum);
 		CDatum CreateOutput (int iBlock) const;
-		int GetCodeBlockPos (int iBlock) { return m_CodeBlocks[iBlock].GetPos(); }
+		int GetCodeBlockPos (int iBlock) const { return m_CodeBlocks[iBlock].GetPos(); }
 		void RewriteShortOpCode (int iBlock, int iPos, OPCODE opCode, DWORD dwOperand = 0);
 		void WriteShortOpCode (int iBlock, OPCODE opCode, DWORD dwOperand = 0);
 		void WriteLongOpCode (int iBlock, OPCODE opCode, DWORD dwData);

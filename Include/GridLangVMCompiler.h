@@ -43,7 +43,9 @@ class CGLVMCodeGenerator
 		int EnterCodeBlock ();
 		void ExitCodeBlock ();
 		int GetCodeBlock () const { return m_iBlock; }
+		int GetCodePos () const { return m_Code.GetCodeBlockPos(m_iBlock); }
 		void Init ();
+		void RewriteShortOpCode (int iPos, OPCODE opCode, DWORD dwOperand = 0) { m_Code.RewriteShortOpCode(m_iBlock, iPos, opCode, dwOperand); }
 		void WriteLongOpCode (OPCODE opCode, DWORD dwData);
 		void WriteShortOpCode (OPCODE opCode, DWORD dwOperand = 0);
 
@@ -67,6 +69,7 @@ class CGridLangVMCompiler
 		bool CompileDefinition (IASTNode &AST, CString *retsError = NULL);
 		bool CompileExitFunction (IASTNode &AST, CString *retsError = NULL);
 		bool CompileExpression (IASTNode &AST, CString *retsError = NULL);
+		bool CompileForLoop (IASTNode &AST, CString *retsError = NULL);
 		bool CompileFunctionCall (IASTNode &AST, CString *retsError = NULL);
 		bool CompileFunctionBlock (IASTNode &AST, CString *retsError = NULL);
 		bool CompileFunctionDefinition (IASTNode &AST, CString *retsError = NULL);

@@ -16,6 +16,7 @@ enum class EASTType
 	ArgDef,
 	ClassDef,
 	ConstDef,
+	DoForLoop,
 	DoIf,
 	FunctionCall,
 	FunctionDef,
@@ -155,6 +156,7 @@ class CGridLangAST
 		bool ParseClassDef (CGridLangParser &Parser, IASTNode *pParent, const CString &sBaseType, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
 		bool ParseExpression (CGridLangParser &Parser, IASTNode *pParent, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL) { return ParseExpression(Parser, pParent, EASTType::Unknown, retpNode, retsError); }
 		bool ParseExpression (CGridLangParser &Parser, IASTNode *pParent, EASTType iLeftOperator, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
+		bool ParseForLoop (CGridLangParser &Parser, IASTNode *pParent, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
 		bool ParseFunctionCall (CGridLangParser &Parser, IASTNode *pParent, TSharedPtr<IASTNode> pFunction, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
 		bool ParseFunctionDef (CGridLangParser &Parser, IASTNode *pParent, int iOrdinal, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
 		bool ParseIf (CGridLangParser &Parser, IASTNode *pParent, TSharedPtr<IASTNode> &retpNode, CString *retsError = NULL);
