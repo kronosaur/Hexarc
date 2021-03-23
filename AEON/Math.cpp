@@ -622,6 +622,48 @@ void CNumberValue::Multiply (CDatum dValue)
 		}
 	}
 
+void CNumberValue::Power (CDatum dValue)
+
+//	Power
+//
+//	Raise number to the given power.
+
+	{
+	CNumberValue Src(dValue);
+	Upconvert(Src);
+
+	switch (m_iType)
+		{
+		case CDatum::typeInteger32:
+			//	LATER: Handle overflow
+			if (Src.GetInteger() >= 0)
+				SetInteger((int)pow((double)GetInteger(), (double)Src.GetInteger()));
+			else
+				SetDouble(pow((double)GetInteger(), (double)Src.GetInteger()));
+			break;
+
+		case CDatum::typeInteger64:
+			//	LATER: Handle overflow
+			if (Src.GetInteger64() >= 0)
+				SetInteger64((LONGLONG)pow((double)GetInteger64(), (double)Src.GetInteger64()));
+			else
+				SetDouble(pow((double)GetInteger64(), (double)Src.GetInteger64()));
+			break;
+
+		case CDatum::typeDouble:
+			SetDouble(pow(GetDouble(), Src.GetDouble()));
+			break;
+
+		case CDatum::typeIntegerIP:
+			//	NOT YET IMPLEMENTED
+			break;
+
+		default:
+			SetInteger(0);
+			break;
+		}
+	}
+
 void CNumberValue::Subtract (CDatum dValue)
 
 //	Subtract

@@ -691,6 +691,7 @@ class CNumberValue
 		bool Mod (CDatum dValue);
 		bool ModClock (CDatum dValue);
 		void Multiply (CDatum dValue);
+		void Power (CDatum dValue);
 		void SetDouble (double rValue) { m_rValue = rValue; m_bUpconverted = true; }
 		void SetInteger (int iValue) { m_pValue = (void *)(DWORD_PTR)iValue; m_bUpconverted = true; }
 		void SetInteger64 (DWORDLONG ilValue) { m_ilValue = ilValue; m_bUpconverted = true; }

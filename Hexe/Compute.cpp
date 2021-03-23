@@ -927,6 +927,24 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				m_pIP++;
 				break;
 
+			case opPower:
+				iCount = GetOperand(*m_pIP);
+
+				if (iCount == 2)
+					{
+					CDatum dPower = m_Stack.Pop();
+					CNumberValue Value(m_Stack.Pop());
+					Value.Power(dPower);
+					m_Stack.Push(Value.GetDatum());
+					}
+				else
+					{
+					m_Stack.Push(CDatum());
+					}
+
+				m_pIP++;
+				break;
+
 			case opSubtract:
 				iCount = GetOperand(*m_pIP);
 
@@ -1014,7 +1032,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				m_pIP++;
 				break;
 
-			case opArrayIndex:
+			case opPushArrayItem:
 				iCount = GetOperand(*m_pIP);
 
 				if (iCount == 2)
@@ -1033,6 +1051,27 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 
 				m_pIP++;
 				break;
+
+			case opSetArrayItem:
+				{
+				//	LATER: Check for reference loops
+
+				int iIndex = m_Stack.Pop();
+				CDatum dArray = m_Stack.Pop();
+				CDatum dValue = m_Stack.Pop();
+				if (iIndex >= 0 && iIndex < dArray.GetCount())
+					{
+					dArray.SetElement(iIndex, dValue);
+					m_Stack.Push(dValue);
+					}
+				else
+					{
+					m_Stack.Push(CDatum());
+					}
+
+				m_pIP++;
+				break;
+				}
 
 			case opPop:
 				m_Stack.Pop(GetOperand(*m_pIP));

@@ -73,7 +73,9 @@ enum EOpCodes
 	opJumpIfNilNoPop =		0x31000000,
 	opJumpIfNotNilNoPop =	0x32000000,
 	opIsNotEqual =			0x33000000,
-	opArrayIndex =			0x34000000,
+	opPushArrayItem =		0x34000000,
+	opSetArrayItem =		0x35000000,
+	opPower =				0x36000000,
 
 	opHalt =				0xff000000,
 
