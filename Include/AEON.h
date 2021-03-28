@@ -686,6 +686,7 @@ class CNumberValue
 		DWORDLONG GetInteger64 (void) const { return m_ilValue; }
 		const CIPInteger &GetIPInteger (void) const { return *(CIPInteger *)m_pValue; }
 		bool IsValidNumber (void) const { return !m_bNotANumber; }
+		bool IsNegative () const;
 		void Max (CDatum dValue);
 		void Min (CDatum dValue);
 		bool Mod (CDatum dValue);

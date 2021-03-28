@@ -17,10 +17,11 @@ class CHexeStack
 		CHexeStack (void) : m_iTop(-1) { }
 
 		void DeleteAll (void) { m_Stack.DeleteAll(); m_iTop = -1; }
-		inline CDatum Get (void) { return (m_iTop == -1 ? CDatum() : m_Stack[m_iTop]); }
+		CDatum Get (void) { return (m_iTop == -1 ? CDatum() : m_Stack[m_iTop]); }
+		CDatum Get (int iIndex) const;
 		void Mark (void);
-		inline CDatum Pop (void) { return (m_iTop == -1 ? CDatum() : m_Stack[m_iTop--]); }
-		inline void Pop (int iCount) { if (m_iTop + 1 >= iCount) m_iTop -= iCount; else m_iTop = -1; }
+		CDatum Pop (void) { return (m_iTop == -1 ? CDatum() : m_Stack[m_iTop--]); }
+		void Pop (int iCount) { if (m_iTop + 1 >= iCount) m_iTop -= iCount; else m_iTop = -1; }
 		void Push (CDatum dData);
 
 	private:

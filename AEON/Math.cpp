@@ -439,6 +439,32 @@ void CNumberValue::Max (CDatum dValue)
 		}
 	}
 
+bool CNumberValue::IsNegative () const
+
+//	IsNegative
+//
+//	Returns TRUE if negative.
+
+	{
+	switch (m_iType)
+		{
+		case CDatum::typeInteger32:
+			return GetInteger() < 0;
+
+		case CDatum::typeInteger64:
+			return GetInteger64() < 0;
+
+		case CDatum::typeDouble:
+			return GetDouble() < 0.0;
+
+		case CDatum::typeIntegerIP:
+			return GetIPInteger().IsNegative();
+
+		default:
+			return false;
+		}
+	}
+
 void CNumberValue::Min (CDatum dValue)
 
 //	Min

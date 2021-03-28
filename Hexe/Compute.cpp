@@ -161,6 +161,76 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 					m_pIP++;
 				break;
 
+			case opCompareStep:
+				{
+				//	The stack has (in reverse order)
+				//
+				//	0: step value
+				//	1: to value
+				//	2: loop index.
+				//
+				//	If step value is positive, then we check to see if the loop 
+				//	value is less that or equal to to. Otherwise, we check to
+				//	see if it is greater than or equal to to. We push the result
+				//	(either true or nil) on the stack and leave the other values
+				//	alone.
+
+				CNumberValue Step(m_Stack.Get());
+				CNumberValue To(m_Stack.Get(1));
+				CNumberValue I(m_Stack.Get(2));
+				int iCompare = I.Compare(To);
+
+				if (Step.IsNegative())
+					{
+					//	Is loop index >= to? Then continue looping.
+
+					if (iCompare == 1 || iCompare == 0)
+						m_Stack.Push(CDatum(CDatum::constTrue));
+					else
+						m_Stack.Push(CDatum());
+					}
+				else
+					{
+					//	If loop index <= to? Then continue looping.
+
+					if (iCompare == -1 || iCompare == 0)
+						m_Stack.Push(CDatum(CDatum::constTrue));
+					else
+						m_Stack.Push(CDatum());
+					}
+				
+				m_pIP++;
+				break;
+				}
+
+			case opIncStep:
+				{
+				DWORD dwOperand = GetOperand(*m_pIP);
+
+				//	Pop the step
+
+				CDatum dStep = m_Stack.Pop();
+
+				//	Pop the to value (which we no longer need)
+
+				m_Stack.Pop();
+
+				//	Pop the current loop index value
+
+				CNumberValue I(m_Stack.Pop());
+
+				//	Increment
+
+				I.Add(dStep);
+
+				//	Set the value
+
+				m_pLocalEnv->SetArgumentValue((dwOperand >> 8), (dwOperand & 0xff), I.GetDatum());
+
+				m_pIP++;
+				break;
+				}
+
 			case opMakeArray:
 				iCount = GetOperand(*m_pIP);
 				if (iCount == 0)
@@ -936,6 +1006,29 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 					CNumberValue Value(m_Stack.Pop());
 					Value.Power(dPower);
 					m_Stack.Push(Value.GetDatum());
+					}
+				else
+					{
+					m_Stack.Push(CDatum());
+					}
+
+				m_pIP++;
+				break;
+
+			case opMod:
+				iCount = GetOperand(*m_pIP);
+
+				if (iCount == 2)
+					{
+					CDatum dDivisor = m_Stack.Pop();
+					CNumberValue Dividend(m_Stack.Pop());
+					if (!Dividend.Mod(dDivisor))
+						{
+						CHexeError::Create(NULL_STR, ERR_DIVISION_BY_ZERO, retResult);
+						return ERun::Error;
+						}
+
+					m_Stack.Push(Dividend.GetDatum());
 					}
 				else
 					{

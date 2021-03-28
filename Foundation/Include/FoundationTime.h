@@ -112,6 +112,7 @@ class CDateTime
 		int DaysSince1AD (void) const;
 		CString Format (const CString &sFormat) const;
 		CString Format (DateFormats iDateFormat, TimeFormats iTimeFormat) const;
+		CString Format (StandardFormats iFormat) const;
 		CString FormatIMF (void) const;
 		bool HasDate (void) const { return m_Time.wDay != 1 || m_Time.wMonth != 1 || m_Time.wYear != 1; }
 		bool HasTime (void) const { return m_Time.wHour || m_Time.wMinute || m_Time.wSecond || m_Time.wMilliseconds; }

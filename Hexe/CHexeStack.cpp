@@ -5,6 +5,23 @@
 
 #include "stdafx.h"
 
+CDatum CHexeStack::Get (int iIndex) const
+
+//	Get
+//
+//	Returns the nth element of the stack.
+
+	{
+	if (iIndex < 0)
+		return CDatum();
+
+	int iEntry = m_iTop - iIndex;
+	if (iEntry < 0)
+		return CDatum();
+
+	return m_Stack[iEntry];
+	}
+
 void CHexeStack::Mark (void)
 
 //	Mark

@@ -531,6 +531,41 @@ CString CDateTime::Format (DateFormats iDateFormat, TimeFormats iTimeFormat) con
 		}
 	}
 
+CString CDateTime::Format (StandardFormats iFormat) const
+
+//	Format
+//
+//	Formats in a standard format.
+
+	{
+	switch (iFormat)
+		{
+		case formatIMF:
+			return strPattern("%s, %02d %s %d %02d:%02d:%02d GMT",
+					CString(g_szDayNameIMF[DayOfWeek()], 3),
+					Day(),
+					CString(g_szMonthNameIMF[Month() - 1], 3),
+					Year(),
+					Hour(),
+					Minute(),
+					Second());
+
+		case formatISO8601:
+			return strPattern("%04d-%02d-%02dT%02d:%02d:%02d.%03dZ",
+					Year(),
+					Month(),
+					Day(),
+					Hour(),
+					Minute(),
+					Second(),
+					Millisecond());
+
+		default:
+			//	Unsupported format
+			throw CException(errFail);
+		}
+	}
+
 CString CDateTime::FormatIMF (void) const
 
 //	FormatIMF
@@ -538,14 +573,7 @@ CString CDateTime::FormatIMF (void) const
 //	Returns the current date time in Internet Message Format (RFC 2822)
 
 	{
-	return strPattern("%s, %02d %s %d %02d:%02d:%02d GMT",
-			CString(g_szDayNameIMF[DayOfWeek()], 3),
-			Day(),
-			CString(g_szMonthNameIMF[Month() - 1], 3),
-			Year(),
-			Hour(),
-			Minute(),
-			Second());
+	return Format(formatIMF);
 	}
 
 int CDateTime::GetDaysInMonth (int iMonth, int iYear)

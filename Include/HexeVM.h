@@ -76,6 +76,9 @@ enum EOpCodes
 	opPushArrayItem =		0x34000000,
 	opSetArrayItem =		0x35000000,
 	opPower =				0x36000000,
+	opMod =					0x37000000,
+	opCompareStep =			0x38000000,
+	opIncStep =				0x39000000,
 
 	opHalt =				0xff000000,
 
