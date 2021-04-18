@@ -36,13 +36,42 @@ bool CDBTable::AddCol (const CDBColumnDef &ColDef)
 
 	else
 		{
-		ASSERT(false);
+		throw CException(errFail);
 		return false;
 		}
 
 	//	Done
 
 	return true;
+	}
+
+bool CDBTable::AddColUnique (const CDBColumnDef &ColDef)
+
+//	AddColUnique
+//
+//	Adds a new column at the end, generating a new column name if necessary.
+
+	{
+	CString sColName = ColDef.GetName();
+	int iSuffix = 2;
+
+	//	If there is already a column with this name, generate a new name
+
+	while (FindColByName(sColName) != -1)
+		{
+		sColName = strPattern("%s_%d", ColDef.GetName(), iSuffix++);
+		}
+
+	//	Add the column
+
+	if (strEquals(sColName, ColDef.GetName()))
+		return AddCol(ColDef);
+	else
+		{
+		CDBColumnDef NewCol(ColDef);
+		NewCol.SetID(sColName);
+		return AddCol(NewCol);
+		}
 	}
 
 int CDBTable::AddRow (void)

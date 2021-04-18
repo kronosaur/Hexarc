@@ -181,6 +181,7 @@ class CDBTable
 	{
 	public:
 		bool AddCol (const CDBColumnDef &ColDef);
+		bool AddColUnique (const CDBColumnDef &ColDef);
 		int AddRow (void);
 		void CleanUp (void);
 		int FindColByName (const CString &sName) const;
