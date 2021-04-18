@@ -245,6 +245,7 @@
     <ClInclude Include="..\Include\ArchonEngine.h" />
     <ClInclude Include="..\Include\ArchonEngineImpl.h" />
     <ClInclude Include="..\Include\ArchonFilterImpl.h" />
+    <ClInclude Include="..\Include\ArchonLambdaSessionImpl.h" />
     <ClInclude Include="..\Include\ArchonSessionImpl.h" />
     <ClInclude Include="..\Include\ArchonUtilities.h" />
     <ClInclude Include="..\Include\Esper.h" />

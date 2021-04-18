@@ -138,3 +138,5 @@ class CMessageSerializerSession : public ISessionHandler
 		TArray<SArchonEnvelope> m_List;
 		int m_iPos;
 	};
+
+#include "ArchonLambdaSessionImpl.h"

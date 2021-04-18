@@ -231,19 +231,12 @@ class ISessionHandler
 		bool ProcessTimeout (const SArchonMessage &Msg);
 		bool StartSession (IArchonProcessCtx *pProcess, CSimpleEngine *pEngine, CSessionManager *pSessionManager, DWORD dwTicket, const SArchonMessage &Msg) { m_pProcess = pProcess; m_pEngine = pEngine; m_pSessionManager = pSessionManager; m_dwTicket = dwTicket; m_OriginalMsg = Msg; return OnStartSession(Msg, dwTicket); }
 		
-	protected:
-		//	ISession virtuals
-		virtual void OnEndSession (DWORD dwTicket) { }
-		virtual void OnGetStatusReport (CComplexStruct *pStatus) const { }
-		virtual void OnMark (void) { }
-		virtual bool OnProcessMessage (const SArchonMessage &Msg) { return false; }
-		virtual bool OnStartSession (const SArchonMessage &Msg, DWORD dwTicket) { return false; }
-		virtual bool OnTimeout (const SArchonMessage &Msg) { return OnProcessMessage(Msg); }
-
 		//	Utilities
 		CString GenerateAddress (const CString &sPort) { return m_pProcess->GenerateAddress(sPort); }
 		const SArchonMessage &GetOriginalMsg (void) { return m_OriginalMsg; }
 		IArchonProcessCtx *GetProcessCtx (void) { return m_pProcess; }
+		CSimpleEngine *GetSimpleEngine () { return m_pEngine; }
+		CSessionManager *GetSessionManager () { return m_pSessionManager; }
 		DWORD GetTicket (void) const { return m_dwTicket; }
 		bool IsError (const SArchonMessage &Msg);
 		void ResetTimeout (const CString &sReplyAddr, DWORD dwTimeout);
@@ -253,6 +246,15 @@ class ISessionHandler
 		void SendMessageReplyError (const CString &sMsg, const CString &sText);
 		void SendMessageReplyProgress (const CString &sText, int iProgress = -1);
 		void TranspaceDownload (const CString &sAddress, const CString &sReplyAddr, CDatum dDownloadDesc, const CHexeSecurityCtx *pSecurityCtx, DWORD dwTimeout = 0);
+
+	protected:
+		//	ISession virtuals
+		virtual void OnEndSession (DWORD dwTicket) { }
+		virtual void OnGetStatusReport (CComplexStruct *pStatus) const { }
+		virtual void OnMark (void) { }
+		virtual bool OnProcessMessage (const SArchonMessage &Msg) { return false; }
+		virtual bool OnStartSession (const SArchonMessage &Msg, DWORD dwTicket) { return false; }
+		virtual bool OnTimeout (const SArchonMessage &Msg) { return OnProcessMessage(Msg); }
 
 	private:
 		void SetTimeout (const CString &sReplyAddr, DWORD dwTimeout);
