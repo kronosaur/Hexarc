@@ -29,6 +29,52 @@ template<typename DATACTX> class CLambdaSession : public ISessionHandler
 			auto *pEntry = m_Handlers.Insert();
 			*pEntry = Handler;
 			}
+
+		void CmdCreateTable (const CString &sTableName, const CString &sTableDesc, const CString &sReplyAddr)
+			{
+			static const CString ADDR_AEON_COMMAND					("Aeon.command");
+			static const CString MSG_AEON_CREATE_TABLE				("Aeon.createTable");
+			static const CString MSG_ERROR_ALREADY_EXISTS			("Error.alreadyExists");
+			static const CString MSG_LOG_ERROR						("Log.error");
+
+			static const CString ERR_UNABLE_TO_CREATE_TABLE			("Unable to create %s table: %s");
+
+			InsertHandler({
+
+				[sTableDesc, sReplyAddr](ISessionHandler &Session, DATACTX &Ctx, const SArchonMessage &Msg, SArchonMessage &retReply)
+					{
+					CDatum dTableDesc;
+					CStringBuffer Stream(sTableDesc);
+					CDatum::Deserialize(CDatum::formatAEONScript, Stream, &dTableDesc);
+
+					CDatum dPayload(CDatum::typeArray);
+					dPayload.Append(dTableDesc);
+
+					Session.SendMessageCommand(ADDR_AEON_COMMAND, MSG_AEON_CREATE_TABLE, Session.GenerateAddress(sReplyAddr), dPayload, MESSAGE_TIMEOUT);
+
+					return true;
+					},
+
+					//	OnSuccess
+
+					NULL,
+
+					//	OnError
+
+				[sTableName](ISessionHandler &Session, DATACTX &Ctx, const SArchonMessage &Msg, SArchonMessage &retReply)
+					{
+					//	If the table already exists, then just continue.
+
+					if (strEquals(Msg.sMsg, MSG_ERROR_ALREADY_EXISTS))
+						return false;
+
+					//	Otherwise, log the error.
+
+					Session.GetProcessCtx()->Log(MSG_LOG_ERROR, strPattern(ERR_UNABLE_TO_CREATE_TABLE, sTableName, Msg.dPayload.AsString()));
+					return false;
+					},
+				});
+			}
 		
 	protected:
 
@@ -88,6 +134,9 @@ template<typename DATACTX> class CLambdaSession : public ISessionHandler
 			}
 
 	private:
+		static constexpr DWORD MESSAGE_TIMEOUT =				3000 * 1000;
+
+
 		bool HandleReply (const SArchonMessage &Reply)
 			{
 			m_iPos++;
