@@ -186,7 +186,8 @@ bool CEsperBodyBuilder::CreateMultipartDatum (const CString &sPartType, char *pP
 		if (*pPos == '{')
 			{
 			CDatum dData;
-			if (!CDatum::Deserialize(CDatum::formatJSON, CBuffer(pPos, iDataLen, false), retdData))
+			CBuffer Buffer(pPos, iDataLen, false);
+			if (!CDatum::Deserialize(CDatum::formatJSON, Buffer, retdData))
 				return false;
 			}
 
@@ -201,13 +202,15 @@ bool CEsperBodyBuilder::CreateMultipartDatum (const CString &sPartType, char *pP
 		}
 	else if (iDataLen > MAX_IN_MEMORY_SIZE)
 		{
+		CBuffer Buffer(pPos, iDataLen, false);
 		CComplexBinaryFile *pBinaryBlob = new CComplexBinaryFile;
-		pBinaryBlob->Append(CBuffer(pPos, iDataLen, false));
+		pBinaryBlob->Append(Buffer);
 		*retdData = CDatum(pBinaryBlob);
 		}
 	else
 		{
-		if (!CDatum::CreateBinary(CBuffer(pPos, iDataLen, false), iDataLen, retdData))
+		CBuffer Buffer(pPos, iDataLen, false);
+		if (!CDatum::CreateBinary(Buffer, iDataLen, retdData))
 			return false;
 		}
 
@@ -803,7 +806,8 @@ bool CEsperBodyBuilder::ProcessMultipartMoreContent (void *pPos, int iLength)
 				printf("Appending %d bytes to binary object.\n", (int)(pBoundary - m_PartContent.GetPointer()));
 				printf("Done with binary object.\n");
 #endif
-				m_pPartContent->Append(CBuffer(m_PartContent.GetPointer(), (int)(pBoundary - m_PartContent.GetPointer()), false));
+				CBuffer Buffer(m_PartContent.GetPointer(), (int)(pBoundary - m_PartContent.GetPointer()), false);
+				m_pPartContent->Append(Buffer);
 				dData = m_dPartContent;
 				}
 			else

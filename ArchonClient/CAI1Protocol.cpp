@@ -42,8 +42,9 @@ CDatum CAI1Protocol::CreateSHAPassword_V1 (const CString &sUsername, const CStri
 //	Creates a hash of username:password
 
 	{
+	CStringBuffer Source(strPattern("%s:%s", sUsername, sPassword));
 	CIPInteger Hash;
-	cryptoCreateDigest(CStringBuffer(strPattern("%s:%s", sUsername, sPassword)), &Hash);
+	cryptoCreateDigest(Source, &Hash);
 	CDatum dHash;
 	CDatum::CreateIPIntegerFromHandoff(Hash, &dHash);
 

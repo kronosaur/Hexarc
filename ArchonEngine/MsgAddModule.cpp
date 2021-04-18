@@ -67,7 +67,7 @@ void CExarchEngine::MsgAddModule (const SArchonMessage &Msg, const CHexeSecurity
 
 	bool bHasMachineName = (Msg.dPayload.GetCount() >= 2 && !strEndsWith(strToLower(Msg.dPayload.GetElement(0)), STR_EXE_SUFFIX));
 	int iArg = 0;
-	CString sMachineName = (bHasMachineName ? Msg.dPayload.GetElement(iArg++) : NULL_STR);
+	CString sMachineName = (bHasMachineName ? (const CString &)Msg.dPayload.GetElement(iArg++) : NULL_STR);
 	CString sModuleFilePath = Msg.dPayload.GetElement(iArg++);
 	CDatum dDebug = Msg.dPayload.GetElement(iArg++);
 

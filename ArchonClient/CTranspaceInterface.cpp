@@ -162,5 +162,6 @@ void CTranspaceInterface::ParseAddressPart (CString &sPart, CString *retResult)
 
 	//	Otherwise we use standard URL parsing
 
-	retResult->TakeHandoff(urlDecode(sPart));
+	CString sResult(urlDecode(sPart));
+	retResult->TakeHandoff(sResult);
 	}

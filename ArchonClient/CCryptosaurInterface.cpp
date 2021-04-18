@@ -83,8 +83,8 @@ void CCryptosaurInterface::CreateCredentials (const CString &sUsername, const CS
 //	Creates hashed credentials from a username and password.
 
 	{
-	CString sBuffer = strPattern("%s:HEXARC01:%s", strToLower(sUsername), sPassword);
-	cryptoCreateDigest(CStringBuffer(sBuffer), retCredentials);
+	CStringBuffer Buffer(strPattern("%s:HEXARC01:%s", strToLower(sUsername), sPassword));
+	cryptoCreateDigest(Buffer, retCredentials);
 	}
 
 CDatum CCryptosaurInterface::SignData (CDatum dData, const CIPInteger &SecretKey)
@@ -182,8 +182,9 @@ bool CCryptosaurInterface::ValidateAuthToken (const CString &sToken, const CIPIn
 
 	//	Recreate the MAC
 
+	CBuffer Token(sToken, 0, iMessageLength);
 	CIPInteger VerifyMAC;
-	cryptoCreateMAC(CBuffer(sToken, 0, iMessageLength), SecretKey, &VerifyMAC);
+	cryptoCreateMAC(Token, SecretKey, &VerifyMAC);
 
 	//	MACs should equal
 

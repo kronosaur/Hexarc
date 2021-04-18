@@ -1040,9 +1040,10 @@ bool coreMath (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinu
 				//	Cast to a string (this works best for binary and string types)
 
 				const CString &sValue = dData;
+				CStringBuffer Buffer(sValue);
 
 				CIPInteger Hash;
-				cryptoCreateDigest(CStringBuffer(sValue), &Hash);
+				cryptoCreateDigest(Buffer, &Hash);
 				CDatum::CreateIPIntegerFromHandoff(Hash, retdResult);
 				return true;
 				}
@@ -1459,8 +1460,9 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 				return false;
 				}
 
+			CBuffer Buffer((const CString &)dValue);
 			CHexeDocument ScenarioDoc;
-			if (!ScenarioDoc.InitFromStream(CBuffer((const CString &)dValue), Process, &sError))
+			if (!ScenarioDoc.InitFromStream(Buffer, Process, &sError))
 				{
 				*retdResult = sError;
 				return false;

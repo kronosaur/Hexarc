@@ -294,8 +294,9 @@ CDatum CHexeCode::GetDatum (int iOffset)
 
 	//	Deserialize
 
+	CStringBuffer Data(sData);
 	CDatum dDatum;
-	if (!CDatum::Deserialize(CDatum::formatAEONScript, CStringBuffer(sData), &dDatum))
+	if (!CDatum::Deserialize(CDatum::formatAEONScript, Data, &dDatum))
 		CHexeError::Create(NULL_STR, strPattern(ERR_INVALID_LITERAL, sData), &dDatum);
 
 	//	Done

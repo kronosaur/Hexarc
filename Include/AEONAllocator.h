@@ -71,7 +71,7 @@ template <class VALUE, class ACTUAL> class TGCAllocator : public ACTUAL
 					{
 					if (!IsFree(*pPos))
 						{
-						if (!IsMarked(*pPos))
+						if (!ACTUAL::IsMarked(*pPos))
 							{
 							ACTUAL::FreeValue(*pPos);
 

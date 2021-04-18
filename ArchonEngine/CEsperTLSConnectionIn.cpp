@@ -126,7 +126,8 @@ bool CEsperTLSConnectionIn::BeginWrite (const SArchonMessage &Msg, const CString
 	printf("BeginWrite\n");
 #endif
 
-	m_pSSL->Send(CStringBuffer(sData));
+	CStringBuffer Buffer(sData);
+	m_pSSL->Send(Buffer);
 	m_iSSLSavedState = stateReplyOnWrite;
 	m_dwBytesToSend = sData.GetLength();
 	return OpProcessSSL(retsError);
@@ -287,7 +288,8 @@ void CEsperTLSConnectionIn::OnSSLOperationComplete (void)
 
 			m_iState = stateNone;
 			const IMemoryBlock &Data = m_pSSL->GetBuffer();
-			m_Manager.SendMessageReplyOnRead(CDatum(GetID()), CString(Data.GetPointer(), Data.GetLength()), m_Msg);
+			CString sData(Data.GetPointer(), Data.GetLength());
+			m_Manager.SendMessageReplyOnRead(CDatum(GetID()), sData, m_Msg);
 			break;
 			}
 

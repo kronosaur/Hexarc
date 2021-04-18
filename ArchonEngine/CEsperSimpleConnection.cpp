@@ -114,14 +114,17 @@ void CEsperSimpleConnection::OnSocketOperationComplete (EOperations iOp, DWORD d
 	switch (m_iState)
 		{
 		case stateReplyOnRead:
+			{
 			m_iState = stateNone;
 
 #ifdef DEBUG_SOCKET_OPS
 			m_Manager.LogTrace(strPattern("[%x] Read %d bytes", CEsperInterface::ConnectionToFriendlyID(GetID()), dwBytesTransferred));
 #endif
-			m_Manager.SendMessageReplyOnRead(CDatum(GetID()), CString(GetBuffer()->GetPointer(), dwBytesTransferred), m_Msg);
+			CString sData(GetBuffer()->GetPointer(), dwBytesTransferred);
+			m_Manager.SendMessageReplyOnRead(CDatum(GetID()), sData, m_Msg);
 			Stats.IncStat(CEsperStats::statBytesRead, dwBytesTransferred);
 			break;
+			}
 
 		case stateReplyOnWrite:
 			m_iState = stateNone;

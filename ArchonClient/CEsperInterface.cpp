@@ -101,7 +101,8 @@ bool CEsperInterface::ConvertBodyToDatum (const CHTTPMessage &Message, CDatum *r
 		}
 	else if (strEquals(sMediaType, MEDIA_TYPE_JSON))
 		{
-		if (!CDatum::Deserialize(CDatum::formatJSON, CStringBuffer(sBuffer), retdBody))
+		CStringBuffer Buffer(sBuffer);
+		if (!CDatum::Deserialize(CDatum::formatJSON, Buffer, retdBody))
 			{
 			*retdBody = ERR_UNABLE_TO_PARSE_JSON;
 			return false;
@@ -109,7 +110,8 @@ bool CEsperInterface::ConvertBodyToDatum (const CHTTPMessage &Message, CDatum *r
 		}
 	else if (strEquals(sMediaType, MEDIA_TYPE_MULTIPART_FORM))
 		{
-		CEsperMultipartParser Parser(pBody->GetMediaType(), CBuffer(pBody->GetMediaBuffer()));
+		CBuffer Buffer(pBody->GetMediaBuffer());
+		CEsperMultipartParser Parser(pBody->GetMediaType(), Buffer);
 		if (!Parser.ParseAsDatum(retdBody))
 			{
 			*retdBody = ERR_UNABLE_TO_PARSE_MULTIPART;

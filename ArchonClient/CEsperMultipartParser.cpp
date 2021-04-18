@@ -270,8 +270,9 @@ bool CEsperMultipartParser::ParseToBoundary (char *pPos, char *pPosEnd, const CS
 
 		if (*pStart == '{')
 			{
+			CBuffer Buffer(pStart, iDataLen, false);
 			CDatum dData;
-			if (!CDatum::Deserialize(CDatum::formatJSON, CBuffer(pStart, iDataLen, false), retdData))
+			if (!CDatum::Deserialize(CDatum::formatJSON, Buffer, retdData))
 				return false;
 			}
 
@@ -286,13 +287,15 @@ bool CEsperMultipartParser::ParseToBoundary (char *pPos, char *pPosEnd, const CS
 		}
 	else if (iDataLen > MAX_IN_MEMORY_SIZE)
 		{
+		CBuffer Buffer(pStart, iDataLen, false);
 		CComplexBinaryFile *pBinaryBlob = new CComplexBinaryFile;
-		pBinaryBlob->Append(CBuffer(pStart, iDataLen, false));
+		pBinaryBlob->Append(Buffer);
 		*retdData = CDatum(pBinaryBlob);
 		}
 	else
 		{
-		if (!CDatum::CreateBinary(CBuffer(pStart, iDataLen, false), iDataLen, retdData))
+		CBuffer Buffer(pStart, iDataLen, false);
+		if (!CDatum::CreateBinary(Buffer, iDataLen, retdData))
 			return false;
 		}
 
