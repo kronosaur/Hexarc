@@ -22,6 +22,7 @@ DECLARE_CONST_STRING(FIELD_GLOBAL_ENV,					"globalEnv");
 DECLARE_CONST_STRING(FIELD_ID,							"id");
 DECLARE_CONST_STRING(FIELD_NAME,						"name");
 DECLARE_CONST_STRING(FIELD_PRIMARY_KEY,					"primaryKey");
+DECLARE_CONST_STRING(FIELD_PRIMARY_KEY_PREFIX,			"primaryKey.");
 DECLARE_CONST_STRING(FIELD_RECOVERY_FILESPEC,			"recoveryFilespec");
 DECLARE_CONST_STRING(FIELD_SEGMENTS,					"segments");
 DECLARE_CONST_STRING(FIELD_UPDATE_NEEDED,				"updateNeeded");
@@ -332,7 +333,7 @@ void CAeonView::CreateSecondaryData (const CTableDimensions &PrimaryDims, const 
 	*retdData = CDatum(pData);
 	}
 
-bool CAeonView::CreateSecondaryKeys (CHexeProcess &Process, CDatum dData, SEQUENCENUMBER RowID, TArray<CRowKey> *retKeys)
+bool CAeonView::CreateSecondaryKeys (CHexeProcess &Process, const CTableDimensions &PrimaryDims, const CRowKey &PrimaryKey, CDatum dData, SEQUENCENUMBER RowID, TArray<CRowKey> *retKeys)
 
 //	CreateSecondaryKeys
 //
@@ -378,7 +379,32 @@ bool CAeonView::CreateSecondaryKeys (CHexeProcess &Process, CDatum dData, SEQUEN
 		//	Otherwise this specifies a field in the data to use as a key
 
 		else
-			dValue = dData.GetElement((const CString &)dKeyDesc);
+			{
+			const CString &sKeyDesc = dKeyDesc;
+			if (strStartsWith(sKeyDesc, FIELD_PRIMARY_KEY_PREFIX))
+				{
+				CString sKeyPart = strSubString(sKeyDesc, FIELD_PRIMARY_KEY_PREFIX.GetLength());
+				int iPart;
+				if (strEquals(sKeyPart, FIELD_X))
+					iPart = 0;
+				else if (strEquals(sKeyPart, FIELD_Y))
+					iPart = 1;
+				else if (strEquals(sKeyPart, FIELD_Z))
+					iPart = 2;
+				else
+					iPart = -1;
+
+				if (iPart == -1 || iPart >= PrimaryDims.GetCount())
+					dValue = CDatum(strPattern("(Unknown field: %s)", sKeyPart));
+				else
+					{
+					CDatum dKey = PrimaryKey.AsDatum(PrimaryDims);
+					dValue = dKey.GetElement(iPart);
+					}
+				}
+			else
+				dValue = dData.GetElement((const CString &)dKeyDesc);
+			}
 
 		//	We don't support Nil keys, so we have to replace these with a
 		//	a special value.
@@ -427,8 +453,6 @@ bool CAeonView::CreateSecondaryRows (const CTableDimensions &PrimaryDims, CHexeP
 //	all non-nil values then we return TRUE. FALSE otherwise.
 
 	{
-	int i;
-
 	//	Compute columns, if necessary
 
 	dFullData = ComputeColumns(Process, dFullData);
@@ -436,7 +460,7 @@ bool CAeonView::CreateSecondaryRows (const CTableDimensions &PrimaryDims, CHexeP
 	//	Create keys
 
 	TArray<CRowKey> Keys;
-	if (!CreateSecondaryKeys(Process, dFullData, RowID, &Keys))
+	if (!CreateSecondaryKeys(Process, PrimaryDims, PrimaryKey, dFullData, RowID, &Keys))
 		return false;
 
 	//	Create row data
@@ -444,7 +468,7 @@ bool CAeonView::CreateSecondaryRows (const CTableDimensions &PrimaryDims, CHexeP
 	CDatum dRowData;
 	CreateSecondaryData(PrimaryDims, PrimaryKey, dFullData, RowID, &dRowData);
 
-	for (i = 0; i < Keys.GetCount(); i++)
+	for (int i = 0; i < Keys.GetCount(); i++)
 		Rows->Insert(Keys[i], dRowData, RowID);
 
 	return true;
@@ -917,7 +941,7 @@ void CAeonView::Insert (const CTableDimensions &PrimaryDims, CHexeProcess &Proce
 			//	then we update the old value.
 
 			TArray<CRowKey> OldKeys;
-			if (CreateSecondaryKeys(Process, ComputeColumns(Process, dOldData), RowID, &OldKeys))
+			if (CreateSecondaryKeys(Process, PrimaryDims, PrimaryKey, ComputeColumns(Process, dOldData), RowID, &OldKeys))
 				{
 				//	Now delete the old value (by writing out Nil)
 
@@ -942,7 +966,7 @@ void CAeonView::Insert (const CTableDimensions &PrimaryDims, CHexeProcess &Proce
 			//	then we insert the row into the secondary view.
 
 			TArray<CRowKey> NewKeys;
-			if (CreateSecondaryKeys(Process, dData, RowID, &NewKeys))
+			if (CreateSecondaryKeys(Process, PrimaryDims, PrimaryKey, dData, RowID, &NewKeys))
 				{
 				//	Generate data for secondary key
 

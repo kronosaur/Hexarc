@@ -598,7 +598,7 @@ class CAeonView
 		void Copy (const CAeonView &Src) noexcept;
 		void CreatePermutedKeys (const TArray<CDatum> &KeyData, int iDim, const TArray<CDatum> &PrevKey, SEQUENCENUMBER RowID, TArray<CRowKey> *retKeys);
 		void CreateSecondaryData (const CTableDimensions &PrimaryDims, const CRowKey &PrimaryKey, CDatum dFullData, SEQUENCENUMBER RowID, CDatum *retdData);
-		bool CreateSecondaryKeys (CHexeProcess &Process, CDatum dData, SEQUENCENUMBER RowID, TArray<CRowKey> *retKeys);
+		bool CreateSecondaryKeys (CHexeProcess &Process, const CTableDimensions &PrimaryDims, const CRowKey &PrimaryKey, CDatum dData, SEQUENCENUMBER RowID, TArray<CRowKey> *retKeys);
 		bool InitRows (const CString &sRecoveryFilespec, int *retiRowsRecovered, CString *retsError);
 
 		DWORD m_dwID = 0;					//	ID of view
