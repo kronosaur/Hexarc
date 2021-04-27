@@ -28,7 +28,10 @@ CString CAeonInterface::CreateTableFilePath (const CString &sTable, const CStrin
 //	Composes a full filepath.
 
 	{
-	return strPattern("/%s/%s", sTable, sFilePath);
+	if (*sFilePath.GetParsePointer() == '/')
+		return strPattern("/%s%s", sTable, sFilePath);
+	else
+		return strPattern("/%s/%s", sTable, sFilePath);
 	}
 
 CString CAeonInterface::EncodeFilePathComponent (const CString &sValue)

@@ -50,6 +50,7 @@ DECLARE_CONST_STRING(FIELD_KEY_TYPE,					"keyType")
 DECLARE_CONST_STRING(FIELD_NAME,						"name")
 DECLARE_CONST_STRING(FIELD_PARTIAL_MAX_SIZE,			"partialMaxSize")
 DECLARE_CONST_STRING(FIELD_PARTIAL_POS,					"partialPos")
+DECLARE_CONST_STRING(FIELD_PRIMARY_KEY,					"primaryKey");
 DECLARE_CONST_STRING(FIELD_PRIMARY_VOLUME,				"primaryVolume")
 DECLARE_CONST_STRING(FIELD_STORAGE_PATH,				"storagePath")
 DECLARE_CONST_STRING(FIELD_X,							"x")
@@ -721,15 +722,37 @@ void CAeonEngine::MsgFileUpload (const SArchonMessage &Msg, const CHexeSecurityC
 	AEONERR error;
     CMsgProcessCtx Ctx(*GetProcessCtx(), Msg, pSecurityCtx);
 
+	//	Get parameters
+
+	CDatum dFilePath = Msg.dPayload.GetElement(0);
+	CDatum dUploadDesc = Msg.dPayload.GetElement(1);
+	CDatum dData = Msg.dPayload.GetElement(2);
+
+	CDatum dKeyGen = dUploadDesc.GetElement(FIELD_PRIMARY_KEY);
+
 	//	Get the filePath
 
 	CString sError;
 	CString sTable;
 	CString sFilePath;
-	if (!CAeonTable::ParseFilePathForCreate(Msg.dPayload.GetElement(0), &sTable, &sFilePath, &sError))
+
+	//	If we need to generate a unique filename, then we only parse the table.
+
+	if (!dKeyGen.IsNil())
 		{
-		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(STR_ERROR_PARSING_FILE_PATH, sError), Msg);
-		return;
+		if (!CAeonTable::ParseFilePath(dFilePath, &sTable, &sFilePath, &sError))
+			{
+			SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(STR_ERROR_PARSING_FILE_PATH, sError), Msg);
+			return;
+			}
+		}
+	else
+		{
+		if (!CAeonTable::ParseFilePathForCreate(dFilePath, &sTable, &sFilePath, &sError))
+			{
+			SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(STR_ERROR_PARSING_FILE_PATH, sError), Msg);
+			return;
+			}
 		}
 
 	//	NOTE: It is OK if sFilePath is empty because we might need to generate
@@ -739,11 +762,6 @@ void CAeonEngine::MsgFileUpload (const SArchonMessage &Msg, const CHexeSecurityC
 
 	if (!ValidateTableAccess(Msg, pSecurityCtx, sTable))
 		return;
-
-	//	Get other parameters
-
-	CDatum dUploadDesc = Msg.dPayload.GetElement(1);
-	CDatum dData = Msg.dPayload.GetElement(2);
 
 	//	Lock while we find or create a table
 

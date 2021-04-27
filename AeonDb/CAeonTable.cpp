@@ -4289,7 +4289,7 @@ AEONERR CAeonTable::UploadFile (CMsgProcessCtx &Ctx, const CString &sSessionID, 
 
 		do
 			{
-			sFilePath = strPattern("/%s/%s", m_sName, cryptoRandomCode(8));
+			sFilePath = strPattern("/%s", cryptoRandomCode(8));
 			CRowKey::CreateFromFilePath(sFilePath, &Path);
 
 			if (!GetData(DEFAULT_VIEW, Path, &dCurrentFileDesc, NULL, retsError))
