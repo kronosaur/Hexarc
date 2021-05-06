@@ -210,9 +210,10 @@ class CSharedMemoryBuffer : public CMemoryBlockImpl
 class CStringBuffer : public CMemoryBlockImpl
 	{
 	public:
-		CStringBuffer (void) : m_pString(NULL), m_iAlloc(0) { }
-		CStringBuffer (LPSTR pString) : m_pString(pString), m_iAlloc(0) { }
-		CStringBuffer (const CString &sString) : m_pString((LPSTR)sString), m_iAlloc(0) { }
+		CStringBuffer (void) { }
+		CStringBuffer (LPSTR pString) : m_pString(pString) { }
+		CStringBuffer (const CString &sString) : m_pString((LPSTR)sString) { }
+		CStringBuffer (CString &&Src) noexcept;
 		~CStringBuffer (void);
 
 		operator LPSTR () const { return m_pString; }
@@ -230,8 +231,8 @@ class CStringBuffer : public CMemoryBlockImpl
 		int GetLengthParameter (void) const { return *((int *)GetBuffer()); }
 		void SetLengthParameter (int iLen) { *((int *)GetBuffer()) = iLen; }
 
-		char *m_pString;
-		int m_iAlloc;
+		char *m_pString = NULL;
+		int m_iAlloc = 0;
 	};
 
 //	Filters --------------------------------------------------------------------

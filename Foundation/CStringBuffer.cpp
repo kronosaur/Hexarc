@@ -8,6 +8,18 @@
 #define MIN_ALLOC_INCREMENT							4096
 #define MAX_ALLOC_INCREMENT							1000000
 
+CStringBuffer::CStringBuffer (CString &&Src) noexcept
+
+//	CStringBuffer move constructor
+
+	{
+	if (!Src.IsEmpty())
+		{
+		m_iAlloc = Src.GetLength() + sizeof(int);
+		m_pString = Src.Handoff();
+		}
+	}
+
 CStringBuffer::~CStringBuffer (void)
 
 //	CStringBuffer destructor
