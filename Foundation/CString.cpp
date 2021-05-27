@@ -1460,6 +1460,8 @@ CString strFromDouble (double rValue, int iDecimals)
 				return sResult;
 				}
 			}
+		else if (iDecimals < -1)
+			iDecimals = -iDecimals - 1;
 
 		int iDec, iSign;
 		if (_fcvt_s(pPos, sResult.GetLength(), rValue, iDecimals, &iDec, &iSign))
@@ -1472,7 +1474,21 @@ CString strFromDouble (double rValue, int iDecimals)
 		if (iSign)
 			Dest.WriteChar('-');
 
-		if (iDec <= 0)
+		if (iDec == 0)
+			{
+			if (iDecimals == 0)
+				{
+				Dest.WriteChar('0');
+				}
+			else
+				{
+				Dest.WriteChar('0');
+				Dest.WriteChar('.');
+
+				Dest.Write(pSrc, iDecimals);
+				}
+			}
+		else if (iDec <= 0)
 			{
 			Dest.WriteChar('0');
 			Dest.WriteChar('.');

@@ -822,7 +822,7 @@ void CAeonEngine::MsgFileUpload (const SArchonMessage &Msg, const CHexeSecurityC
 	//	Reply
 
 	if (Receipt.iComplete == 100)
-		SendMessageReply(MSG_OK, CDatum(Receipt.sFilePath), Msg);
+		SendMessageReply(MSG_REPLY_DATA, Receipt.dFileDesc, Msg);
 	else
 		{
 		CDatum dReceipt(CDatum::typeStruct);

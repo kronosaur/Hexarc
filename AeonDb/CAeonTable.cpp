@@ -3671,7 +3671,7 @@ CDatum CAeonTable::PrepareFileDesc (const CString &sTable, const CString &sFileP
 	//	address at a higher level.]
 
 	if (!bTranspace)
-		pNewFileDesc->SetElement(FIELD_FILE_PATH, strPattern("/%s%s", sTable, sFilePath));
+		pNewFileDesc->SetElement(FIELD_FILE_PATH, CAeonInterface::CreateTableFilePath(sTable, sFilePath));
 
 	//	Then we add all fields (except filePath and storagePath)
 
@@ -4402,16 +4402,16 @@ AEONERR CAeonTable::UploadFile (CMsgProcessCtx &Ctx, const CString &sSessionID, 
 
 	//	Update the file descriptor
 
-	CComplexStruct *pNewFileDesc = new CComplexStruct(Receipt.dFileDesc);
-	pNewFileDesc->SetElement(FIELD_VERSION, CDatum((int)(dwCurrentVersion + 1)));
-	pNewFileDesc->SetElement(FIELD_FILE_PATH, sFilePath);
-	pNewFileDesc->SetElement(FIELD_STORAGE_PATH, m_pStorage->MachineToCanonicalRelative(Receipt.sFilespec));
-	pNewFileDesc->SetElement(FIELD_MODIFIED_ON, CDateTime(CDateTime::Now));
-	pNewFileDesc->SetElement(FIELD_SIZE, Receipt.iFileSize);
+	CDatum dNewFileDesc = Receipt.dFileDesc.Clone();
+	dNewFileDesc.SetElement(FIELD_VERSION, CDatum((int)(dwCurrentVersion + 1)));
+	dNewFileDesc.SetElement(FIELD_FILE_PATH, sFilePath);
+	dNewFileDesc.SetElement(FIELD_STORAGE_PATH, m_pStorage->MachineToCanonicalRelative(Receipt.sFilespec));
+	dNewFileDesc.SetElement(FIELD_MODIFIED_ON, CDateTime(CDateTime::Now));
+	dNewFileDesc.SetElement(FIELD_SIZE, Receipt.iFileSize);
 
 	//	Write the data
 
-	if (!Insert(Path, CDatum(pNewFileDesc), retsError))
+	if (!Insert(Path, dNewFileDesc, retsError))
 		{
 		m_UploadSessions.AbortUpload(Receipt);
 		*retsError = strPattern(STR_ERROR_CANT_WRITE_FILE, sFilePath);
@@ -4447,6 +4447,7 @@ AEONERR CAeonTable::UploadFile (CMsgProcessCtx &Ctx, const CString &sSessionID, 
 	if (retReceipt)
 		{
 		*retReceipt = Receipt;
+		retReceipt->dFileDesc = PrepareFileDesc(m_sName, sFilePath, dNewFileDesc);
 		retReceipt->sFilePath = CAeonInterface::CreateTableFilePath(m_sName, sFilePath);
 		}
 

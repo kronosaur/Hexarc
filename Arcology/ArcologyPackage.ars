@@ -212,19 +212,28 @@ Arc.service Arc.console
 			(= filePath "/Arc.certificates")
 				(invoke 'Cryptosaur.setCertificate 'sslCertificate fileData)
 
-			;	By default, upload to specified path. LATER: We should only allow
-			;	uploads to /Arc.services
+			(block (
+				fileDesc
+				)
 
-			(invoke 'Aeon.fileUpload 
-				filePath 
+				;	By default, upload to specified path. LATER: We should only allow
+				;	uploads to /Arc.services
 
-				//	Add user who modified file to the fileDesc
+				(set! fileDesc (invoke 'Aeon.fileUpload 
+					filePath 
 
-				(struct (@ thePayload 1) {
-					fileDesc: { modifiedBy: (userGetName) }
-					})
+					//	Add user who modified file to the fileDesc
 
-				fileData
+					(struct (@ thePayload 1) {
+						fileDesc: { modifiedBy: (userGetName) }
+						})
+
+					fileData
+					))
+
+				;	Just return the filePath
+
+				(@ fileDesc 'filePath)
 				)
 			)
 		)

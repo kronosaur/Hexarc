@@ -739,8 +739,25 @@ int CDBValue::Compare (const CDBValue &Left, const CDBValue &Right, ETypes *reti
 				return ::KeyCompareNoCase((const CString &)Left, (const CString &)Right);
 
 			case typeArray:
-				//	Not yet implemented
-				return -2;
+				{
+				if (Left.GetElementCount() == Right.GetElementCount())
+					{
+					for (int i = 0; i < Left.GetElementCount(); i++)
+						{
+						int iValueCompare = Compare(Left.GetElement(i), Right.GetElement(i));
+						if (iValueCompare != 0)
+							return iValueCompare;
+						}
+
+					//	If we get this far, then structs are equal
+
+					return 0;
+					}
+				else if (Left.GetElementCount() > Right.GetElementCount())
+					return 1;
+				else
+					return -1;
+				}
 
 			case typeStruct:
 				{

@@ -239,7 +239,7 @@ bool CHexeMarkupEvaluator::ParseUntilRPC (SHTTPRequestCtx &Ctx)
 
 //	ParseUntilRPC
 //
-//	Parses the input until we need to process and RPC request. Returns FALSE if
+//	Parses the input until we need to process an RPC request. Returns FALSE if
 //	we need RPC; TRUE otherwise.
 
 	{
