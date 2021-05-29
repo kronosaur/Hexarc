@@ -85,6 +85,7 @@ class CHexeMarkupEvaluator
 		enum TagTypes
 			{
 			tagNone,
+			tagDebug,
 			tagEval,
 			tagIf,
 			tagFile,

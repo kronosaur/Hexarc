@@ -15,6 +15,7 @@ DECLARE_CONST_STRING(LIBRARY_SESSION_HTTP_REQUEST,		"sessionHTTPRequest")
 
 DECLARE_CONST_STRING(MEDIA_TYPE_HTML,					"text/html")
 
+DECLARE_CONST_STRING(PI_DEBUG,							"debug")
 DECLARE_CONST_STRING(PI_ELSE,							"else")
 DECLARE_CONST_STRING(PI_ENDIF,							"endif")
 DECLARE_CONST_STRING(PI_EVAL,							"eval")
@@ -382,6 +383,12 @@ bool CHexeMarkupEvaluator::ProcessDirective (SHTTPRequestCtx &Ctx, const CString
 			return false;
 		}
 
+	else if (strEquals(sDirective, PI_DEBUG))
+		{
+		if (!ProcessEval(Ctx, tagDebug, sValue))
+			return false;
+		}
+
 	else if (strEquals(sDirective, PI_XML))
 		m_Output.Write(strPattern("<?xml %s ?>", sValue));
 	else
@@ -527,6 +534,9 @@ bool CHexeMarkupEvaluator::ProcessResult (SHTTPRequestCtx &Ctx, CHexeProcess::ER
 	bool bResult = true;
 	switch (m_iProcessing)
 		{
+		case tagDebug:
+			break;
+
 		case tagEval:
 			OutputDatum(dResult);
 			break;
