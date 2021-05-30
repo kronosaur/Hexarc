@@ -65,7 +65,7 @@ class CHexeDocument
 			CDatum dData;
 			};
 
-		void AddEntry (const CString &sName, const CString &sType, CDatum dData);
+		bool AddEntry (const CString &sName, const CString &sType, CDatum dData);
 		void InitTypeIndex (void) const;
 		void InvalidateTypeIndex (void) { m_TypeIndex.DeleteAll(); }
 		bool ParseAEONDef (CCharStream *pStream, CHexeProcess &Process, CString *retsName, CString *retsType, CDatum *retdDatum, CString *retsError);

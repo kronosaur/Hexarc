@@ -29,6 +29,7 @@ DECLARE_CONST_STRING(ERR_UNABLE_TO_PARSE_TOKEN,			"Unable to parse token.")
 DECLARE_CONST_STRING(ERR_BOM_NOT_SUPPORTED,				"UTF8 Byte Order Mark not supported.")
 DECLARE_CONST_STRING(ERR_CODE_EXPECTED,					"Code expected.")
 DECLARE_CONST_STRING(ERR_CRASH_PARSING,					"Crash parsing Lisp expression.")
+DECLARE_CONST_STRING(ERR_DUPLICATE_DEFINITION,			"Duplicate definition: %s.")
 
 DECLARE_CONST_STRING(STR_LAMBDA_PREFIX,					"(lambda")
 
@@ -39,11 +40,11 @@ CHexeDocument::~CHexeDocument (void)
 	{
 	}
 
-void CHexeDocument::AddEntry (const CString &sName, const CString &sType, CDatum dData)
+bool CHexeDocument::AddEntry (const CString &sName, const CString &sType, CDatum dData)
 
 //	AddEntry
 //
-//	Adds an entry
+//	Adds an entry. Returns FALSE if the entry already exists.
 
 	{
 	//	If no name, add an anonymous entry
@@ -71,13 +72,19 @@ void CHexeDocument::AddEntry (const CString &sName, const CString &sType, CDatum
 
 	else
 		{
-		SEntry *pEntry = m_Doc.Insert(sName);
+		bool bNew;
+		SEntry *pEntry = m_Doc.SetAt(sName, &bNew);
+		if (!bNew)
+			return false;
+
 		pEntry->sName = sName;
 		pEntry->sType = sType;
 		pEntry->dData = dData;
 		}
 
 	InvalidateTypeIndex();
+
+	return true;
 	}
 
 bool CHexeDocument::IsAnonymous (const CString &sName, const CString &sType)
@@ -306,7 +313,11 @@ bool CHexeDocument::InitFromStream (IByteStream &Stream, CHexeProcess &Process, 
 			if (!ParseHexeLispDef(&CharStream, &sName, &sType, &dDatum, retsError))
 				return false;
 
-			AddEntry(sName, sType, dDatum);
+			if (!AddEntry(sName, sType, dDatum))
+				{
+				if (retsError) *retsError = strPattern(ERR_DUPLICATE_DEFINITION, sName);
+				return false;
+				}
 			}
 
 		//	Otherwise, parse an AEON identifier
@@ -324,7 +335,11 @@ bool CHexeDocument::InitFromStream (IByteStream &Stream, CHexeProcess &Process, 
 				return false;
 				}
 
-			AddEntry(sName, sType, dDatum);
+			if (!AddEntry(sName, sType, dDatum))
+				{
+				if (retsError) *retsError = strPattern(ERR_DUPLICATE_DEFINITION, sName);
+				return false;
+				}
 			}
 
 		chChar = CharStream.GetChar();

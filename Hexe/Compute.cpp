@@ -21,6 +21,7 @@ DECLARE_CONST_STRING(ERR_OUT_OF_MEMORY,					"Out of memory.");
 DECLARE_CONST_STRING(ERR_NOT_ARRAY_OR_STRUCT,			"Unable to set item: not an array or structure.");
 DECLARE_CONST_STRING(ERR_UNBOUND_VARIABLE,				"Undefined identifier: %s.");
 DECLARE_CONST_STRING(ERR_EXECUTION_TOOK_TOO_LONG,		"Execution took too long.");
+DECLARE_CONST_STRING(ERR_DUPLICATE_VARIABLE,			"Duplicate definition: %s.");
 
 CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 
@@ -47,10 +48,19 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				break;
 
 			case opDefine:
+				{
+				bool bNew;
 				//	NOTE: We leave the value of the definition on the stack
-				m_pCurGlobalEnv->SetAt(m_pCodeBank->GetString(GetOperand(*m_pIP)), m_Stack.Get());
+				m_pCurGlobalEnv->SetAt(m_pCodeBank->GetString(GetOperand(*m_pIP)), m_Stack.Get(), &bNew);
+				if (!bNew)
+					{
+					CHexeError::Create(NULL_STR, strPattern(ERR_DUPLICATE_VARIABLE, m_pCodeBank->GetString(GetOperand(*m_pIP))), retResult);
+					return ERun::Error;
+					}
+
 				m_pIP++;
 				break;
+				}
 
 			case opPushNil:
 				m_Stack.Push(CDatum());

@@ -182,7 +182,7 @@ class CHexeGlobalEnvironment : public TExternalDatum<CHexeGlobalEnvironment>
 		inline CDatum GetAt (int iIndex) { return m_Env[iIndex]; }
 		inline void GetServiceSecurity (CHexeSecurityCtx *retCtx) { m_ServiceSecurity.GetServiceSecurity(retCtx); }
 		inline void SetAt (int iIndex, CDatum dValue) { m_Env[iIndex] = dValue; }
-		inline void SetAt (const CString &sIdentifier, CDatum dValue) { m_Env.SetAt(sIdentifier, dValue); }
+		inline void SetAt (const CString &sIdentifier, CDatum dValue, bool *retbNew = NULL) { m_Env.SetAt(sIdentifier, dValue, retbNew); }
 		inline void SetServiceSecurity (const CHexeSecurityCtx &Ctx) { m_ServiceSecurity.SetServiceSecurity(Ctx); }
 
 		//	IComplexDatum
