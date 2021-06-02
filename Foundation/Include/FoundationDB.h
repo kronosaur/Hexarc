@@ -236,3 +236,20 @@ class CDBFormatRTF
 		static void WriteHeader (IByteStream &Stream);
 		static void WriteText (IByteStream &Stream, const CString &sText);
 	};
+
+class CDBFormatXLS
+	{
+	public:
+		struct SOptions
+			{
+			int iSheetColumn = -1;			//	If set, create a new sheet per value of this column.
+			};
+
+		static bool Write (IByteStream &Stream, const CDBTable &Table, const SOptions &Options);
+
+	private:
+		static CString GetDataValue (const CDBValue &Value);
+		static CString GetDataType (CDBValue::ETypes iType);
+		static bool WriteRow (IByteStream &Stream, const CDBTable &Table, int iRow);
+		static bool WriteSheet (IByteStream &Stream, const CString &sSheetName, const CDBTable &Table, const TArray<int> &Rows);
+	};

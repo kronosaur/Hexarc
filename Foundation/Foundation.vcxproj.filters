@@ -369,6 +369,9 @@
     <ClCompile Include="CDBValueDateTime.cpp">
       <Filter>Source Files\DB</Filter>
     </ClCompile>
+    <ClCompile Include="CDBFormatXLS.cpp">
+      <Filter>Source Files\DB</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
