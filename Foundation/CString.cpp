@@ -1555,7 +1555,10 @@ CString strFromDouble (double rValue, int iDecimals)
 					char *pSlideEnd = pEdit + 1;
 
 					while (pSlide >= pSlideEnd)
-						pSlide[1] = *pSlide--;
+						{
+						pSlide[1] = *pSlide;
+						pSlide--;
+						}
 
 					pEdit[1] = '0';
 
