@@ -10,7 +10,11 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(FIELD_COLUMN_ORDER,					"columnOrder");
+DECLARE_CONST_STRING(FIELD_SHEET_BY,						"sheetBy");
+
 DECLARE_CONST_STRING(STR_BLANK,								"(Blank)");
+DECLARE_CONST_STRING(STR_COMMA,								",");
 
 DECLARE_CONST_STRING(TYPE_DATE_TIME,						"DateTime");
 DECLARE_CONST_STRING(TYPE_NUMBER,							"Number");
@@ -51,6 +55,66 @@ CString CDBFormatXLS::GetDataType (CDBValue::ETypes iType)
 		}
 	}
 
+bool CDBFormatXLS::ParseOptions (const CDBTable &Table, const CDBValue &Value, SOptions &retOptions, CString *retsError)
+
+//	ParseOptions
+//
+//	Parses options.
+
+	{
+	//	For backwards compatibility, we support a string.
+
+	if (Value.GetType() == CDBValue::typeString)
+		{
+		CDBValue NewOptions(CDBValue::typeStruct);
+		NewOptions.SetElement(FIELD_SHEET_BY, Value);
+		return ParseOptions(Table, NewOptions, retOptions, retsError);
+		}
+
+	//	Otherwise, we expect a structure.
+
+	retOptions.ColOrder.DeleteAll();
+	const CDBValue &Columns = Value.GetElement(FIELD_COLUMN_ORDER);
+	if (!Columns.IsNil())
+		{
+		TArray<CString> ColumnOrder;
+		strSplit(Columns, STR_COMMA, &ColumnOrder, -1, SSP_FLAG_NO_EMPTY_ITEMS);
+
+		retOptions.ColOrder.InsertEmpty(ColumnOrder.GetCount());
+		for (int i = 0; i < ColumnOrder.GetCount(); i++)
+			{
+			CString sCol = strClean(ColumnOrder[i]);
+			int iIndex = Table.FindColByName(sCol);
+			if (iIndex == -1)
+				{
+				if (retsError) *retsError = strPattern("Unknown column: %s", sCol);
+				return false;
+				}
+
+			retOptions.ColOrder[i] = iIndex;
+			}
+		}
+	else
+		{
+		retOptions.ColOrder.InsertEmpty(Table.GetColCount());
+		for (int i = 0; i < retOptions.ColOrder.GetCount(); i++)
+			retOptions.ColOrder[i] = i;
+		}
+
+	CString sSheetBy = Value.GetElement(FIELD_SHEET_BY);
+	if (!sSheetBy.IsEmpty())
+		{
+		retOptions.iSheetColumn = Table.FindColByName(sSheetBy);
+		if (retOptions.iSheetColumn == -1)
+			{
+			if (retsError) *retsError = strPattern("Unknown column: %s", sSheetBy);
+			return false;
+			}
+		}
+
+	return true;
+	}
+
 bool CDBFormatXLS::Write (IByteStream &Stream, const CDBTable &Table, const SOptions &Options)
 
 //	Write
@@ -84,7 +148,7 @@ bool CDBFormatXLS::Write (IByteStream &Stream, const CDBTable &Table, const SOpt
 
 		for (int i = 0; i < Sheets.GetCount(); i++)
 			{
-			if (!WriteSheet(Stream, Sheets.GetKey(i), Table, Sheets[i]))
+			if (!WriteSheet(Stream, Sheets.GetKey(i), Table, Sheets[i], Options))
 				return false;
 			}
 		}
@@ -93,7 +157,7 @@ bool CDBFormatXLS::Write (IByteStream &Stream, const CDBTable &Table, const SOpt
 
 	else
 		{
-		if (!WriteSheet(Stream, Table.GetName(), Table, TArray<int>()))
+		if (!WriteSheet(Stream, Table.GetName(), Table, TArray<int>(), Options))
 			return false;
 		}
 
@@ -104,7 +168,7 @@ bool CDBFormatXLS::Write (IByteStream &Stream, const CDBTable &Table, const SOpt
 	return true;
 	}
 
-bool CDBFormatXLS::WriteRow (IByteStream &Stream, const CDBTable &Table, int iRow)
+bool CDBFormatXLS::WriteRow (IByteStream &Stream, const CDBTable &Table, int iRow, const SOptions &Options)
 
 //	WriteRow
 //
@@ -113,11 +177,12 @@ bool CDBFormatXLS::WriteRow (IByteStream &Stream, const CDBTable &Table, int iRo
 	{
 	Stream.Write("<Row>\r\n");
 
-	for (int i = 0; i < Table.GetColCount(); i++)
+	for (int i = 0; i < Options.ColOrder.GetCount(); i++)
 		{
+		const CDBValue &Value = Table.GetField(Options.ColOrder[i], iRow);
 		Stream.Write(strPattern("<Cell><Data ss:Type=\"%s\">%s</Data></Cell>\r\n",
-				GetDataType(Table.GetCol(i).GetType()),
-				GetDataValue(Table.GetField(i, iRow))
+				GetDataType(Value.GetType()),
+				GetDataValue(Value)
 				));
 		}
 
@@ -125,7 +190,7 @@ bool CDBFormatXLS::WriteRow (IByteStream &Stream, const CDBTable &Table, int iRo
 	return true;
 	}
 
-bool CDBFormatXLS::WriteSheet (IByteStream &Stream, const CString &sSheetName, const CDBTable &Table, const TArray<int> &Rows)
+bool CDBFormatXLS::WriteSheet (IByteStream &Stream, const CString &sSheetName, const CDBTable &Table, const TArray<int> &Rows, const SOptions &Options)
 
 //	WriteSheet
 //
@@ -138,11 +203,11 @@ bool CDBFormatXLS::WriteSheet (IByteStream &Stream, const CString &sSheetName, c
 	//	Write the header row
 
 	Stream.Write("<Row>\r\n");
-	for (int i = 0; i < Table.GetColCount(); i++)
+	for (int i = 0; i < Options.ColOrder.GetCount(); i++)
 		{
 		Stream.Write(strPattern("<Cell><Data ss:Type=\"%s\">%s</Data></Cell>\r\n",
 				TYPE_STRING,
-				CXMLElement::MakeAttribute(Table.GetCol(i).GetName())
+				CXMLElement::MakeAttribute(Table.GetCol(Options.ColOrder[i]).GetName())
 				));
 		}
 	Stream.Write("</Row>\r\n");
@@ -153,7 +218,7 @@ bool CDBFormatXLS::WriteSheet (IByteStream &Stream, const CString &sSheetName, c
 		{
 		for (int i = 0; i < Rows.GetCount(); i++)
 			{
-			if (!WriteRow(Stream, Table, Rows[i]))
+			if (!WriteRow(Stream, Table, Rows[i], Options))
 				return false;
 			}
 		}
@@ -161,7 +226,7 @@ bool CDBFormatXLS::WriteSheet (IByteStream &Stream, const CString &sSheetName, c
 		{
 		for (int i = 0; i < Table.GetRowCount(); i++)
 			{
-			if (!WriteRow(Stream, Table, i))
+			if (!WriteRow(Stream, Table, i, Options))
 				return false;
 			}
 		}

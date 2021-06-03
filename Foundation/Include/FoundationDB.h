@@ -242,14 +242,16 @@ class CDBFormatXLS
 	public:
 		struct SOptions
 			{
+			TArray<int> ColOrder;			//	Column order
 			int iSheetColumn = -1;			//	If set, create a new sheet per value of this column.
 			};
 
+		static bool ParseOptions (const CDBTable &Table, const CDBValue &Value, SOptions &retOptions, CString *retsError = NULL);
 		static bool Write (IByteStream &Stream, const CDBTable &Table, const SOptions &Options);
 
 	private:
 		static CString GetDataValue (const CDBValue &Value);
 		static CString GetDataType (CDBValue::ETypes iType);
-		static bool WriteRow (IByteStream &Stream, const CDBTable &Table, int iRow);
-		static bool WriteSheet (IByteStream &Stream, const CString &sSheetName, const CDBTable &Table, const TArray<int> &Rows);
+		static bool WriteRow (IByteStream &Stream, const CDBTable &Table, int iRow, const SOptions &Options);
+		static bool WriteSheet (IByteStream &Stream, const CString &sSheetName, const CDBTable &Table, const TArray<int> &Rows, const SOptions &Options);
 	};
