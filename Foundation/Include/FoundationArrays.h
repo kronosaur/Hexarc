@@ -156,7 +156,7 @@ template <class VALUE> class TArray : public CArrayBase
 			int iCount = GetCount();
 
 			for (int i = 0; i < iCount; i++)
-				if (KeyCompare(GetAt(i), ToFind) == 0)
+				if (::KeyCompare(GetAt(i), ToFind) == 0)
 					{
 					if (retiIndex)
 						*retiIndex = i;
@@ -327,9 +327,10 @@ template <class VALUE> class TArray : public CArrayBase
 			}
 
 	private:
+
 		static int DefaultCompare (void *pCtx, const VALUE &Key1, const VALUE &Key2)
 			{
-			return KeyCompare(Key1, Key2);
+			return ::KeyCompare(Key1, Key2);
 			}
 
 		void SortRange (ESortOptions Order, int iLeft, int iRight, COMPAREPROC pfCompare, void *pCtx, TArray<int> &Result)
@@ -521,7 +522,7 @@ template <class VALUE> class TQueue
 			{
 			int i;
 			for (i = 0; i < GetCount(); i++)
-				if (KeyCompare(GetAt(i), ToFind) == 0)
+				if (::KeyCompare(GetAt(i), ToFind) == 0)
 					return true;
 
 			return false;

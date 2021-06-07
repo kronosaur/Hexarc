@@ -195,6 +195,7 @@ class CDBTable
 		const CString &GetName (void) const { return m_sName; }
 		int GetRowCount (void) const { return (GetColCount() > 0 ? m_Rows.GetCount() / GetColCount() : 0); }
 		void GrowToFit (int iRows) { m_Rows.GrowToFit(iRows * GetColCount()); }
+		bool IsEmpty () const { return (m_Cols.GetCount() == 0); }
 		void SetColumnDefs (const TArray<CDBColumnDef> &Cols);
 		bool SetField (int iCol, int iRow, const CDBValue &Value);
 		void SetName (const CString &sName) { m_sName = sName; }
@@ -244,6 +245,8 @@ class CDBFormatXLS
 			{
 			TArray<int> ColOrder;			//	Column order
 			int iSheetColumn = -1;			//	If set, create a new sheet per value of this column.
+			CDBTable HeaderRows;			//	Optional header rows
+			TArray<int> HeaderColOrder;		//	Column order for optional header rows
 			};
 
 		static bool ParseOptions (const CDBTable &Table, const CDBValue &Value, SOptions &retOptions, CString *retsError = NULL);
@@ -252,6 +255,7 @@ class CDBFormatXLS
 	private:
 		static CString GetDataValue (const CDBValue &Value);
 		static CString GetDataType (CDBValue::ETypes iType);
-		static bool WriteRow (IByteStream &Stream, const CDBTable &Table, int iRow, const SOptions &Options);
+		static bool WriteHeaderRow (IByteStream &Stream, const CString &sSheetName, const CDBTable &Table, const SOptions &Options);
+		static bool WriteRow (IByteStream &Stream, const CDBTable &Table, int iRow, const TArray<int> &ColOrder, const SOptions &Options);
 		static bool WriteSheet (IByteStream &Stream, const CString &sSheetName, const CDBTable &Table, const TArray<int> &Rows, const SOptions &Options);
 	};

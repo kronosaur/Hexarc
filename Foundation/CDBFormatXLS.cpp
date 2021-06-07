@@ -168,7 +168,69 @@ bool CDBFormatXLS::Write (IByteStream &Stream, const CDBTable &Table, const SOpt
 	return true;
 	}
 
-bool CDBFormatXLS::WriteRow (IByteStream &Stream, const CDBTable &Table, int iRow, const SOptions &Options)
+bool CDBFormatXLS::WriteHeaderRow (IByteStream &Stream, const CString &sSheetName, const CDBTable &Table, const SOptions &Options)
+
+//	WriteHeaderRow
+//
+//	Writes the header row.
+
+	{
+	//	If we're using a table for headers, then do it.
+
+	if (!Options.HeaderRows.IsEmpty())
+		{
+		//	If we're splitting up by sheets, then we need to filter.
+
+		if (Options.iSheetColumn != -1)
+			{
+			for (int i = 0; i < Options.HeaderRows.GetRowCount(); i++)
+				{
+				CString sSheet = GetDataValue(Options.HeaderRows.GetField(Options.iSheetColumn, i));
+				if (sSheet.IsEmpty())
+					sSheet = STR_BLANK;
+
+				if (!strEqualsNoCase(sSheet, sSheetName))
+					continue;
+
+				if (!WriteRow(Stream, Options.HeaderRows, i, Options.HeaderColOrder, Options))
+					return false;
+				}
+			}
+
+		//	Otherwise, just emit all rows in the table. We assume that header 
+		//	rows have the exact same table structure.
+
+		else
+			{
+			for (int i = 0; i < Options.HeaderRows.GetRowCount(); i++)
+				{
+				if (!WriteRow(Stream, Options.HeaderRows, i, Options.HeaderColOrder, Options))
+					return false;
+				}
+			}
+		}
+
+	//	Otherwise, just use column names.
+
+	else
+		{
+		Stream.Write("<Row>\r\n");
+
+		for (int i = 0; i < Options.ColOrder.GetCount(); i++)
+			{
+			Stream.Write(strPattern("<Cell><Data ss:Type=\"%s\">%s</Data></Cell>\r\n",
+					TYPE_STRING,
+					CXMLElement::MakeAttribute(Table.GetCol(Options.ColOrder[i]).GetName())
+					));
+			}
+
+		Stream.Write("</Row>\r\n");
+		}
+
+	return true;
+	}
+
+bool CDBFormatXLS::WriteRow (IByteStream &Stream, const CDBTable &Table, int iRow, const TArray<int> &ColOrder, const SOptions &Options)
 
 //	WriteRow
 //
@@ -177,9 +239,9 @@ bool CDBFormatXLS::WriteRow (IByteStream &Stream, const CDBTable &Table, int iRo
 	{
 	Stream.Write("<Row>\r\n");
 
-	for (int i = 0; i < Options.ColOrder.GetCount(); i++)
+	for (int i = 0; i < ColOrder.GetCount(); i++)
 		{
-		const CDBValue &Value = Table.GetField(Options.ColOrder[i], iRow);
+		const CDBValue &Value = Table.GetField(ColOrder[i], iRow);
 		Stream.Write(strPattern("<Cell><Data ss:Type=\"%s\">%s</Data></Cell>\r\n",
 				GetDataType(Value.GetType()),
 				GetDataValue(Value)
@@ -202,15 +264,8 @@ bool CDBFormatXLS::WriteSheet (IByteStream &Stream, const CString &sSheetName, c
 
 	//	Write the header row
 
-	Stream.Write("<Row>\r\n");
-	for (int i = 0; i < Options.ColOrder.GetCount(); i++)
-		{
-		Stream.Write(strPattern("<Cell><Data ss:Type=\"%s\">%s</Data></Cell>\r\n",
-				TYPE_STRING,
-				CXMLElement::MakeAttribute(Table.GetCol(Options.ColOrder[i]).GetName())
-				));
-		}
-	Stream.Write("</Row>\r\n");
+	if (!WriteHeaderRow(Stream, sSheetName, Table, Options))
+		return false;
 
 	//	Write data rows
 
@@ -218,7 +273,7 @@ bool CDBFormatXLS::WriteSheet (IByteStream &Stream, const CString &sSheetName, c
 		{
 		for (int i = 0; i < Rows.GetCount(); i++)
 			{
-			if (!WriteRow(Stream, Table, Rows[i], Options))
+			if (!WriteRow(Stream, Table, Rows[i], Options.ColOrder, Options))
 				return false;
 			}
 		}
@@ -226,7 +281,7 @@ bool CDBFormatXLS::WriteSheet (IByteStream &Stream, const CString &sSheetName, c
 		{
 		for (int i = 0; i < Table.GetRowCount(); i++)
 			{
-			if (!WriteRow(Stream, Table, i, Options))
+			if (!WriteRow(Stream, Table, i, Options.ColOrder, Options))
 				return false;
 			}
 		}

@@ -951,7 +951,7 @@ bool CDateTime::ParseAuto (const char *pPos, const char *pPosEnd, StandardFormat
 
 				//	If this is PM then we're done and we need to adjust the hour.
 
-				else if (*pPos == 'P' || *pPos == 'p')
+				else if (*pPos == 'P' || *pPos == 'p' || *pPos == 'A' || *pPos == 'a')
 					{
 					iSecond = 0;
 					iMillisecond = 0;
@@ -994,7 +994,7 @@ bool CDateTime::ParseAuto (const char *pPos, const char *pPosEnd, StandardFormat
 
 				//	If this is PM then we're done and we need to adjust the hour.
 
-				else if (*pPos == 'P' || *pPos == 'p')
+				else if (*pPos == 'P' || *pPos == 'p' || *pPos == 'A' || *pPos == 'a')
 					{
 					iMillisecond = 0;
 					iState = stateAMPM;
@@ -1066,6 +1066,13 @@ bool CDateTime::ParseAuto (const char *pPos, const char *pPosEnd, StandardFormat
 						}
 					else
 						iHour += 12;
+					}
+				else if (*pPos == 'A' || *pPos == 'a')
+					{
+					//	12 AM is special.
+
+					if (iHour == 12)
+						iHour = 0;
 					}
 
 				iState = stateDone;
