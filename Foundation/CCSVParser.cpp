@@ -130,41 +130,44 @@ bool CCSVParser::ParseRow (TArray<CString> *retRow, CString *retsError)
 			{
 			case stateStart:
 				{
-				switch (GetCurChar())
+				if (GetCurChar() == m_chDelimiter)
 					{
-					case '\0':
-						return true;
+					if (retRow)
+						retRow->Insert(NULL_STR);
+					}
+				else
+					{
+					switch (GetCurChar())
+						{
+						case '\0':
+							return true;
 
-					case ' ':
-					case '\t':
-						break;
+						case ' ':
+						case '\t':
+							break;
 
-					case ',':
-						if (retRow)
-							retRow->Insert(NULL_STR);
-						break;
+						case '\r':
+							iState = stateCR;
+							break;
 
-					case '\r':
-						iState = stateCR;
-						break;
+						case '\n':
+							iState = stateLF;
+							break;
 
-					case '\n':
-						iState = stateLF;
-						break;
+						case '\'':
+							iState = stateSingleQuote;
+							break;
 
-					case '\'':
-						iState = stateSingleQuote;
-						break;
+						case '\"':
+							iState = stateDoubleQuote;
+							break;
 
-					case '\"':
-						iState = stateDoubleQuote;
-						break;
-
-					default:
-						if (retRow)
-							Value.WriteChar(GetCurChar());
-						iState = stateInPlainValue;
-						break;
+						default:
+							if (retRow)
+								Value.WriteChar(GetCurChar());
+							iState = stateInPlainValue;
+							break;
+						}
 					}
 				break;
 				}
@@ -223,131 +226,140 @@ bool CCSVParser::ParseRow (TArray<CString> *retRow, CString *retsError)
 
 			case stateDoubleQuoteEnd:
 				{
-				switch (GetCurChar())
+				if (GetCurChar() == m_chDelimiter)
 					{
-					case '\0':
-						if (retRow)
-							retRow->Insert(CString(Value.GetPointer(), Value.GetLength()));
-						return true;
+					if (retRow)
+						{
+						retRow->Insert(CString(Value.GetPointer(), Value.GetLength()));
+						Value.SetLength(0);
+						}
+					iState = stateStart;
+					}
+				else
+					{
+					switch (GetCurChar())
+						{
+						case '\0':
+							if (retRow)
+								retRow->Insert(CString(Value.GetPointer(), Value.GetLength()));
+							return true;
 
-					//	Two double-quotes in a row is an escape for an embedded
-					//	double-quote.
+						//	Two double-quotes in a row is an escape for an embedded
+						//	double-quote.
 
-					case '\"':
-						Value.WriteChar('\"');
-						iState = stateDoubleQuote;
-						break;
+						case '\"':
+							Value.WriteChar('\"');
+							iState = stateDoubleQuote;
+							break;
 
-					case ',':
-						if (retRow)
-							{
-							retRow->Insert(CString(Value.GetPointer(), Value.GetLength()));
-							Value.SetLength(0);
-							}
-						iState = stateStart;
-						break;
-						
-					case '\r':
-						if (retRow)
-							{
-							retRow->Insert(CString(Value.GetPointer(), Value.GetLength()));
-							Value.SetLength(0);
-							}
-						iState = stateCR;
-						break;
+						case '\r':
+							if (retRow)
+								{
+								retRow->Insert(CString(Value.GetPointer(), Value.GetLength()));
+								Value.SetLength(0);
+								}
+							iState = stateCR;
+							break;
 
-					case '\n':
-						if (retRow)
-							{
-							retRow->Insert(CString(Value.GetPointer(), Value.GetLength()));
-							Value.SetLength(0);
-							}
-						iState = stateLF;
-						break;
+						case '\n':
+							if (retRow)
+								{
+								retRow->Insert(CString(Value.GetPointer(), Value.GetLength()));
+								Value.SetLength(0);
+								}
+							iState = stateLF;
+							break;
 
-					case ' ':
-					case '\t':
-					default:
-						if (retRow)
-							{
-							retRow->Insert(CString(Value.GetPointer(), Value.GetLength()));
-							Value.SetLength(0);
-							}
-						iState = stateEndOfValue;
-						break;
+						case ' ':
+						case '\t':
+						default:
+							if (retRow)
+								{
+								retRow->Insert(CString(Value.GetPointer(), Value.GetLength()));
+								Value.SetLength(0);
+								}
+							iState = stateEndOfValue;
+							break;
+						}
 					}
 				break;
 				}
 
 			case stateEndOfValue:
 				{
-				switch (GetCurChar())
+				if (GetCurChar() == m_chDelimiter)
 					{
-					case '\0':
-						return true;
+					iState = stateStart;
+					}
+				else
+					{
+					switch (GetCurChar())
+						{
+						case '\0':
+							return true;
 
-					case ' ':
-					case '\t':
-						break;
+						case ' ':
+						case '\t':
+							break;
 
-					case ',':
-						iState = stateStart;
-						break;
+						case '\r':
+							iState = stateCR;
+							break;
 
-					case '\r':
-						iState = stateCR;
-						break;
+						case '\n':
+							iState = stateLF;
+							break;
 
-					case '\n':
-						iState = stateLF;
-						break;
-
-					default:
-						break;
+						default:
+							break;
+						}
 					}
 				break;
 				}
 
 			case stateInPlainValue:
 				{
-				switch (GetCurChar())
+				if (GetCurChar() == m_chDelimiter)
 					{
-					case '\0':
-						if (retRow)
-							retRow->Insert(CString(Value.GetPointer(), Value.GetLength()));
-						return true;
+					if (retRow)
+						{
+						retRow->Insert(CString(Value.GetPointer(), Value.GetLength()));
+						Value.SetLength(0);
+						}
+					iState = stateStart;
+					}
+				else
+					{
+					switch (GetCurChar())
+						{
+						case '\0':
+							if (retRow)
+								retRow->Insert(CString(Value.GetPointer(), Value.GetLength()));
+							return true;
 
-					case ',':
-						if (retRow)
-							{
-							retRow->Insert(CString(Value.GetPointer(), Value.GetLength()));
-							Value.SetLength(0);
-							}
-						iState = stateStart;
-						break;
+						case '\r':
+							if (retRow)
+								{
+								retRow->Insert(CString(Value.GetPointer(), Value.GetLength()));
+								Value.SetLength(0);
+								}
+							iState = stateCR;
+							break;
 
-					case '\r':
-						if (retRow)
-							{
-							retRow->Insert(CString(Value.GetPointer(), Value.GetLength()));
-							Value.SetLength(0);
-							}
-						iState = stateCR;
-						break;
+						case '\n':
+							if (retRow)
+								{
+								retRow->Insert(CString(Value.GetPointer(), Value.GetLength()));
+								Value.SetLength(0);
+								}
+							iState = stateLF;
+							break;
 
-					case '\n':
-						if (retRow)
-							{
-							retRow->Insert(CString(Value.GetPointer(), Value.GetLength()));
-							Value.SetLength(0);
-							}
-						iState = stateLF;
-						break;
-
-					default:
-						if (retRow)
-							Value.WriteChar(GetCurChar());
-						break;
+						default:
+							if (retRow)
+								Value.WriteChar(GetCurChar());
+							break;
+						}
 					}
 				break;
 				}

@@ -21,6 +21,7 @@ class CCSVParser
 		bool ParseRow (TArray<CString> &Row, CString *retsError = NULL)
 			{ return ParseRow(&Row, retsError); }
 		void Reset () { m_Stream.Seek(0); m_chCur = m_Stream.ReadChar(); m_iFormat = formatUnknown; }
+		void SetDelimiter (const char chDelimiter) { m_chDelimiter = chDelimiter; }
 		void SetUTF8Format (void) { m_iFormat = formatUTF8; }
 
 	private:
@@ -44,5 +45,6 @@ class CCSVParser
 		EFormat m_iFormat = formatUnknown;
 		TArray<CString> m_Header;
 
-		char m_chCur;
+		char m_chCur = '\0';
+		char m_chDelimiter = ',';
 	};

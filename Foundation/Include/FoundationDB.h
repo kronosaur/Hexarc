@@ -220,6 +220,7 @@ class CDBFormatCSV
 			{
 			bool bUseUTF8 = false;
 			bool bAllowShortRows = false;
+			char chDelimiter = ',';
 
 			std::function<void(int, const CString &)> fnOnProgress = NULL;
 			};

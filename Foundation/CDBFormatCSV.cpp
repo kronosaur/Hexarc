@@ -29,8 +29,8 @@ bool CDBFormatCSV::Load (IByteStream64 &Stream, const SOptions &Options, CDBTabl
 	constexpr int PROGRESS_GRANULARITY = 1000;
 	const DWORDLONG dwStreamSize = Stream.GetStreamLength();
 
-	int i;
 	CCSVParser Parser(Stream);
+	Parser.SetDelimiter(Options.chDelimiter);
 
 	if (Options.bUseUTF8)
 		Parser.SetUTF8Format();
@@ -44,7 +44,7 @@ bool CDBFormatCSV::Load (IByteStream64 &Stream, const SOptions &Options, CDBTabl
 
 	Table.CleanUp();
 	const TArray<CString> &Header = Parser.GetHeader();
-	for (i = 0; i < Header.GetCount(); i++)
+	for (int i = 0; i < Header.GetCount(); i++)
 		{
 		CDBColumnDef ColDef(Header[i], CDBValue::typeString, i);
 		if (!Table.AddCol(ColDef))
@@ -80,7 +80,7 @@ bool CDBFormatCSV::Load (IByteStream64 &Stream, const SOptions &Options, CDBTabl
 		//	Add each field.
 
 		Table.AddRow();
-		for (i = 0; i < Table.GetColCount(); i++)
+		for (int i = 0; i < Min(Row.GetCount(), Table.GetColCount()); i++)
 			{
 			if (!Table.SetField(i, iRow, CDBValue::FromHandoff(Row[i])))
 				{
