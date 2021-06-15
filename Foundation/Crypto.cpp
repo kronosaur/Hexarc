@@ -8,6 +8,7 @@
 //	These are the sets that we use to generate random passwords
 //	Capital Os and zeros have been removed to avoid confusion.
 char g_Alpha_set[] = "abcdefghijklmnopqrstuvwxyz";
+char g_AlphaCode24_set[] = "ABCDEFGHJKLMNPQRSTUVWXYZ";
 char g_AlphaCode32_set[] = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 char g_AlphaMixed_set[] = "ABCDEFGHIJKLMNPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 char g_Numbers_set[] = "123456789";
@@ -83,6 +84,52 @@ CString cryptoRandomCode (int iChars, DWORD dwFlags)
 		unsigned int dwRnd;
 		rand_s(&dwRnd);
 		*pPos++ = pSet[dwRnd % iSetSize];
+		}
+
+	//	Done
+
+	return sCode;
+	}
+
+CString cryptoRandomCodeBlock (int iChars)
+
+//	cryptoRandomCodeBlock
+//
+//	Returns a random code of the given number of characters. One of the 
+//	characters (randomly) is a number from 2-9. The remaining are uppercase
+//	characters from A-Z, except I and 0.
+
+	{
+	if (iChars <= 0)
+		return NULL_STR;
+
+	const char *pSet = g_AlphaCode24_set;
+	const int iSetSize = sizeof(g_AlphaCode24_set) - 1;
+
+	//	Figure out the position of the number.
+
+	unsigned int dwRnd;
+	rand_s(&dwRnd);
+	const int iNumberPos = dwRnd % iChars;
+
+	//	Generate the characters.
+
+	CString sCode(iChars);
+	char *pPos = sCode.GetParsePointer();
+	char *pPosEnd = pPos + iChars;
+	char *pPosNumber = pPos + iNumberPos;
+	while (pPos < pPosEnd)
+		{
+		if (pPos == pPosNumber)
+			{
+			rand_s(&dwRnd);
+			*pPos++ = '2' + (dwRnd % 8);
+			}
+		else
+			{
+			rand_s(&dwRnd);
+			*pPos++ = pSet[dwRnd % iSetSize];
+			}
 		}
 
 	//	Done

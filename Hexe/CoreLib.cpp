@@ -301,6 +301,7 @@ DECLARE_CONST_STRING(FORMAT_SHORT_DATE_TIME,			"shortdatetime")
 DECLARE_CONST_STRING(FORMAT_SHORT_DATE_TIME24,			"shortdatetime24")
 
 DECLARE_CONST_STRING(MAKE_TYPE_CODE32,					"code32")
+DECLARE_CONST_STRING(MAKE_TYPE_CODE_BLOCK32,			"codeBlock32")
 DECLARE_CONST_STRING(MAKE_TYPE_SEQUENCE,				"sequence")
 
 DECLARE_CONST_STRING(TYPE_BINARY,						"binary")
@@ -730,10 +731,18 @@ bool coreLists (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContin
 			if (strEquals(sType, MAKE_TYPE_CODE32))
 				{
 				int iDigits = dLocalEnv.GetElement(1);
-				if (iDigits <= 0 || iDigits > 100000000)
+				if (iDigits <= 0 || iDigits > 1000000)
 					iDigits = 8;
 
 				*retdResult = cryptoRandomCode(iDigits);
+				}
+			else if (strEquals(sType, MAKE_TYPE_CODE_BLOCK32))
+				{
+				int iDigits = dLocalEnv.GetElement(1);
+				if (iDigits <= 0 || iDigits > 1000000)
+					iDigits = 8;
+
+				*retdResult = cryptoRandomCodeBlock(iDigits);
 				}
 			else if (strEquals(sType, MAKE_TYPE_SEQUENCE))
 				{

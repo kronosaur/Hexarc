@@ -54,5 +54,6 @@ void cryptoCreateDigest (IMemoryBlock &Data, CIPInteger *retd);
 void cryptoCreateMAC (IMemoryBlock &Data, const CIPInteger &Key, CIPInteger *retMAC);
 void cryptoRandom (int iCount, CIPInteger *retx);
 CString cryptoRandomCode (int iChars, DWORD dwFlags = 0);
+CString cryptoRandomCodeBlock (int iChars);
 CString cryptoRandomUserPassword (int iChars, DWORD dwFlags = (CRYPTOPASS_MIXED_CASE | CRYPTOPASS_NUMBERS));
 

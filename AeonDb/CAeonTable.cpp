@@ -118,6 +118,7 @@ DECLARE_CONST_STRING(MSG_LOG_INFO,						"Log.info");
 
 DECLARE_CONST_STRING(MUTATE_ADD_TO_SET,					"addToSet");
 DECLARE_CONST_STRING(MUTATE_APPEND,						"append");
+DECLARE_CONST_STRING(MUTATE_CODE_6_5,					"code6-5");
 DECLARE_CONST_STRING(MUTATE_CODE_8,						"code8");
 DECLARE_CONST_STRING(MUTATE_CONSUME,					"consume");
 DECLARE_CONST_STRING(MUTATE_DATE_CREATED,				"dateCreated");
@@ -687,7 +688,22 @@ bool CAeonTable::CreatePrimaryKey (const CTableDimensions &Dims, CDatum dMutateD
 		bAllowInt64 = true;
 		}
 
-	//	Generate a unique 8 character code
+	//	Generate a unique character code
+
+	else if (strEquals(dKeyDesc, MUTATE_CODE_6_5))
+		{
+		//	Make sure the key is unique
+
+		do
+			{
+			dKey = strPattern("%s-%s", cryptoRandomCodeBlock(6), cryptoRandomCodeBlock(5));
+			}
+		while (RowExists(Dims, dKey));
+
+		iDims = 1;
+		bAllowUTF8 = true;
+		bAllowInt64 = false;
+		}
 
 	else if (strEquals(dKeyDesc, MUTATE_CODE_8))
 		{
