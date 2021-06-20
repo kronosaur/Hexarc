@@ -4418,7 +4418,8 @@ AEONERR CAeonTable::UploadFile (CMsgProcessCtx &Ctx, const CString &sSessionID, 
 
 	//	Update the file descriptor
 
-	CDatum dNewFileDesc = Receipt.dFileDesc.Clone();
+	CDatum dNewFileDesc(CDatum::typeStruct);
+	dNewFileDesc.Append(Receipt.dFileDesc);
 	dNewFileDesc.SetElement(FIELD_VERSION, CDatum((int)(dwCurrentVersion + 1)));
 	dNewFileDesc.SetElement(FIELD_FILE_PATH, sFilePath);
 	dNewFileDesc.SetElement(FIELD_STORAGE_PATH, m_pStorage->MachineToCanonicalRelative(Receipt.sFilespec));
