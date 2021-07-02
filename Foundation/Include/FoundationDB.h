@@ -72,6 +72,7 @@ class CDBValue
 		CDBValue GetProperty (const CString &sProperty) const;
 		ETypes GetType (void) const;
 		bool IsBlank (void) const;
+		bool IsNaN () const;
 		bool IsNil (void) const { return m_dwData == 0; }
 		void Push (const CDBValue &Value);
 		void SetElement (const CString &sKey, const CDBValue &Value);

@@ -1275,6 +1275,26 @@ bool CDBValue::IsBlank (void) const
 		}
 	}
 
+bool CDBValue::IsNaN () const
+
+//	IsNaN
+//
+//	Returns TRUE if value is NaN.
+
+	{
+	switch (GetType())
+		{
+		case typeDouble:
+			{
+			const double rValue = *this;
+			return isnan(rValue);
+			}
+
+		default:
+			return false;
+		}
+	}
+
 void CDBValue::Push (const CDBValue &Value)
 
 //	Push

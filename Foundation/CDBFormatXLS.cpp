@@ -27,7 +27,21 @@ CString CDBFormatXLS::GetDataValue (const CDBValue &Value)
 //	Returns the value, ready for outputting to XML.
 
 	{
-	return CXMLElement::MakeAttribute(Value.AsString());
+	switch (Value.GetType())
+		{
+		case CDBValue::typeDouble:
+			{
+			//	We can't encode NaN in a number format, so we just return blank.
+
+			if (Value.IsNaN())
+				return NULL_STR;
+			else
+				return CXMLElement::MakeAttribute(Value.AsString());
+			}
+
+		default:
+			return CXMLElement::MakeAttribute(Value.AsString());
+		}
 	}
 
 CString CDBFormatXLS::GetDataType (CDBValue::ETypes iType)
