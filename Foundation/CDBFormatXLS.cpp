@@ -12,6 +12,7 @@
 
 DECLARE_CONST_STRING(FIELD_COLUMN_ORDER,					"columnOrder");
 DECLARE_CONST_STRING(FIELD_SHEET_BY,						"sheetBy");
+DECLARE_CONST_STRING(FIELD_SORT_ORDER,						"sortOrder");
 
 DECLARE_CONST_STRING(STR_BLANK,								"(Blank)");
 DECLARE_CONST_STRING(STR_COMMA,								",");
@@ -69,6 +70,26 @@ CString CDBFormatXLS::GetDataType (CDBValue::ETypes iType)
 		}
 	}
 
+CString CDBFormatXLS::MakeSortKey (const CDBTable &Table, const TArray<int> &SortOrder, int iRow)
+
+//	MakeSortKey
+//
+//	Generates a sort key for the given set of columns.
+
+	{
+	CString sKey;
+
+	for (int i = 0; i < SortOrder.GetCount(); i++)
+		{
+		if (i != 0)
+			sKey += CString("|");
+
+		sKey += Table.GetField(SortOrder[i], iRow).AsString();
+		}
+
+	return sKey;
+	}
+
 bool CDBFormatXLS::ParseOptions (const CDBTable &Table, const CDBValue &Value, SOptions &retOptions, CString *retsError)
 
 //	ParseOptions
@@ -115,6 +136,32 @@ bool CDBFormatXLS::ParseOptions (const CDBTable &Table, const CDBValue &Value, S
 			retOptions.ColOrder[i] = i;
 		}
 
+	//	Sort order
+
+	retOptions.SortOrder.DeleteAll();
+	const CDBValue &Sort = Value.GetElement(FIELD_SORT_ORDER);
+	if (!Sort.IsNil())
+		{
+		TArray<CString> SortOrder;
+		strSplit(Sort, STR_COMMA, &SortOrder, -1, SSP_FLAG_NO_EMPTY_ITEMS);
+
+		retOptions.SortOrder.InsertEmpty(SortOrder.GetCount());
+		for (int i = 0; i < SortOrder.GetCount(); i++)
+			{
+			CString sCol = strClean(SortOrder[i]);
+			int iIndex = Table.FindColByName(sCol);
+			if (iIndex == -1)
+				{
+				if (retsError) *retsError = strPattern("Unknown column: %s", sCol);
+				return false;
+				}
+
+			retOptions.SortOrder[i] = iIndex;
+			}
+		}
+
+	//	Sheets
+
 	CString sSheetBy = Value.GetElement(FIELD_SHEET_BY);
 	if (!sSheetBy.IsEmpty())
 		{
@@ -127,6 +174,39 @@ bool CDBFormatXLS::ParseOptions (const CDBTable &Table, const CDBValue &Value, S
 		}
 
 	return true;
+	}
+
+TArray<int> CDBFormatXLS::SortRows (const CDBTable &Table, const TArray<int> &Rows, const TArray<int> &SortOrder)
+
+//	SortRows
+//
+//	Sorts the rows.
+
+	{
+	TSortMap<CString, int> Sorted;
+	if (Rows.GetCount() == 0)
+		{
+		Sorted.GrowToFit(Table.GetRowCount());
+		for (int i = 0; i < Table.GetRowCount(); i++)
+			{
+			Sorted.Insert(MakeSortKey(Table, SortOrder, i), i);
+			}
+		}
+	else
+		{
+		Sorted.GrowToFit(Rows.GetCount());
+		for (int i = 0; i < Rows.GetCount(); i++)
+			{
+			Sorted.Insert(MakeSortKey(Table, SortOrder, Rows[i]), Rows[i]);
+			}
+		}
+
+	TArray<int> Result;
+	Result.InsertEmpty(Sorted.GetCount());
+	for (int i = 0; i < Sorted.GetCount(); i++)
+		Result[i] = Sorted[i];
+
+	return Result;
 	}
 
 bool CDBFormatXLS::Write (IByteStream &Stream, const CDBTable &Table, const SOptions &Options)
@@ -162,8 +242,18 @@ bool CDBFormatXLS::Write (IByteStream &Stream, const CDBTable &Table, const SOpt
 
 		for (int i = 0; i < Sheets.GetCount(); i++)
 			{
-			if (!WriteSheet(Stream, Sheets.GetKey(i), Table, Sheets[i], Options))
-				return false;
+			if (Options.SortOrder.GetCount() > 0)
+				{
+				TArray<int> Sorted = SortRows(Table, Sheets[i], Options.SortOrder);
+
+				if (!WriteSheet(Stream, Sheets.GetKey(i), Table, Sorted, Options))
+					return false;
+				}
+			else
+				{
+				if (!WriteSheet(Stream, Sheets.GetKey(i), Table, Sheets[i], Options))
+					return false;
+				}
 			}
 		}
 
@@ -171,8 +261,18 @@ bool CDBFormatXLS::Write (IByteStream &Stream, const CDBTable &Table, const SOpt
 
 	else
 		{
-		if (!WriteSheet(Stream, Table.GetName(), Table, TArray<int>(), Options))
-			return false;
+		if (Options.SortOrder.GetCount() > 0)
+			{
+			TArray<int> Sorted = SortRows(Table, TArray<int>(), Options.SortOrder);
+
+			if (!WriteSheet(Stream, Table.GetName(), Table, Sorted, Options))
+				return false;
+			}
+		else
+			{
+			if (!WriteSheet(Stream, Table.GetName(), Table, TArray<int>(), Options))
+				return false;
+			}
 		}
 
 	//	Done
