@@ -1366,6 +1366,12 @@ const CString &CDBValue::TypeName (ETypes iType)
 		case typeStruct:
 			return TYPE_NAME_STRUCT;
 
+		case typeDateTime:
+			return TYPE_NAME_DATE_TIME;
+
+		case typeTimeSpan:
+			return TYPE_NAME_TIME_SPAN;
+
 		default:
 			return TYPE_NAME_UNKNOWN;
 		}
