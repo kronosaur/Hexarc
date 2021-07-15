@@ -70,7 +70,29 @@ CString CDBFormatXLS::GetDataType (CDBValue::ETypes iType)
 		}
 	}
 
-CString CDBFormatXLS::MakeSortKey (const CDBTable &Table, const TArray<int> &SortOrder, int iRow)
+CString CDBFormatXLS::GetSortKey (const CDBValue &Value)
+
+//	GetSortKey
+//
+//	Returns a sort key.
+//	LATER: We should be smarter and use the Compare function instead of 
+//	converting to a string.
+
+	{
+	switch (Value.GetType())
+		{
+		case CDBValue::typeDateTime:
+			{
+			const CDateTime DateTime = Value;
+			return strPattern("%010d.%010d", DateTime.DaysSince1AD(), DateTime.MillisecondsSinceMidnight());
+			}
+
+		default:
+			return Value.AsString();
+		}
+	}
+
+CString CDBFormatXLS::MakeSortKey (const CDBTable &Table, const TArray<int> &SortOrder, int iRow, const CString &sDefault)
 
 //	MakeSortKey
 //
@@ -84,10 +106,13 @@ CString CDBFormatXLS::MakeSortKey (const CDBTable &Table, const TArray<int> &Sor
 		if (i != 0)
 			sKey += CString("|");
 
-		sKey += Table.GetField(SortOrder[i], iRow).AsString();
+		sKey += GetSortKey(Table.GetField(SortOrder[i], iRow));
 		}
 
-	return sKey;
+	if (sKey.IsEmpty())
+		return sDefault;
+	else
+		return sKey;
 	}
 
 bool CDBFormatXLS::ParseOptions (const CDBTable &Table, const CDBValue &Value, SOptions &retOptions, CString *retsError)
@@ -236,22 +261,32 @@ bool CDBFormatXLS::Write (IByteStream &Stream, const CDBTable &Table, const SOpt
 			if (sSheet.IsEmpty())
 				sSheet = STR_BLANK;
 
-			auto *pRows = Sheets.SetAt(sSheet);
+			bool bNew;
+			auto *pRows = Sheets.SetAt(sSheet, &bNew);
 			pRows->Insert(i);
 			}
 
+		TSortMap<CString, int> SheetSortOrder;
 		for (int i = 0; i < Sheets.GetCount(); i++)
 			{
+			int iKeyRow = Sheets[i][0];
+			SheetSortOrder.Insert(MakeSortKey(Table, Options.SheetSortOrder, iKeyRow, GetDataValue(Table.GetField(Options.iSheetColumn, iKeyRow))), i);
+			}
+
+		for (int i = 0; i < SheetSortOrder.GetCount(); i++)
+			{
+			int iSheet = SheetSortOrder[i];
+
 			if (Options.SortOrder.GetCount() > 0)
 				{
-				TArray<int> Sorted = SortRows(Table, Sheets[i], Options.SortOrder);
+				TArray<int> Sorted = SortRows(Table, Sheets[iSheet], Options.SortOrder);
 
-				if (!WriteSheet(Stream, Sheets.GetKey(i), Table, Sorted, Options))
+				if (!WriteSheet(Stream, Sheets.GetKey(iSheet), Table, Sorted, Options))
 					return false;
 				}
 			else
 				{
-				if (!WriteSheet(Stream, Sheets.GetKey(i), Table, Sheets[i], Options))
+				if (!WriteSheet(Stream, Sheets.GetKey(iSheet), Table, Sheets[iSheet], Options))
 					return false;
 				}
 			}

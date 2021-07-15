@@ -248,6 +248,7 @@ class CDBFormatXLS
 			TArray<int> ColOrder;			//	Column order
 			TArray<int> SortOrder;			//	Sort by these columns
 			int iSheetColumn = -1;			//	If set, create a new sheet per value of this column.
+			TArray<int> SheetSortOrder;		//	Sort order for sheets
 			CDBTable HeaderRows;			//	Optional header rows
 			TArray<int> HeaderColOrder;		//	Column order for optional header rows
 			};
@@ -258,8 +259,9 @@ class CDBFormatXLS
 	private:
 		static CString GetDataValue (const CDBValue &Value);
 		static CString GetDataType (CDBValue::ETypes iType);
+		static CString GetSortKey (const CDBValue &Value);
 		static TArray<int> SortRows (const CDBTable &Table, const TArray<int> &Rows, const TArray<int> &SortOrder);
-		static CString MakeSortKey (const CDBTable &Table, const TArray<int> &SortOrder, int iRow);
+		static CString MakeSortKey (const CDBTable &Table, const TArray<int> &SortOrder, int iRow, const CString &sDefault = NULL_STR);
 		static bool WriteHeaderRow (IByteStream &Stream, const CString &sSheetName, const CDBTable &Table, const SOptions &Options);
 		static bool WriteRow (IByteStream &Stream, const CDBTable &Table, int iRow, const TArray<int> &ColOrder, const SOptions &Options);
 		static bool WriteSheet (IByteStream &Stream, const CString &sSheetName, const CDBTable &Table, const TArray<int> &Rows, const SOptions &Options);
