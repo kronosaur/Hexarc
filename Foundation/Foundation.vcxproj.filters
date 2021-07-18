@@ -372,6 +372,12 @@
     <ClCompile Include="CDBFormatXLS.cpp">
       <Filter>Source Files\DB</Filter>
     </ClCompile>
+    <ClCompile Include="CWSAddrInfo.cpp">
+      <Filter>Source Files\NetworkIO</Filter>
+    </ClCompile>
+    <ClCompile Include="CSocketSet.cpp">
+      <Filter>Source Files\NetworkIO</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">

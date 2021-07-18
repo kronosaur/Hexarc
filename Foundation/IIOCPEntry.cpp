@@ -67,10 +67,18 @@ bool IIOCPEntry::BeginConnection (const CString &sAddress, DWORD dwPort, CString
 		return false;
 		}
 
-	//	Compose the destination address
+	//	Prepare structure to connect
 
-	SOCKADDR_IN Address;
-	if (!CSocket::ComposeAddress(sAddress, dwPort, &Address))
+	CWSAddrInfo AddrInfo = CWSAddrInfo::Get(sAddress, dwPort);
+	if (!AddrInfo)
+		{
+		m_iCurrentOp = opNone;
+		if (retsError) *retsError = strPattern(ERR_INVALID_ADDRESS, sAddress, dwPort);
+		return false;
+		}
+
+	const ADDRINFOW *pAI = AddrInfo.GetFirstIPInfo();
+	if (!pAI)
 		{
 		m_iCurrentOp = opNone;
 		if (retsError) *retsError = strPattern(ERR_INVALID_ADDRESS, sAddress, dwPort);
@@ -85,8 +93,8 @@ bool IIOCPEntry::BeginConnection (const CString &sAddress, DWORD dwPort, CString
 
 	DWORD lasterror = 0;
 	if (!pfnConnectEx((SOCKET)hHandle,
-			(SOCKADDR *)&Address,
-			sizeof(Address),
+			pAI->ai_addr,
+			(int)pAI->ai_addrlen,
 			NULL,
 			0,
 			NULL,

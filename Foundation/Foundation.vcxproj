@@ -281,6 +281,7 @@
     <ClCompile Include="CRGBA32Image.cpp" />
     <ClCompile Include="CSemaphore.cpp" />
     <ClCompile Include="CSharedMemoryBuffer.cpp" />
+    <ClCompile Include="CSocketSet.cpp" />
     <ClCompile Include="CString.cpp" />
     <ClCompile Include="CString16.cpp" />
     <ClCompile Include="CStringBuffer.cpp" />
@@ -300,6 +301,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="MathRandom.cpp" />
+    <ClCompile Include="CWSAddrInfo.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

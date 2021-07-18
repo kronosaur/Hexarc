@@ -26,9 +26,7 @@ DECLARE_CONST_STRING(ERR_UNABLE_TO_LISTEN_ON_PORT,		"Unable to listen on port %s
 CEsperListenerThread::CEsperListenerThread (CEsperEngine *pEngine, CEsperConnection::ETypes iType, const SArchonMessage &Msg) :
 		m_pEngine(pEngine),
 		m_iType(iType),
-		m_OriginalMsg(Msg),
-		m_pClient(NULL),
-		m_bShutdown(false)
+		m_OriginalMsg(Msg)
 
 //	CEsperListenerThread constructor
 
@@ -73,7 +71,7 @@ void CEsperListenerThread::Run (void)
 
 		//	Create the socket
 
-		if (!m_Listener.CreateForListen(strToInt(m_sService, 0, NULL)))
+		if (!m_Listener.CreateListeners(strToInt(m_sService, 0, NULL)))
 			{
 			CString sError = strPattern(ERR_UNABLE_TO_LISTEN_ON_PORT, m_sService);
 			SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, sError);
@@ -99,7 +97,7 @@ void CEsperListenerThread::Run (void)
 			//	Accept a new connection
 
 			CSocket NewSocket;
-			bool bSuccess = m_Listener.AcceptConnection(&NewSocket);
+			bool bSuccess = m_Listener.AcceptConnection(NewSocket);
 
 			//	If we've been asked to stop, then stop here before we allocate any
 			//	memory.

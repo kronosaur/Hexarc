@@ -9,42 +9,111 @@
 
 #pragma once
 
+struct SAddrInfo
+	{
+	int iFlags = 0;
+	int iFamily = 0;
+	int iSockType = 0;
+	int iProtocol = 0;
+	CString sName;
+
+	void *pIterator = NULL;
+	};
+
+class CWSAddrInfo
+	{
+	public:
+		CWSAddrInfo () { }
+		CWSAddrInfo (const CWSAddrInfo &Src) = delete;
+		CWSAddrInfo (CWSAddrInfo &&Src) noexcept { Move(Src); }
+
+		~CWSAddrInfo () { CleanUp(); }
+
+		operator const ADDRINFOW & () const { return CastADDRINFO(); }
+		explicit operator bool () const noexcept { return (m_pAddrInfo != NULL); }
+
+		CWSAddrInfo &operator= (const CWSAddrInfo &Src) = delete;
+		CWSAddrInfo &operator= (CWSAddrInfo &&Src) noexcept { CleanUp(); Move(Src); return *this; }
+
+		const ADDRINFOW &CastADDRINFO () const { if (!m_pAddrInfo) throw CException(errFail); return *m_pAddrInfo; }
+		const ADDRINFOW *GetFirstIPInfo () const;
+		bool GetNext (SAddrInfo &retInfo) const;
+
+		static CWSAddrInfo Get (const CString &sHost, DWORD dwPort, CString *retsError = NULL);
+		static CWSAddrInfo Get (DWORD dwPort, CString *retsError = NULL);
+			
+	private:
+		void CleanUp () 
+			{
+			if (m_pAddrInfo)
+				{
+				::FreeAddrInfoW(m_pAddrInfo);
+				m_pAddrInfo = NULL;
+				}
+			}
+
+		void Move (CWSAddrInfo &Src) noexcept
+			{
+			m_pAddrInfo = Src.m_pAddrInfo;
+			Src.m_pAddrInfo = NULL;
+			}
+
+		ADDRINFOW *m_pAddrInfo = NULL;
+	};
+
+class CWSAddrInfoStorage
+	{
+	public:
+		operator const sockaddr & () const { return (const sockaddr &)m_Storage; }
+
+		sockaddr &GetAddrRef () { return (sockaddr &)m_Storage; }
+		int &GetAddrLenRef () { return m_iLength; }
+		int GetLength () const { return m_iLength; }
+
+	private:
+		sockaddr_storage m_Storage;
+		int m_iLength = sizeof(sockaddr_storage);
+	};
+
 class CSocket : public IByteStream
 	{
 	public:
-		enum Types
+		enum class EType
 			{
-			typeUnknown	=	0,
-			typeTCP	=		1,
-			typeUDP =		2,
+			Unknown	=	0,
+			TCP	=		1,
+			UDP =		2,
 			};
 
-		CSocket (void) : 
-				m_hSocket(INVALID_SOCKET),
-				m_bConnected(false),
-				m_bBlocking(true)
-			{ }
+		CSocket (void) { }
+		CSocket (const ADDRINFOW &AI);
+		CSocket (const CSocket &Src) = delete;
+		CSocket (CSocket &&Src) noexcept { Move(Src); }
+
 		~CSocket (void);
 
 		operator SOCKET () const { return m_hSocket; }
 
-		bool AcceptConnection (CSocket *retSocket) const;
+		CSocket &operator= (const CSocket &Src) = delete;
+		CSocket &operator= (CSocket &&Src) noexcept { Close(); Move(Src); return *this; }
+
+		bool AcceptConnection (CSocket &retSocket) const;
 		void Close (void);
 		static void CloseHandoffSocket (SOCKET hSocket);
-		bool Connect (const CString &sHost, DWORD dwPort, Types iType = typeTCP);
-		bool Create (Types iType);
-		bool CreateForListen (DWORD dwPort, Types iType = typeTCP);
+		bool Connect (const CString &sHost, DWORD dwPort, EType iType = EType::TCP);
+		bool Create (EType iType);
 		void Disconnect (void);
 		CString GetConnectionAddress (void) const;
 		CString GetHostAddress (void) const;
-		inline SOCKET Handoff (void) { SOCKET hTemp = m_hSocket; m_hSocket = INVALID_SOCKET; return hTemp; }
-		inline bool IsValid (void) const { return m_hSocket != INVALID_SOCKET; }
+		SOCKET Handoff (void) { SOCKET hTemp = m_hSocket; m_hSocket = INVALID_SOCKET; return hTemp; }
+		bool IsValid (void) const { return m_hSocket != INVALID_SOCKET; }
 		bool SelectWaitRead (void);
 		bool SelectWaitWrite (void);
 		void SetBlockingMode (bool bBlocking = true);
 
-		static bool ComposeAddress (const CString &sHost, DWORD dwPort, SOCKADDR_IN *retAddress);
 		static int GetGlobalSocketCount (void) { return m_iGlobalSocketCount; }
+		static bool IsIPv6Addr (const CString &sHostName);
+		static const CSocket &Null () { return m_Null; }
 
 		//	IByteStream virtuals
 		virtual int GetPos (void) override { return 0; }
@@ -58,14 +127,31 @@ class CSocket : public IByteStream
 		inline int Write (const CString &sString) { return Write((LPSTR)sString, sString.GetLength()); }
 
 	private:
-		bool ConnectWithTimeout (void);
+		bool Connect (SOCKADDR *pSockAddr, size_t iSockAddrLen);
+		void Move (CSocket &Src) noexcept;
+		static bool WSGetNameInfo (const SOCKADDR &SockAddr, size_t iSockAddrLen, bool bNumericHost = false, CString *retsHostname = NULL, CString *retsPort = NULL);
+		bool WSGetAddressInfo (CWSAddrInfoStorage &retAI) const;
 
-		SOCKET m_hSocket;
-		SOCKADDR_IN m_Address;
-		bool m_bConnected;
-		bool m_bBlocking;
+		SOCKET m_hSocket = INVALID_SOCKET;
+		bool m_bConnected = false;
+		bool m_bBlocking = true;
 
 		static int m_iGlobalSocketCount;
+		static const CSocket m_Null;
+	};
+
+class CSocketSet
+	{
+	public:
+		bool AcceptConnection (CSocket &retSocket) const;
+		void Close () { m_Sockets.DeleteAll(); FD_ZERO(&m_SockSet); }
+		bool CreateListeners (DWORD dwPort, CSocket::EType iType = CSocket::EType::TCP);
+
+	private:
+		const CSocket &Select () const;
+
+		TArray<CSocket> m_Sockets;
+		mutable fd_set m_SockSet;
 	};
 
 //	HTTP -----------------------------------------------------------------------

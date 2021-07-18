@@ -51,8 +51,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,264,0
- PRODUCTVERSION 1,0,264,0
+ FILEVERSION 1,1,84,0
+ PRODUCTVERSION 1,1,84,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -68,12 +68,12 @@ BEGIN
         BLOCK "040904b0"
         BEGIN
             VALUE "FileDescription", "AI1"
-            VALUE "FileVersion", "1.0.264.0"
+            VALUE "FileVersion", "1.1.84.0"
             VALUE "InternalName", "AI1"
-            VALUE "LegalCopyright", "Copyright © 2011-2017 by Kronosaur Productions LLC. All Rights Reserved."
+            VALUE "LegalCopyright", "Copyright © 2011-2021 by Kronosaur Productions LLC. All Rights Reserved."
             VALUE "OriginalFilename", "AI1"
             VALUE "ProductName", "Hexarc"
-            VALUE "ProductVersion", "1.0 beta 64"
+            VALUE "ProductVersion", "v.84"
         END
     END
     BLOCK "VarFileInfo"

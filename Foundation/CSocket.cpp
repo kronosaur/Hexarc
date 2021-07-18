@@ -11,6 +11,17 @@
 DECLARE_CONST_STRING(STR_UNKNOWN_HOST,					"0.0.0.0")
 
 int CSocket::m_iGlobalSocketCount = 0;
+const CSocket CSocket::m_Null;
+
+CSocket::CSocket (const ADDRINFOW &AI)
+
+//	CSocket constructor
+
+	{
+	m_hSocket = socket(AI.ai_family, AI.ai_socktype, AI.ai_protocol);
+	if (m_hSocket != INVALID_SOCKET)
+		m_iGlobalSocketCount++;
+	}
 
 CSocket::~CSocket (void)
 
@@ -20,7 +31,7 @@ CSocket::~CSocket (void)
 	Close();
 	}
 
-bool CSocket::AcceptConnection (CSocket *retSocket) const
+bool CSocket::AcceptConnection (CSocket &retSocket) const
 
 //	AcceptConnection
 //
@@ -30,21 +41,24 @@ bool CSocket::AcceptConnection (CSocket *retSocket) const
 //	This socket must have previously been created with CreateForListen.
 
 	{
-	retSocket->Close();
+	retSocket.Close();
 
 	//	Accept. This will block until a client connects or until a different
 	//	thread closes this socket.
 
-	int iAddressSize = sizeof(retSocket->m_Address);
-	retSocket->m_hSocket = accept(m_hSocket,
-			(SOCKADDR *)&retSocket->m_Address, 
-			&iAddressSize);
-	if (retSocket->m_hSocket == INVALID_SOCKET)
+	CWSAddrInfoStorage AI;
+	retSocket.m_hSocket = accept(m_hSocket,
+			&AI.GetAddrRef(), 
+			&AI.GetAddrLenRef());
+	if (retSocket.m_hSocket == INVALID_SOCKET)
+		{
+		int iError = WSAGetLastError();
 		return false;
+		}
 
 	//	Done
 
-	retSocket->m_bConnected = true;
+	retSocket.m_bConnected = true;
 	m_iGlobalSocketCount++;
 
 	return true;
@@ -81,120 +95,102 @@ void CSocket::CloseHandoffSocket (SOCKET hSocket)
 		}
 	}
 
-bool CSocket::ComposeAddress (const CString &sHost, DWORD dwPort, SOCKADDR_IN *retAddress)
-
-//	ComposeAddress
-//
-//	Compose an address from hostname and port
-//
-//	LATER:
-//
-//	::inet_addr needs to be replaced with ::inet_pton
-//	::gethostbyname needs to be replaced with ::getaddrinfo
-
-	{
-	//	Prepare structure to connect
-
-	utlMemSet(retAddress, sizeof(SOCKADDR_IN));
-	retAddress->sin_family = AF_INET;
-	retAddress->sin_port = ::htons((WORD)dwPort);
-
-	//	Now check to see if the host name is a valid IP address.
-	//	If it is not then we do a DNS lookup on the host name.
-
-	retAddress->sin_addr.s_addr = ::inet_addr(sHost);
-	if (retAddress->sin_addr.s_addr == INADDR_NONE)
-		{
-		//	DNS lookup
-
-		HOSTENT *phe = ::gethostbyname(sHost);
-		if (phe == NULL)
-			return false;
-
-		utlMemCopy((char *)phe->h_addr, (char *)&retAddress->sin_addr, phe->h_length);
-		}
-
-	//	Done
-
-	return true;
-	}
-
-bool CSocket::Connect (const CString &sHost, DWORD dwPort, Types iType)
+bool CSocket::Connect (const CString &sHost, DWORD dwPort, EType iType)
 
 //	Connect
 //
 //	Connect to the host on the given port
 
 	{
-	ASSERT(m_hSocket == INVALID_SOCKET);
+	if (m_hSocket != INVALID_SOCKET)
+		throw CException(errFail);
 
 	//	Prepare structure to connect
 
-	if (!ComposeAddress(sHost, dwPort, &m_Address))
+	CWSAddrInfo AddrInfo = CWSAddrInfo::Get(sHost, dwPort);
+	if (!AddrInfo)
 		return false;
 
-	//	Create the socket
+	//	Loop over all returned addresses and try to connect
 
-	if (!Create(iType))
-		return false;
+	for (const ADDRINFOW *pAI = &AddrInfo.CastADDRINFO(); pAI != NULL; pAI = pAI->ai_next)
+		{
+		//	Skip non-internet
 
-	//	Connect to the server
+		if (pAI->ai_family != AF_INET && pAI->ai_family != AF_INET6)
+			continue;
 
+		//	Create the socket
+
+		m_hSocket = socket(pAI->ai_family, pAI->ai_socktype, pAI->ai_protocol);
+		if (m_hSocket == INVALID_SOCKET)
+			{
+			//	Skip
+			continue;
+			}
+
+		if (!m_bBlocking)
+			{
+			DWORD dwMode = 1;
+			::ioctlsocket(m_hSocket, FIONBIO, &dwMode);
+			}
+
+		//	Try to connect
+
+		if (!Connect(pAI->ai_addr, pAI->ai_addrlen))
+			{
+			closesocket(m_hSocket);
+			m_hSocket = INVALID_SOCKET;
+			continue;
+			}
+
+		//	If we get here then success.
+
+		m_iGlobalSocketCount++;
+		m_bConnected = true;
+		return true;
+		}
+
+	//	Otherwise, we failed
+
+	return false;
+	}
+
+bool CSocket::Connect (SOCKADDR *pSockAddr, size_t iSockAddrLen)
+	{
 	if (m_bBlocking)
 		{
-		if (connect(m_hSocket, (SOCKADDR *)&m_Address, sizeof(m_Address)))
-			{
-			Close();
+		if (connect(m_hSocket, pSockAddr, (int)iSockAddrLen) == SOCKET_ERROR)
 			return false;
-			}
 		}
 	else
 		{
-		if (!ConnectWithTimeout())
+		while (true)
 			{
-			Close();
-			return false;
+			if (connect(m_hSocket, pSockAddr, (int)iSockAddrLen) == SOCKET_ERROR)
+				{
+				int iError = ::WSAGetLastError();
+				if (iError != WSAEWOULDBLOCK)
+					return false;
+
+				//	Wait until we connect or timeout
+
+				if (!SelectWaitWrite())
+					return false;
+
+				//	The socket it ready; try again.
+				}
+
+			//	Success
+
+			break;
 			}
-		}
-
-	//	Done
-
-	m_bConnected = true;
-	return true;
-	}
-
-bool CSocket::ConnectWithTimeout (void)
-
-//	ConnectWithTimeout
-//
-//	Non-block connect with 60 second timeout
-
-	{
-	while (true)
-		{
-		if (connect(m_hSocket, (SOCKADDR *)&m_Address, sizeof(m_Address)))
-			{
-			int iError = ::WSAGetLastError();
-			if (iError != WSAEWOULDBLOCK)
-				return false;
-
-			//	Wait until we connect or timeout
-
-			if (!SelectWaitWrite())
-				return false;
-
-			//	The socket it ready; try again.
-			}
-
-		//	Success
-
-		break;
 		}
 
 	return true;
 	}
 
-bool CSocket::Create (Types iType)
+bool CSocket::Create (EType iType)
 
 //	Create
 //
@@ -208,11 +204,11 @@ bool CSocket::Create (Types iType)
 	int iSocketType;
 	switch (iType)
 		{
-		case typeTCP:
+		case EType::TCP:
 			iSocketType = SOCK_STREAM;
 			break;
 
-		case typeUDP:
+		case EType::UDP:
 			iSocketType = SOCK_DGRAM;
 			break;
 
@@ -235,46 +231,6 @@ bool CSocket::Create (Types iType)
 		}
 
 	m_iGlobalSocketCount++;
-
-	//	Done
-
-	return true;
-	}
-
-bool CSocket::CreateForListen (DWORD dwPort, Types iType)
-
-//	CreateForListen
-//
-//	Creates a new socket to listen for connections
-//	on the given port.
-
-	{
-	ASSERT(m_hSocket == INVALID_SOCKET);
-
-	if (!Create(iType))
-		return false;
-
-	//	Bind to a port
-	//	NOTE: To use IPv6, change AF_INET to AF_INET6.
-
-	utlMemSet(&m_Address, sizeof(m_Address));
-	m_Address.sin_family = AF_INET;
-	m_Address.sin_port = htons((WORD)dwPort);
-	m_Address.sin_addr.s_addr = htonl(INADDR_ANY);
-
-	if (bind(m_hSocket, (SOCKADDR *)&m_Address, sizeof(m_Address)) == SOCKET_ERROR)
-		{
-		Close();
-		return false;
-		}
-
-	//	Start listening
-
-	if (listen(m_hSocket, SOMAXCONN) == SOCKET_ERROR)
-		{
-		Close();
-		return false;
-		}
 
 	//	Done
 
@@ -311,24 +267,23 @@ CString CSocket::GetConnectionAddress (void) const
 	if (m_hSocket == INVALID_SOCKET)
 		return STR_UNKNOWN_HOST;
 
-	//	Get the info
+	//	Get the address
 
-	CString sHostName(NI_MAXHOST);
-	CString sPortName(NI_MAXSERV);
-	if (getnameinfo((SOCKADDR *)&m_Address, 
-			sizeof(m_Address), 
-			sHostName, 
-			sHostName.GetLength(),
-			sPortName,
-			sPortName.GetLength(),
-			NI_NUMERICHOST | NI_NUMERICSERV) != 0)
-		{
-		return strPattern("%s:%d", STR_UNKNOWN_HOST, 0);
-		}
+	CWSAddrInfoStorage AI;
+	if (!WSGetAddressInfo(AI))
+		return STR_UNKNOWN_HOST;
 
-	//	Done
+	CString sIPAddr;
+	CString sPort;
+	if (!WSGetNameInfo(AI, AI.GetLength(), true, &sIPAddr, &sPort))
+		return STR_UNKNOWN_HOST;
 
-	return strPattern("%s:%s", sHostName, sPortName);
+	//	See if this is an IPv6 address
+
+	if (IsIPv6Addr(sIPAddr))
+		return strPattern("[%s]:%s", sIPAddr, sPort);
+	else
+		return strPattern("%s:%s", sIPAddr, sPort);
 	}
 
 CString CSocket::GetHostAddress (void) const
@@ -343,24 +298,55 @@ CString CSocket::GetHostAddress (void) const
 	if (m_hSocket == INVALID_SOCKET)
 		return STR_UNKNOWN_HOST;
 
-	//	Get the info
+	//	Get the address
 
-	CString sHostName(NI_MAXHOST);
-	if (getnameinfo((SOCKADDR *)&m_Address, 
-			sizeof(m_Address), 
-			sHostName, 
-			sHostName.GetLength(),
-			NULL,
-			0,
-			NI_NUMERICHOST
-			) != 0)
+	CWSAddrInfoStorage AI;
+	if (!WSGetAddressInfo(AI))
+		return STR_UNKNOWN_HOST;
+
+	CString sIPAddr;
+	if (!WSGetNameInfo(AI, AI.GetLength(), true, &sIPAddr))
+		return STR_UNKNOWN_HOST;
+
+	//	See if this is an IPv6 address
+
+	if (IsIPv6Addr(sIPAddr))
+		return strPattern("[%s]", sIPAddr);
+	else
+		return sIPAddr;
+	}
+
+bool CSocket::IsIPv6Addr (const CString &sHostName)
+
+//	IsIPv6Addr
+//
+//	Parses a numeric hostname and sees if it is an IPv6 address.
+
+	{
+	const char *pPos = sHostName.GetParsePointer();
+	while (*pPos != '\0')
 		{
-		sHostName = STR_UNKNOWN_HOST;
+		if (*pPos == ':')
+			return true;
+
+		pPos++;
 		}
 
-	//	Done
+	return false;
+	}
 
-	return sHostName;
+void CSocket::Move (CSocket &Src) noexcept
+
+//	Move
+//
+//	Takes ownership.
+
+	{
+	m_hSocket = Src.m_hSocket;
+	Src.m_hSocket = INVALID_SOCKET;
+
+	m_bConnected = Src.m_bConnected;
+	m_bBlocking = Src.m_bBlocking;
 	}
 
 int CSocket::Read (void *pData, int iLength)
@@ -466,6 +452,48 @@ void CSocket::SetBlockingMode (bool bBlocking)
 		DWORD dwMode = (m_bBlocking ? 0 : 1);
 		::ioctlsocket(m_hSocket, FIONBIO, &dwMode);
 		}
+	}
+
+bool CSocket::WSGetAddressInfo (CWSAddrInfoStorage &retAI) const
+
+//	WSGetAddressInfo
+//
+//	Returns address info for the current socket.
+
+	{
+	if (m_hSocket == INVALID_SOCKET)
+		return false;
+
+	if (int iError = getsockname(m_hSocket, &retAI.GetAddrRef(), &retAI.GetAddrLenRef()))
+		return false;
+
+	return true;
+	}
+
+bool CSocket::WSGetNameInfo (const SOCKADDR &SockAddr, size_t iSockAddrLen, bool bNumericHost, CString *retsHostname, CString *retsPort)
+
+//	WSGetNameInfo
+//
+//	This is a wrapper over GetNameInfoW.
+
+	{
+	CString16 sHostName(NI_MAXHOST);
+	CString16 sPortName(NI_MAXSERV);
+
+	DWORD dwFlags = NI_NUMERICSERV;
+	if (bNumericHost)
+		dwFlags |= NI_NUMERICHOST;
+
+	if (int iError = GetNameInfoW(&SockAddr, (socklen_t)iSockAddrLen, sHostName, sHostName.GetLength(), sPortName, sPortName.GetLength(), dwFlags))
+		return false;
+
+	if (retsHostname)
+		*retsHostname = sHostName;
+
+	if (retsPort)
+		*retsPort = sPortName;
+
+	return true;
 	}
 
 int CSocket::Write (const void *pData, int iLength)

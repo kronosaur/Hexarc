@@ -114,12 +114,12 @@ class CEsperListenerThread : public TThread<CEsperListenerThread>
 		SArchonMessage m_OriginalMsg;		//	Message establishing listener
 
 		CString m_sClientAddr;				//	Client address
-		CMessagePort *m_pClient;			//	Client port
-		DWORD m_dwClientTicket;				//	Ticket to use in replies
+		CMessagePort *m_pClient = NULL;		//	Client port
+		DWORD m_dwClientTicket = 0;			//	Ticket to use in replies
 
-		CSocket m_Listener;					//	Socket to use
+		CSocketSet m_Listener;				//	Socket to use
 
-		bool m_bShutdown;					//	TRUE when we've been asked to shut down
+		bool m_bShutdown = false;			//	TRUE when we've been asked to shut down
 		CManualEvent m_PausedEvent;			//	Set when we've stopped
 	};
 

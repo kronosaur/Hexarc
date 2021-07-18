@@ -46,6 +46,43 @@ CString16::CString16 (LPCTSTR pStr, int iLen)
 	m_pString[iLen] = _T('\0');
 	}
 
+CString16::CString16 (LPCTSTR pStr, size_t iLen)
+
+//	CString16 constructor
+
+	{
+	//	Validate length
+
+	if (iLen == -1)
+		{
+		if (pStr)
+			iLen = CalcLength(pStr);
+		else
+			iLen = 0;
+		}
+	else if (iLen < 0)
+		iLen = 0;
+
+	//	Create
+
+	m_pString = new TCHAR [iLen + 1];
+	if (pStr)
+		utlMemCopy(pStr, m_pString, iLen * sizeof(TCHAR));
+	m_pString[iLen] = _T('\0');
+	}
+
+CString16::CString16 (size_t iLen)
+
+//	CString16 constructor
+
+	{
+	if (iLen <= 0)
+		return;
+
+	m_pString = new TCHAR [iLen + 1];
+	m_pString[iLen] = _T('\0');
+	}
+
 CString16::~CString16 (void)
 
 //	CString16 destructor

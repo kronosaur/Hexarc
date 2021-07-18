@@ -107,49 +107,53 @@ template <int l> struct SConstString
 extern const CString NULL_STR;
 
 template <int l> class TFixedString
-    {
-    public:
-        TFixedString (void) :
-                m_iLength(0)
-            {
-            m_szString[0] = '\0';
-            }
+	{
+	public:
+		TFixedString (void) :
+				m_iLength(0)
+			{
+			m_szString[0] = '\0';
+			}
 
-        inline operator CString () const { return (m_iLength == 0 ? NULL_STR : CString(m_szString, m_iLength, true)); }
+		inline operator CString () const { return (m_iLength == 0 ? NULL_STR : CString(m_szString, m_iLength, true)); }
 		inline operator LPSTR () const { return m_szString; }
 
-        TFixedString<l> &operator= (const CString &sStr)
-            {
-            LPSTR pSrc = sStr;
-            LPSTR pDest = m_szString;
-            int iLen = Min(sStr.GetLength(), l);
-            LPSTR pSrcEnd = pSrc + iLen;
+		TFixedString<l> &operator= (const CString &sStr)
+			{
+			LPSTR pSrc = sStr;
+			LPSTR pDest = m_szString;
+			int iLen = Min(sStr.GetLength(), l);
+			LPSTR pSrcEnd = pSrc + iLen;
 
-            while (pSrc < pSrcEnd)
-                *pDest++ = *pSrc++;
+			while (pSrc < pSrcEnd)
+				*pDest++ = *pSrc++;
 
-            *pDest = '\0';
-            m_iLength = -iLen;
+			*pDest = '\0';
+			m_iLength = -iLen;
 
-            return *this;
-            }
+			return *this;
+			}
 
-        inline int GetLength (void) const { return -m_iLength; }
+		inline int GetLength (void) const { return -m_iLength; }
 
-    private:
-        int m_iLength;
-        char m_szString[l+1];
-    };
+	private:
+		int m_iLength;
+		char m_szString[l+1];
+	};
 
 //	UTF-16 strings
 
 class CString16
 	{
 	public:
-		CString16 (void) : m_pString(NULL) { }
+		CString16 (void) { }
 		CString16 (LPCTSTR pStr, int iLen);
+		CString16 (LPCTSTR pStr, size_t iLen = -1);
 		CString16 (LPSTR pStr);
 		CString16 (const CString &sStr);
+
+		explicit CString16 (size_t iLen);
+
 		~CString16 (void);
 
 		CString16 &operator= (LPSTR pStr);
@@ -164,7 +168,7 @@ class CString16
 	private:
 		static LPTSTR CreateUTF16BufferFromUTF8 (LPSTR pStr, int iLen);
 
-		LPTSTR m_pString;
+		LPTSTR m_pString = NULL;
 	};
 
 //	String functions

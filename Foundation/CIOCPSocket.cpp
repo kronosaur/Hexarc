@@ -19,7 +19,7 @@ CIOCPSocket::CIOCPSocket (SOCKET hSocket) : IIOCPEntry(IOCP_SOCKET_OP),
 	if (hSocket == INVALID_SOCKET)
 		{
 		CSocket NewSocket;
-		if (!NewSocket.Create(CSocket::typeTCP))
+		if (!NewSocket.Create(CSocket::EType::TCP))
 			return;
 
 		m_hSocket = NewSocket.Handoff();
@@ -58,7 +58,7 @@ bool CIOCPSocket::ResetSocket (void)
 		}
 
 	CSocket NewSocket;
-	if (!NewSocket.Create(CSocket::typeTCP))
+	if (!NewSocket.Create(CSocket::EType::TCP))
 		return false;
 
 	m_hSocket = NewSocket.Handoff();
