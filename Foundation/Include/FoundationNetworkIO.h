@@ -41,6 +41,7 @@ class CWSAddrInfo
 
 		static CWSAddrInfo Get (const CString &sHost, DWORD dwPort, CString *retsError = NULL);
 		static CWSAddrInfo Get (DWORD dwPort, CString *retsError = NULL);
+		static CWSAddrInfo GetLocal (int iFamily, CString *retsError = NULL);
 			
 	private:
 		void CleanUp () 

@@ -78,6 +78,31 @@ CWSAddrInfo CWSAddrInfo::Get (const CString &sHost, DWORD dwPort, CString *retsE
 	return Result;
 	}
 
+CWSAddrInfo CWSAddrInfo::GetLocal (int iFamily, CString *retsError)
+
+//	GetLocal
+//
+//	Returns a local address.
+
+	{
+	ADDRINFOW Hints;
+	utlMemSet(&Hints, sizeof(Hints));
+	Hints.ai_family = iFamily;
+	Hints.ai_socktype = SOCK_STREAM;    //  TCP
+	Hints.ai_flags = AI_NUMERICHOST | AI_NUMERICSERV | AI_PASSIVE;
+
+	CWSAddrInfo Result;
+	int iResult = ::GetAddrInfoW(NULL, L"0", &Hints, &Result.m_pAddrInfo);
+	if (iResult != 0)
+		{
+		int iLastError = WSAGetLastError();
+		if (retsError) *retsError = CString("Unable to resolve local address.");
+		return CWSAddrInfo();
+		}
+
+	return Result;
+	}
+
 const ADDRINFOW *CWSAddrInfo::GetFirstIPInfo () const
 
 //	GetFirstIPInfo
