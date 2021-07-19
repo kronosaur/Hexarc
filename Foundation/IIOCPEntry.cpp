@@ -5,12 +5,12 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(ERR_INVALID_STATE,				"Invalid IO operation state.")
-DECLARE_CONST_STRING(ERR_FILE_ERROR,				"IO operation error: %d.")
-DECLARE_CONST_STRING(ERR_NOT_SUPPORTED,				"IO operation not supported.")
-DECLARE_CONST_STRING(ERR_NO_BYTES,					"IO operation returned 0 bytes.")
-DECLARE_CONST_STRING(ERR_INVALID_ADDRESS,			"Invalid address: %s %d.")
-DECLARE_CONST_STRING(ERR_CANNOT_BIND,				"Unable to bind socket.")
+DECLARE_CONST_STRING(ERR_INVALID_STATE,				"Invalid IO operation state.");
+DECLARE_CONST_STRING(ERR_FILE_ERROR,				"IO operation error: %d.");
+DECLARE_CONST_STRING(ERR_NOT_SUPPORTED,				"IO operation not supported.");
+DECLARE_CONST_STRING(ERR_NO_BYTES,					"IO operation returned 0 bytes.");
+DECLARE_CONST_STRING(ERR_INVALID_ADDRESS,			"Invalid address: %s %d.");
+DECLARE_CONST_STRING(ERR_CANNOT_BIND,				"Unable to bind socket.");
 
 bool IIOCPEntry::BeginConnection (const CString &sAddress, DWORD dwPort, CString *retsError)
 
@@ -31,94 +31,17 @@ bool IIOCPEntry::BeginConnection (const CString &sAddress, DWORD dwPort, CString
 
 	m_iCurrentOp = opConnect;
 	m_dwOpStartTime = sysGetTickCount64();
-
-	//	Bind the socket before passing to ConnectEx. For some reason the API
-	//	does not do its own bind (probably so you can reuse sockets).
-
-	SOCKADDR_IN LocalAddress;
-	utlMemSet(&LocalAddress, sizeof(LocalAddress), 0);
-	LocalAddress.sin_family = AF_INET;
-	LocalAddress.sin_addr.s_addr = INADDR_ANY;
-	LocalAddress.sin_port = 0;
-	if (::bind((SOCKET)hHandle, (SOCKADDR *)&LocalAddress, sizeof(LocalAddress)) != 0)
-		{
-		m_iCurrentOp = opNone;
-		if (retsError) *retsError = ERR_CANNOT_BIND;
-		return false;
-		}
-
-	//	Get the ConnectEx pointer
-
-	GUID guidConnectEx = WSAID_CONNECTEX;
-	LPFN_CONNECTEX pfnConnectEx = NULL;
-	DWORD dwBytes;
-	if (::WSAIoctl((SOCKET)hHandle,
-			SIO_GET_EXTENSION_FUNCTION_POINTER,
-			&guidConnectEx,
-			sizeof(guidConnectEx),
-			&pfnConnectEx,
-			sizeof(pfnConnectEx),
-			&dwBytes,
-			NULL,
-			NULL) == SOCKET_ERROR)
-		{
-		m_iCurrentOp = opNone;
-		if (retsError) *retsError = ERR_NOT_SUPPORTED;
-		return false;
-		}
-
-	//	Prepare structure to connect
-
-	CWSAddrInfo AddrInfo = CWSAddrInfo::Get(sAddress, dwPort);
-	if (!AddrInfo)
-		{
-		m_iCurrentOp = opNone;
-		if (retsError) *retsError = strPattern(ERR_INVALID_ADDRESS, sAddress, dwPort);
-		return false;
-		}
-
-	const ADDRINFOW *pAI = AddrInfo.GetFirstIPInfo();
-	if (!pAI)
-		{
-		m_iCurrentOp = opNone;
-		if (retsError) *retsError = strPattern(ERR_INVALID_ADDRESS, sAddress, dwPort);
-		return false;
-		}
-
-	//	Initialize operation
-
 	utlMemSet(&m_Overlapped, sizeof(m_Overlapped));
 
 	//	Connect
 
-	DWORD lasterror = 0;
-	if (!pfnConnectEx((SOCKET)hHandle,
-			pAI->ai_addr,
-			(int)pAI->ai_addrlen,
-			NULL,
-			0,
-			NULL,
-			&m_Overlapped))
-		lasterror = ::WSAGetLastError();
-
-	//	If IO is pending or we succeeded, then nothing to do--we will get an
-	//	event on the completion port.
-
-	if (lasterror == ERROR_IO_PENDING 
-			|| lasterror == 0)
-		return true;
-
-	//	If another error or 0 bytes read, then we fail
-
-	else
+	if (!CreateConnection(sAddress, dwPort, m_Overlapped, retsError))
 		{
 		m_iCurrentOp = opNone;
-
-		if (retsError)
-			*retsError = strPattern(ERR_FILE_ERROR, lasterror);
-
 		return false;
 		}
+
+	return true;
 	}
 
 bool IIOCPEntry::BeginRead (CString *retsError)

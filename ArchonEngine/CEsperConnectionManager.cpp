@@ -60,7 +60,7 @@ void CEsperConnectionManager::AddConnection (CEsperConnection *pConnection, CDat
 		*retdConnection = CDatum(dwID);
 	}
 
-bool CEsperConnectionManager::BeginAMP1Operation (const CString &sHostConnection, CEsperConnection **retpConnection, CString *retsError)
+bool CEsperConnectionManager::BeginAMP1Operation (const CString &sHostConnection, const CString &sAddress, DWORD dwPort, CEsperConnection **retpConnection, CString *retsError)
 
 //	BeginAMP1Operation
 //
@@ -78,7 +78,7 @@ bool CEsperConnectionManager::BeginAMP1Operation (const CString &sHostConnection
 		{
 		//	Create a new connection
 
-		pConnection = new CEsperAMP1ConnectionOut(*this, sHostConnection);
+		pConnection = new CEsperAMP1ConnectionOut(*this, sHostConnection, sAddress, dwPort);
 		AddConnection(pConnection);
 
 		//	Add it to our list of outbound connections
@@ -96,7 +96,7 @@ bool CEsperConnectionManager::BeginAMP1Operation (const CString &sHostConnection
 	return true;
 	}
 
-bool CEsperConnectionManager::BeginHTTPOperation (const CString &sHostConnection, CEsperConnection **retpConnection, CString *retsError)
+bool CEsperConnectionManager::BeginHTTPOperation (const CString &sHostConnection, const CString &sAddress, DWORD dwPort, CEsperConnection **retpConnection, CString *retsError)
 
 //	BeginHTTPOperation
 //
@@ -114,7 +114,7 @@ bool CEsperConnectionManager::BeginHTTPOperation (const CString &sHostConnection
 		{
 		//	Create a new connection
 
-		pConnection = new CEsperHTTPOutConnection(*this, sHostConnection);
+		pConnection = new CEsperHTTPOutConnection(*this, sHostConnection, sAddress, dwPort);
 		AddConnection(pConnection);
 
 		//	Add it to our list of outbound connections
@@ -153,7 +153,7 @@ bool CEsperConnectionManager::BeginAMP1Request (const SArchonMessage &Msg, const
 	//	Get a connection to this host
 
 	CEsperConnection *pConnection;
-	if (!BeginAMP1Operation(sHostConnection, &pConnection, retsError))
+	if (!BeginAMP1Operation(sHostConnection, sAddress, dwPort, &pConnection, retsError))
 		return false;
 
 	//	Make the request
@@ -219,7 +219,7 @@ bool CEsperConnectionManager::BeginHTTPRequest (const SArchonMessage &Msg,
 	//	Get a connection to this host
 
 	CEsperConnection *pConnection;
-	if (!BeginHTTPOperation(sHostConnection, &pConnection, retsError))
+	if (!BeginHTTPOperation(sHostConnection, Request.sAddress, Request.dwPort, &pConnection, retsError))
 		return false;
 
 	//	Make the request

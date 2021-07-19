@@ -60,7 +60,7 @@ class CEsperAMP1ConnectionIn : public CEsperConnection
 class CEsperAMP1ConnectionOut : public CEsperConnection
 	{
 	public:
-		CEsperAMP1ConnectionOut (CEsperConnectionManager &Manager, const CString &sHostConnection);
+		CEsperAMP1ConnectionOut (CEsperConnectionManager &Manager, const CString &sHostConnection, const CString &sAddress, DWORD dwPort);
 		~CEsperAMP1ConnectionOut (void);
 
 		//	CEsperConnection virtuals
@@ -129,7 +129,7 @@ class CEsperAMP1ConnectionOut : public CEsperConnection
 class CEsperHTTPOutConnection : public CEsperConnection
 	{
 	public:
-		CEsperHTTPOutConnection (CEsperConnectionManager &Manager, const CString &sHostConnection);
+		CEsperHTTPOutConnection (CEsperConnectionManager &Manager, const CString &sHostConnection, const CString &sAddress, DWORD dwPort);
 		~CEsperHTTPOutConnection (void);
 
 		//	CEsperConnection virtuals

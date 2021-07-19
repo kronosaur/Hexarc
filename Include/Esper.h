@@ -74,6 +74,9 @@ class CEsperConnection : public CIOCPSocket
 		CEsperConnection (SOCKET hSocket) : CIOCPSocket(hSocket)
 			{ }
 
+		CEsperConnection (const CString &sAddress, DWORD dwPort) : CIOCPSocket(sAddress, dwPort)
+			{ }
+
 		virtual void AccumulateResult (TArray<CString> &Result) { }
 		virtual void AccumulateStatus (SStatus *ioStatus) = 0;
 		virtual bool BeginAMP1Request (const SArchonMessage &Msg, const SAMP1Request &Request, CString *retsError) { ASSERT(false); return false; }
@@ -270,8 +273,8 @@ class CEsperConnectionManager
 
 	private:
 		void AddConnection (CEsperConnection *pConnection, CDatum *retdConnection = NULL);
-		bool BeginAMP1Operation (const CString &sHostConnection, CEsperConnection **retpConnection, CString *retsError);
-		bool BeginHTTPOperation (const CString &sHostConnection, CEsperConnection **retpConnection, CString *retsError);
+		bool BeginAMP1Operation (const CString &sHostConnection, const CString &sAddress, DWORD dwPort, CEsperConnection **retpConnection, CString *retsError);
+		bool BeginHTTPOperation (const CString &sHostConnection, const CString &sAddress, DWORD dwPort, CEsperConnection **retpConnection, CString *retsError);
 		bool BeginOperation (CEsperConnection *pEntry, IIOCPEntry::EOperations iOp);
 		bool BeginOperation (CDatum dConnection, IIOCPEntry::EOperations iOp, CEsperConnection **retpConnection, CString *retsError);
 		void DeleteConnection (CEsperConnection *pConnection);

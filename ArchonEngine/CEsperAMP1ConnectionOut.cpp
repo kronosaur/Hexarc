@@ -27,7 +27,8 @@ DECLARE_CONST_STRING(ERR_INVALID_AMP1_KEYWORD,			"Invalid AMP1 keyword: %s.");
 DECLARE_CONST_STRING(ERR_INVALID_STATE,					"Invalid state for CEsperAMP1ConnectionOut: %x.");
 DECLARE_CONST_STRING(ERR_CANNOT_CONNECT,				"Unable to connect to %s on port %d: %s");
 
-CEsperAMP1ConnectionOut::CEsperAMP1ConnectionOut (CEsperConnectionManager &Manager, const CString &sHostConnection) : CEsperConnection(INVALID_SOCKET),
+CEsperAMP1ConnectionOut::CEsperAMP1ConnectionOut (CEsperConnectionManager &Manager, const CString &sHostConnection, const CString &sAddress, DWORD dwPort) : 
+		CEsperConnection(sAddress, dwPort),
 		m_Manager(Manager),
 		m_sHostConnection(sHostConnection)
 		

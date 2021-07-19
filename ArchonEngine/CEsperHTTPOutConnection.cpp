@@ -5,18 +5,19 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(FIELD_PROXY,						"proxy")
-DECLARE_CONST_STRING(FIELD_RAW,							"raw")
+DECLARE_CONST_STRING(FIELD_PROXY,						"proxy");
+DECLARE_CONST_STRING(FIELD_RAW,							"raw");
 
-DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply")
+DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply");
 
-DECLARE_CONST_STRING(PROTOCOL_HTTPS,					"https")
+DECLARE_CONST_STRING(PROTOCOL_HTTPS,					"https");
 
-DECLARE_CONST_STRING(ERR_LOST_CONNECTION,				"HTTP connection lost.")
-DECLARE_CONST_STRING(ERR_INVALID_STATE,					"Invalid state for CEsperHTTPOutConnection: %x.")
-DECLARE_CONST_STRING(ERR_CANNOT_CONNECT,				"Unable to connect to %s on port %d: %s")
+DECLARE_CONST_STRING(ERR_LOST_CONNECTION,				"HTTP connection lost.");
+DECLARE_CONST_STRING(ERR_INVALID_STATE,					"Invalid state for CEsperHTTPOutConnection: %x.");
+DECLARE_CONST_STRING(ERR_CANNOT_CONNECT,				"Unable to connect to %s on port %d: %s");
 
-CEsperHTTPOutConnection::CEsperHTTPOutConnection (CEsperConnectionManager &Manager, const CString &sHostConnection) : CEsperConnection(INVALID_SOCKET),
+CEsperHTTPOutConnection::CEsperHTTPOutConnection (CEsperConnectionManager &Manager, const CString &sHostConnection, const CString &sAddress, DWORD dwPort) : 
+		CEsperConnection(sAddress, dwPort),
 		m_Manager(Manager),
 		m_sHostConnection(sHostConnection),
 		m_pSSL(NULL),

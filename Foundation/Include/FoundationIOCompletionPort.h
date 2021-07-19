@@ -54,6 +54,7 @@ class IIOCPEntry
 
 		//	IIOCPEntry overrides
 
+		virtual bool CreateConnection (const CString &sAddress, DWORD dwPort, OVERLAPPED &Overlapped, CString *retsError = NULL) { return false; }
 		virtual void OnBeginRead (void) { }
 		virtual void OnBeginWrite (const CString &sData) { }
 		virtual void OnOperationComplete (EOperations iOp, DWORD dwBytesTransferred) { }
@@ -74,6 +75,7 @@ class CIOCPSocket : public IIOCPEntry
 	{
 	public:
 		CIOCPSocket (SOCKET hSocket);
+		CIOCPSocket (const CString &sAddress, DWORD dwPort);
 		virtual ~CIOCPSocket (void);
 
 		inline SOCKET GetSocket (void) const { return m_hSocket; }
@@ -88,6 +90,7 @@ class CIOCPSocket : public IIOCPEntry
 
 		//	IIOCPEntry overrides
 
+		virtual bool CreateConnection (const CString &sAddress, DWORD dwPort, OVERLAPPED &Overlapped, CString *retsError = NULL) override;
 		virtual void OnBeginRead (void) override { SetReadBufferLen(); }
 		virtual void OnBeginWrite (const CString &sData) override { SetWriteBuffer(sData); }
 		virtual void OnOperationComplete (EOperations iOp, DWORD dwBytesTransferred) override { OnSocketOperationComplete(iOp, dwBytesTransferred); }
@@ -107,6 +110,7 @@ class CIOCPSocket : public IIOCPEntry
 		void SetWriteBuffer (const CString &sData);
 
 		SOCKET m_hSocket;
+		CWSAddrInfo m_AI;
 		CBuffer m_Buffer;
 	};
 
