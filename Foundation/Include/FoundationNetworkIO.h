@@ -102,7 +102,7 @@ class CSocket : public IByteStream
 		void Close (void);
 		static void CloseHandoffSocket (SOCKET hSocket);
 		bool Connect (const CString &sHost, DWORD dwPort, EType iType = EType::TCP);
-		bool Create (EType iType);
+		bool Create (int iFamily, EType iType);
 		void Disconnect (void);
 		CString GetConnectionAddress (void) const;
 		CString GetHostAddress (void) const;

@@ -190,14 +190,18 @@ bool CSocket::Connect (SOCKADDR *pSockAddr, size_t iSockAddrLen)
 	return true;
 	}
 
-bool CSocket::Create (EType iType)
+bool CSocket::Create (int iFamily, EType iType)
 
 //	Create
 //
 //	Creates and binds the socket
 
 	{
-	ASSERT(m_hSocket == INVALID_SOCKET);
+	if (m_hSocket != INVALID_SOCKET)
+		throw CException(errFail);
+
+	if (iFamily != AF_INET && iFamily != AF_INET6)
+		throw CException(errFail);
 
 	//	Compose the type
 
@@ -220,7 +224,7 @@ bool CSocket::Create (EType iType)
 	//	Create the socket
 	//	NOTE: For IPv6 we need to use AF_INET6
 
-	m_hSocket = socket(AF_INET, iSocketType, IPPROTO_TCP);
+	m_hSocket = socket(iFamily, iSocketType, IPPROTO_TCP);
 	if (m_hSocket == INVALID_SOCKET)
 		return false;
 
