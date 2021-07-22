@@ -129,6 +129,7 @@ class CDateTime
 		static bool ParseISO8601 (char *pPos, char *pPosEnd, CDateTime *retResult);
 		static bool ParseMonthIMF (const CString &sValue, int *retiMonth = NULL, bool bFullNameOK = false);
 		static bool ParseTime (const char *pPos, const char *pPosEnd, CDateTime &retResult);
+		static CString ParseToken (const char *&pPos);
 
 		SYSTEMTIME m_Time;
 	};

@@ -1074,6 +1074,34 @@ bool strEndsWith (const CString &sString, const CString &sPartial)
 	return true;
 	}
 
+bool strEquals (const char *pKey1, const char *pKey2)
+
+//	strEquals
+
+	{
+	if (pKey1 == pKey2)
+		return true;
+	else if (pKey1 == NULL)
+		return false;
+	else if (pKey2 == NULL)
+		return false;
+	else
+		{
+		const char *pPos1 = pKey1;
+		const char *pPos2 = pKey2;
+		while (*pPos1 != '\0' && *pPos2 != '\0')
+			{
+			if (*pPos1 != *pPos2)
+				return false;
+
+			pPos1++;
+			pPos2++;
+			}
+
+		return (*pPos1 == *pPos2);
+		}
+	}
+
 bool strEquals (const CString &sKey1, const CString &sKey2)
 
 //	strEquals

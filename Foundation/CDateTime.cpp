@@ -5,9 +5,9 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(STR_UN,							"un")
-DECLARE_CONST_STRING(STR_UNK,							"unk")
-DECLARE_CONST_STRING(STR_UNKNOWN,						"unknown")
+DECLARE_CONST_STRING(STR_UN,							"un");
+DECLARE_CONST_STRING(STR_UNK,							"unk");
+DECLARE_CONST_STRING(STR_UNKNOWN,						"unknown");
 
 int g_DaysInMonth[] =
 	//	J   F   M   A   M   J   J   A   S   O   N   D
@@ -374,31 +374,151 @@ CString CDateTime::Format (const CString &sFormat) const
 //
 //	Formats a datetime
 //
-//    %a    abbreviated weekday name (Sun)
-//    %A    full weekday name (Sunday)
-//    %b    abbreviated month name (Dec)
-//    %B    full month name (December)
-//    %c    date and time (Dec  2 06:55:15 1979)
-//    %d    day of the month (02)
-//    %H    hour of the 24-hour day (06)
-//    %I    hour of the 12-hour day (06)
-//    %j    day of the year, from 001 (335)
-//    %m    month of the year, from 01 (12)
-//    %M    minutes after the hour (55)
-//    %p    AM/PM indicator (AM)
-//    %S    seconds after the minute (15)
-//    %U    Sunday week of the year, from 00 (48)
-//    %w    day of the week, from 0 for Sunday (6)
-//    %W    Monday week of the year, from 00 (47)
-//    %x    date (Dec  2 1979)
-//    %X    time (06:55:15)
-//    %y    year of the century, from 00 (79)
-//    %Y    year (1979)
-//    %Z    time zone name, if any (EST)
-//    %%    percent character %
+//	D		7		(day with no leading 0)
+//	DD		07		(day with leading 0)
+//
+//	M		8		(month with no leading 0)
+//	MM		08		(month with leading 0)
+//	MMM		JUN		(month name all caps)
+//	mmm		jun		(month name lowercase)
+//	Mmm		Jun		(month name propercase)
+//
+//	YY		11		(last two digits of year)
+//	YYYY	2011	(full year)
+//	YYYYY	02011	(Long Now year)
+//
+//	H		13		(hour, 24-hour clock, no leading 0)
+//	HH		13		(hour, 24-hour clock, leading 0)
+//	h		1		(hour, 12-hour clock, no leading 0)
+//	hh		01		(hour, 12-hour clock, leading 0)
+//
+//	MM		06		(minute, leading 0, only when preceeded by H)
+//
+//	SS		12		(second, leading 0)
+//
+//	SSm		12.011	(second, followed by milliseconds, if present)
+//
+//	PM		PM		(AM or PM, uppercase)
+//	pm		pm		(am or pm, lowercase)
 
 	{
-	return CString("not yet implemented");
+	CStringBuffer Buffer;
+	bool bTimePart = false;
+
+	const char *pPos = sFormat.GetParsePointer();
+	while (true)
+		{
+		CString sToken = ParseToken(pPos);
+		if (sToken.IsEmpty())
+			break;
+
+		if (strEquals((LPSTR)sToken, "D"))
+			Buffer.Write(strFromInt(Day()));
+
+		else if (strEquals((LPSTR)sToken, "DD"))
+			Buffer.Write(strPattern("%02d", Day()));
+
+		else if (strEquals((LPSTR)sToken, "M"))
+			Buffer.Write(strFromInt(Month()));
+
+		else if (strEquals((LPSTR)sToken, "MM") && !bTimePart)
+			Buffer.Write(strPattern("%02d", Month()));
+
+		else if (strEquals((LPSTR)sToken, "MMM"))
+			Buffer.Write(strToUpper(CString(g_szMonthNameIMF[Month() - 1], 3)));
+
+		else if (strEquals((LPSTR)sToken, "mmm"))
+			Buffer.Write(strToLower(CString(g_szMonthNameIMF[Month() - 1], 3)));
+
+		else if (strEquals((LPSTR)sToken, "Mmm"))
+			Buffer.Write(CString(g_szMonthNameIMF[Month() - 1], 3));
+
+		else if (strEquals((LPSTR)sToken, "YY"))
+			Buffer.Write(strPattern("%02d", Year() % 100));
+
+		else if (strEquals((LPSTR)sToken, "YYYY"))
+			Buffer.Write(strFromInt(Year()));
+
+		else if (strEquals((LPSTR)sToken, "YYYYY"))
+			Buffer.Write(strPattern("%04d", Year()));
+
+		else if (strEquals((LPSTR)sToken, "H"))
+			{
+			Buffer.Write(strPattern("%d", Hour()));
+			bTimePart = true;
+			}
+
+		else if (strEquals((LPSTR)sToken, "HH"))
+			{
+			Buffer.Write(strPattern("%02d", Hour()));
+			bTimePart = true;
+			}
+
+		else if (strEquals((LPSTR)sToken, "h"))
+			{
+			if (Hour() < 1)
+				Buffer.Write(strPattern("%d", 12 + Hour()));
+			else if (Hour() > 12)
+				Buffer.Write(strPattern("%d", Hour() - 12));
+			else
+				Buffer.Write(strPattern("%d", Hour()));
+
+			bTimePart = true;
+			}
+
+		else if (strEquals((LPSTR)sToken, "hh"))
+			{
+			if (Hour() < 1)
+				Buffer.Write(strPattern("%02d", 12 + Hour()));
+			else if (Hour() > 12)
+				Buffer.Write(strPattern("%02d", Hour() - 12));
+			else
+				Buffer.Write(strPattern("%02d", Hour()));
+
+			bTimePart = true;
+			}
+
+		else if (strEquals((LPSTR)sToken, "MM") && bTimePart)
+			{
+			Buffer.Write(strPattern("%02d", Minute()));
+			}
+
+		else if (strEquals((LPSTR)sToken, "SS"))
+			{
+			Buffer.Write(strPattern("%02d", Second()));
+			}
+
+		else if (strEquals((LPSTR)sToken, "SSm") && bTimePart)
+			{
+			if (Millisecond())
+				Buffer.Write(strPattern("%02d.%03d", Second(), Millisecond()));
+			else
+				Buffer.Write(strPattern("%02d", Second()));
+			}
+
+		else if (strEquals((LPSTR)sToken, "pm"))
+			{
+			if (Hour() >= 12)
+				Buffer.Write(CString("pm"));
+			else
+				Buffer.Write(CString("am"));
+			}
+
+		else if (strEquals((LPSTR)sToken, "PM"))
+			{
+			if (Hour() >= 12)
+				Buffer.Write(CString("PM"));
+			else
+				Buffer.Write(CString("AM"));
+			}
+
+		else
+			{
+			Buffer.Write(sToken);
+			}
+		}
+
+	return Buffer;
 	}
 
 CString CDateTime::Format (DateFormats iDateFormat, TimeFormats iTimeFormat) const
@@ -1633,6 +1753,28 @@ bool CDateTime::ParseTime (const char *pPos, const char *pPosEnd, CDateTime &ret
 
 	retResult = CDateTime(1, 1, 1, iHour, iMinutes, iSeconds, iMilliseconds);
 	return true;
+	}
+
+CString CDateTime::ParseToken (const char *&pPos)
+	{
+	if (*pPos == '\0')
+		return NULL_STR;
+	else if (strIsASCIIAlpha(pPos))
+		{
+		const char *pStart = pPos++;
+		while (*pPos != '\0' && strIsASCIIAlpha(pPos))
+			pPos++;
+
+		return CString(pStart, pPos - pStart);
+		}
+	else
+		{
+		const char *pStart = pPos++;
+		while (*pPos != '\0' && !strIsASCIIAlpha(pPos))
+			pPos++;
+
+		return CString(pStart, pPos - pStart);
+		}
 	}
 
 void CDateTime::SetDate (int iDay, int iMonth, int iYear)

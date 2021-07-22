@@ -183,6 +183,7 @@ CString strClean (const CString &sText, DWORD dwFlags = 0);
 
 bool strEndsWith (const CString &sString, const CString &sPartial);
 bool strEquals (const CString &sKey1, const CString &sKey2);
+bool strEquals (const char *pKey1, const char *pKey2);
 bool strEqualsNoCase (const CString &sKey1, const CString &sKey2);
 CString strEscapePrintf (const CString &sString);
 int strFind (const CString &sString, const CString &sStringToFind);
