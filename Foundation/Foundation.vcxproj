@@ -439,6 +439,7 @@
     <ClInclude Include="Include\FoundationThreads.h" />
     <ClInclude Include="Include\FoundationTime.h" />
     <ClInclude Include="Include\FoundationUtilities.h" />
+    <ClInclude Include="Include\FoundationXLS.h" />
     <ClInclude Include="Include\FoundationXML.h" />
     <ClInclude Include="IOCompletionPortImpl.h" />
     <ClInclude Include="lodepng\lodepng.h" />

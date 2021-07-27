@@ -560,6 +560,9 @@
     <ClInclude Include="Include\FoundationPipes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Include\FoundationXLS.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Library Include="LibJPEG\LibDebug\turbojpeg-static.lib">
