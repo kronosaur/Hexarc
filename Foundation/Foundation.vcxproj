@@ -241,6 +241,7 @@
     <ClCompile Include="CDBFormatXLS.cpp" />
     <ClCompile Include="CDBFormatXLS97.cpp" />
     <ClCompile Include="CDBFormatXLS97Sheet.cpp" />
+    <ClCompile Include="CDBFormatXLS97SST.cpp" />
     <ClCompile Include="CDBTable.cpp" />
     <ClCompile Include="CDBValue.cpp" />
     <ClCompile Include="CDBValueArray.cpp" />

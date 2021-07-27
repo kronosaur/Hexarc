@@ -387,6 +387,9 @@
     <ClCompile Include="CDBFormatXLS97Sheet.cpp">
       <Filter>Source Files\DB</Filter>
     </ClCompile>
+    <ClCompile Include="CDBFormatXLS97SST.cpp">
+      <Filter>Source Files\DB</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">

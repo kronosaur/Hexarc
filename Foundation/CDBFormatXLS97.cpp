@@ -41,7 +41,7 @@ void CDBFormatXLS97::AddHeader (CDBFormatXLS97Sheet &Blocks, const CString &sShe
 				if (!strEqualsNoCase(sSheet, sSheetName))
 					continue;
 
-				Blocks.AddRow(m_Options.HeaderRows, i, m_Options.HeaderColOrder);
+				InitRowData(Blocks, m_Options.HeaderRows, i, m_Options.HeaderColOrder);
 				}
 			}
 
@@ -52,7 +52,7 @@ void CDBFormatXLS97::AddHeader (CDBFormatXLS97Sheet &Blocks, const CString &sShe
 			{
 			for (int i = 0; i < m_Options.HeaderRows.GetRowCount(); i++)
 				{
-				Blocks.AddRow(m_Options.HeaderRows, i, m_Options.HeaderColOrder);
+				InitRowData(Blocks, m_Options.HeaderRows, i, m_Options.HeaderColOrder);
 				}
 			}
 		}
@@ -70,8 +70,18 @@ void CDBFormatXLS97::AddHeader (CDBFormatXLS97Sheet &Blocks, const CString &sShe
 				}
 			}
 
-		Blocks.AddRow(m_Header);
+		InitRowData(Blocks, m_Header);
 		}
+	}
+
+void CDBFormatXLS97::AddToSST (const CDBValue &Value)
+
+//	AddToSST
+//
+//	Adds to string table, if necessary.
+
+	{
+	m_SST.AddString(Value.AsString());
 	}
 
 CBuffer CDBFormatXLS97::Encode (const CString &sString, int iLenFieldSize)
@@ -243,6 +253,41 @@ void CDBFormatXLS97::InitData ()
 		}
 	}
 
+void CDBFormatXLS97::InitRowData (CDBFormatXLS97Sheet &SheetData, const CDBTable &Table, int iRow, const TArray<int> ColOrder)
+
+//	InitRowData
+//
+//	Initializes a row.
+
+	{
+	SheetData.AddRow(Table, iRow, ColOrder);
+
+	//	For each string value, add to the string table.
+
+	for (int i = 0; i < ColOrder.GetCount(); i++)
+		{
+		const CDBValue &Value = Table.GetField(ColOrder[i], iRow);
+		AddToSST(Value);
+		}
+	}
+
+void CDBFormatXLS97::InitRowData (CDBFormatXLS97Sheet &SheetData, const TArray<CDBValue> &Row)
+
+//	InitRowData
+//
+//	Initializes a row.
+
+	{
+	SheetData.AddRow(Row);
+
+	//	Add to string table.
+
+	for (int i = 0; i < Row.GetCount(); i++)
+		{
+		AddToSST(Row[i]);
+		}
+	}
+
 void CDBFormatXLS97::InitSheetData (CDBFormatXLS97Sheet &SheetData, const CString &sSheetName, const TArray<int> &Rows)
 
 //	InitSheetData
@@ -257,7 +302,7 @@ void CDBFormatXLS97::InitSheetData (CDBFormatXLS97Sheet &SheetData, const CStrin
 		{
 		for (int i = 0; i < m_Table.GetRowCount(); i++)
 			{
-			SheetData.AddRow(m_Table, i, m_Options.ColOrder);
+			InitRowData(SheetData, m_Table, i, m_Options.ColOrder);
 			}
 		}
 
@@ -267,7 +312,7 @@ void CDBFormatXLS97::InitSheetData (CDBFormatXLS97Sheet &SheetData, const CStrin
 		{
 		for (int i = 0; i < Rows.GetCount(); i++)
 			{
-			SheetData.AddRow(m_Table, Rows[i], m_Options.ColOrder);
+			InitRowData(SheetData, m_Table, Rows[i], m_Options.ColOrder);
 			}
 		}
 	}
@@ -487,8 +532,9 @@ bool CDBFormatXLS97::Write ()
 		WriteBOUNDSHEET(m_Data[i].GetName(), i);
 		}
 
-	//	Write the string table.
+	//	Write shared strings
 
+	WriteSST();
 
 	//	Done with workbook globals.
 
@@ -505,7 +551,11 @@ bool CDBFormatXLS97::Write ()
 
 	if (m_Stream.GetStreamLength() < 4096)
 		{
+#if 1
+		m_Stream.Write(NULL, 4096 - m_Stream.GetStreamLength());
+#else
 		WriteFiller(4096 - m_Stream.GetStreamLength());
+#endif
 		}
 
 	//	Done
@@ -525,11 +575,11 @@ bool CDBFormatXLS97::WriteCell (const CDBValue &Value, int iRow, int iCol)
 		case CDBValue::typeInt32:
 		case CDBValue::typeInt64:
 		case CDBValue::typeDouble:
-			WriteLABEL(Value.AsString(), iRow, iCol);
+			WriteLABELSST(m_SST.GetStringIndex(Value.AsString()), 0, iRow, iCol);
 			break;
 
 		default:
-			WriteLABEL(Value.AsString(), iRow, iCol);
+			WriteLABELSST(m_SST.GetStringIndex(Value.AsString()), 0, iRow, iCol);
 			break;
 		}
 
@@ -624,31 +674,101 @@ bool CDBFormatXLS97::WriteSheet (const CDBFormatXLS97Sheet &Sheet, int iSheetInd
 	return true;
 	}
 
-bool CDBFormatXLS97::WriteWorkbook (const TSortMap<CString, TArray<int>> &Sheets, const TSortMap<CString, int> &Order)
+void CDBFormatXLS97::WriteSST ()
 
-//	WriteWorkbook
+//	WriteSST
 //
-//	Writes global records
+//	Writes the shared string table.
 
 	{
-	WriteBOF(SUBSTREAM_TYPE_GLOBALS);
+	//	State
 
-	WriteWorkbookDefinitions();
+	bool bNeedRecordHeader = true;
+	int iTotalRecordSize = 0;
+	int iFixupLengthOffset = 0;
 
-	//	Writes BOUNDSHEET records for every sheet.
+	//	Loop over all strings.
 
-	for (int i = 0; i < Order.GetCount(); i++)
+	for (int i = 0; i < m_SST.GetCount(); i++)
 		{
-		int iSheetIndex = Order[i];
+		//	Encode the string.
 
-		WriteBOUNDSHEET(Sheets.GetKey(iSheetIndex), iSheetIndex);
+		CBuffer String = Encode(m_SST.GetString(i));
+
+		//	If the length of this string exceeds the maximum record size, then
+		//	we need to create a new record.
+
+		if (!bNeedRecordHeader && (iTotalRecordSize + sizeof(R_SST) + String.GetLength() > MAX_RECORD_SIZE))
+			{
+			//	Fixup the length
+
+			int iOldPos = m_Stream.GetPos();
+			m_Stream.Seek(iFixupLengthOffset);
+			WORD wLen = (WORD)iTotalRecordSize;
+			m_Stream.Write(&wLen, sizeof(wLen));
+			m_Stream.Seek(iOldPos);
+
+			//	Need a new header
+
+			bNeedRecordHeader = true;
+			}
+
+		//	Write the header, if necessary.
+
+		if (bNeedRecordHeader)
+			{
+			//	First header
+
+			if (i == 0)
+				{
+				//	Remember to fixup the length
+
+				iFixupLengthOffset = m_Stream.GetPos() + offsetof(R_SST, wLen);
+
+				//	Write the record
+
+				R_SST Record;
+				Record.dwTotalStrings = m_SST.GetInstanceCount();
+				Record.dwUniqueStrings = m_SST.GetCount();
+
+				m_Stream.Write(&Record, sizeof(Record));
+				iTotalRecordSize = sizeof(R_SST) - sizeof(DWORD);
+				}
+
+			//	Continue header
+
+			else
+				{
+				iFixupLengthOffset = m_Stream.GetPos() + offsetof(R_CONTINUE, wLen);
+
+				R_CONTINUE Record;
+				m_Stream.Write(&Record, sizeof(Record));
+				iTotalRecordSize = 0;
+				}
+
+			bNeedRecordHeader = false;
+			}
+
+		//	Remember the position of this string.
+
+		m_SST.SetOffset(i, m_Stream.GetPos());
+
+		//	Write the string
+
+		m_Stream.Write(String);
+
+		//	Keep track of total length.
+
+		iTotalRecordSize += String.GetLength();
 		}
 
-	//	Done
+	//	Fixup length
 
-	WriteEOF();
-
-	return true;
+	int iOldPos = m_Stream.GetPos();
+	m_Stream.Seek(iFixupLengthOffset);
+	WORD wLen = (WORD)iTotalRecordSize;
+	m_Stream.Write(&wLen, sizeof(wLen));
+	m_Stream.Seek(iOldPos);
 	}
 
 void CDBFormatXLS97::WriteWorkbookDefinitions ()
@@ -659,6 +779,7 @@ void CDBFormatXLS97::WriteWorkbookDefinitions ()
 
 	{
 	WriteINTERFACEHDR();
+	WriteWINDOW1();
 	}
 
 void CDBFormatXLS97::WriteBOUNDSHEET (const CString &sSheetName, int iSheetIndex)
@@ -759,6 +880,17 @@ void CDBFormatXLS97::WriteLABEL (const CString &sValue, int iRow, int iCol)
 	m_Stream.Write(Value);
 	}
 
+void CDBFormatXLS97::WriteLABELSST (int iIndex, int iFormat, int iRow, int iCol)
+	{
+	R_LABELSST Record;
+	Record.wRow = (WORD)iRow;
+	Record.wCol = (WORD)iCol;
+	Record.wXF = (WORD)iFormat;
+	Record.dwIndex = iIndex;
+
+	m_Stream.Write(&Record, sizeof(Record));
+	}
+
 void CDBFormatXLS97::WriteROW (int iRowNumber, int iColCount)
 	{
 	R_ROW Record;
@@ -766,6 +898,12 @@ void CDBFormatXLS97::WriteROW (int iRowNumber, int iColCount)
 	Record.wFirstCol = 0;
 	Record.wLastColPlus1 = iColCount;
 
+	m_Stream.Write(&Record, sizeof(Record));
+	}
+
+void CDBFormatXLS97::WriteWINDOW1 ()
+	{
+	R_WINDOW1 Record;
 	m_Stream.Write(&Record, sizeof(Record));
 	}
 
