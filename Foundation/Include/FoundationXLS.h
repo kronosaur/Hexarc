@@ -9,118 +9,6 @@
 
 #pragma once
 
-class CDBFormatXLS
-	{
-	public:
-		struct SOptions
-			{
-			TArray<int> ColOrder;			//	Column order
-			TArray<int> SortOrder;			//	Sort by these columns
-			int iSheetColumn = -1;			//	If set, create a new sheet per value of this column.
-			TArray<int> SheetSortOrder;		//	Sort order for sheets
-			CDBTable HeaderRows;			//	Optional header rows
-			TArray<int> HeaderColOrder;		//	Column order for optional header rows
-			};
-
-		static bool ParseOptions (const CDBTable &Table, const CDBValue &Value, SOptions &retOptions, CString *retsError = NULL);
-		static bool Write (IByteStream &Stream, const CDBTable &Table, const SOptions &Options);
-
-	private:
-		static CString GetDataValue (const CDBValue &Value);
-		static CString GetDataType (CDBValue::ETypes iType);
-		static CString GetSortKey (const CDBValue &Value);
-		static TArray<int> SortRows (const CDBTable &Table, const TArray<int> &Rows, const TArray<int> &SortOrder);
-		static CString MakeSortKey (const CDBTable &Table, const TArray<int> &SortOrder, int iRow, const CString &sDefault = NULL_STR);
-		static bool WriteHeaderRow (IByteStream &Stream, const CString &sSheetName, const CDBTable &Table, const SOptions &Options);
-		static bool WriteRow (IByteStream &Stream, const CDBTable &Table, int iRow, const TArray<int> &ColOrder, const SOptions &Options);
-		static bool WriteSheet (IByteStream &Stream, const CString &sSheetName, const CDBTable &Table, const TArray<int> &Rows, const SOptions &Options);
-	};
-
-class CMSCompoundFileFormat
-	{
-	public:
-		CMSCompoundFileFormat () { }
-
-		void AddStream (const CString &sName, IMemoryBlock &Data);
-		bool Write (IByteStream &Stream);
-
-	private:
-		static constexpr int DIFAT_IN_HEADER = 109;
-		static constexpr int SECTOR_SIZE = 512;
-		static constexpr int DIRECTORY_ENTRIES_PER_SECTOR = 4;
-		static constexpr int FAT_ENTRIES_PER_SECTOR = SECTOR_SIZE / sizeof(DWORD);
-		static constexpr DWORD ENDOFCHAIN = 0xFFFFFFFE;
-		static constexpr DWORD FAT_SECTOR_ENTRY = 0xFFFFFFFD;
-		static constexpr DWORD FREESECT = 0xFFFFFFFF;
-
-		struct SStream
-			{
-			CString sName;
-			IMemoryBlock *pData = NULL;
-
-			int iSector = 0;
-			int iSizeInSectors = 0;
-			};
-
-#pragma pack(push, 1)
-		struct CFF_HEADER
-			{
-			CFF_HEADER ()
-				{
-				for (int i = 0; i < DIFAT_IN_HEADER; i++)
-					DIFAT[i] = FREESECT;
-				}
-
-			BYTE Signature[8] = { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 };
-			CLSID ClsID = { 0 };
-			WORD wMinorVersion = 0x3E;
-			WORD wDLLVersion = 3;		//	512-byte sectors
-			WORD wByteOrder = 0xFFFE;	//	Intel
-			WORD wSectorShift = 9;		//	512-byte sectors (2^9).
-			WORD wMiniSectorShift = 6;	//	64-byte minisectors (2^6)
-			WORD wReserved1 = 0;
-			DWORD dwReserved2 = 0;
-			DWORD dwSectDir = 0;
-			DWORD dwSectFAT = 0;
-			DWORD dwSectDirStart = 0;
-			DWORD dwTransSignature = 0;
-			DWORD dwMiniSectorCutoff = 4096;
-			DWORD dwSectMiniFATStart = ENDOFCHAIN;
-			DWORD dwSectMiniFAT = 0;
-			DWORD dwSectDIFATStart = ENDOFCHAIN;
-			DWORD dwSectDIFAT = 0;
-			DWORD DIFAT[DIFAT_IN_HEADER];
-			};
-
-		struct CFF_DIRECTORY
-			{
-			static constexpr BYTE TYPE_STORAGE = 0x01;
-			static constexpr BYTE TYPE_STREAM = 0x02;
-			static constexpr BYTE TYPE_ROOT = 0x05;
-
-			TCHAR Name[32];
-			WORD wNameLen = 0;
-			BYTE byObjType = 0;
-			BYTE byColor = 0x01;	//	Black
-			DWORD dwLeftSibling = 0xFFFFFFFF;
-			DWORD dwRightSibling = 0xFFFFFFFF;
-			DWORD dwChildID = 0xFFFFFFFF;
-			BYTE clsid[16] = { 0 };
-			DWORD dwState = 0;
-			DWORDLONG dwCreatedOn = 0;
-			DWORDLONG dwModifiedOn = 0;
-			DWORD dwStartSector = 0;
-			DWORDLONG dwStreamSize = 0;
-			};
-#pragma pack(pop)
-
-		void WriteDirectory (IByteStream &Stream, CFF_HEADER &Header, int iSector, int *retiSectorsWritten);
-		void WriteFAT (IByteStream &Stream, CFF_HEADER &Header, int iSector, int iDirectorySectorSize);
-		static void SetName (CFF_DIRECTORY &Entry, const CString &sName);
-
-		TArray<SStream> m_Docs;
-	};
-
 class CDBFormatXLS97Sheet
 	{
 	public:
@@ -430,5 +318,90 @@ class CDBFormatXLS97
 		TArray<CDBFormatXLS97Sheet> m_Data;
 		TArray<SFixup> m_Fixups;			//	List of fixups needed
 		CDBFormatXLS97SST m_SST;			//	Shared String Table
+	};
+
+class CMSCompoundFileFormat
+	{
+	public:
+		CMSCompoundFileFormat () { }
+
+		void AddStream (const CString &sName, IMemoryBlock &Data);
+		bool Write (IByteStream &Stream);
+
+	private:
+		static constexpr int DIFAT_IN_HEADER = 109;
+		static constexpr int SECTOR_SIZE = 512;
+		static constexpr int DIRECTORY_ENTRIES_PER_SECTOR = 4;
+		static constexpr int FAT_ENTRIES_PER_SECTOR = SECTOR_SIZE / sizeof(DWORD);
+		static constexpr DWORD ENDOFCHAIN = 0xFFFFFFFE;
+		static constexpr DWORD FAT_SECTOR_ENTRY = 0xFFFFFFFD;
+		static constexpr DWORD FREESECT = 0xFFFFFFFF;
+
+		struct SStream
+			{
+			CString sName;
+			IMemoryBlock *pData = NULL;
+
+			int iSector = 0;
+			int iSizeInSectors = 0;
+			};
+
+#pragma pack(push, 1)
+		struct CFF_HEADER
+			{
+			CFF_HEADER ()
+				{
+				for (int i = 0; i < DIFAT_IN_HEADER; i++)
+					DIFAT[i] = FREESECT;
+				}
+
+			BYTE Signature[8] = { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 };
+			CLSID ClsID = { 0 };
+			WORD wMinorVersion = 0x3E;
+			WORD wDLLVersion = 3;		//	512-byte sectors
+			WORD wByteOrder = 0xFFFE;	//	Intel
+			WORD wSectorShift = 9;		//	512-byte sectors (2^9).
+			WORD wMiniSectorShift = 6;	//	64-byte minisectors (2^6)
+			WORD wReserved1 = 0;
+			DWORD dwReserved2 = 0;
+			DWORD dwSectDir = 0;
+			DWORD dwSectFAT = 0;
+			DWORD dwSectDirStart = 0;
+			DWORD dwTransSignature = 0;
+			DWORD dwMiniSectorCutoff = 4096;
+			DWORD dwSectMiniFATStart = ENDOFCHAIN;
+			DWORD dwSectMiniFAT = 0;
+			DWORD dwSectDIFATStart = ENDOFCHAIN;
+			DWORD dwSectDIFAT = 0;
+			DWORD DIFAT[DIFAT_IN_HEADER];
+			};
+
+		struct CFF_DIRECTORY
+			{
+			static constexpr BYTE TYPE_STORAGE = 0x01;
+			static constexpr BYTE TYPE_STREAM = 0x02;
+			static constexpr BYTE TYPE_ROOT = 0x05;
+
+			TCHAR Name[32];
+			WORD wNameLen = 0;
+			BYTE byObjType = 0;
+			BYTE byColor = 0x01;	//	Black
+			DWORD dwLeftSibling = 0xFFFFFFFF;
+			DWORD dwRightSibling = 0xFFFFFFFF;
+			DWORD dwChildID = 0xFFFFFFFF;
+			BYTE clsid[16] = { 0 };
+			DWORD dwState = 0;
+			DWORDLONG dwCreatedOn = 0;
+			DWORDLONG dwModifiedOn = 0;
+			DWORD dwStartSector = 0;
+			DWORDLONG dwStreamSize = 0;
+			};
+#pragma pack(pop)
+
+		void WriteDirectory (IByteStream &Stream, CFF_HEADER &Header, int iSector, int *retiSectorsWritten);
+		void WriteFAT (IByteStream &Stream, CFF_HEADER &Header, int iSector, int iDirectorySectorSize);
+		static void SetName (CFF_DIRECTORY &Entry, const CString &sName);
+
+		TArray<SStream> m_Docs;
 	};
 

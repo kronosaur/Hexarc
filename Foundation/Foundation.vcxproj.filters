@@ -369,9 +369,6 @@
     <ClCompile Include="CDBValueDateTime.cpp">
       <Filter>Source Files\DB</Filter>
     </ClCompile>
-    <ClCompile Include="CDBFormatXLS.cpp">
-      <Filter>Source Files\DB</Filter>
-    </ClCompile>
     <ClCompile Include="CWSAddrInfo.cpp">
       <Filter>Source Files\NetworkIO</Filter>
     </ClCompile>
@@ -388,6 +385,12 @@
       <Filter>Source Files\DB</Filter>
     </ClCompile>
     <ClCompile Include="CDBFormatXLS97SST.cpp">
+      <Filter>Source Files\DB</Filter>
+    </ClCompile>
+    <ClCompile Include="CDBValueFormatted.cpp">
+      <Filter>Source Files\DB</Filter>
+    </ClCompile>
+    <ClCompile Include="CDBFormatDesc.cpp">
       <Filter>Source Files\DB</Filter>
     </ClCompile>
   </ItemGroup>
@@ -561,6 +564,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Include\FoundationXLS.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\FoundationColor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

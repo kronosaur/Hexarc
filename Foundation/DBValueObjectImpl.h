@@ -29,8 +29,8 @@ class CDBValueDateTime : public IDBValueObject
 				m_Value(Value)
 			{ }
 
-		virtual CDateTime AsDateTime (void) const { return m_Value; }
-		virtual CString AsString (void) const
+		virtual CDateTime AsDateTime (void) const override { return m_Value; }
+		virtual CString AsString (void) const override
 			{
 			if (m_Value.HasTime())
 				{
@@ -43,9 +43,9 @@ class CDBValueDateTime : public IDBValueObject
 				return strPattern("%04d-%02d-%02d", m_Value.Year(), m_Value.Month(), m_Value.Day());
 			}
 
-		virtual const CDateTime &CastDateTime (void) const { return m_Value; }
+		virtual const CDateTime &CastDateTime (void) const override { return m_Value; }
 		virtual IDBValueObject *Clone (void) const override { return new CDBValueDateTime(m_Value); }
-		virtual CDBValue GetProperty (const CString &sProperty) const;
+		virtual CDBValue GetProperty (const CString &sProperty) const override;
 		virtual CDBValue::ETypes GetType (void) const override { return CDBValue::typeDateTime; }
 
 	private:
@@ -62,15 +62,42 @@ class CDBValueDouble : public IDBValueObject
 			{ }
 
 		virtual double AsDouble (bool *retbValid = NULL) const override { if (retbValid) *retbValid = true; return m_rValue; }
-		virtual int AsInt32 (bool *retbValid = NULL) const { if (retbValid) *retbValid = true; return (int)m_rValue; }
-		virtual CString AsString (void) const { return strFromDouble(m_rValue, SIGNIFICANT_DIGITS); }
+		virtual int AsInt32 (bool *retbValid = NULL) const override { if (retbValid) *retbValid = true; return (int)m_rValue; }
+		virtual CString AsString (void) const override { return strFromDouble(m_rValue, SIGNIFICANT_DIGITS); }
 		virtual double CastDouble (void) const override { return m_rValue; }
-		virtual LONGLONG CastLONGLONG (void) const { return (LONGLONG)m_rValue; }
+		virtual int CastInt32 () const override { return (int)m_rValue; }
+		virtual LONGLONG CastLONGLONG (void) const override { return (LONGLONG)m_rValue; }
 		virtual IDBValueObject *Clone (void) const override { return new CDBValueDouble(m_rValue); }
 		virtual CDBValue::ETypes GetType (void) const override { return CDBValue::typeDouble; }
 
 	private:
 		double m_rValue;
+	};
+
+class CDBValueFormatted : public IDBValueObject
+	{
+	public:
+		CDBValueFormatted (void) { }
+		CDBValueFormatted (const CDBValue &Value, const CDBFormatDesc &Format);
+
+		virtual CDateTime AsDateTime (void) const override { return m_Value.AsDateTime(); }
+		virtual double AsDouble (bool *retbValid = NULL) const override { return m_Value.AsDouble(retbValid); }
+		virtual int AsInt32 (bool *retbValid = NULL) const override { return m_Value.AsInt32(retbValid); }
+		virtual CString AsString (void) const override { return m_Value.AsString(); }
+		virtual const CDateTime &CastDateTime (void) const override { return (const CDateTime &)m_Value; }
+		virtual double CastDouble (void) const override { return (double)m_Value; }
+		virtual int CastInt32 () const override { return (int)m_Value; }
+		virtual LONGLONG CastLONGLONG (void) const override { return (LONGLONG)m_Value; }
+		virtual const CString &CastString (void) const override { return (const CString &)m_Value; }
+		virtual IDBValueObject *Clone (void) const override { return new CDBValueFormatted(m_Value, m_Format); }
+		virtual const CDBFormatDesc &GetFormat () const override { return m_Format; }
+		virtual CDBValue GetProperty (const CString &sProperty) const override { return m_Value.GetProperty(sProperty); }
+		virtual CDBValue::ETypes GetType (void) const override { return m_Value.GetType(); }
+		virtual bool GetValueWithoutFormat (CDBValue *retValue = NULL) const override { if (retValue) *retValue = m_Value; return true; }
+
+	private:
+		CDBValue m_Value;
+		CDBFormatDesc m_Format;
 	};
 
 class CDBValueStruct : public IDBValueObject
@@ -99,13 +126,12 @@ class CDBValueTimeSpan : public IDBValueObject
 				m_Value(Value)
 			{ }
 
-		virtual CTimeSpan AsTimeSpan (void) const { return m_Value; }
-		virtual CString AsString (void) const { return m_Value.Format(CString("hh:mm:ss")); }
-		virtual LONGLONG CastLONGLONG (void) const { return (LONGLONG)m_Value.Milliseconds64(); }
+		virtual CTimeSpan AsTimeSpan (void) const override { return m_Value; }
+		virtual CString AsString (void) const override { return m_Value.Format(CString("hh:mm:ss")); }
+		virtual LONGLONG CastLONGLONG (void) const override { return (LONGLONG)m_Value.Milliseconds64(); }
 		virtual IDBValueObject *Clone (void) const override { return new CDBValueTimeSpan(m_Value); }
 		virtual CDBValue::ETypes GetType (void) const override { return CDBValue::typeTimeSpan; }
 
 	private:
 		CTimeSpan m_Value;
 	};
-

@@ -11,6 +11,7 @@
 
 #include <functional>
 
+class CDBFormatDesc;
 class IDBValueObject;
 
 class CDBValue
@@ -44,6 +45,7 @@ class CDBValue
 		CDBValue (const CTimeSpan &Value);
 		CDBValue (int iValue);
 		CDBValue (double rValue);
+		CDBValue (const CDBValue &Value, const CDBFormatDesc &Format);
 		explicit CDBValue (bool bValue);
 		explicit CDBValue (ETypes iType);
 
@@ -51,6 +53,7 @@ class CDBValue
 
 		~CDBValue (void) { CleanUp(); }
 
+		explicit operator bool () const { return !IsNil(); }
 		operator int () const;
 		operator double () const;
 		operator const CDateTime & () const;
@@ -69,6 +72,7 @@ class CDBValue
 		const CDBValue &GetElement (const CString &sKey) const;
 		int GetElementCount (void) const;
 		const CString &GetElementKey (int iIndex) const;
+		const CDBFormatDesc &GetFormat () const;
 		CDBValue GetProperty (const CString &sProperty) const;
 		ETypes GetType (void) const;
 		bool IsBlank (void) const;
@@ -76,6 +80,7 @@ class CDBValue
 		bool IsNil (void) const { return m_dwData == 0; }
 		void Push (const CDBValue &Value);
 		void SetElement (const CString &sKey, const CDBValue &Value);
+		CDBValue StripFormat () const;
 
 		static ETypes Coerce (ETypes iType1, ETypes iType2);
 		static ETypes Coerce (const CDBValue &Value1, const CDBValue &Value2) { return Coerce(Value1.GetType(), Value2.GetType()); }
@@ -118,6 +123,35 @@ class CDBValue
 		DWORDLONG m_dwData;
 	};
 
+class CDBFormatDesc
+	{
+	public:
+		bool Parse (const CDBValue &Value, CString *retsError = NULL);
+
+		explicit operator bool () const { return !m_bDefault; }
+		bool IsEmpty () const { return m_bDefault; }
+
+		static const CDBFormatDesc &Null () { return m_Null; }
+
+	private:
+		static bool ParseColor (const CDBValue &Value, CRGBA32 &retColor, CString *retsError = NULL);
+		bool ParseFromStruct (const CDBValue &Value, CString *retsError = NULL);
+
+		CString m_sFont;			//	Blank means default font
+		double m_rHeight = 10.0;	//	Height in points
+		CRGBA32 m_rgbColor = CRGBA32(0, 0, 0);
+
+		bool m_bDefault = true;
+		bool m_bBold = false;
+		bool m_bItalic = false;
+		bool m_bUnderline = false;
+		bool m_bStrikeout = false;
+
+		CRGBA32 m_rgbBack = CRGBA32(255, 255, 255);
+
+		static const CDBFormatDesc m_Null;
+	};
+
 class IDBValueObject
 	{
 	public:
@@ -130,14 +164,18 @@ class IDBValueObject
 		virtual CString AsString (void) const { return NULL_STR; }
 		virtual const CDateTime &CastDateTime (void) const { return NULL_DATETIME; }
 		virtual double CastDouble (void) const { return 0.0; }
+		virtual int CastInt32 () const { return 0; }
 		virtual LONGLONG CastLONGLONG (void) const { return 0; }
+		virtual const CString &CastString (void) const { return NULL_STR; }
 		virtual IDBValueObject *Clone (void) const = 0;
 		virtual const CDBValue &GetElement (int iIndex) const { return CDBValue::Null; }
 		virtual const CDBValue &GetElement (const CString &sKey) const { return CDBValue::Null; }
 		virtual int GetElementCount (void) const { return 1; }
 		virtual const CString &GetElementKey (int iIndex) const { return NULL_STR; }
+		virtual const CDBFormatDesc &GetFormat () const { return CDBFormatDesc::Null(); }
 		virtual CDBValue GetProperty (const CString &sProperty) const { return GetElement(sProperty); }
 		virtual CDBValue::ETypes GetType (void) const = 0;
+		virtual bool GetValueWithoutFormat (CDBValue *retValue = NULL) const { return false; }
 		virtual void Push (const CDBValue &Value) { }
 		virtual void SetElement (const CString &sKey, const CDBValue &Value) { }
 	};

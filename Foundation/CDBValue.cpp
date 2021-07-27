@@ -134,6 +134,14 @@ CDBValue::CDBValue (double rValue)
 	m_dwData = EncodeDouble(rValue);
 	}
 
+CDBValue::CDBValue (const CDBValue &Value, const CDBFormatDesc &Format)
+
+//	CDBValue constructor
+
+	{
+	m_dwData = EncodeObjectPtr(new CDBValueFormatted(Value, Format));
+	}
+
 CDBValue::operator int () const
 
 //	operator int
@@ -143,6 +151,12 @@ CDBValue::operator int () const
 		{
 		case TYPE_INT_32:
 			return DecodeInt32(m_dwData);
+
+		case TYPE_OBJECT:
+			{
+			IDBValueObject *pObj = DecodeObject(m_dwData);
+			return pObj->CastInt32();
+			}
 
 		case TYPE_SPECIAL:
 			{
@@ -248,6 +262,12 @@ CDBValue::operator const CString & () const
 		{
 		case TYPE_STRING:
 			return *(CString *)&m_dwData;
+
+		case TYPE_OBJECT:
+			{
+			IDBValueObject *pObj = DecodeObject(m_dwData);
+			return pObj->CastString();
+			}
 
 		default:
 			return NULL_STR;
@@ -1222,6 +1242,26 @@ const CString &CDBValue::GetElementKey (int iIndex) const
 		}
 	}
 
+const CDBFormatDesc &CDBValue::GetFormat () const
+
+//	GetFormat
+//
+//	Gets format.
+
+	{
+	switch (DecodeDiscriminator1(m_dwData))
+		{
+		case TYPE_OBJECT:
+			{
+			IDBValueObject *pObj = DecodeObject(m_dwData);
+			return pObj->GetFormat();
+			}
+
+		default:
+			return CDBFormatDesc::Null();
+		}
+	}
+
 CDBValue CDBValue::GetProperty (const CString &sProperty) const
 
 //	GetProperty
@@ -1330,6 +1370,30 @@ void CDBValue::SetElement (const CString &sKey, const CDBValue &Value)
 
 		default:
 			break;
+		}
+	}
+
+CDBValue CDBValue::StripFormat () const
+
+//	StripFormat
+//
+//	Returns the value without style/format
+
+	{
+	switch (DecodeDiscriminator1(m_dwData))
+		{
+		case TYPE_OBJECT:
+			{
+			IDBValueObject *pObj = DecodeObject(m_dwData);
+			CDBValue Clean;
+			if (!pObj->GetValueWithoutFormat(&Clean))
+				return *this;
+
+			return Clean;
+			}
+
+		default:
+			return *this;
 		}
 	}
 

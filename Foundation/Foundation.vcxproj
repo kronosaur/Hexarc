@@ -237,8 +237,8 @@
     <ClCompile Include="CDateTime.cpp" />
     <ClCompile Include="CDBColumnDef.cpp" />
     <ClCompile Include="CDBFormatCSV.cpp" />
+    <ClCompile Include="CDBFormatDesc.cpp" />
     <ClCompile Include="CDBFormatRTF.cpp" />
-    <ClCompile Include="CDBFormatXLS.cpp" />
     <ClCompile Include="CDBFormatXLS97.cpp" />
     <ClCompile Include="CDBFormatXLS97Sheet.cpp" />
     <ClCompile Include="CDBFormatXLS97SST.cpp" />
@@ -246,6 +246,7 @@
     <ClCompile Include="CDBValue.cpp" />
     <ClCompile Include="CDBValueArray.cpp" />
     <ClCompile Include="CDBValueDateTime.cpp" />
+    <ClCompile Include="CDBValueFormatted.cpp" />
     <ClCompile Include="CDBValueStruct.cpp" />
     <ClCompile Include="CEntityResolverList.cpp" />
     <ClCompile Include="CExternalEntityTable.cpp" />
@@ -405,6 +406,7 @@
     <ClInclude Include="Include\Foundation.h" />
     <ClInclude Include="Include\FoundationArrays.h" />
     <ClInclude Include="Include\FoundationBase.h" />
+    <ClInclude Include="Include\FoundationColor.h" />
     <ClInclude Include="Include\FoundationCompression.h" />
     <ClInclude Include="Include\FoundationCounters.h" />
     <ClInclude Include="Include\FoundationCrypto.h" />
