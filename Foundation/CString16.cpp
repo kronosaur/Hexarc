@@ -224,3 +224,25 @@ LPTSTR CString16::CreateUTF16BufferFromUTF8 (LPSTR pStr, int iLen)
 
 	return pNewBuffer;
 	}
+
+bool CString16::IsASCII () const
+
+//	IsASCII
+//
+//	Returns TRUE if the high byte of all characters is 0.
+
+	{
+	if (!m_pString)
+		return true;
+
+	const TCHAR *pPos = m_pString;
+	while (*pPos != _T('\0'))
+		{
+		if ((((WORD)*pPos) & 0xff00) != 0)
+			return false;
+
+		pPos++;
+		}
+
+	return true;
+	}

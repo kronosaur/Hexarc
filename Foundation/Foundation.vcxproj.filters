@@ -378,6 +378,15 @@
     <ClCompile Include="CSocketSet.cpp">
       <Filter>Source Files\NetworkIO</Filter>
     </ClCompile>
+    <ClCompile Include="CDBFormatXLS97.cpp">
+      <Filter>Source Files\DB</Filter>
+    </ClCompile>
+    <ClCompile Include="CMSCompoundFileFormat.cpp">
+      <Filter>Source Files\DB</Filter>
+    </ClCompile>
+    <ClCompile Include="CDBFormatXLS97Sheet.cpp">
+      <Filter>Source Files\DB</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">

@@ -163,6 +163,7 @@ class CString16
 
 		static int CalcLength (LPCTSTR pStr);
 		int GetLength (void) const { return CalcLength(m_pString); }
+		bool IsASCII () const;
 		inline bool IsEmpty (void) const { return GetLength() == 0; }
 
 	private:
