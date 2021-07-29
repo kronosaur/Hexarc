@@ -487,6 +487,16 @@ class CDBFormatXLS97
 			BYTE byDelMenuGroups = 0;
 			};
 
+		struct R_NUMBER
+			{
+			WORD wID = 0x0203;
+			WORD wLen = sizeof(R_NUMBER) - sizeof(DWORD);
+			WORD wRow = 0;
+			WORD wCol = 0;
+			WORD wXF = 0;
+			double rValue = 0.0;
+			};
+
 		struct R_PALETTE
 			{
 			WORD wID = 0x0092;
@@ -587,6 +597,7 @@ class CDBFormatXLS97
 		void WriteINTERFACEHDR ();
 		void WriteLABEL (const CString &sValue, int iRow, int iCol);
 		void WriteLABELSST (int iIndex, int iFormat, int iRow, int iCol);
+		void WriteNUMBER (double rValue, int iFormat, int iRow, int iCol);
 		void WritePALETTE (const CXLSColorPalette &Palette);
 		void WriteROW (int iRowNumber, int iColCount);
 		void WriteWINDOW1 ();
@@ -690,4 +701,3 @@ class CMSCompoundFileFormat
 
 		TArray<SStream> m_Docs;
 	};
-

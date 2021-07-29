@@ -81,7 +81,16 @@ void CDBFormatXLS97::AddToSST (const CDBValue &Value)
 //	Adds to string table, if necessary.
 
 	{
-	m_SST.AddString(Value.AsString());
+	switch (Value.GetType())
+		{
+		case CDBValue::typeInt32:
+		case CDBValue::typeInt64:
+		case CDBValue::typeDouble:
+			break;
+
+		default:
+			m_SST.AddString(Value.AsString());
+		}
 	}
 
 CBuffer CDBFormatXLS97::Encode (const CString &sString, int iLenFieldSize)
@@ -579,7 +588,7 @@ bool CDBFormatXLS97::WriteCell (const CDBValue &Value, int iRow, int iCol)
 		case CDBValue::typeInt32:
 		case CDBValue::typeInt64:
 		case CDBValue::typeDouble:
-			WriteLABELSST(m_SST.GetStringIndex(Value.AsString()), 0, iRow, iCol);
+			WriteNUMBER(Value.AsDouble(), 0, iRow, iCol);
 			break;
 
 		default:
@@ -944,6 +953,17 @@ void CDBFormatXLS97::WriteLABELSST (int iIndex, int iFormat, int iRow, int iCol)
 	Record.wCol = (WORD)iCol;
 	Record.wXF = (WORD)iFormat;
 	Record.dwIndex = iIndex;
+
+	m_Stream.Write(&Record, sizeof(Record));
+	}
+
+void CDBFormatXLS97::WriteNUMBER (double rValue, int iFormat, int iRow, int iCol)
+	{
+	R_NUMBER Record;
+	Record.wRow = (WORD)iRow;
+	Record.wCol = (WORD)iCol;
+	Record.wXF = (WORD)iFormat;
+	Record.rValue = rValue;
 
 	m_Stream.Write(&Record, sizeof(Record));
 	}
