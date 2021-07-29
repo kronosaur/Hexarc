@@ -9,6 +9,243 @@
 
 #pragma once
 
+#include <initializer_list>
+
+class CXLSColorPalette
+	{
+	public:
+		static constexpr int DEFAULT_BLACK =		0;
+		static constexpr int DEFAULT_WHITE =		1;
+		static constexpr int DEFAULT_RED =			2;
+		static constexpr int DEFAULT_GREEN =		3;
+		static constexpr int DEFAULT_BLUE =			4;
+		static constexpr int DEFAULT_YELLOW =		5;
+		static constexpr int DEFAULT_MAGENTA =		6;
+		static constexpr int DEFAULT_CYAN =			7;
+
+		CXLSColorPalette ();
+
+		int GetCount () const { return m_Colors.GetCount(); }
+		const CRGBA32 &GetColor (int iIndex) const { if (iIndex < 0 || iIndex >= m_Colors.GetCount()) throw CException(errFail); return m_Colors[iIndex]; }
+		int FindColor (const CRGBA32 &Color) const;
+
+	private:
+		TArray<CRGBA32> m_Colors;
+
+		static std::initializer_list<CRGBA32> m_Defaults;
+	};
+
+class CXLSFontTable
+	{
+	public:
+		static constexpr int DEFAULT_FONT_ID =	0;
+
+		static constexpr int POINT_SIZE_SCALE = 20;
+		static constexpr int DEFAULT_HEIGHT_IN_POINTS = 10;
+		static constexpr int POINTS_11 = 11 * POINT_SIZE_SCALE;
+
+		static constexpr int WEIGHT_NORMAL = 400;
+		static constexpr int WEIGHT_BOLD = 700;
+
+		enum class EFamily
+			{
+			Unknown =			0x00,
+			Roman =				0x01,
+			Swiss =				0x02,
+			Modern =			0x03,
+			Script =			0x04,
+			Decorative =		0x05,
+			};
+
+		enum class ECharacterSet
+			{
+			ANSILatin =			0x00,
+			SystemDefault =		0x01,
+			Symbol =			0x02,
+			};
+
+		enum class EEscapement
+			{
+			None =				0x00,
+			Superscript =		0x01,
+			Subscript =			0x02,
+			};
+
+		enum class EUnderline
+			{
+			None =				0x00,
+			Single =			0x01,
+			Double =			0x02,
+			SingleAccounting =	0x21,
+			DoubleAccounting =	0x22,
+			};
+
+		struct SFont
+			{
+			EFamily iFamily = EFamily::Unknown;
+			CString sName;
+			int iSize = DEFAULT_HEIGHT_IN_POINTS * POINT_SIZE_SCALE;	//	Size in 1/20th of a point
+			int iWeight = WEIGHT_NORMAL;
+			bool bItalic = false;
+			bool bStrikeout = false;
+			EUnderline iUnderline = EUnderline::None;
+			EEscapement iEscapement = EEscapement::None;
+			CRGBA32 Color = CRGBA32(0, 0, 0);
+			ECharacterSet iCharacterSet = ECharacterSet::ANSILatin;
+			};
+
+		CXLSFontTable ();
+
+		int GetCount () const { return m_Table.GetCount(); }
+		const SFont &GetFont (int iIndex) const { if (iIndex < 0 || iIndex >= m_Table.GetCount()) throw CException(errFail); return m_Table[iIndex]; }
+
+	private:
+		TArray<SFont> m_Table;
+
+		static std::initializer_list<SFont> m_Defaults;
+	};
+
+class CXLSXFTable
+	{
+	public:
+		static constexpr int FORMAT_GENERAL =	0;
+		static constexpr int NO_PARENT = -1;
+
+		enum class EAlign
+			{
+			General =			0x00,
+			Left =				0x01,
+			Center =			0x02,
+			Right =				0x03,
+			Fill =				0x04,
+			Justify =			0x05,
+			CenterAcross =		0x06,
+			};
+
+		enum class EVerticalAlign
+			{
+			Top =				0x00,
+			Center =			0x01,
+			Bottom =			0x02,
+			Justify =			0x03,
+			};
+
+		enum class EReadOrder
+			{
+			Context =			0x00,
+			LeftToRight =		0x01,
+			RightToLeft =		0x02,
+			};
+
+		enum class ELineStyle
+			{
+			None =				0x00,
+			Thin =				0x01,
+			Medium =			0x02,
+			Dashed =			0x03,
+			Dotted =			0x04,
+			Thick =				0x05,
+			Double =			0x06,
+			Hair =				0x07,
+			MediumDashed =		0x08,
+			DashDot =			0x09,
+			MediumDashDot =		0x0A,
+			DashDotDot =		0x0B,
+			MediumDashDotDot =	0x0C,
+			SlantedDashDot =	0x0D,
+			};
+
+		enum class EDiagonal
+			{
+			None =				0x00,
+			Down =				0x01,
+			Up =				0x02,
+			Both =				0x03,
+			};
+
+		enum class EPattern
+			{
+			None =				0x00,
+			Solid =				0x01,
+			Checker =			0x02,
+			Pattern3 =			0x03,
+			Pattern4 =			0x04,
+			ThickHorzLines =	0x05,
+			ThickVertLines =	0x06,
+			Pattern7 =			0x07,
+			Pattern8 =			0x08,
+			ThickChecker =		0x09,
+			Pattern10 =			0x0A,
+			HorzLines =			0x0B,
+			VertLines =			0x0C,
+			Pattern13 =			0x0D,
+			Pattern14 =			0x0E,
+			Grid =				0x0F,
+			Pattern16 =			0x10,
+			Pattern17 =			0x11,
+			Pattern18 =			0x12,
+			};
+
+		struct SBorder
+			{
+			ELineStyle iStyle = ELineStyle::None;
+			CRGBA32 Color = CRGBA32(0, 0, 0);
+			};
+
+		static constexpr DWORD FLAG_LOCKED =			0x00000001;
+		static constexpr DWORD FLAG_HIDDEN =			0x00000002;
+		static constexpr DWORD FLAG_STYLE =				0x00000004;
+		static constexpr DWORD FLAG_123PREFIX =			0x00000008;
+		static constexpr DWORD FLAG_WRAP_TEXT =			0x00000010;
+		static constexpr DWORD FLAG_JUST_LAST =			0x00000020;
+		static constexpr DWORD FLAG_SHRINK_TO_FIT =		0x00000040;
+		static constexpr DWORD FLAG_MERGE_CELL =		0x00000080;
+		static constexpr DWORD FLAG_ATR_NUM =			0x00000100;
+		static constexpr DWORD FLAG_ATR_FNT =			0x00000200;
+		static constexpr DWORD FLAG_ATR_ALC =			0x00000400;
+		static constexpr DWORD FLAG_ATR_BDR =			0x00000800;
+		static constexpr DWORD FLAG_ATR_PAT =			0x00001000;
+		static constexpr DWORD FLAG_ATR_PROT =			0x00002000;
+		static constexpr DWORD FLAG_HAS_XFEXT =			0x00004000;
+		static constexpr DWORD FLAG_SX_BUTTON =			0x00008000;
+
+		struct SXF
+			{
+			int iFont = 0;					//	Index to font in table
+			int iFormat = 0;				//	Index to format
+			int iParentXF = 0;
+			EAlign iAlign = EAlign::General;
+			EVerticalAlign iVerticalAlign = EVerticalAlign::Top;
+			int iRotation = 0;
+			int iIndentLevel = 0;
+			EReadOrder iReadOrder = EReadOrder::Context;
+
+			SBorder LeftBorder;
+			SBorder RightBorder;
+			SBorder TopBorder;
+			SBorder BottomBorder;
+
+			EDiagonal iDiagonal = EDiagonal::None;
+			SBorder DiagonalBorder;
+
+			EPattern iFillPattern = EPattern::None;
+			CRGBA32 PatternColor = CRGBA32(0, 0, 0);
+			CRGBA32 PatternBackColor = CRGBA32(255, 255, 255);
+
+			DWORD dwFlags = 0;
+			};
+
+		CXLSXFTable ();
+
+		int GetCount () const { return m_Table.GetCount(); }
+		const SXF &GetXF (int iIndex) const { if (iIndex < 0 || iIndex >= m_Table.GetCount()) throw CException(errFail); return m_Table[iIndex]; }
+
+	private:
+		TArray<SXF> m_Table;
+
+		static std::initializer_list<SXF> m_Defaults;
+	};
+
 class CDBFormatXLS97Sheet
 	{
 	public:
@@ -180,6 +417,24 @@ class CDBFormatXLS97
 			WORD wLen = 0;
 			};
 
+		struct R_FONT
+			{
+			WORD wID = 0x0031;
+			WORD wLen = sizeof(R_FONT) - sizeof(DWORD);
+			WORD wHeight = 0;
+			WORD wOptions = 0;
+			WORD wColor = 0;
+			WORD wWeight = 0;
+			WORD wExcapement = 0;
+			BYTE byUnderline = 0;
+			BYTE byFamily = 0;
+			BYTE byCharacterSet = 0;
+			BYTE byUnused1 = 0;
+			BYTE byNameLen = 0;
+			BYTE byNameCharSet = 1;
+			//	Unicode font name
+			};
+
 		struct R_INDEX
 			{
 			WORD wID = 0x020B;
@@ -232,6 +487,13 @@ class CDBFormatXLS97
 			BYTE byDelMenuGroups = 0;
 			};
 
+		struct R_PALETTE
+			{
+			WORD wID = 0x0092;
+			WORD wLen = sizeof(R_PALETTE) - sizeof(DWORD);
+			WORD wCount = 0;
+			};
+
 		struct R_ROW
 			{
 			WORD wID = 0x0208;
@@ -269,6 +531,23 @@ class CDBFormatXLS97
 			WORD wTabRatio = DEFAULT_TAB_RATIO;
 			};
 
+		struct R_XF
+			{
+			WORD wID = 0x00E0;
+			WORD wLen = sizeof(R_XF) - sizeof(DWORD);
+			WORD wFont = 0;
+			WORD wFormat = 0;
+			WORD wParent = 0;
+			BYTE byAlign = 0;
+			BYTE byRotation = 0;
+			BYTE byIndent = 0;
+			BYTE byUsed = 0;
+			WORD wBorder1 = 0;
+			WORD wBorder2 = 0;
+			DWORD dwBorder3 = 0;
+			WORD wPattern = 0;
+			};
+
 		struct R_FRT
 			{
 			WORD wID = 0xA000;
@@ -293,21 +572,25 @@ class CDBFormatXLS97
 		void ResolveFixup (EFixup iType, DWORD dwData, int iResolvedOffset);
 		TArray<int> SortRows (const TArray<int> &Rows, const TArray<int> &SortOrder);
 		bool WriteCell (const CDBValue &Value, int iRow, int iCol);
+		void WriteFontTable ();
 		bool WriteSheet (const CDBFormatXLS97Sheet &Sheet, int iSheetIndex);
 		void WriteSST ();
-		void WriteWorkbookDefinitions ();
+		void WriteXFTable ();
 
 		void WriteBOF (WORD wSubstream = SUBSTREAM_TYPE_WORKSHEET);
-		void WriteDBCELL (int iRowOffset, const TArray<int> &CellOffsets);
-		void WriteEOF ();
 		void WriteBOUNDSHEET (const CString &sSheetName, int iSheetIndex);
+		void WriteDBCELL (int iRowOffset, const TArray<int> &CellOffsets);
 		void WriteDIMENSIONS (int iRowCount, int iColCount);
+		void WriteEOF ();
+		void WriteFONT (const CXLSFontTable::SFont &Font);
 		void WriteINDEX (int iRowCount, int iBlockCount);
 		void WriteINTERFACEHDR ();
 		void WriteLABEL (const CString &sValue, int iRow, int iCol);
 		void WriteLABELSST (int iIndex, int iFormat, int iRow, int iCol);
+		void WritePALETTE (const CXLSColorPalette &Palette);
 		void WriteROW (int iRowNumber, int iColCount);
 		void WriteWINDOW1 ();
+		void WriteXF (const CXLSXFTable::SXF &XF);
 		void WriteFiller (int iBytes);
 
 		IByteStream &m_Stream;
@@ -318,6 +601,9 @@ class CDBFormatXLS97
 		TArray<CDBFormatXLS97Sheet> m_Data;
 		TArray<SFixup> m_Fixups;			//	List of fixups needed
 		CDBFormatXLS97SST m_SST;			//	Shared String Table
+		CXLSColorPalette m_Palette;			//	Color paletter
+		CXLSFontTable m_Fonts;				//	Font table
+		CXLSXFTable m_XFTable;				//	XF table
 	};
 
 class CMSCompoundFileFormat

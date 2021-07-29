@@ -294,6 +294,9 @@
     <ClCompile Include="CVoronoiNavigator.cpp" />
     <ClCompile Include="CVoronoiTessellation.cpp" />
     <ClCompile Include="CXForm2D.cpp" />
+    <ClCompile Include="CXLSColorPalette.cpp" />
+    <ClCompile Include="CXLSFontTable.cpp" />
+    <ClCompile Include="CXLSXFTable.cpp" />
     <ClCompile Include="CXMLElement.cpp" />
     <ClCompile Include="FileIO.cpp" />
     <ClCompile Include="Geometry.cpp" />

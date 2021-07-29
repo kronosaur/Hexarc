@@ -523,7 +523,11 @@ bool CDBFormatXLS97::Write ()
 
 	WriteBOF(SUBSTREAM_TYPE_GLOBALS);
 
-	WriteWorkbookDefinitions();
+	WriteINTERFACEHDR();
+	WriteWINDOW1();
+	WriteFontTable();
+	WriteXFTable();
+	WritePALETTE(m_Palette);
 
 	//	Writes BOUNDSHEET records for every sheet.
 
@@ -584,6 +588,26 @@ bool CDBFormatXLS97::WriteCell (const CDBValue &Value, int iRow, int iCol)
 		}
 
 	return true;
+	}
+
+void CDBFormatXLS97::WriteFontTable ()
+
+//	WriteFontTable
+//
+//	Writes the font table.
+
+	{
+	for (int i = 0; i < m_Fonts.GetCount(); i++)
+		{
+		//	For backwards compatibilty, index 4 is not stored.
+
+		if (i == 4)
+			continue;
+
+		//	Write
+
+		WriteFONT(m_Fonts.GetFont(i));
+		}
 	}
 
 bool CDBFormatXLS97::WriteSheet (const CDBFormatXLS97Sheet &Sheet, int iSheetIndex)
@@ -771,15 +795,18 @@ void CDBFormatXLS97::WriteSST ()
 	m_Stream.Seek(iOldPos);
 	}
 
-void CDBFormatXLS97::WriteWorkbookDefinitions ()
+void CDBFormatXLS97::WriteXFTable ()
 
-//	WriteWorkbookDefinitions
+//	WriteXFTable
 //
-//	Writes standard workbook definitions.
+//	Writes the XF table.
 
 	{
-	WriteINTERFACEHDR();
-	WriteWINDOW1();
+	for (int i = 0; i < m_XFTable.GetCount(); i++)
+		{
+		const auto &XF = m_XFTable.GetXF(i);
+		WriteXF(XF);
+		}
 	}
 
 void CDBFormatXLS97::WriteBOUNDSHEET (const CString &sSheetName, int iSheetIndex)
@@ -838,6 +865,36 @@ void CDBFormatXLS97::WriteEOF ()
 	m_Stream.Write(&Record, sizeof(Record));
 	}
 
+void CDBFormatXLS97::WriteFONT (const CXLSFontTable::SFont &Font)
+	{
+	CString16 FontName(Font.sName);
+
+	R_FONT Record;
+	Record.wLen += (WORD)(FontName.GetLength() * sizeof(TCHAR));
+	Record.wHeight = (WORD)Font.iSize;
+
+	Record.wOptions = 0;
+	if (Font.iWeight > CXLSFontTable::WEIGHT_NORMAL)
+		Record.wOptions |= 0x0001;
+	if (Font.bItalic)
+		Record.wOptions |= 0x0002;
+	if (Font.iUnderline != CXLSFontTable::EUnderline::None)
+		Record.wOptions |= 0x0004;
+	if (Font.bStrikeout)
+		Record.wOptions |= 0x0008;
+
+	Record.wColor = (WORD)m_Palette.FindColor(Font.Color);
+	Record.wWeight = (WORD)Font.iWeight;
+	Record.wExcapement = (WORD)Font.iEscapement;
+	Record.byUnderline = (BYTE)Font.iUnderline;
+	Record.byFamily = (BYTE)Font.iFamily;
+	Record.byCharacterSet = (BYTE)Font.iCharacterSet;
+	Record.byNameLen = (BYTE)FontName.GetLength();
+
+	m_Stream.Write(&Record, sizeof(Record));
+	m_Stream.Write((LPTSTR)FontName, FontName.GetLength() * sizeof(TCHAR));
+	}
+
 void CDBFormatXLS97::WriteINDEX (int iRowCount, int iBlockCount)
 	{
 	R_INDEX Record;
@@ -891,6 +948,24 @@ void CDBFormatXLS97::WriteLABELSST (int iIndex, int iFormat, int iRow, int iCol)
 	m_Stream.Write(&Record, sizeof(Record));
 	}
 
+void CDBFormatXLS97::WritePALETTE (const CXLSColorPalette &Palette)
+	{
+	R_PALETTE Record;
+	Record.wLen += (WORD)(Palette.GetCount() * sizeof(DWORD));
+	Record.wCount = (WORD)Palette.GetCount();
+	m_Stream.Write(&Record, sizeof(Record));
+
+	for (int i = 0; i < Palette.GetCount(); i++)
+		{
+		DWORD dwData = 0;
+		dwData |= (DWORD)(Palette.GetColor(i).GetRed());
+		dwData |= (DWORD)(Palette.GetColor(i).GetGreen()) >> 8;
+		dwData |= (DWORD)(Palette.GetColor(i).GetBlue()) >> 16;
+
+		m_Stream.Write(&dwData, sizeof(dwData));
+		}
+	}
+
 void CDBFormatXLS97::WriteROW (int iRowNumber, int iColCount)
 	{
 	R_ROW Record;
@@ -904,6 +979,91 @@ void CDBFormatXLS97::WriteROW (int iRowNumber, int iColCount)
 void CDBFormatXLS97::WriteWINDOW1 ()
 	{
 	R_WINDOW1 Record;
+	m_Stream.Write(&Record, sizeof(Record));
+	}
+
+void CDBFormatXLS97::WriteXF (const CXLSXFTable::SXF &XF)
+	{
+	R_XF Record;
+	Record.wFont = (WORD)XF.iFont;
+	Record.wFormat = (WORD)XF.iFormat;
+
+	Record.wParent = 0;
+	if (XF.dwFlags & CXLSXFTable::FLAG_LOCKED)
+		Record.wParent |= 0x0001;
+	if (XF.dwFlags & CXLSXFTable::FLAG_HIDDEN)
+		Record.wParent |= 0x0002;
+	if (XF.dwFlags & CXLSXFTable::FLAG_STYLE)
+		Record.wParent |= 0xFFF4;
+	else
+		{
+		Record.wParent |= (XF.iParentXF & 0x0FFF) << 4;
+
+		if (XF.dwFlags & CXLSXFTable::FLAG_123PREFIX)
+			Record.wParent |= 0x0008;
+		}
+
+	Record.byAlign = 0;
+	Record.byAlign |= (BYTE)((DWORD)XF.iAlign & 0x07);
+	if (XF.dwFlags & CXLSXFTable::FLAG_WRAP_TEXT)
+		Record.byAlign |= 0x08;
+	Record.byAlign |= (BYTE)(((DWORD)XF.iVerticalAlign & 0x07) << 4);
+	if (XF.dwFlags & CXLSXFTable::FLAG_JUST_LAST)
+		Record.byAlign |= 0x80;
+
+	Record.byRotation = (BYTE)((DWORD)XF.iRotation & 0xFF);
+	
+	Record.byIndent = 0;
+	Record.byIndent |= (BYTE)((DWORD)XF.iIndentLevel & 0x0F);
+	if (XF.dwFlags & CXLSXFTable::FLAG_SHRINK_TO_FIT)
+		Record.byIndent |= 0x10;
+	if (XF.dwFlags & CXLSXFTable::FLAG_MERGE_CELL)
+		Record.byIndent |= 0x20;
+	Record.byIndent |= (BYTE)(((DWORD)XF.iReadOrder & 0x03) << 6);
+
+	Record.byUsed = 0;
+	if (!(XF.dwFlags & CXLSXFTable::FLAG_STYLE))
+		{
+		if (XF.dwFlags & CXLSXFTable::FLAG_ATR_NUM)
+			Record.byUsed |= 0x04;
+		if (XF.dwFlags & CXLSXFTable::FLAG_ATR_FNT)
+			Record.byUsed |= 0x08;
+		if (XF.dwFlags & CXLSXFTable::FLAG_ATR_ALC)
+			Record.byUsed |= 0x10;
+		if (XF.dwFlags & CXLSXFTable::FLAG_ATR_BDR)
+			Record.byUsed |= 0x20;
+		if (XF.dwFlags & CXLSXFTable::FLAG_ATR_PAT)
+			Record.byUsed |= 0x40;
+		if (XF.dwFlags & CXLSXFTable::FLAG_ATR_PROT)
+			Record.byUsed |= 0x80;
+		}
+
+	Record.wBorder1 = 0;
+	Record.wBorder1 |= (WORD)((DWORD)XF.LeftBorder.iStyle & 0x0F);
+	Record.wBorder1 |= (WORD)(((DWORD)XF.RightBorder.iStyle & 0x0F) << 4);
+	Record.wBorder1 |= (WORD)(((DWORD)XF.TopBorder.iStyle & 0x0F) << 8);
+	Record.wBorder1 |= (WORD)(((DWORD)XF.BottomBorder.iStyle & 0x0F) << 12);
+
+	Record.wBorder2 = 0;
+	Record.wBorder2 |= (WORD)((DWORD)m_Palette.FindColor(XF.LeftBorder.Color) & 0x7F);
+	Record.wBorder2 |= (WORD)(((DWORD)m_Palette.FindColor(XF.RightBorder.Color) & 0x7F) << 7);
+	Record.wBorder2 |= (WORD)(((DWORD)XF.iDiagonal & 0x3) << 14);
+
+	Record.dwBorder3 = 0;
+	Record.dwBorder3 |= (DWORD)m_Palette.FindColor(XF.TopBorder.Color) & 0x7F;
+	Record.dwBorder3 |= ((DWORD)m_Palette.FindColor(XF.TopBorder.Color) & 0x7F) << 7;
+	Record.dwBorder3 |= ((DWORD)m_Palette.FindColor(XF.DiagonalBorder.Color) & 0x7F) << 14;
+	Record.dwBorder3 |= ((DWORD)XF.DiagonalBorder.iStyle & 0x0F) << 21;
+	if (XF.dwFlags & CXLSXFTable::FLAG_HAS_XFEXT)
+		Record.dwBorder3 |= 0x02000000;
+	Record.dwBorder3 |= ((DWORD)XF.iFillPattern & 0x3F) << 26;
+
+	Record.wPattern = 0;
+	Record.wPattern |= (WORD)((DWORD)m_Palette.FindColor(XF.PatternColor) & 0x7F);
+	Record.wPattern |= (WORD)(((DWORD)m_Palette.FindColor(XF.PatternBackColor) & 0x7F) << 7);
+	if (XF.dwFlags & CXLSXFTable::FLAG_SX_BUTTON)
+		Record.wPattern |= 0x4000;
+
 	m_Stream.Write(&Record, sizeof(Record));
 	}
 
