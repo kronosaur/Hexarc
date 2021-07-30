@@ -627,6 +627,7 @@ class CDBFormatXLS97
 #pragma pack(pop)
 
 		void AddHeader (CDBFormatXLS97Sheet &Blocks, const CString &sSheetName);
+		static double ConvertDate (const CDateTime &Date);
 		static CBuffer Encode (const CString &sString, int iLenFieldSize = 2);
 		static CString GetDataValue (const CDBValue &Value);
 		static CString GetSortKey (const CDBValue &Value);

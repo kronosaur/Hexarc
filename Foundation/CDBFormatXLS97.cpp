@@ -126,6 +126,19 @@ CBuffer CDBFormatXLS97::Encode (const CString &sString, int iLenFieldSize)
 	return Result;
 	}
 
+double CDBFormatXLS97::ConvertDate (const CDateTime &Date)
+
+//	ConvertDate
+//
+//	Converts date to Excel numeric format
+
+	{
+	const CDateTime ORIGIN(31, 12, 1899);
+	const CTimeSpan Span = timeSpan(ORIGIN, Date);
+	static constexpr double MILLISECONDS_PER_DAY = SECONDS_PER_DAY * 1000;
+	return 1.0 + (double)Span.Days() + ((double)Span.MillisecondsSinceMidnight() / MILLISECONDS_PER_DAY);
+	}
+
 CString CDBFormatXLS97::GetDataValue (const CDBValue &Value)
 
 //	GetDataValue
@@ -625,6 +638,10 @@ bool CDBFormatXLS97::WriteCell (const CDBValue &Value, int iRow, int iCol, int i
 		case CDBValue::typeInt64:
 		case CDBValue::typeDouble:
 			WriteNUMBER(Value.AsDouble(), iXF, iRow, iCol);
+			break;
+
+		case CDBValue::typeDateTime:
+			WriteNUMBER(ConvertDate(Value), iXF, iRow, iCol);
 			break;
 
 		default:
