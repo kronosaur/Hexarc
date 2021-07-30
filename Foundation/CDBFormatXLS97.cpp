@@ -74,25 +74,6 @@ void CDBFormatXLS97::AddHeader (CDBFormatXLS97Sheet &Blocks, const CString &sShe
 		}
 	}
 
-void CDBFormatXLS97::AddToSST (const CDBValue &Value)
-
-//	AddToSST
-//
-//	Adds to string table, if necessary.
-
-	{
-	switch (Value.GetType())
-		{
-		case CDBValue::typeInt32:
-		case CDBValue::typeInt64:
-		case CDBValue::typeDouble:
-			break;
-
-		default:
-			m_SST.AddString(Value.AsString());
-		}
-	}
-
 CBuffer CDBFormatXLS97::Encode (const CString &sString, int iLenFieldSize)
 
 //	Encode
@@ -191,6 +172,58 @@ CString CDBFormatXLS97::GetSortKey (const CDBValue &Value)
 		}
 	}
 
+void CDBFormatXLS97::InitCellSST (const CDBValue &Value)
+
+//	InitCellSST
+//
+//	Adds to string table, if necessary.
+
+	{
+	//	If this is a string, add it to the shared string table.
+
+	switch (Value.GetType())
+		{
+		case CDBValue::typeInt32:
+		case CDBValue::typeInt64:
+		case CDBValue::typeDouble:
+			break;
+
+		default:
+			m_SST.AddString(Value.AsString());
+		}
+	}
+
+int CDBFormatXLS97::InitCellXF (const CDBValue &Value)
+
+//	InitCellXF
+//
+//	Returns the XF for this cell.
+
+	{
+	//	Figure out the cell format (by index).
+
+	int iFormat = CXLSXFTable::FORMAT_GENERAL;
+	switch (Value.GetType())
+		{
+		case CDBValue::typeInt32:
+		case CDBValue::typeInt64:
+			iFormat = CXLSXFTable::FORMAT_NUMBER_INT;
+			break;
+
+		case CDBValue::typeDouble:
+			iFormat = CXLSXFTable::FORMAT_NUMBER_DEC2_COMMA;
+			break;
+
+		case CDBValue::typeDateTime:
+			iFormat = CXLSXFTable::FORMAT_DATE_D_MMM_YY;
+			break;
+		}
+
+	//	Find or create the appropriate XF record
+
+	return m_XFTable.GetXF(iFormat, Value.GetFormat());
+	}
+
 void CDBFormatXLS97::InitData ()
 
 //	InitData
@@ -269,14 +302,16 @@ void CDBFormatXLS97::InitRowData (CDBFormatXLS97Sheet &SheetData, const CDBTable
 //	Initializes a row.
 
 	{
-	SheetData.AddRow(Table, iRow, ColOrder);
+	auto RowAddr = SheetData.AddRow(Table, iRow, ColOrder);
 
 	//	For each string value, add to the string table.
 
 	for (int i = 0; i < ColOrder.GetCount(); i++)
 		{
 		const CDBValue &Value = Table.GetField(ColOrder[i], iRow);
-		AddToSST(Value);
+		InitCellSST(Value);
+
+		SheetData.SetCellXF(RowAddr, i, InitCellXF(Value));
 		}
 	}
 
@@ -287,13 +322,14 @@ void CDBFormatXLS97::InitRowData (CDBFormatXLS97Sheet &SheetData, const TArray<C
 //	Initializes a row.
 
 	{
-	SheetData.AddRow(Row);
+	auto RowAddr = SheetData.AddRow(Row);
 
 	//	Add to string table.
 
 	for (int i = 0; i < Row.GetCount(); i++)
 		{
-		AddToSST(Row[i]);
+		InitCellSST(Row[i]);
+		SheetData.SetCellXF(RowAddr, i, InitCellXF(Row[i]));
 		}
 	}
 
@@ -536,7 +572,7 @@ bool CDBFormatXLS97::Write ()
 	WriteWINDOW1();
 	WriteFontTable();
 	WriteXFTable();
-	WritePALETTE(m_Palette);
+	WritePALETTE(m_XFTable.GetPalette());
 
 	//	Writes BOUNDSHEET records for every sheet.
 
@@ -576,7 +612,7 @@ bool CDBFormatXLS97::Write ()
 	return true;
 	}
 
-bool CDBFormatXLS97::WriteCell (const CDBValue &Value, int iRow, int iCol)
+bool CDBFormatXLS97::WriteCell (const CDBValue &Value, int iRow, int iCol, int iXF)
 
 //	WriteCell
 //
@@ -588,11 +624,11 @@ bool CDBFormatXLS97::WriteCell (const CDBValue &Value, int iRow, int iCol)
 		case CDBValue::typeInt32:
 		case CDBValue::typeInt64:
 		case CDBValue::typeDouble:
-			WriteNUMBER(Value.AsDouble(), 0, iRow, iCol);
+			WriteNUMBER(Value.AsDouble(), iXF, iRow, iCol);
 			break;
 
 		default:
-			WriteLABELSST(m_SST.GetStringIndex(Value.AsString()), 0, iRow, iCol);
+			WriteLABELSST(m_SST.GetStringIndex(Value.AsString()), iXF, iRow, iCol);
 			break;
 		}
 
@@ -606,7 +642,7 @@ void CDBFormatXLS97::WriteFontTable ()
 //	Writes the font table.
 
 	{
-	for (int i = 0; i < m_Fonts.GetCount(); i++)
+	for (int i = 0; i < m_XFTable.GetFonts().GetCount(); i++)
 		{
 		//	For backwards compatibilty, index 4 is not stored.
 
@@ -615,7 +651,7 @@ void CDBFormatXLS97::WriteFontTable ()
 
 		//	Write
 
-		WriteFONT(m_Fonts.GetFont(i));
+		WriteFONT(m_XFTable.GetFonts().GetFont(i));
 		}
 	}
 
@@ -681,8 +717,9 @@ bool CDBFormatXLS97::WriteSheet (const CDBFormatXLS97Sheet &Sheet, int iSheetInd
 
 			for (int k = 0; k < m_Options.ColOrder.GetCount(); k++)
 				{
-				const CDBValue &Value = Sheet.GetCell(i, j, k);
-				WriteCell(Value, iFirstRowInBlock + j, k);
+				int iXF;
+				const CDBValue &Value = Sheet.GetCell(i, j, k, &iXF);
+				WriteCell(Value, iFirstRowInBlock + j, k, iXF);
 				}
 			}
 
@@ -885,14 +922,14 @@ void CDBFormatXLS97::WriteFONT (const CXLSFontTable::SFont &Font)
 	Record.wOptions = 0;
 	if (Font.iWeight > CXLSFontTable::WEIGHT_NORMAL)
 		Record.wOptions |= 0x0001;
-	if (Font.bItalic)
+	if (Font.iItalic == CXLSFontTable::EItalic::Italic)
 		Record.wOptions |= 0x0002;
 	if (Font.iUnderline != CXLSFontTable::EUnderline::None)
 		Record.wOptions |= 0x0004;
-	if (Font.bStrikeout)
+	if (Font.iStrikeout == CXLSFontTable::EStrikeout::Strikeout)
 		Record.wOptions |= 0x0008;
 
-	Record.wColor = (WORD)m_Palette.FindColor(Font.Color);
+	Record.wColor = (WORD)m_XFTable.GetPalette().FindColor(Font.Color);
 	Record.wWeight = (WORD)Font.iWeight;
 	Record.wExcapement = (WORD)Font.iEscapement;
 	Record.byUnderline = (BYTE)Font.iUnderline;
@@ -946,23 +983,23 @@ void CDBFormatXLS97::WriteLABEL (const CString &sValue, int iRow, int iCol)
 	m_Stream.Write(Value);
 	}
 
-void CDBFormatXLS97::WriteLABELSST (int iIndex, int iFormat, int iRow, int iCol)
+void CDBFormatXLS97::WriteLABELSST (int iIndex, int iXF, int iRow, int iCol)
 	{
 	R_LABELSST Record;
 	Record.wRow = (WORD)iRow;
 	Record.wCol = (WORD)iCol;
-	Record.wXF = (WORD)iFormat;
+	Record.wXF = (WORD)iXF;
 	Record.dwIndex = iIndex;
 
 	m_Stream.Write(&Record, sizeof(Record));
 	}
 
-void CDBFormatXLS97::WriteNUMBER (double rValue, int iFormat, int iRow, int iCol)
+void CDBFormatXLS97::WriteNUMBER (double rValue, int iXF, int iRow, int iCol)
 	{
 	R_NUMBER Record;
 	Record.wRow = (WORD)iRow;
 	Record.wCol = (WORD)iCol;
-	Record.wXF = (WORD)iFormat;
+	Record.wXF = (WORD)iXF;
 	Record.rValue = rValue;
 
 	m_Stream.Write(&Record, sizeof(Record));
@@ -1065,22 +1102,22 @@ void CDBFormatXLS97::WriteXF (const CXLSXFTable::SXF &XF)
 	Record.wBorder1 |= (WORD)(((DWORD)XF.BottomBorder.iStyle & 0x0F) << 12);
 
 	Record.wBorder2 = 0;
-	Record.wBorder2 |= (WORD)((DWORD)m_Palette.FindColor(XF.LeftBorder.Color) & 0x7F);
-	Record.wBorder2 |= (WORD)(((DWORD)m_Palette.FindColor(XF.RightBorder.Color) & 0x7F) << 7);
+	Record.wBorder2 |= (WORD)((DWORD)XF.LeftBorder.iColor & 0x7F);
+	Record.wBorder2 |= (WORD)(((DWORD)XF.RightBorder.iColor & 0x7F) << 7);
 	Record.wBorder2 |= (WORD)(((DWORD)XF.iDiagonal & 0x3) << 14);
 
 	Record.dwBorder3 = 0;
-	Record.dwBorder3 |= (DWORD)m_Palette.FindColor(XF.TopBorder.Color) & 0x7F;
-	Record.dwBorder3 |= ((DWORD)m_Palette.FindColor(XF.TopBorder.Color) & 0x7F) << 7;
-	Record.dwBorder3 |= ((DWORD)m_Palette.FindColor(XF.DiagonalBorder.Color) & 0x7F) << 14;
+	Record.dwBorder3 |= (DWORD)XF.TopBorder.iColor & 0x7F;
+	Record.dwBorder3 |= ((DWORD)XF.BottomBorder.iColor & 0x7F) << 7;
+	Record.dwBorder3 |= ((DWORD)XF.DiagonalBorder.iColor & 0x7F) << 14;
 	Record.dwBorder3 |= ((DWORD)XF.DiagonalBorder.iStyle & 0x0F) << 21;
 	if (XF.dwFlags & CXLSXFTable::FLAG_HAS_XFEXT)
 		Record.dwBorder3 |= 0x02000000;
 	Record.dwBorder3 |= ((DWORD)XF.iFillPattern & 0x3F) << 26;
 
 	Record.wPattern = 0;
-	Record.wPattern |= (WORD)((DWORD)m_Palette.FindColor(XF.PatternColor) & 0x7F);
-	Record.wPattern |= (WORD)(((DWORD)m_Palette.FindColor(XF.PatternBackColor) & 0x7F) << 7);
+	Record.wPattern |= (WORD)((DWORD)XF.iPatternColor & 0x7F);
+	Record.wPattern |= (WORD)(((DWORD)XF.iPatternBackColor & 0x7F) << 7);
 	if (XF.dwFlags & CXLSXFTable::FLAG_SX_BUTTON)
 		Record.wPattern |= 0x4000;
 

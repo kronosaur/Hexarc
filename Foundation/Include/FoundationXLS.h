@@ -44,6 +44,7 @@ class CXLSFontTable
 		static constexpr int DEFAULT_HEIGHT_IN_POINTS = 10;
 		static constexpr int POINTS_11 = 11 * POINT_SIZE_SCALE;
 
+		static constexpr int WEIGHT_DEFAULT = -1;
 		static constexpr int WEIGHT_NORMAL = 400;
 		static constexpr int WEIGHT_BOLD = 700;
 
@@ -59,6 +60,8 @@ class CXLSFontTable
 
 		enum class ECharacterSet
 			{
+			Default =			0xFF,
+
 			ANSILatin =			0x00,
 			SystemDefault =		0x01,
 			Symbol =			0x02,
@@ -66,13 +69,33 @@ class CXLSFontTable
 
 		enum class EEscapement
 			{
+			Default =			0xFF,
+
 			None =				0x00,
 			Superscript =		0x01,
 			Subscript =			0x02,
 			};
 
+		enum class EItalic
+			{
+			Default =			0xFF,
+
+			None =				0x00,
+			Italic =			0x01,
+			};
+
+		enum class EStrikeout
+			{
+			Default =			0xFF,
+
+			None =				0x00,
+			Strikeout =			0x01,
+			};
+
 		enum class EUnderline
 			{
+			Default =			0xFF,
+
 			None =				0x00,
 			Single =			0x01,
 			Double =			0x02,
@@ -82,24 +105,28 @@ class CXLSFontTable
 
 		struct SFont
 			{
-			EFamily iFamily = EFamily::Unknown;
-			CString sName;
-			int iSize = DEFAULT_HEIGHT_IN_POINTS * POINT_SIZE_SCALE;	//	Size in 1/20th of a point
-			int iWeight = WEIGHT_NORMAL;
-			bool bItalic = false;
-			bool bStrikeout = false;
-			EUnderline iUnderline = EUnderline::None;
-			EEscapement iEscapement = EEscapement::None;
-			CRGBA32 Color = CRGBA32(0, 0, 0);
-			ECharacterSet iCharacterSet = ECharacterSet::ANSILatin;
+			EFamily iFamily = EFamily::Unknown;							//	Unknown == default
+			CString sName;												//	NULL_STR == default
+			int iSize = 0;												//	Size in 1/20th of a point (0 == default)
+			int iWeight = WEIGHT_DEFAULT;
+			EItalic iItalic = EItalic::Default;
+			EStrikeout iStrikeout = EStrikeout::Default;
+			EUnderline iUnderline = EUnderline::Default;
+			EEscapement iEscapement = EEscapement::Default;
+			CRGBA32 Color = CRGBA32::Null();							//	Default
+			ECharacterSet iCharacterSet = ECharacterSet::Default;
 			};
 
 		CXLSFontTable ();
 
 		int GetCount () const { return m_Table.GetCount(); }
 		const SFont &GetFont (int iIndex) const { if (iIndex < 0 || iIndex >= m_Table.GetCount()) throw CException(errFail); return m_Table[iIndex]; }
+		int GetFont (const CDBFormatDesc &Desc);
 
 	private:
+		SFont Create (const CDBFormatDesc &Desc);
+		static bool Equals (const SFont &Src, const SFont &Dest);
+
 		TArray<SFont> m_Table;
 
 		static std::initializer_list<SFont> m_Defaults;
@@ -108,7 +135,18 @@ class CXLSFontTable
 class CXLSXFTable
 	{
 	public:
-		static constexpr int FORMAT_GENERAL =	0;
+		static constexpr int FORMAT_GENERAL =			0x00;
+		static constexpr int FORMAT_NUMBER_INT =		0x01;
+		static constexpr int FORMAT_NUMBER_DEC2 =		0x02;
+		static constexpr int FORMAT_NUMBER_DEC2_COMMA =	0x03;
+
+		static constexpr int FORMAT_DATE_M_D_YY =		0x0E;
+		static constexpr int FORMAT_DATE_D_MMM_YY =		0x0F;
+		static constexpr int FORMAT_DATE_D_MMM =		0x10;
+		static constexpr int FORMAT_DATE_MMM_YY =		0x11;
+
+		static constexpr int DEFAULT_CELL_XF =			15;
+
 		static constexpr int NO_PARENT = -1;
 
 		enum class EAlign
@@ -189,7 +227,7 @@ class CXLSXFTable
 		struct SBorder
 			{
 			ELineStyle iStyle = ELineStyle::None;
-			CRGBA32 Color = CRGBA32(0, 0, 0);
+			int iColor = CXLSColorPalette::DEFAULT_BLACK;
 			};
 
 		static constexpr DWORD FLAG_LOCKED =			0x00000001;
@@ -229,8 +267,8 @@ class CXLSXFTable
 			SBorder DiagonalBorder;
 
 			EPattern iFillPattern = EPattern::None;
-			CRGBA32 PatternColor = CRGBA32(0, 0, 0);
-			CRGBA32 PatternBackColor = CRGBA32(255, 255, 255);
+			int iPatternColor = CXLSColorPalette::DEFAULT_BLACK;
+			int iPatternBackColor = CXLSColorPalette::DEFAULT_WHITE;
 
 			DWORD dwFlags = 0;
 			};
@@ -238,24 +276,42 @@ class CXLSXFTable
 		CXLSXFTable ();
 
 		int GetCount () const { return m_Table.GetCount(); }
+		const CXLSFontTable &GetFonts () const { return m_Fonts; }
+		const CXLSColorPalette &GetPalette () const { return m_Palette; }
+		int GetXF (int iFormat, const CDBFormatDesc &Desc);
 		const SXF &GetXF (int iIndex) const { if (iIndex < 0 || iIndex >= m_Table.GetCount()) throw CException(errFail); return m_Table[iIndex]; }
 
 	private:
+		SXF CreateXF (int iFormat, const CDBFormatDesc &Desc);
+
+		CXLSColorPalette m_Palette;
+		CXLSFontTable m_Fonts;
 		TArray<SXF> m_Table;
+		TSortMap<SXF, int> m_Index;
 
 		static std::initializer_list<SXF> m_Defaults;
 	};
 
+int KeyCompare (const CXLSXFTable::SXF &Key1, const CXLSXFTable::SXF &Key2);
+int KeyCompare (const CXLSXFTable::SBorder &Key1, const CXLSXFTable::SBorder &Key2);
+
 class CDBFormatXLS97Sheet
 	{
 	public:
-		void AddRow (const CDBTable &Table, int iRow, const TArray<int> &ColOrder);
-		void AddRow (const TArray<CDBValue> &Row);
+		struct SRowAddr
+			{
+			int iBlock = -1;
+			int iRowIndex = -1;				//	Index in block
+			};
+
+		SRowAddr AddRow (const CDBTable &Table, int iRow, const TArray<int> &ColOrder);
+		SRowAddr AddRow (const TArray<CDBValue> &Row);
 		int GetBlockCount () const { return m_Blocks.GetCount(); }
-		const CDBValue &GetCell (int iBlock, int iRow, int iCol) const;
+		const CDBValue &GetCell (int iBlock, int iRow, int iCol, int *retiXF = NULL) const;
 		const CString &GetName () const { return m_sSheetName; }
 		int GetRowCount () const { return m_iRowCount; }
 		int GetRowCount (int iBlock) const { if (iBlock < 0 || iBlock >= GetBlockCount()) throw CException(errFail); return m_Blocks[iBlock].Rows.GetCount(); }
+		void SetCellXF (const SRowAddr &Row, int iCol, int iXF) { GetCell(Row, iCol).iXF = iXF; }
 		void SetName (const CString &sValue) { m_sSheetName = sValue; }
 
 	private:
@@ -264,6 +320,7 @@ class CDBFormatXLS97Sheet
 		struct SCell
 			{
 			int iCol = 0;					//	Column (0-based)
+			int iXF = 0;
 			const CDBValue *pValue = NULL;	//	Value
 			};
 
@@ -280,6 +337,7 @@ class CDBFormatXLS97Sheet
 			};
 
 		SRowBlock &GetCurrentBlock ();
+		SCell &GetCell (const SRowAddr &Row, int iCol);
 
 		CString m_sSheetName;
 		TArray<SRowBlock> m_Blocks;
@@ -569,10 +627,11 @@ class CDBFormatXLS97
 #pragma pack(pop)
 
 		void AddHeader (CDBFormatXLS97Sheet &Blocks, const CString &sSheetName);
-		void AddToSST (const CDBValue &Value);
 		static CBuffer Encode (const CString &sString, int iLenFieldSize = 2);
 		static CString GetDataValue (const CDBValue &Value);
 		static CString GetSortKey (const CDBValue &Value);
+		void InitCellSST (const CDBValue &Value);
+		int InitCellXF (const CDBValue &Value);
 		void InitData ();
 		void InitRowData (CDBFormatXLS97Sheet &SheetData, const CDBTable &Table, int iRow, const TArray<int> ColOrder);
 		void InitRowData (CDBFormatXLS97Sheet &SheetData, const TArray<CDBValue> &Row);
@@ -581,7 +640,7 @@ class CDBFormatXLS97
 		void RequestFixup (EFixup iType, int iOffset, DWORD dwData);
 		void ResolveFixup (EFixup iType, DWORD dwData, int iResolvedOffset);
 		TArray<int> SortRows (const TArray<int> &Rows, const TArray<int> &SortOrder);
-		bool WriteCell (const CDBValue &Value, int iRow, int iCol);
+		bool WriteCell (const CDBValue &Value, int iRow, int iCol, int iXF);
 		void WriteFontTable ();
 		bool WriteSheet (const CDBFormatXLS97Sheet &Sheet, int iSheetIndex);
 		void WriteSST ();
@@ -596,8 +655,8 @@ class CDBFormatXLS97
 		void WriteINDEX (int iRowCount, int iBlockCount);
 		void WriteINTERFACEHDR ();
 		void WriteLABEL (const CString &sValue, int iRow, int iCol);
-		void WriteLABELSST (int iIndex, int iFormat, int iRow, int iCol);
-		void WriteNUMBER (double rValue, int iFormat, int iRow, int iCol);
+		void WriteLABELSST (int iIndex, int iXF, int iRow, int iCol);
+		void WriteNUMBER (double rValue, int iXF, int iRow, int iCol);
 		void WritePALETTE (const CXLSColorPalette &Palette);
 		void WriteROW (int iRowNumber, int iColCount);
 		void WriteWINDOW1 ();
@@ -612,8 +671,6 @@ class CDBFormatXLS97
 		TArray<CDBFormatXLS97Sheet> m_Data;
 		TArray<SFixup> m_Fixups;			//	List of fixups needed
 		CDBFormatXLS97SST m_SST;			//	Shared String Table
-		CXLSColorPalette m_Palette;			//	Color paletter
-		CXLSFontTable m_Fonts;				//	Font table
 		CXLSXFTable m_XFTable;				//	XF table
 	};
 
@@ -701,3 +758,4 @@ class CMSCompoundFileFormat
 
 		TArray<SStream> m_Docs;
 	};
+

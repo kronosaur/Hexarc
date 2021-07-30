@@ -18,6 +18,8 @@ bool CDBFormatDesc::Parse (const CDBValue &Value, CString *retsError)
 //	Parse from a descriptor.
 
 	{
+	*this = CDBFormatDesc();
+
 	switch (Value.GetType())
 		{
 		case CDBValue::typeStruct:
@@ -36,7 +38,7 @@ bool CDBFormatDesc::ParseColor (const CDBValue &Value, CRGBA32 &retColor, CStrin
 //	Parses a color value.
 
 	{
-	retColor.Parse(Value);
+	retColor = CRGBA32::Parse(Value);
 	return true;
 	}
 
@@ -51,8 +53,6 @@ bool CDBFormatDesc::ParseFromStruct (const CDBValue &Value, CString *retsError)
 		{
 		if (!ParseColor(Color, m_rgbColor, retsError))
 			return false;
-
-		m_bDefault = false;
 		}
 
 	return true;

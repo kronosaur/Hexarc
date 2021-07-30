@@ -5,7 +5,7 @@
 
 #include "stdafx.h"
 
-void CDBFormatXLS97Sheet::AddRow (const CDBTable &Table, int iRow, const TArray<int> &ColOrder)
+CDBFormatXLS97Sheet::SRowAddr CDBFormatXLS97Sheet::AddRow (const CDBTable &Table, int iRow, const TArray<int> &ColOrder)
 
 //	AddRow
 //
@@ -13,6 +13,7 @@ void CDBFormatXLS97Sheet::AddRow (const CDBTable &Table, int iRow, const TArray<
 
 	{
 	SRowBlock &Block = GetCurrentBlock();
+	int iRowIndex = Block.Rows.GetCount();
 	SRow *pNewRow = Block.Rows.Insert();
 	pNewRow->iRow = m_iRowCount++;
 
@@ -22,9 +23,11 @@ void CDBFormatXLS97Sheet::AddRow (const CDBTable &Table, int iRow, const TArray<
 		pNewRow->Cells[i].iCol = i;
 		pNewRow->Cells[i].pValue = &Table.GetField(ColOrder[i], iRow);
 		}
+
+	return { Block.iBlock, iRowIndex };
 	}
 
-void CDBFormatXLS97Sheet::AddRow (const TArray<CDBValue> &Row)
+CDBFormatXLS97Sheet::SRowAddr CDBFormatXLS97Sheet::AddRow (const TArray<CDBValue> &Row)
 
 //	AddRow
 //
@@ -32,6 +35,7 @@ void CDBFormatXLS97Sheet::AddRow (const TArray<CDBValue> &Row)
 
 	{
 	SRowBlock &Block = GetCurrentBlock();
+	int iRowIndex = Block.Rows.GetCount();
 	SRow *pNewRow = Block.Rows.Insert();
 	pNewRow->iRow = m_iRowCount++;
 
@@ -41,9 +45,11 @@ void CDBFormatXLS97Sheet::AddRow (const TArray<CDBValue> &Row)
 		pNewRow->Cells[i].iCol = i;
 		pNewRow->Cells[i].pValue = &Row[i];
 		}
+
+	return { Block.iBlock, iRowIndex };
 	}
 
-const CDBValue &CDBFormatXLS97Sheet::GetCell (int iBlock, int iRow, int iCol) const
+const CDBValue &CDBFormatXLS97Sheet::GetCell (int iBlock, int iRow, int iCol, int *retiXF) const
 
 //	GetCell
 //
@@ -59,7 +65,29 @@ const CDBValue &CDBFormatXLS97Sheet::GetCell (int iBlock, int iRow, int iCol) co
 	if (iCol < 0 || iCol >= m_Blocks[iBlock].Rows[iRow].Cells.GetCount())
 		throw CException(errFail);
 
+	if (retiXF)
+		*retiXF = m_Blocks[iBlock].Rows[iRow].Cells[iCol].iXF;
+
 	return *m_Blocks[iBlock].Rows[iRow].Cells[iCol].pValue;
+	}
+
+CDBFormatXLS97Sheet::SCell &CDBFormatXLS97Sheet::GetCell (const SRowAddr &Row, int iCol)
+
+//	GetCell
+//
+//	Returns the cell.
+
+	{
+	if (Row.iBlock < 0 || Row.iBlock >= m_Blocks.GetCount())
+		throw CException(errFail);
+
+	if (Row.iRowIndex < 0 || Row.iRowIndex >= m_Blocks[Row.iBlock].Rows.GetCount())
+		throw CException(errFail);
+
+	if (iCol < 0 || iCol >= m_Blocks[Row.iBlock].Rows[Row.iRowIndex].Cells.GetCount())
+		throw CException(errFail);
+
+	return m_Blocks[Row.iBlock].Rows[Row.iRowIndex].Cells[iCol];
 	}
 
 CDBFormatXLS97Sheet::SRowBlock &CDBFormatXLS97Sheet::GetCurrentBlock ()
@@ -82,3 +110,4 @@ CDBFormatXLS97Sheet::SRowBlock &CDBFormatXLS97Sheet::GetCurrentBlock ()
 		return m_Blocks[m_Blocks.GetCount() - 1];
 		}
 	}
+

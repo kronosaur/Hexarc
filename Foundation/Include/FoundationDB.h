@@ -126,10 +126,43 @@ class CDBValue
 class CDBFormatDesc
 	{
 	public:
+		enum class EBold
+			{
+			Default,
+			Normal,
+			Bold,
+			};
+
+		enum class EItalic
+			{
+			Default,
+			Normal,
+			Italic,
+			};
+
+		enum class EStrikeout
+			{
+			Default,
+			Normal,
+			Strikeout,
+			};
+
+		enum class EUnderline
+			{
+			Default,
+			Normal,
+			Underline,
+			};
+
 		bool Parse (const CDBValue &Value, CString *retsError = NULL);
 
-		explicit operator bool () const { return !m_bDefault; }
-		bool IsEmpty () const { return m_bDefault; }
+		explicit operator bool () const { return !IsEmpty(); }
+
+		const CRGBA32 &GetColor () const { return m_rgbColor; }
+		bool IsEmpty () const 
+			{ return m_sFont.IsEmpty() && m_rHeight == 0.0 && m_rgbColor.IsNull()
+				&& m_iBold == EBold::Default && m_iItalic == EItalic::Default && m_iStrikeout == EStrikeout::Default && m_iUnderline == EUnderline::Default
+				&& m_rgbBack.IsNull(); }
 
 		static const CDBFormatDesc &Null () { return m_Null; }
 
@@ -137,17 +170,16 @@ class CDBFormatDesc
 		static bool ParseColor (const CDBValue &Value, CRGBA32 &retColor, CString *retsError = NULL);
 		bool ParseFromStruct (const CDBValue &Value, CString *retsError = NULL);
 
-		CString m_sFont;			//	Blank means default font
-		double m_rHeight = 10.0;	//	Height in points
-		CRGBA32 m_rgbColor = CRGBA32(0, 0, 0);
+		CString m_sFont;								//	Blank means default font
+		double m_rHeight = 0.0;							//	Height in points (0 == default)
+		CRGBA32 m_rgbColor = CRGBA32::Null();			//	Null == default
 
-		bool m_bDefault = true;
-		bool m_bBold = false;
-		bool m_bItalic = false;
-		bool m_bUnderline = false;
-		bool m_bStrikeout = false;
+		EBold m_iBold = EBold::Default;
+		EItalic m_iItalic = EItalic::Default;
+		EStrikeout m_iStrikeout = EStrikeout::Default;
+		EUnderline m_iUnderline = EUnderline::Default;
 
-		CRGBA32 m_rgbBack = CRGBA32(255, 255, 255);
+		CRGBA32 m_rgbBack = CRGBA32::Null();			//	Null == default
 
 		static const CDBFormatDesc m_Null;
 	};
