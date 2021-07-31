@@ -16,6 +16,7 @@ DECLARE_CONST_STRING(FIELD_SORT_ORDER,						"sortOrder");
 
 DECLARE_CONST_STRING(STR_BLANK,								"(Blank)");
 DECLARE_CONST_STRING(STR_COMMA,								",");
+DECLARE_CONST_STRING(STR_NAN,								"nan");
 
 void CDBFormatXLS97::AddHeader (CDBFormatXLS97Sheet &Blocks, const CString &sSheetName)
 
@@ -224,7 +225,7 @@ int CDBFormatXLS97::InitCellXF (const CDBValue &Value)
 			break;
 
 		case CDBValue::typeDouble:
-			iFormat = CXLSXFTable::FORMAT_NUMBER_DEC2_COMMA;
+			iFormat = CXLSXFTable::FORMAT_GENERAL;
 			break;
 
 		case CDBValue::typeDateTime:
@@ -634,19 +635,35 @@ bool CDBFormatXLS97::WriteCell (const CDBValue &Value, int iRow, int iCol, int i
 	{
 	switch (Value.GetType())
 		{
+		case CDBValue::typeNil:
+			WriteBLANK(iXF, iRow, iCol);
+			break;
+
 		case CDBValue::typeInt32:
 		case CDBValue::typeInt64:
 		case CDBValue::typeDouble:
-			WriteNUMBER(Value.AsDouble(), iXF, iRow, iCol);
+			{
+			double rValue = Value.AsDouble();
+			if (isnan(rValue))
+				WriteLABELSST(m_SST.GetStringIndex(STR_NAN), iXF, iRow, iCol);
+			else
+				WriteNUMBER(rValue, iXF, iRow, iCol);
 			break;
+			}
 
 		case CDBValue::typeDateTime:
 			WriteNUMBER(ConvertDate(Value), iXF, iRow, iCol);
 			break;
 
 		default:
-			WriteLABELSST(m_SST.GetStringIndex(Value.AsString()), iXF, iRow, iCol);
+			{
+			CString sValue = Value.AsString();
+			if (sValue.IsEmpty())
+				WriteBLANK(iXF, iRow, iCol);
+			else
+				WriteLABELSST(m_SST.GetStringIndex(sValue), iXF, iRow, iCol);
 			break;
+			}
 		}
 
 	return true;
@@ -872,6 +889,24 @@ void CDBFormatXLS97::WriteXFTable ()
 		}
 	}
 
+void CDBFormatXLS97::WriteBLANK (int iXF, int iRow, int iCol)
+	{
+	R_BLANK Record;
+	Record.wRow = (WORD)iRow;
+	Record.wCol = (WORD)iCol;
+	Record.wXF = (WORD)iXF;
+
+	m_Stream.Write(&Record, sizeof(Record));
+	}
+
+void CDBFormatXLS97::WriteBOF (WORD wSubstream)
+	{
+	R_BOF Record;
+	Record.wSubstream = wSubstream;
+
+	m_Stream.Write(&Record, sizeof(Record));
+	}
+
 void CDBFormatXLS97::WriteBOUNDSHEET (const CString &sSheetName, int iSheetIndex)
 	{
 	//	Remember that we need to fix up the offset.
@@ -887,14 +922,6 @@ void CDBFormatXLS97::WriteBOUNDSHEET (const CString &sSheetName, int iSheetIndex
 
 	m_Stream.Write(&Record, sizeof(Record));
 	m_Stream.Write(Name);
-	}
-
-void CDBFormatXLS97::WriteBOF (WORD wSubstream)
-	{
-	R_BOF Record;
-	Record.wSubstream = wSubstream;
-
-	m_Stream.Write(&Record, sizeof(Record));
 	}
 
 void CDBFormatXLS97::WriteDBCELL (int iRowOffset, const TArray<int> &CellOffsets)
@@ -1018,6 +1045,19 @@ void CDBFormatXLS97::WriteNUMBER (double rValue, int iXF, int iRow, int iCol)
 	Record.wCol = (WORD)iCol;
 	Record.wXF = (WORD)iXF;
 	Record.rValue = rValue;
+
+#if 0
+	if (isnan(rValue))
+		{
+		printf("WriteNUMBER: rValue is nan\n");
+		}
+
+	CString sValue = strFromDouble(rValue);
+	if (::strIsASCIIAlpha(sValue.GetParsePointer()))
+		{
+		printf("WriteNUMBER: rValue = %s\n", (LPSTR)sValue);
+		}
+#endif
 
 	m_Stream.Write(&Record, sizeof(Record));
 	}

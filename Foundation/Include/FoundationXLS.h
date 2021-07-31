@@ -138,7 +138,7 @@ class CXLSXFTable
 		static constexpr int FORMAT_GENERAL =			0x00;
 		static constexpr int FORMAT_NUMBER_INT =		0x01;
 		static constexpr int FORMAT_NUMBER_DEC2 =		0x02;
-		static constexpr int FORMAT_NUMBER_DEC2_COMMA =	0x03;
+		static constexpr int FORMAT_NUMBER_DEC2_COMMA =	0x04;
 
 		static constexpr int FORMAT_DATE_M_D_YY =		0x0E;
 		static constexpr int FORMAT_DATE_D_MMM_YY =		0x0F;
@@ -423,6 +423,15 @@ class CDBFormatXLS97
 			};
 
 #pragma pack(push, 1)
+		struct R_BLANK
+			{
+			WORD wID = 0x0201;
+			WORD wLen = sizeof(R_BLANK) - sizeof(DWORD);
+			WORD wRow = 0;
+			WORD wCol = 0;
+			WORD wXF = 0;
+			};
+
 		struct R_BOF
 			{
 			WORD wID = 0x0809;
@@ -647,6 +656,7 @@ class CDBFormatXLS97
 		void WriteSST ();
 		void WriteXFTable ();
 
+		void WriteBLANK (int iXF, int iRow, int iCol);
 		void WriteBOF (WORD wSubstream = SUBSTREAM_TYPE_WORKSHEET);
 		void WriteBOUNDSHEET (const CString &sSheetName, int iSheetIndex);
 		void WriteDBCELL (int iRowOffset, const TArray<int> &CellOffsets);
