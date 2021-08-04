@@ -93,6 +93,7 @@ DECLARE_CONST_STRING(MSG_AEON_DELETE_VIEW,				"Aeon.deleteView")
 DECLARE_CONST_STRING(MSG_AEON_FILE_DIRECTORY,			"Aeon.fileDirectory")
 DECLARE_CONST_STRING(MSG_AEON_FILE_DOWNLOAD,			"Aeon.fileDownload")
 DECLARE_CONST_STRING(MSG_AEON_FILE_GET_DESC,			"Aeon.fileGetDesc")
+DECLARE_CONST_STRING(MSG_AEON_FILE_UPDATE_DESC,			"Aeon.fileUpdateDesc")
 DECLARE_CONST_STRING(MSG_AEON_FILE_UPLOAD,				"Aeon.fileUpload")
 DECLARE_CONST_STRING(MSG_AEON_FLUSH_DB,					"Aeon.flushDb")
 DECLARE_CONST_STRING(MSG_AEON_GET_KEY_RANGE,			"Aeon.getKeyRange")
@@ -132,6 +133,9 @@ CAeonEngine::SMessageHandler CAeonEngine::m_MsgHandlerList[] =
 
 		//	Aeon.fileGetDesc {filePath}
 		{	MSG_AEON_FILE_GET_DESC,				&CAeonEngine::MsgFileGetDesc },
+
+		//	Aeon.fileUpdateDesc {filePath} {fileDesc}
+		{	MSG_AEON_FILE_UPDATE_DESC,			&CAeonEngine::MsgFileUpdateDesc },
 
 		//	Aeon.fileUpload {filePath} {fileUploadDesc} {data}
 		{	MSG_AEON_FILE_UPLOAD,				&CAeonEngine::MsgFileUpload },
@@ -709,6 +713,61 @@ void CAeonEngine::MsgFileGetDesc (const SArchonMessage &Msg, const CHexeSecurity
 
 	//	Done
 
+	SendMessageReply(MSG_REPLY_DATA, dNewFileDesc, Msg);
+	}
+
+void CAeonEngine::MsgFileUpdateDesc (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)
+
+//	MsgFileUpdateDesc
+//
+//	Aeon.fileUpdateDesc {filePath} {fileDesc} [{options}]
+
+	{
+	CString sError;
+
+	CDatum dFileDesc = Msg.dPayload.GetElement(1);
+
+	//	Options
+
+	CDatum dOptions = Msg.dPayload.GetElement(2);
+	bool bIncludeStoragePath = !dOptions.GetElement(FIELD_STORAGE_PATH).IsNil();
+
+	//	Get the filePath
+
+	CString sTable;
+	CString sFilePath;
+	if (!CAeonTable::ParseFilePath(Msg.dPayload.GetElement(0), &sTable, &sFilePath, &sError))
+		{
+		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(STR_ERROR_PARSING_FILE_PATH, sError), Msg);
+		return;
+		}
+
+	//	Make sure we are allowed access to this table
+
+	if (!ValidateTableAccess(Msg, pSecurityCtx, sTable))
+		return;
+
+	//	Get the table
+
+	CAeonTable *pTable;
+	if (!FindTable(sTable, &pTable))
+		{
+		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(STR_ERROR_UNKNOWN_TABLE, sTable), Msg);
+		return;
+		}
+
+	//	Set the descriptor and return the new verson.
+
+	CDatum dNewFileDesc;
+	if (!pTable->UpdateFileDesc(sFilePath, dFileDesc, &dNewFileDesc))
+		{
+		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, dNewFileDesc, Msg);
+		return;
+		}
+
+	//	Return the new file desc
+
+	dNewFileDesc = CAeonTable::PrepareFileDesc(sTable, sFilePath, dNewFileDesc, (bIncludeStoragePath ? CAeonTable::FLAG_STORAGE_PATH : 0));
 	SendMessageReply(MSG_REPLY_DATA, dNewFileDesc, Msg);
 	}
 

@@ -228,6 +228,7 @@ DECLARE_CONST_STRING(ERR_UPDATE_NIL,					"Unable to mutate row %s. Field %s is n
 DECLARE_CONST_STRING(ERR_INVALID_FILE_PATH_CODE,		"Unknown filePath generation code: %s.");
 DECLARE_CONST_STRING(ERR_PARTIAL_POS_CANNOT_BE_NEGATIVE,"partialPos cannot be negative.");
 DECLARE_CONST_STRING(ERR_INVALID_FILE_DATA_TYPE,		"Invalid dataType: %s");
+DECLARE_CONST_STRING(ERR_FILE_NOT_FOUND,				"File not found: %s");
 
 CAeonTable::~CAeonTable (void)
 
@@ -4229,6 +4230,66 @@ void CAeonTable::SetDimensionDesc (CComplexStruct *pDesc, const SDimensionDesc &
 		default:
 			ASSERT(false);
 		}
+	}
+
+bool CAeonTable::UpdateFileDesc (const CString &sFilePath, CDatum dFileDesc, CDatum *retdResult)
+
+//	UpdateFileDesc
+//
+//	Updates the file descriptor (without modifying the actual file).
+
+	{
+	CSmartLock Lock(m_cs);
+
+	//	Generate a path
+
+	CRowKey Path;
+	CRowKey::CreateFromFilePath(sFilePath, &Path);
+
+	//	Look up the file in the database.
+
+	CString sError;
+	CDatum dCurFileDesc;
+	if (!GetData(DEFAULT_VIEW, Path, &dCurFileDesc, NULL, &sError))
+		{
+		if (retdResult) *retdResult = sError;
+		return false;
+		}
+
+	//	If the file does not exist, then this is an error.
+
+	if (dCurFileDesc.IsNil())
+		{
+		if (retdResult) *retdResult = strPattern(ERR_FILE_NOT_FOUND, sFilePath);
+		return false;
+		}
+
+	//	Update the file descriptor
+
+	DWORD dwCurrentVersion = dCurFileDesc.GetElement(FIELD_VERSION);
+
+	CDatum dNewFileDesc(CDatum::typeStruct);
+	dNewFileDesc.Append(dFileDesc);
+	dNewFileDesc.SetElement(FIELD_FILE_PATH, dCurFileDesc.GetElement(FIELD_FILE_PATH));
+	dNewFileDesc.SetElement(FIELD_MODIFIED_ON, CDateTime(CDateTime::Now));
+	dNewFileDesc.SetElement(FIELD_SIZE, dCurFileDesc.GetElement(FIELD_SIZE));
+	dNewFileDesc.SetElement(FIELD_STORAGE_PATH, dCurFileDesc.GetElement(FIELD_STORAGE_PATH));
+	dNewFileDesc.SetElement(FIELD_VERSION, CDatum((int)(dwCurrentVersion + 1)));
+
+	//	Write the data
+
+	if (!Insert(Path, dNewFileDesc, &sError))
+		{
+		if (retdResult) *retdResult = strPattern(STR_ERROR_CANT_WRITE_FILE, sFilePath);
+		return false;
+		}
+
+	//	Done. We return the new file desc
+
+	if (retdResult)
+		*retdResult = dNewFileDesc;
+
+	return true;
 	}
 
 AEONERR CAeonTable::UploadFile (CMsgProcessCtx &Ctx, const CString &sSessionID, const CString &sFilePathArg, CDatum dUploadDesc, CDatum dData, CAeonUploadSessions::SReceipt *retReceipt, CString *retsError)

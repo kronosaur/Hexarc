@@ -717,6 +717,7 @@ class CAeonTable
 		bool RecoverTableRows (CString *retsError);
 		bool Recreate (IArchonProcessCtx *pProcess, CDatum dDesc, bool *retbUpdated, CString *retsError);
 		bool Save (CString *retsError);
+		bool UpdateFileDesc (const CString &sFilePath, CDatum dFileDesc, CDatum *retdResult);
 		AEONERR UploadFile (CMsgProcessCtx &Ctx, const CString &sSessionID, const CString &sFilePath, CDatum dUploadDesc, CDatum dData, CAeonUploadSessions::SReceipt *retReceipt, CString *retsError);
 
 		static CDatum GetDimensionDesc (SDimensionDesc &Dim);
@@ -859,6 +860,7 @@ class CAeonEngine : public TSimpleEngine<CAeonEngine>
 		void MsgFileDirectory (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgFileDownload (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgFileGetDesc (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
+		void MsgFileUpdateDesc (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgFileUpload (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgFlushDb (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgGetData (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
