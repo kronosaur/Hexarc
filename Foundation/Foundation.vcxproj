@@ -302,6 +302,7 @@
     <ClCompile Include="Geometry.cpp" />
     <ClCompile Include="IByteStream64.cpp" />
     <ClCompile Include="IIOCPEntry.cpp" />
+    <ClCompile Include="ILogService.cpp" />
     <ClCompile Include="IMemoryBlock.cpp" />
     <ClCompile Include="lodepng\lodepng.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>

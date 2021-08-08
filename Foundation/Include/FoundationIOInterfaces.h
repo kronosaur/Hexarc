@@ -25,6 +25,8 @@ class ILogService
 		virtual ~ILogService (void) { }
 
 		virtual void Write (const CString &sLine, ELogClasses iClass = logInfo) { }
+
+		static ILogService &Default ();
 	};
 
 //  Progress Interface ---------------------------------------------------------

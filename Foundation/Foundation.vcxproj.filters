@@ -402,6 +402,9 @@
     <ClCompile Include="CXLSXFTable.cpp">
       <Filter>Source Files\DB</Filter>
     </ClCompile>
+    <ClCompile Include="ILogService.cpp">
+      <Filter>Source Files\IOInterfaces</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">

@@ -195,6 +195,9 @@
     <ClCompile Include="MsgCheckUpgrade.cpp">
       <Filter>Source Files\Exarch</Filter>
     </ClCompile>
+    <ClCompile Include="CArchonLogOutput.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Include\ArchonEngine.h">

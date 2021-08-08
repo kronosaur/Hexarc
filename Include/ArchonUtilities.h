@@ -586,6 +586,21 @@ class CMachineStorage
 		TArray<SVolumeDesc> m_Volumes;
 	};
 
+//	Utilities ------------------------------------------------------------------
+
+class CArchonLogOutput : public ILogService
+	{
+	public:
+		CArchonLogOutput (IArchonProcessCtx &ProcessCtx) :
+				m_ProcessCtx(ProcessCtx)
+			{ }
+
+		virtual void Write (const CString &sLine, ELogClasses iClass = logInfo) override;
+
+	private:
+		IArchonProcessCtx &m_ProcessCtx;
+	};
+
 //	Console Manager ------------------------------------------------------------
 
 #include "TArchonConsoleManager.h"
