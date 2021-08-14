@@ -198,7 +198,7 @@ DWORD fileChecksumAdler32 (const CString &sFilespec)
 	return dwAdler32;
 	}
 
-bool fileCopy (const CString &sFrom, const CString &sTo)
+bool fileCopy (const CString &sFrom, const CString &sTo, CString *retsError)
 
 //	fileCopy
 //
@@ -206,7 +206,10 @@ bool fileCopy (const CString &sFrom, const CString &sTo)
 
 	{
 	if (!::CopyFile(CString16(sFrom), CString16(sTo), FALSE))
+		{
+		if (retsError) *retsError = CFile::TranslateError(::GetLastError());
 		return false;
+		}
 
 	return true;
 	}

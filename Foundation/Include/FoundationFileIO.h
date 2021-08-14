@@ -50,6 +50,8 @@ class CFile : public IByteStream
 		virtual void Seek (int iPos, bool bFromEnd = false) override;
 		virtual int Write (const void *pData, int iLength) override;
 
+		static CString TranslateError (DWORD dwError);
+
 		//	We want to inherit all the overloaded versions of Write.
 
 		using IByteStream::Write;
@@ -203,7 +205,7 @@ CString fileAppendExtension (const CString &sFilespec, const CString &sExtension
 DWORD fileChecksumAdler32 (const CString &sFilespec);
 bool fileCompare (const CString &sFilespec1, const CString &sFilespec2, bool bQuick = false);
 int fileCompareModifiedTime (const CString &sFilespec1, const CString &sFilespec2);
-bool fileCopy (const CString &sFrom, const CString &sTo);
+bool fileCopy (const CString &sFrom, const CString &sTo, CString *retsError = NULL);
 bool fileCreateDrive (const CString &sPath, CString *retsDriveRoot);
 bool fileDelete (const CString &sFilespec);
 bool fileDeleteDrive (const CString &sDriveRoot);

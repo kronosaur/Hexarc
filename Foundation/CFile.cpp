@@ -258,6 +258,26 @@ bool CFile::SetLength (int iLength)
 	return true;
 	}
 
+CString CFile::TranslateError (DWORD dwError)
+
+//	TranslateError
+//
+//	Translates to a human-readable message.
+
+	{
+	switch (dwError)
+		{
+		case ERROR_ACCESS_DENIED:
+			return strPattern("0x%08d Access denied.", dwError);
+
+		case ERROR_FILE_NOT_FOUND:
+			return strPattern("0x%08d File not found.", dwError);
+
+		default:
+			return strPattern("0x%08d", dwError);
+		}
+	}
+
 void CFile::Unlock (int iPos, int iLength)
 
 //	Unlock
