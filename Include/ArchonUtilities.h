@@ -337,28 +337,6 @@ class CMessageTransporter
 	friend CMessagePort;
 	};
 
-//	CBlackBox ------------------------------------------------------------------
-
-class CBlackBox
-	{
-	public:
-		CBlackBox (void) : m_bConsoleOut(false)
-			{ }
-
-		~CBlackBox (void) { Shutdown(); }
-
-		void Boot (const CString &sPath);
-		void Log (const CString &sLine);
-		void SetConsoleOutput (bool bEnabled = true) { ::SetConsoleOutputCP(65001); m_bConsoleOut = bEnabled; }
-		void Shutdown (void);
-
-		static bool ReadRecent (const CString &sPath, const CString &sFind, int iLines, TArray<CString> *retLines);
-
-	private:
-		CFile m_File;
-		bool m_bConsoleOut;					//	If TRUE, we also printf to the console
-	};
-
 //	CTimedMessageQueue ---------------------------------------------------------
 
 class CTimedMessageQueue

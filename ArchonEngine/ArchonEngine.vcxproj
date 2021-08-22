@@ -228,7 +228,6 @@
     <ClCompile Include="CMnemosynthEngine.cpp" />
     <ClCompile Include="CAeonInsertSession.cpp" />
     <ClCompile Include="CAeonMutateSession.cpp" />
-    <ClCompile Include="CBlackBox.cpp" />
     <ClCompile Include="CEventProcessingThread.cpp" />
     <ClCompile Include="CMachineStorage.cpp" />
     <ClCompile Include="CMessageSerializerSession.cpp" />
