@@ -405,6 +405,9 @@
     <ClCompile Include="ILogService.cpp">
       <Filter>Source Files\IOInterfaces</Filter>
     </ClCompile>
+    <ClCompile Include="CBlackBox.cpp">
+      <Filter>Source Files\FileIO</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">

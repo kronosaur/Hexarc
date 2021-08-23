@@ -248,6 +248,31 @@ inline bool fileGetFileList (const CString &sFilespec, DWORD dwFlags, TArray<CSt
 
 bool fileSetWorkingDirectory (const CString &sPath);
 
+//	Block Box Implementation ----------------------------------------------------
+
+class CBlackBox : public ILogService
+	{
+	public:
+		CBlackBox (void) { }
+		~CBlackBox (void) { Shutdown(); }
+
+		void Boot (const CString &sPath, const CString &sLogPrefix = NULL_STR, bool bSetConsoleOutput = false);
+		void Log (const CString &sLine);
+		void LogExecVersion (void);
+		void SetConsoleOutput (bool bEnabled = true) { ::SetConsoleOutputCP(65001); m_bConsoleOut = bEnabled; }
+		void Shutdown (void);
+
+		static bool ReadRecent (const CString &sPath, const CString &sFind, int iLines, TArray<CString> *retLines);
+
+		//	ILogService
+
+		virtual void Write (const CString &sLine, ELogClasses iClass = logInfo) override { Log(sLine); }
+
+	private:
+		CFile m_File;
+		bool m_bConsoleOut = false;				//	If TRUE, we also printf to the console
+	};
+
 //	Utilities ------------------------------------------------------------------
 
 class CSaveWorkingDirectory
@@ -278,3 +303,4 @@ class CSaveWorkingDirectory
 	private:
 		CString m_sOldDir;
 	};
+

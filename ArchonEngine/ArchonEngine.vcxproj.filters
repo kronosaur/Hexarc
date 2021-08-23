@@ -48,9 +48,6 @@
     <ClCompile Include="CAeonMutateSession.cpp">
       <Filter>Source Files\Utilities</Filter>
     </ClCompile>
-    <ClCompile Include="CBlackBox.cpp">
-      <Filter>Source Files\Utilities</Filter>
-    </ClCompile>
     <ClCompile Include="CEventProcessingThread.cpp">
       <Filter>Source Files\Utilities</Filter>
     </ClCompile>

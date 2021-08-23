@@ -41,3 +41,4 @@ class IProgressEvents
 		virtual void OnProgressLogError (const CString &sError) { }
         virtual void OnProgressDone (void) { }
     };
+

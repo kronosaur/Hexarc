@@ -5,7 +5,11 @@
 
 #include "stdafx.h"
 
-void CBlackBox::Boot (const CString &sPath)
+DECLARE_CONST_STRING(DEFAULT_PREFIX,					"BlackBox");
+
+DECLARE_CONST_STRING(ERR_UNABLE_TO_GET_VERSION,			"Unable to obtain executable version information.");
+
+void CBlackBox::Boot (const CString &sPath, const CString &sLogPrefix, bool bSetConsoleOutput)
 
 //	Boot
 //
@@ -14,10 +18,15 @@ void CBlackBox::Boot (const CString &sPath)
 	{
 	ASSERT(!m_File.IsOpen());
 
+	CString sPrefix = sLogPrefix;
+	if (sPrefix.IsEmpty())
+		sPrefix = DEFAULT_PREFIX;
+
 	//	Generate a filename using the current date and time
 
 	CDateTime Now(CDateTime::Now);
-	CString sFilename = strPattern("BlackBox_%04d%02d%02d_%02d%02d%02d.log",
+	CString sFilename = strPattern("%s_%04d%02d%02d_%02d%02d%02d.log",
+			sPrefix,
 			Now.Year(),
 			Now.Month(),
 			Now.Day(),
@@ -30,7 +39,10 @@ void CBlackBox::Boot (const CString &sPath)
 	CString sError;
 	if (!m_File.Create(fileAppend(sPath, sFilename), CFile::FLAG_CREATE_ALWAYS, &sError))
 		//	LATER: Handle error somehow.
-		NULL;
+		return;
+
+	if (bSetConsoleOutput)
+		SetConsoleOutput(true);
 	}
 
 void CBlackBox::Log (const CString &sLine)
@@ -40,6 +52,8 @@ void CBlackBox::Log (const CString &sLine)
 //	Log a line
 
 	{
+	bool bConsoleOut = m_bConsoleOut;
+
 	CDateTime Now(CDateTime::Now);
 	CString sOutput = strPattern("%s %s\r\n",
 			Now.Format(CDateTime::dfShort, CDateTime::tfLong24),
@@ -54,10 +68,11 @@ void CBlackBox::Log (const CString &sLine)
 		//	In Debug mode, we always output.
 
 #ifdef DEBUG
-		printf(sOutput);
+		bConsoleOut = true;
 #endif
 		}
-	else if (m_bConsoleOut)
+
+	if (bConsoleOut)
 		{
 		//	Write out to console
 		//	NOTE: We rely on the fact that we called SetConsoleOutputCP(65001),
@@ -65,6 +80,24 @@ void CBlackBox::Log (const CString &sLine)
 
 		printf(sOutput);
 		}
+	}
+
+void CBlackBox::LogExecVersion (void)
+
+//	LogExecVersion
+//
+//	Logs the executable file version.
+
+	{
+	SFileVersionInfo Version;
+	if (!::fileGetVersionInfo(NULL_STR, &Version))
+		{
+		Log(ERR_UNABLE_TO_GET_VERSION);
+		return;
+		}
+
+	Log(strPattern("%s %s", Version.sProductName, Version.sProductVersion));
+	Log(Version.sCopyright);
 	}
 
 bool CBlackBox::ReadRecent (const CString &sPath, const CString &sFind, int iLines, TArray<CString> *retLines)

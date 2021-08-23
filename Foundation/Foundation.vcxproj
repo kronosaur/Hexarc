@@ -227,6 +227,7 @@
     <ClCompile Include="CAttributeList.cpp" />
     <ClCompile Include="CBase64Decoder.cpp" />
     <ClCompile Include="CBase64Encoder.cpp" />
+    <ClCompile Include="CBlackBox.cpp" />
     <ClCompile Include="CBuffer.cpp" />
     <ClCompile Include="CBuffer64.cpp" />
     <ClCompile Include="CBufferedIO.cpp" />
