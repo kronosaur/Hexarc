@@ -168,6 +168,7 @@ class CSimpleEngine : public IArchonEngine, public IArchonMessagePort, protected
 		bool IsFileMsg (const SArchonMessage &Msg, CArchonMessageList *retList);
 		bool IsSandboxMsg (const SArchonMessage &Msg, SArchonMessage *retMsg, CHexeSecurityCtx *retSecurityCtx);
 		void LogCrashProcessingMessage (const SArchonMessage &Msg, const CException &e);
+		void LogMessage (const SArchonMessage &Msg);
 		void LogMessageTiming (const SArchonMessage &Msg, DWORD dwTime);
 		bool ProcessMessageDefault (const SArchonMessage &Msg);
 
@@ -362,6 +363,8 @@ template <class VALUE> class TSimpleEngine : public CSimpleEngine
 			for (i = 0; i < List.GetCount(); i++)
 				{
 				const SArchonMessage &Msg = List[i];
+				if (m_bSpy)
+					LogMessage(Msg);
 
 				DWORD dwStartTime = sysGetTickCount();
 
@@ -428,6 +431,7 @@ template <class VALUE> class TSimpleEngine : public CSimpleEngine
 			}
 
 		CSessionManager m_Sessions;
+		bool m_bSpy = false;
 	};
 
 //	Other utility classes ------------------------------------------------------

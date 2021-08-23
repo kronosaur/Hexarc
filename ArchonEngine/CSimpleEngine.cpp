@@ -19,12 +19,14 @@ DECLARE_CONST_STRING(MSG_ARC_SANDBOX_MSG,				"Arc.sandboxMsg");
 DECLARE_CONST_STRING(MSG_ERROR_PREFIX,					"Error.");
 DECLARE_CONST_STRING(MSG_ERROR_NO_RIGHT,				"Error.notAllowed");
 DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply");
+DECLARE_CONST_STRING(MSG_EXARCH_ON_LOG,					"Exarch.onLog")
 DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error");
 DECLARE_CONST_STRING(MSG_LOG_INFO,						"Log.info");
 DECLARE_CONST_STRING(MSG_OK,							"OK");
 DECLARE_CONST_STRING(MSG_REPLY_DATA,					"Reply.data");
 
 DECLARE_CONST_STRING(STR_SIMPLE_ENGINE,					"CSimpleEngine");
+DECLARE_CONST_STRING(STR_MESSAGE_DESC,					"%s: %s from %s:%x");
 
 DECLARE_CONST_STRING(ERR_CRASH_ON_MSG,					"CRASH: %s [%s]: Unknown crash.");
 DECLARE_CONST_STRING(ERR_EXCEPTION,						"CRASH: %s [%s]: %s");
@@ -241,6 +243,19 @@ void CSimpleEngine::LogCrashProcessingMessage (const SArchonMessage &Msg, const 
 		Log(MSG_LOG_ERROR, strPattern(ERR_EXCEPTION, GetName(), Msg.sMsg, e.GetErrorString()));
 
 	SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, ERR_INTERNAL_SERVER_ERROR, Msg);
+	}
+
+void CSimpleEngine::LogMessage (const SArchonMessage &Msg)
+
+//	LogMessage
+//
+//	Logs a message.
+
+	{
+	if (strEquals(Msg.sMsg, MSG_EXARCH_ON_LOG))
+		return;
+
+	Log(MSG_LOG_INFO, strPattern(STR_MESSAGE_DESC, GetName(), Msg.sMsg, Msg.sReplyAddr, Msg.dwTicket));
 	}
 
 void CSimpleEngine::LogMessageTiming (const SArchonMessage &Msg, DWORD dwTime)
