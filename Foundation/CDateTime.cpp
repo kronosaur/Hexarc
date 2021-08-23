@@ -368,6 +368,27 @@ int CDateTime::DaysSince1AD (void) const
 	return iDays;
 	}
 
+CDateTime CDateTime::FromTick (DWORDLONG dwTick)
+
+//	FromTick
+//
+//	Returns a datetime from the given system tick.
+
+	{
+	CDateTime TimeNow(Now);
+	DWORDLONG dwTicksNow = ::sysGetTickCount64();
+	if (dwTicksNow >= dwTick)
+		{
+		CTimeSpan Span(dwTicksNow - dwTick);
+		return timeSubtractTime(TimeNow, Span);
+		}
+	else
+		{
+		CTimeSpan Span(dwTick - dwTicksNow);
+		return timeAddTime(TImeNow, Span);
+		}
+	}
+
 CString CDateTime::Format (const CString &sFormat) const
 
 //	Format

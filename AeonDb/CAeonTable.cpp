@@ -86,6 +86,8 @@ DECLARE_CONST_STRING(FIELD_IF_MODIFIED_AFTER,			"ifModifiedAfter")
 DECLARE_CONST_STRING(FIELD_KEY,							"key");
 DECLARE_CONST_STRING(FIELD_KEY_SORT,					"keySort");
 DECLARE_CONST_STRING(FIELD_KEY_TYPE,					"keyType");
+DECLARE_CONST_STRING(FIELD_LAST_SAVE_ON,				"lastSaveOn");
+DECLARE_CONST_STRING(FIELD_LAST_UPDATE_ON,				"lastUpdateOn");
 DECLARE_CONST_STRING(FIELD_MODIFIED_BY,					"modifiedBy");
 DECLARE_CONST_STRING(FIELD_MODIFIED_ON,					"modifiedOn");
 DECLARE_CONST_STRING(FIELD_NAME,						"name");
@@ -1441,6 +1443,11 @@ CDatum CAeonTable::GetDesc (void)
 		pDesc->SetElement(FIELD_SECONDARY_VIEWS, CDatum(pArray));
 		}
 
+	//	Stats and other info
+
+	pDesc->SetElement(FIELD_LAST_UPDATE_ON, m_dwLastUpdate);
+	pDesc->SetElement(FIELD_LAST_SAVE_ON, m_dwLastSave);
+
 	return CDatum(pDesc);
 	}
 
@@ -2263,6 +2270,7 @@ bool CAeonTable::Init (const CString &sTablePath, CDatum dDesc, CString *retsErr
 	//	Init
 
 	m_Seq = 1;
+	m_dwLastUpdate = ::sysGetTickCount64();
 
 	//	Done
 
@@ -2433,6 +2441,7 @@ AEONERR CAeonTable::Insert (const CRowKey &Path, CDatum dData, bool bInsertNew, 
 	//	Increment sequence number
 
 	m_Seq++;
+	m_dwLastUpdate = ::sysGetTickCount64();
 
 	//	If we failed to log to the recovery file then it means that the primary
 	//	volume is bad, so we switch to the back up.
@@ -2979,6 +2988,7 @@ AEONERR CAeonTable::Mutate (const CRowKey &Path, CDatum dData, CDatum dMutateDes
 	//	Increment sequence number
 
 	m_Seq++;
+	m_dwLastUpdate = ::sysGetTickCount64();
 
 	//	If we failed to log to the recovery file then it means that the primary
 	//	volume is bad, so we switch to the back up.
@@ -4076,6 +4086,8 @@ bool CAeonTable::Save (CString *retsError)
 		CAeonView *pView = m_Views.GetAt(SegmentsCreated[i].dwViewID);
 		pView->SegmentSaveComplete(SegmentsCreated[i].pSeg);
 		}
+
+	m_dwLastSave = ::sysGetTickCount64();
 
 	//	Outside of the lock we create backups
 

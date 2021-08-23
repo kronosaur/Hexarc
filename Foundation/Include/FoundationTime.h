@@ -63,6 +63,7 @@ class CDateTime
 		CDateTime (SYSTEMTIME &SystemTime) { m_Time = SystemTime; }
 		CDateTime (StandardFormats iFormat, const CString &sValue);
 
+		static CDateTime FromTick (DWORDLONG dwTick);
 		static bool Parse (StandardFormats iFormat, char *pPos, char *pPosEnd, CDateTime *retResult);
 		static bool Parse (StandardFormats iFormat, const char *pPos, const char *pPosEnd, CDateTime &retResult);
 		static bool Parse (StandardFormats iFormat, const CString &sValue, CDateTime *retResult);

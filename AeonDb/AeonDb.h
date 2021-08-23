@@ -817,6 +817,8 @@ class CAeonTable
 		EHousekeepingState m_iHousekeeping = stateReady;	//	If not stateReady then we are busy doing something.
 		CAeonUploadSessions m_UploadSessions;
 		int m_iRowsRecovered = 0;					//	Number of rows recovered on open.
+		DWORDLONG m_dwLastSave = 0;					//	Last save time
+		DWORDLONG m_dwLastUpdate = 0;				//	Last update time
 
 		CHexeProcess m_Process;						//	Hexe process for evaluation
 	};
