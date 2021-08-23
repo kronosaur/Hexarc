@@ -216,8 +216,8 @@ template <class OBJ> class TRefCounted
 	public:
 		TRefCounted (void) : m_dwRefCount(1) { }
 
-		inline OBJ *AddRef (void) { m_dwRefCount++; return reinterpret_cast<OBJ *>(this); }
-		inline void Delete (void) { if (--m_dwRefCount == 0) delete this; }
+		OBJ *AddRef (void) { m_dwRefCount++; return static_cast<OBJ *>(this); }
+		void Delete (void) { if (--m_dwRefCount == 0) delete static_cast<OBJ *>(this); }
 
 	private:
 		int m_dwRefCount;
