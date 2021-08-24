@@ -738,9 +738,8 @@ class CAeonTable
 		static bool ValidateTableName (const CString &sName);
 
 	private:
-//		static constexpr DWORDLONG TABLE_SAVE_THRESHOLD = 5 * 60 * 1000;	//	Wait at least 5 minutes between saves
-		static constexpr DWORDLONG TABLE_SAVE_THRESHOLD = 30 * 1000;	//	Wait at least 5 minutes between saves
-		static constexpr DWORDLONG UPDATE_FREQUENCY_THRESHOLD = 30 * 1000;	//	Do not save within 30 seconds of a table update
+		static constexpr DWORDLONG TABLE_SAVE_THRESHOLD = 24 * 60 * 60 * 1000;	//	Wait at least 24 hours between saves
+		static constexpr DWORDLONG UPDATE_FREQUENCY_THRESHOLD = 60 * 1000;	//	Do not save within 60 seconds of a table update
 
 		enum EHousekeepingState
 			{
