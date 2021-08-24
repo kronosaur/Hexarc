@@ -471,6 +471,8 @@ function arc.tables
 				(= command "")
 					(map (invoke 'Aeon.getTables) Nil theTable {
 						backupVolumes: (@ theTable 'backupVolumes)
+						lastSaveOn: (@ theTable 'lastSaveOn)
+						lastUpdateOn: (@ theTable 'lastUpdateOn)
 						name: (@ theTable 'name)
 						primaryVolume: (@ theTable 'primaryVolume)
 						secondaryViews: (count (@ theTable 'secondaryViews))

@@ -143,7 +143,7 @@ CDatum::CDatum (double rValue)
 //	CDatum constructor
 
 	{
-	DWORD dwID = g_DoubleAlloc.New(rValue);
+	DWORD_PTR dwID = g_DoubleAlloc.New(rValue);
 	m_dwData = (dwID << 4) | AEON_NUMBER_DOUBLE;
 	}
 
@@ -231,15 +231,20 @@ CDatum::CDatum (const CDateTime &DateTime)
 //	CDatum constructor
 
 	{
-	CComplexDateTime *pDateTime = new CComplexDateTime(DateTime);
+	if (DateTime.IsValid())
+		{
+		CComplexDateTime *pDateTime = new CComplexDateTime(DateTime);
 
-	//	Take ownership of the complex type
+		//	Take ownership of the complex type
 
-	g_ComplexAlloc.New(pDateTime);
+		g_ComplexAlloc.New(pDateTime);
 
-	//	Store the pointer and assign type
+		//	Store the pointer and assign type
 
-	m_dwData = ((DWORD_PTR)pDateTime | AEON_TYPE_COMPLEX);
+		m_dwData = ((DWORD_PTR)pDateTime | AEON_TYPE_COMPLEX);
+		}
+	else
+		m_dwData = 0;
 	}
 
 CDatum::CDatum (const CIPInteger &Value)
@@ -1635,13 +1640,13 @@ void CDatum::WriteBinaryToStream (IByteStream &Stream, int iPos, int iLength, IP
 			else
 				iLength = Min(iLength, sData.GetLength() - iPos);
 
-            if (pProgress)
-                pProgress->OnProgressStart();
+			if (pProgress)
+				pProgress->OnProgressStart();
 
 			Stream.Write(sData.GetPointer() + iPos, iLength);
 
-            if (pProgress)
-                pProgress->OnProgressDone();
+			if (pProgress)
+				pProgress->OnProgressDone();
 			break;
 			}
 		}

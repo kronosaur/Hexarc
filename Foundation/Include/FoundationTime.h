@@ -63,6 +63,7 @@ class CDateTime
 		CDateTime (SYSTEMTIME &SystemTime) { m_Time = SystemTime; }
 		CDateTime (StandardFormats iFormat, const CString &sValue);
 
+		static CDateTime FromTick (DWORDLONG dwTick);
 		static bool Parse (StandardFormats iFormat, char *pPos, char *pPosEnd, CDateTime *retResult);
 		static bool Parse (StandardFormats iFormat, const char *pPos, const char *pPosEnd, CDateTime &retResult);
 		static bool Parse (StandardFormats iFormat, const CString &sValue, CDateTime *retResult);
@@ -104,6 +105,7 @@ class CDateTime
 		void SetMillisecond (int iMillisecond) { m_Time.wMilliseconds = iMillisecond; }
 		void SetTime (int iHour, int iMinute, int iSecond, int iMillisecond = 0);
 
+		DWORDLONG AsTick () const;
 		int Age (const CDateTime &Today = CDateTime(Today), int *retiMonths = NULL, int *retiDays = NULL) const;
 		CDateTime AsLocalTime (void) const;
 		CDateTime AsUTC (void) const;

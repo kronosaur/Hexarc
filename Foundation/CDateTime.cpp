@@ -269,6 +269,41 @@ CDateTime CDateTime::AsLocalTime (void) const
 	return Local;
 	}
 
+DWORDLONG CDateTime::AsTick () const
+
+//	AsTick
+//
+//	Returns the datetime as a tick (or 0 if the datetime is before tick 0).
+
+	{
+	if (!IsValid())
+		return 0;
+
+	DWORDLONG dwNow = ::sysGetTickCount64();
+	CDateTime dtNow(Now);
+	
+	//	If we're in the past...
+
+	if (Compare(dtNow) == -1)
+		{
+		CTimeSpan Span = timeSpan(*this, dtNow);
+		DWORDLONG dwSpan = Span.Milliseconds64();
+		if (dwSpan >= dwNow)
+			return 0;
+		else
+			return (dwNow - dwSpan);
+		}
+
+	//	Otherwise, we're in the future
+
+	else
+		{
+		CTimeSpan Span = timeSpan(dtNow, *this);
+		DWORDLONG dwSpan = Span.Milliseconds64();
+		return dwNow + dwSpan;
+		}
+	}
+
 CDateTime CDateTime::AsUTC (void) const
 
 //	AsUTC
@@ -366,6 +401,30 @@ int CDateTime::DaysSince1AD (void) const
 	iDays += Day()-1;
 
 	return iDays;
+	}
+
+CDateTime CDateTime::FromTick (DWORDLONG dwTick)
+
+//	FromTick
+//
+//	Returns a datetime from the given system tick.
+
+	{
+	if (dwTick == 0)
+		return NULL_DATETIME;
+
+	CDateTime TimeNow(Now);
+	DWORDLONG dwTicksNow = ::sysGetTickCount64();
+	if (dwTicksNow >= dwTick)
+		{
+		CTimeSpan Span(dwTicksNow - dwTick);
+		return timeSubtractTime(TimeNow, Span);
+		}
+	else
+		{
+		CTimeSpan Span(dwTick - dwTicksNow);
+		return timeAddTime(TimeNow, Span);
+		}
 	}
 
 CString CDateTime::Format (const CString &sFormat) const
