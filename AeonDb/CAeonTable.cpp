@@ -155,6 +155,7 @@ DECLARE_CONST_STRING(TABLE_TYPE_STANDARD,				"standard");
 
 DECLARE_CONST_STRING(TYPENAME_HEXE_FUNCTION,			"hexeFunction");
 
+DECLARE_CONST_STRING(STR_SAVE_COMPLETE,					"Table %s: Saved updates.");
 DECLARE_CONST_STRING(STR_ERROR_ABSOLUTE_PATH_REQUIRED,	"Absolute filePath expected.");
 DECLARE_CONST_STRING(STR_ERROR_OUT_OF_DATE,				"Another client uploaded a newer version: %s.");
 DECLARE_CONST_STRING(ERR_CRASH,							"Crash: %s.");
@@ -1445,8 +1446,8 @@ CDatum CAeonTable::GetDesc (void)
 
 	//	Stats and other info
 
-	pDesc->SetElement(FIELD_LAST_UPDATE_ON, m_dwLastUpdate);
-	pDesc->SetElement(FIELD_LAST_SAVE_ON, m_dwLastSave);
+	pDesc->SetElement(FIELD_LAST_UPDATE_ON, CDateTime::FromTick(m_dwLastUpdate));
+	pDesc->SetElement(FIELD_LAST_SAVE_ON, CDateTime::FromTick(m_dwLastSave));
 
 	return CDatum(pDesc);
 	}
@@ -2164,6 +2165,21 @@ bool CAeonTable::Housekeeping (DWORD dwMaxMemoryUse)
 	else if ((dwViewID = FindSecondaryViewToUpdate()) != 0)
 		return HousekeepingUpdateView(Lock, dwViewID);
 
+	//	See if we need to flush our data
+
+	else if (SaveChangesNeeded())
+		{
+		CString sError;
+		if (!Save(&sError))
+			{
+			m_pProcess->Log(MSG_LOG_ERROR, strPattern("Unable to save table %s: %s", GetName(), sError));
+			return false;
+			}
+
+		m_pProcess->Log(MSG_LOG_INFO, strPattern(STR_SAVE_COMPLETE, m_sName));
+		return true;
+		}
+
 	//	Otherwise, merge segments
 
 	else
@@ -2270,7 +2286,14 @@ bool CAeonTable::Init (const CString &sTablePath, CDatum dDesc, CString *retsErr
 	//	Init
 
 	m_Seq = 1;
-	m_dwLastUpdate = ::sysGetTickCount64();
+
+	//	Stats
+
+	CDatum dLastSaveOn = dDesc.GetElement(FIELD_LAST_SAVE_ON);
+	m_dwLastSave = ((const CDateTime &)dLastSaveOn).AsTick();
+
+	CDatum dLastUpdateOn = dDesc.GetElement(FIELD_LAST_UPDATE_ON);
+	m_dwLastUpdate = ((const CDateTime &)dLastUpdateOn).AsTick();
 
 	//	Done
 
@@ -4089,6 +4112,12 @@ bool CAeonTable::Save (CString *retsError)
 
 	m_dwLastSave = ::sysGetTickCount64();
 
+	//	Save the desc so we can update the last save time and the last update 
+	//	time.
+
+	if (!SaveDesc())
+		return false;
+
 	//	Outside of the lock we create backups
 
 	Lock.Unlock();
@@ -4107,6 +4136,36 @@ bool CAeonTable::Save (CString *retsError)
 		}
 
 	//	Done
+
+	return true;
+	}
+
+bool CAeonTable::SaveChangesNeeded () const
+
+//	SaveChangesNeeded
+//
+//	Returns TRUE if we need to save changed rows out during housekeeping.
+//	NOTE: We assume the table is locked.
+
+	{
+	//	If we've saved after the last update, then we're OK.
+
+	if (m_dwLastSave >= m_dwLastUpdate)
+		return false;
+
+	//	If we've saved recently, then let changes accumulate.
+
+	DWORDLONG dwNow = ::sysGetTickCount64();
+	if (dwNow - m_dwLastSave < TABLE_SAVE_THRESHOLD)
+		return false;
+
+	//	If the last update was recent, then wait a bit in case there are more
+	//	updates coming.
+
+	if (dwNow - m_dwLastUpdate < UPDATE_FREQUENCY_THRESHOLD)
+		return false;
+
+	//	Save
 
 	return true;
 	}

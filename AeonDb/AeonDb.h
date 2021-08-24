@@ -227,9 +227,9 @@ class CAeonRowArray : public IOrderedRowSet
 		CAeonRowArray (void) { }
 
 		void DeleteAll (void);
-		const CTableDimensions &GetDimensions (void) { return m_Dims; }
-		DWORD GetMemoryUsed (void) { return m_dwMemoryUsed; }
-		int GetUpdateCount (void) { return m_dwChanges; }
+		const CTableDimensions &GetDimensions (void) const { return m_Dims; }
+		DWORD GetMemoryUsed (void) const { return m_dwMemoryUsed; }
+		int GetUpdateCount (void) const { return m_dwChanges; }
 		void Init (const CTableDimensions &Dims);
 		bool Insert (const CRowKey &Key, CDatum dData, SEQUENCENUMBER RowID);
 
@@ -571,7 +571,7 @@ class CAeonView
 		const CAeonSegment &GetSegment (int iIndex) const { return *m_Segments[iIndex]; }
 		int GetSegmentCount (void) { return m_Segments.GetCount(); }
 		bool GetSegmentsToMerge (CAeonSegment **retpSeg1, CAeonSegment **retpSeg2);
-		int GetUpdateCount (void) { return m_pRows->GetUpdateCount(); }
+		int GetUpdateCount (void) const { return m_pRows->GetUpdateCount(); }
 		bool HasRowID (void) { return !IsSecondaryView(); }
 		bool HasUnsavedRows (void) { return (m_pRows->GetCount() > 0); }
 		bool InitAsFileView (const CString &sRecoveryFilespec, int *retiRowsRecovered, CString *retsError);
@@ -738,6 +738,10 @@ class CAeonTable
 		static bool ValidateTableName (const CString &sName);
 
 	private:
+//		static constexpr DWORDLONG TABLE_SAVE_THRESHOLD = 5 * 60 * 1000;	//	Wait at least 5 minutes between saves
+		static constexpr DWORDLONG TABLE_SAVE_THRESHOLD = 30 * 1000;	//	Wait at least 5 minutes between saves
+		static constexpr DWORDLONG UPDATE_FREQUENCY_THRESHOLD = 30 * 1000;	//	Do not save within 30 seconds of a table update
+
 		enum EHousekeepingState
 			{
 			stateReady,						//	We are ready for housekeeping
@@ -790,6 +794,7 @@ class CAeonTable
 		bool RecoveryRestore (void);
 		bool RepairFromBackup (const TArray<CString> &Volumes, CString *retsError);
 		bool RowExists (const CTableDimensions &Dims, CDatum dKey);
+		bool SaveChangesNeeded () const;
 		bool SaveDesc (void);
 		bool SaveDesc (CDatum dDesc, const CString &sFilespec, CString *retsError);
 		bool ValidateVolume (const CString &sVolume, TArray<CString> &retUnused, CString *retsError) const;

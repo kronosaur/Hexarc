@@ -105,6 +105,7 @@ class CDateTime
 		void SetMillisecond (int iMillisecond) { m_Time.wMilliseconds = iMillisecond; }
 		void SetTime (int iHour, int iMinute, int iSecond, int iMillisecond = 0);
 
+		DWORDLONG AsTick () const;
 		int Age (const CDateTime &Today = CDateTime(Today), int *retiMonths = NULL, int *retiDays = NULL) const;
 		CDateTime AsLocalTime (void) const;
 		CDateTime AsUTC (void) const;
