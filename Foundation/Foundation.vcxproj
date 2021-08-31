@@ -299,6 +299,7 @@
     <ClCompile Include="CXLSFontTable.cpp" />
     <ClCompile Include="CXLSXFTable.cpp" />
     <ClCompile Include="CXMLElement.cpp" />
+    <ClCompile Include="CZipFile.cpp" />
     <ClCompile Include="FileIO.cpp" />
     <ClCompile Include="Geometry.cpp" />
     <ClCompile Include="IByteStream64.cpp" />

@@ -16,5 +16,18 @@ enum ECompressionTypes
 	compressionGzip =						2,	//	Gzip format
 	};
 
+class ICompressedFile
+	{
+	public:
+		virtual ~ICompressedFile () { CleanUp(); }
+		virtual void CleanUp () { }
+		virtual bool Decompress (int iIndex, const CString &sDestDir, CString *retsError = NULL) const { return false; }
+		virtual int GetCount () const { return 0; }
+		virtual CString GetFilespec (int iIndex) const { return NULL_STR; }
+		virtual CDateTime GetModifiedOn (int iIndex) const { return CDateTime(); }
+		virtual bool Open (const CString &sFilespec, DWORD dwFlags, CString *retsError = NULL) { return false; }
+	};
+
 void compCompress (IMemoryBlock &Data, ECompressionTypes iType, IMemoryBlock *retBuffer);
 void compDecompress (IMemoryBlock &Data, ECompressionTypes iType, IMemoryBlock *retBuffer);
+TUniquePtr<ICompressedFile> compZipFile (const CString &sFilespec, CString *retsError = NULL);

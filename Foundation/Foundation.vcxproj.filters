@@ -408,6 +408,9 @@
     <ClCompile Include="CBlackBox.cpp">
       <Filter>Source Files\FileIO</Filter>
     </ClCompile>
+    <ClCompile Include="CZipFile.cpp">
+      <Filter>Source Files\Compression</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">

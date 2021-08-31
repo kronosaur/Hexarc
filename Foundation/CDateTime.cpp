@@ -403,6 +403,27 @@ int CDateTime::DaysSince1AD (void) const
 	return iDays;
 	}
 
+CDateTime CDateTime::FromDOSDateTime (DWORD dwDateTime)
+
+//	FromDOSDateTime
+//
+//	Returns a datetime from a DOS date time.
+
+	{
+	const WORD wDOSDate = HIWORD(dwDateTime);
+	const WORD wDOSTime = LOWORD(dwDateTime);
+
+	const int iDay = (wDOSDate & 0x1F);
+	const int iMonth = (wDOSDate & 0x1E0) >> 5;
+	const int iYear = 1980 + (wDOSDate >> 9);
+
+	const int iSecond = 2 * (wDOSTime & 0x1F);
+	const int iMinute = (wDOSTime & 0x7E0) >> 5;
+	const int iHour = wDOSTime >> 11;
+
+	return CDateTime(iDay, iMonth, iYear, iHour, iMinute, iSecond);
+	}
+
 CDateTime CDateTime::FromTick (DWORDLONG dwTick)
 
 //	FromTick

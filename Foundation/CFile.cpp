@@ -258,6 +258,23 @@ bool CFile::SetLength (int iLength)
 	return true;
 	}
 
+bool CFile::SetModifiedTime (const CDateTime &ModifiedOn)
+
+//	SetModifiedTime
+//
+//	Sets the modified time.
+
+	{
+	SYSTEMTIME SystemTime = ModifiedOn.AsSYSTEMTIME();
+	FILETIME ftWrite;
+	::SystemTimeToFileTime(&SystemTime, &ftWrite);
+
+	if (!::SetFileTime(m_hFile, NULL, NULL, &ftWrite))
+		return false;
+
+	return true;
+	}
+
 CString CFile::TranslateError (DWORD dwError)
 
 //	TranslateError

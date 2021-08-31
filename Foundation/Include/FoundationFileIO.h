@@ -41,6 +41,7 @@ class CFile : public IByteStream
 		inline bool IsOpen (void) const { return m_hFile != INVALID_HANDLE_VALUE; }
 		bool Lock (int iPos, int iLength, int iTimeout = 0);
 		bool SetLength (int iLength);
+		bool SetModifiedTime (const CDateTime &ModifiedOn);
 		void Unlock (int iPos, int iLength);
 
 		//	IByteStream virtuals
