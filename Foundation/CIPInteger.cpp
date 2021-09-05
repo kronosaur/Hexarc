@@ -117,6 +117,32 @@ CIPInteger::CIPInteger (DWORDLONG ilSrc)
 	m_bNegative = false;
 	}
 
+CIPInteger::CIPInteger (LONGLONG ilSrc)
+
+//	CIPInteger constructor
+
+	{
+	m_Value = bdNew();
+
+	if (ilSrc < 0)
+		{
+		DWORDLONG dwSource = -ilSrc;
+		BYTE BigEndian[sizeof(DWORDLONG)];
+		utlMemReverse(&dwSource, BigEndian, sizeof(DWORDLONG));
+
+		bdConvFromOctets((BIGD)m_Value, BigEndian, sizeof(DWORDLONG));
+		m_bNegative = true;
+		}
+	else
+		{
+		BYTE BigEndian[sizeof(DWORDLONG)];
+		utlMemReverse(&ilSrc, BigEndian, sizeof(DWORDLONG));
+
+		bdConvFromOctets((BIGD)m_Value, BigEndian, sizeof(DWORDLONG));
+		m_bNegative = false;
+		}
+	}
+
 CIPInteger::CIPInteger (double rSrc)
 
 //	CIPInteger constructor
@@ -339,6 +365,33 @@ CIPInteger CIPInteger::operator / (const CIPInteger &Src) const
 
 	void *NewValue = bdNew();
 	bdDivide_s((BIGD)NewValue, (BIGD)Remainder.m_Value, (BIGD)m_Value, (BIGD)Src.m_Value);
+	bool bNewNegative = (m_bNegative != Src.m_bNegative);
+
+	return CIPInteger(NewValue, bNewNegative);
+	}
+
+CIPInteger &CIPInteger::operator %= (const CIPInteger &Src)
+
+//	CIPInteger operator %=
+
+	{
+	CIPInteger Quotient;
+
+	bdDivide_s((BIGD)Quotient.m_Value, (BIGD)m_Value, (BIGD)m_Value, (BIGD)Src.m_Value);
+	m_bNegative = (m_bNegative != Src.m_bNegative);
+
+	return *this;
+	}
+
+CIPInteger CIPInteger::operator % (const CIPInteger &Src) const
+
+//	CIPInteger operator %
+
+	{
+	CIPInteger Quotient;
+
+	void *NewValue = bdNew();
+	bdDivide_s((BIGD)Quotient.m_Value, (BIGD)NewValue, (BIGD)m_Value, (BIGD)Src.m_Value);
 	bool bNewNegative = (m_bNegative != Src.m_bNegative);
 
 	return CIPInteger(NewValue, bNewNegative);
@@ -586,6 +639,16 @@ bool CIPInteger::IsEmpty (void) const
 
 	{
 	return (bdIsZero((BIGD)m_Value) == -1);
+	}
+
+bool CIPInteger::IsZero () const
+
+//	IsZero
+//
+//	Returns true if 0.
+
+	{
+	return (bdIsZero((BIGD)m_Value) == 1);
 	}
 
 void CIPInteger::TakeHandoff (CIPInteger &Src)

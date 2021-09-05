@@ -33,6 +33,7 @@ class CIPInteger
 		CIPInteger (const CIPInteger &Src);
 		CIPInteger (int iSrc);
 		CIPInteger (DWORDLONG ilSrc);
+		CIPInteger (LONGLONG ilSrc);
 		CIPInteger (double rSrc);
 		~CIPInteger (void);
 
@@ -49,6 +50,8 @@ class CIPInteger
 		CIPInteger operator * (const CIPInteger &Src) const;
 		CIPInteger &operator/= (const CIPInteger &Src);
 		CIPInteger operator / (const CIPInteger &Src) const;
+		CIPInteger &operator%= (const CIPInteger &Src);
+		CIPInteger operator % (const CIPInteger &Src) const;
 
 		int AsByteArray (TArray<BYTE> *retValue) const;
 		int AsInteger32Signed (void) const;
@@ -60,7 +63,8 @@ class CIPInteger
 		void InitFromBytes (const IMemoryBlock &Data);
 		void InitFromString (const CString &sString);
 		bool IsEmpty (void) const;
-		inline bool IsNegative (void) const { return m_bNegative; }
+		bool IsNegative (void) const { return m_bNegative; }
+		bool IsZero () const;
 		static bool Deserialize (IByteStream &Stream, CIPInteger *retpValue);
 		bool Serialize (IByteStream &Stream) const;
 		void TakeHandoff (CIPInteger &Src);

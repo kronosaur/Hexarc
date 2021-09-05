@@ -231,8 +231,7 @@ void CNumberValue::ConvertToIPInteger (void)
 			break;
 
 		case CDatum::typeIntegerIP:
-			ASSERT(false);
-			break;
+			return;
 
 		default:
 			break;
@@ -296,8 +295,11 @@ bool CNumberValue::Divide (CDatum dValue)
 			break;
 
 		case CDatum::typeIntegerIP:
-			//	NOT YET IMPLEMENTED
-			return false;
+			if (Src.GetIPInteger().IsZero())
+				return false;
+
+			SetIPInteger(GetIPInteger() / Src.GetIPInteger());
+			break;
 
 		default:
 			SetInteger(0);
@@ -358,8 +360,11 @@ bool CNumberValue::DivideReversed (CDatum dValue)
 			break;
 
 		case CDatum::typeIntegerIP:
-			//	NOT YET IMPLEMENTED
-			return false;
+			if (GetIPInteger().IsZero())
+				return false;
+
+			SetIPInteger(Src.GetIPInteger() / GetIPInteger());
+			break;
 
 		default:
 			SetInteger(0);
@@ -541,8 +546,11 @@ bool CNumberValue::Mod (CDatum dValue)
 			break;
 
 		case CDatum::typeIntegerIP:
-			//	NOT YET IMPLEMENTED
-			return false;
+			if (Src.GetIPInteger().IsZero())
+				return false;
+
+			SetIPInteger(GetIPInteger() % Src.GetIPInteger());
+			break;
 
 		default:
 			SetInteger(0);
@@ -601,8 +609,19 @@ bool CNumberValue::ModClock (CDatum dValue)
 			}
 
 		case CDatum::typeIntegerIP:
-			//	NOT YET IMPLEMENTED
-			return false;
+			{
+			auto &Dividend = GetIPInteger();
+			auto &Divisor = Src.GetIPInteger();
+			if (Divisor.IsZero())
+				return false;
+
+			CIPInteger Result = Dividend % Divisor;
+			if (Result.IsNegative())
+				SetIPInteger(Divisor + Result);
+			else
+				SetIPInteger(Result);
+			break;
+			}
 
 		default:
 			SetInteger(0);
@@ -625,21 +644,28 @@ void CNumberValue::Multiply (CDatum dValue)
 	switch (m_iType)
 		{
 		case CDatum::typeInteger32:
-			//	LATER: Handle overflow
-			SetInteger(GetInteger() * Src.GetInteger());
+			{
+			LONGLONG Result = (LONGLONG)GetInteger() * (LONGLONG)Src.GetInteger();
+			if (Result <= INT_MAX && Result >= INT_MIN)
+				SetInteger((int)Result);
+			else
+				SetIPInteger(CIPInteger(Result));
 			break;
+			}
 
 		case CDatum::typeInteger64:
-			//	LATER: Handle overflow
-			SetInteger64(GetInteger64() * Src.GetInteger64());
+			{
+			SetIPInteger(CIPInteger(GetInteger64()) * CIPInteger(Src.GetInteger64()));
 			break;
+			}
 
 		case CDatum::typeDouble:
+			//	LATER: Handle overflow?
 			SetDouble(GetDouble() * Src.GetDouble());
 			break;
 
 		case CDatum::typeIntegerIP:
-			//	NOT YET IMPLEMENTED
+			SetIPInteger(GetIPInteger() * Src.GetIPInteger());
 			break;
 
 		default:
@@ -732,14 +758,22 @@ void CNumberValue::Upconvert (CNumberValue &Src)
 //	operations on a common type.
 
 	{
+	//	We always upconvert 64-bit ints to IP.
+
+	if (m_iType == CDatum::typeInteger64 || Src.m_iType == CDatum::typeInteger64)
+		{
+		Src.ConvertToIPInteger();
+		ConvertToIPInteger();
+		}
+
 	//	If already the same type we don't have to do anything.
 
-	if (m_iType == Src.m_iType)
+	else if (m_iType == Src.m_iType)
 		return;
 
 	//	If one is IPInteger then convert the other
 
-	if (m_iType == CDatum::typeIntegerIP)
+	else if (m_iType == CDatum::typeIntegerIP)
 		Src.ConvertToIPInteger();
 	else if (Src.m_iType == CDatum::typeIntegerIP)
 		ConvertToIPInteger();
@@ -750,6 +784,7 @@ void CNumberValue::Upconvert (CNumberValue &Src)
 		Src.ConvertToDouble();
 	else if (Src.m_iType == CDatum::typeDouble)
 		ConvertToDouble();
+
 	else
 		//	Should never get here
 		;
