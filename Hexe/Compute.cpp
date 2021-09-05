@@ -1176,6 +1176,37 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				break;
 				}
 
+			case opPushStructItem:
+				iCount = GetOperand(*m_pIP);
+
+				if (iCount == 2)
+					{
+					CDatum dField = m_Stack.Pop();
+					CDatum dStruct = m_Stack.Pop();
+					m_Stack.Push(dStruct.GetElement(dField.AsString()));
+					}
+				else
+					{
+					m_Stack.Push(CDatum());
+					}
+
+				m_pIP++;
+				break;
+
+			case opSetStructItem:
+				{
+				//	LATER: Check for reference loops
+
+				CDatum dField = m_Stack.Pop();
+				CDatum dStruct = m_Stack.Pop();
+				CDatum dValue = m_Stack.Pop();
+				dStruct.SetElement(dField.AsString(), dValue);
+				m_Stack.Push(dValue);
+
+				m_pIP++;
+				break;
+				}
+
 			case opPop:
 				m_Stack.Pop(GetOperand(*m_pIP));
 				m_pIP++;

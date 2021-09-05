@@ -79,6 +79,8 @@ enum EOpCodes
 	opMod =					0x37000000,
 	opCompareStep =			0x38000000,
 	opIncStep =				0x39000000,
+	opPushStructItem =		0x3a000000,
+	opSetStructItem =		0x3b000000,
 
 	opHalt =				0xff000000,
 
