@@ -136,6 +136,13 @@ class CCircularBuffer : public IByteStream
 	{
 	public:
 		CCircularBuffer (int iSize = 16 * 1024);
+		CCircularBuffer (const CCircularBuffer &Src) = delete;
+		CCircularBuffer (CCircularBuffer &&Src) noexcept { Move(Src); }
+
+		virtual ~CCircularBuffer () { CleanUp(); }
+
+		CCircularBuffer &operator= (const CCircularBuffer &Src) = delete;
+		CCircularBuffer &operator= (CCircularBuffer &&Src) noexcept { CleanUp(); Move(Src); return *this; }
 
 		int Scan (const CString &sString) const;
 
@@ -151,19 +158,28 @@ class CCircularBuffer : public IByteStream
 		using IByteStream::Write;
 
 	private:
-		char *m_pBuffer;
-		int m_iAlloc;
+		void CleanUp ();
+		void Move (CCircularBuffer &Src);
 
-		int m_iReadPos;
-		int m_iWritePos;
+		char *m_pBuffer = NULL;
+		int m_iAlloc = 0;
+
+		int m_iReadPos = 0;
+		int m_iWritePos = 0;
 	};
 
 class CMemoryBuffer : public CMemoryBlockImpl
 	{
 	public:
 		CMemoryBuffer (int iMaxSize = 0);
+		CMemoryBuffer (const CMemoryBuffer &Src) = delete;
+		CMemoryBuffer (CMemoryBuffer &&Src) noexcept { Move(Src); }
 		CMemoryBuffer (void *pSource, int iLength);
-		virtual ~CMemoryBuffer (void);
+
+		virtual ~CMemoryBuffer (void) { CleanUp(); }
+
+		CMemoryBuffer &operator= (const CMemoryBuffer &Src) = delete;
+		CMemoryBuffer &operator= (CMemoryBuffer &&Src) noexcept { CleanUp(); Move(Src); return *this; }
 
 		//	IMemoryBlock virtuals
 		virtual int GetLength (void) const override { return m_iCurrentSize; }
@@ -171,13 +187,15 @@ class CMemoryBuffer : public CMemoryBlockImpl
 		virtual void SetLength (int iLength);
 
 	private:
+		void CleanUp ();
 		bool IsConstant (void) { return (m_iMaxSize == -1); }
+		void Move (CMemoryBuffer &Src);
 
-		int m_iMaxSize;
-		int m_iCommittedSize;
-		int m_iCurrentSize;
+		int m_iMaxSize = 0;
+		int m_iCommittedSize = 0;
+		int m_iCurrentSize = 0;
 
-		char *m_pBlock;
+		char *m_pBlock = NULL;
 	};
 
 class CSharedMemoryBuffer : public CMemoryBlockImpl
@@ -248,7 +266,13 @@ class CBufferedIO : public IByteStream
 	{
 	public:
 		CBufferedIO (IByteStream &Stream, int iBufferSize = 64 * 1024);
+		CBufferedIO (const CBufferedIO &Src) = delete;
+		CBufferedIO (CBufferedIO &&Src) = delete;
+
 		~CBufferedIO (void);
+
+		CBufferedIO &operator= (const CBufferedIO &Src) = delete;
+		CBufferedIO &operator= (CBufferedIO &&Src) = delete;
 
 		void Flush (void);
 
@@ -303,7 +327,13 @@ class CBase64Encoder : public IByteStream
 	{
 	public:
 		CBase64Encoder (IByteStream *pOutput, DWORD dwFlags = 0);
+		CBase64Encoder (const CBase64Encoder &Src) = delete;
+		CBase64Encoder (CBase64Encoder &&Src) = delete;
+
 		~CBase64Encoder (void) { Close(); }
+
+		CBase64Encoder &operator= (const CBase64Encoder &Src) = delete;
+		CBase64Encoder &operator= (CBase64Encoder &&Src) = delete;
 
 		void Close (void);
 

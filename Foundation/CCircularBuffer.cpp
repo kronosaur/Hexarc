@@ -23,6 +23,44 @@ CCircularBuffer::CCircularBuffer (int iSize) :
 	m_iAlloc = iSize;
 	}
 
+void CCircularBuffer::CleanUp ()
+
+//	CleanUp
+//
+//	Free up all allocations.
+
+	{
+	if (m_pBuffer)
+		{
+		delete [] m_pBuffer;
+		m_pBuffer = NULL;
+		}
+
+	m_iAlloc = 0;
+	m_iReadPos = 0;
+	m_iWritePos = 0;
+	}
+
+void CCircularBuffer::Move (CCircularBuffer &Src)
+
+//	Move
+//
+//	Take handoff
+
+	{
+	CleanUp();
+
+	m_pBuffer = Src.m_pBuffer;
+	m_iAlloc = Src.m_iAlloc;
+	m_iReadPos = Src.m_iReadPos;
+	m_iWritePos = Src.m_iWritePos;
+
+	Src.m_pBuffer = NULL;
+	Src.m_iAlloc = 0;
+	Src.m_iReadPos = 0;
+	Src.m_iWritePos = 0;
+	}
+
 int CCircularBuffer::GetStreamLength (void)
 
 //	GetStreamLength
@@ -30,6 +68,9 @@ int CCircularBuffer::GetStreamLength (void)
 //	Returns the remaining length of the stream
 
 	{
+	if (!m_pBuffer)
+		return 0;
+
 	return (m_iWritePos - m_iReadPos + m_iAlloc) % m_iAlloc;
 	}
 
@@ -40,6 +81,9 @@ int CCircularBuffer::Read (void *pData, int iLength)
 //	Reads the stream
 
 	{
+	if (!m_pBuffer)
+		throw CException(errFail);
+
 	if (iLength == -1)
 		iLength = GetStreamLength();
 	else
@@ -84,6 +128,9 @@ int CCircularBuffer::Scan (const CString &sString) const
 //	(or -1 if not found).
 
 	{
+	if (!m_pBuffer)
+		throw CException(errFail);
+
 	int iPos = m_iReadPos;
 	char *pSrc = sString.GetParsePointer();
 	char *pSrcEnd = pSrc + sString.GetLength();
@@ -131,6 +178,9 @@ int CCircularBuffer::Write (const void *pData, int iLength)
 //	Writes to the end of the stream
 
 	{
+	if (!m_pBuffer)
+		throw CException(errFail);
+
 	//	See how much room we have to write
 
 	int iSpaceLeft = ((m_iReadPos - 1) - m_iWritePos + m_iAlloc) % m_iAlloc;

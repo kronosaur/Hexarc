@@ -9,10 +9,7 @@ const int ALLOC_SIZE =						4096;
 const int DEFAULT_MAX_SIZE =				1024 * 1024;
 
 CMemoryBuffer::CMemoryBuffer (int iMaxSize) :
-		m_iMaxSize(iMaxSize > 0 ? AlignUp(iMaxSize, ALLOC_SIZE) : DEFAULT_MAX_SIZE),
-		m_iCommittedSize(0),
-		m_iCurrentSize(0),
-		m_pBlock(NULL)
+		m_iMaxSize(iMaxSize > 0 ? AlignUp(iMaxSize, ALLOC_SIZE) : DEFAULT_MAX_SIZE)
 
 //	CMemoryBuffer constructor
 
@@ -35,9 +32,11 @@ CMemoryBuffer::CMemoryBuffer (void *pSource, int iLength) :
 	{
 	}
 
-CMemoryBuffer::~CMemoryBuffer (void)
+void CMemoryBuffer::CleanUp ()
 
-//	CMemoryBuffer destructor
+//	CleanUp
+//
+//	Free everything.
 
 	{
 	if (m_pBlock && !IsConstant())
@@ -45,6 +44,29 @@ CMemoryBuffer::~CMemoryBuffer (void)
 		::VirtualFree(m_pBlock, m_iCommittedSize, MEM_DECOMMIT);
 		::VirtualFree(m_pBlock, 0, MEM_RELEASE);
 		}
+
+	m_pBlock = NULL;
+	m_iMaxSize = 0;
+	m_iCommittedSize = 0;
+	m_iCurrentSize = 0;
+	}
+
+void CMemoryBuffer::Move (CMemoryBuffer &Src)
+
+//	Move
+//
+//	Take handoff
+
+	{
+	m_pBlock = Src.m_pBlock;
+	m_iMaxSize = Src.m_iMaxSize;
+	m_iCommittedSize = Src.m_iCommittedSize;
+	m_iCurrentSize = Src.m_iCurrentSize;
+
+	Src.m_pBlock = NULL;
+	Src.m_iMaxSize = 0;
+	Src.m_iCommittedSize = 0;
+	Src.m_iCurrentSize  = 0;
 	}
 
 void CMemoryBuffer::SetLength (int iLength)
@@ -98,7 +120,8 @@ void CMemoryBuffer::SetLength (int iLength)
 
 			//	Free original
 
-			::VirtualFree(m_pBlock, 0, MEM_RELEASE);
+			if (m_pBlock)
+				::VirtualFree(m_pBlock, 0, MEM_RELEASE);
 
 			//	Flip over
 
