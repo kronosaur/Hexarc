@@ -26,6 +26,20 @@ void mathShuffledRange (int iFrom, int iTo, TArray<int> *retResult);
 
 //	CIPInteger -----------------------------------------------------------------
 
+//#define USE_BOOST_MULTIPRECISION
+#ifdef USE_BOOST_MULTIPRECISION
+#include <boost/multiprecision/cpp_int.hpp>
+
+class CIPInteger
+	{
+	public:
+
+	private:
+		boost::multiprecision::cpp_int m_Value;
+	};
+
+#else
+
 class CIPInteger
 	{
 	public:
@@ -76,6 +90,8 @@ class CIPInteger
 		void *m_Value;
 		bool m_bNegative;
 	};
+
+#endif
 
 inline int KeyCompare (const CIPInteger &Key1, const CIPInteger &Key2) { return Key1.Compare(Key2); }
 

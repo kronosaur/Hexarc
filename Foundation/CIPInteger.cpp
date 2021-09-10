@@ -41,6 +41,9 @@
 //*************** END OF COPYRIGHT AND LICENCE NOTICE ********************/
 
 #include "stdafx.h"
+
+#ifndef USE_BOOST_MULTIPRECISION
+
 #include "BigDigits\bigd.h"
 #include "BigDigits\bigdRand.h"
 
@@ -705,3 +708,5 @@ void CIPInteger::WriteBytes (IByteStream &Stream) const
 	Stream.Write(pTemp, dwSize);
 	delete [] pTemp;
 	}
+
+#endif

@@ -12,6 +12,8 @@
 
 openssl-1.0.1j/
 
+Foundation/Boost/*
+
 #################
 ## Eclipse
 #################
