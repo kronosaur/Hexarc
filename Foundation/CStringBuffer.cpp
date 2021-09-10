@@ -20,13 +20,19 @@ CStringBuffer::CStringBuffer (CString &&Src) noexcept
 		}
 	}
 
-CStringBuffer::~CStringBuffer (void)
+void CStringBuffer::CleanUp ()
 
-//	CStringBuffer destructor
+//	CleanUp
+//
+//	Free everything
 
 	{
 	if (m_iAlloc > 0)
+		{
 		delete [] GetBuffer();
+		m_pString = NULL;
+		m_iAlloc = 0;
+		}
 	}
 
 LPSTR CStringBuffer::Handoff (void)
@@ -48,6 +54,20 @@ LPSTR CStringBuffer::Handoff (void)
 	Seek(0);
 
 	return pString;
+	}
+
+void CStringBuffer::Move (CStringBuffer &Src)
+
+//	Move
+//
+//	Moves buffer; we assume that the buffer is pristine.
+
+	{
+	m_pString = Src.m_pString;
+	m_iAlloc = Src.m_iAlloc;
+
+	Src.m_pString = NULL;
+	Src.m_iAlloc = 0;
 	}
 
 void CStringBuffer::SetLength (int iLength)

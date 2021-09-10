@@ -211,10 +211,15 @@ class CStringBuffer : public CMemoryBlockImpl
 	{
 	public:
 		CStringBuffer (void) { }
+		CStringBuffer (const CStringBuffer &Src) = delete;
+		CStringBuffer (CStringBuffer &&Src) noexcept { Move(Src); }
 		CStringBuffer (LPSTR pString) : m_pString(pString) { }
 		CStringBuffer (const CString &sString) : m_pString((LPSTR)sString) { }
 		CStringBuffer (CString &&Src) noexcept;
-		~CStringBuffer (void);
+		~CStringBuffer (void) { CleanUp(); }
+
+		CStringBuffer &operator= (const CStringBuffer &Src) = delete;
+		CStringBuffer &operator= (CStringBuffer &&Src) noexcept	{ CleanUp(); Move(Src); return *this; }
 
 		operator LPSTR () const { return m_pString; }
 		operator const CString & () const { return *(CString *)&m_pString; }
@@ -227,6 +232,8 @@ class CStringBuffer : public CMemoryBlockImpl
 		virtual void SetLength (int iLength) override;
 
 	private:
+		void CleanUp ();
+		void Move (CStringBuffer &Src);
 		char *GetBuffer (void) const { return (char *)(m_pString - sizeof(int)); }
 		int GetLengthParameter (void) const { return *((int *)GetBuffer()); }
 		void SetLengthParameter (int iLen) { *((int *)GetBuffer()) = iLen; }
