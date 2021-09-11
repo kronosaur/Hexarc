@@ -145,7 +145,7 @@ CDatum CAeonRowValue::ItemToValue (SItemHeader *pItem)
 	CMemoryBuffer Buffer(&pItem[1], pItem->dwSize);
 
 	CDatum dValue;
-	if (!CDatum::Deserialize(CDatum::formatAEONScript, Buffer, &dValue))
+	if (!CDatum::Deserialize(CDatum::EFormat::AEONScript, Buffer, &dValue))
 		//	LATER: Need to handle this better
 		throw CException(errFail);
 
@@ -249,7 +249,7 @@ void CAeonRowValue::SetValue (CDatum dValue)
 
 	{
 	CMemoryBuffer Buffer(4096);
-	dValue.Serialize(CDatum::formatAEONScript, Buffer);
+	dValue.Serialize(CDatum::EFormat::AEONScript, Buffer);
 
 	//	Allocate a new block
 

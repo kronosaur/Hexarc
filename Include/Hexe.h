@@ -132,12 +132,12 @@ class CHexeError : public TExternalDatum<CHexeError>
 		virtual CString AsString (void) const override { return m_sDescription; }
 		virtual const CString &CastCString (void) const override { return m_sDescription; }
 		virtual bool IsError (void) const override { return true; }
-		virtual void Serialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const override;
+		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
 
 	protected:
 		//	IComplexDatum
-		virtual bool OnDeserialize (CDatum::ESerializationFormats iFormat, const CString &sTypename, IByteStream &Stream) override;
-		virtual void OnSerialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const override;
+		virtual bool OnDeserialize (CDatum::EFormat iFormat, const CString &sTypename, IByteStream &Stream) override;
+		virtual void OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
 
 	private:
 		CString m_sError;
@@ -314,7 +314,7 @@ class CHexeProcess : public IInvokeCtx
 
 		DWORDLONG m_dwMaxExecutionTime = 0;			//	Do not allow execution to exceed this amount of time (in ms)
 		DWORDLONG m_dwAbortTime = 0;				//	Abort at this tick (0 = never abort)
-		bool m_bAddConcatenatesStrings = false;	//	If TRUE, then + will concatenate string (instead of converting 
+		bool m_bAddConcatenatesStrings = false;		//	If TRUE, then + will concatenate string (instead of converting 
 													//		them to numbers).
 
 		//	Execution State

@@ -102,7 +102,7 @@ void CHexeCode::Create (const CHexeCodeIntermediate &Intermediate, int iEntryPoi
 		else
 			{
 			CStringBuffer Stream;
-			dSource.Serialize(CDatum::formatAEONScript, Stream);
+			dSource.Serialize(CDatum::EFormat::AEONScript, Stream);
 			sSource.TakeHandoff(Stream);
 			iBlockType = blockDatum;
 			}
@@ -251,7 +251,7 @@ void CHexeCode::CreateInvokeCall (const TArray<CDatum> &Args, CDatum *retdEntryP
 
 	//	Push the invoke code
 
-	CodeBlocks.WriteShortOpCode(iBlock, opMakePrimitive, CDatum::primitiveInvoke);
+	CodeBlocks.WriteShortOpCode(iBlock, opMakePrimitive, (DWORD)CDatum::ECallType::Invoke);
 
 	//	Push all the arguments
 
@@ -296,7 +296,7 @@ CDatum CHexeCode::GetDatum (int iOffset)
 
 	CStringBuffer Data(sData);
 	CDatum dDatum;
-	if (!CDatum::Deserialize(CDatum::formatAEONScript, Data, &dDatum))
+	if (!CDatum::Deserialize(CDatum::EFormat::AEONScript, Data, &dDatum))
 		CHexeError::Create(NULL_STR, strPattern(ERR_INVALID_LITERAL, sData), &dDatum);
 
 	//	Done
@@ -313,7 +313,7 @@ int CHexeCode::GetOperandInt (DWORD dwCode)
 		return (int)dwOperand;
 	}
 
-bool CHexeCode::OnDeserialize (CDatum::ESerializationFormats iFormat, const CString &sTypename, IByteStream &Stream)
+bool CHexeCode::OnDeserialize (CDatum::EFormat iFormat, const CString &sTypename, IByteStream &Stream)
 
 //	OnDeserialize
 //
@@ -331,7 +331,7 @@ bool CHexeCode::OnDeserialize (CDatum::ESerializationFormats iFormat, const CStr
 	return true;
 	}
 
-void CHexeCode::OnSerialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const
+void CHexeCode::OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const
 
 //	OnSerialize
 //

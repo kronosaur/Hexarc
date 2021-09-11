@@ -435,7 +435,7 @@ bool CExarchUpgradeSession::ReadFileList (const CString &sConfigFilespec, CStrin
 	//	Load the config file
 
 	CDatum dConfig;
-	if (!CDatum::CreateFromFile(sConfigFilespec, CDatum::formatAEONScript, &dConfig, retsError))
+	if (!CDatum::CreateFromFile(sConfigFilespec, CDatum::EFormat::AEONScript, &dConfig, retsError))
 		return false;
 
 	CDatum dUpgradeDesc = dConfig.GetElement(FIELD_UPGRADE_DESC);
@@ -572,7 +572,7 @@ bool CExarchUpgradeSession::SaveFile (const SFileEntry &Entry, CString *retsErro
 	//	Read the file into a CDatum binary object
 
 	CDatum dData;
-	if (!CDatum::CreateFromFile(Entry.sFilespec, CDatum::formatBinary, &dData, &sError))
+	if (!CDatum::CreateFromFile(Entry.sFilespec, CDatum::EFormat::Binary, &dData, &sError))
 		{
 		if (retsError) *retsError = strPattern(ERR_CANT_LOAD_FILE, Entry.sFilespec);
 		return false;

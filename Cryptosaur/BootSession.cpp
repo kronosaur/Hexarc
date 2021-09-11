@@ -189,7 +189,7 @@ bool CBootSession::OnProcessMessage (const SArchonMessage &Msg)
 			m_iState = State::creatingKeyTable;
 
 			CDatum dTableDesc;
-			CDatum::Deserialize(CDatum::formatAEONScript, CStringBuffer(KEYS_TABLE_DESC), &dTableDesc);
+			CDatum::Deserialize(CDatum::EFormat::AEONScript, CStringBuffer(KEYS_TABLE_DESC), &dTableDesc);
 
 			CComplexArray *pPayload = new CComplexArray;
 			pPayload->Insert(dTableDesc);
@@ -216,7 +216,7 @@ bool CBootSession::OnProcessMessage (const SArchonMessage &Msg)
 			m_iState = State::creatingCertificatesTable;
 
 			CDatum dTableDesc;
-			CDatum::Deserialize(CDatum::formatAEONScript, CStringBuffer(CERTIFICATES_TABLE_DESC), &dTableDesc);
+			CDatum::Deserialize(CDatum::EFormat::AEONScript, CStringBuffer(CERTIFICATES_TABLE_DESC), &dTableDesc);
 
 			CComplexArray *pPayload = new CComplexArray;
 			pPayload->Insert(dTableDesc);
@@ -243,7 +243,7 @@ bool CBootSession::OnProcessMessage (const SArchonMessage &Msg)
 			m_iState = State::creatingAccountsTable;
 
 			CDatum dTableDesc;
-			CDatum::Deserialize(CDatum::formatAEONScript, CStringBuffer(ACCOUNTS_TABLE_DESC), &dTableDesc);
+			CDatum::Deserialize(CDatum::EFormat::AEONScript, CStringBuffer(ACCOUNTS_TABLE_DESC), &dTableDesc);
 
 			CDatum dPayload(CDatum::typeArray);
 			dPayload.Append(dTableDesc);

@@ -1761,7 +1761,7 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 			}
 
 		case STR_TO_JSON:
-			*retdResult = dLocalEnv.GetElement(0).SerializeToString(CDatum::formatJSON);
+			*retdResult = dLocalEnv.GetElement(0).SerializeToString(CDatum::EFormat::JSON);
 			return true;
 
 		case STR_TYPE_OF:

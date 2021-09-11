@@ -91,7 +91,7 @@ DECLARE_CONST_STRING(ERR_UNEXPECTED_TOKEN_IN_STRUCT,	"Unexpected token in struct
 
 const int MAX_IN_MEMORY_SIZE =							4 * 1024 * 1024;
 
-size_t CDatum::CalcSerializeSizeAEONScript (ESerializationFormats iFormat) const
+size_t CDatum::CalcSerializeSizeAEONScript (EFormat iFormat) const
 
 //	CalcSerializeSizeAEONScript
 //
@@ -124,7 +124,7 @@ size_t CDatum::CalcSerializeSizeAEONScript (ESerializationFormats iFormat) const
 					{
 					switch (m_dwData)
 						{
-						case constTrue:
+						case CONST_TRUE:
 							TotalSize = 4;	//	"true"
 							break;
 
@@ -184,7 +184,7 @@ bool CDatum::DeserializeAEONScript (IByteStream &Stream, IAEONParseExtension *pE
 	return true;
 	}
 
-void CDatum::SerializeAEONScript (ESerializationFormats iFormat, IByteStream &Stream) const
+void CDatum::SerializeAEONScript (EFormat iFormat, IByteStream &Stream) const
 
 //	SerializeAEONScript
 //
@@ -215,7 +215,7 @@ void CDatum::SerializeAEONScript (ESerializationFormats iFormat, IByteStream &St
 					{
 					switch (m_dwData)
 						{
-						case constTrue:
+						case CONST_TRUE:
 							Stream.Write("true", 4);
 							break;
 
@@ -554,7 +554,7 @@ CAEONScriptParser::ETokens CAEONScriptParser::ParseExternal (CDatum *retDatum)
 
 	//	Deserialize the object
 
-	if (!pDatum->DeserializeAEONScript(CDatum::formatAEONScript, dTypename, m_pStream))
+	if (!pDatum->DeserializeAEONScript(CDatum::EFormat::AEONScript, dTypename, m_pStream))
 		return tkError;
 
 	//	Parse the closing bracket

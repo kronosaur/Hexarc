@@ -146,7 +146,7 @@ void CCryptosaurEngine::MsgCreateUser (const SArchonMessage &Msg, const CHexeSec
 		CComplexStruct *pAuthDesc = new CComplexStruct;
 
 		pAuthDesc->SetElement(FIELD_TYPE, AUTH_TYPE_SHA1);
-		pAuthDesc->SetElement(FIELD_ACTUAL, CDatum(CDatum::constTrue));
+		pAuthDesc->SetElement(FIELD_ACTUAL, CDatum(true));
 
 		CIPInteger Credentials;
 		CCryptosaurInterface::CreateCredentials(sUsername, dAuthDesc.GetElement(FIELD_PASSWORD), &Credentials);

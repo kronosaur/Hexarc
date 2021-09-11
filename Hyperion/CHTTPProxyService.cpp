@@ -40,8 +40,8 @@ bool CHTTPProxyService::OnHandleRequest (SHTTPRequestCtx &Ctx)
 	//	Options
 
 	CComplexStruct *pOptions = new CComplexStruct;
-	pOptions->SetElement(FIELD_PROXY, CDatum(CDatum::constTrue));
-	pOptions->SetElement(FIELD_RAW, CDatum(CDatum::constTrue));
+	pOptions->SetElement(FIELD_PROXY, CDatum(true));
+	pOptions->SetElement(FIELD_RAW, CDatum(true));
 
 	//	Get the headers of the request
 

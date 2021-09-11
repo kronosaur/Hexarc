@@ -506,7 +506,7 @@ bool CEsperAMP1ConnectionOut::SerializeAMP1Request (const CString &sCommand, CDa
 	//	Write the data (and keep track of how much we write)
 
 	int iStartPos = Stream.GetPos();
-	dData.Serialize(CDatum::formatAEONScript, Stream);
+	dData.Serialize(CDatum::EFormat::AEONScript, Stream);
 	int iDataLength = Stream.GetPos() - iStartPos;
 
 	//	Write the end

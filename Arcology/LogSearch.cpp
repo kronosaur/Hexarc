@@ -151,7 +151,7 @@ void CDrHouseEngine::MsgGetLogSearch (const SArchonMessage &Msg, const CHexeSecu
 
 	CDatum dResponse(CDatum::typeStruct);
 	if (!dResult.IsNil())
-		dResponse.SetElement(FIELD_COMPLETE, CDatum(CDatum::constTrue));
+		dResponse.SetElement(FIELD_COMPLETE, CDatum(true));
 
 	dResponse.SetElement(FIELD_ID, dwID);
 	dResponse.SetElement(FIELD_LINES_SEARCHED, dwLinesSearched);

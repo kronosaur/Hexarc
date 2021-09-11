@@ -300,7 +300,7 @@ bool CUserInfoSession::OnProcessMessage (const SArchonMessage &Msg)
 
 			//	We have all rights
 
-			SendMessageReply(MSG_REPLY_DATA, CDatum(CDatum::constTrue));
+			SendMessageReply(MSG_REPLY_DATA, CDatum(true));
 			return false;
 			}
 

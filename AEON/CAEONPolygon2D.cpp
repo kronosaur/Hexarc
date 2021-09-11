@@ -142,7 +142,7 @@ void CAEONPolygon2D::OnMarked (void)
 	{
 	}
 
-size_t CAEONPolygon2D::OnCalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const
+size_t CAEONPolygon2D::OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const
 
 //	OnCalcSerializeSizeAEONScript
 //
@@ -152,7 +152,7 @@ size_t CAEONPolygon2D::OnCalcSerializeSizeAEONScript (CDatum::ESerializationForm
 	return 0;	//	Not Yet Implemented
 	}
 
-void CAEONPolygon2D::OnSerialize (CDatum::ESerializationFormats iFormat, CComplexStruct *pStruct) const
+void CAEONPolygon2D::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const
 
 //	OnSerialize
 //

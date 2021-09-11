@@ -807,7 +807,7 @@ bool CUnitTestSession::OnProcessMessage (const SArchonMessage &Msg)
 	else
 		{
 		CBuffer Buffer(4096);
-		Msg.dPayload.Serialize(CDatum::formatAEONScript, Buffer);
+		Msg.dPayload.Serialize(CDatum::EFormat::AEONScript, Buffer);
 
 		sResponse = CString(Buffer.GetPointer(), Buffer.GetLength());
 		}

@@ -101,7 +101,7 @@ void CHexeLocalEnvironment::OnMarked (void)
 	m_dParentEnv.Mark();
 	}
 
-void CHexeLocalEnvironment::OnSerialize (CDatum::ESerializationFormats iFormat, CComplexStruct *pStruct) const
+void CHexeLocalEnvironment::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const
 
 //	OnSerialize
 //

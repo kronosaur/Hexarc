@@ -82,7 +82,7 @@ bool CHexeCodeRPCService::ComposeResponse (SHTTPRequestCtx &Ctx, CHexeProcess::E
 
 		CArchonTimer Timer;
 
-		dResult.Serialize(CDatum::formatJSON, Buffer);
+		dResult.Serialize(CDatum::EFormat::JSON, Buffer);
 		pBody->DecodeFromBuffer(MEDIA_TYPE_JSON, Buffer);
 
 		Timer.LogTime(Ctx.pSession->GetEngine()->GetProcessCtx(), ERR_JSON_SERIALIZE_TIME_WARNING);

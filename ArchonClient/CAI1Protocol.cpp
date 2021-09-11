@@ -29,7 +29,7 @@ CDatum CAI1Protocol::CreateAuthDescSHAPassword (const CString &sUsername, const 
 
 	CComplexStruct *pAuthDesc = new CComplexStruct;
 	pAuthDesc->SetElement(FIELD_TYPE, AUTH_TYPE_SHA1);
-	pAuthDesc->SetElement(FIELD_ACTUAL, CDatum(CDatum::constTrue));
+	pAuthDesc->SetElement(FIELD_ACTUAL, CDatum(true));
 	pAuthDesc->SetElement(FIELD_CREDENTIALS, dCredentials);
 
 	return CDatum(pAuthDesc);

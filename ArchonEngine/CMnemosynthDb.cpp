@@ -95,7 +95,7 @@ void CMnemosynthDb::DebugDump (IByteStream &Stream)
 
 			SEntry *pEntry = &pCollection->Entries[j];
 			Stream.Write("\t\t", 2);
-			pEntry->dValue.Serialize(CDatum::formatAEONScript, Stream);
+			pEntry->dValue.Serialize(CDatum::EFormat::AEONScript, Stream);
 			Stream.Write("\n", 1);
 			}
 		}

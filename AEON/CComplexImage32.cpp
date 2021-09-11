@@ -27,7 +27,7 @@ const CString &CComplexImage32::GetTypename (void) const
 	return TYPENAME_IMAGE32;
 	}
 
-size_t CComplexImage32::OnCalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const
+size_t CComplexImage32::OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const
 
 //	OnCalcSerializeSizeAEONScript
 //
@@ -37,7 +37,7 @@ size_t CComplexImage32::OnCalcSerializeSizeAEONScript (CDatum::ESerializationFor
 	return CalcMemorySize();
 	}
 
-bool CComplexImage32::OnDeserialize (CDatum::ESerializationFormats iFormat, const CString &sTypename, IByteStream &Stream)
+bool CComplexImage32::OnDeserialize (CDatum::EFormat iFormat, const CString &sTypename, IByteStream &Stream)
 
 //	OnDeserialize
 //
@@ -46,7 +46,7 @@ bool CComplexImage32::OnDeserialize (CDatum::ESerializationFormats iFormat, cons
 	{
 	switch (iFormat)
 		{
-		case CDatum::formatJSON:
+		case CDatum::EFormat::JSON:
 			{
 			CBuffer Buffer;
 			Buffer.SetLength(Stream.GetStreamLength());
@@ -73,7 +73,7 @@ bool CComplexImage32::OnDeserialize (CDatum::ESerializationFormats iFormat, cons
 		}
 	}
 
-void CComplexImage32::OnSerialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const
+void CComplexImage32::OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const
 
 //	OnSerialize
 //
@@ -84,7 +84,7 @@ void CComplexImage32::OnSerialize (CDatum::ESerializationFormats iFormat, IByteS
 		{
 		//	Always serialize to a PNG.
 
-		case CDatum::formatJSON:
+		case CDatum::EFormat::JSON:
 			CPNG::Save(m_Image, Stream);
 			break;
 

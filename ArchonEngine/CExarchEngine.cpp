@@ -832,7 +832,7 @@ void CExarchEngine::ExecuteProtocolAMP1 (CArcologySession *pCtx, const CString &
 	//	Read the input type
 
 	CDatum dDatum;
-	if (!CDatum::Deserialize(CDatum::formatAEONScript, Buffer, &dDatum))
+	if (!CDatum::Deserialize(CDatum::EFormat::AEONScript, Buffer, &dDatum))
 		{
 		*retsOutput = strPattern("%s ERROR 0 %s", STR_PROTOCOL_AMP1_00, MSG_ERROR_UNABLE_TO_INTERPRET);
 		return;
@@ -858,7 +858,7 @@ void CExarchEngine::ExecuteProtocolAMP1 (CArcologySession *pCtx, const CString &
 		//	Get the reply address
 		
 		CDatum dDatum;
-		if (!CDatum::Deserialize(CDatum::formatAEONScript, Buffer, &dDatum))
+		if (!CDatum::Deserialize(CDatum::EFormat::AEONScript, Buffer, &dDatum))
 			{
 			*retsOutput = strPattern("%s ERROR 0 %s", STR_PROTOCOL_AMP1_00, MSG_ERROR_UNABLE_TO_INTERPRET);
 			return;
@@ -868,7 +868,7 @@ void CExarchEngine::ExecuteProtocolAMP1 (CArcologySession *pCtx, const CString &
 
 		//	Get the ticket
 
-		if (!CDatum::Deserialize(CDatum::formatAEONScript, Buffer, &dDatum))
+		if (!CDatum::Deserialize(CDatum::EFormat::AEONScript, Buffer, &dDatum))
 			{
 			*retsOutput = strPattern("%s ERROR 0 %s", STR_PROTOCOL_AMP1_00, MSG_ERROR_UNABLE_TO_INTERPRET);
 			return;
@@ -878,7 +878,7 @@ void CExarchEngine::ExecuteProtocolAMP1 (CArcologySession *pCtx, const CString &
 
 		//	Get the message
 
-		if (!CDatum::Deserialize(CDatum::formatAEONScript, Buffer, &dDatum))
+		if (!CDatum::Deserialize(CDatum::EFormat::AEONScript, Buffer, &dDatum))
 			{
 			*retsOutput = strPattern("%s ERROR &d %s", STR_PROTOCOL_AMP1_00, Msg.dwTicket, MSG_ERROR_UNABLE_TO_INTERPRET);
 			return;
@@ -888,7 +888,7 @@ void CExarchEngine::ExecuteProtocolAMP1 (CArcologySession *pCtx, const CString &
 
 		//	The remaining datums are the payload
 
-		CDatum::Deserialize(CDatum::formatAEONScript, Buffer, &Msg.dPayload);
+		CDatum::Deserialize(CDatum::EFormat::AEONScript, Buffer, &Msg.dPayload);
 
 		//	Now send the message (we process it synchronously [and recursively], since we have the thread)
 
@@ -1999,7 +1999,7 @@ void CExarchEngine::MsgRequestUpgrade (const SArchonMessage &Msg, const CHexeSec
 		return;
 		}
 
-	dConfig.Serialize(CDatum::formatAEONScript, ConfigFile);
+	dConfig.Serialize(CDatum::EFormat::AEONScript, ConfigFile);
 
 	//	Done
 
@@ -2830,7 +2830,7 @@ bool CExarchEngine::ReadConfig (void)
 	CString sConfigFilespec = fileAppend(fileGetPath(fileGetExecutableFilespec()), m_sConfigFilename);
 	if (fileExists(sConfigFilespec))
 		{
-		if (!CDatum::CreateFromFile(sConfigFilespec, CDatum::formatAEONScript, &m_dMachineConfig, &sError))
+		if (!CDatum::CreateFromFile(sConfigFilespec, CDatum::EFormat::AEONScript, &m_dMachineConfig, &sError))
 			{
 			Log(MSG_LOG_ERROR, sError);
 			return false;
@@ -3089,7 +3089,7 @@ bool CExarchEngine::WriteConfig (void)
 		return false;
 		}
 
-	m_dMachineConfig.Serialize(CDatum::formatAEONScript, ConfigFile);
+	m_dMachineConfig.Serialize(CDatum::EFormat::AEONScript, ConfigFile);
 
 	return true;
 	}

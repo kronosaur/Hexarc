@@ -45,7 +45,7 @@ template<typename DATACTX> class CLambdaSession : public ISessionHandler
 					{
 					CDatum dTableDesc;
 					CStringBuffer Stream(sTableDesc);
-					CDatum::Deserialize(CDatum::formatAEONScript, Stream, &dTableDesc);
+					CDatum::Deserialize(CDatum::EFormat::AEONScript, Stream, &dTableDesc);
 
 					CDatum dPayload(CDatum::typeArray);
 					dPayload.Append(dTableDesc);

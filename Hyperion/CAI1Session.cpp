@@ -507,7 +507,7 @@ bool CAI1Session::ProcessCommand (const CString &sCommand, CDatum dPayload)
 		//	Create an authDesc
 
 		CComplexStruct *pAuthDesc = new CComplexStruct;
-		pAuthDesc->SetElement(FIELD_ACTUAL, CDatum(CDatum::constTrue));
+		pAuthDesc->SetElement(FIELD_ACTUAL, CDatum(true));
 		pAuthDesc->SetElement(FIELD_CHALLENGE_CREDENTIALS, dPayload.GetElement(1));
 		pAuthDesc->SetElement(FIELD_TYPE, AUTH_TYPE_SHA1);
 

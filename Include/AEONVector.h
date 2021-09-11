@@ -26,10 +26,10 @@ class CAEONVector2D : public TExternalDatum<CAEONVector2D>
 		virtual void SetElement (const CString &sKey, CDatum dDatum) override;
 
 	protected:
-		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const override;
+		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const override;
 		virtual DWORD OnGetSerializeFlags (void) const override { return FLAG_SERIALIZE_AS_STRUCT; }
 		virtual void OnMarked (void) override;
-		virtual void OnSerialize (CDatum::ESerializationFormats iFormat, CComplexStruct *pStruct) const override;
+		virtual void OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const override;
 
 	private:
 		CVector2D m_vVector;
@@ -54,10 +54,10 @@ class CAEONPolygon2D : public TExternalDatum<CAEONPolygon2D>
 		virtual void SetElement (const CString &sKey, CDatum dDatum) override;
 
 	protected:
-		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const override;
+		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const override;
 		virtual DWORD OnGetSerializeFlags (void) const override { return FLAG_SERIALIZE_AS_STRUCT; }
 		virtual void OnMarked (void) override;
-		virtual void OnSerialize (CDatum::ESerializationFormats iFormat, CComplexStruct *pStruct) const override;
+		virtual void OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const override;
 
 	private:
 		CDatum HolesAsDatum (void) const;

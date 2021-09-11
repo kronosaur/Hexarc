@@ -8,7 +8,7 @@
 DECLARE_CONST_STRING(TYPENAME_HEXE_PRIMITIVE,			"hexePrimitive")
 const CString &CHexePrimitive::StaticGetTypename (void) { return TYPENAME_HEXE_PRIMITIVE; }
 
-void CHexePrimitive::Create (CDatum::ECallTypes iPrimitive, CDatum *retdFunc)
+void CHexePrimitive::Create (CDatum::ECallType iPrimitive, CDatum *retdFunc)
 
 //	Create
 //

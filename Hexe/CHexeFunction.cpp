@@ -39,7 +39,7 @@ void CHexeFunction::Create (CDatum dCodeBank, int iCodeOffset, CDatum dGlobalEnv
 	*retdFunc = CDatum(pFunc);
 	}
 
-CDatum::ECallTypes CHexeFunction::GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) const
+CDatum::ECallType CHexeFunction::GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) const
 
 //	GetCallInfo
 //
@@ -52,7 +52,7 @@ CDatum::ECallTypes CHexeFunction::GetCallInfo (CDatum *retdCodeBank, DWORD **ret
 	{
 	CHexeCode *pCodeBank = CHexeCode::Upconvert(m_dHexeCode);
 	if (pCodeBank == NULL)
-		return CDatum::funcNone;
+		return CDatum::ECallType::None;
 
 	if (retdCodeBank)
 		*retdCodeBank = m_dHexeCode;
@@ -60,7 +60,7 @@ CDatum::ECallTypes CHexeFunction::GetCallInfo (CDatum *retdCodeBank, DWORD **ret
 	if (retpIP)
 		*retpIP = pCodeBank->GetCode(m_iOffset);
 
-	return CDatum::funcCall;
+	return CDatum::ECallType::Call;
 	}
 
 DWORD *CHexeFunction::GetCode (CDatum *retdCodeBank)

@@ -87,7 +87,7 @@ void CAEONVector2D::SetElement (const CString &sKey, CDatum dDatum)
 		m_vVector.SetY(dDatum);
 	}
 
-size_t CAEONVector2D::OnCalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const
+size_t CAEONVector2D::OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const
 
 //	OnCalcSerializeSizeAEONScript
 //
@@ -106,7 +106,7 @@ void CAEONVector2D::OnMarked (void)
 	{
 	}
 
-void CAEONVector2D::OnSerialize (CDatum::ESerializationFormats iFormat, CComplexStruct *pStruct) const
+void CAEONVector2D::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const
 
 //	OnSerialize
 //

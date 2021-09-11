@@ -131,7 +131,7 @@ IComplexDatum *CComplexBinary::Clone (void) const
 	return pDest;
 	}
 
-size_t CComplexBinary::OnCalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const
+size_t CComplexBinary::OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const
 
 //	OnCalcSerializeSizeAEONScript
 //
@@ -141,7 +141,7 @@ size_t CComplexBinary::OnCalcSerializeSizeAEONScript (CDatum::ESerializationForm
 	return GetLength();
 	}
 
-bool CComplexBinary::OnDeserialize (CDatum::ESerializationFormats iFormat, const CString &sTypename, IByteStream &Stream)
+bool CComplexBinary::OnDeserialize (CDatum::EFormat iFormat, const CString &sTypename, IByteStream &Stream)
 
 //	OnDeserialize
 //
@@ -167,7 +167,7 @@ bool CComplexBinary::OnDeserialize (CDatum::ESerializationFormats iFormat, const
 	return true;
 	}
 
-void CComplexBinary::OnSerialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const
+void CComplexBinary::OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const
 
 //	OnSerialize
 //

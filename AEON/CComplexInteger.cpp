@@ -47,7 +47,7 @@ CDatum::Types CComplexInteger::GetNumberType (int *retiValue)
 		return CDatum::typeIntegerIP;
 	}
 
-size_t CComplexInteger::OnCalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const
+size_t CComplexInteger::OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const
 
 //	OnCalcSerializeSizeAEONScript
 //
@@ -56,8 +56,8 @@ size_t CComplexInteger::OnCalcSerializeSizeAEONScript (CDatum::ESerializationFor
 	{
 	switch (iFormat)
 		{
-		case CDatum::formatAEONLocal:
-		case CDatum::formatAEONScript:
+		case CDatum::EFormat::AEONLocal:
+		case CDatum::EFormat::AEONScript:
 			return m_Value.AsString().GetLength();
 
 		default:
@@ -66,7 +66,7 @@ size_t CComplexInteger::OnCalcSerializeSizeAEONScript (CDatum::ESerializationFor
 		}
 	}
 
-void CComplexInteger::Serialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const
+void CComplexInteger::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const
 
 //	Serialize
 //
@@ -75,8 +75,8 @@ void CComplexInteger::Serialize (CDatum::ESerializationFormats iFormat, IByteStr
 	{
 	switch (iFormat)
 		{
-		case CDatum::formatAEONScript:
-		case CDatum::formatAEONLocal:
+		case CDatum::EFormat::AEONScript:
+		case CDatum::EFormat::AEONLocal:
 			Stream.Write(m_Value.AsString());
 			break;
 

@@ -1164,11 +1164,11 @@ void CAeonView::WriteDesc (CComplexStruct *pDesc)
 	//	Exclude nil
 
 	if (m_bExcludeNil)
-		pDesc->SetElement(FIELD_EXCLUDE_NIL_KEYS, CDatum(CDatum::constTrue));
+		pDesc->SetElement(FIELD_EXCLUDE_NIL_KEYS, CDatum(true));
 
 	//	Write out update sequence number
 
 	if (m_bUpdateNeeded)
-		pDesc->SetElement(FIELD_UPDATE_NEEDED, CDatum(CDatum::constTrue));
+		pDesc->SetElement(FIELD_UPDATE_NEEDED, CDatum(true));
 	}
 

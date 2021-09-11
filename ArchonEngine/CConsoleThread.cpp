@@ -67,7 +67,7 @@ bool CConsoleThread::ParseArray (char *pPos, char *pPosEnd, char **retpPos, CDat
 
 	CString sArg(pStart, pPos - pStart);
 	CStringBuffer Buffer(sArg);
-	return CDatum::Deserialize(CDatum::formatAEONScript, Buffer, retdArg);
+	return CDatum::Deserialize(CDatum::EFormat::AEONScript, Buffer, retdArg);
 	}
 
 bool CConsoleThread::ParseInputLine (const CString &sInput, CString *retsCmd, TArray<CDatum> *retArgs)
@@ -131,7 +131,7 @@ bool CConsoleThread::ParseInputLine (const CString &sInput, CString *retsCmd, TA
 
 			CString sArg(pStart, pPos - pStart);
 			CStringBuffer Buffer(sArg);
-			if (!CDatum::Deserialize(CDatum::formatAEONScript, Buffer, &dArg))
+			if (!CDatum::Deserialize(CDatum::EFormat::AEONScript, Buffer, &dArg))
 				return false;
 
 			retArgs->Insert(dArg);
@@ -188,7 +188,7 @@ bool CConsoleThread::ParseString (char *pPos, char *pPosEnd, char **retpPos, CDa
 		*retpPos = pPos;
 
 	Output.Seek(0);
-	return CDatum::Deserialize(CDatum::formatAEONScript, Output, retdArg);
+	return CDatum::Deserialize(CDatum::EFormat::AEONScript, Output, retdArg);
 	}
 
 bool CConsoleThread::ParseStruct (char *pPos, char *pPosEnd, char **retpPos, CDatum *retdArg)
@@ -233,7 +233,7 @@ bool CConsoleThread::ParseStruct (char *pPos, char *pPosEnd, char **retpPos, CDa
 
 	CString sArg(pStart, pPos - pStart);
 	CStringBuffer Buffer(sArg);
-	return CDatum::Deserialize(CDatum::formatAEONScript, Buffer, retdArg);
+	return CDatum::Deserialize(CDatum::EFormat::AEONScript, Buffer, retdArg);
 	}
 
 CString CConsoleThread::ProcessCommand (const CString &sCmd, const TArray<CDatum> &Args)

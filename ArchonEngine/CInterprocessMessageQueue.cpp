@@ -484,7 +484,7 @@ bool CInterprocessMessageQueue::DeserializeMessage (IByteStream &Stream, SArchon
 	//	AMP/1.00 FWD {destAddr} {replyAddr} {ticket} {msg} {payload}
 
 	CDatum Item;
-	if (!CDatum::Deserialize(CDatum::formatAEONLocal, Stream, &Item))
+	if (!CDatum::Deserialize(CDatum::EFormat::AEONLocal, Stream, &Item))
 		return false;
 
 	if (!strEquals(Item, STR_PROTOCOL_AMP1_00))
@@ -492,7 +492,7 @@ bool CInterprocessMessageQueue::DeserializeMessage (IByteStream &Stream, SArchon
 
 	//	FWD
 
-	if (!CDatum::Deserialize(CDatum::formatAEONLocal, Stream, &Item))
+	if (!CDatum::Deserialize(CDatum::EFormat::AEONLocal, Stream, &Item))
 		return false;
 
 	if (!strEquals(Item, STR_FWD_COMMAND))
@@ -500,35 +500,35 @@ bool CInterprocessMessageQueue::DeserializeMessage (IByteStream &Stream, SArchon
 
 	//	{destAddr}
 
-	if (!CDatum::Deserialize(CDatum::formatAEONLocal, Stream, &Item))
+	if (!CDatum::Deserialize(CDatum::EFormat::AEONLocal, Stream, &Item))
 		return false;
 
 	retEnv->sAddr = Item;
 
 	//	{replyAddr}
 
-	if (!CDatum::Deserialize(CDatum::formatAEONLocal, Stream, &Item))
+	if (!CDatum::Deserialize(CDatum::EFormat::AEONLocal, Stream, &Item))
 		return false;
 
 	retEnv->Msg.sReplyAddr = Item;
 
 	//	{ticket}
 
-	if (!CDatum::Deserialize(CDatum::formatAEONLocal, Stream, &Item))
+	if (!CDatum::Deserialize(CDatum::EFormat::AEONLocal, Stream, &Item))
 		return false;
 
 	retEnv->Msg.dwTicket = (int)Item;
 
 	//	{msg}
 
-	if (!CDatum::Deserialize(CDatum::formatAEONLocal, Stream, &Item))
+	if (!CDatum::Deserialize(CDatum::EFormat::AEONLocal, Stream, &Item))
 		return false;
 
 	retEnv->Msg.sMsg = Item;
 
 	//	Payload
 
-	if (!CDatum::Deserialize(CDatum::formatAEONLocal, Stream, &retEnv->Msg.dPayload))
+	if (!CDatum::Deserialize(CDatum::EFormat::AEONLocal, Stream, &retEnv->Msg.dPayload))
 		return false;
 
 	//	Done
@@ -569,7 +569,7 @@ bool CInterprocessMessageQueue::Enqueue (const SArchonEnvelope &Env, CString *re
 	//	Compute the approximate size of the payload. If it's particularly large,
 	//	we log it.
 
-	size_t PayloadSize = Env.Msg.dPayload.CalcSerializeSize(CDatum::formatAEONLocal);
+	size_t PayloadSize = Env.Msg.dPayload.CalcSerializeSize(CDatum::EFormat::AEONLocal);
 	if (PayloadSize > SIZE_WARNING_THRESHOLD)
 		m_pProcess->Log(MSG_LOG_INFO, strPattern(ERR_ENQUEUE_LARGE, strFormatInteger((int)PayloadSize, -1, FORMAT_THOUSAND_SEPARATOR)));
 
@@ -875,22 +875,22 @@ void CInterprocessMessageQueue::SerializeMessage (const SArchonEnvelope &Env, IB
 	Stream.Write("AMP/1.00 FWD ", 13);
 
 	CDatum Item(Env.sAddr);
-	Item.Serialize(CDatum::formatAEONLocal, Stream);
+	Item.Serialize(CDatum::EFormat::AEONLocal, Stream);
 	Stream.Write(" ", 1);
 
 	Item = CDatum(Env.Msg.sReplyAddr);
-	Item.Serialize(CDatum::formatAEONLocal, Stream);
+	Item.Serialize(CDatum::EFormat::AEONLocal, Stream);
 	Stream.Write(" ", 1);
 
 	Item = CDatum((int)Env.Msg.dwTicket);
-	Item.Serialize(CDatum::formatAEONLocal, Stream);
+	Item.Serialize(CDatum::EFormat::AEONLocal, Stream);
 	Stream.Write(" ", 1);
 
 	Item = CDatum(Env.Msg.sMsg);
-	Item.Serialize(CDatum::formatAEONLocal, Stream);
+	Item.Serialize(CDatum::EFormat::AEONLocal, Stream);
 	Stream.Write(" ", 1);
 
-	Env.Msg.dPayload.Serialize(CDatum::formatAEONLocal, Stream);
+	Env.Msg.dPayload.Serialize(CDatum::EFormat::AEONLocal, Stream);
 
 #ifdef DEBUG_BLOB_PERF
     DWORD dwTime = ::sysGetTicksElapsed(dwStart);

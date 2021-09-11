@@ -68,7 +68,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				break;
 
 			case opPushTrue:
-				m_Stack.Push(CDatum(CDatum::constTrue));
+				m_Stack.Push(CDatum(true));
 				m_pIP++;
 				break;
 
@@ -195,7 +195,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 					//	Is loop index >= to? Then continue looping.
 
 					if (iCompare == 1 || iCompare == 0)
-						m_Stack.Push(CDatum(CDatum::constTrue));
+						m_Stack.Push(CDatum(true));
 					else
 						m_Stack.Push(CDatum());
 					}
@@ -204,7 +204,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 					//	If loop index <= to? Then continue looping.
 
 					if (iCompare == -1 || iCompare == 0)
-						m_Stack.Push(CDatum(CDatum::constTrue));
+						m_Stack.Push(CDatum(true));
 					else
 						m_Stack.Push(CDatum());
 					}
@@ -278,7 +278,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 
 			case opNot:
 				if (m_Stack.Pop().IsNil())
-					m_Stack.Push(CDatum::constTrue);
+					m_Stack.Push(true);
 				else
 					m_Stack.Push(CDatum());
 				m_pIP++;
@@ -302,7 +302,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 					}
 
 				if (bCondition)
-					m_Stack.Push(CDatum(CDatum::constTrue));
+					m_Stack.Push(CDatum(true));
 				else
 					m_Stack.Push(CDatum());
 
@@ -327,7 +327,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 					}
 
 				if (!bCondition)
-					m_Stack.Push(CDatum(CDatum::constTrue));
+					m_Stack.Push(CDatum(true));
 				else
 					m_Stack.Push(CDatum());
 
@@ -356,7 +356,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 					}
 
 				if (bCondition)
-					m_Stack.Push(CDatum(CDatum::constTrue));
+					m_Stack.Push(CDatum(true));
 				else
 					m_Stack.Push(CDatum());
 
@@ -385,7 +385,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 					}
 
 				if (bCondition)
-					m_Stack.Push(CDatum(CDatum::constTrue));
+					m_Stack.Push(CDatum(true));
 				else
 					m_Stack.Push(CDatum());
 
@@ -414,7 +414,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 					}
 
 				if (bCondition)
-					m_Stack.Push(CDatum(CDatum::constTrue));
+					m_Stack.Push(CDatum(true));
 				else
 					m_Stack.Push(CDatum());
 
@@ -443,7 +443,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 					}
 
 				if (bCondition)
-					m_Stack.Push(CDatum(CDatum::constTrue));
+					m_Stack.Push(CDatum(true));
 				else
 					m_Stack.Push(CDatum());
 
@@ -457,7 +457,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				break;
 
 			case opMakePrimitive:
-				CHexePrimitive::Create((CDatum::ECallTypes)GetOperand(*m_pIP), &dValue);
+				CHexePrimitive::Create((CDatum::ECallType)GetOperand(*m_pIP), &dValue);
 				m_Stack.Push(dValue);
 				m_pIP++;
 				break;
@@ -557,13 +557,13 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 
 				DWORD *pNewIP;
 				CDatum dNewCodeBank;
-				CDatum::ECallTypes iCallType = dNewExpression.GetCallInfo(&dNewCodeBank, &pNewIP);
+				CDatum::ECallType iCallType = dNewExpression.GetCallInfo(&dNewCodeBank, &pNewIP);
 
 				//	Handle it
 
 				switch (iCallType)
 					{
-					case CDatum::funcCall:
+					case CDatum::ECallType::Call:
 						{
 						m_CallStack.Save(m_dExpression, m_dCodeBank, ++m_pIP);
 						m_dExpression = dNewExpression;
@@ -574,7 +574,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 						break;
 						}
 
-					case CDatum::funcLibrary:
+					case CDatum::ECallType::Library:
 						{
 						CDatum dResult;
 						CDatum::InvokeResult iResult = dNewExpression.Invoke(this, m_dLocalEnv, m_UserSecurity.GetExecutionRights(), &dResult);
@@ -598,7 +598,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 						break;
 						}
 
-					case CDatum::primitiveInvoke:
+					case CDatum::ECallType::Invoke:
 						{
 						//	The first argument is the message
 
@@ -1477,7 +1477,7 @@ CHexeProcess::ERun CHexeProcess::ExecuteHandleInvokeResult (CDatum::InvokeResult
 
 			CDatum dNewCodeBank;
 			DWORD *pNewIP;
-			if (dFunction.GetCallInfo(&dNewCodeBank, &pNewIP) != CDatum::funcCall)
+			if (dFunction.GetCallInfo(&dNewCodeBank, &pNewIP) != CDatum::ECallType::Call)
 				{
 				CHexeError::Create(NULL_STR, ERR_INVALID_PRIMITIVE_SUB, retResult);
 				return ERun::Error;

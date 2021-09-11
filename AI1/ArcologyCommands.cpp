@@ -233,9 +233,9 @@ bool HandleConnectResponse (CSocket &theSocket, const CString &sFirstCommand, CD
 			CStringBuffer Command;
 			Command.Write(CMD_CREATE_ADMIN);
 			Command.Write(" ", 1);
-			CDatum(sUsername).Serialize(CDatum::formatAEONScript, Command);
+			CDatum(sUsername).Serialize(CDatum::EFormat::AEONScript, Command);
 			Command.Write(" ", 1);
-			dAuthDesc.Serialize(CDatum::formatAEONScript, Command);
+			dAuthDesc.Serialize(CDatum::EFormat::AEONScript, Command);
 
 			//	Execute it and get a reply
 
@@ -280,9 +280,9 @@ bool HandleConnectResponse (CSocket &theSocket, const CString &sFirstCommand, CD
 			else
 				Command.Write(CMD_AUTH);
 			Command.Write(" ", 1);
-			CDatum(sUsername).Serialize(CDatum::formatAEONScript, Command);
+			CDatum(sUsername).Serialize(CDatum::EFormat::AEONScript, Command);
 			Command.Write(" ", 1);
-			dResponse.Serialize(CDatum::formatAEONScript, Command);
+			dResponse.Serialize(CDatum::EFormat::AEONScript, Command);
 
 			//	Execute it and get a reply
 
@@ -346,7 +346,7 @@ CString UploadFile (CSocket &theSocket, const CString &sOp, const CString &sFile
 
 		//	Serialize data
 
-		dData.Serialize(CDatum::formatAEONScript, Command);
+		dData.Serialize(CDatum::EFormat::AEONScript, Command);
 
 		//	Send the command
 

@@ -428,7 +428,7 @@ void CEsperAMP1ConnectionIn::OpSendAMPMessage (const CString &sCommand, IMemoryB
 	//	Deserialize
 
 	CDatum dData;
-	if (!CDatum::Deserialize(CDatum::formatAEONScript, Data, &dData))
+	if (!CDatum::Deserialize(CDatum::EFormat::AEONScript, Data, &dData))
 		dData = CDatum();
 
 	//	If this is an AUTH command, then we need to check the key to see if we can 

@@ -39,7 +39,7 @@ void CCryptosaurInterface::CreateAuthToken (CDatum dData, const CDateTime &Expir
 	//	Encode
 
 	Token.Write("&", 1);
-	dData.Serialize(CDatum::formatAEONScript, Token);
+	dData.Serialize(CDatum::EFormat::AEONScript, Token);
 	Token.Write("&", 1);
 	Token.Write(sSeconds);
 	Token.Write("&", 1);
@@ -97,7 +97,7 @@ CDatum CCryptosaurInterface::SignData (CDatum dData, const CIPInteger &SecretKey
 	//	Serialize the data
 
 	CBuffer Buffer;
-	dData.Serialize(CDatum::formatAEONScript, Buffer);
+	dData.Serialize(CDatum::EFormat::AEONScript, Buffer);
 
 	//	Sign
 
@@ -131,7 +131,7 @@ bool CCryptosaurInterface::ValidateAuthToken (const CString &sToken, const CIPIn
 
 	//	Get the data
 
-	CDatum::Deserialize(CDatum::formatAEONScript, Buffer, retdData);
+	CDatum::Deserialize(CDatum::EFormat::AEONScript, Buffer, retdData);
 
 	Buffer.Read(&chChar, 1);
 	if (chChar != '&')

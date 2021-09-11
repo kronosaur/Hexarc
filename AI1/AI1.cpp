@@ -221,7 +221,7 @@ int ExecuteScript (const SOptions &Options)
 
 	CDatum dScript;
 	CString sError;
-	if (!CDatum::CreateFromFile(Options.sScriptFile, CDatum::formatAEONScript, &dScript, &sError))
+	if (!CDatum::CreateFromFile(Options.sScriptFile, CDatum::EFormat::AEONScript, &dScript, &sError))
 		{
 		printf("ERROR: %s\n", (LPSTR)sError);
 		return 1;
@@ -254,7 +254,7 @@ int ExecuteScript (const SOptions &Options)
 			if (j != 0)
 				Buffer.Write(" ", 1);
 
-			dCommand.Serialize(CDatum::formatAEONScript, Buffer);
+			dCommand.Serialize(CDatum::EFormat::AEONScript, Buffer);
 			}
 
 		//	Run

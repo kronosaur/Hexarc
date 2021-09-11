@@ -58,7 +58,7 @@ bool CRowInsertLog::Insert (const CRowKey &Key, CDatum dData, SEQUENCENUMBER Row
 
 	//	Save the data
 
-	dData.Serialize(CDatum::formatAEONScript, Output);
+	dData.Serialize(CDatum::EFormat::AEONScript, Output);
 
 	//	We need a terminator for the datum serialization
 
@@ -200,7 +200,7 @@ bool CRowInsertLog::Recover (CAeonRowArray *pRows, int *retiRowCount, CString *r
 			//	Data
 
 			CDatum dData;
-			if (!CDatum::Deserialize(CDatum::formatAEONScript, m_File, &dData))
+			if (!CDatum::Deserialize(CDatum::EFormat::AEONScript, m_File, &dData))
 				{
 				*retsError = ERR_CANT_PARSE;
 				return false;

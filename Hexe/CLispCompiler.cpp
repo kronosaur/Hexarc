@@ -389,7 +389,7 @@ bool CLispCompiler::CompileIdentifier (int iBlock)
 	//	Check primitives
 
 	else if (strEquals(dToken, PRIMITIVE_INVOKE))
-		m_pCode->WriteShortOpCode(iBlock, opMakePrimitive, CDatum::primitiveInvoke);
+		m_pCode->WriteShortOpCode(iBlock, opMakePrimitive, (DWORD)CDatum::ECallType::Invoke);
 
 	//	Look for this argument in the local environment
 

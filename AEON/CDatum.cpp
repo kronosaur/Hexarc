@@ -5,18 +5,18 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(TYPENAME_DOUBLE,					"double")
-DECLARE_CONST_STRING(TYPENAME_INT32,					"integer32")
-DECLARE_CONST_STRING(TYPENAME_NIL,						"nil")
-DECLARE_CONST_STRING(TYPENAME_STRING,					"string")
-DECLARE_CONST_STRING(TYPENAME_TRUE,						"true")
+DECLARE_CONST_STRING(TYPENAME_DOUBLE,					"double");
+DECLARE_CONST_STRING(TYPENAME_INT32,					"integer32");
+DECLARE_CONST_STRING(TYPENAME_NIL,						"nil");
+DECLARE_CONST_STRING(TYPENAME_STRING,					"string");
+DECLARE_CONST_STRING(TYPENAME_TRUE,						"true");
 
-DECLARE_CONST_STRING(STR_NIL,							"nil")
-DECLARE_CONST_STRING(STR_TRUE,							"true")
+DECLARE_CONST_STRING(STR_NIL,							"nil");
+DECLARE_CONST_STRING(STR_TRUE,							"true");
 
-DECLARE_CONST_STRING(ERR_UNKNOWN_FORMAT,				"Unable to determine file format: %s.")
-DECLARE_CONST_STRING(ERR_CANT_OPEN_FILE,				"Unable to open file: %s.")
-DECLARE_CONST_STRING(ERR_DESERIALIZE_ERROR,				"Unable to parse file: %s.")
+DECLARE_CONST_STRING(ERR_UNKNOWN_FORMAT,				"Unable to determine file format: %s.");
+DECLARE_CONST_STRING(ERR_CANT_OPEN_FILE,				"Unable to open file: %s.");
+DECLARE_CONST_STRING(ERR_DESERIALIZE_ERROR,				"Unable to parse file: %s.");
 
 static TAllocatorGC<DWORD> g_IntAlloc;
 static TAllocatorGC<double> g_DoubleAlloc;
@@ -38,7 +38,7 @@ CDatum::CDatum (Types iType)
 			break;
 
 		case typeTrue:
-			m_dwData = constTrue;
+			m_dwData = CONST_TRUE;
 			break;
 
 		case typeInteger32:
@@ -295,17 +295,6 @@ CDatum::CDatum (CRGBA32Image &&Value)
 	m_dwData = ((DWORD_PTR)pValue | AEON_TYPE_COMPLEX);
 	}
 
-CDatum::CDatum (bool bValue)
-
-//	CDatum constructor
-
-	{
-	if (bValue)
-		m_dwData = constTrue;
-	else
-		m_dwData = 0;
-	}
-
 CDatum::operator int () const
 
 //	int cast operator
@@ -323,7 +312,7 @@ CDatum::operator int () const
 					{
 					switch (m_dwData)
 						{
-						case constTrue:
+						case CONST_TRUE:
 							return 1;
 
 						default:
@@ -372,7 +361,7 @@ CDatum::operator DWORD () const
 					{
 					switch (m_dwData)
 						{
-						case constTrue:
+						case CONST_TRUE:
 							return 1;
 
 						default:
@@ -421,7 +410,7 @@ CDatum::operator DWORDLONG () const
 					{
 					switch (m_dwData)
 						{
-						case constTrue:
+						case CONST_TRUE:
 							return 1;
 
 						default:
@@ -470,7 +459,7 @@ CDatum::operator double () const
 					{
 					switch (m_dwData)
 						{
-						case constTrue:
+						case CONST_TRUE:
 							return 1.0;
 
 						default:
@@ -572,7 +561,7 @@ CDatum::operator const CString & () const
 					{
 					switch (m_dwData)
 						{
-						case constTrue:
+						case CONST_TRUE:
 							return STR_TRUE;
 
 						default:
@@ -685,7 +674,7 @@ CDatum CDatum::AsOptions (bool *retbConverted) const
 		if (!sValue.IsEmpty())
 			{
 			dResult = CDatum(new CComplexStruct);
-			dResult.SetElement(sValue, CDatum(constTrue));
+			dResult.SetElement(sValue, CDatum(true));
 			}
 
 		bConverted = true;
@@ -697,7 +686,7 @@ CDatum CDatum::AsOptions (bool *retbConverted) const
 			{
 			CString sValue = GetElement(i).AsString();
 			if (!sValue.IsEmpty())
-				dResult.SetElement(sValue, CDatum(constTrue));
+				dResult.SetElement(sValue, CDatum(true));
 			}
 
 		if (dResult.GetCount() == 0)
@@ -735,7 +724,7 @@ CString CDatum::AsString (void) const
 					{
 					switch (m_dwData)
 						{
-						case constTrue:
+						case CONST_TRUE:
 							return STR_TRUE;
 
 						default:
@@ -833,7 +822,7 @@ size_t CDatum::CalcMemorySize (void) const
 	return dwSize;
 	}
 
-size_t CDatum::CalcSerializeSize (ESerializationFormats iFormat) const
+size_t CDatum::CalcSerializeSize (EFormat iFormat) const
 
 //	CalcSerializeSize
 //
@@ -842,11 +831,11 @@ size_t CDatum::CalcSerializeSize (ESerializationFormats iFormat) const
 	{
 	switch (iFormat)
 		{
-		case formatAEONScript:
-		case formatAEONLocal:
+		case EFormat::AEONScript:
+		case EFormat::AEONLocal:
 			return CalcSerializeSizeAEONScript(iFormat);
 
-		case formatJSON:
+		case EFormat::JSON:
 			ASSERT(false);	//	Not Yet Implemented
 			return 0;
 
@@ -975,7 +964,7 @@ bool CDatum::CreateFromAttributeList (const CAttributeList &Attribs, CDatum *ret
 	return true;
 	}
 
-bool CDatum::CreateFromFile (const CString &sFilespec, ESerializationFormats iFormat, CDatum *retdDatum, CString *retsError)
+bool CDatum::CreateFromFile (const CString &sFilespec, EFormat iFormat, CDatum *retdDatum, CString *retsError)
 
 //	CreateFromFile
 //
@@ -993,14 +982,14 @@ bool CDatum::CreateFromFile (const CString &sFilespec, ESerializationFormats iFo
 
 	//	If unknown format, see if we can detect the format
 
-	if (iFormat == formatUnknown)
+	if (iFormat == EFormat::Unknown)
 		{
 		if (!DetectFileFormat(sFilespec, theFile, &iFormat, retsError))
 			return false;
 
 		//	If format unknown, then error.
 
-		if (iFormat == formatUnknown)
+		if (iFormat == EFormat::Unknown)
 			{
 			*retsError = strPattern(ERR_UNKNOWN_FORMAT, sFilespec);
 			return false;
@@ -1333,7 +1322,7 @@ int CDatum::DefaultCompare (void *pCtx, const CDatum &dKey1, const CDatum &dKey2
 		return 0;
 	}
 
-bool CDatum::Deserialize (ESerializationFormats iFormat, IByteStream &Stream, IAEONParseExtension *pExtension, CDatum *retDatum)
+bool CDatum::Deserialize (EFormat iFormat, IByteStream &Stream, IAEONParseExtension *pExtension, CDatum *retDatum)
 
 //	Deserialize
 //
@@ -1344,17 +1333,17 @@ bool CDatum::Deserialize (ESerializationFormats iFormat, IByteStream &Stream, IA
 		{
 		switch (iFormat)
 			{
-			case formatAEONScript:
-			case formatAEONLocal:
+			case EFormat::AEONScript:
+			case EFormat::AEONLocal:
 				return DeserializeAEONScript(Stream, pExtension, retDatum);
 
-			case formatBinary:
+			case EFormat::Binary:
 				return CDatum::CreateBinary(Stream, Stream.GetStreamLength() - Stream.GetPos(), retDatum);
 
-			case formatJSON:
+			case EFormat::JSON:
 				return DeserializeJSON(Stream, retDatum);
 
-			case formatTextUTF8:
+			case EFormat::TextUTF8:
 				return DeserializeTextUTF8(Stream, retDatum);
 
 			default:
@@ -1395,7 +1384,7 @@ bool CDatum::DeserializeTextUTF8 (IByteStream &Stream, CDatum *retDatum)
 	return CreateStringFromHandoff(Buffer, retDatum);
 	}
 
-bool CDatum::DetectFileFormat (const CString &sFilespec, IMemoryBlock &Data, ESerializationFormats *retiFormat, CString *retsError)
+bool CDatum::DetectFileFormat (const CString &sFilespec, IMemoryBlock &Data, EFormat *retiFormat, CString *retsError)
 
 //	DetectFileFormat
 //
@@ -1408,7 +1397,7 @@ bool CDatum::DetectFileFormat (const CString &sFilespec, IMemoryBlock &Data, ESe
 	//	See: http://stackoverflow.com/questions/1031645/how-to-detect-utf-8-in-plain-c
 
 	if (retiFormat)
-		*retiFormat = formatUnknown;
+		*retiFormat = EFormat::Unknown;
 
 	return true;
 	}
@@ -1529,7 +1518,7 @@ CDatum::Types CDatum::GetBasicType (void) const
 					{
 					switch (m_dwData)
 						{
-						case constTrue:
+						case CONST_TRUE:
 							return typeTrue;
 
 						default:
@@ -1652,7 +1641,7 @@ void CDatum::WriteBinaryToStream (IByteStream &Stream, int iPos, int iLength, IP
 		}
 	}
 
-CDatum::ECallTypes CDatum::GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) const
+CDatum::ECallType CDatum::GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) const
 
 //	GetCallInfo
 //
@@ -1665,7 +1654,7 @@ CDatum::ECallTypes CDatum::GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) co
 			return raw_GetComplex()->GetCallInfo(retdCodeBank, retpIP);
 
 		default:
-			return funcNone;
+			return ECallType::None;
 		}
 	}
 
@@ -1879,7 +1868,7 @@ CDatum::Types CDatum::GetNumberType (int *retiValue, CDatum *retdConverted) cons
 					{
 					switch (m_dwData)
 						{
-						case constTrue:
+						case CONST_TRUE:
 							if (retiValue)
 								*retiValue = 1;
 							return typeInteger32;
@@ -2098,7 +2087,7 @@ const CString &CDatum::GetTypename (void) const
 					{
 					switch (m_dwData)
 						{
-						case constTrue:
+						case CONST_TRUE:
 							return TYPENAME_TRUE;
 
 						default:
@@ -2366,7 +2355,7 @@ void CDatum::RegisterMarkProc (MARKPROC fnProc)
 	g_MarkList.Insert(fnProc);
 	}
 
-void CDatum::Serialize (ESerializationFormats iFormat, IByteStream &Stream) const
+void CDatum::Serialize (EFormat iFormat, IByteStream &Stream) const
 
 //	Serialize
 //
@@ -2375,12 +2364,12 @@ void CDatum::Serialize (ESerializationFormats iFormat, IByteStream &Stream) cons
 	{
 	switch (iFormat)
 		{
-		case formatAEONScript:
-		case formatAEONLocal:
+		case EFormat::AEONScript:
+		case EFormat::AEONLocal:
 			SerializeAEONScript(iFormat, Stream);
 			break;
 
-		case formatJSON:
+		case EFormat::JSON:
 			SerializeJSON(Stream);
 			break;
 
@@ -2389,7 +2378,7 @@ void CDatum::Serialize (ESerializationFormats iFormat, IByteStream &Stream) cons
 		}
 	}
 
-CString CDatum::SerializeToString (ESerializationFormats iFormat) const
+CString CDatum::SerializeToString (EFormat iFormat) const
 
 //	SerializeToString
 //

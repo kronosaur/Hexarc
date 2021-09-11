@@ -21,7 +21,7 @@ void CHexeGlobalEnvironment::OnMarked (void)
 		m_Env[i].Mark();
 	}
 
-void CHexeGlobalEnvironment::OnSerialize (CDatum::ESerializationFormats iFormat, CComplexStruct *pStruct) const
+void CHexeGlobalEnvironment::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const
 
 //	OnSerialize
 //

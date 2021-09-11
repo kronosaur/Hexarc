@@ -67,8 +67,8 @@ class CHexeCode : public TExternalDatum<CHexeCode>
 
 	protected:
 		//	IComplexDatum
-		virtual bool OnDeserialize (CDatum::ESerializationFormats iFormat, const CString &sTypename, IByteStream &Stream) override;
-		virtual void OnSerialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const override;
+		virtual bool OnDeserialize (CDatum::EFormat iFormat, const CString &sTypename, IByteStream &Stream) override;
+		virtual void OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
 
 	private:
 		enum BlockTypes
@@ -96,15 +96,15 @@ class CHexeCode : public TExternalDatum<CHexeCode>
 class CHexePrimitive : public TExternalDatum<CHexePrimitive>
 	{
 	public:
-		static void Create (CDatum::ECallTypes iPrimitive, CDatum *retdFunc);
+		static void Create (CDatum::ECallType iPrimitive, CDatum *retdFunc);
 		static const CString &StaticGetTypename (void);
 
 		//	IComplexDatum
 		virtual bool CanInvoke (void) const override { return true; }
-		virtual CDatum::ECallTypes GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) const override { return m_iPrimitive; }
+		virtual CDatum::ECallType GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) const override { return m_iPrimitive; }
 
 	private:
-		CDatum::ECallTypes m_iPrimitive;
+		CDatum::ECallType m_iPrimitive;
 	};
 
 class CHexeFunction : public TExternalDatum<CHexeFunction>
@@ -122,7 +122,7 @@ class CHexeFunction : public TExternalDatum<CHexeFunction>
 
 		//	IComplexDatum
 		virtual bool CanInvoke (void) const override { return true; }
-		virtual CDatum::ECallTypes GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) const override;
+		virtual CDatum::ECallType GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) const override;
 		virtual int GetCount (void) const override;
 		virtual CDatum GetElement (int iIndex) const override;
 		virtual CDatum GetElement (const CString &sKey) const override;
@@ -152,7 +152,7 @@ class CHexeLibraryFunction : public TExternalDatum<CHexeLibraryFunction>
 
 		//	IComplexDatum
 		virtual bool CanInvoke (void) const override { return true; }
-		virtual CDatum::ECallTypes GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) const override { return CDatum::funcLibrary; }
+		virtual CDatum::ECallType GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) const override { return CDatum::ECallType::Library; }
 		virtual CDatum::InvokeResult Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, DWORD dwExecutionRights, CDatum *retdResult) override;
 		virtual CDatum::InvokeResult InvokeContinues (IInvokeCtx *pCtx, CDatum dContext, CDatum dResult, CDatum *retdResult) override;
 
@@ -196,7 +196,7 @@ class CHexeGlobalEnvironment : public TExternalDatum<CHexeGlobalEnvironment>
 	protected:
 		virtual DWORD OnGetSerializeFlags (void) const override { return FLAG_SERIALIZE_AS_STRUCT; }
 		virtual void OnMarked (void) override;
-		virtual void OnSerialize (CDatum::ESerializationFormats iFormat, CComplexStruct *pStruct) const override;
+		virtual void OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const override;
 
 	private:
 		TSortMap<CString, CDatum> m_Env;			//	Global environment
@@ -231,7 +231,7 @@ class CHexeLocalEnvironment : public TExternalDatum<CHexeLocalEnvironment>
 	protected:
 		virtual DWORD OnGetSerializeFlags (void) const override { return FLAG_SERIALIZE_AS_STRUCT; }
 		virtual void OnMarked (void) override;
-		virtual void OnSerialize (CDatum::ESerializationFormats iFormat, CComplexStruct *pStruct) const override;
+		virtual void OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const override;
 
 	private:
 		struct SEntry

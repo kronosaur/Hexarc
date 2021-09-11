@@ -91,7 +91,7 @@ CCreateTestTableSession::CCreateTestTableSession (CDatum dTable, int iRows, int 
 	else
 		{
 		CStringBuffer TableName;
-		m_dTable.Serialize(CDatum::formatAEONScript, TableName);
+		m_dTable.Serialize(CDatum::EFormat::AEONScript, TableName);
 		m_sTableSerialized.TakeHandoff(TableName);
 		}
 	}
@@ -190,7 +190,7 @@ bool CCreateTestTableSession::OnStartSession (const SArchonMessage &Msg, DWORD d
 	//	Payload
 
 	CDatum dTableDesc;
-	if (!CDatum::Deserialize(CDatum::formatAEONScript, CStringBuffer(strPattern(TABLE_DEF, m_sTableSerialized)), &dTableDesc))
+	if (!CDatum::Deserialize(CDatum::EFormat::AEONScript, CStringBuffer(strPattern(TABLE_DEF, m_sTableSerialized)), &dTableDesc))
 		{
 		ASSERT(false);
 		return false;

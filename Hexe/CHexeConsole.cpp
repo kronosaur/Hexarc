@@ -94,7 +94,7 @@ CDatum CHexeConsole::GetConsoleData (DWORD Seq) const
 	CDatum dResult(CDatum::typeStruct);
 	dResult.SetElement(FIELD_CONSOLE_ID, GetID());
 	if (m_bClosed)
-		dResult.SetElement(FIELD_DONE, CDatum(CDatum::constTrue));
+		dResult.SetElement(FIELD_DONE, CDatum(true));
 
 	dResult.SetElement(FIELD_RESULT, dLines);
 	dResult.SetElement(FIELD_SEQ, m_Seq);

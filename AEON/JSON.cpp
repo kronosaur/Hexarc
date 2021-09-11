@@ -81,7 +81,7 @@ void CDatum::SerializeJSON (IByteStream &Stream) const
 					{
 					switch (m_dwData)
 						{
-						case constTrue:
+						case CONST_TRUE:
 							Stream.Write("true", 4);
 							break;
 
@@ -123,7 +123,7 @@ void CDatum::SerializeJSON (IByteStream &Stream) const
 			break;
 
 		case AEON_TYPE_COMPLEX:
-			raw_GetComplex()->Serialize(formatJSON, Stream);
+			raw_GetComplex()->Serialize(EFormat::JSON, Stream);
 			break;
 
 		default:
@@ -371,7 +371,7 @@ CJSONParser::ETokens CJSONParser::ParseLiteral (CDatum *retDatum)
 				if (m_chChar == 'e')
 					{
 					m_chChar = ReadChar();
-					*retDatum = CDatum(CDatum::constTrue);
+					*retDatum = CDatum(true);
 					return tkDatum;
 					}
 				}

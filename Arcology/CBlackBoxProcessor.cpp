@@ -273,7 +273,7 @@ CBlackBoxProcessor::EResults CBlackBoxProcessor::Process (void)
 	//	finished the search.
 
 	else if (Results.GetCount() == 0)
-		dResults = CDatum(CDatum::constTrue);
+		dResults = CDatum(true);
 
 	//	We need to reverse the array to show the results in chronological order.
 

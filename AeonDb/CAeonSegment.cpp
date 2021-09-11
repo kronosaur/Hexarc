@@ -598,7 +598,7 @@ CDatum CAeonSegment::DebugDump (void) const
 	pData->SetElement(FIELD_FILESPEC, m_sFilespec);
 	pData->SetElement(FIELD_SEQ, m_Seq);
 	if (m_bMarkedForDelete)
-		pData->SetElement(FIELD_MARKED_FOR_DELETE, CDatum(CDatum::constTrue));
+		pData->SetElement(FIELD_MARKED_FOR_DELETE, CDatum(true));
 
 	pData->SetElement(FIELD_FILE_SIZE, fileGetSize(m_sFilespec));
 

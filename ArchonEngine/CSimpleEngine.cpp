@@ -303,7 +303,7 @@ CDatum CSimpleEngine::MessageToHexeResult (const SArchonMessage &Msg)
 	if (IsError(Msg))
 		CHexeError::Create(Msg.sMsg, Msg.dPayload, &dResult);
 	else if (strEquals(Msg.sMsg, MSG_OK) && Msg.dPayload.IsNil())
-		dResult = CDatum(CDatum::constTrue);
+		dResult = CDatum(true);
 	else
 		dResult = Msg.dPayload;
 

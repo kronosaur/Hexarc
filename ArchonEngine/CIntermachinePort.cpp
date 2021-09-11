@@ -54,7 +54,7 @@ bool CIntermachinePort::SendMessage (const SArchonMessage &Msg)
 	pPayload->Append(m_pProcess->GenerateAbsoluteAddress(Msg.sReplyAddr));
 	pPayload->Append(Msg.dPayload);
 	pPayload->Append(m_pProcess->GetMachineName());
-	pPayload->Append(strStartsWith(Msg.sMsg, MSG_LOG_PREFIX) ? CDatum(CDatum::constTrue) : CDatum());
+	pPayload->Append(strStartsWith(Msg.sMsg, MSG_LOG_PREFIX) ? CDatum(true) : CDatum());
 
 	SArchonMessage ExarchMsg;
 	ExarchMsg.sMsg = MSG_EXARCH_SEND_TO_MACHINE;

@@ -43,7 +43,7 @@ enum EOpCodes
 	opJump =				0x13000000,
 	opJumpIfNil =			0x14000000,
 	opPushNil =				0x15000000,		//	Pushes CDatum()
-	opPushTrue =			0x16000000,		//	Pushes CDatum(CDatum::constTrue)
+	opPushTrue =			0x16000000,		//	Pushes CDatum(true)
 	opIsEqual =				0x17000000,
 	opIsLess =				0x18000000,
 	opIsGreater =			0x19000000,

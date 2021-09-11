@@ -110,24 +110,24 @@ class CDatum
 			typeCustom =		100,
 			};
 
-		enum ECallTypes
+		enum class ECallType
 			{
-			funcNone =			0,			//	Not a function
-			funcCall =			1,			//	A standard function call
-			funcLibrary =		2,			//	A library function implemented in native code
+			None =				0,			//	Not a function
+			Call =				1,			//	A standard function call
+			Library =			2,			//	A library function implemented in native code
 
-			primitiveInvoke =	3,			//	Hexarc invoke message
+			Invoke =			3,			//	Hexarc invoke message
 			};
 
-		enum ESerializationFormats
+		enum class EFormat
 			{
-			formatUnknown =		-1,
+			Unknown =			-1,
 
-			formatAEONScript =	0,
-			formatJSON =		1,
-			formatAEONLocal =	2,			//	Serialized to a local machine
-			formatTextUTF8 =	3,			//	Plain text (unstructured)
-			formatBinary =		4,			//	Binary
+			AEONScript =		0,
+			JSON =				1,
+			AEONLocal =			2,			//	Serialized to a local machine
+			TextUTF8 =			3,			//	Plain text (unstructured)
+			Binary =			4,			//	Binary
 			};
 
 		enum class InvokeResult
@@ -141,14 +141,7 @@ class CDatum
 			runInvoke,
 			};
 
-		enum Constants
-			{
-			constTrue =			0xaaaa0001,
-			constFree =			0xfeee0001,
-			};
-
 		CDatum (void) : m_dwData(0) { }
-		CDatum (Constants dwConstant) : m_dwData(dwConstant) { }
 		CDatum (int iValue);
 		CDatum (DWORD dwValue);
 		CDatum (DWORDLONG ilValue);
@@ -162,19 +155,19 @@ class CDatum
 		CDatum (const CRGBA32Image &Value);
 		CDatum (CRGBA32Image &&Value);
 		explicit CDatum (Types iType);
-		explicit CDatum (bool bValue);
+		explicit CDatum (bool bValue) : m_dwData(bValue ? CONST_TRUE : 0) { }
 
 		static bool CreateBinary (IByteStream &Stream, int iSize, CDatum *retDatum);
 		static bool CreateBinaryFromHandoff (CStringBuffer &Buffer, CDatum *retDatum);
 		static bool CreateFromAttributeList (const CAttributeList &Attribs, CDatum *retdDatum);
-		static bool CreateFromFile (const CString &sFilespec, ESerializationFormats iFormat, CDatum *retdDatum, CString *retsError);
+		static bool CreateFromFile (const CString &sFilespec, EFormat iFormat, CDatum *retdDatum, CString *retsError);
 		static bool CreateFromStringValue (const CString &sValue, CDatum *retdDatum);
 		static bool CreateIPInteger (const CIPInteger &Value, CDatum *retdDatum);
 		static bool CreateIPIntegerFromHandoff (CIPInteger &Value, CDatum *retdDatum);
 		static bool CreateStringFromHandoff (CString &sString, CDatum *retDatum);
 		static bool CreateStringFromHandoff (CStringBuffer &String, CDatum *retDatum);
-		static bool Deserialize (ESerializationFormats iFormat, IByteStream &Stream, IAEONParseExtension *pExtension, CDatum *retDatum);
-		static bool Deserialize (ESerializationFormats iFormat, IByteStream &Stream, CDatum *retDatum) { return Deserialize(iFormat, Stream, NULL, retDatum); }
+		static bool Deserialize (EFormat iFormat, IByteStream &Stream, IAEONParseExtension *pExtension, CDatum *retDatum);
+		static bool Deserialize (EFormat iFormat, IByteStream &Stream, CDatum *retDatum) { return Deserialize(iFormat, Stream, NULL, retDatum); }
 		static Types GetStringValueType (const CString &sValue);
 
 		operator int () const;
@@ -193,7 +186,7 @@ class CDatum
 		CString AsString (void) const;
 		TArray<CString> AsStringArray (void) const;
 		size_t CalcMemorySize (void) const;
-		size_t CalcSerializeSize (ESerializationFormats iFormat) const;
+		size_t CalcSerializeSize (EFormat iFormat) const;
 		CDatum Clone (void) const;
 		bool Find (CDatum dValue, int *retiIndex = NULL) const;
 		bool FindElement (const CString &sKey, CDatum *retpValue);
@@ -215,8 +208,8 @@ class CDatum
 		bool IsError (void) const;
 		bool IsNil (void) const;
 		void Mark (void);
-		void Serialize (ESerializationFormats iFormat, IByteStream &Stream) const;
-		CString SerializeToString (ESerializationFormats iFormat) const;
+		void Serialize (EFormat iFormat, IByteStream &Stream) const;
+		CString SerializeToString (EFormat iFormat) const;
 		void SetElement (IInvokeCtx *pCtx, const CString &sKey, CDatum dValue);
 		void SetElement (const CString &sKey, CDatum dValue);
 		void SetElement (int iIndex, CDatum dValue);
@@ -231,7 +224,7 @@ class CDatum
 
 		//	Function related methods
 		bool CanInvoke (void) const;
-		ECallTypes GetCallInfo (CDatum *retdCodeBank = NULL, DWORD **retpIP = NULL) const;
+		ECallType GetCallInfo (CDatum *retdCodeBank = NULL, DWORD **retpIP = NULL) const;
 		InvokeResult Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, DWORD dwExecutionRights, CDatum *retdResult);
 		InvokeResult InvokeContinues (IInvokeCtx *pCtx, CDatum dContext, CDatum dResult, CDatum *retdResult);
 
@@ -246,20 +239,23 @@ class CDatum
 		static void RegisterMarkProc (MARKPROC fnProc);
 
 	private:
-		size_t CalcSerializeSizeAEONScript (ESerializationFormats iFormat) const;
+		static constexpr DWORD_PTR CONST_TRUE =		0xaaaa0001;
+		static constexpr DWORD_PTR CONST_FREE =		0xfeee0001;
+
+		size_t CalcSerializeSizeAEONScript (EFormat iFormat) const;
 		static int DefaultCompare (void *pCtx, const CDatum &dKey1, const CDatum &dKey2);
 		static bool DeserializeAEONScript (IByteStream &Stream, IAEONParseExtension *pExtension, CDatum *retDatum);
 		static bool DeserializeAEONScript (IByteStream &Stream, CDatum *retDatum) { return DeserializeAEONScript(Stream, NULL, retDatum); }
 		static bool DeserializeJSON (IByteStream &Stream, CDatum *retDatum);
 		static bool DeserializeTextUTF8 (IByteStream &Stream, CDatum *retDatum);
-		static bool DetectFileFormat (const CString &sFilespec, IMemoryBlock &Data, ESerializationFormats *retiFormat, CString *retsError);
+		static bool DetectFileFormat (const CString &sFilespec, IMemoryBlock &Data, EFormat *retiFormat, CString *retsError);
 		DWORD GetNumberIndex (void) const { return (DWORD)(m_dwData >> 4); }
 		bool IsAllocatedInteger (void) const { return (m_dwData & AEON_NUMBER_TYPE_MASK) == AEON_NUMBER_32BIT; }
 		IComplexDatum *raw_GetComplex (void) const { return (IComplexDatum *)(m_dwData & AEON_POINTER_MASK); }
 		double raw_GetDouble (void) const;
 		int raw_GetInt32 (void) const;
 		const CString &raw_GetString (void) const { ASSERT(AEON_TYPE_STRING == 0x00); return *(CString *)&m_dwData; }
-		void SerializeAEONScript (ESerializationFormats iFormat, IByteStream &Stream) const;
+		void SerializeAEONScript (EFormat iFormat, IByteStream &Stream) const;
 		void SerializeJSON (IByteStream &Stream) const;
 
 		DWORD_PTR m_dwData;
@@ -280,7 +276,7 @@ class IComplexDatum
 
 		virtual void Append (CDatum dDatum) { }
 		virtual CString AsString (void) const { return NULL_STR; }
-		virtual size_t CalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const;
+		virtual size_t CalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const;
 		virtual size_t CalcMemorySize (void) const = 0;
 		virtual bool CanInvoke (void) const { return false; }
 		virtual const CDateTime &CastCDateTime (void) const { return NULL_DATETIME; }
@@ -291,13 +287,13 @@ class IComplexDatum
 		virtual int CastInteger32 (void) const { return 0; }
 		void ClearMark (void) { m_bMarked = false; }
 		virtual IComplexDatum *Clone (void) const = 0;
-		bool DeserializeAEONScript (CDatum::ESerializationFormats iFormat, const CString &sTypename, CCharStream *pStream);
+		bool DeserializeAEONScript (CDatum::EFormat iFormat, const CString &sTypename, CCharStream *pStream);
 		virtual bool DeserializeJSON (const CString &sTypename, const TArray<CDatum> &Data);
 		virtual bool Find (CDatum dValue, int *retiIndex = NULL) const { return false; }
 		virtual bool FindElement (const CString &sKey, CDatum *retpValue) { return false; }
 		virtual CDatum::Types GetBasicType (void) const = 0;
 		virtual int GetBinarySize (void) const { return CastCString().GetLength(); }
-		virtual CDatum::ECallTypes GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) const { return CDatum::funcNone; }
+		virtual CDatum::ECallType GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) const { return CDatum::ECallType::None; }
 		virtual int GetCount (void) const = 0;
 		virtual CDatum GetElement (IInvokeCtx *pCtx, int iIndex) const { return GetElement(iIndex); }
 		virtual CDatum GetElement (int iIndex) const = 0;
@@ -316,7 +312,7 @@ class IComplexDatum
 		virtual bool IsMemoryBlock (void) const { const CString &sData = CastCString(); return (sData.GetLength() > 0); }
 		virtual bool IsNil (void) const { return false; }
 		void Mark (void) { if (!m_bMarked) { m_bMarked = true; OnMarked(); } }	//	Check m_bMarked to avoid infinite recursion
-		virtual void Serialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const;
+		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const;
 		virtual void SetElement (IInvokeCtx *pCtx, const CString &sKey, CDatum dDatum) { SetElement(sKey, dDatum); }
 		virtual void SetElement (const CString &sKey, CDatum dDatum) { }
 		virtual void SetElement (int iIndex, CDatum dDatum) { }
@@ -324,12 +320,12 @@ class IComplexDatum
 		virtual void WriteBinaryToStream (IByteStream &Stream, int iPos = 0, int iLength = -1, IProgressEvents *pProgress = NULL) const;
 
 	protected:
-		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const { return 0; }
-		virtual bool OnDeserialize (CDatum::ESerializationFormats iFormat, const CString &sTypename, IByteStream &Stream) { ASSERT(false); return false; }
+		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const { return 0; }
+		virtual bool OnDeserialize (CDatum::EFormat iFormat, const CString &sTypename, IByteStream &Stream) { ASSERT(false); return false; }
 		virtual DWORD OnGetSerializeFlags (void) const { return 0; }
 		virtual void OnMarked (void) { }
-		virtual void OnSerialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const { ASSERT(false); }
-		virtual void OnSerialize (CDatum::ESerializationFormats iFormat, CComplexStruct *pStruct) const;
+		virtual void OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const { ASSERT(false); }
+		virtual void OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const;
 
 	private:
 		bool m_bMarked;
@@ -371,12 +367,12 @@ class CComplexArray : public IComplexDatum
 		virtual void GrowToFit (int iCount) override { m_Array.GrowToFit(iCount); }
 		virtual bool IsArray (void) const override { return true; }
 		virtual bool IsNil (void) const override { return (GetCount() == 0); }
-		virtual void Serialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const override;
+		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
 		virtual void Sort (ESortOptions Order = AscendingSort, TArray<CDatum>::COMPAREPROC pfCompare = NULL, void *pCtx = NULL) override { if (pfCompare) m_Array.Sort(pCtx, pfCompare, Order); else m_Array.Sort(Order); }
 		virtual void SetElement (int iIndex, CDatum dDatum) override { m_Array[iIndex] = dDatum; }
 
 	protected:
-		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const;
+		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const;
 		virtual void OnMarked (void);
 
 	private:
@@ -409,9 +405,9 @@ class CComplexBinary : public IComplexDatum
 
 	protected:
 		//	IComplexDatum
-		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const;
-		virtual bool OnDeserialize (CDatum::ESerializationFormats iFormat, const CString &sTypename, IByteStream &Stream);
-		virtual void OnSerialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const;
+		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const;
+		virtual bool OnDeserialize (CDatum::EFormat iFormat, const CString &sTypename, IByteStream &Stream);
+		virtual void OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const;
 
 	private:
 		LPSTR GetBuffer (void) const { return (m_pData - sizeof(DWORD)); }
@@ -446,10 +442,10 @@ class CComplexBinaryFile : public IComplexDatum
 
 	protected:
 		//	IComplexDatum
-		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const;
-		virtual bool OnDeserialize (CDatum::ESerializationFormats iFormat, const CString &sTypename, IByteStream &Stream);
+		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const;
+		virtual bool OnDeserialize (CDatum::EFormat iFormat, const CString &sTypename, IByteStream &Stream);
 		virtual void OnMarked (void);
-		virtual void OnSerialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const;
+		virtual void OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const;
 
 	private:
 		struct SHeader
@@ -486,10 +482,10 @@ class CComplexDateTime : public IComplexDatum
 		virtual CDatum GetElement (const CString &sKey) const;
 		virtual const CString &GetTypename (void) const;
 		virtual bool IsArray (void) const { return true; }
-		virtual void Serialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const;
+		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const;
 
 	protected:
-		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const;
+		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const;
 
 	private:
 		enum EParts
@@ -534,9 +530,9 @@ class CComplexImage32 : public IComplexDatum
 
 	protected:
 		//	IComplexDatum
-		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const override;
-		virtual bool OnDeserialize (CDatum::ESerializationFormats iFormat, const CString &sTypename, IByteStream &Stream) override;
-		virtual void OnSerialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const override;
+		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const override;
+		virtual bool OnDeserialize (CDatum::EFormat iFormat, const CString &sTypename, IByteStream &Stream) override;
+		virtual void OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
 
 	private:
 		CRGBA32Image m_Image;
@@ -565,13 +561,13 @@ class CComplexInteger : public IComplexDatum
 		virtual const CString &GetTypename (void) const;
 		virtual bool IsArray (void) const { return false; }
 		virtual bool IsIPInteger (void) const { return true; }
-		virtual void Serialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const;
+		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const;
 
 	protected:
 		//	IComplexDatum
-		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const;
-		virtual bool OnDeserialize (CDatum::ESerializationFormats iFormat, const CString &sTypename, IByteStream &Stream) { return CIPInteger::Deserialize(Stream, &m_Value); }
-		virtual void OnSerialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const { m_Value.Serialize(Stream); }
+		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const;
+		virtual bool OnDeserialize (CDatum::EFormat iFormat, const CString &sTypename, IByteStream &Stream) { return CIPInteger::Deserialize(Stream, &m_Value); }
+		virtual void OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const { m_Value.Serialize(Stream); }
 
 	private:
 		CIPInteger m_Value;
@@ -602,11 +598,11 @@ class CComplexStruct : public IComplexDatum
 		virtual void GrowToFit (int iCount) override { m_Map.GrowToFit(iCount); }
 		virtual bool IsArray (void) const { return true; }
 		virtual bool IsNil (void) const { return (GetCount() == 0); }
-		virtual void Serialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const;
+		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const;
 		virtual void SetElement (const CString &sKey, CDatum dDatum) { m_Map.SetAt(sKey, dDatum); }
 
 	protected:
-		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const;
+		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const;
 		virtual void OnMarked (void);
 
 	private:

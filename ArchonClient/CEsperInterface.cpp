@@ -102,7 +102,7 @@ bool CEsperInterface::ConvertBodyToDatum (const CHTTPMessage &Message, CDatum *r
 	else if (strEquals(sMediaType, MEDIA_TYPE_JSON))
 		{
 		CStringBuffer Buffer(sBuffer);
-		if (!CDatum::Deserialize(CDatum::formatJSON, Buffer, retdBody))
+		if (!CDatum::Deserialize(CDatum::EFormat::JSON, Buffer, retdBody))
 			{
 			*retdBody = ERR_UNABLE_TO_PARSE_JSON;
 			return false;

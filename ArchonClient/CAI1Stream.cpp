@@ -123,7 +123,7 @@ void CAI1Stream::ParseMessage (int iLength, CString *retsCommand, CDatum *retdPa
 
 	CComplexArray *pArray = new CComplexArray;
 	CDatum dItem;
-	while (Payload.HasMore() && CDatum::Deserialize(CDatum::formatAEONScript, Payload, &dItem))
+	while (Payload.HasMore() && CDatum::Deserialize(CDatum::EFormat::AEONScript, Payload, &dItem))
 		pArray->Insert(dItem);
 
 	//	Done
@@ -167,7 +167,7 @@ void CAI1Stream::WriteToEsper (const CString &sCommand, CDatum dPayload, CDatum 
 	for (i = 0; i < dPayload.GetCount(); i++)
 		{
 		Output.Write(" ", 1);
-		dPayload.GetElement(i).Serialize(CDatum::formatAEONScript, Output);
+		dPayload.GetElement(i).Serialize(CDatum::EFormat::AEONScript, Output);
 		}
 
 	Output.Write(STR_EOM_TOKEN);

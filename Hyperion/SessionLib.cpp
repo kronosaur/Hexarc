@@ -540,7 +540,7 @@ bool serviceMisc (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 
 						CBuffer Buffer(pPos, (int)(pPosEnd - pPos), false);
 						CDatum dParam;
-						if (!CDatum::Deserialize(CDatum::formatAEONScript, Buffer, &dParam))
+						if (!CDatum::Deserialize(CDatum::EFormat::AEONScript, Buffer, &dParam))
 							{
 							CHexeError::Create(NULL_STR, ERR_BAD_COMMAND_LINE, retdResult);
 							return false;
@@ -667,7 +667,7 @@ bool userMisc (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinu
 				}
 
 			if (pSession->GetSecurityCtx().HasUserRight(dLocalEnv.GetElement(0)))
-				*retdResult = CDatum(CDatum::constTrue);
+				*retdResult = CDatum(true);
 			else
 				*retdResult = CDatum();
 			return true;
@@ -701,7 +701,7 @@ bool userMisc (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinu
 
 			//	Done
 
-			*retdResult = CDatum(CDatum::constTrue);
+			*retdResult = CDatum(true);
 			return true;
 			}
 

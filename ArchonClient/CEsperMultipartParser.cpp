@@ -272,7 +272,7 @@ bool CEsperMultipartParser::ParseToBoundary (char *pPos, char *pPosEnd, const CS
 			{
 			CBuffer Buffer(pStart, iDataLen, false);
 			CDatum dData;
-			if (!CDatum::Deserialize(CDatum::formatJSON, Buffer, retdData))
+			if (!CDatum::Deserialize(CDatum::EFormat::JSON, Buffer, retdData))
 				return false;
 			}
 

@@ -205,7 +205,7 @@ bool CExarchBootSession::OnStartSession (const SArchonMessage &Msg, DWORD dwTick
 
 	CDatum dTableDesc;
 	CStringBuffer Stream(INSTALL_TABLE_DESC);
-	CDatum::Deserialize(CDatum::formatAEONScript, Stream, &dTableDesc);
+	CDatum::Deserialize(CDatum::EFormat::AEONScript, Stream, &dTableDesc);
 
 	CDatum dPayload(CDatum::typeArray);
 	dPayload.Append(dTableDesc);

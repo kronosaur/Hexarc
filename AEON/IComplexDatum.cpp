@@ -5,21 +5,21 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(TYPENAME_ARRAY,					"array")
-DECLARE_CONST_STRING(TYPENAME_DATETIME,					"dateTime")
-DECLARE_CONST_STRING(TYPENAME_STRUCT,					"struct")
+DECLARE_CONST_STRING(TYPENAME_ARRAY,					"array");
+DECLARE_CONST_STRING(TYPENAME_DATETIME,					"dateTime");
+DECLARE_CONST_STRING(TYPENAME_STRUCT,					"struct");
 
-DECLARE_CONST_STRING(DATETIME_YEAR,						"year")
-DECLARE_CONST_STRING(DATETIME_MONTH,					"month")
-DECLARE_CONST_STRING(DATETIME_DAY,						"day")
-DECLARE_CONST_STRING(DATETIME_HOUR,						"hour")
-DECLARE_CONST_STRING(DATETIME_MINUTE,					"minute")
-DECLARE_CONST_STRING(DATETIME_SECOND,					"second")
-DECLARE_CONST_STRING(DATETIME_MILLISECOND,				"millisecond")
+DECLARE_CONST_STRING(DATETIME_YEAR,						"year");
+DECLARE_CONST_STRING(DATETIME_MONTH,					"month");
+DECLARE_CONST_STRING(DATETIME_DAY,						"day");
+DECLARE_CONST_STRING(DATETIME_HOUR,						"hour");
+DECLARE_CONST_STRING(DATETIME_MINUTE,					"minute");
+DECLARE_CONST_STRING(DATETIME_SECOND,					"second");
+DECLARE_CONST_STRING(DATETIME_MILLISECOND,				"millisecond");
 
 //	IComplexDatum --------------------------------------------------------------
 
-size_t IComplexDatum::CalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const
+size_t IComplexDatum::CalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const
 
 //	CalcSerializeSizeAEONScript
 //
@@ -31,8 +31,8 @@ size_t IComplexDatum::CalcSerializeSizeAEONScript (CDatum::ESerializationFormats
 
 	switch (iFormat)
 		{
-		case CDatum::formatAEONScript:
-		case CDatum::formatAEONLocal:
+		case CDatum::EFormat::AEONScript:
+		case CDatum::EFormat::AEONLocal:
 			{
 			TotalSize = GetTypename().GetLength() + 3;
 
@@ -59,7 +59,7 @@ size_t IComplexDatum::CalcSerializeSizeAEONScript (CDatum::ESerializationFormats
 	return TotalSize;
 	}
 
-bool IComplexDatum::DeserializeAEONScript (CDatum::ESerializationFormats iFormat, const CString &sTypename, CCharStream *pStream)
+bool IComplexDatum::DeserializeAEONScript (CDatum::EFormat iFormat, const CString &sTypename, CCharStream *pStream)
 
 //	DeserializeAEONScript
 //
@@ -132,13 +132,13 @@ bool IComplexDatum::DeserializeJSON (const CString &sTypename, const TArray<CDat
 
 	CStringBuffer Buffer(Data[0]);
 	CBase64Decoder Decoder(&Buffer);
-	if (!OnDeserialize(CDatum::formatJSON, sTypename, Decoder))
+	if (!OnDeserialize(CDatum::EFormat::JSON, sTypename, Decoder))
 		return false;
 
 	return true;
 	}
 
-void IComplexDatum::OnSerialize (CDatum::ESerializationFormats iFormat, CComplexStruct *pStruct) const
+void IComplexDatum::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const
 
 //	OnSerialize
 //
@@ -151,7 +151,7 @@ void IComplexDatum::OnSerialize (CDatum::ESerializationFormats iFormat, CComplex
 		pStruct->SetElement(GetKey(i), GetElement(i));
 	}
 
-void IComplexDatum::Serialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const
+void IComplexDatum::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const
 
 //	Serialize
 //
@@ -162,8 +162,8 @@ void IComplexDatum::Serialize (CDatum::ESerializationFormats iFormat, IByteStrea
 
 	switch (iFormat)
 		{
-		case CDatum::formatAEONScript:
-		case CDatum::formatAEONLocal:
+		case CDatum::EFormat::AEONScript:
+		case CDatum::EFormat::AEONLocal:
 			{
 			if (!(dwFlags & FLAG_SERIALIZE_NO_TYPENAME))
 				{
@@ -198,7 +198,7 @@ void IComplexDatum::Serialize (CDatum::ESerializationFormats iFormat, IByteStrea
 			break;
 			}
 
-		case CDatum::formatJSON:
+		case CDatum::EFormat::JSON:
 			{
 			if (!(dwFlags & FLAG_SERIALIZE_NO_TYPENAME))
 				{
@@ -232,8 +232,8 @@ void IComplexDatum::WriteBinaryToStream (IByteStream &Stream, int iPos, int iLen
 	if (iPos >= sData.GetLength())
 		return;
 
-    if (pProgress)
-        pProgress->OnProgressStart();
+	if (pProgress)
+		pProgress->OnProgressStart();
 
 	if (iLength == -1)
 		iLength = Max(0, sData.GetLength() - iPos);
@@ -242,8 +242,8 @@ void IComplexDatum::WriteBinaryToStream (IByteStream &Stream, int iPos, int iLen
 
 	Stream.Write(sData.GetPointer() + iPos, iLength); 
 
-    if (pProgress)
-        pProgress->OnProgressDone();
+	if (pProgress)
+		pProgress->OnProgressDone();
 	}
 
 //	CComplexArray --------------------------------------------------------------
@@ -374,7 +374,7 @@ bool CComplexArray::FindElement (CDatum dValue, int *retiIndex) const
 	return false;
 	}
 
-size_t CComplexArray::OnCalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const
+size_t CComplexArray::OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const
 
 //	OnCalcSerializeSizeAEONScript
 //
@@ -401,7 +401,7 @@ void CComplexArray::OnMarked (void)
 		m_Array[i].Mark();
 	}
 
-void CComplexArray::Serialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const
+void CComplexArray::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const
 
 //	Serialize
 //
@@ -412,8 +412,8 @@ void CComplexArray::Serialize (CDatum::ESerializationFormats iFormat, IByteStrea
 
 	switch (iFormat)
 		{
-		case CDatum::formatAEONScript:
-		case CDatum::formatAEONLocal:
+		case CDatum::EFormat::AEONScript:
+		case CDatum::EFormat::AEONLocal:
 			{
 			Stream.Write("(", 1);
 
@@ -429,7 +429,7 @@ void CComplexArray::Serialize (CDatum::ESerializationFormats iFormat, IByteStrea
 			break;
 			}
 
-		case CDatum::formatJSON:
+		case CDatum::EFormat::JSON:
 			{
 			Stream.Write("[", 1);
 
@@ -609,7 +609,7 @@ CDatum CComplexDateTime::GetElement (const CString &sKey) const
 
 const CString &CComplexDateTime::GetTypename (void) const { return TYPENAME_DATETIME; }
 
-size_t CComplexDateTime::OnCalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const
+size_t CComplexDateTime::OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const
 
 //	OnCalcSerializeSizeAEONScript
 //
@@ -619,7 +619,7 @@ size_t CComplexDateTime::OnCalcSerializeSizeAEONScript (CDatum::ESerializationFo
 	return 25;
 	}
 
-void CComplexDateTime::Serialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const
+void CComplexDateTime::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const
 
 //	Serialize
 //
@@ -628,8 +628,8 @@ void CComplexDateTime::Serialize (CDatum::ESerializationFormats iFormat, IByteSt
 	{
 	switch (iFormat)
 		{
-		case CDatum::formatAEONScript:
-		case CDatum::formatAEONLocal:
+		case CDatum::EFormat::AEONScript:
+		case CDatum::EFormat::AEONLocal:
 			{
 			CString sDate = strPattern("#%d-%02d-%02dT%02d:%02d:%02d.%04d",
 					m_DateTime.Year(),
@@ -644,7 +644,7 @@ void CComplexDateTime::Serialize (CDatum::ESerializationFormats iFormat, IByteSt
 			break;
 			}
 
-		case CDatum::formatJSON:
+		case CDatum::EFormat::JSON:
 			{
 			CString sDate = strPattern("\"%d-%02d-%02dT%02d:%02d:%02d.%04d\"",
 					m_DateTime.Year(),
@@ -787,7 +787,7 @@ size_t CComplexStruct::CalcMemorySize (void) const
 	return dwSize;
 	}
 
-size_t CComplexStruct::OnCalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const
+size_t CComplexStruct::OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const
 
 //	OnCalcSerializeSizeAEONScript
 //
@@ -813,7 +813,7 @@ void CComplexStruct::OnMarked (void)
 		m_Map[i].Mark();
 	}
 
-void CComplexStruct::Serialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const
+void CComplexStruct::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const
 
 //	Serialize
 //
@@ -824,8 +824,8 @@ void CComplexStruct::Serialize (CDatum::ESerializationFormats iFormat, IByteStre
 
 	switch (iFormat)
 		{
-		case CDatum::formatAEONScript:
-		case CDatum::formatAEONLocal:
+		case CDatum::EFormat::AEONScript:
+		case CDatum::EFormat::AEONLocal:
 			{
 			Stream.Write("{", 1);
 
@@ -852,7 +852,7 @@ void CComplexStruct::Serialize (CDatum::ESerializationFormats iFormat, IByteStre
 			break;
 			}
 
-		case CDatum::formatJSON:
+		case CDatum::EFormat::JSON:
 			{
 			Stream.Write("{", 1);
 

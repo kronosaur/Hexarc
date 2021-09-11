@@ -53,7 +53,7 @@ bool ai1Misc (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinue
 				Result.Write(dLocalEnv.GetElement(i).AsString());
 
 			printf("%s\n", Result.GetPointer());
-			*retdResult = CDatum(CDatum::constTrue);
+			*retdResult = CDatum(true);
 			return true;
 			}
 
@@ -62,7 +62,7 @@ bool ai1Misc (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinue
 			CString sFilespec = dLocalEnv.GetElement(0).AsString();
 
 			CString sError;
-			if (!CDatum::CreateFromFile(sFilespec, CDatum::formatTextUTF8, retdResult, &sError))
+			if (!CDatum::CreateFromFile(sFilespec, CDatum::EFormat::TextUTF8, retdResult, &sError))
 				{
 				CHexeError::Create(NULL_STR, sError, retdResult);
 				return false;

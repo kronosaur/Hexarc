@@ -1583,7 +1583,7 @@ bool CAeonTable::GetFileData (const CString &sFilePath, const SFileDataOptions &
 			&& Options.IfModifiedAfter >= (const CDateTime &)dFileDesc.GetElement(FIELD_MODIFIED_ON))
 		{
 		CComplexStruct *pFileDownloadDesc = new CComplexStruct;
-		pFileDownloadDesc->SetElement(FIELD_UNMODIFIED, CDatum(CDatum::constTrue));
+		pFileDownloadDesc->SetElement(FIELD_UNMODIFIED, CDatum(true));
 		pFileDownloadDesc->SetElement(FIELD_FILE_DESC, PrepareFileDesc(m_sName, sFilePath, dFileDesc, (Options.bTranspace ? FLAG_TRANSPACE : 0)));
 
 		*retdFileDownloadDesc = CDatum(pFileDownloadDesc);
@@ -3335,7 +3335,7 @@ bool CAeonTable::OpenDesc (const CString &sFilespec, CDatum *retdDesc, CString *
 //	Open the table descriptor
 
 	{
-	return CDatum::CreateFromFile(sFilespec, CDatum::formatAEONScript, retdDesc, retsError);
+	return CDatum::CreateFromFile(sFilespec, CDatum::EFormat::AEONScript, retdDesc, retsError);
 	}
 
 bool CAeonTable::OpenSegments (const CString &sVolume, SEQUENCENUMBER *retHighSeq, CString *retsError)
@@ -4241,7 +4241,7 @@ bool CAeonTable::SaveDesc (CDatum dDesc, const CString &sFilespec, CString *rets
 
 	try
 		{
-		dDesc.Serialize(CDatum::formatAEONScript, DescFile);
+		dDesc.Serialize(CDatum::EFormat::AEONScript, DescFile);
 		}
 	catch (...)
 		{

@@ -264,7 +264,7 @@ void CComplexBinaryFile::IncrementRefCount (void) const
 #endif
 	}
 
-size_t CComplexBinaryFile::OnCalcSerializeSizeAEONScript (CDatum::ESerializationFormats iFormat) const
+size_t CComplexBinaryFile::OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const
 
 //	OnCalcSerializeSizeAEONScript
 //
@@ -273,7 +273,7 @@ size_t CComplexBinaryFile::OnCalcSerializeSizeAEONScript (CDatum::ESerialization
 	{
 	switch (iFormat)
 		{
-		case CDatum::formatAEONLocal:
+		case CDatum::EFormat::AEONLocal:
 			return (3 * sizeof(DWORD)) + m_sFilespec.GetLength();
 
 		default:
@@ -281,7 +281,7 @@ size_t CComplexBinaryFile::OnCalcSerializeSizeAEONScript (CDatum::ESerialization
 		}
 	}
 
-bool CComplexBinaryFile::OnDeserialize (CDatum::ESerializationFormats iFormat, const CString &sTypename, IByteStream &Stream)
+bool CComplexBinaryFile::OnDeserialize (CDatum::EFormat iFormat, const CString &sTypename, IByteStream &Stream)
 
 //	OnDeserialize
 //
@@ -354,7 +354,7 @@ void CComplexBinaryFile::OnMarked (void)
 #endif
 	}
 
-void CComplexBinaryFile::OnSerialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const
+void CComplexBinaryFile::OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const
 
 //	OnSerialize
 //
@@ -371,7 +371,7 @@ void CComplexBinaryFile::OnSerialize (CDatum::ESerializationFormats iFormat, IBy
 		//	2.	The serialization is tied to the machine. That is, we cannot deserialize
 		//		this stream on a different machine. (But it does work cross-process).
 
-		case CDatum::formatAEONLocal:
+		case CDatum::EFormat::AEONLocal:
 			{
 			//	Write a length of 0xffffffff to indicate that this is a file reference.
 

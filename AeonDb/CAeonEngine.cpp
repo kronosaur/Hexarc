@@ -834,7 +834,7 @@ void CAeonEngine::MsgFileUpload (const SArchonMessage &Msg, const CHexeSecurityC
 		//	Compose a table descriptor
 
 		CDatum dTableDesc;
-		if (!CDatum::Deserialize(CDatum::formatAEONScript, CBuffer(strPattern(STR_FILE_TABLE_DESC_PATTERN, sTable)), &dTableDesc))
+		if (!CDatum::Deserialize(CDatum::EFormat::AEONScript, CBuffer(strPattern(STR_FILE_TABLE_DESC_PATTERN, sTable)), &dTableDesc))
 			{
 			SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(STR_ERROR_INVALID_TABLE_NAME, sTable), Msg);
 			return;

@@ -24,7 +24,7 @@ void CHexeError::Create (const CString &sErrorCode, const CString &sErrorDesc, C
 	*retdDatum = CDatum(pError);
 	}
 
-bool CHexeError::OnDeserialize (CDatum::ESerializationFormats iFormat, const CString &sTypename, IByteStream &Stream)
+bool CHexeError::OnDeserialize (CDatum::EFormat iFormat, const CString &sTypename, IByteStream &Stream)
 
 //	OnDeserialize
 //
@@ -36,7 +36,7 @@ bool CHexeError::OnDeserialize (CDatum::ESerializationFormats iFormat, const CSt
 	return true;
 	}
 
-void CHexeError::OnSerialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const
+void CHexeError::OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const
 
 //	OnSerialize
 //
@@ -47,7 +47,7 @@ void CHexeError::OnSerialize (CDatum::ESerializationFormats iFormat, IByteStream
 	m_sDescription.Serialize(Stream);
 	}
 
-void CHexeError::Serialize (CDatum::ESerializationFormats iFormat, IByteStream &Stream) const
+void CHexeError::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const
 
 //	SerializeJSON
 //
@@ -56,7 +56,7 @@ void CHexeError::Serialize (CDatum::ESerializationFormats iFormat, IByteStream &
 	{
 	switch (iFormat)
 		{
-		case CDatum::formatJSON:
+		case CDatum::EFormat::JSON:
 			{
 			Stream.Write("[\"AEON2011:", 11);
 			Stream.Write(GetTypename());
