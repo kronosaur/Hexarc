@@ -1793,6 +1793,23 @@ CDatum CDatum::GetElement (const CString &sKey) const
 		}
 	}
 
+CDatumTypeID CDatum::GetElementTypeID () const
+
+//	GetElementTypeID
+//
+//	Returns the static type of elements in the array.
+
+	{
+	switch (m_dwData & AEON_TYPE_MASK)
+		{
+		case AEON_TYPE_COMPLEX:
+			return raw_GetComplex()->GetElementTypeID();
+
+		default:
+			return CDatumTypeID(typeUnknown);
+		}
+	}
+
 CString CDatum::GetKey (int iIndex) const
 
 //	GetKey
@@ -2062,6 +2079,25 @@ CDatum::Types CDatum::GetStringValueType (const CString &sValue)
 
 		default:
 			return typeString;
+		}
+	}
+
+CDatumTypeID CDatum::GetTypeID () const
+
+//	GetTypeID
+//
+//	Returns the static type.
+
+	{
+	Types iType = GetBasicType();
+	switch (iType)
+		{
+		case typeObject:
+		case typeVector:
+			return raw_GetComplex()->GetTypeID();
+
+		default:
+			return CDatumTypeID(iType);
 		}
 	}
 

@@ -71,6 +71,9 @@
     <ClInclude Include="..\Include\AEONVector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="AEONImpl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Notes.txt" />

@@ -156,6 +156,7 @@ class CHexeError : public TExternalDatum<CHexeError>
 //	There is a method for compiling a HexeDoc into another HexeDoc.
 
 #include "HexeProcessImpl.h"
+#include "HexeTypes.h"
 
 class CHexeSecurityCtx
 	{
@@ -265,10 +266,11 @@ class CHexeProcess : public IInvokeCtx
 		ERun Run (CDatum dExpression, CDatum *retResult);
 		ERun Run (CDatum dFunc, CDatum dCallExpression, const TArray<CDatum> *pInitialStack, CDatum *retResult);
 		ERun RunContinues (CDatum dAsyncResult, CDatum *retResult);
+		void *SetLibraryCtx (const CString &sLibrary, void *pCtx);
 		void SetMaxExecutionTime (DWORDLONG dwMilliseconds) { m_dwMaxExecutionTime = dwMilliseconds; }
 		void SetOptionAddConcatenatesStrings (bool bValue = true) { m_bAddConcatenatesStrings = bValue; }
-		void *SetLibraryCtx (const CString &sLibrary, void *pCtx);
 		void SetSecurityCtx (const CHexeSecurityCtx &Ctx);
+		void SetTypeSystem (const CHexeTypeSystem &Types) { m_pTypes = &Types; }
 
 		//	Execution helpers
 		static int ExecuteCompare (CDatum dValue1, CDatum dValue2);
@@ -319,6 +321,7 @@ class CHexeProcess : public IInvokeCtx
 
 		//	Execution State
 
+		const CHexeTypeSystem *m_pTypes = NULL;		//	Static types
 		CDatum m_dExpression;						//	Current expression being executed
 		CHexeStack m_Stack;							//	Stack
 		DWORD *m_pIP = NULL;						//	Current instruction pointer

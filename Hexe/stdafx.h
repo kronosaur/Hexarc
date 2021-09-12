@@ -11,4 +11,4 @@
 #include "HexeImpl.h"
 #include "HexeTextImpl.h"
 #include "SortImpl.h"
-
+#include "TypeImpl.h"

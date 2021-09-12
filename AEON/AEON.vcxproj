@@ -209,6 +209,7 @@
     <ClInclude Include="..\Include\AEON.h" />
     <ClInclude Include="..\Include\AEONAllocator.h" />
     <ClInclude Include="..\Include\AEONVector.h" />
+    <ClInclude Include="AEONImpl.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>

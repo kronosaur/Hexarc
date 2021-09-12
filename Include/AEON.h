@@ -24,6 +24,7 @@ class IAEONParseExtension;
 class IComplexDatum;
 class IComplexFactory;
 class IInvokeCtx;
+class CDatumTypeID;
 
 //	Data encoding constants
 
@@ -106,6 +107,9 @@ class CDatum
 			typeBinary =		11,
 			typeVoid =			12,
 			typeImage32 =		13,
+			typeObject =		14,			//	A typed struct
+			typeVector =		15,			//	A typed array
+			typeTable =			16,			//	A table (each column is a typed array)
 
 			typeCustom =		100,
 			};
@@ -200,7 +204,9 @@ class CDatum
 		CDatum GetElement (int iIndex) const;
 		CDatum GetElement (IInvokeCtx *pCtx, const CString &sKey) const;
 		CDatum GetElement (const CString &sKey) const;
+		CDatumTypeID GetElementTypeID () const;
 		CString GetKey (int iIndex) const;
+		CDatumTypeID GetTypeID () const;
 		const CString &GetTypename (void) const;
 		void GrowToFit (int iCount);
 		bool IsMemoryBlock (void) const;
@@ -263,7 +269,30 @@ class CDatum
 
 inline int KeyCompare (const CDatum &dKey1, const CDatum &dKey2) { return CDatum::Compare(dKey1, dKey2); }
 
-//	IComplexDatum
+//	Static Types ---------------------------------------------------------------
+//
+//	This type ID is used with Hexe/GridLang to implement static types. When a
+//	program defines a class in GridLang, we generate a type and store it in the
+//	CHexeProcess structures.
+//
+//	For example, when we create an object instance of a certain class, we create
+//	a datum of typeObject and set the typeID to have an index to the class 
+//	definition in CHexeProcess.
+
+class CDatumTypeID
+	{
+	public:
+		CDatumTypeID (CDatum::Types iType = CDatum::typeUnknown, DWORD dwTypeIndex = 0) : m_iConcreteType(iType), m_dwTypeIndex(dwTypeIndex) { }
+
+		CDatum::Types GetConcreteType () const { return m_iConcreteType; }
+		DWORD GetTypeIndex () const { return m_dwTypeIndex; }
+
+	private:
+		CDatum::Types m_iConcreteType = CDatum::typeUnknown;
+		DWORD m_dwTypeIndex = 0;
+	};
+
+//	IComplexDatum --------------------------------------------------------------
 
 class IComplexDatum
 	{
@@ -299,8 +328,10 @@ class IComplexDatum
 		virtual CDatum GetElement (int iIndex) const = 0;
 		virtual CDatum GetElement (IInvokeCtx *pCtx, const CString &sKey) const { return GetElement(sKey); }
 		virtual CDatum GetElement (const CString &sKey) const { return CDatum(); }
+		virtual CDatumTypeID GetElementTypeID () const { return CDatumTypeID(CDatum::typeUnknown); }
 		virtual CString GetKey (int iIndex) const { return NULL_STR; }
 		virtual CDatum::Types GetNumberType (int *retiValue) { return CDatum::typeUnknown; }
+		virtual CDatumTypeID GetTypeID () const { return CDatumTypeID(GetBasicType()); }
 		virtual const CString &GetTypename (void) const = 0;
 		virtual void GrowToFit (int iCount) { }
 		virtual CDatum::InvokeResult Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, DWORD dwExecutionRights, CDatum *retdResult) { *retdResult = CDatum(); return CDatum::InvokeResult::ok; }
@@ -375,7 +406,6 @@ class CComplexArray : public IComplexDatum
 		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const;
 		virtual void OnMarked (void);
 
-	private:
 		TArray<CDatum> m_Array;
 	};
 
@@ -605,7 +635,6 @@ class CComplexStruct : public IComplexDatum
 		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const;
 		virtual void OnMarked (void);
 
-	private:
 		void AppendStruct (CDatum dDatum);
 
 		TSortMap<CString, CDatum> m_Map;
