@@ -17,7 +17,13 @@ class IHexeType
 				m_sFullyQualifiedName(sFullyQualifiedName.IsEmpty() ? sName : sFullyQualifiedName)
 			{ }
 
+		IHexeType (const IHexeType &Src) = delete;
+		IHexeType (IHexeType &&Src) = delete;
+
 		virtual ~IHexeType () { }
+
+		IHexeType &operator= (const IHexeType &Src) = delete;
+		IHexeType &operator= (IHexeType &&Src) = delete;
 
 		virtual bool IsA (const IHexeType &Type) const { return (&Type == this) || Type.IsAny(); }
 		virtual bool IsAbstract () const { return false; }
@@ -38,7 +44,7 @@ class CHexeTypeSystem
 	{
 	public:
 		void AddType (TUniquePtr<IHexeType> &&NewType);
-		void DebugDump () const;
+		void DeleteAll () { m_Types.DeleteAll(); }
 		
 	private:
 		TIDTable<TUniquePtr<IHexeType>> m_Types;
