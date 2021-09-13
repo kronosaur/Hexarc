@@ -186,7 +186,7 @@ template <class VALUE> class TArray : public CArrayBase
 		void Insert (const VALUE &Value, int iIndex = -1)
 			{
 			int iOffset;
-			if (iIndex == -1) iIndex = GetCount();
+			if (!IsValidInsertIndex(iIndex)) iIndex = GetCount();
 			iOffset = iIndex * sizeof(VALUE);
 			InsertBytes(iOffset, sizeof(VALUE), GetGranularity() * sizeof(VALUE));
 
@@ -197,7 +197,7 @@ template <class VALUE> class TArray : public CArrayBase
 			{
 			if (Array.GetCount() > 0)
 				{
-				int iPos = (iIndex == -1 ? GetCount() : iIndex);
+				int iPos = (IsValidInsertIndex(iIndex) ? iIndex : GetCount());
 				InsertEmpty(Array.GetCount(), iIndex);
 
 				for (int i = 0; i < Array.GetCount(); i++)
@@ -215,7 +215,7 @@ template <class VALUE> class TArray : public CArrayBase
 
 		VALUE *InsertAt (int iIndex)
 			{
-			if (iIndex == -1)
+			if (iIndex < 0)
 				iIndex = GetCount();
 			else if (iIndex > GetCount())
 				InsertEmpty(iIndex - GetCount());
@@ -229,7 +229,7 @@ template <class VALUE> class TArray : public CArrayBase
 		void InsertEmpty (int iCount = 1, int iIndex = -1)
 			{
 			int iOffset;
-			if (iIndex == -1) iIndex = GetCount();
+			if (!IsValidInsertIndex(iIndex)) iIndex = GetCount();
 			iOffset = iIndex * sizeof(VALUE);
 			InsertBytes(iOffset, NULL, iCount * sizeof(VALUE), GetGranularity() * sizeof(VALUE));
 
@@ -242,7 +242,7 @@ template <class VALUE> class TArray : public CArrayBase
 		void InsertHandoff (VALUE &Value, int iIndex = -1)
 			{
 			VALUE *pEntry;
-			if (iIndex == -1)
+			if (!IsValidInsertIndex(iIndex))
 				pEntry = Insert();
 			else
 				pEntry = InsertAt(iIndex);
@@ -331,6 +331,11 @@ template <class VALUE> class TArray : public CArrayBase
 		static int DefaultCompare (void *pCtx, const VALUE &Key1, const VALUE &Key2)
 			{
 			return ::KeyCompare(Key1, Key2);
+			}
+
+		bool IsValidInsertIndex (int iIndex) const
+			{
+			return (iIndex >= 0 && iIndex <= GetCount());
 			}
 
 		void SortRange (ESortOptions Order, int iLeft, int iRight, COMPAREPROC pfCompare, void *pCtx, TArray<int> &Result)
