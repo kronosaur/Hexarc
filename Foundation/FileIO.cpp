@@ -690,10 +690,10 @@ CDateTime fileGetModifiedTime (const CString &sFilespec)
 	{
 	HANDLE hFile = ::CreateFile(CString16(sFilespec),
 			GENERIC_READ,
-			FILE_SHARE_READ | FILE_SHARE_WRITE,
+			FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
 			NULL,
 			OPEN_EXISTING,
-			FILE_ATTRIBUTE_NORMAL,
+			FILE_FLAG_BACKUP_SEMANTICS,
 			NULL);
 	if (hFile == INVALID_HANDLE_VALUE)
 		return CDateTime(CDateTime::BeginningOfTime);
