@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include <functional>
+
 enum ESortOptions
 	{
 	DescendingSort = 1,
@@ -106,6 +108,16 @@ template <class VALUE> class TArray : public CArrayBase
 			return *this;
 			}
 
+		TArray<VALUE> &operator= (TArray<VALUE> &&Src) noexcept
+			{
+			DeleteAll();
+
+			m_pBlock = Src.m_pBlock;
+			Src.m_pBlock = NULL;
+
+			return *this;
+			}
+
 		VALUE &operator [] (int iIndex) const { return GetAt(iIndex); }
 
 		void Delete (int iIndex, int iCount = 1)
@@ -191,6 +203,12 @@ template <class VALUE> class TArray : public CArrayBase
 			InsertBytes(iOffset, sizeof(VALUE), GetGranularity() * sizeof(VALUE));
 
 			VALUE *pElement = new(GetBytes() + iOffset) VALUE(Value);
+			}
+
+		void Insert (VALUE &&Value, int iIndex = -1)
+			{
+			VALUE *pEntry = InsertAt(iIndex);
+			*pEntry = std::move(Value);
 			}
 
 		void Insert (const TArray<VALUE> &Array, int iIndex = -1)
@@ -320,6 +338,28 @@ template <class VALUE> class TArray : public CArrayBase
 			Sort(NULL, DefaultCompare, Order);
 			}
 
+		void Sort (std::function<int(const VALUE &, const VALUE &)> fnCompare, ESortOptions Order = AscendingSort)
+			{
+			if (GetCount() < 2)
+				return;
+
+			TArray<int> Result;
+			Result.GrowToFit(GetCount());
+
+			//	Binary sort the contents into an indexed array
+
+			SortRange(fnCompare, Order, 0, GetCount() - 1, Result);
+
+			//	Create a new sorted array
+
+			TArray<VALUE> SortedArray;
+			SortedArray.InsertEmpty(GetCount());
+			for (int i = 0; i < GetCount(); i++)
+				SortedArray[i] = GetAt(Result[i]);
+
+			TakeHandoff(SortedArray);
+			}
+
 		void TakeHandoff (TArray<VALUE> &Obj)
 			{
 			DeleteAll();
@@ -376,6 +416,64 @@ template <class VALUE> class TArray : public CArrayBase
 					if (iPos1 < Buffer1.GetCount() && iPos2 < Buffer2.GetCount())
 						{
 						int iCompare = Order * pfCompare(pCtx, GetAt(Buffer1[iPos1]), GetAt(Buffer2[iPos2]));
+						if (iCompare == 1)
+							Result.Insert(Buffer1[iPos1++]);
+						else if (iCompare == -1)
+							Result.Insert(Buffer2[iPos2++]);
+						else
+							{
+							Result.Insert(Buffer1[iPos1++]);
+							Result.Insert(Buffer2[iPos2++]);
+							}
+						}
+					else if (iPos1 < Buffer1.GetCount())
+						Result.Insert(Buffer1[iPos1++]);
+					else if (iPos2 < Buffer2.GetCount())
+						Result.Insert(Buffer2[iPos2++]);
+					else
+						bDone = true;
+					}
+				}
+			}
+
+		void SortRange (std::function<int(const VALUE &, const VALUE &)> fnCompare, ESortOptions Order, int iLeft, int iRight, TArray<int> &Result)
+			{
+			if (iLeft == iRight)
+				Result.Insert(iLeft);
+			else if (iLeft + 1 == iRight)
+				{
+				int iCompare = Order * fnCompare(GetAt(iLeft), GetAt(iRight));
+				if (iCompare == 1)
+					{
+					Result.Insert(iLeft);
+					Result.Insert(iRight);
+					}
+				else
+					{
+					Result.Insert(iRight);
+					Result.Insert(iLeft);
+					}
+				}
+			else
+				{
+				int iMid = iLeft + ((iRight - iLeft) / 2);
+
+				TArray<int> Buffer1;
+				TArray<int> Buffer2;
+
+				SortRange(fnCompare, Order, iLeft, iMid, Buffer1);
+				SortRange(fnCompare, Order, iMid+1, iRight, Buffer2);
+
+				//	Merge
+
+				int iPos1 = 0;
+				int iPos2 = 0;
+				bool bDone = false;
+				while (!bDone)
+					{
+					if (iPos1 < Buffer1.GetCount() && iPos2 < Buffer2.GetCount())
+						{
+						int iCompare = Order * fnCompare(GetAt(Buffer1[iPos1]), GetAt(Buffer2[iPos2]));
 						if (iCompare == 1)
 							Result.Insert(Buffer1[iPos1++]);
 						else if (iCompare == -1)

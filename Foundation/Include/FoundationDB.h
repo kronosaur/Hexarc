@@ -256,7 +256,7 @@ class CDBTable
 		int AddRow (void);
 		void CleanUp (void);
 		int FindColByName (const CString &sName) const;
-		bool FindColsByName (const TArray<CString> &Names, TArray<int> &retIndices) const;
+		bool FindColsByName (const TArray<CString> &Names, TArray<int> &retIndices, CString *retsError = NULL) const;
 		const CDBColumnDef &GetCol (int iIndex) const { return m_Cols[iIndex]; }
 		CDBColumnDef &GetCol (int iIndex) { return m_Cols[iIndex]; }
 		const TArray<CDBColumnDef> &GetColDef (void) const { return m_Cols; }
@@ -270,6 +270,8 @@ class CDBTable
 		void SetColumnDefs (const TArray<CDBColumnDef> &Cols);
 		bool SetField (int iCol, int iRow, const CDBValue &Value);
 		void SetName (const CString &sName) { m_sName = sName; }
+		TArray<int> Sort (const TArray<int> &Cols) const;
+		TArray<int> Sort (const TArray<int> &Rows, const TArray<int> &Cols) const;
 		void TakeHandoff (CDBTable &Src);
 
 	private:

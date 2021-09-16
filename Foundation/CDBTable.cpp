@@ -119,7 +119,7 @@ int CDBTable::FindColByName (const CString &sName) const
 	return *pCol;
 	}
 
-bool CDBTable::FindColsByName (const TArray<CString> &Names, TArray<int> &retIndices) const
+bool CDBTable::FindColsByName (const TArray<CString> &Names, TArray<int> &retIndices, CString *retsError) const
 
 //	FindColsByName
 //
@@ -135,7 +135,12 @@ bool CDBTable::FindColsByName (const TArray<CString> &Names, TArray<int> &retInd
 		{
 		retIndices[i] = FindColByName(Names[i]);
 		if (retIndices[i] == -1)
+			{
+			if (retsError && retsError->IsEmpty())
+				*retsError = strPattern("Unknown column: %s", Names[i]);
+
 			bAllFound = false;
+			}
 		}
 
 	return bAllFound;
@@ -236,6 +241,63 @@ bool CDBTable::SetField (int iCol, int iRow, const CDBValue &Value)
 
 	*pField = Value;
 	return true;
+	}
+
+TArray<int> CDBTable::Sort (const TArray<int> &Cols) const
+
+//	Sort
+//
+//	Returns a list of row indices in sorted order.
+
+	{
+	TArray<int> Result;
+	Result.InsertEmpty(GetRowCount());
+	for (int i = 0; i < GetRowCount(); i++)
+		Result[i] = i;
+
+	//	We sort in place
+
+	Result.Sort([this, &Cols](const int &iLeft, const int &iRight)
+		{
+		for (int i = 0; i < Cols.GetCount(); i++)
+			{
+			int iCol = Cols[i];
+			int iCompare = CDBValue::Compare(GetField(iCol, iLeft), GetField(iCol, iRight));
+			if (iCompare != 0)
+				return iCompare;
+			}
+
+		return 0;
+		});
+
+	return Result;
+	}
+
+TArray<int> CDBTable::Sort (const TArray<int> &Rows, const TArray<int> &Cols) const
+
+//	Sort
+//
+//	Sorts the given rows by the given columns and returns the row indices in 
+//	sorted order.
+
+	{
+	//	We sort in place
+
+	TArray<int> Result = Rows;
+	Result.Sort([this, &Cols](const int &iLeft, const int &iRight)
+		{
+		for (int i = 0; i < Cols.GetCount(); i++)
+			{
+			int iCol = Cols[i];
+			int iCompare = CDBValue::Compare(GetField(iCol, iLeft), GetField(iCol, iRight));
+			if (iCompare != 0)
+				return iCompare;
+			}
+
+		return 0;
+		});
+
+	return Result;
 	}
 
 void CDBTable::TakeHandoff (CDBTable &Src)
