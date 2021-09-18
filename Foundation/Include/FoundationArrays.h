@@ -205,10 +205,25 @@ template <class VALUE> class TArray : public CArrayBase
 			VALUE *pElement = new(GetBytes() + iOffset) VALUE(Value);
 			}
 
-		void Insert (VALUE &&Value, int iIndex = -1)
+		void Insert (VALUE &&Value)
 			{
-			VALUE *pEntry = InsertAt(iIndex);
-			*pEntry = std::move(Value);
+			int iOffset = GetCount() * sizeof(VALUE);
+			InsertBytes(iOffset, sizeof(VALUE), GetGranularity() * sizeof(VALUE));
+
+			new(GetBytes() + iOffset) VALUE(std::move(Value));
+			}
+
+		void Insert (VALUE &&Value, int iIndex)
+			{
+			if (iIndex < 0)
+				iIndex = GetCount();
+			else if (iIndex > GetCount())
+				InsertEmpty(iIndex - GetCount());
+
+			int iOffset = iIndex * sizeof(VALUE);
+			InsertBytes(iOffset, sizeof(VALUE), GetGranularity() * sizeof(VALUE));
+
+			new(GetBytes() + iOffset) VALUE(std::move(Value));
 			}
 
 		void Insert (const TArray<VALUE> &Array, int iIndex = -1)

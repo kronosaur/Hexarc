@@ -39,6 +39,7 @@ class CString
 		CString (LPTSTR pStr, size_t iLen);
 		CString (LPTSTR pStr, std::ptrdiff_t iLen);
 		CString (const CString16 &sStr);
+		CString (CString &&Src) noexcept { m_pString = Src.m_pString; Src.m_pString = NULL; }
 		CString (CStringBuffer &&Src) noexcept;
 
 		explicit CString (int iLen);
@@ -56,6 +57,7 @@ class CString
 
 		CString &operator= (LPSTR pStr);
 		CString &operator= (const CString &sStr);
+		CString &operator= (CString &&Src) noexcept { TakeHandoff(Src); return *this; }
 		CString &operator+= (const CString &sStr);
 		CString operator + (const CString &sStr) const;
 
