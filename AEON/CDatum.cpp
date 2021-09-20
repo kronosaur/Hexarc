@@ -605,11 +605,12 @@ void CDatum::Append (CDatum dValue)
 	switch (m_dwData & AEON_TYPE_MASK)
 		{
 		case AEON_TYPE_COMPLEX:
-			return raw_GetComplex()->Append(dValue);
+			raw_GetComplex()->Append(dValue);
+			break;
 
 		default:
 			//	Nothing happens
-			;
+			break;
 		}
 	}
 
@@ -2452,11 +2453,12 @@ void CDatum::SetElement (IInvokeCtx *pCtx, const CString &sKey, CDatum dValue)
 	switch (m_dwData & AEON_TYPE_MASK)
 		{
 		case AEON_TYPE_COMPLEX:
-			return raw_GetComplex()->SetElement(pCtx, sKey, dValue);
+			raw_GetComplex()->SetElement(pCtx, sKey, dValue);
+			break;
 
 		default:
 			//	Nothing happens
-			;
+			break;
 		}
 	}
 
@@ -2477,7 +2479,7 @@ void CDatum::SetElement (const CString &sKey, CDatum dValue)
 
 		default:
 			//	Nothing happens
-			;
+			break;
 		}
 	}
 
@@ -2498,7 +2500,7 @@ void CDatum::SetElement (int iIndex, CDatum dValue)
 
 		default:
 			//	Nothing happens
-			;
+			break;
 		}
 	}
 
@@ -2515,11 +2517,12 @@ void CDatum::Sort (ESortOptions Order, TArray<CDatum>::COMPAREPROC pfCompare, vo
 	switch (m_dwData & AEON_TYPE_MASK)
 		{
 		case AEON_TYPE_COMPLEX:
-			return raw_GetComplex()->Sort(Order, pfCompare, pCtx);
+			raw_GetComplex()->Sort(Order, pfCompare, pCtx);
+			break;
 
 		default:
 			//	Nothing happens
-			;
+			break;
 		}
 	}
 
