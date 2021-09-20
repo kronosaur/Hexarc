@@ -9,6 +9,16 @@
 
 #pragma once
 
+enum class EHexeMemberType
+	{
+	None,
+
+	InstanceMethod,
+	InstanceVar,
+	StaticMethod,
+	StaticVar,
+	};
+
 class IHexeType
 	{
 	public:
@@ -25,6 +35,8 @@ class IHexeType
 		IHexeType &operator= (const IHexeType &Src) = delete;
 		IHexeType &operator= (IHexeType &&Src) = delete;
 
+		virtual bool AddMember (const CString &sName, EHexeMemberType iType, IHexeType &Type, CString *retsError = NULL) { throw CException(errFail); }
+		virtual EHexeMemberType HasMember (const CString &sName) const { return EHexeMemberType::None; }
 		virtual bool IsA (const IHexeType &Type) const { return (&Type == this) || Type.IsAny(); }
 		virtual bool IsAbstract () const { return false; }
 		virtual bool IsAny () const { return false; }
@@ -45,6 +57,7 @@ class CHexeTypeSystem
 	public:
 		void AddType (TUniquePtr<IHexeType> &&NewType);
 		void DeleteAll () { m_Types.DeleteAll(); }
+		const IHexeType *FindType (DWORD dwIndex) const { if (m_Types.IsValid(dwIndex)) return m_Types.GetAt(dwIndex); else return NULL; }
 		
 	private:
 		TIDTable<TUniquePtr<IHexeType>> m_Types;

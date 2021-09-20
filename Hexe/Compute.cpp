@@ -276,6 +276,28 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				m_pIP++;
 				break;
 
+			case opMakeObject:
+				{
+				DWORD dwTypeIDIndex = m_Stack.Pop();
+				CDatum dObj = CDatum::CreateObject(dwTypeIDIndex);
+
+				iCount = GetOperand(*m_pIP);
+				if (iCount > 0)
+					{
+					for (i = 0; i < iCount; i++)
+						{
+						CDatum dValue = m_Stack.Pop();
+						CDatum dKey = m_Stack.Pop();
+
+						dObj.SetElement((const CString &)dKey, dValue);
+						}
+					}
+
+				m_Stack.Push(dObj);
+				m_pIP++;
+				break;
+				}
+
 			case opNot:
 				if (m_Stack.Pop().IsNil())
 					m_Stack.Push(true);
@@ -1206,6 +1228,130 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				m_pIP++;
 				break;
 				}
+
+			case opPushObjectItem:
+				iCount = GetOperand(*m_pIP);
+
+				if (iCount == 2)
+					{
+					CString sField = m_Stack.Pop().AsString();
+					CDatum dObject = m_Stack.Pop();
+
+					switch (dObject.GetBasicType())
+						{
+						case CDatum::typeObject:
+							{
+							DWORD dwTypeIDIndex = dObject.GetTypeID().GetTypeIndex();
+							const IHexeType *pType = FindType(dwTypeIDIndex);
+							if (pType)
+								{
+								auto iMemberType = pType->HasMember(sField);
+								switch (iMemberType)
+									{
+									case EHexeMemberType::InstanceMethod:
+									case EHexeMemberType::StaticMethod:
+										{
+										CString sFunctionName = strPattern("%s$%s", pType->GetFullyQualifiedName(), sField);
+										if (!m_pCurGlobalEnv->Find(sFunctionName, &dValue))
+											{
+											CHexeError::Create(NULL_STR, strPattern(ERR_UNBOUND_VARIABLE, sFunctionName), retResult);
+											return ERun::Error;
+											}
+
+										m_Stack.Push(dValue);
+										break;
+										}
+
+									case EHexeMemberType::InstanceVar:
+										m_Stack.Push(dObject.GetElement(sField));
+										break;
+
+									default:
+										m_Stack.Push(CDatum());
+										break;
+									}
+								}
+							else
+								{
+								m_Stack.Push(dObject.GetElement(sField));
+								}
+							break;
+							}
+
+						default:
+							m_Stack.Push(dObject.GetElement(sField));
+							break;
+						}
+					}
+				else
+					{
+					m_Stack.Push(CDatum());
+					}
+
+				m_pIP++;
+				break;
+
+			case opPushObjectMethod:
+				iCount = GetOperand(*m_pIP);
+
+				if (iCount == 2)
+					{
+					CString sField = m_Stack.Pop().AsString();
+					CDatum dObject = m_Stack.Pop();
+
+					switch (dObject.GetBasicType())
+						{
+						case CDatum::typeObject:
+							{
+							DWORD dwTypeIDIndex = dObject.GetTypeID().GetTypeIndex();
+							const IHexeType *pType = FindType(dwTypeIDIndex);
+							if (pType)
+								{
+								auto iMemberType = pType->HasMember(sField);
+								switch (iMemberType)
+									{
+									case EHexeMemberType::InstanceMethod:
+									case EHexeMemberType::StaticMethod:
+										{
+										CString sFunctionName = strPattern("%s$%s", pType->GetFullyQualifiedName(), sField);
+										if (!m_pCurGlobalEnv->Find(sFunctionName, &dValue))
+											{
+											CHexeError::Create(NULL_STR, strPattern(ERR_UNBOUND_VARIABLE, sFunctionName), retResult);
+											return ERun::Error;
+											}
+
+										m_Stack.Push(dValue);
+
+										//	We always push the this pointer.
+
+										m_Stack.Push(dObject);
+										break;
+										}
+
+									default:
+										m_Stack.Push(CDatum());
+										break;
+									}
+								}
+							else
+								{
+								m_Stack.Push(dObject.GetElement(sField));
+								}
+							break;
+							}
+
+						default:
+							m_Stack.Push(dObject.GetElement(sField));
+							break;
+						}
+					}
+				else
+					{
+					m_Stack.Push(CDatum());
+					}
+
+				m_pIP++;
+				break;
 
 			case opPop:
 				m_Stack.Pop(GetOperand(*m_pIP));

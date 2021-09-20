@@ -168,6 +168,7 @@ class CDatum
 		static bool CreateFromStringValue (const CString &sValue, CDatum *retdDatum);
 		static bool CreateIPInteger (const CIPInteger &Value, CDatum *retdDatum);
 		static bool CreateIPIntegerFromHandoff (CIPInteger &Value, CDatum *retdDatum);
+		static CDatum CreateObject (DWORD dwTypeIDIndex = 0);
 		static bool CreateStringFromHandoff (CString &sString, CDatum *retDatum);
 		static bool CreateStringFromHandoff (CStringBuffer &String, CDatum *retDatum);
 		static bool Deserialize (EFormat iFormat, IByteStream &Stream, IAEONParseExtension *pExtension, CDatum *retDatum);

@@ -73,6 +73,10 @@ CDatum::CDatum (Types iType)
 			*this = CDatum((DWORDLONG)0);
 			break;
 
+		case typeObject:
+			*this = CDatum(new CAEONObject(CDatumTypeID(typeObject, 0)));
+			break;
+
 		default:
 			ASSERT(false);
 			m_dwData = 0;
@@ -1077,6 +1081,16 @@ bool CDatum::CreateIPIntegerFromHandoff (CIPInteger &Value, CDatum *retdDatum)
 
 	*retdDatum = CDatum(pIPInt);
 	return true;
+	}
+
+CDatum CDatum::CreateObject (DWORD dwTypeIDIndex)
+
+//	CreateObject
+//
+//	Creates an object of the given type.
+
+	{
+	return CDatum(new CAEONObject(CDatumTypeID(typeObject, dwTypeIDIndex)));
 	}
 
 bool CDatum::CreateStringFromHandoff (CString &sString, CDatum *retDatum)
@@ -2458,7 +2472,8 @@ void CDatum::SetElement (const CString &sKey, CDatum dValue)
 	switch (m_dwData & AEON_TYPE_MASK)
 		{
 		case AEON_TYPE_COMPLEX:
-			return raw_GetComplex()->SetElement(sKey, dValue);
+			raw_GetComplex()->SetElement(sKey, dValue);
+			break;
 
 		default:
 			//	Nothing happens
@@ -2478,7 +2493,8 @@ void CDatum::SetElement (int iIndex, CDatum dValue)
 	switch (m_dwData & AEON_TYPE_MASK)
 		{
 		case AEON_TYPE_COMPLEX:
-			return raw_GetComplex()->SetElement(iIndex, dValue);
+			raw_GetComplex()->SetElement(iIndex, dValue);
+			break;
 
 		default:
 			//	Nothing happens

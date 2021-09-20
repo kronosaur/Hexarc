@@ -252,6 +252,7 @@ class CHexeProcess : public IInvokeCtx
 		void DeleteAll (void);
 		void DeleteLibraryCtx (const CString &sLibrary) { m_LibraryCtx.DeleteAt(sLibrary); }
 		bool FindGlobalDef (const CString &sIdentifier, CDatum *retdValue = NULL);
+		const IHexeType *FindType (DWORD dwTypeIDIndex) const { if (m_pTypes) return m_pTypes->FindType(dwTypeIDIndex); else return NULL; }
 		CDatum GetGlobalEnv (void) { return m_dGlobalEnv; }
 		bool InitFrom (const CHexeProcess &Process, CString *retsError = NULL);
 		bool LoadEntryPoints (const TArray<CHexeDocument::SEntryPoint> &EntryPoints, CString *retsError);

@@ -81,6 +81,9 @@ enum EOpCodes
 	opIncStep =				0x39000000,
 	opPushStructItem =		0x3a000000,
 	opSetStructItem =		0x3b000000,
+	opMakeObject =			0x3c000000,
+	opPushObjectItem =		0x3d000000,
+	opPushObjectMethod =	0x3e000000,
 
 	opHalt =				0xff000000,
 
