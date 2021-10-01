@@ -3196,7 +3196,7 @@ CString strToUpper (const CString &sString)
 
 //	Functions
 
-int KeyCompare (const LPSTR &pKey1, const LPSTR &pKey2)
+int KeyCompare (const LPCSTR &pKey1, const LPCSTR &pKey2)
 
 //	KeyCompare
 //
@@ -3207,8 +3207,8 @@ int KeyCompare (const LPSTR &pKey1, const LPSTR &pKey2)
 //	-1 if Key1 < Key2
 
 	{
-	char *pPos1 = pKey1;
-	char *pPos2 = pKey2;
+	const char *pPos1 = pKey1;
+	const char *pPos2 = pKey2;
 
 	//	Handle NULL
 

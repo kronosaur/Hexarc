@@ -145,6 +145,14 @@ template <class KEY, class VALUE> class TSortMap
 			m_Index.GrowToFit(iCount);
 			}
 
+		void GrowToFit (size_t iCount)
+			{
+			if (iCount > INT32_MAX)
+				throw CException(errFail);
+
+			GrowToFit((int)iCount);
+			}
+
 		VALUE *Insert (const KEY &newKey)
 			{
 			return atom_Insert(newKey);

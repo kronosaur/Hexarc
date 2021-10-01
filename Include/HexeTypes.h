@@ -60,5 +60,8 @@ class CHexeTypeSystem
 		const IHexeType *FindType (DWORD dwIndex) const { if (m_Types.IsValid(dwIndex)) return m_Types.GetAt(dwIndex); else return NULL; }
 		
 	private:
+		//	LATER: Consider changing to TSharedPtr so that we can have some
+		//	system types (and library types) that are shared across all 
+		//	instances.
 		TIDTable<TUniquePtr<IHexeType>> m_Types;
 	};

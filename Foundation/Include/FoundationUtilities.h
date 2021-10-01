@@ -50,7 +50,8 @@ template<class KEY> int KeyCompare (const KEY &Key1, const KEY &Key2)
 		return 0;
 	}
 
-int KeyCompare (const LPSTR &pKey1, const LPSTR &pKey2);
+int KeyCompare (const LPCSTR &pKey1, const LPCSTR &pKey2);
+inline int KeyCompare (const LPSTR &pKey1, const LPSTR &pKey2) { return KeyCompare((LPCSTR)pKey1, (LPCSTR)pKey2); }
 inline int KeyCompare (const CString &sKey1, const CString &sKey2) { return KeyCompare((LPSTR)sKey1, (LPSTR)sKey2); }
 
 int KeyCompareNoCase (const LPSTR &pKey1, int iKey1Len, const LPSTR &pKey2, int iKey2Len);
