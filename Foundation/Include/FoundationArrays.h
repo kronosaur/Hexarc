@@ -548,6 +548,19 @@ template <class VALUE> class TQueue
 				GetAt(i) = Src.GetAt(i);
 			}
 
+		TQueue (TQueue<VALUE> &&Src) noexcept
+			{
+			m_pArray = Src.m_pArray;
+			m_iSize = Src.m_iSize;
+			m_iHead = Src.m_iHead;
+			m_iTail = Src.m_iTail;
+
+			Src.m_pArray = NULL;
+			Src.m_iSize = 0;
+			Src.m_iHead = 0;
+			Src.m_iTail = 0;
+			}
+
 		~TQueue (void)
 			{
 			if (m_pArray)
@@ -565,6 +578,24 @@ template <class VALUE> class TQueue
 
 			for (i = 0; i < Obj.GetCount(); i++)
 				GetAt(i) = Obj.GetAt(i);
+
+			return *this;
+			}
+
+		TQueue<VALUE> &operator= (TQueue<VALUE> &&Src) noexcept
+			{
+			if (m_pArray)
+				delete [] m_pArray;
+
+			m_pArray = Src.m_pArray;
+			m_iSize = Src.m_iSize;
+			m_iHead = Src.m_iHead;
+			m_iTail = Src.m_iTail;
+
+			Src.m_pArray = NULL;
+			Src.m_iSize = 0;
+			Src.m_iHead = 0;
+			Src.m_iTail = 0;
 
 			return *this;
 			}

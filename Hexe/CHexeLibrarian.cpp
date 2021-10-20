@@ -9,7 +9,25 @@ DECLARE_CONST_STRING(LIBRARY_CORE,						"core")
 
 CHexeLibrarian g_HexeLibrarian;
 
-bool CHexeLibrarian::FindLibrary (const CString &sName, DWORD *retdwLibraryID)
+CDatum CHexeLibrarian::FindFunction (const CString &sLibrary, const CString &sFunction) const
+
+//	FindFunction
+//
+//	Returns a function for the given library (or nil).
+
+	{
+	auto *pLibrary = GetLibrary(sLibrary);
+	if (!pLibrary)
+		return CDatum();
+
+	auto *pFunc = pLibrary->Functions.GetAt(sFunction);
+	if (!pFunc)
+		return CDatum();
+
+	return *pFunc;
+	}
+
+bool CHexeLibrarian::FindLibrary (const CString &sName, DWORD *retdwLibraryID) const
 
 //	FindLibrary
 //
@@ -56,6 +74,16 @@ int CHexeLibrarian::GetEntryCount (DWORD dwLibrary)
 
 	SLibrary *pLibrary = &m_Catalog[dwLibrary];
 	return pLibrary->Functions.GetCount();
+	}
+
+const CHexeLibrarian::SLibrary *CHexeLibrarian::GetLibrary (const CString &sName) const
+
+//	GetLibrary
+//
+//	Returns the library with the given name (or NULL).
+
+	{
+	return m_Catalog.GetAt(sName);
 	}
 
 CHexeLibrarian::SLibrary *CHexeLibrarian::GetLibrary (const CString &sName)

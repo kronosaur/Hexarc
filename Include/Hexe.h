@@ -98,7 +98,8 @@ struct SLibraryFuncDef
 class CHexeLibrarian
 	{
 	public:
-		bool FindLibrary (const CString &sName, DWORD *retdwLibraryID);
+		CDatum FindFunction (const CString &sLibrary, const CString &sFunction) const;
+		bool FindLibrary (const CString &sName, DWORD *retdwLibraryID) const;
 		const CString &GetEntry (DWORD dwLibrary, int iIndex, CDatum *retdFunction);
 		int GetEntryCount (DWORD dwLibrary);
 		int GetLibraryCount (void) { return m_Catalog.GetCount(); }
@@ -113,6 +114,7 @@ class CHexeLibrarian
 			TSortMap<CString, CDatum> Functions;
 			};
 
+		const SLibrary *GetLibrary (const CString &sName) const;
 		SLibrary *GetLibrary (const CString &sName);
 
 		TSortMap<CString, SLibrary> m_Catalog;
@@ -309,6 +311,7 @@ class CHexeProcess : public IInvokeCtx
 		static bool ValidateHexarcMessage (const CString &sMsg, CDatum dPayload, CString *retsAddr, CDatum *retdResult);
 
 		//	Execution helpers
+		void ExecuteArrayMemberItem (CDatum dArray, const CString &sField);
 		ERun ExecuteHandleInvokeResult (CDatum::InvokeResult iInvokeResult, CDatum dExpression, CDatum dInvokeResult, CDatum *retResult);
 		static bool ExecuteMakeFlagsFromArray (CDatum dOptions, CDatum dMap, CDatum *retdResult);
 		static bool ExecuteSetAt (CDatum dOriginal, CDatum dKey, CDatum dValue, CDatum *retdResult);

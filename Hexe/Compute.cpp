@@ -8,6 +8,7 @@
 static constexpr int MAX_ARRAY_SIZE =					10000000;
 static constexpr int STOP_CHECK_COUNT =					10000;
 
+DECLARE_CONST_STRING(FIELD_LENGTH,						"length");
 DECLARE_CONST_STRING(FIELD_MSG,							"msg");
 DECLARE_CONST_STRING(FIELD_PAYLOAD,						"payload");
 
@@ -533,6 +534,35 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 
 				m_pLocalEnv->SetParentEnv(dPrevEnv);
 				m_pLocalEnv->ResetNextArg();
+
+				m_pIP++;
+				break;
+				}
+
+			case opMakeMethodEnv:
+				{
+				m_LocalEnvStack.Save(m_dCurGlobalEnv, m_pCurGlobalEnv, m_dLocalEnv, m_pLocalEnv);
+				m_pLocalEnv = new CHexeLocalEnvironment;
+				m_dLocalEnv = CDatum(m_pLocalEnv);
+
+				int iArgCount = GetOperand(*m_pIP);
+
+				//	Look for the this pointer. If we have a valid (non-nil) this
+				//	pointer, then we include it as the first parameter.
+
+				CDatum dThis = m_Stack.Get(iArgCount);
+				if (!dThis.IsNil())
+					iArgCount++;
+
+				//	Pop arguments into local environment.
+
+				for (i = 0; i < iArgCount; i++)
+					m_pLocalEnv->SetArgumentValue(0, (iArgCount - 1) - i, m_Stack.Pop());
+
+				//	Pop the this pointer, if necessary.
+
+				if (dThis.IsNil())
+					m_Stack.Pop();
 
 				m_pIP++;
 				break;
@@ -1278,6 +1308,10 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 							break;
 							}
 
+						case CDatum::typeArray:
+							ExecuteArrayMemberItem(dObject, sField);
+							break;
+
 						default:
 							m_Stack.Push(dObject.GetElement(sField));
 							break;
@@ -1329,6 +1363,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 										}
 
 									default:
+										//	LATER: This should probably be an error.
 										m_Stack.Push(CDatum());
 										break;
 									}
@@ -1336,17 +1371,31 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 							else
 								{
 								m_Stack.Push(dObject.GetElement(sField));
+
+								//	If we have no type defined, we assume it is 
+								//	member function, so we pass the this pointer.
+								//	We only need this because some built-in 
+								//	objects don't have a type defined. In the future,
+								//	we should define types for all objects.
+
+								m_Stack.Push(dObject);
 								}
 							break;
 							}
 
 						default:
 							m_Stack.Push(dObject.GetElement(sField));
+
+							//	Push a nil this pointer. In opMakeMethodEnv we 
+							//	detect this an deal with it appropriately.
+
+							m_Stack.Push(CDatum());
 							break;
 						}
 					}
 				else
 					{
+					//	LATER: This should probably be an error.
 					m_Stack.Push(CDatum());
 					}
 
@@ -1442,6 +1491,21 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 		}
 
 	return ERun::OK;
+	}
+
+void CHexeProcess::ExecuteArrayMemberItem (CDatum dArray, const CString &sField)
+
+//	ExecuteArrayMemberItem
+//
+//	Push array properties.
+
+	{
+	if (strEqualsNoCase(sField, FIELD_LENGTH))
+		{
+		m_Stack.Push(dArray.GetCount());
+		}
+	else
+		m_Stack.Push(CDatum());
 	}
 
 int CHexeProcess::ExecuteCompare (CDatum dValue1, CDatum dValue2)
