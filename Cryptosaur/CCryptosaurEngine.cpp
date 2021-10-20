@@ -39,6 +39,7 @@ DECLARE_CONST_STRING(ERR_MUST_HAVE_PRINTABLE_CHARS,		"Username must have at leas
 DECLARE_CONST_STRING(ERR_CANT_HAVE_CONTROL_CHARS,		"Username may not have control characters.")
 DECLARE_CONST_STRING(ERR_INVALID_WHITESPACE,			"Username may not have leading or trailing whitespace.")
 DECLARE_CONST_STRING(ERR_TOO_MUCH_WHITESPACE,			"Username may not have more than one whitespace character between words.")
+DECLARE_CONST_STRING(ERR_INVALID_CHAR,					"Username may not contain '{', '}', or '\\'.")
 DECLARE_CONST_STRING(ERR_INVALID_LEADING_CHAR,			"Username may not start with '#', '&', or '['.")
 DECLARE_CONST_STRING(ERR_WAITING_FOR_AEON,				"Waiting for AeonDB to start up.")
 
@@ -567,6 +568,14 @@ bool CCryptosaurEngine::ValidateUsername (const CString &sUsername, CString *ret
 		if (strIsASCIIControl(pPos))
 			{
 			*retsError = ERR_CANT_HAVE_CONTROL_CHARS;
+			return false;
+			}
+
+		//	Do not allow braces or backslash
+
+		if (*pPos == '\\' || *pPos == '{' || *pPos == '}')
+			{
+			*retsError = ERR_INVALID_CHAR;
 			return false;
 			}
 
