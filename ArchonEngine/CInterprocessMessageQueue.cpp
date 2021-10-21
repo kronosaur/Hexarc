@@ -17,7 +17,7 @@ DECLARE_CONST_STRING(STR_PROTOCOL_AMP1_00,				"AMP/1.00")
 
 DECLARE_CONST_STRING(PATH_HEXARC_IPQ,					"HexarcIPQ")
 
-DECLARE_CONST_STRING(ERR_ENQUEUE_LARGE,					"IPMQ: Enqueing large payload (%s bytes).")
+DECLARE_CONST_STRING(ERR_ENQUEUE_LARGE,					"IPMQ: Enqueing large payload: %s %s (%s bytes).")
 DECLARE_CONST_STRING(ERR_SERIALIZE_TIME_WARNING,		"IPMQ: Serialization complete.")
 DECLARE_CONST_STRING(ERR_FILE_TIME_WARNING,				"IPMQ: Wrote payload to temp file.")
 
@@ -384,7 +384,7 @@ bool CInterprocessMessageQueue::DecodeFileMsg (const SArchonMessage &Msg, SArcho
 	bool bSuccess;
 	try
 		{
-        CBufferedIO FileBuffer(TempFile);
+		CBufferedIO FileBuffer(TempFile);
 
 		SArchonEnvelope Env;
 		bSuccess = DeserializeMessage(FileBuffer, &Env);
@@ -534,9 +534,9 @@ bool CInterprocessMessageQueue::DeserializeMessage (IByteStream &Stream, SArchon
 	//	Done
 
 #ifdef DEBUG_BLOB_PERF
-    DWORD dwTime = ::sysGetTicksElapsed(dwStart);
-    if (dwTime > 100)
-        printf("Deserialize message %s took %d ms.\n", (LPSTR)retEnv->Msg.sMsg, dwTime);
+	DWORD dwTime = ::sysGetTicksElapsed(dwStart);
+	if (dwTime > 100)
+		printf("Deserialize message %s took %d ms.\n", (LPSTR)retEnv->Msg.sMsg, dwTime);
 #endif
 
 	return true;
@@ -566,12 +566,10 @@ bool CInterprocessMessageQueue::Enqueue (const SArchonEnvelope &Env, CString *re
 			}
 		}
 
-	//	Compute the approximate size of the payload. If it's particularly large,
-	//	we log it.
+	//	Compute the approximate size of the payload. So we can allocate a 
+	//	buffer.
 
 	size_t PayloadSize = Env.Msg.dPayload.CalcSerializeSize(CDatum::EFormat::AEONLocal);
-	if (PayloadSize > SIZE_WARNING_THRESHOLD)
-		m_pProcess->Log(MSG_LOG_INFO, strPattern(ERR_ENQUEUE_LARGE, strFormatInteger((int)PayloadSize, -1, FORMAT_THOUSAND_SEPARATOR)));
 
 	//	Serialize the payload into a buffer
 
@@ -581,6 +579,11 @@ bool CInterprocessMessageQueue::Enqueue (const SArchonEnvelope &Env, CString *re
 	SerializeMessage(Env, Buffer);
 
 	Timer.LogTime(m_pProcess, ERR_SERIALIZE_TIME_WARNING);
+
+	//	Log it, if size is particularly large
+
+	if (Buffer.GetLength() > SIZE_WARNING_THRESHOLD)
+		m_pProcess->Log(MSG_LOG_INFO, strPattern(ERR_ENQUEUE_LARGE, Env.sAddr, Env.Msg.sMsg, strFormatInteger((int)PayloadSize, -1, FORMAT_THOUSAND_SEPARATOR)));
 
 	//	If the buffer is very large then we store it as a temp file instead
 	//	(to save our limited memory).
@@ -593,7 +596,7 @@ bool CInterprocessMessageQueue::Enqueue (const SArchonEnvelope &Env, CString *re
 		Timer.Start();
 
 #ifdef DEBUG_BLOB_PERF
-        printf("Serializing to file.\n");
+		printf("Serializing to file.\n");
 #endif
 
 		CString sError;
@@ -869,7 +872,7 @@ void CInterprocessMessageQueue::SerializeMessage (const SArchonEnvelope &Env, IB
 
 	{
 #ifdef DEBUG_BLOB_PERF
-    DWORD dwStart = ::sysGetTickCount();
+	DWORD dwStart = ::sysGetTickCount();
 #endif
 
 	Stream.Write("AMP/1.00 FWD ", 13);
@@ -893,8 +896,8 @@ void CInterprocessMessageQueue::SerializeMessage (const SArchonEnvelope &Env, IB
 	Env.Msg.dPayload.Serialize(CDatum::EFormat::AEONLocal, Stream);
 
 #ifdef DEBUG_BLOB_PERF
-    DWORD dwTime = ::sysGetTicksElapsed(dwStart);
-    if (dwTime > 100)
-        printf("Serialize message %s took %d ms.\n", (LPSTR)Env.Msg.sMsg, dwTime);
+	DWORD dwTime = ::sysGetTicksElapsed(dwStart);
+	if (dwTime > 100)
+		printf("Serialize message %s took %d ms.\n", (LPSTR)Env.Msg.sMsg, dwTime);
 #endif
 	}
