@@ -66,6 +66,7 @@ DECLARE_CONST_STRING(FILE_DATA_TYPE_BINARY,				"binary");
 DECLARE_CONST_STRING(FILE_DATA_TYPE_TEXT,				"text");
 
 DECLARE_CONST_STRING(FILESPEC_TABLE_DESC_FILE,			"desc.ars");
+DECLARE_CONST_STRING(FILESPEC_TABLE_DESC_BAK_FILE,		"desc.bak");
 DECLARE_CONST_STRING(FILESPEC_FILES_DIR,				"files");
 DECLARE_CONST_STRING(FILESPEC_RECOVERY_DIR,				"recovery");
 DECLARE_CONST_STRING(FILESPEC_SCRAP_CONS,				"%s\\scrap\\%s");
@@ -232,6 +233,8 @@ DECLARE_CONST_STRING(ERR_INVALID_FILE_PATH_CODE,		"Unknown filePath generation c
 DECLARE_CONST_STRING(ERR_PARTIAL_POS_CANNOT_BE_NEGATIVE,"partialPos cannot be negative.");
 DECLARE_CONST_STRING(ERR_INVALID_FILE_DATA_TYPE,		"Invalid dataType: %s");
 DECLARE_CONST_STRING(ERR_FILE_NOT_FOUND,				"File not found: %s");
+DECLARE_CONST_STRING(ERR_UNABLE_TO_REMOVE_DESC_BAK,		"Unable to delete file: %s");
+DECLARE_CONST_STRING(ERR_UNABLE_TO_RENAME_DESC_BAK,		"Unable to rename file: %s");
 
 CAeonTable::~CAeonTable (void)
 
@@ -4227,6 +4230,21 @@ bool CAeonTable::SaveDesc (CDatum dDesc, const CString &sFilespec, CString *rets
 //	Saves the table descriptor to the path
 
 	{
+	//	Rename the previous version, in case something goes wrong later.
+
+	CString sBackupFilespec = fileAppend(fileGetPath(sFilespec), FILESPEC_TABLE_DESC_BAK_FILE);
+	if (::fileExists(sBackupFilespec))
+		{
+		if (!::fileDelete(sBackupFilespec))
+			m_pProcess->Log(MSG_LOG_ERROR, strPattern(ERR_UNABLE_TO_REMOVE_DESC_BAK, sBackupFilespec));
+		}
+
+	if (::fileExists(sFilespec))
+		{
+		if (!::fileMove(sFilespec, sBackupFilespec))
+			m_pProcess->Log(MSG_LOG_ERROR, strPattern(ERR_UNABLE_TO_RENAME_DESC_BAK, sFilespec));
+		}
+
 	//	Open the file
 
 	CFile DescFile;
