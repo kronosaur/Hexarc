@@ -192,6 +192,7 @@ class CHexeSecurityCtx
 		void SetExecutionRights (DWORD dwRights) { m_dwExecutionRights = dwRights; }
 		void SetSandbox (const CString &sSandbox) { m_sSandbox = sSandbox; }
 		void SetServiceRights (CDatum dDatum) { dDatum.AsAttributeList(&m_ServiceRights); }
+		void SetServiceRightsArcAdmin ();
 		void SetServiceSecurity (const CHexeSecurityCtx &SecurityCtx);
 		void SetUsername (const CString &sUsername) { m_sUsername = sUsername; }
 		void SetUserRights (CDatum dDatum) { dDatum.AsAttributeList(&m_UserRights); }

@@ -91,6 +91,17 @@ void CHexeSecurityCtx::Init (CDatum dDatum)
 		SetAnonymous();
 	}
 
+void CHexeSecurityCtx::SetServiceRightsArcAdmin ()
+
+//	SetServiceRightsArcAdmin
+//
+//	Sets Arc.admin rights.
+
+	{
+	m_ServiceRights.DeleteAll();
+	InsertServiceRight(RIGHT_ARC_ADMIN);
+	}
+
 void CHexeSecurityCtx::SetServiceSecurity (const CHexeSecurityCtx &SecurityCtx)
 
 //	SetServiceSecurity
