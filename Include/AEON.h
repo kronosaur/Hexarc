@@ -358,6 +358,7 @@ class IComplexDatum
 		virtual void OnMarked (void) { }
 		virtual void OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const { ASSERT(false); }
 		virtual void OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const;
+		CString StructAsString () const;
 
 	private:
 		bool m_bMarked;

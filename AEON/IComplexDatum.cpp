@@ -223,6 +223,33 @@ void IComplexDatum::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) con
 		}
 	}
 
+CString IComplexDatum::StructAsString () const
+
+//	StructAsString
+//
+//	Returns a struct-type object as a string.
+
+	{
+	CStringBuffer Output;
+
+	Output.Write("{", 1);
+
+	for (int i = 0; i < GetCount(); i++)
+		{
+		if (i != 0)
+			Output.Write(" ", 1);
+
+		Output.Write(GetKey(i));
+		Output.Write(":", 1);
+
+		Output.Write(GetElement(i).AsString());
+		}
+
+	Output.Write("}", 1);
+
+	return CString(Output);
+	}
+
 void IComplexDatum::WriteBinaryToStream (IByteStream &Stream, int iPos, int iLength, IProgressEvents *pProgress) const
 
 //	WriteBinaryToStream
