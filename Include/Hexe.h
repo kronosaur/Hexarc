@@ -235,6 +235,9 @@ class CHexeProcess : public IInvokeCtx
 									//	request. Call RunContinues when the data
 									//	is available.
 
+			EventHandlerDone,		//	Run has finished running an event 
+									//	handler.
+
 			StopCheck,				//	Check to see if user wants to
 									//	abort execution.
 
@@ -270,6 +273,7 @@ class CHexeProcess : public IInvokeCtx
 		ERun Run (CDatum dExpression, CDatum *retResult);
 		ERun Run (CDatum dFunc, CDatum dCallExpression, const TArray<CDatum> *pInitialStack, CDatum *retResult);
 		ERun RunContinues (CDatum dAsyncResult, CDatum *retResult);
+		ERun RunEventHandler (CDatum dFunc, const TArray<CDatum> &Args, CDatum &retResult);
 		void *SetLibraryCtx (const CString &sLibrary, void *pCtx);
 		void SetMaxExecutionTime (DWORDLONG dwMilliseconds) { m_dwMaxExecutionTime = dwMilliseconds; }
 		void SetOptionAddConcatenatesStrings (bool bValue = true) { m_bAddConcatenatesStrings = bValue; }
@@ -333,6 +337,7 @@ class CHexeProcess : public IInvokeCtx
 		CDatum m_dCodeBank;							//	Current code bank
 		CHexeCode *m_pCodeBank = NULL;				//	Current code bank
 		CHexeCallStack m_CallStack;					//	Call stack
+		bool m_bInEventHandler = false;				//	Inside event handler
 
 		CDatum m_dGlobalEnv;						//	Process global environment
 

@@ -32,6 +32,9 @@ void CHexeCallStack::Restore (CDatum *retdExpression,
 
 	{
 	int iFrame = m_Stack.GetCount() - 1;
+	if (iFrame < 0)
+		throw CException(errFail);
+
 	SExecuteCtx *pFrame = &m_Stack[iFrame];
 
 	*retdExpression = pFrame->dExpression;
@@ -81,6 +84,9 @@ void CHexeEnvStack::Restore (CDatum *retdGlobalEnv, CHexeGlobalEnvironment **ret
 
 	{
 	int iFrame = m_Stack.GetCount() - 1;
+	if (iFrame < 0)
+		throw CException(errFail);
+
 	SEnvCtx *pFrame = &m_Stack[iFrame];
 
 	*retdGlobalEnv = pFrame->dGlobalEnv;

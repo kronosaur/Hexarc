@@ -12,6 +12,8 @@ DECLARE_CONST_STRING(FIELD_LENGTH,						"length");
 DECLARE_CONST_STRING(FIELD_MSG,							"msg");
 DECLARE_CONST_STRING(FIELD_PAYLOAD,						"payload");
 
+DECLARE_CONST_STRING(TYPE_EVENT_HANDLER_CALL,			"eventHandlerCall");
+
 DECLARE_CONST_STRING(ERR_COLON_EXPECTED,				"':' expected: %s.");
 DECLARE_CONST_STRING(ERR_DIVISION_BY_ZERO,				"Divide by zero error.");
 DECLARE_CONST_STRING(ERR_INVALID_KEY,					"Invalid key: %s.");
@@ -743,29 +745,57 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 					m_dCodeBank = m_dCodeBank.GetElement(2);
 					m_pCodeBank = CHexeCode::Upconvert(m_dCodeBank);
 
-					//	Pop the result
+					//	Is this an event handler return?
 
-					CDatum dSubResult = m_Stack.Pop();
-
-					//	Continue library invocation
-
-					CDatum dResult;
-					CDatum::InvokeResult iResult = dPrimitive.InvokeContinues(this, dContext, dSubResult, &dResult);
-					if (iResult != CDatum::InvokeResult::ok)
+					if (strEquals(dContext, TYPE_EVENT_HANDLER_CALL))
 						{
-						ERun iRunResult = ExecuteHandleInvokeResult(iResult, dPrimitive, dResult, retResult);
-						if (iRunResult == ERun::OK)
-							break;
+						//	Must be in an event handler.
 
-						return iRunResult;
+						if (!m_bInEventHandler)
+							throw CException(errFail);
+
+						//	Pop the result
+
+						CDatum dEventHandlerResult = m_Stack.Pop();
+
+						//	Continue
+						//
+						//	NOTE: We don't need to restore m_LocalEnvStack because the function 
+						//	did that in its return code (call to opExitEnv).
+
+						m_bInEventHandler = false;
+						*retResult = dEventHandlerResult;
+						return ERun::EventHandlerDone;
 						}
 
-					m_LocalEnvStack.Restore(&m_dCurGlobalEnv, &m_pCurGlobalEnv, &m_dLocalEnv, &m_pLocalEnv);
+					//	Otherwise, we return to a library function.
 
-					//	Done
+					else
+						{
+						//	Pop the result
 
-					m_Stack.Push(dResult);
-					m_pIP++;
+						CDatum dSubResult = m_Stack.Pop();
+
+						//	Continue library invocation
+
+						CDatum dResult;
+						CDatum::InvokeResult iResult = dPrimitive.InvokeContinues(this, dContext, dSubResult, &dResult);
+						if (iResult != CDatum::InvokeResult::ok)
+							{
+							ERun iRunResult = ExecuteHandleInvokeResult(iResult, dPrimitive, dResult, retResult);
+							if (iRunResult == ERun::OK)
+								break;
+
+							return iRunResult;
+							}
+
+						m_LocalEnvStack.Restore(&m_dCurGlobalEnv, &m_pCurGlobalEnv, &m_dLocalEnv, &m_pLocalEnv);
+
+						//	Done
+
+						m_Stack.Push(dResult);
+						m_pIP++;
+						}
 					}
 
 				break;
@@ -2031,3 +2061,4 @@ bool CHexeProcess::ExecuteSetAt (CDatum dOriginal, CDatum dKey, CDatum dValue, C
 			return false;
 		}
 	}
+

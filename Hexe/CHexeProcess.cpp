@@ -8,12 +8,15 @@
 DECLARE_CONST_STRING(LIBRARY_CORE,						"core");
 
 DECLARE_CONST_STRING(TYPE_HEXE_LISP,					"$hexeLisp");
+DECLARE_CONST_STRING(TYPE_EVENT_HANDLER_CALL,			"eventHandlerCall");
 
 DECLARE_CONST_STRING(ERR_ASYNC_REQUEST_NOT_ALLOWED,		"Async requests are not allowed.");
 DECLARE_CONST_STRING(ERR_COMPUTE_CRASH,					"Compute runtime crash.");
 DECLARE_CONST_STRING(ERR_LIBRARY_NOT_FOUND,				"Library not found: %s.");
 DECLARE_CONST_STRING(ERR_HEXE_CODE_EXPECTED,			"Unable to execute term: %s.");
 DECLARE_CONST_STRING(ERR_UNKNOWN,						"Unknown error.");
+DECLARE_CONST_STRING(ERR_CANT_NEST_EVENT_HANDLER,		"Unable to invoke event handler while inside an event handler.");
+DECLARE_CONST_STRING(ERR_INVALID_EVENT_HANDLER,			"Invalid event handler: not a function.");
 
 CHexeProcess::CHexeProcess (void)
 
@@ -447,6 +450,83 @@ CHexeProcess::ERun CHexeProcess::RunContinues (CDatum dAsyncResult, CDatum *retR
 	catch (...)
 		{
 		*retResult = strPattern(ERR_COMPUTE_CRASH);
+		return ERun::Error;
+		}
+
+	return iRun;
+	}
+
+CHexeProcess::ERun CHexeProcess::RunEventHandler (CDatum dFunc, const TArray<CDatum> &Args, CDatum &retResult)
+
+//	RunEventHandler
+//
+//	Saves the current execution context and sets up execution to call the given
+//	function and arguments.
+//
+//	When the function returns Run will exit with InputRequest.
+
+	{
+	//	Can't nest
+
+	if (m_bInEventHandler)
+		{
+		CHexeError::Create(NULL_STR, ERR_CANT_NEST_EVENT_HANDLER, &retResult);
+		return ERun::Error;
+		}
+
+	//	Validate function
+
+	CDatum dNewCodeBank;
+	DWORD *pNewIP;
+	if (dFunc.GetCallInfo(&dNewCodeBank, &pNewIP) != CDatum::ECallType::Call)
+		{
+		CHexeError::Create(NULL_STR, ERR_INVALID_EVENT_HANDLER, &retResult);
+		return ERun::Error;
+		}
+
+	//	Encode everything we need to save into the code bank
+	//	datum (we unpack it in opReturn).
+
+	CDatum dSpecial(CDatum::typeArray);
+	dSpecial.Append(TYPE_EVENT_HANDLER_CALL);
+	dSpecial.Append(m_dExpression);
+	dSpecial.Append(m_dCodeBank);
+
+	//	This in the call stack so that we know what to do when we return.
+
+	m_CallStack.Save(m_dExpression, dSpecial, m_pIP);
+
+	//	Set up environment
+
+	m_LocalEnvStack.Save(m_dCurGlobalEnv, m_pCurGlobalEnv, m_dLocalEnv, m_pLocalEnv);
+	m_pLocalEnv = new CHexeLocalEnvironment;
+	m_dLocalEnv = CDatum(m_pLocalEnv);
+
+	for (int i = 0; i < Args.GetCount(); i++)
+		m_pLocalEnv->SetArgumentValue(0, i, Args[i]);
+
+	//	Make the call
+
+	m_dExpression = dFunc;
+	m_dCodeBank = dNewCodeBank;
+	m_pCodeBank = CHexeCode::Upconvert(m_dCodeBank);
+
+	m_pIP = pNewIP;
+
+	//	Remember that we're in an event handler.
+
+	m_bInEventHandler = true;
+
+	//	Run
+
+	ERun iRun;
+	try
+		{
+		iRun = Execute(&retResult);
+		}
+	catch (...)
+		{
+		retResult = strPattern(ERR_COMPUTE_CRASH);
 		return ERun::Error;
 		}
 
