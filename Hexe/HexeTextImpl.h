@@ -9,15 +9,6 @@
 
 #pragma once
 
-class CHexeTextMarkup
-	{
-	public:
-		static bool ConvertToHTML (const IMemoryBlock &Input, const CString &sFormat, CDatum dParams, IByteStream &Output, CString *retsError);
-		static bool EscapeHTML (const IMemoryBlock &Template, CDatum dStruct, IByteStream &Output, CString *retsError = NULL);
-		static CString FormatString (CDatum dArgList);
-		static void WriteHTMLContent (CDatum dValue, IByteStream &Output);
-	};
-
 class CHexeTextFunctionProcessor : public TExternalDatum<CHexeTextFunctionProcessor>
 	{
 	public:
@@ -40,5 +31,5 @@ class CHexeTextFunctionProcessor : public TExternalDatum<CHexeTextFunctionProces
 
 		TArray<CTextMarkupParser::SExtensionDesc> m_Extensions;
 		TArray<CString> m_Results;
-		int m_iCurResult;
+		int m_iCurResult = 0;
 	};

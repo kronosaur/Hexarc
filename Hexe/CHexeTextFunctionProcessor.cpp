@@ -5,17 +5,17 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(TYPENAME_HEXE_PROC,				"hexeTextFunctionProcessor")
+DECLARE_CONST_STRING(TYPENAME_HEXE_PROC,				"hexeTextFunctionProcessor");
 const CString &CHexeTextFunctionProcessor::StaticGetTypename (void) { return TYPENAME_HEXE_PROC; }
 
-DECLARE_CONST_STRING(FIELD_PARSE_TEMPLATE,				"parseTemplate")
-DECLARE_CONST_STRING(FIELD_TEXT,						"text")
-DECLARE_CONST_STRING(FIELD_0,							"0")
+DECLARE_CONST_STRING(FIELD_PARSE_TEMPLATE,				"parseTemplate");
+DECLARE_CONST_STRING(FIELD_TEXT,						"text");
+DECLARE_CONST_STRING(FIELD_0,							"0");
 
-DECLARE_CONST_STRING(FORMAT_HEXE_TEXT,					"hexetext")
-DECLARE_CONST_STRING(FORMAT_HTML,						"html")
+DECLARE_CONST_STRING(FORMAT_HEXE_TEXT,					"hexetext");
+DECLARE_CONST_STRING(FORMAT_HTML,						"html");
 
-DECLARE_CONST_STRING(ERR_UNKNOWN_FORMAT,				"Unknown markup format: %s")
+DECLARE_CONST_STRING(ERR_UNKNOWN_FORMAT,				"Unknown markup format: %s");
 
 CHexeTextFunctionProcessor::CHexeTextFunctionProcessor (CDatum dInput, const CString &sFormat, CDatum dParams) :
 		m_dInput(dInput),

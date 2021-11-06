@@ -357,6 +357,17 @@ class CHexeProcess : public IInvokeCtx
 		static TArray<SHexarcMsgPattern> m_HexarcMsgPatterns;
 	};
 
+//	CHexeText ------------------------------------------------------------------
+
+class CHexeTextMarkup
+	{
+	public:
+		static bool ConvertToHTML (const IMemoryBlock &Input, const CString &sFormat, CDatum dParams, IByteStream &Output, CString *retsError);
+		static bool EscapeHTML (const IMemoryBlock &Template, CDatum dStruct, IByteStream &Output, CString *retsError = NULL);
+		static CString FormatString (CDatum dArgList);
+		static void WriteHTMLContent (CDatum dValue, IByteStream &Output);
+	};
+
 //	CHexe ----------------------------------------------------------------------
 
 class CHexe

@@ -5,11 +5,11 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(FORMAT_HEXE_TEXT,					"hexetext")
-DECLARE_CONST_STRING(FORMAT_HTML,						"html")
+DECLARE_CONST_STRING(FORMAT_HEXE_TEXT,					"hexetext");
+DECLARE_CONST_STRING(FORMAT_HTML,						"html");
 
-DECLARE_CONST_STRING(ERR_UNEXPECTED_END_OF_TEMPLATE,	"Unexpected end of template.")
-DECLARE_CONST_STRING(ERR_UNKNOWN_FORMAT,				"Unknown markup format: %s")
+DECLARE_CONST_STRING(ERR_UNEXPECTED_END_OF_TEMPLATE,	"Unexpected end of template.");
+DECLARE_CONST_STRING(ERR_UNKNOWN_FORMAT,				"Unknown markup format: %s");
 
 bool CHexeTextMarkup::ConvertToHTML (const IMemoryBlock &Input, const CString &sFormat, CDatum dParams, IByteStream &Output, CString *retsError)
 

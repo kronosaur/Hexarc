@@ -72,13 +72,13 @@ class CTextMarkupParser
 
 		CTextMarkupParser (void);
 
-		inline ETokens GetToken (void) const { return m_iToken; }
+		ETokens GetToken (void) const { return m_iToken; }
 		char GetTokenChar (void) const;
-		inline int GetTokenCount (void) const { return m_iTokenCount; }
-		inline const CString &GetTokenString (void) const { return m_sToken; }
+		int GetTokenCount (void) const { return m_iTokenCount; }
+		const CString &GetTokenString (void) const { return m_sToken; }
 		void ParseExtensions (TArray<SExtensionDesc> *retExtensions);
 		ETokens ParseNextToken (void);
-		inline char PeekNextChar (void) const { return (m_pPos < m_pPosEnd ? *m_pPos : '\0'); }
+		char PeekNextChar (void) const { return (m_pPos < m_pPosEnd ? *m_pPos : '\0'); }
 		ETokens PeekNextToken (CString *retsToken = NULL, int *retiTokenCount = NULL);
 		void RestoreParser (CTextMarkupParser &Saved);
 		void SaveParser (CTextMarkupParser *retSaved);
@@ -105,8 +105,8 @@ class CHexeTextProcessor
 		CHexeTextProcessor (void);
 
 		bool ConvertToHTML (const IMemoryBlock &Input, IByteStream &Output, CString *retsError);
-		inline void SetExtensions (IHexeTextExtensions *pExtensions) { m_pExtensions = pExtensions; }
-		inline void SetValues (const TArray<CString> &Values) { m_pValues = &Values; }
+		void SetExtensions (IHexeTextExtensions *pExtensions) { m_pExtensions = pExtensions; }
+		void SetValues (const TArray<CString> &Values) { m_pValues = &Values; }
 
 	private:
 		enum EListTypes
@@ -116,35 +116,35 @@ class CHexeTextProcessor
 			};
 
 		void BlockQuoteToHTML (int iLevel);
-		inline void CloseAllStyles (void) { if (m_bInLink) CloseStyles(m_InLinkStyleStack); else CloseStyles(m_StyleStack); }
+		void CloseAllStyles (void) { if (m_bInLink) CloseStyles(m_InLinkStyleStack); else CloseStyles(m_StyleStack); }
 		void CloseStyles (TArray<CTextMarkupParser::ETokens> &StyleStack);
 		void CodeToHTML (int iIndentLevel = 0);
 		bool FindTextEnd (CTextMarkupParser::ETokens iToken);
 		void HeaderToHTML (void);
 		bool IsHeaderEnd (void);
-		inline bool IsStyleInStack (CTextMarkupParser::ETokens iToken) { if (m_bInLink) return m_InLinkStyleStack.Find(iToken); else return m_StyleStack.Find(iToken); }
-		inline bool IsTopStyle (CTextMarkupParser::ETokens iToken) { if (m_bInLink) return (m_InLinkStyleStack.GetCount() > 0 && m_InLinkStyleStack[m_InLinkStyleStack.GetCount() - 1] == iToken); else return (m_StyleStack.GetCount() > 0 && m_StyleStack[m_StyleStack.GetCount() - 1] == iToken); }
+		bool IsStyleInStack (CTextMarkupParser::ETokens iToken) { if (m_bInLink) return m_InLinkStyleStack.Find(iToken); else return m_StyleStack.Find(iToken); }
+		bool IsTopStyle (CTextMarkupParser::ETokens iToken) { if (m_bInLink) return (m_InLinkStyleStack.GetCount() > 0 && m_InLinkStyleStack[m_InLinkStyleStack.GetCount() - 1] == iToken); else return (m_StyleStack.GetCount() > 0 && m_StyleStack[m_StyleStack.GetCount() - 1] == iToken); }
 		void LinkToHTML (void);
 		void ListToHTML (EListTypes iListType, int iItemLevel);
 		void OutputRepeatingChar (char chChar, int iCount);
 		void ParagraphToHTML (void);
-		inline void PopStyle (void) { if (m_bInLink) m_InLinkStyleStack.Delete(m_InLinkStyleStack.GetCount() - 1); else m_StyleStack.Delete(m_StyleStack.GetCount() - 1); }
-		inline void PushStyle (CTextMarkupParser::ETokens iToken) { if (m_bInLink) m_InLinkStyleStack.Insert(iToken); else m_StyleStack.Insert(iToken); }
+		void PopStyle (void) { if (m_bInLink) m_InLinkStyleStack.Delete(m_InLinkStyleStack.GetCount() - 1); else m_StyleStack.Delete(m_StyleStack.GetCount() - 1); }
+		void PushStyle (CTextMarkupParser::ETokens iToken) { if (m_bInLink) m_InLinkStyleStack.Insert(iToken); else m_StyleStack.Insert(iToken); }
 		void TemplateToHTML (void);
 		void TextToHTML (bool bSkipWhitespace = false, char chTerminator = '\0');
 
 		CTextMarkupParser m_Parser;
-		IByteStream *m_pOutput;
+		IByteStream *m_pOutput = NULL;
 		TArray<CTextMarkupParser::ETokens> m_StyleStack;
-		int m_iCurListLevel;				//	Current list level
-		int m_iCurBlockQuoteLevel;			//	Block quote level
-		IHexeTextExtensions *m_pExtensions;
-		const TArray<CString> *m_pValues;
-		int m_iCurValue;					//	Current extension value
+		int m_iCurListLevel = 0;					//	Current list level
+		int m_iCurBlockQuoteLevel = 0;				//	Block quote level
+		IHexeTextExtensions *m_pExtensions = NULL;
+		const TArray<CString> *m_pValues = NULL;
+		int m_iCurValue = 0;						//	Current extension value
 
-		bool m_bInLink;
+		bool m_bInLink = false;
 		TArray<CTextMarkupParser::ETokens> m_InLinkStyleStack;
 
-		bool m_bOLTemplate;					//	If TRUE, we've outputted the special # template
-		bool m_bULTemplate;					//	If TRUE, we've outputted the special * template
+		bool m_bOLTemplate = false;					//	If TRUE, we've outputted the special # template
+		bool m_bULTemplate = false;					//	If TRUE, we've outputted the special * template
 	};
