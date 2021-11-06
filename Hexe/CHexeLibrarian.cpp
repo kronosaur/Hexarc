@@ -5,7 +5,13 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(FIELD_MSG,							"msg");
+DECLARE_CONST_STRING(FIELD_PAYLOAD,						"payload");
+DECLARE_CONST_STRING(FIELD_TYPE,						"type")
+
 DECLARE_CONST_STRING(LIBRARY_CORE,						"core")
+
+DECLARE_CONST_STRING(TYPE_HEXARC_MSG,					"hexarcMsg");
 
 CHexeLibrarian g_HexeLibrarian;
 
@@ -189,6 +195,26 @@ bool CHexe::Boot (void)
 		}
 
 	return true;
+	}
+
+bool CHexe::InvokeHexarcMsg (const CString &sMsg, CDatum dPayload, CDatum &retdResult)
+
+//	InvokeHexarcMsg
+//
+//	Composes a response from a library function to invoke the given Hexarc
+//	message.
+
+	{
+	CDatum dResult(CDatum::typeStruct);
+	dResult.SetElement(FIELD_TYPE, TYPE_HEXARC_MSG);
+	dResult.SetElement(FIELD_MSG, sMsg);
+	dResult.SetElement(FIELD_PAYLOAD, dPayload);
+
+	retdResult = dResult;
+
+	//	FALSE means special result.
+
+	return false;
 	}
 
 void CHexe::Mark (void)

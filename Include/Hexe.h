@@ -375,6 +375,8 @@ class CHexe
 	public:
 		static bool Boot (void);
 
+		static bool InvokeHexarcMsg (const CString &sMsg, CDatum dPayload, CDatum &retdResult);
+
 	private:
 		static void Mark (void);
 
