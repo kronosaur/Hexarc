@@ -6,7 +6,8 @@
 #include "stdafx.h"
 
 static constexpr int MAX_ARRAY_SIZE =					10000000;
-static constexpr int STOP_CHECK_COUNT =					10000;
+static constexpr DWORDLONG STOP_CHECK_COUNT =			0x4000;
+static constexpr DWORDLONG COMPUTES_PER_MILLISECOND =	100;
 
 DECLARE_CONST_STRING(FIELD_LENGTH,						"length");
 DECLARE_CONST_STRING(FIELD_MSG,							"msg");
@@ -39,8 +40,6 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 	bool bCondition;
 	CComplexArray *pArray;
 	CComplexStruct *pStruct;
-
-	int iStopCheck = STOP_CHECK_COUNT;
 
 	while (true)
 		{
@@ -630,8 +629,13 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 
 					case CDatum::ECallType::Library:
 						{
+						DWORDLONG dwStart = ::sysGetTickCount64();
+
 						CDatum dResult;
 						CDatum::InvokeResult iResult = dNewExpression.Invoke(this, m_dLocalEnv, m_UserSecurity.GetExecutionRights(), &dResult);
+
+						m_dwLibraryTime += ::sysGetTickCount64() - dwStart;
+
 						if (iResult != CDatum::InvokeResult::ok)
 							{
 							ERun iRunResult = ExecuteHandleInvokeResult(iResult, dNewExpression, dResult, retResult);
@@ -778,8 +782,13 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 
 						//	Continue library invocation
 
+						DWORDLONG dwStart = ::sysGetTickCount64();
+
 						CDatum dResult;
 						CDatum::InvokeResult iResult = dPrimitive.InvokeContinues(this, dContext, dSubResult, &dResult);
+
+						m_dwLibraryTime += ::sysGetTickCount64() - dwStart;
+
 						if (iResult != CDatum::InvokeResult::ok)
 							{
 							ERun iRunResult = ExecuteHandleInvokeResult(iResult, dPrimitive, dResult, retResult);
@@ -1506,17 +1515,29 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				return ERun::Error;
 			}
 
+		//	Track computes
+
+		m_dwComputes++;
+
 		//	Check to make sure we're not in an infinite loop.
 
-		if (m_dwAbortTime && --iStopCheck == 0)
+		if ((m_dwComputes % STOP_CHECK_COUNT) == 0)
 			{
-			if (::sysGetTickCount64() >= m_dwAbortTime)
+			if (m_dwAbortTime && ::sysGetTickCount64() >= m_dwAbortTime)
 				{
 				CHexeError::Create(NULL_STR, ERR_EXECUTION_TOOK_TOO_LONG, retResult);
 				return ERun::Error;
 				}
 
-			iStopCheck = STOP_CHECK_COUNT;
+			if (m_pComputeProgress)
+				{
+				m_pComputeProgress->OnCompute(m_dwComputes, m_dwLibraryTime);
+				if (m_pComputeProgress->OnAbortCheck())
+					{
+					CHexeError::Create(NULL_STR, ERR_EXECUTION_TOOK_TOO_LONG, retResult);
+					return ERun::Error;
+					}
+				}
 			}
 		}
 

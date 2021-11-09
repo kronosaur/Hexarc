@@ -440,6 +440,11 @@ CHexeProcess::ERun CHexeProcess::RunContinues (CDatum dAsyncResult, CDatum *retR
 
 	m_Stack.Push(dAsyncResult);
 
+	//	Progress
+
+	if (m_pComputeProgress)
+		m_pComputeProgress->OnStart();
+
 	//	Continue execution
 
 	ERun iRun;
@@ -452,6 +457,9 @@ CHexeProcess::ERun CHexeProcess::RunContinues (CDatum dAsyncResult, CDatum *retR
 		*retResult = strPattern(ERR_COMPUTE_CRASH);
 		return ERun::Error;
 		}
+
+	if (m_pComputeProgress)
+		m_pComputeProgress->OnStop();
 
 	return iRun;
 	}
@@ -517,6 +525,11 @@ CHexeProcess::ERun CHexeProcess::RunEventHandler (CDatum dFunc, const TArray<CDa
 
 	m_bInEventHandler = true;
 
+	//	Progress
+
+	if (m_pComputeProgress)
+		m_pComputeProgress->OnStart();
+
 	//	Run
 
 	ERun iRun;
@@ -529,6 +542,9 @@ CHexeProcess::ERun CHexeProcess::RunEventHandler (CDatum dFunc, const TArray<CDa
 		retResult = strPattern(ERR_COMPUTE_CRASH);
 		return ERun::Error;
 		}
+
+	if (m_pComputeProgress)
+		m_pComputeProgress->OnStop();
 
 	return iRun;
 	}
@@ -586,6 +602,11 @@ CHexeProcess::ERun CHexeProcess::RunWithStack (CDatum dExpression, CDatum *retRe
 	m_dLocalEnv = CDatum();
 	m_pLocalEnv = NULL;
 
+	//	Progress
+
+	if (m_pComputeProgress)
+		m_pComputeProgress->OnStart();
+
 	//	Run
 
 	ERun iRun;
@@ -598,6 +619,9 @@ CHexeProcess::ERun CHexeProcess::RunWithStack (CDatum dExpression, CDatum *retRe
 		*retResult = strPattern(ERR_COMPUTE_CRASH);
 		return ERun::Error;
 		}
+
+	if (m_pComputeProgress)
+		m_pComputeProgress->OnStop();
 
 	return iRun;
 	}

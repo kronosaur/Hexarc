@@ -208,6 +208,16 @@ class CHexeSecurityCtx
 		DWORD m_dwExecutionRights = EXEC_RIGHTS_ALL;
 	};
 
+class IHexeComputeProgress
+	{
+	public:
+		virtual ~IHexeComputeProgress () { }
+		virtual bool OnAbortCheck () { return false; }
+		virtual void OnCompute (DWORDLONG dwComputes, DWORDLONG dwLibraryTime) { }
+		virtual void OnStart () { }
+		virtual void OnStop () { }
+	};
+
 class CHexeProcess : public IInvokeCtx
 	{
 	public:
@@ -259,7 +269,9 @@ class CHexeProcess : public IInvokeCtx
 		void DeleteLibraryCtx (const CString &sLibrary) { m_LibraryCtx.DeleteAt(sLibrary); }
 		bool FindGlobalDef (const CString &sIdentifier, CDatum *retdValue = NULL);
 		const IHexeType *FindType (DWORD dwTypeIDIndex) const { if (m_pTypes) return m_pTypes->FindType(dwTypeIDIndex); else return NULL; }
+		DWORDLONG GetComputes () const { return m_dwComputes; }
 		CDatum GetGlobalEnv (void) { return m_dGlobalEnv; }
+		DWORDLONG GetLibraryTime () const { return m_dwLibraryTime; }
 		bool InitFrom (const CHexeProcess &Process, CString *retsError = NULL);
 		bool LoadEntryPoints (const TArray<CHexeDocument::SEntryPoint> &EntryPoints, CString *retsError);
 		bool LoadEntryPoints (const CHexeDocument &Program, CString *retsError);
@@ -274,6 +286,7 @@ class CHexeProcess : public IInvokeCtx
 		ERun Run (CDatum dFunc, CDatum dCallExpression, const TArray<CDatum> *pInitialStack, CDatum *retResult);
 		ERun RunContinues (CDatum dAsyncResult, CDatum *retResult);
 		ERun RunEventHandler (CDatum dFunc, const TArray<CDatum> &Args, CDatum &retResult);
+		void SetComputeProgress (IHexeComputeProgress &Progress) { m_pComputeProgress = &Progress; }
 		void *SetLibraryCtx (const CString &sLibrary, void *pCtx);
 		void SetMaxExecutionTime (DWORDLONG dwMilliseconds) { m_dwMaxExecutionTime = dwMilliseconds; }
 		void SetOptionAddConcatenatesStrings (bool bValue = true) { m_bAddConcatenatesStrings = bValue; }
@@ -323,6 +336,7 @@ class CHexeProcess : public IInvokeCtx
 
 		//	Options
 
+		IHexeComputeProgress *m_pProgress = NULL;	//	Callback to report progress
 		DWORDLONG m_dwMaxExecutionTime = 0;			//	Do not allow execution to exceed this amount of time (in ms)
 		DWORDLONG m_dwAbortTime = 0;				//	Abort at this tick (0 = never abort)
 		bool m_bAddConcatenatesStrings = false;		//	If TRUE, then + will concatenate string (instead of converting 
@@ -350,6 +364,11 @@ class CHexeProcess : public IInvokeCtx
 
 		TSortMap<CString, void *> m_LibraryCtx;		//	Ctx for each library
 		CHexeSecurityCtx m_UserSecurity;			//	User security context
+
+		IHexeComputeProgress *m_pComputeProgress = NULL;
+		DWORDLONG m_dwComputes = 0;					//	Total instructions processed so far.
+		DWORDLONG m_dwLibraryTime = 0;				//	Total milliseconds spent executing
+													//		native library functions.
 
 		static SHexarcMsgInfo m_HexarcMsgInfo[];
 		static int m_iHexarcMsgInfoCount;
