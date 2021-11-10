@@ -28,6 +28,7 @@ DECLARE_CONST_STRING(MEDIA_TYPE_TEXT,					"text/plain")
 DECLARE_CONST_STRING(STR_CRASH_PREFIX,					"CRASH: ")
 DECLARE_CONST_STRING(STR_DEBUG_PREFIX,					"DEBUG: ")
 DECLARE_CONST_STRING(STR_ERROR_PREFIX,					"ERROR:")
+DECLARE_CONST_STRING(STR_TIMEOUT_PREFIX,				"TIMEOUT: ")
 
 DECLARE_CONST_STRING(ERR_DUPLICATE_URL_PATH,			"Duplicate urlPath: %s.")
 DECLARE_CONST_STRING(ERR_UNABLE_TO_PARSE_JSON,			"Error parsing JSON.")
@@ -63,7 +64,11 @@ bool CHexeCodeRPCService::ComposeResponse (SHTTPRequestCtx &Ctx, CHexeProcess::E
 	if (iRun == CHexeProcess::ERun::Error)
 		{
 		const CString &sError = dResult;
-		if (strStartsWith(sError, STR_ERROR_PREFIX)
+		if (strStartsWith(sError, STR_TIMEOUT_PREFIX))
+			{
+			//	No need to report because this is an expected error
+			}
+		else if (strStartsWith(sError, STR_ERROR_PREFIX)
 				|| strStartsWith(sError, STR_DEBUG_PREFIX)
 				|| strStartsWith(sError, STR_CRASH_PREFIX))
 			Ctx.pSession->DebugLog(sError);

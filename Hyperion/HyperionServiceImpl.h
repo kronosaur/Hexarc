@@ -209,6 +209,7 @@ class CHTTPSession : public CHyperionSession
 			responseSent,
 			responseSentPartial,
 			waitingForRPCResult,
+			waitingForRPCLongPoll,
 			waitingForFileData,
 			disconnected,
 			};
@@ -225,6 +226,7 @@ class CHTTPSession : public CHyperionSession
 		bool ProcessStateWaitingForFileData (const SArchonMessage &Msg);
 		bool ProcessStateWaitingForRequest (const SArchonMessage &Msg);
 		bool ProcessStateWaitingForRPCResult (const SArchonMessage &Msg);
+		bool ProcessStateWaitingForRPCLongPollResult (const SArchonMessage &Msg);
 		bool SendFile (SHTTPRequestCtx &Ctx, const SArchonMessage &Msg);
 		bool SendReadFileRequest (SHTTPRequestCtx &Ctx, const SArchonMessage &Msg, int iOffset);
 		bool SendResponse (SHTTPRequestCtx &Ctx, const SArchonMessage &Msg, DWORD dwFlags = 0);

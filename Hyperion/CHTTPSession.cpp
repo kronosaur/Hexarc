@@ -42,6 +42,7 @@ DECLARE_CONST_STRING(HEADER_SERVER,						"Server");
 
 DECLARE_CONST_STRING(MSG_AEON_FILE_DOWNLOAD,			"Aeon.fileDownload");
 DECLARE_CONST_STRING(MSG_AEON_FILE_DOWNLOAD_DESC,		"Aeon.fileDownloadDesc");
+DECLARE_CONST_STRING(MSG_ERROR_LONG_POLL,				"Error.longPoll");
 DECLARE_CONST_STRING(MSG_ERROR_TIMEOUT,					"Error.timeout");
 DECLARE_CONST_STRING(MSG_ESPER_DISCONNECT,				"Esper.disconnect");
 DECLARE_CONST_STRING(MSG_ESPER_ON_DISCONNECT,			"Esper.onDisconnect");
@@ -52,6 +53,7 @@ DECLARE_CONST_STRING(MSG_ESPER_WRITE,					"Esper.write");
 DECLARE_CONST_STRING(MSG_LOG_DEBUG,						"Log.debug");
 DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error");
 DECLARE_CONST_STRING(MSG_LOG_INFO,						"Log.info");
+DECLARE_CONST_STRING(MSG_REPLY_LONG_POLL,				"Reply.longPoll");
 
 DECLARE_CONST_STRING(PORT_HYPERION_COMMAND,				"Hyperion.command");
 
@@ -64,6 +66,7 @@ DECLARE_CONST_STRING(STATE_UNKNOWN,						"unknown");
 DECLARE_CONST_STRING(STATE_WAITING_FOR_FILE_DATA,		"waitingForFileData");
 DECLARE_CONST_STRING(STATE_WAITING_FOR_REQUEST,			"waitingForRequest");
 DECLARE_CONST_STRING(STATE_WAITING_FOR_RPC,				"waitingForRPC");
+DECLARE_CONST_STRING(STATE_WAITING_FOR_RPC_LONG_POLL,	"waitingForRPCLongPoll");
 
 DECLARE_CONST_STRING(STR_CLOSE,							"Close");
 DECLARE_CONST_STRING(STR_OK,							"OK");
@@ -83,6 +86,7 @@ DECLARE_CONST_STRING(ERR_CRASH_PROCESS_MSG,				"Crash in state %d processing mes
 DECLARE_CONST_STRING(ERR_CRASH_PROCESS_SERVICE,			"Crash processing service status %d. Message: %s.");
 DECLARE_CONST_STRING(ERR_UNKNOWN_SESSION_STATE,			"Unknown session state in OnProcessMessage.");
 DECLARE_CONST_STRING(ERR_HTTP_SESSION_TIMING,			"[%x] %s%s took %d ms to process.");
+DECLARE_CONST_STRING(ERR_LONG_POLL_TIMEOUT,				"TIMEOUT: Long-poll expired.");
 
 const DWORD MAX_SINGLE_BODY_SIZE =						100000;
 
@@ -248,6 +252,10 @@ void CHTTPSession::OnGetHyperionStatusReport (CComplexStruct *pStatus) const
 
 		case State::responseSentPartial:
 			pStatus->SetElement(FIELD_STATE, STATE_RESPONSE_SENT_PARTIAL);
+			break;
+
+		case State::waitingForRPCLongPoll:
+			pStatus->SetElement(FIELD_STATE, STATE_WAITING_FOR_RPC_LONG_POLL);
 			break;
 
 		case State::waitingForRPCResult:
@@ -649,6 +657,44 @@ bool CHTTPSession::ProcessStateWaitingForRequest (const SArchonMessage &Msg)
 		}
 	}
 
+bool CHTTPSession::ProcessStateWaitingForRPCLongPollResult (const SArchonMessage &Msg)
+
+//	ProcessStateWaitingForRPCLongPollResult
+//
+//	We've sent out an RPC and are waiting for a reply before continuing.
+
+	{
+	//	NOTE: If we get a timeout message here, we just return it back as an
+	//	special error to the RPC processor. We send it back to the client and
+	//	the client is responsible for resubmitting a request.
+
+	if (strEquals(Msg.sMsg, MSG_ERROR_TIMEOUT))
+		{
+		SArchonMessage LongPollTimeoutMsg = Msg;
+		LongPollTimeoutMsg.sMsg = MSG_ERROR_LONG_POLL;
+
+		//	HACK: We set the error message to "TIMEOUT: ..." which the RPC
+		//	processor detects so that it can treat long-poll timeouts slightly
+		//	differently. In the future, we should figure out a way to extract
+		//	the sMsg value out of a CHexeError.
+
+		LongPollTimeoutMsg.dPayload = CDatum(ERR_LONG_POLL_TIMEOUT);
+
+		m_Ctx.pService->HandleRPCResult(m_Ctx, LongPollTimeoutMsg);
+		return ProcessServiceResult(m_Ctx, LongPollTimeoutMsg);
+		}
+
+	//	Log
+
+	m_pEngine->LogSessionState(strPattern("[%x:%x] Received: %s.", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)Msg.sMsg));
+
+	//	Return the reply to the handler. They might process some more and
+	//	request another RPC or they might return with a response.
+
+	m_Ctx.pService->HandleRPCResult(m_Ctx, Msg);
+	return ProcessServiceResult(m_Ctx, Msg);
+	}
+
 bool CHTTPSession::ProcessStateWaitingForRPCResult (const SArchonMessage &Msg)
 
 //	ProcessStateWaitingForRPCResult
@@ -656,7 +702,16 @@ bool CHTTPSession::ProcessStateWaitingForRPCResult (const SArchonMessage &Msg)
 //	We've sent out an RPC and are waiting for a reply before continuing.
 
 	{
-	if (strEquals(Msg.sMsg, MSG_ERROR_TIMEOUT))
+	if (strEquals(Msg.sMsg, MSG_REPLY_LONG_POLL))
+		{
+		m_iState = State::waitingForRPCLongPoll;
+
+		//	Set the timeout again (because it was cleared when we got a reply).
+
+		ResetTimeout(GenerateAddress(PORT_HYPERION_COMMAND), DEFAULT_TIMEOUT);
+		return true;
+		}
+	else if (strEquals(Msg.sMsg, MSG_ERROR_TIMEOUT))
 		{
 		m_Ctx.Response.InitResponse(http_INTERNAL_SERVER_ERROR, ERR_RPC_TIMEOUT);
 		return SendResponse(m_Ctx, Msg);
@@ -688,6 +743,9 @@ bool CHTTPSession::OnProcessMessage (const SArchonMessage &Msg)
 
 			case State::responseSentPartial:
 				return ProcessStateResponseSentPartial(Msg);
+
+			case State::waitingForRPCLongPoll:
+				return ProcessStateWaitingForRPCLongPollResult(Msg);
 
 			case State::waitingForRPCResult:
 				return ProcessStateWaitingForRPCResult(Msg);
@@ -930,7 +988,7 @@ bool CHTTPSession::SendResponse (SHTTPRequestCtx &Ctx, const SArchonMessage &Msg
 #ifdef DEBUG_SESSION_TIMING
 	GetProcessCtx()->Log(MSG_LOG_INFO, strPattern(ERR_HTTP_SESSION_TIMING, CEsperInterface::ConnectionToFriendlyID(m_dSocket), Ctx.Request.GetRequestedHost(), Ctx.Request.GetRequestedURL(), (DWORD)dwTime));
 #else
-	if (dwTime >= 1000)
+	if (dwTime >= 1000 && m_iState != State::waitingForRPCLongPoll)
 		GetProcessCtx()->Log(MSG_LOG_INFO, strPattern(ERR_HTTP_SESSION_TIMING, CEsperInterface::ConnectionToFriendlyID(m_dSocket), Ctx.Request.GetRequestedHost(), Ctx.Request.GetRequestedPath(), dwTime));
 #endif
 
