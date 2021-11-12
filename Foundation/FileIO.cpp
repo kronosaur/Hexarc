@@ -266,7 +266,7 @@ bool fileDelete (const CString &sFilespec)
 //	Delete the file permanently from disk.
 
 	{
-	if (!::DeleteFile(CString16(sFilespec)))
+	if (!::DeleteFileW(CString16(sFilespec)))
 		return false;
 
 	return true;
