@@ -239,7 +239,7 @@ class ISessionHandler
 		CSimpleEngine *GetSimpleEngine () { return m_pEngine; }
 		CSessionManager *GetSessionManager () { return m_pSessionManager; }
 		DWORD GetTicket (void) const { return m_dwTicket; }
-		bool IsError (const SArchonMessage &Msg);
+		static bool IsError (const SArchonMessage &Msg);
 		void ResetTimeout (const CString &sReplyAddr, DWORD dwTimeout);
 		bool SendMessageCommand (const CString &sAddress, const CString &sMsg, const CString &sReplyAddr, CDatum dPayload, DWORD dwTimeout = 0);
 		void SendMessageNotify (const CString &sAddress, const CString &sMsg, CDatum dPayload);
