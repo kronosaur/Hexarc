@@ -16,7 +16,7 @@ class CAEONObject : public CComplexStruct
 
 		//	IComplexDatum
 		virtual IComplexDatum *Clone (void) const override { return new CAEONObject(m_TypeID, m_Map); }
-		virtual CDatum::Types GetBasicType (void) const { return CDatum::typeObject; }
+		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeObject; }
 		virtual CDatumTypeID GetTypeID () const override { return m_TypeID; }
 
 	private:

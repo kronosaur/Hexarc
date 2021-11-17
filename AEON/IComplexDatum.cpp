@@ -59,6 +59,16 @@ size_t IComplexDatum::CalcSerializeSizeAEONScript (CDatum::EFormat iFormat) cons
 	return TotalSize;
 	}
 
+const IDatatype &IComplexDatum::CastIDatatype (void) const
+
+//	CastIDatatype
+//
+//	Cast to IDatatype (default implementation)
+
+	{
+	return (const IDatatype &)CAEONTypeSystem::GetCoreType(IDatatype::ANY);
+	}
+
 bool IComplexDatum::DeserializeAEONScript (CDatum::EFormat iFormat, const CString &sTypename, CCharStream *pStream)
 
 //	DeserializeAEONScript
@@ -136,6 +146,16 @@ bool IComplexDatum::DeserializeJSON (const CString &sTypename, const TArray<CDat
 		return false;
 
 	return true;
+	}
+
+CDatum IComplexDatum::GetDatatype () const
+
+//	GetDatatype
+//
+//	Default implementation. This should only be used for internal datum types.
+
+	{
+	return CAEONTypeSystem::GetCoreType(IDatatype::ANY);
 	}
 
 void IComplexDatum::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const

@@ -495,6 +495,21 @@ CDatum::operator double () const
 		}
 	}
 
+CDatum::operator const IDatatype & () const
+
+//	IDatatype cast operator
+
+	{
+	switch (m_dwData & AEON_TYPE_MASK)
+		{
+		case AEON_TYPE_COMPLEX:
+			return raw_GetComplex()->CastIDatatype();
+
+		default:
+			return (const IDatatype &)CAEONTypeSystem::GetCoreType(IDatatype::ANY);
+		}
+	}
+
 CDatum::operator const CDateTime & () const
 
 //	CDateTime cast operator
@@ -1268,6 +1283,9 @@ int CDatum::DefaultCompare (void *pCtx, const CDatum &dKey1, const CDatum &dKey2
 					return 0;
 					}
 
+			case CDatum::typeDatatype:
+				return KeyCompare(((const IDatatype &)dKey1).GetFullyQualifiedName(), ((const IDatatype &)dKey2).GetFullyQualifiedName());
+
 			//	LATER: Not yet supported
 
 			default:
@@ -1580,6 +1598,52 @@ int CDatum::GetBinarySize (void) const
 			const CString &sData = *this;
 			return sData.GetLength();
 			}
+		}
+	}
+
+CDatum CDatum::GetDatatype () const
+
+//	GetDatatype
+//
+//	Returns a datatype.
+
+	{
+	switch (m_dwData & AEON_TYPE_MASK)
+		{
+		case AEON_TYPE_STRING:
+			return (m_dwData == 0 ? CAEONTypeSystem::GetCoreType(IDatatype::NULL_T) : CAEONTypeSystem::GetCoreType(IDatatype::STRING));
+
+		case AEON_TYPE_NUMBER:
+			switch (m_dwData & AEON_NUMBER_TYPE_MASK)
+				{
+				case AEON_NUMBER_CONSTANT:
+					{
+					switch (m_dwData)
+						{
+						case CONST_TRUE:
+							return CAEONTypeSystem::GetCoreType(IDatatype::BOOL);
+
+						default:
+							throw CException(errFail);
+						}
+					}
+
+				case AEON_NUMBER_28BIT:
+				case AEON_NUMBER_32BIT:
+					return CAEONTypeSystem::GetCoreType(IDatatype::INT_32);
+
+				case AEON_NUMBER_DOUBLE:
+					return CAEONTypeSystem::GetCoreType(IDatatype::FLOAT_64);
+
+				default:
+					throw CException(errFail);
+				}
+
+		case AEON_TYPE_COMPLEX:
+			return raw_GetComplex()->GetDatatype();
+
+		default:
+			throw CException(errFail);
 		}
 	}
 
@@ -2233,6 +2297,9 @@ bool CDatum::IsEqual (CDatum dValue) const
 		case typeDateTime:
 			return (dValue.GetBasicType() == typeDateTime && ((const CDateTime &)*this == (const CDateTime &)dValue));
 
+		case typeDatatype:
+			return (dValue.GetBasicType() == typeDatatype && strEquals(((const IDatatype &)*this).GetFullyQualifiedName(), ((const IDatatype &)dValue).GetFullyQualifiedName()));
+
 		//	LATER
 		case typeArray:
 		case typeBinary:
@@ -2346,11 +2413,11 @@ void CDatum::MarkAndSweep (void)
 //	(Sweeping also clears the marks)
 
 	{
-	int i;
+	CAEONTypeSystem::MarkCoreTypes();
 
 	//	Mark all object that we know about
 
-	for (i = 0; i < g_MarkList.GetCount(); i++)
+	for (int i = 0; i < g_MarkList.GetCount(); i++)
 		g_MarkList[i]();
 
 	//	Sweep
