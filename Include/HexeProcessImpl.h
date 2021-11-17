@@ -19,6 +19,7 @@ class CHexeStack
 		void DeleteAll (void) { m_Stack.DeleteAll(); m_iTop = -1; }
 		CDatum Get (void) { return (m_iTop == -1 ? CDatum() : m_Stack[m_iTop]); }
 		CDatum Get (int iIndex) const;
+		int GetCount () const { return m_iTop + 1; }
 		void Mark (void);
 		CDatum Pop (void) { return (m_iTop == -1 ? CDatum() : m_Stack[m_iTop--]); }
 		void Pop (int iCount) { if (m_iTop + 1 >= iCount) m_iTop -= iCount; else m_iTop = -1; }
