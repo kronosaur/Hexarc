@@ -139,6 +139,15 @@ void CAEONTypeSystem::InitCoreTypes ()
 
 	AddCoreType(new CDatatypeSimple(
 		{
+			MakeFullyQualifiedName(NULL_STR, TYPENAME_DATATYPE), 
+			IDatatype::DATATYPE,
+			{  },
+			false
+			})
+		);
+
+	AddCoreType(new CDatatypeSimple(
+		{
 			MakeFullyQualifiedName(NULL_STR, TYPENAME_BOOL), 
 			IDatatype::BOOL,
 			{ },
@@ -337,15 +346,6 @@ void CAEONTypeSystem::InitCoreTypes ()
 			IDatatype::OBJECT,
 			{  },
 			true
-			})
-		);
-
-	AddCoreType(new CDatatypeSimple(
-		{
-			MakeFullyQualifiedName(NULL_STR, TYPENAME_DATATYPE), 
-			IDatatype::DATATYPE,
-			{  },
-			false
 			})
 		);
 	}

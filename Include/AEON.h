@@ -280,30 +280,31 @@ class IDatatype
 		static constexpr DWORD UNKNOWN =			0;
 
 		static constexpr DWORD ANY =				1;	//	Any type (a CDatum)
-		static constexpr DWORD BOOL =				2;	//	A boolean type (abstract)
-		static constexpr DWORD NULL_T =				3;	//	The null type (concrete)
+		static constexpr DWORD DATATYPE =			2;	//	A datatype object
+		static constexpr DWORD BOOL =				3;	//	A boolean type (abstract)
+		static constexpr DWORD NULL_T =				4;	//	The null type (concrete)
 		
-		static constexpr DWORD NUMBER =				4;	//	Any number (abstract)
-		static constexpr DWORD REAL =				5;	//	A real number (abstract)
-		static constexpr DWORD INTEGER =			6;	//	An integer (abstract)
-		static constexpr DWORD FLOAT =				7;	//	A floating point number (abstract)
-		static constexpr DWORD SIGNED =				8;	//	A signed integer (abstract)
-		static constexpr DWORD UNSIGNED =			9;	//	An unsigned integer (abstract)
-		static constexpr DWORD INT_32 =				10;	//	A 32-bit signed integer (concrete)
-		static constexpr DWORD INT_64 =				11;	//	A 64-bit signed integer (concrete)
-		static constexpr DWORD INT_IP =				12;	//	An infinite precision signed integer (concrete)
-		static constexpr DWORD UINT_32 =			13;	//	An unsigned 32-bit integer (concrete)
-		static constexpr DWORD UINT_64 =			14;	//	An unsigned 64-bit integer (concrete)
-		static constexpr DWORD FLOAT_64 =			15;	//	A 64-bit float
+		static constexpr DWORD NUMBER =				5;	//	Any number (abstract)
+		static constexpr DWORD REAL =				6;	//	A real number (abstract)
+		static constexpr DWORD INTEGER =			7;	//	An integer (abstract)
+		static constexpr DWORD FLOAT =				8;	//	A floating point number (abstract)
+		static constexpr DWORD SIGNED =				9;	//	A signed integer (abstract)
+		static constexpr DWORD UNSIGNED =			10;	//	An unsigned integer (abstract)
+		static constexpr DWORD INT_32 =				11;	//	A 32-bit signed integer (concrete)
+		static constexpr DWORD INT_64 =				12;	//	A 64-bit signed integer (concrete)
+		static constexpr DWORD INT_IP =				13;	//	An infinite precision signed integer (concrete)
+		static constexpr DWORD UINT_32 =			14;	//	An unsigned 32-bit integer (concrete)
+		static constexpr DWORD UINT_64 =			15;	//	An unsigned 64-bit integer (concrete)
+		static constexpr DWORD FLOAT_64 =			16;	//	A 64-bit float
 
-		static constexpr DWORD STRING =				16;	//	A UTF-8 string
-		static constexpr DWORD ARRAY =				17;	//	An array of Any
-		static constexpr DWORD STRUCT =				18;	//	A struct of Any
-		static constexpr DWORD DATE_TIME =			19;	//	A dateTime
-		static constexpr DWORD BINARY =				20;	//	A binary blob
-		static constexpr DWORD FUNCTION =			21;	//	A function
-		static constexpr DWORD OBJECT =				22;	//	An object class
-		static constexpr DWORD DATATYPE =			23;	//	A datatype object
+		static constexpr DWORD STRING =				17;	//	A UTF-8 string
+		static constexpr DWORD ARRAY =				18;	//	An array of Any
+		static constexpr DWORD STRUCT =				19;	//	A struct of Any
+		static constexpr DWORD DATE_TIME =			20;	//	A dateTime
+		static constexpr DWORD BINARY =				21;	//	A binary blob
+		static constexpr DWORD FUNCTION =			22;	//	A function
+		static constexpr DWORD OBJECT =				23;	//	An object class
+		static constexpr DWORD TABLE =				24;	//	A table class
 
 		enum class ECategory
 			{
