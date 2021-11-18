@@ -130,12 +130,45 @@ class CDatatypeClass : public IDatatype
 		//	IDatatype virtuals
 
 		virtual bool OnAddMember (const CString &sName, EMemberType iType, CDatum dType, CString *retsError = NULL) override;
-		virtual ECategory OnGetClass () const override { return IDatatype::ECategory::Class; }
+		virtual ECategory OnGetClass () const override { return IDatatype::ECategory::ClassDef; }
 		virtual EMemberType OnHasMember (const CString &sName) const override;
 		virtual bool OnIsA (const IDatatype &Type) const override { return (&Type == this || Type.IsAny() || m_Implements.IsA(Type)); }
 		virtual void OnMark () override;
 
 		TSortMap<CString, SMember> m_Members;
+		CDatatypeList m_Implements;
+	};
+
+class CDatatypeSchema : public IDatatype
+	{
+	public:
+		struct SCreate
+			{
+			CString sFullyQualifiedName;
+			CDatatypeList Implements;
+			};
+
+		CDatatypeSchema (const SCreate &Create) : IDatatype(Create.sFullyQualifiedName),
+				m_Implements(Create.Implements)
+			{ }
+
+	private:
+
+		struct SColumn
+			{
+			CString sName;
+			CDatum dType;
+			};
+
+		//	IDatatype virtuals
+
+		virtual bool OnAddMember (const CString &sName, EMemberType iType, CDatum dType, CString *retsError = NULL) override;
+		virtual ECategory OnGetClass () const override { return IDatatype::ECategory::Schema; }
+		virtual EMemberType OnHasMember (const CString &sName) const override;
+		virtual bool OnIsA (const IDatatype &Type) const override { return (&Type == this || Type.IsAny() || m_Implements.IsA(Type)); }
+		virtual void OnMark () override;
+
+		TSortMap<CString, SColumn> m_Columns;
 		CDatatypeList m_Implements;
 	};
 

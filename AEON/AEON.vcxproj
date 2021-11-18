@@ -195,6 +195,7 @@
     <ClCompile Include="CComplexInteger.cpp" />
     <ClCompile Include="CDatatypeClass.cpp" />
     <ClCompile Include="CDatatypeList.cpp" />
+    <ClCompile Include="CDatatypeSchema.cpp" />
     <ClCompile Include="CDatum.cpp" />
     <ClCompile Include="HTTP.cpp" />
     <ClCompile Include="IComplexDatum.cpp" />

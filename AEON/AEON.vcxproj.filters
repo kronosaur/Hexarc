@@ -72,6 +72,9 @@
     <ClCompile Include="CDatatypeClass.cpp">
       <Filter>Source Files\Type System</Filter>
     </ClCompile>
+    <ClCompile Include="CDatatypeSchema.cpp">
+      <Filter>Source Files\Type System</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Include\AEON.h">

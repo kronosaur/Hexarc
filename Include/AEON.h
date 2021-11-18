@@ -303,8 +303,8 @@ class IDatatype
 		static constexpr DWORD DATE_TIME =			20;	//	A dateTime
 		static constexpr DWORD BINARY =				21;	//	A binary blob
 		static constexpr DWORD FUNCTION =			22;	//	A function
-		static constexpr DWORD OBJECT =				23;	//	An object class
-		static constexpr DWORD TABLE =				24;	//	A table class
+		static constexpr DWORD OBJECT =				23;	//	An object (datatype is a class definition)
+		static constexpr DWORD TABLE =				24;	//	A table (datatype is a schema)
 
 		enum class ECategory
 			{
@@ -313,8 +313,9 @@ class IDatatype
 			Simple,							//	Datatype that does not refer to other types.
 			Number,							//	A number type
 			Array,							//	An array of some other type.
-			Class,							//	A ordered set of fields and types
+			ClassDef,						//	A ordered set of fields and types
 			Function,						//	A function type
+			Schema,							//	A table definition
 			};
 
 		enum class EMemberType
@@ -377,6 +378,7 @@ class CAEONTypeSystem
 	public:
 		bool AddType (CDatum dType);
 		static CDatum CreateDatatypeClass (const CString &sFullyQualifiedName, const CDatatypeList &Implements, IDatatype **retpNewType = NULL);
+		static CDatum CreateDatatypeSchema (const CString &sFullyQualifiedName, const CDatatypeList &Implements, IDatatype **retpNewType = NULL);
 		CDatum FindType (const CString &sFullyQualifiedName, const IDatatype **retpDatatype = NULL) const;
 		static CDatum GetCoreType (DWORD dwType);
 		static const TArray<CDatum> &GetCoreTypes () { if (m_CoreTypes.GetCount() == 0) InitCoreTypes(); return m_CoreTypes; }

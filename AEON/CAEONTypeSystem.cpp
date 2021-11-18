@@ -24,6 +24,7 @@ DECLARE_CONST_STRING(TYPENAME_REAL,						"Real");
 DECLARE_CONST_STRING(TYPENAME_SIGNED,					"Signed");
 DECLARE_CONST_STRING(TYPENAME_STRING,					"String");
 DECLARE_CONST_STRING(TYPENAME_STRUCT,					"Struct");
+DECLARE_CONST_STRING(TYPENAME_TABLE,					"Table");
 DECLARE_CONST_STRING(TYPENAME_UINT_32,					"UInt32");
 DECLARE_CONST_STRING(TYPENAME_UINT_64,					"UInt64");
 DECLARE_CONST_STRING(TYPENAME_UNSIGNED,					"Unsigned");
@@ -73,6 +74,22 @@ CDatum CAEONTypeSystem::CreateDatatypeClass (const CString &sFullyQualifiedName,
 
 	{
 	IDatatype *pNewType = new CDatatypeClass({ sFullyQualifiedName, Implements });
+	CDatum dNewType(new CComplexDatatype(pNewType));
+
+	if (retpNewType)
+		*retpNewType = pNewType;
+
+	return dNewType;
+	}
+
+CDatum CAEONTypeSystem::CreateDatatypeSchema (const CString &sFullyQualifiedName, const CDatatypeList &Implements, IDatatype **retpNewType)
+
+//	CreateDatatypeSchema
+//
+//	Creates a new datatype.
+
+	{
+	IDatatype *pNewType = new CDatatypeSchema({ sFullyQualifiedName, Implements });
 	CDatum dNewType(new CComplexDatatype(pNewType));
 
 	if (retpNewType)
@@ -344,6 +361,15 @@ void CAEONTypeSystem::InitCoreTypes ()
 		{
 			MakeFullyQualifiedName(NULL_STR, TYPENAME_OBJECT), 
 			IDatatype::OBJECT,
+			{  },
+			true
+			})
+		);
+
+	AddCoreType(new CDatatypeSimple(
+		{
+			MakeFullyQualifiedName(NULL_STR, TYPENAME_TABLE), 
+			IDatatype::TABLE,
 			{  },
 			true
 			})
