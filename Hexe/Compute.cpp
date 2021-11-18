@@ -280,8 +280,8 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 
 			case opMakeObject:
 				{
-				DWORD dwTypeIDIndex = m_Stack.Pop();
-				CDatum dObj = CDatum::CreateObject(dwTypeIDIndex);
+				CString sFullyQualifiedName = m_Stack.Pop();
+				CDatum dObj = CDatum::CreateObject(FindType(sFullyQualifiedName));
 
 				iCount = GetOperand(*m_pIP);
 				if (iCount > 0)
@@ -1310,17 +1310,16 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 						{
 						case CDatum::typeObject:
 							{
-							DWORD dwTypeIDIndex = dObject.GetTypeID().GetTypeIndex();
-							const IHexeType *pType = FindType(dwTypeIDIndex);
-							if (pType)
+							const IDatatype &Type = dObject.GetDatatype();
+							if (!Type.IsAny())
 								{
-								auto iMemberType = pType->HasMember(sField);
+								auto iMemberType = Type.HasMember(sField);
 								switch (iMemberType)
 									{
-									case EHexeMemberType::InstanceMethod:
-									case EHexeMemberType::StaticMethod:
+									case IDatatype::EMemberType::InstanceMethod:
+									case IDatatype::EMemberType::StaticMethod:
 										{
-										CString sFunctionName = strPattern("%s$%s", pType->GetFullyQualifiedName(), sField);
+										CString sFunctionName = strPattern("%s$%s", Type.GetFullyQualifiedName(), sField);
 										if (!m_pCurGlobalEnv->Find(sFunctionName, &dValue))
 											{
 											CHexeError::Create(NULL_STR, strPattern(ERR_UNBOUND_VARIABLE, sFunctionName), retResult);
@@ -1331,7 +1330,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 										break;
 										}
 
-									case EHexeMemberType::InstanceVar:
+									case IDatatype::EMemberType::InstanceVar:
 										m_Stack.Push(dObject.GetElement(sField));
 										break;
 
@@ -1376,17 +1375,16 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 						{
 						case CDatum::typeObject:
 							{
-							DWORD dwTypeIDIndex = dObject.GetTypeID().GetTypeIndex();
-							const IHexeType *pType = FindType(dwTypeIDIndex);
-							if (pType)
+							const IDatatype &Type = dObject.GetDatatype();
+							if (!Type.IsAny())
 								{
-								auto iMemberType = pType->HasMember(sField);
+								auto iMemberType = Type.HasMember(sField);
 								switch (iMemberType)
 									{
-									case EHexeMemberType::InstanceMethod:
-									case EHexeMemberType::StaticMethod:
+									case IDatatype::EMemberType::InstanceMethod:
+									case IDatatype::EMemberType::StaticMethod:
 										{
-										CString sFunctionName = strPattern("%s$%s", pType->GetFullyQualifiedName(), sField);
+										CString sFunctionName = strPattern("%s$%s", Type.GetFullyQualifiedName(), sField);
 										if (!m_pCurGlobalEnv->Find(sFunctionName, &dValue))
 											{
 											CHexeError::Create(NULL_STR, strPattern(ERR_UNBOUND_VARIABLE, sFunctionName), retResult);

@@ -199,7 +199,6 @@
     <ClCompile Include="CHexeStack.cpp" />
     <ClCompile Include="CHexeTextFunctionProcessor.cpp" />
     <ClCompile Include="CHexeTextMarkup.cpp" />
-    <ClCompile Include="CHexeTypeSystem.cpp" />
     <ClCompile Include="CLambdaParseExtension.cpp" />
     <ClCompile Include="CLispCompiler.cpp" />
     <ClCompile Include="CLispParser.cpp" />
@@ -221,7 +220,6 @@
   <ItemGroup>
     <ClInclude Include="..\Include\Hexe.h" />
     <ClInclude Include="..\Include\HexeConsole.h" />
-    <ClInclude Include="..\Include\HexeTypes.h" />
     <ClInclude Include="..\Include\HexeVM.h" />
     <ClInclude Include="HexeImpl.h" />
     <ClInclude Include="..\Include\HexeProcessImpl.h" />

@@ -21,18 +21,17 @@ CDatatypeList::CDatatypeList (const std::initializer_list<CDatum> &List)
 		}
 	}
 
-bool CDatatypeList::IsA (CDatum dType) const
+bool CDatatypeList::IsA (const IDatatype &Type) const
 
 //	IsA
 //
 //	Returns TRUE if any of the types in our list is-a Type.
 
 	{
-	const IDatatype &Dst = dType;
 	for (int i = 0; i < m_Types.GetCount(); i++)
 		{
 		const IDatatype &Src = m_Types[i];
-		if (&Src == &Dst || Src.IsA(Dst))
+		if (&Src == &Type || Src.IsA(Type))
 			return true;
 		}
 

@@ -9,18 +9,19 @@ class CAEONObject : public CComplexStruct
 	{
 	public:
 		CAEONObject () { }
-		CAEONObject (CDatumTypeID TypeID) : m_TypeID(TypeID) { }
-		CAEONObject (CDatumTypeID TypeID, CDatum dSrc) : CComplexStruct(dSrc), m_TypeID(TypeID) { }
-		CAEONObject (CDatumTypeID TypeID, const TSortMap<CString, CDatum> &Src) : CComplexStruct(Src), m_TypeID(TypeID) { }
-		CAEONObject (CDatumTypeID TypeID, const TSortMap<CString, CString> &Src) : CComplexStruct(Src), m_TypeID(TypeID) { }
+		CAEONObject (CDatum dType) : m_dType(dType) { }
+		CAEONObject (CDatum dType, CDatum dSrc) : CComplexStruct(dSrc), m_dType(dType) { }
+		CAEONObject (CDatum dType, const TSortMap<CString, CDatum> &Src) : CComplexStruct(Src), m_dType(dType) { }
+		CAEONObject (CDatum dType, const TSortMap<CString, CString> &Src) : CComplexStruct(Src), m_dType(dType) { }
 
 		//	IComplexDatum
-		virtual IComplexDatum *Clone (void) const override { return new CAEONObject(m_TypeID, m_Map); }
+
+		virtual IComplexDatum *Clone (void) const override { return new CAEONObject(m_dType, m_Map); }
 		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeObject; }
-		virtual CDatumTypeID GetTypeID () const override { return m_TypeID; }
+		virtual CDatum GetDatatype () const override { return m_dType; }
 
 	private:
-		CDatumTypeID m_TypeID;
+		CDatum m_dType;
 	};
 
 #if 0

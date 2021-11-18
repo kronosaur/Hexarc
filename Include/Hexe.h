@@ -158,7 +158,6 @@ class CHexeError : public TExternalDatum<CHexeError>
 //	There is a method for compiling a HexeDoc into another HexeDoc.
 
 #include "HexeProcessImpl.h"
-#include "HexeTypes.h"
 
 class CHexeSecurityCtx
 	{
@@ -268,7 +267,7 @@ class CHexeProcess : public IInvokeCtx
 		void DeleteAll (void);
 		void DeleteLibraryCtx (const CString &sLibrary) { m_LibraryCtx.DeleteAt(sLibrary); }
 		bool FindGlobalDef (const CString &sIdentifier, CDatum *retdValue = NULL);
-		const IHexeType *FindType (DWORD dwTypeIDIndex) const { if (m_pTypes) return m_pTypes->FindType(dwTypeIDIndex); else return NULL; }
+		CDatum FindType (const CString &sFullyQualifiedName) const { if (m_pTypes) return m_pTypes->FindType(sFullyQualifiedName); else return CAEONTypeSystem::GetCoreType(IDatatype::ANY); }
 		DWORDLONG GetComputes () const { return m_dwComputes; }
 		CDatum GetGlobalEnv (void) { return m_dGlobalEnv; }
 		DWORDLONG GetLibraryTime () const { return m_dwLibraryTime; }
@@ -292,7 +291,7 @@ class CHexeProcess : public IInvokeCtx
 		void SetMaxExecutionTime (DWORDLONG dwMilliseconds) { m_dwMaxExecutionTime = dwMilliseconds; }
 		void SetOptionAddConcatenatesStrings (bool bValue = true) { m_bAddConcatenatesStrings = bValue; }
 		void SetSecurityCtx (const CHexeSecurityCtx &Ctx);
-		void SetTypeSystem (const CHexeTypeSystem &Types) { m_pTypes = &Types; }
+		void SetTypeSystem (const CAEONTypeSystem &Types) { m_pTypes = &Types; }
 
 		//	Execution helpers
 		static int ExecuteCompare (CDatum dValue1, CDatum dValue2);
@@ -345,7 +344,7 @@ class CHexeProcess : public IInvokeCtx
 
 		//	Execution State
 
-		const CHexeTypeSystem *m_pTypes = NULL;		//	Static types
+		const CAEONTypeSystem *m_pTypes = NULL;		//	Static types
 		CDatum m_dExpression;						//	Current expression being executed
 		CHexeStack m_Stack;							//	Stack
 		DWORD *m_pIP = NULL;						//	Current instruction pointer

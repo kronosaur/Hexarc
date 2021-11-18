@@ -19,6 +19,7 @@ DECLARE_CONST_STRING(TYPENAME_INT_IP,					"IntIP");
 DECLARE_CONST_STRING(TYPENAME_INTEGER,					"Integer");
 DECLARE_CONST_STRING(TYPENAME_NULL,						"Null");
 DECLARE_CONST_STRING(TYPENAME_NUMBER,					"Number");
+DECLARE_CONST_STRING(TYPENAME_OBJECT,					"Object");
 DECLARE_CONST_STRING(TYPENAME_REAL,						"Real");
 DECLARE_CONST_STRING(TYPENAME_SIGNED,					"Signed");
 DECLARE_CONST_STRING(TYPENAME_STRING,					"String");
@@ -47,6 +48,59 @@ void CAEONTypeSystem::AddCoreType (IDatatype *pNewDatatype)
 		}
 
 	m_CoreTypes[dwType] = dType;
+	}
+
+bool CAEONTypeSystem::AddType (CDatum dType)
+
+//	AddType
+//
+//	Adds a type and returns FALSE if we failed.
+
+	{
+	if (dType.GetBasicType() != CDatum::typeDatatype)
+		return false;
+
+	const IDatatype &Datatype = dType;
+	m_Types.SetAt(Datatype.GetFullyQualifiedName(), dType);
+	return true;
+	}
+
+CDatum CAEONTypeSystem::CreateDatatypeClass (const CString &sFullyQualifiedName, const CDatatypeList &Implements, IDatatype **retpNewType)
+
+//	CreateDatatypeClass
+//
+//	Creates a new datatype.
+
+	{
+	IDatatype *pNewType = new CDatatypeClass({ sFullyQualifiedName, Implements });
+	CDatum dNewType(new CComplexDatatype(pNewType));
+
+	if (retpNewType)
+		*retpNewType = pNewType;
+
+	return dNewType;
+	}
+
+CDatum CAEONTypeSystem::FindType (const CString &sFullyQualifiedName, const IDatatype **retpDatatype) const
+
+//	FindType
+//
+//	Looks for the datatype by name. Returns NULL if not found.
+
+	{
+	auto pEntry = m_Types.GetAt(sFullyQualifiedName);
+	if (!pEntry)
+		{
+		if (retpDatatype)
+			*retpDatatype = NULL;
+
+		return CDatum();
+		}
+
+	if (retpDatatype)
+		*retpDatatype = &(const IDatatype &)(*pEntry);
+
+	return *pEntry;
 	}
 
 CDatum CAEONTypeSystem::GetCoreType (DWORD dwType)
@@ -273,7 +327,16 @@ void CAEONTypeSystem::InitCoreTypes ()
 			MakeFullyQualifiedName(NULL_STR, TYPENAME_FUNCTION), 
 			IDatatype::FUNCTION,
 			{  },
-			false
+			true
+			})
+		);
+
+	AddCoreType(new CDatatypeSimple(
+		{
+			MakeFullyQualifiedName(NULL_STR, TYPENAME_OBJECT), 
+			IDatatype::OBJECT,
+			{  },
+			true
 			})
 		);
 
@@ -298,6 +361,17 @@ CString CAEONTypeSystem::MakeFullyQualifiedName (const CString &sFullyQualifiedS
 	return strPattern("%s$%s", sFullyQualifiedScope, sName);
 	}
 
+void CAEONTypeSystem::Mark ()
+
+//	Mark
+//
+//	Mark types in use.
+
+	{
+	for (int i = 0; i < m_Types.GetCount(); i++)
+		m_Types[i].Mark();
+	}
+
 void CAEONTypeSystem::MarkCoreTypes ()
 
 //	MarkCoreTypes
@@ -309,3 +383,24 @@ void CAEONTypeSystem::MarkCoreTypes ()
 		m_CoreTypes[i].Mark();
 	}
 
+CString CAEONTypeSystem::ParseNameFromFullyQualifiedName (const CString &sValue)
+
+//	ParseNameFromFullyQualifiedName
+//
+//	A fully-qualified name has the form [$SCOPE]$NAME. In some cases $SCOPE is null
+//	(because its a global scope). Also, sometimes SCOPE is itself a fully-
+//	qualified name.
+
+	{
+	//	Find the last '$' sign.
+
+	const char *pPos = sValue.GetParsePointer();
+	const char *pEnd = pPos + sValue.GetLength();
+	while (pEnd > pPos && *pEnd != '$')
+		pEnd--;
+
+	if (*pEnd == '$')
+		return CString(pEnd + 1);
+	else
+		return NULL_STR;
+	}

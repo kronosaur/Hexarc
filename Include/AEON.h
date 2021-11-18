@@ -25,7 +25,6 @@ class IComplexDatum;
 class IComplexFactory;
 class IDatatype;
 class IInvokeCtx;
-class CDatumTypeID;
 
 //	Data encoding constants
 
@@ -170,7 +169,7 @@ class CDatum
 		static bool CreateFromStringValue (const CString &sValue, CDatum *retdDatum);
 		static bool CreateIPInteger (const CIPInteger &Value, CDatum *retdDatum);
 		static bool CreateIPIntegerFromHandoff (CIPInteger &Value, CDatum *retdDatum);
-		static CDatum CreateObject (DWORD dwTypeIDIndex = 0);
+		static CDatum CreateObject (CDatum dType);
 		static bool CreateStringFromHandoff (CString &sString, CDatum *retDatum);
 		static bool CreateStringFromHandoff (CStringBuffer &String, CDatum *retDatum);
 		static bool Deserialize (EFormat iFormat, IByteStream &Stream, IAEONParseExtension *pExtension, CDatum *retDatum);
@@ -209,9 +208,7 @@ class CDatum
 		CDatum GetElement (int iIndex) const;
 		CDatum GetElement (IInvokeCtx *pCtx, const CString &sKey) const;
 		CDatum GetElement (const CString &sKey) const;
-		CDatumTypeID GetElementTypeID () const;
 		CString GetKey (int iIndex) const;
-		CDatumTypeID GetTypeID () const;
 		const CString &GetTypename (void) const;
 		void GrowToFit (int iCount);
 		bool IsMemoryBlock (void) const;
@@ -274,29 +271,6 @@ class CDatum
 
 inline int KeyCompare (const CDatum &dKey1, const CDatum &dKey2) { return CDatum::Compare(dKey1, dKey2); }
 
-//	Static Types ---------------------------------------------------------------
-//
-//	This type ID is used with Hexe/GridLang to implement static types. When a
-//	program defines a class in GridLang, we generate a type and store it in the
-//	CHexeProcess structures.
-//
-//	For example, when we create an object instance of a certain class, we create
-//	a datum of typeObject and set the typeID to have an index to the class 
-//	definition in CHexeProcess.
-
-class CDatumTypeID
-	{
-	public:
-		CDatumTypeID (CDatum::Types iType = CDatum::typeUnknown, DWORD dwTypeIndex = 0) : m_iConcreteType(iType), m_dwTypeIndex(dwTypeIndex) { }
-
-		CDatum::Types GetConcreteType () const { return m_iConcreteType; }
-		DWORD GetTypeIndex () const { return m_dwTypeIndex; }
-
-	private:
-		CDatum::Types m_iConcreteType = CDatum::typeUnknown;
-		DWORD m_dwTypeIndex = 0;
-	};
-
 //	Type System ----------------------------------------------------------------
 
 class IDatatype
@@ -328,7 +302,8 @@ class IDatatype
 		static constexpr DWORD DATE_TIME =			19;	//	A dateTime
 		static constexpr DWORD BINARY =				20;	//	A binary blob
 		static constexpr DWORD FUNCTION =			21;	//	A function
-		static constexpr DWORD DATATYPE =			22;	//	A datatype object
+		static constexpr DWORD OBJECT =				22;	//	An object class
+		static constexpr DWORD DATATYPE =			23;	//	A datatype object
 
 		enum class ECategory
 			{
@@ -341,15 +316,27 @@ class IDatatype
 			Function,						//	A function type
 			};
 
+		enum class EMemberType
+			{
+			None,
+
+			InstanceMethod,
+			InstanceVar,
+			StaticMethod,
+			StaticVar,
+			};
+
 		IDatatype (const CString &sFullyQualifiedName) :
 				m_sFullyQualifiedName(sFullyQualifiedName)
 			{ }
 
 		virtual ~IDatatype () { }
 
+		bool AddMember (const CString &sName, EMemberType iType, CDatum dType, CString *retsError = NULL) { return OnAddMember(sName, iType, dType, retsError); }
 		ECategory GetClass () const { return OnGetClass(); }
 		DWORD GetCoreType () const { return OnGetCoreType(); }
 		const CString &GetFullyQualifiedName () const { return m_sFullyQualifiedName; }
+		EMemberType HasMember (const CString &sName) const { return OnHasMember(sName); }
 		bool IsA (const IDatatype &Type) const { return OnIsA(Type); }
 		bool IsAbstract () const { return OnIsAbstract(); }
 		bool IsAny () const { return OnIsAny(); }
@@ -359,6 +346,8 @@ class IDatatype
 
 		//	IDatatype virtuals
 
+		virtual bool OnAddMember (const CString &sName, EMemberType iType, CDatum dType, CString *retsError = NULL) { throw CException(errFail); }
+		virtual EMemberType OnHasMember (const CString &sName) const { return EMemberType::None; }
 		virtual ECategory OnGetClass () const = 0;
 		virtual DWORD OnGetCoreType () const { return UNKNOWN; }
 		virtual bool OnIsA (const IDatatype &Type) const { return (&Type == this) || Type.IsAny(); }
@@ -375,7 +364,7 @@ class CDatatypeList
 		CDatatypeList (const std::initializer_list<CDatum> &List = {});
 
 		void AddType (CDatum dType) { m_Types.Insert(dType); }
-		bool IsA (CDatum dType) const;
+		bool IsA (const IDatatype &Type) const;
 		void Mark ();
 
 	private:
@@ -385,13 +374,21 @@ class CDatatypeList
 class CAEONTypeSystem
 	{
 	public:
+		bool AddType (CDatum dType);
+		static CDatum CreateDatatypeClass (const CString &sFullyQualifiedName, const CDatatypeList &Implements, IDatatype **retpNewType = NULL);
+		CDatum FindType (const CString &sFullyQualifiedName, const IDatatype **retpDatatype = NULL) const;
 		static CDatum GetCoreType (DWORD dwType);
+		static const TArray<CDatum> &GetCoreTypes () { if (m_CoreTypes.GetCount() == 0) InitCoreTypes(); return m_CoreTypes; }
 		static CString MakeFullyQualifiedName (const CString &sFullyQualifiedScope, const CString &sName);
+		void Mark ();
 		static void MarkCoreTypes ();
+		static CString ParseNameFromFullyQualifiedName (const CString &sValue);
 
 	private:
 		static void AddCoreType (IDatatype *pNewDatatype);
 		static void InitCoreTypes ();
+
+		TSortMap<CString, CDatum> m_Types;
 
 		static TArray<CDatum> m_CoreTypes;
 	};
@@ -434,10 +431,8 @@ class IComplexDatum
 		virtual CDatum GetElement (int iIndex) const = 0;
 		virtual CDatum GetElement (IInvokeCtx *pCtx, const CString &sKey) const { return GetElement(sKey); }
 		virtual CDatum GetElement (const CString &sKey) const { return CDatum(); }
-		virtual CDatumTypeID GetElementTypeID () const { return CDatumTypeID(CDatum::typeUnknown); }
 		virtual CString GetKey (int iIndex) const { return NULL_STR; }
 		virtual CDatum::Types GetNumberType (int *retiValue) { return CDatum::typeUnknown; }
-		virtual CDatumTypeID GetTypeID () const { return CDatumTypeID(GetBasicType()); }
 		virtual const CString &GetTypename (void) const = 0;
 		virtual void GrowToFit (int iCount) { }
 		virtual CDatum::InvokeResult Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, DWORD dwExecutionRights, CDatum *retdResult) { *retdResult = CDatum(); return CDatum::InvokeResult::ok; }

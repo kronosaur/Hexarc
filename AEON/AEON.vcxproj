@@ -193,6 +193,7 @@
     <ClCompile Include="CComplexDatatype.cpp" />
     <ClCompile Include="CComplexImage32.cpp" />
     <ClCompile Include="CComplexInteger.cpp" />
+    <ClCompile Include="CDatatypeClass.cpp" />
     <ClCompile Include="CDatatypeList.cpp" />
     <ClCompile Include="CDatum.cpp" />
     <ClCompile Include="HTTP.cpp" />

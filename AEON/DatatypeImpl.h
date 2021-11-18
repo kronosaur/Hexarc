@@ -28,12 +28,12 @@ class CDatatypeSimple : public IDatatype
 
 		//	IDatatype virtuals
 
-		virtual ECategory OnGetClass () const { return IDatatype::ECategory::Simple; }
-		virtual DWORD OnGetCoreType () const { return m_dwCoreType; }
-		virtual bool OnIsA (CDatum dType) const { return dType.GetBasicType() == CDatum::typeDatatype && ((&(const IDatatype &)dType == this) || ((const IDatatype &)dType).IsAny() || m_Implements.IsA(dType)); }
-		virtual bool OnIsAbstract () const { return false; }
-		virtual bool OnIsAny () const { return false; }
-		virtual void OnMark () { m_Implements.Mark(); }
+		virtual ECategory OnGetClass () const override { return IDatatype::ECategory::Simple; }
+		virtual DWORD OnGetCoreType () const override { return m_dwCoreType; }
+		virtual bool OnIsA (const IDatatype &Type) const override { return (&Type == this || Type.IsAny() || m_Implements.IsA(Type)); }
+		virtual bool OnIsAbstract () const override { return false; }
+		virtual bool OnIsAny () const override { return false; }
+		virtual void OnMark () override { m_Implements.Mark(); }
 
 		DWORD m_dwCoreType = 0;
 		CDatatypeList m_Implements;
@@ -65,10 +65,10 @@ class CDatatypeNumber : public IDatatype
 
 		//	IDatatype virtuals
 
-		virtual ECategory OnGetClass () const { return IDatatype::ECategory::Number; }
-		virtual DWORD OnGetCoreType () const { return m_dwCoreType; }
-		virtual bool OnIsA (CDatum dType) const { return dType.GetBasicType() == CDatum::typeDatatype && ((&(const IDatatype &)dType == this) || ((const IDatatype &)dType).IsAny() || m_Implements.IsA(dType)); }
-		virtual void OnMark () { m_Implements.Mark(); }
+		virtual ECategory OnGetClass () const override { return IDatatype::ECategory::Number; }
+		virtual DWORD OnGetCoreType () const override { return m_dwCoreType; }
+		virtual bool OnIsA (const IDatatype &Type) const override { return (&Type == this || Type.IsAny() || m_Implements.IsA(Type)); }
+		virtual void OnMark () override { m_Implements.Mark(); }
 
 		DWORD m_dwCoreType = 0;
 		CDatatypeList m_Implements;
@@ -96,17 +96,47 @@ class CDatatypeArray : public IDatatype
 
 		//	IDatatype virtuals
 
-		virtual ECategory OnGetClass () const { return IDatatype::ECategory::Array; }
-		virtual DWORD OnGetCoreType () const { return m_dwCoreType; }
-		virtual bool OnIsA (CDatum dType) const { return (dType.GetBasicType() == CDatum::typeDatatype) && ((&(const IDatatype &)dType == this) || ((const IDatatype &)dType).IsAny() || ((const IDatatype &)m_dElementType).IsA(dType)) ; }
-		virtual void OnMark () { m_dElementType.Mark(); }
+		virtual ECategory OnGetClass () const override { return IDatatype::ECategory::Array; }
+		virtual DWORD OnGetCoreType () const override { return m_dwCoreType; }
+		virtual bool OnIsA (const IDatatype &Type) const override { return (&Type == this || Type.IsAny() || ((const IDatatype &)m_dElementType).IsA(Type)); }
+		virtual void OnMark () override { m_dElementType.Mark(); }
 
 		DWORD m_dwCoreType = 0;
 		CDatum m_dElementType;
 	};
 
-class CDatatypeStruct : public IDatatype
+class CDatatypeClass : public IDatatype
 	{
+	public:
+		struct SCreate
+			{
+			CString sFullyQualifiedName;
+			CDatatypeList Implements;
+			};
+
+		CDatatypeClass (const SCreate &Create) : IDatatype(Create.sFullyQualifiedName),
+				m_Implements(Create.Implements)
+			{ }
+
+	private:
+
+		struct SMember
+			{
+			CString sName;
+			EMemberType iType = EMemberType::None;
+			CDatum dType;
+			};
+
+		//	IDatatype virtuals
+
+		virtual bool OnAddMember (const CString &sName, EMemberType iType, CDatum dType, CString *retsError = NULL) override;
+		virtual ECategory OnGetClass () const override { return IDatatype::ECategory::Class; }
+		virtual EMemberType OnHasMember (const CString &sName) const override;
+		virtual bool OnIsA (const IDatatype &Type) const override { return (&Type == this || Type.IsAny() || m_Implements.IsA(Type)); }
+		virtual void OnMark () override;
+
+		TSortMap<CString, SMember> m_Members;
+		CDatatypeList m_Implements;
 	};
 
 class CDatatypeFunction : public IDatatype

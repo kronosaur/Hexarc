@@ -99,9 +99,6 @@
     <ClCompile Include="CHexeConsole.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CHexeTypeSystem.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Include\Hexe.h">
@@ -126,9 +123,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Include\HexeVM.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Include\HexeTypes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="TypeImpl.h">
