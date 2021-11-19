@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include "TAEONVector.h"
+
 class CAEONObject : public CComplexStruct
 	{
 	public:
@@ -24,23 +26,41 @@ class CAEONObject : public CComplexStruct
 		CDatum m_dType;
 	};
 
-#if 0
-//	LATER: Turn into a template
-
-class CAEONVector : public CComplexArray
+class CAEONVectorInt32 : public TAEONVector<int, CAEONVectorInt32>
 	{
 	public:
-		CAEONVector () { }
-		CAEONVector (CDatumTypeID TypeID) : m_TypeID(TypeID) { }
-		CAEONVector (CDatumTypeID TypeID, CDatum dSrc) : CComplexArray(dSrc), m_TypeID(TypeID) { }
-		CAEONVector (CDatumTypeID TypeID, const TArray<CString> &Src) : CComplexArray(Src), m_TypeID(TypeID) { }
-		CAEONVector (CDatumTypeID TypeID, const TArray<CDatum> &Src) : CComplexArray(Src), m_TypeID(TypeID) { }
+		CAEONVectorInt32 () { }
+		CAEONVectorInt32 (const TArray<int> &Src) : TAEONVector<int, CAEONVectorInt32>(Src) { }
+		CAEONVectorInt32 (const TArray<CDatum> &Src) : TAEONVector<int, CAEONVectorInt32>(Src) { }
 
-		//	IComplexDatum
-		virtual IComplexDatum *Clone (void) const override { return new CAEONVector(m_TypeID, m_Array); }
-		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeVector; }
-
-	private:
-		CDatumTypeID m_TypeID;				//	Type of array elements
+		virtual IComplexDatum *Clone (void) const override { return new CAEONVectorInt32(m_Array); }
+		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY_INT_32); }
+		virtual const CString &GetTypename (void) const override;
 	};
-#endif
+
+class CAEONVectorFloat64 : public TAEONVector<double, CAEONVectorFloat64>
+	{
+	public:
+		CAEONVectorFloat64 () { }
+		CAEONVectorFloat64 (const TArray<double> &Src) : TAEONVector<double, CAEONVectorFloat64>(Src) { }
+		CAEONVectorFloat64 (const TArray<CDatum> &Src) : TAEONVector<double, CAEONVectorFloat64>(Src) { }
+
+		virtual IComplexDatum *Clone (void) const override { return new CAEONVectorFloat64(m_Array); }
+		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY_FLOAT_64); }
+		virtual const CString &GetTypename (void) const override;
+	};
+
+class CAEONVectorString : public TAEONVector<CString, CAEONVectorString>
+	{
+	public:
+		CAEONVectorString () { }
+		CAEONVectorString (const TArray<CString> &Src) : TAEONVector<CString, CAEONVectorString>(Src) { }
+		CAEONVectorString (const TArray<CDatum> &Src) : TAEONVector<CString, CAEONVectorString>(Src) { }
+
+		static CString FromDatum (CDatum dValue) { return dValue.AsString(); }
+		static CDatum ToDatum (CString Value) { return CDatum(Value); }
+
+		virtual IComplexDatum *Clone (void) const override { return new CAEONVectorString(m_Array); }
+		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY_STRING); }
+		virtual const CString &GetTypename (void) const override;
+	};

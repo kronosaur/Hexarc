@@ -48,7 +48,7 @@
     <ClCompile Include="stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CAEONVector.cpp">
+    <ClCompile Include="CAEONVector2D.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CAEONPolygon2D.cpp">
@@ -75,6 +75,9 @@
     <ClCompile Include="CDatatypeSchema.cpp">
       <Filter>Source Files\Type System</Filter>
     </ClCompile>
+    <ClCompile Include="CAEONVector.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Include\AEON.h">
@@ -96,6 +99,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Include\AEONUtil.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TAEONVector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

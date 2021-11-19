@@ -2557,3 +2557,29 @@ void CDatum::Sort (ESortOptions Order, TArray<CDatum>::COMPAREPROC pfCompare, vo
 		}
 	}
 
+CDatum CDatum::VectorOf (Types iType)
+
+//	VectorOf
+//
+//	Creates a vector of the given type.
+
+	{
+	switch (iType)
+		{
+		case typeUnknown:
+			return CDatum(CDatum::typeArray);
+
+		case typeDouble:
+			return CDatum(new CAEONVectorFloat64());
+
+		case typeInteger32:
+			return CDatum(new CAEONVectorInt32());
+
+		case typeString:
+			return CDatum(new CAEONVectorString());
+
+		default:
+			//	Not supported
+			throw CException(errFail);
+		}
+	}

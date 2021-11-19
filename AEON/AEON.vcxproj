@@ -188,6 +188,7 @@
     <ClCompile Include="CAEONPolygon2D.cpp" />
     <ClCompile Include="CAEONTypeSystem.cpp" />
     <ClCompile Include="CAEONVector.cpp" />
+    <ClCompile Include="CAEONVector2D.cpp" />
     <ClCompile Include="CComplexBinary.cpp" />
     <ClCompile Include="CComplexBinaryFile.cpp" />
     <ClCompile Include="CComplexDatatype.cpp" />
@@ -218,6 +219,7 @@
     <ClInclude Include="AEONImpl.h" />
     <ClInclude Include="DatatypeImpl.h" />
     <ClInclude Include="stdafx.h" />
+    <ClInclude Include="TAEONVector.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Notes.txt" />

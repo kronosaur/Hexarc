@@ -7,6 +7,12 @@
 
 DECLARE_CONST_STRING(TYPENAME_ANY,						"Any");
 DECLARE_CONST_STRING(TYPENAME_ARRAY,					"Array");
+DECLARE_CONST_STRING(TYPENAME_ARRAY_DATE_TIME,			"Array@DateTime");
+DECLARE_CONST_STRING(TYPENAME_ARRAY_FLOAT_64,			"Array@Float64");
+DECLARE_CONST_STRING(TYPENAME_ARRAY_INT_32,				"Array@Int32");
+DECLARE_CONST_STRING(TYPENAME_ARRAY_INT_64,				"Array@Int64");
+DECLARE_CONST_STRING(TYPENAME_ARRAY_INT_IP,				"Array@IntIP");
+DECLARE_CONST_STRING(TYPENAME_ARRAY_STRING,				"Array@String");
 DECLARE_CONST_STRING(TYPENAME_BINARY,					"Binary");
 DECLARE_CONST_STRING(TYPENAME_BOOL,						"Bool");
 DECLARE_CONST_STRING(TYPENAME_DATATYPE,					"Datatype");
@@ -372,6 +378,54 @@ void CAEONTypeSystem::InitCoreTypes ()
 			IDatatype::TABLE,
 			{  },
 			true
+			})
+		);
+
+	AddCoreType(new CDatatypeArray(
+		{
+			MakeFullyQualifiedName(NULL_STR, TYPENAME_ARRAY_INT_32), 
+			IDatatype::ARRAY_INT_32,
+			GetCoreType(IDatatype::INT_32)
+			})
+		);
+
+	AddCoreType(new CDatatypeArray(
+		{
+			MakeFullyQualifiedName(NULL_STR, TYPENAME_ARRAY_FLOAT_64), 
+			IDatatype::ARRAY_FLOAT_64,
+			GetCoreType(IDatatype::FLOAT_64)
+			})
+		);
+
+	AddCoreType(new CDatatypeArray(
+		{
+			MakeFullyQualifiedName(NULL_STR, TYPENAME_ARRAY_STRING), 
+			IDatatype::ARRAY_STRING,
+			GetCoreType(IDatatype::STRING)
+			})
+		);
+
+	AddCoreType(new CDatatypeArray(
+		{
+			MakeFullyQualifiedName(NULL_STR, TYPENAME_ARRAY_DATE_TIME), 
+			IDatatype::ARRAY_DATE_TIME,
+			GetCoreType(IDatatype::DATE_TIME)
+			})
+		);
+
+	AddCoreType(new CDatatypeArray(
+		{
+			MakeFullyQualifiedName(NULL_STR, TYPENAME_ARRAY_INT_64), 
+			IDatatype::ARRAY_INT_64,
+			GetCoreType(IDatatype::INT_64)
+			})
+		);
+
+	AddCoreType(new CDatatypeArray(
+		{
+			MakeFullyQualifiedName(NULL_STR, TYPENAME_ARRAY_INT_IP), 
+			IDatatype::ARRAY_INT_IP,
+			GetCoreType(IDatatype::INT_IP)
 			})
 		);
 	}

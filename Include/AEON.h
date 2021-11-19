@@ -108,9 +108,8 @@ class CDatum
 			typeVoid =			12,
 			typeImage32 =		13,
 			typeObject =		14,			//	A typed struct
-			typeVector =		15,			//	A typed array
-			typeTable =			16,			//	A table (each column is a typed array)
-			typeDatatype =		17,			//	A datatype (IDatatype)
+			typeTable =			15,			//	A table (each column is a typed array)
+			typeDatatype =		16,			//	A datatype (IDatatype)
 
 			typeCustom =		100,
 			};
@@ -175,6 +174,7 @@ class CDatum
 		static bool Deserialize (EFormat iFormat, IByteStream &Stream, IAEONParseExtension *pExtension, CDatum *retDatum);
 		static bool Deserialize (EFormat iFormat, IByteStream &Stream, CDatum *retDatum) { return Deserialize(iFormat, Stream, NULL, retDatum); }
 		static Types GetStringValueType (const CString &sValue);
+		static CDatum VectorOf (Types iType);
 
 		operator int () const;
 		operator DWORD () const;
@@ -305,6 +305,13 @@ class IDatatype
 		static constexpr DWORD FUNCTION =			22;	//	A function
 		static constexpr DWORD OBJECT =				23;	//	An object (datatype is a class definition)
 		static constexpr DWORD TABLE =				24;	//	A table (datatype is a schema)
+
+		static constexpr DWORD ARRAY_INT_32 =		25;
+		static constexpr DWORD ARRAY_FLOAT_64 =		26;
+		static constexpr DWORD ARRAY_STRING =		27;
+		static constexpr DWORD ARRAY_DATE_TIME =	28;
+		static constexpr DWORD ARRAY_INT_64 =		29;
+		static constexpr DWORD ARRAY_INT_IP =		30;
 
 		enum class ECategory
 			{
