@@ -333,6 +333,7 @@ class CHexeProcess : public IInvokeCtx
 		ERun ExecuteHandleInvokeResult (CDatum::InvokeResult iInvokeResult, CDatum dExpression, CDatum dInvokeResult, CDatum *retResult);
 		static bool ExecuteMakeFlagsFromArray (CDatum dOptions, CDatum dMap, CDatum *retdResult);
 		static bool ExecuteSetAt (CDatum dOriginal, CDatum dKey, CDatum dValue, CDatum *retdResult);
+		void ExecuteTableMemberItem (CDatum dTable, const CString &sField);
 
 		//	Options
 

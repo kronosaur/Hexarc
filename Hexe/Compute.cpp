@@ -1361,6 +1361,10 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 							ExecuteArrayMemberItem(dObject, sField);
 							break;
 
+						case CDatum::typeTable:
+							ExecuteTableMemberItem(dObject, sField);
+							break;
+
 						default:
 							m_Stack.Push(dObject.GetElement(sField));
 							break;
@@ -2092,3 +2096,17 @@ bool CHexeProcess::ExecuteSetAt (CDatum dOriginal, CDatum dKey, CDatum dValue, C
 		}
 	}
 
+void CHexeProcess::ExecuteTableMemberItem (CDatum dTable, const CString &sField)
+
+//	ExecuteTableMemberItem
+//
+//	Push array properties.
+
+	{
+	if (strEqualsNoCase(sField, FIELD_LENGTH))
+		{
+		m_Stack.Push(dTable.GetCount());
+		}
+	else
+		m_Stack.Push(CDatum());
+	}
