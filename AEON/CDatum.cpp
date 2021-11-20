@@ -901,6 +901,79 @@ CDatum CDatum::Clone (void) const
 		}
 	}
 
+CDatum CDatum::CreateArrayAsType (CDatum dType, CDatum dValue)
+
+//	CreateArrayAsType
+//
+//	Creates an array of the given type.
+
+	{
+	const IDatatype &Type = dType;
+	if (Type.GetClass() != IDatatype::ECategory::Array
+			|| Type.GetMemberCount() < 1
+			|| Type.GetMember(0).iType != IDatatype::EMemberType::ArrayElement)
+		return CDatum();
+
+	CDatum dArray;
+	switch (Type.GetCoreType())
+		{
+		case IDatatype::INT_32:
+			dArray = CDatum::VectorOf(CDatum::typeInteger32);
+			break;
+
+		case IDatatype::FLOAT_64:
+			dArray = CDatum::VectorOf(CDatum::typeDouble);
+			break;
+
+		case IDatatype::STRING:
+			dArray = CDatum::VectorOf(CDatum::typeString);
+			break;
+
+		default:
+			//	For anything else, we create a generic array.
+
+			dArray = CDatum::VectorOf(CDatum::typeUnknown);
+			break;
+		}
+
+	//	Copy data
+
+	if (!dValue.IsNil())
+		{
+		dArray.GrowToFit(dValue.GetCount());
+
+		for (int i = 0; i < dValue.GetCount(); i++)
+			dArray.Append(dValue.GetElement(i));
+		}
+
+	return dArray;
+	}
+
+CDatum CDatum::CreateAsType (CDatum dType, CDatum dValue)
+
+//	CreateAsType
+//
+//	Create a new datum of the given type.
+
+	{
+	const IDatatype &Type = dType;
+
+	switch (Type.GetClass())
+		{
+		case IDatatype::ECategory::Array:
+			return CreateArrayAsType(dType, dValue);
+
+		case IDatatype::ECategory::ClassDef:
+			return CreateObject(dType, dValue);
+
+		case IDatatype::ECategory::Schema:
+			return CreateTable(dType, dValue);
+
+		default:
+			return dValue;
+		}
+	}
+
 bool CDatum::CreateBinary (IByteStream &Stream, int iSize, CDatum *retDatum)
 
 //	CreateBinary
@@ -1099,14 +1172,24 @@ bool CDatum::CreateIPIntegerFromHandoff (CIPInteger &Value, CDatum *retdDatum)
 	return true;
 	}
 
-CDatum CDatum::CreateObject (CDatum dType)
+CDatum CDatum::CreateObject (CDatum dType, CDatum dValue)
 
 //	CreateObject
 //
 //	Creates an object of the given type.
 
 	{
-	return CDatum(new CAEONObject(dType));
+	CDatum dObj = CDatum(new CAEONObject(dType));
+
+	if (dValue.GetBasicType() == CDatum::typeStruct)
+		{
+		for (int i = 0; i < dValue.GetCount(); i++)
+			{
+			dObj.SetElement(dValue.GetKey(i), dValue.GetElement(i));
+			}
+		}
+
+	return dObj;
 	}
 
 bool CDatum::CreateStringFromHandoff (CString &sString, CDatum *retDatum)
@@ -1169,6 +1252,27 @@ bool CDatum::CreateStringFromHandoff (CStringBuffer &String, CDatum *retDatum)
 	//	Done
 
 	return true;
+	}
+
+CDatum CDatum::CreateTable (CDatum dType, CDatum dValue)
+
+//	CreateTable
+//
+//	Creates a table
+
+	{
+	const IDatatype &Schema = dType;
+	if (Schema.GetClass() != IDatatype::ECategory::Schema)
+		return CDatum();
+
+	CDatum dTable = CDatum(new CAEONTable(dType));
+	IAEONTable *pTable = dTable.GetTableInterface();
+	if (!pTable)
+		throw CException(errFail);
+
+	pTable->AppendTable(dValue);
+
+	return dTable;
 	}
 
 int CDatum::DefaultCompare (void *pCtx, const CDatum &dKey1, const CDatum &dKey2)
@@ -1644,6 +1748,23 @@ CDatum CDatum::GetDatatype () const
 
 		default:
 			throw CException(errFail);
+		}
+	}
+
+IAEONTable *CDatum::GetTableInterface ()
+
+//	GetTableInterface
+//
+//	Returns a table interface (or NULL).
+
+	{
+	switch (m_dwData & AEON_TYPE_MASK)
+		{
+		case AEON_TYPE_COMPLEX:
+			return raw_GetComplex()->GetTableInterface();
+
+		default:
+			return NULL;
 		}
 	}
 

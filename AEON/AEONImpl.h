@@ -64,3 +64,48 @@ class CAEONVectorString : public TAEONVector<CString, CAEONVectorString>
 		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY_STRING); }
 		virtual const CString &GetTypename (void) const override;
 	};
+
+class CAEONTable : public IComplexDatum, public IAEONTable
+	{
+	public:
+		CAEONTable (CDatum dSchema) { SetSchema(dSchema); }
+
+		//	IAEONTable
+
+		virtual EResult AppendColumn (CDatum dColumn) override;
+		virtual EResult AppendRow (CDatum dRow) override;
+		virtual EResult AppendTable (CDatum dTable) override;
+
+		//	IComplexDatum
+
+		virtual void Append (CDatum dDatum) override;
+		virtual CString AsString (void) const override;
+		virtual size_t CalcMemorySize (void) const override;
+		virtual IComplexDatum *Clone (void) const override { return new CAEONTable(*this); }
+		virtual bool Find (CDatum dValue, int *retiIndex = NULL) const override { throw CException(errFail); }
+		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeTable; }
+		virtual int GetCount (void) const override { return m_iRows; }
+		virtual CDatum GetDatatype () const override { return m_dSchema; }
+		virtual CDatum GetElement (int iIndex) const override;
+		virtual IAEONTable *GetTableInterface () { return this; }
+		virtual const CString &GetTypename (void) const override;
+		virtual void GrowToFit (int iCount) override;
+		virtual bool IsArray (void) const override { return true; }
+		virtual bool IsNil (void) const override { return (GetCount() == 0); }
+		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
+		virtual void Sort (ESortOptions Order = AscendingSort, TArray<CDatum>::COMPAREPROC pfCompare = NULL, void *pCtx = NULL) override { throw CException(errFail); }
+		virtual void SetElement (int iIndex, CDatum dDatum) override;
+
+	protected:
+
+		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const override;
+		virtual void OnMarked (void) override;
+
+	private:
+
+		void SetSchema (CDatum dSchema);
+
+		int m_iRows = 0;
+		TArray<CDatum> m_Cols;
+		CDatum m_dSchema;
+	};

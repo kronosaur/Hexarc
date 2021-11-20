@@ -300,6 +300,17 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				break;
 				}
 
+			case opMakeAsType:
+				{
+				CString sFullyQualifiedName = m_Stack.Pop();
+				CDatum dType = FindType(sFullyQualifiedName);
+				CDatum dValue = m_Stack.Pop();
+				CDatum dNewValue = CDatum::CreateAsType(dType, dValue);
+				m_Stack.Push(dNewValue);
+				m_pIP++;
+				break;
+				}
+
 			case opNot:
 				if (m_Stack.Pop().IsNil())
 					m_Stack.Push(true);

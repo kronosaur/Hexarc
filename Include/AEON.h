@@ -21,6 +21,7 @@
 class CComplexStruct;
 class CNumberValue;
 class IAEONParseExtension;
+class IAEONTable;
 class IComplexDatum;
 class IComplexFactory;
 class IDatatype;
@@ -161,6 +162,8 @@ class CDatum
 		explicit CDatum (Types iType);
 		explicit CDatum (bool bValue) : m_dwData(bValue ? CONST_TRUE : 0) { }
 
+		static CDatum CreateArrayAsType (CDatum dType, CDatum dValue = CDatum());
+		static CDatum CreateAsType (CDatum dType, CDatum dValue = CDatum());
 		static bool CreateBinary (IByteStream &Stream, int iSize, CDatum *retDatum);
 		static bool CreateBinaryFromHandoff (CStringBuffer &Buffer, CDatum *retDatum);
 		static bool CreateFromAttributeList (const CAttributeList &Attribs, CDatum *retdDatum);
@@ -168,9 +171,10 @@ class CDatum
 		static bool CreateFromStringValue (const CString &sValue, CDatum *retdDatum);
 		static bool CreateIPInteger (const CIPInteger &Value, CDatum *retdDatum);
 		static bool CreateIPIntegerFromHandoff (CIPInteger &Value, CDatum *retdDatum);
-		static CDatum CreateObject (CDatum dType);
+		static CDatum CreateObject (CDatum dType, CDatum dValue = CDatum());
 		static bool CreateStringFromHandoff (CString &sString, CDatum *retDatum);
 		static bool CreateStringFromHandoff (CStringBuffer &String, CDatum *retDatum);
+		static CDatum CreateTable (CDatum dType, CDatum dValue = CDatum());
 		static bool Deserialize (EFormat iFormat, IByteStream &Stream, IAEONParseExtension *pExtension, CDatum *retDatum);
 		static bool Deserialize (EFormat iFormat, IByteStream &Stream, CDatum *retDatum) { return Deserialize(iFormat, Stream, NULL, retDatum); }
 		static Types GetStringValueType (const CString &sValue);
@@ -209,6 +213,7 @@ class CDatum
 		CDatum GetElement (IInvokeCtx *pCtx, const CString &sKey) const;
 		CDatum GetElement (const CString &sKey) const;
 		CString GetKey (int iIndex) const;
+		IAEONTable *GetTableInterface ();
 		const CString &GetTypename (void) const;
 		void GrowToFit (int iCount);
 		bool IsMemoryBlock (void) const;
@@ -329,10 +334,18 @@ class IDatatype
 			{
 			None,
 
+			ArrayElement,
 			InstanceMethod,
 			InstanceVar,
 			StaticMethod,
 			StaticVar,
+			};
+
+		struct SMemberDesc
+			{
+			EMemberType iType = EMemberType::None;
+			CString sName;
+			CDatum dType;
 			};
 
 		IDatatype (const CString &sFullyQualifiedName) :
@@ -345,6 +358,8 @@ class IDatatype
 		ECategory GetClass () const { return OnGetClass(); }
 		DWORD GetCoreType () const { return OnGetCoreType(); }
 		const CString &GetFullyQualifiedName () const { return m_sFullyQualifiedName; }
+		SMemberDesc GetMember (int iIndex) const { return OnGetMember(iIndex); }
+		int GetMemberCount () const { return OnGetMemberCount(); }
 		EMemberType HasMember (const CString &sName) const { return OnHasMember(sName); }
 		bool IsA (const IDatatype &Type) const { return OnIsA(Type); }
 		bool IsAbstract () const { return OnIsAbstract(); }
@@ -359,6 +374,8 @@ class IDatatype
 		virtual EMemberType OnHasMember (const CString &sName) const { return EMemberType::None; }
 		virtual ECategory OnGetClass () const = 0;
 		virtual DWORD OnGetCoreType () const { return UNKNOWN; }
+		virtual SMemberDesc OnGetMember (int iIndex) const { throw CException(errFail); }
+		virtual int OnGetMemberCount () const { return 0; }
 		virtual bool OnIsA (const IDatatype &Type) const { return (&Type == this) || Type.IsAny(); }
 		virtual bool OnIsAbstract () const { return false; }
 		virtual bool OnIsAny () const { return false; }
@@ -403,6 +420,24 @@ class CAEONTypeSystem
 		static TArray<CDatum> m_CoreTypes;
 	};
 
+//	IAEONTable Interface -------------------------------------------------------
+
+class IAEONTable
+	{
+	public:
+		enum class EResult
+			{
+			OK,
+
+			InvalidParam,
+			NotImplemented,
+			};
+
+		virtual EResult AppendColumn (CDatum dColumn) { return EResult::NotImplemented; }
+		virtual EResult AppendRow (CDatum dRow) { return EResult::NotImplemented; }
+		virtual EResult AppendTable (CDatum dTable) { return EResult::NotImplemented; }
+	};
+
 //	IComplexDatum --------------------------------------------------------------
 
 class IComplexDatum
@@ -443,6 +478,7 @@ class IComplexDatum
 		virtual CDatum GetElement (const CString &sKey) const { return CDatum(); }
 		virtual CString GetKey (int iIndex) const { return NULL_STR; }
 		virtual CDatum::Types GetNumberType (int *retiValue) { return CDatum::typeUnknown; }
+		virtual IAEONTable *GetTableInterface () { return NULL; }
 		virtual const CString &GetTypename (void) const = 0;
 		virtual void GrowToFit (int iCount) { }
 		virtual CDatum::InvokeResult Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, DWORD dwExecutionRights, CDatum *retdResult) { *retdResult = CDatum(); return CDatum::InvokeResult::ok; }

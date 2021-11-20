@@ -85,6 +85,7 @@ enum EOpCodes
 	opPushObjectItem =		0x3d000000,
 	opPushObjectMethod =	0x3e000000,
 	opMakeMethodEnv =		0x3f000000,
+	opMakeAsType =			0x40000000,
 
 	opHalt =				0xff000000,
 

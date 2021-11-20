@@ -98,6 +98,8 @@ class CDatatypeArray : public IDatatype
 
 		virtual ECategory OnGetClass () const override { return IDatatype::ECategory::Array; }
 		virtual DWORD OnGetCoreType () const override { return m_dwCoreType; }
+		virtual SMemberDesc OnGetMember (int iIndex) const { if (iIndex != 0) throw CException(errFail); return SMemberDesc({ EMemberType::ArrayElement, NULL_STR, m_dElementType }); }
+		virtual int OnGetMemberCount () const { return 1; }
 		virtual bool OnIsA (const IDatatype &Type) const override { return (&Type == this || Type.IsAny() || ((const IDatatype &)m_dElementType).IsA(Type)); }
 		virtual void OnMark () override { m_dElementType.Mark(); }
 
@@ -164,6 +166,8 @@ class CDatatypeSchema : public IDatatype
 
 		virtual bool OnAddMember (const CString &sName, EMemberType iType, CDatum dType, CString *retsError = NULL) override;
 		virtual ECategory OnGetClass () const override { return IDatatype::ECategory::Schema; }
+		virtual SMemberDesc OnGetMember (int iIndex) const { if (iIndex < 0 || iIndex >= m_Columns.GetCount()) throw CException(errFail); return SMemberDesc({ EMemberType::InstanceVar, m_Columns[iIndex].sName, m_Columns[iIndex].dType }); }
+		virtual int OnGetMemberCount () const { return m_Columns.GetCount(); }
 		virtual EMemberType OnHasMember (const CString &sName) const override;
 		virtual bool OnIsA (const IDatatype &Type) const override { return (&Type == this || Type.IsAny() || m_Implements.IsA(Type)); }
 		virtual void OnMark () override;

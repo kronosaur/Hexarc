@@ -186,6 +186,7 @@
     <ClCompile Include="AEONScript.cpp" />
     <ClCompile Include="CAEONFactoryList.cpp" />
     <ClCompile Include="CAEONPolygon2D.cpp" />
+    <ClCompile Include="CAEONTable.cpp" />
     <ClCompile Include="CAEONTypeSystem.cpp" />
     <ClCompile Include="CAEONVector.cpp" />
     <ClCompile Include="CAEONVector2D.cpp" />
