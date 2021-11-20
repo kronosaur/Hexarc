@@ -151,14 +151,7 @@ void CAEONTypeSystem::InitCoreTypes ()
 //	Initializes all core types.
 
 	{
-	AddCoreType(new CDatatypeSimple(
-		{
-			MakeFullyQualifiedName(NULL_STR, TYPENAME_ANY), 
-			IDatatype::ANY,
-			{ },
-			true
-			})
-		);
+	AddCoreType(new CDatatypeAny(MakeFullyQualifiedName(NULL_STR, TYPENAME_ANY)));
 
 	AddCoreType(new CDatatypeSimple(
 		{
@@ -484,3 +477,4 @@ CString CAEONTypeSystem::ParseNameFromFullyQualifiedName (const CString &sValue)
 	else
 		return NULL_STR;
 	}
+

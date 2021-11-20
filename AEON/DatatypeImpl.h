@@ -7,6 +7,23 @@
 
 #include "AEON.h"
 
+class CDatatypeAny : public IDatatype
+	{
+	public:
+		CDatatypeAny (const CString &sFullyQualifiedName) : IDatatype(sFullyQualifiedName)
+			{ }
+
+	private:
+
+		//	IDatatype virtuals
+
+		virtual ECategory OnGetClass () const override { return IDatatype::ECategory::Simple; }
+		virtual DWORD OnGetCoreType () const override { return IDatatype::ANY; }
+		virtual bool OnIsA (const IDatatype &Type) const override { return (&Type == this || Type.IsAny()); }
+		virtual bool OnIsAbstract () const override { return true; }
+		virtual bool OnIsAny () const override { return true; }
+	};
+
 class CDatatypeSimple : public IDatatype
 	{
 	public:
@@ -31,8 +48,7 @@ class CDatatypeSimple : public IDatatype
 		virtual ECategory OnGetClass () const override { return IDatatype::ECategory::Simple; }
 		virtual DWORD OnGetCoreType () const override { return m_dwCoreType; }
 		virtual bool OnIsA (const IDatatype &Type) const override { return (&Type == this || Type.IsAny() || m_Implements.IsA(Type)); }
-		virtual bool OnIsAbstract () const override { return false; }
-		virtual bool OnIsAny () const override { return false; }
+		virtual bool OnIsAbstract () const override { return m_bAbstract; }
 		virtual void OnMark () override { m_Implements.Mark(); }
 
 		DWORD m_dwCoreType = 0;
