@@ -430,12 +430,14 @@ class IAEONTable
 			OK,
 
 			InvalidParam,
+			NotATable,
 			NotImplemented,
 			};
 
 		virtual EResult AppendColumn (CDatum dColumn) { return EResult::NotImplemented; }
 		virtual EResult AppendRow (CDatum dRow) { return EResult::NotImplemented; }
 		virtual EResult AppendTable (CDatum dTable) { return EResult::NotImplemented; }
+		virtual EResult DeleteAllRows () { return EResult::NotImplemented; }
 		virtual bool IsSameSchema (CDatum dSchema) const { return false; }
 	};
 

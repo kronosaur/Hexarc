@@ -75,6 +75,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual EResult AppendColumn (CDatum dColumn) override;
 		virtual EResult AppendRow (CDatum dRow) override;
 		virtual EResult AppendTable (CDatum dTable) override;
+		virtual EResult DeleteAllRows () override;
 		virtual bool IsSameSchema (CDatum dSchema) const override;
 
 		//	IComplexDatum

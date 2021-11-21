@@ -137,6 +137,23 @@ size_t CAEONTable::CalcMemorySize (void) const
 	return iSize;
 	}
 
+IAEONTable::EResult CAEONTable::DeleteAllRows ()
+
+//	DeleteAllRows
+//
+//	Deletes all rows (but leaves the schema intact).
+
+	{
+	//	Recreate the columns.
+
+	const IDatatype &Schema = m_dSchema;
+	if (Schema.GetClass() != IDatatype::ECategory::Schema)
+		return EResult::NotATable;
+
+	SetSchema(m_dSchema);
+	return EResult::OK;
+	}
+
 CDatum CAEONTable::GetElement (int iIndex) const
 
 //	GetElement
@@ -228,6 +245,8 @@ void CAEONTable::OnMarked (void)
 //	Mark data in use
 
 	{
+	m_dSchema.Mark();
+
 	for (int i = 0; i < m_Cols.GetCount(); i++)
 		m_Cols[i].Mark();
 	}
