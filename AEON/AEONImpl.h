@@ -103,11 +103,17 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const override;
 		virtual void OnMarked (void) override;
 
+		void SerializeRow (IByteStream &Stream, CDatum::EFormat iFormat, int iRow) const;
+
 	private:
 
 		void SetSchema (CDatum dSchema);
 
 		int m_iRows = 0;
 		TArray<CDatum> m_Cols;
+
+		//	NOTE: The constructor guarantees that we have a valid schema.
+		//	We can always rely on m_dSchema being of type ECategory::Schema.
+
 		CDatum m_dSchema;
 	};

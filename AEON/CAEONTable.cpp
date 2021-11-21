@@ -146,10 +146,6 @@ IAEONTable::EResult CAEONTable::DeleteAllRows ()
 	{
 	//	Recreate the columns.
 
-	const IDatatype &Schema = m_dSchema;
-	if (Schema.GetClass() != IDatatype::ECategory::Schema)
-		return EResult::NotATable;
-
 	SetSchema(m_dSchema);
 	return EResult::OK;
 	}
@@ -258,7 +254,121 @@ void CAEONTable::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const
 //	Serialize
 
 	{
-	throw CException(errFail);
+	switch (iFormat)
+		{
+		case CDatum::EFormat::AEONScript:
+		case CDatum::EFormat::AEONLocal:
+			{
+			Stream.Write("(", 1);
+
+			for (int i = 0; i < m_iRows; i++)
+				{
+				if (i != 0)
+					Stream.Write(" ", 1);
+
+				SerializeRow(Stream, iFormat, i);
+				}
+
+			Stream.Write(")", 1);
+			break;
+			}
+
+		case CDatum::EFormat::JSON:
+			{
+			Stream.Write("[", 1);
+
+			for (int i = 0; i < m_iRows; i++)
+				{
+				if (i != 0)
+					Stream.Write(", ", 2);
+
+				SerializeRow(Stream, iFormat, i);
+				}
+
+			Stream.Write("]", 1);
+			break;
+			}
+
+		default:
+			IComplexDatum::Serialize(iFormat, Stream);
+			break;
+		}
+	}
+
+void CAEONTable::SerializeRow (IByteStream &Stream, CDatum::EFormat iFormat, int iRow) const
+
+//	SerializeRow
+//
+//	Serializes the given row.
+
+	{
+	const IDatatype &Schema = m_dSchema;
+
+	switch (iFormat)
+		{
+		case CDatum::EFormat::AEONScript:
+		case CDatum::EFormat::AEONLocal:
+			{
+			Stream.Write("{", 1);
+
+			for (int i = 0; i < Schema.GetMemberCount(); i++)
+				{
+				auto ColumnDef = Schema.GetMember(i);
+
+				if (i != 0)
+					Stream.Write(" ", 1);
+
+				//	Write the key
+
+				CDatum Key(ColumnDef.sName);
+				Key.Serialize(iFormat, Stream);
+
+				//	Separator
+
+				Stream.Write(":", 1);
+
+				//	Write the value
+
+				m_Cols[i].GetElement(iRow).Serialize(iFormat, Stream);
+				}
+
+			Stream.Write("}", 1);
+			break;
+			}
+
+		case CDatum::EFormat::JSON:
+			{
+			Stream.Write("{", 1);
+
+			for (int i = 0; i < GetCount(); i++)
+				{
+				auto ColumnDef = Schema.GetMember(i);
+
+				if (i != 0)
+					Stream.Write(", ", 2);
+
+				//	Write the key
+
+				CDatum Key(ColumnDef.sName);
+				Key.Serialize(iFormat, Stream);
+
+				//	Separator
+
+				Stream.Write(": ", 2);
+
+				//	Write the value
+
+				m_Cols[i].GetElement(iRow).Serialize(iFormat, Stream);
+				}
+
+			Stream.Write("}", 1);
+			break;
+			}
+
+		default:
+			CDatum().Serialize(iFormat, Stream);
+			break;
+		}
 	}
 
 void CAEONTable::SetElement (int iIndex, CDatum dDatum)
