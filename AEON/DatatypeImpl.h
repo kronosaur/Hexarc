@@ -149,7 +149,7 @@ class CDatatypeClass : public IDatatype
 
 		virtual bool OnAddMember (const CString &sName, EMemberType iType, CDatum dType, CString *retsError = NULL) override;
 		virtual ECategory OnGetClass () const override { return IDatatype::ECategory::ClassDef; }
-		virtual EMemberType OnHasMember (const CString &sName) const override;
+		virtual EMemberType OnHasMember (const CString &sName, CDatum *retdType = NULL) const override;
 		virtual bool OnIsA (const IDatatype &Type) const override { return (&Type == this || Type.IsAny() || m_Implements.IsA(Type)); }
 		virtual void OnMark () override;
 
@@ -184,7 +184,7 @@ class CDatatypeSchema : public IDatatype
 		virtual ECategory OnGetClass () const override { return IDatatype::ECategory::Schema; }
 		virtual SMemberDesc OnGetMember (int iIndex) const { if (iIndex < 0 || iIndex >= m_Columns.GetCount()) throw CException(errFail); return SMemberDesc({ EMemberType::InstanceVar, m_Columns[iIndex].sName, m_Columns[iIndex].dType }); }
 		virtual int OnGetMemberCount () const { return m_Columns.GetCount(); }
-		virtual EMemberType OnHasMember (const CString &sName) const override;
+		virtual EMemberType OnHasMember (const CString &sName, CDatum *retdType = NULL) const override;
 		virtual bool OnIsA (const IDatatype &Type) const override { return (&Type == this || Type.IsAny() || m_Implements.IsA(Type)); }
 		virtual void OnMark () override;
 
@@ -220,14 +220,13 @@ class CComplexDatatype : public IComplexDatum
 		virtual CDatum GetElement (int iIndex) const override { return m_Properties.GetProperty(*this, iIndex); }
 		virtual CString GetKey (int iIndex) const override { return m_Properties.GetPropertyName(iIndex); }
 		virtual const CString &GetTypename (void) const override;
-		virtual void GrowToFit (int iCount) override { throw CException(errFail); }
 		virtual bool IsArray (void) const override { return false; }
 		virtual bool IsNil (void) const override { return false; }
-		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const override { throw CException(errFail); }
+		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const override { SerializeAsStruct(iFormat, Stream); }
 		virtual void SetElement (const CString &sKey, CDatum dDatum) override { m_Properties.SetProperty(*this, sKey, dDatum, NULL); }
 
 	protected:
-		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const override { throw CException(errFail); }
+		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const override { return CalcSerializeAsStructSize(iFormat); }
 		virtual void OnMarked (void) override { m_pType->Mark(); }
 
 		TUniquePtr<IDatatype> m_pType;

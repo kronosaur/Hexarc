@@ -32,7 +32,7 @@ bool CDatatypeClass::OnAddMember (const CString &sName, EMemberType iType, CDatu
 	return true;
 	}
 
-IDatatype::EMemberType CDatatypeClass::OnHasMember (const CString &sName) const
+IDatatype::EMemberType CDatatypeClass::OnHasMember (const CString &sName, CDatum *retdType) const
 
 //	HasMember
 //
@@ -42,6 +42,9 @@ IDatatype::EMemberType CDatatypeClass::OnHasMember (const CString &sName) const
 	auto pEntry = m_Members.GetAt(sName);
 	if (!pEntry)
 		return EMemberType::None;
+
+	if (retdType)
+		*retdType = pEntry->dType;
 
 	return pEntry->iType;
 	}

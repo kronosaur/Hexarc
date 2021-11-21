@@ -19,6 +19,22 @@ DECLARE_CONST_STRING(DATETIME_MILLISECOND,				"millisecond");
 
 //	IComplexDatum --------------------------------------------------------------
 
+size_t IComplexDatum::CalcSerializeAsStructSize (CDatum::EFormat iFormat) const
+
+//	CalcSerializeAsStructSize
+//
+//	Returns the approximate serialization size if we serialize as a struct (in
+//	bytes).
+
+	{
+	size_t TotalSize = 2;
+
+	for (int i = 0; i < GetCount(); i++)
+		TotalSize += (size_t)GetKey(i).GetLength() + 2 + GetElement(i).CalcSerializeSize(iFormat);
+
+	return TotalSize;
+	}
+
 size_t IComplexDatum::CalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const
 
 //	CalcSerializeSizeAEONScript
@@ -165,9 +181,7 @@ void IComplexDatum::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruc
 //	Serialize all elements for obects that are serialized as structures.
 
 	{
-	int i;
-
-	for (i = 0; i < GetCount(); i++)
+	for (int i = 0; i < GetCount(); i++)
 		pStruct->SetElement(GetKey(i), GetElement(i));
 	}
 
@@ -240,6 +254,76 @@ void IComplexDatum::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) con
 
 		default:
 			ASSERT(false);
+		}
+	}
+
+void IComplexDatum::SerializeAsStruct (CDatum::EFormat iFormat, IByteStream &Stream) const
+
+//	SerializeAsStruct
+//
+//	Helper function to serialize the object as if it were a struct.
+
+	{
+	switch (iFormat)
+		{
+		case CDatum::EFormat::AEONScript:
+		case CDatum::EFormat::AEONLocal:
+			{
+			Stream.Write("{", 1);
+
+			for (int i = 0; i < GetCount(); i++)
+				{
+				if (i != 0)
+					Stream.Write(" ", 1);
+
+				//	Write the key
+
+				CDatum Key(GetKey(i));
+				Key.Serialize(iFormat, Stream);
+
+				//	Separator
+
+				Stream.Write(":", 1);
+
+				//	Write the value
+
+				GetElement(i).Serialize(iFormat, Stream);
+				}
+
+			Stream.Write("}", 1);
+			break;
+			}
+
+		case CDatum::EFormat::JSON:
+			{
+			Stream.Write("{", 1);
+
+			for (int i = 0; i < GetCount(); i++)
+				{
+				if (i != 0)
+					Stream.Write(", ", 2);
+
+				//	Write the key
+
+				CDatum Key(GetKey(i));
+				Key.Serialize(iFormat, Stream);
+
+				//	Separator
+
+				Stream.Write(": ", 2);
+
+				//	Write the value
+
+				GetElement(i).Serialize(iFormat, Stream);
+				}
+
+			Stream.Write("}", 1);
+			break;
+			}
+
+		default:
+			IComplexDatum::Serialize(iFormat, Stream);
+			break;
 		}
 	}
 
@@ -834,21 +918,6 @@ size_t CComplexStruct::CalcMemorySize (void) const
 	return dwSize;
 	}
 
-size_t CComplexStruct::OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const
-
-//	OnCalcSerializeSizeAEONScript
-//
-//	Returns an approximation of serialization size.
-
-	{
-	size_t TotalSize = 2;
-
-	for (int i = 0; i < m_Map.GetCount(); i++)
-		TotalSize += (size_t)m_Map.GetKey(i).GetLength() + 2 + m_Map[i].CalcSerializeSize(iFormat);
-
-	return TotalSize;
-	}
-
 void CComplexStruct::OnMarked (void)
 
 //	OnMarked
@@ -860,74 +929,3 @@ void CComplexStruct::OnMarked (void)
 		m_Map[i].Mark();
 	}
 
-void CComplexStruct::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const
-
-//	Serialize
-//
-//	Serialize to the given format.
-
-	{
-	int i;
-
-	switch (iFormat)
-		{
-		case CDatum::EFormat::AEONScript:
-		case CDatum::EFormat::AEONLocal:
-			{
-			Stream.Write("{", 1);
-
-			for (i = 0; i < m_Map.GetCount(); i++)
-				{
-				if (i != 0)
-					Stream.Write(" ", 1);
-
-				//	Write the key
-
-				CDatum Key(m_Map.GetKey(i));
-				Key.Serialize(iFormat, Stream);
-
-				//	Separator
-
-				Stream.Write(":", 1);
-
-				//	Write the value
-
-				m_Map[i].Serialize(iFormat, Stream);
-				}
-
-			Stream.Write("}", 1);
-			break;
-			}
-
-		case CDatum::EFormat::JSON:
-			{
-			Stream.Write("{", 1);
-
-			for (i = 0; i < m_Map.GetCount(); i++)
-				{
-				if (i != 0)
-					Stream.Write(", ", 2);
-
-				//	Write the key
-
-				CDatum Key(m_Map.GetKey(i));
-				Key.Serialize(iFormat, Stream);
-
-				//	Separator
-
-				Stream.Write(": ", 2);
-
-				//	Write the value
-
-				m_Map[i].Serialize(iFormat, Stream);
-				}
-
-			Stream.Write("}", 1);
-			break;
-			}
-
-		default:
-			IComplexDatum::Serialize(iFormat, Stream);
-			break;
-		}
-	}

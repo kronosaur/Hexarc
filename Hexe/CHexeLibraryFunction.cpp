@@ -134,3 +134,15 @@ CDatum::InvokeResult CHexeLibraryFunction::InvokeContinues (IInvokeCtx *pCtx, CD
 		}
 	}
 
+void CHexeLibraryFunction::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const
+
+//	Serialize
+//
+//	We cannot propertly serialize this object because we cannot serialize the 
+//	function pointer. But we need to handle this in case the object ever gets
+//	printed (or something).
+
+	{
+	CDatum dResult(m_sName);
+	dResult.Serialize(iFormat, Stream);
+	}

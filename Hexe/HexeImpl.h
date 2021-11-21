@@ -151,12 +151,17 @@ class CHexeLibraryFunction : public TExternalDatum<CHexeLibraryFunction>
 		static const CString &StaticGetTypename (void);
 
 		//	IComplexDatum
+
 		virtual bool CanInvoke (void) const override { return true; }
 		virtual CDatum::ECallType GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) const override { return CDatum::ECallType::Library; }
 		virtual CDatum::InvokeResult Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, DWORD dwExecutionRights, CDatum *retdResult) override;
 		virtual CDatum::InvokeResult InvokeContinues (IInvokeCtx *pCtx, CDatum dContext, CDatum dResult, CDatum *retdResult) override;
 
+		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const { return (size_t)m_sName.GetLength() + 2; }
+		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
+
 	private:
+
 		static CDatum::InvokeResult HandleSpecialResult (CDatum *retdResult);
 
 		CString m_sName;

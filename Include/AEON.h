@@ -360,7 +360,7 @@ class IDatatype
 		const CString &GetFullyQualifiedName () const { return m_sFullyQualifiedName; }
 		SMemberDesc GetMember (int iIndex) const { return OnGetMember(iIndex); }
 		int GetMemberCount () const { return OnGetMemberCount(); }
-		EMemberType HasMember (const CString &sName) const { return OnHasMember(sName); }
+		EMemberType HasMember (const CString &sName, CDatum *retdType = NULL) const { return OnHasMember(sName, retdType); }
 		bool IsA (const IDatatype &Type) const { return OnIsA(Type); }
 		bool IsAbstract () const { return OnIsAbstract(); }
 		bool IsAny () const { return OnIsAny(); }
@@ -371,7 +371,7 @@ class IDatatype
 		//	IDatatype virtuals
 
 		virtual bool OnAddMember (const CString &sName, EMemberType iType, CDatum dType, CString *retsError = NULL) { throw CException(errFail); }
-		virtual EMemberType OnHasMember (const CString &sName) const { return EMemberType::None; }
+		virtual EMemberType OnHasMember (const CString &sName, CDatum *retdType = NULL) const { return EMemberType::None; }
 		virtual ECategory OnGetClass () const = 0;
 		virtual DWORD OnGetCoreType () const { return UNKNOWN; }
 		virtual SMemberDesc OnGetMember (int iIndex) const { throw CException(errFail); }
@@ -436,6 +436,7 @@ class IAEONTable
 		virtual EResult AppendColumn (CDatum dColumn) { return EResult::NotImplemented; }
 		virtual EResult AppendRow (CDatum dRow) { return EResult::NotImplemented; }
 		virtual EResult AppendTable (CDatum dTable) { return EResult::NotImplemented; }
+		virtual bool IsSameSchema (CDatum dSchema) const { return false; }
 	};
 
 //	IComplexDatum --------------------------------------------------------------
@@ -504,6 +505,9 @@ class IComplexDatum
 		virtual void OnMarked (void) { }
 		virtual void OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const { ASSERT(false); }
 		virtual void OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const;
+
+		size_t CalcSerializeAsStructSize (CDatum::EFormat iFormat) const;
+		void SerializeAsStruct (CDatum::EFormat iFormat, IByteStream &Stream) const;
 		CString StructAsString () const;
 
 	private:
@@ -781,11 +785,11 @@ class CComplexStruct : public IComplexDatum
 		virtual void GrowToFit (int iCount) override { m_Map.GrowToFit(iCount); }
 		virtual bool IsArray (void) const override { return true; }
 		virtual bool IsNil (void) const override { return (GetCount() == 0); }
-		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
+		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const override { SerializeAsStruct(iFormat, Stream); }
 		virtual void SetElement (const CString &sKey, CDatum dDatum) override { m_Map.SetAt(sKey, dDatum); }
 
 	protected:
-		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const override;
+		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const override { return CalcSerializeAsStructSize(iFormat); }
 		virtual void OnMarked (void) override;
 
 		void AppendStruct (CDatum dDatum);

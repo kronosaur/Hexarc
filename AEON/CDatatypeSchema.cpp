@@ -34,7 +34,7 @@ bool CDatatypeSchema::OnAddMember (const CString &sName, EMemberType iType, CDat
 	return true;
 	}
 
-IDatatype::EMemberType CDatatypeSchema::OnHasMember (const CString &sName) const
+IDatatype::EMemberType CDatatypeSchema::OnHasMember (const CString &sName, CDatum *retdType) const
 
 //	HasMember
 //
@@ -44,6 +44,9 @@ IDatatype::EMemberType CDatatypeSchema::OnHasMember (const CString &sName) const
 	auto pEntry = m_Columns.GetAt(sName);
 	if (!pEntry)
 		return EMemberType::None;
+
+	if (retdType)
+		*retdType = pEntry->dType;
 
 	return EMemberType::InstanceVar;
 	}

@@ -181,6 +181,36 @@ void CAEONTable::GrowToFit (int iCount)
 		m_Cols[i].GrowToFit(iCount);
 	}
 
+bool CAEONTable::IsSameSchema (CDatum dSchema) const
+
+//	IsSameSchema
+//
+//	Returns TRUE if the given schema has the exact same columns.
+
+	{
+	const IDatatype &Schema = m_dSchema;
+	const IDatatype &TestSchema = dSchema;
+	if (TestSchema.GetClass() != IDatatype::ECategory::Schema)
+		return false;
+
+	if (TestSchema.GetMemberCount() != Schema.GetMemberCount())
+		return false;
+
+	for (int i = 0; i < Schema.GetMemberCount(); i++)
+		{
+		IDatatype::SMemberDesc Member = Schema.GetMember(i);
+
+		CDatum dTestType;
+		if (TestSchema.HasMember(Member.sName, &dTestType) != IDatatype::EMemberType::InstanceVar)
+			return false;
+
+		if (!Member.dType.IsEqual(dTestType))
+			return false;
+		}
+
+	return true;
+	}
+
 size_t CAEONTable::OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const
 
 //	OnCalcSerializeSizeAEONScript
