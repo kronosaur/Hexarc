@@ -150,6 +150,56 @@ IAEONTable::EResult CAEONTable::DeleteAllRows ()
 	return EResult::OK;
 	}
 
+int CAEONTable::GetColCount () const
+
+//	GetColCount
+//
+//	Returns the number of column.
+
+	{
+	return m_Cols.GetCount();
+	}
+
+CString CAEONTable::GetColName (int iCol) const
+
+//	GetColName
+//
+//	Returns the name of the column.
+
+	{
+	const IDatatype &Schema = m_dSchema;
+	if (iCol < 0 || iCol >= Schema.GetMemberCount())
+		throw CException(errFail);
+
+	return Schema.GetMember(iCol).sName;
+	}
+
+CDatum CAEONTable::GetFieldValue (int iRow, int iCol) const
+
+//	GetFieldValue
+//
+//	Returns the given field.
+
+	{
+	if (iRow < 0 || iRow >= m_iRows)
+		return CDatum();
+
+	if (iCol < 0 || iCol >= m_Cols.GetCount())
+		return CDatum();
+
+	return m_Cols[iCol].GetElement(iRow);
+	}
+
+int CAEONTable::GetRowCount () const
+
+//	GetRowCount
+//
+//	Returns the number of rows.
+
+	{
+	return m_iRows;
+	}
+
 CDatum CAEONTable::GetElement (int iIndex) const
 
 //	GetElement

@@ -214,6 +214,7 @@ class CDatum
 		CDatum GetElement (const CString &sKey) const;
 		CString GetKey (int iIndex) const;
 		IAEONTable *GetTableInterface ();
+		const IAEONTable *GetTableInterface () const { return const_cast<CDatum *>(this)->GetTableInterface(); }
 		const CString &GetTypename (void) const;
 		void GrowToFit (int iCount);
 		bool IsMemoryBlock (void) const;
@@ -438,6 +439,10 @@ class IAEONTable
 		virtual EResult AppendRow (CDatum dRow) { return EResult::NotImplemented; }
 		virtual EResult AppendTable (CDatum dTable) { return EResult::NotImplemented; }
 		virtual EResult DeleteAllRows () { return EResult::NotImplemented; }
+		virtual int GetColCount () const { return 0; }
+		virtual CString GetColName (int iCol) const { return NULL_STR; }
+		virtual CDatum GetFieldValue (int iRow, int iCol) const { return CDatum(); }
+		virtual int GetRowCount () const { return 0; }
 		virtual bool IsSameSchema (CDatum dSchema) const { return false; }
 	};
 
