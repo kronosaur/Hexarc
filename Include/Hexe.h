@@ -272,6 +272,7 @@ class CHexeProcess : public IInvokeCtx
 		CDatum GetGlobalEnv (void) { return m_dGlobalEnv; }
 		DWORDLONG GetLibraryTime () const { return m_dwLibraryTime; }
 		CHexeStack &GetStack () { return m_Stack; }
+		const CAEONTypeSystem *GetTypeSystem () const { return m_pTypes; }
 		bool InitFrom (const CHexeProcess &Process, CString *retsError = NULL);
 		bool LoadEntryPoints (const TArray<CHexeDocument::SEntryPoint> &EntryPoints, CString *retsError);
 		bool LoadEntryPoints (const CHexeDocument &Program, CString *retsError);

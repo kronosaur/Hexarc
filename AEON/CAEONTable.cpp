@@ -63,6 +63,35 @@ IAEONTable::EResult CAEONTable::AppendRow (CDatum dRow)
 	return EResult::OK;
 	}
 
+IAEONTable::EResult CAEONTable::AppendSlice (CDatum dSlice)
+
+//	AppendSlice
+//
+//	Appends a slice of data using the current schema.
+
+	{
+	if (m_Cols.GetCount() == 0 || dSlice.GetCount() == 0)
+		return EResult::OK;
+
+	int iRows = dSlice.GetCount() / m_Cols.GetCount();
+	for (int iCol = 0; iCol < m_Cols.GetCount(); iCol++)
+		m_Cols[iCol].GrowToFit(iRows);
+
+	int i = 0;
+	for (int iRow = 0; iRow < iRows; iRow++)
+		{
+		for (int iCol = 0; iCol < m_Cols.GetCount(); iCol++)
+			{
+			m_Cols[iCol].Append(dSlice.GetElement(i));
+
+			i++;
+			}
+		}
+
+	m_iRows += iRows;
+	return EResult::OK;
+	}
+
 IAEONTable::EResult CAEONTable::AppendTable (CDatum dTable)
 
 //	AppendTable
@@ -172,6 +201,32 @@ CString CAEONTable::GetColName (int iCol) const
 		throw CException(errFail);
 
 	return Schema.GetMember(iCol).sName;
+	}
+
+CDatum CAEONTable::GetDataSlice (int iFirstRow, int iRowCount) const
+
+//	GetDataSlice
+//
+//	Returns a 2D array of values.
+
+	{
+	if (iFirstRow < 0 || iFirstRow >= m_iRows || GetColCount() == 0)
+		return CDatum();
+
+	int iLastRow = Min(iFirstRow + iRowCount, m_iRows);
+
+	CDatum dResult(CDatum::typeArray);
+	dResult.GrowToFit(GetColCount() * (iLastRow - iFirstRow));
+
+	for (int iRow = iFirstRow; iRow < iLastRow; iRow++)
+		{
+		for (int iCol = 0; iCol < GetColCount(); iCol++)
+			{
+			dResult.Append(m_Cols[iCol].GetElement(iRow));
+			}
+		}
+
+	return dResult;
 	}
 
 CDatum CAEONTable::GetFieldValue (int iRow, int iCol) const

@@ -437,10 +437,12 @@ class IAEONTable
 
 		virtual EResult AppendColumn (CDatum dColumn) { return EResult::NotImplemented; }
 		virtual EResult AppendRow (CDatum dRow) { return EResult::NotImplemented; }
+		virtual EResult AppendSlice (CDatum dSlice) { return EResult::NotImplemented; }
 		virtual EResult AppendTable (CDatum dTable) { return EResult::NotImplemented; }
 		virtual EResult DeleteAllRows () { return EResult::NotImplemented; }
 		virtual int GetColCount () const { return 0; }
 		virtual CString GetColName (int iCol) const { return NULL_STR; }
+		virtual CDatum GetDataSlice (int iFirstRow, int iRowCount) const { return CDatum(); }
 		virtual CDatum GetFieldValue (int iRow, int iCol) const { return CDatum(); }
 		virtual int GetRowCount () const { return 0; }
 		virtual bool IsSameSchema (CDatum dSchema) const { return false; }
