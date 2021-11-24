@@ -51,8 +51,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,1,88,0
- PRODUCTVERSION 1,1,88,0
+ FILEVERSION 1,1,89,0
+ PRODUCTVERSION 1,1,89,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -69,12 +69,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Kronosaur Productions, LLC."
             VALUE "FileDescription", "Arcology"
-            VALUE "FileVersion", "1.1.88.0"
+            VALUE "FileVersion", "1.1.89.0"
             VALUE "InternalName", "Arcology"
             VALUE "LegalCopyright", "Copyright © 2011-2021 by Kronosaur Productions LLC. All Rights Reserved."
             VALUE "OriginalFilename", "Arcology"
             VALUE "ProductName", "Hexarc"
-            VALUE "ProductVersion", "v.88"
+            VALUE "ProductVersion", "v.89"
         END
     END
     BLOCK "VarFileInfo"
