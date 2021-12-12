@@ -212,6 +212,8 @@ class CDatum
 		CDatum GetElement (int iIndex) const;
 		CDatum GetElement (IInvokeCtx *pCtx, const CString &sKey) const;
 		CDatum GetElement (const CString &sKey) const;
+		CRGBA32Image *GetImageInterface ();
+		CRGBA32Image &GetImageInterfaceOrThrow () { auto pValue = GetImageInterface(); if (!pValue) throw CException(errFail); else return *pValue; }
 		CString GetKey (int iIndex) const;
 		IAEONTable *GetTableInterface ();
 		const IAEONTable *GetTableInterface () const { return const_cast<CDatum *>(this)->GetTableInterface(); }
@@ -486,6 +488,7 @@ class IComplexDatum
 		virtual CDatum GetElement (int iIndex) const = 0;
 		virtual CDatum GetElement (IInvokeCtx *pCtx, const CString &sKey) const { return GetElement(sKey); }
 		virtual CDatum GetElement (const CString &sKey) const { return CDatum(); }
+		virtual CRGBA32Image *GetImageInterface () { return NULL; }
 		virtual CString GetKey (int iIndex) const { return NULL_STR; }
 		virtual CDatum::Types GetNumberType (int *retiValue) { return CDatum::typeUnknown; }
 		virtual IAEONTable *GetTableInterface () { return NULL; }
@@ -718,6 +721,7 @@ class CComplexImage32 : public IComplexDatum
 		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeImage32; }
 		virtual int GetCount (void) const override { return 1; }
 		virtual CDatum GetElement (int iIndex) const override { return CDatum(); }
+		virtual CRGBA32Image *GetImageInterface () override { return &m_Image; }
 		virtual const CString &GetTypename (void) const override;
 		virtual bool IsArray (void) const override { return false; }
 		virtual bool IsNil (void) const override { return m_Image.IsEmpty(); }

@@ -1751,6 +1751,23 @@ CDatum CDatum::GetDatatype () const
 		}
 	}
 
+CRGBA32Image *CDatum::GetImageInterface ()
+
+//	GetImageInterface
+//
+//	Returns an image interface (or NULL).
+
+	{
+	switch (m_dwData & AEON_TYPE_MASK)
+		{
+		case AEON_TYPE_COMPLEX:
+			return raw_GetComplex()->GetImageInterface();
+
+		default:
+			return NULL;
+		}
+	}
+
 IAEONTable *CDatum::GetTableInterface ()
 
 //	GetTableInterface
