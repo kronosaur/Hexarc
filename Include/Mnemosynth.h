@@ -9,6 +9,9 @@
 
 #pragma once
 
+using MnemosynthSequence = DWORD;
+static constexpr MnemosynthSequence NULL_MNEMO_SEQ = 0xffffffff;
+
 //	Mnemosynth
 
 struct SEntryDelta
@@ -17,7 +20,7 @@ struct SEntryDelta
 	CString sKey;
 	CDatum dValue;
 
-	DWORD dwSequence;
+	MnemosynthSequence dwSequence;
 	};
 
 struct SEndpointDelta
@@ -25,8 +28,8 @@ struct SEndpointDelta
 	CString sName;
 	bool bCentralModule;
 	bool bLocalMachine;
-	DWORD dwSeqRecv;
-	DWORD dwSeqSent;
+	MnemosynthSequence dwSeqRecv;
+	MnemosynthSequence dwSeqSent;
 
 	TArray<SEntryDelta> Entries;
 	};
@@ -56,7 +59,7 @@ struct SEndpointWatermark
 	{
 	CString sEndpoint;
 	DWORD dwEndpointID;
-	DWORD dwSeq;
+	MnemosynthSequence dwSeq;
 	};
 
 typedef TArray<SEndpointWatermark> CMnemosynthWatermark;
@@ -73,14 +76,15 @@ class CMnemosynthDb
 		DWORD GetEndpointID (const CString &sEndpoint);
 		const CString &GetEndpointName (DWORD dwEndpointID);
 		inline CManualEvent &GetModifiedEvent (void) { return m_ModifiedEvent; }
-		DWORD GetSequence (DWORD dwEndpointID);
-		DWORD GetSequence (const CString &sEndpoint);
-		inline DWORD GetSequence (void) { CSmartLock Lock(m_cs); return m_Endpoints[0].dwSeqRecv; }
+		MnemosynthSequence GetSequence (DWORD dwEndpointID);
+		MnemosynthSequence GetSequence (const CString &sEndpoint);
+		MnemosynthSequence GetSequence (void) { CSmartLock Lock(m_cs); return m_Endpoints[0].dwSeqRecv; }
 		void GetWatermark (CMnemosynthWatermark *retWatermark);
 		void IncorporateDelta (CDatum dPayload);
 		void Mark (void);
 		CDatum Read (const CString &sCollection, const CString &sKey) const;
 		void ReadCollection (const CString &sCollection, TArray<CString> *retKeys) const;
+		void ReadCollection (const CString &sCollection, TSortMap<CString, CDatum> &retCollection) const;
 		void ReadCollectionList (TArray<CString> *retCollections) const;
 		void RemoveEndpoint (const CString &sName);
 		void RemoveMachineEndpoints (const CString &sName);
@@ -93,7 +97,7 @@ class CMnemosynthDb
 		struct SEntry
 			{
 			DWORD dwOwnerID;					//	ID of endpoint that last wrote this
-			DWORD dwSequence;					//	Sequence number relative to owner
+			MnemosynthSequence dwSequence;		//	Sequence number relative to owner
 			CDatum dValue;
 			};
 
@@ -111,15 +115,15 @@ class CMnemosynthDb
 			bool bFullUpdate;					//	TRUE if we need to send this endpoint a full update
 			DWORD dwProcessID;					//	If local machine, this is the process ID of the endpoint
 			IArchonMessagePort *pPort;			//	Port to send messages to this endpoint
-			DWORD dwSeqRecv;					//	We've assimilated up to this sequence for this endpoint
-			DWORD dwSeqSent;					//	We've sent out up to this sequence for this endpoint
+			MnemosynthSequence dwSeqRecv;		//	We've assimilated up to this sequence for this endpoint
+			MnemosynthSequence dwSeqSent;		//	We've sent out up to this sequence for this endpoint
 			};
 
 		void DeleteEntry (const CString &sCollection, const CString &sKey);
 		CDatum GenerateCollectionsArray (void);
 		CDatum GenerateEntry (int iCollectionIndex, const CString &sKey, SEntry *pEntry);
 		SEndpoint &GetLocalEndpoint (void) { return m_Endpoints[0]; }
-		DWORD GetNextSequence (void);
+		MnemosynthSequence GetNextSequence (void);
 		SEndpoint *GetOrAddEndpoint (const CString &sName, DWORD dwProcessID);
 		SEntry *GetWriteEntry (const CString &sCollection, const CString &sKey);
 		int FindEndpointIndex (DWORD dwID);
@@ -152,8 +156,8 @@ class CMnemosynthEngine : public CSimpleEngine
 			{
 			CString sEndpoint;
 			DWORD dwEndpointID;
-			DWORD dwSeqToCheck;					//	We wait until the endpoint gets to this sequence at least
-			DWORD dwSeqActual;					//	This is the actual sequence (or 0 if not yet updated)
+			MnemosynthSequence dwSeqToCheck;	//	We wait until the endpoint gets to this sequence at least
+			MnemosynthSequence dwSeqActual;		//	This is the actual sequence (or 0 if not yet updated)
 			};
 
 		struct SLocalCheckpoint

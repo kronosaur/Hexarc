@@ -1027,7 +1027,7 @@ void CMecharcologyDb::OnModuleRestart (const CString &sName)
 	m_Modules[iModule].iStatus = moduleRestarted;
 	}
 
-void CMecharcologyDb::OnModuleStart (const CString &sName, DWORD dwMnemosynthSeq, bool *retbAllComplete)
+void CMecharcologyDb::OnModuleStart (const CString &sName, MnemosynthSequence dwMnemosynthSeq, bool *retbAllComplete)
 
 //	OnModuleStart
 //

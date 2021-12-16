@@ -558,7 +558,7 @@ CDatum CMnemosynthDb::GenerateEntry (int iCollectionIndex, const CString &sKey, 
 	pArray->Insert(iCollectionIndex);
 	pArray->Insert(sKey);
 	pArray->Insert(pEntry->dValue);
-	pArray->Insert((int)pEntry->dwSequence);
+	pArray->Insert(pEntry->dwSequence);
 
 	return CDatum(pArray);
 	}
@@ -594,7 +594,7 @@ const CString &CMnemosynthDb::GetEndpointName (DWORD dwEndpointID)
 	return pEndpoint->sName;
 	}
 
-DWORD CMnemosynthDb::GetNextSequence (void)
+MnemosynthSequence CMnemosynthDb::GetNextSequence (void)
 
 //	GetNextSequence
 //
@@ -665,7 +665,7 @@ CMnemosynthDb::SEndpoint *CMnemosynthDb::GetOrAddEndpoint (const CString &sName,
 	return pEndpoint;
 	}
 
-DWORD CMnemosynthDb::GetSequence (DWORD dwEndpointID)
+MnemosynthSequence CMnemosynthDb::GetSequence (DWORD dwEndpointID)
 
 //	GetSequence
 //
@@ -675,12 +675,12 @@ DWORD CMnemosynthDb::GetSequence (DWORD dwEndpointID)
 	CSmartLock Lock(m_cs);
 	SEndpoint *pEndpoint = FindEndpoint(dwEndpointID);
 	if (pEndpoint == NULL)
-		return 0xffffffff;
+		return NULL_MNEMO_SEQ;
 
 	return pEndpoint->dwSeqRecv;
 	}
 
-DWORD CMnemosynthDb::GetSequence (const CString &sEndpoint)
+MnemosynthSequence CMnemosynthDb::GetSequence (const CString &sEndpoint)
 
 //	GetSequence
 //
@@ -690,7 +690,7 @@ DWORD CMnemosynthDb::GetSequence (const CString &sEndpoint)
 	CSmartLock Lock(m_cs);
 	SEndpoint *pEndpoint = FindEndpoint(sEndpoint);
 	if (pEndpoint == NULL)
-		return 0xffffffff;
+		return NULL_MNEMO_SEQ;
 
 	return pEndpoint->dwSeqRecv;
 	}
@@ -764,15 +764,15 @@ void CMnemosynthDb::IncorporateDelta (CDatum dPayload)
 
 	SEndpoint *pEndpoint = GetOrAddEndpoint(dEndpoint, dwProcessID);
 
-	DWORD dwOriginalSeq = pEndpoint->dwSeqRecv;
-	DWORD dwMaxSeq = dwOriginalSeq;
+	MnemosynthSequence dwOriginalSeq = pEndpoint->dwSeqRecv;
+	MnemosynthSequence dwMaxSeq = dwOriginalSeq;
 
 	//	Loop over all entries
 
 	for (i = 0; i < dEntries.GetCount(); i++)
 		{
 		CDatum dEntry = dEntries.GetElement(i);
-		DWORD dwSeq = (DWORD)(int)dEntry.GetElement(3);
+		MnemosynthSequence dwSeq = (MnemosynthSequence)dEntry.GetElement(3);
 		if (dwSeq > dwOriginalSeq)
 			{
 			//	LATER: Detect and resolve conflicts
@@ -903,7 +903,6 @@ void CMnemosynthDb::ReadCollection (const CString &sCollection, TArray<CString> 
 
 	{
 	CSmartLock Lock(m_cs);
-	int i;
 
 	//	Look for the collection. If we can't find it, then we return Nil
 
@@ -913,12 +912,46 @@ void CMnemosynthDb::ReadCollection (const CString &sCollection, TArray<CString> 
 
 	//	Iterate over all keys
 
-	for (i = 0; i < pCol->Entries.GetCount(); i++)
+	for (int i = 0; i < pCol->Entries.GetCount(); i++)
 		{
 		//	A nil entry means that the entry was deleted.
 
-		if (!pCol->Entries.GetValue(i).dValue.IsNil())
+		if (!pCol->Entries[i].dValue.IsNil())
 			retKeys->Insert(pCol->Entries.GetKey(i));
+		}
+	}
+
+void CMnemosynthDb::ReadCollection (const CString &sCollection, TSortMap<CString, CDatum> &retCollection) const
+
+//	ReadCollection
+//
+//	Returns the entire collection.
+
+	{
+	CSmartLock Lock(m_cs);
+
+	retCollection.DeleteAll();
+
+	//	Look for the collection. If we can't find it, then we return Nil
+
+	SCollection *pCol = m_Collections.GetAt(sCollection);
+	if (pCol == NULL)
+		return;
+
+	//	Iterate over all keys
+
+	retCollection.GrowToFit(pCol->Entries.GetCount());
+	for (int i = 0; i < pCol->Entries.GetCount(); i++)
+		{
+		//	A nil entry means that the entry was deleted.
+
+		if (pCol->Entries[i].dValue.IsNil())
+			continue;
+
+		//	Add the entry (it's already sorted, so we don't need to do an
+		//	insertion sort).
+
+		retCollection.InsertSorted(pCol->Entries.GetKey(i), pCol->Entries[i].dValue);
 		}
 	}
 

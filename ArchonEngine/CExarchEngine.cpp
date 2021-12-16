@@ -2875,9 +2875,9 @@ void CExarchEngine::RegisterForMnemosynthUpdate (void)
 		//	OnModuleStart (and we stored it in Mecharcology).
 
 		if (i == 0)
-			pEntry->Insert((int)GetMnemosynth().GetSequence());
+			pEntry->Insert(GetMnemosynth().GetSequence());
 		else
-			pEntry->Insert((int)m_MecharcologyDb.GetModuleSeq(i));
+			pEntry->Insert(m_MecharcologyDb.GetModuleSeq(i));
 
 		pWatermark->Insert(CDatum(pEntry));
 		}

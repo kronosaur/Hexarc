@@ -511,9 +511,9 @@ bool CArchonProcess::OnModuleStart (void)
 		//	synchronizes to that point before assuming that loading is complete.
 
 		CString sEndpoint = CMnemosynthDb::GenerateEndpointName(GetMachineName(), GetModuleName());
-		DWORD dwSeq = m_MnemosynthDb.GetSequence(sEndpoint);
-		ASSERT(dwSeq != 0xffffffff);
-		if (dwSeq == 0xffffffff)
+		MnemosynthSequence dwSeq = m_MnemosynthDb.GetSequence(sEndpoint);
+		ASSERT(dwSeq != NULL_MNEMO_SEQ);
+		if (dwSeq == NULL_MNEMO_SEQ)
 			{
 			Log(MSG_LOG_ERROR, ERR_UNABLE_TO_OPEN_MNEMOSYNTH);
 			return false;
@@ -523,7 +523,7 @@ bool CArchonProcess::OnModuleStart (void)
 
 		CComplexArray *pArray = new CComplexArray;
 		pArray->Insert(m_sName);
-		pArray->Insert((int)dwSeq);
+		pArray->Insert(dwSeq);
 
 		if (!SendMessageCommand(ADDR_EXARCH_COMMAND, MSG_EXARCH_ON_MODULE_START, NULL_STR, 0, CDatum(pArray)))
 			{

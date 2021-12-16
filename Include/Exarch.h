@@ -77,12 +77,12 @@ class CMecharcologyDb
 		CProcess *GetModuleProcess (const CString &sName);
 		CProcess &GetModuleProcess (int iIndex) { CSmartLock Lock(m_cs); return m_Modules[iIndex].hProcess; }
 		CTimeSpan GetModuleRunTime (const CString &sName) const;
-		DWORD GetModuleSeq (int iIndex) { CSmartLock Lock(m_cs); return m_Modules[iIndex].dwSeq; }
+		MnemosynthSequence GetModuleSeq (int iIndex) { CSmartLock Lock(m_cs); return m_Modules[iIndex].dwSeq; }
 		bool IsModuleRemoved (const CString &sName) const;
 		bool IsModuleRunning (const CString &sName) const;
 		bool LoadModule (const CString &sFilespec, bool bDebug, CString *retsName, CString *retsError);
 		void OnMnemosynthUpdated (void);
-		void OnModuleStart (const CString &sName, DWORD dwMnemosynthSeq, bool *retbAllComplete);
+		void OnModuleStart (const CString &sName, MnemosynthSequence dwMnemosynthSeq, bool *retbAllComplete);
 		void OnModuleRestart (const CString &sName);
 		void SetModuleRemoved (const CString &sName);
 
@@ -126,7 +126,7 @@ class CMecharcologyDb
 
 			CProcess hProcess;					//	Running process
 			EModuleStates iStatus = moduleLaunched;		//	Current module status
-			DWORD dwSeq = 0;					//	Seq (used during startup)
+			MnemosynthSequence dwSeq = 0;		//	Seq (used during startup)
 			CString sVersion;					//	Module version
 			CDateTime StartTime;				//	Time when module started
 			};
