@@ -43,10 +43,11 @@ class CAEONTimeSpan : public IComplexDatum
 		virtual CDatum GetElement (const CString &sKey) const override;
 		virtual const CString &GetTypename (void) const override;
 		virtual bool IsArray (void) const override { return true; }
-		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
 
 	protected:
 		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const override;
+		virtual bool OnDeserialize (CDatum::EFormat iFormat, const CString &sTypename, IByteStream &Stream) override;
+		virtual void OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
 
 	private:
 		static constexpr int PART_COUNT = 3;
