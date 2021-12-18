@@ -26,6 +26,37 @@ class CAEONObject : public CComplexStruct
 		CDatum m_dType;
 	};
 
+class CAEONTimeSpan : public IComplexDatum
+	{
+	public:
+		CAEONTimeSpan (void) { }
+		CAEONTimeSpan (const CTimeSpan &TimeSpan) : m_TimeSpan(TimeSpan) { }
+
+		virtual CString AsString (void) const override;
+		virtual size_t CalcMemorySize (void) const override { return sizeof(CAEONTimeSpan); }
+		virtual const CTimeSpan &CastCTimeSpan () const { return m_TimeSpan; }
+		virtual IComplexDatum *Clone (void) const override { return new CAEONTimeSpan(m_TimeSpan); }
+		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeTimeSpan; }
+		virtual int GetCount (void) const { return PART_COUNT; };
+		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::TIME_SPAN); }
+		virtual CDatum GetElement (int iIndex) const override;
+		virtual CDatum GetElement (const CString &sKey) const override;
+		virtual const CString &GetTypename (void) const override;
+		virtual bool IsArray (void) const override { return true; }
+		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
+
+	protected:
+		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const override;
+
+	private:
+		static constexpr int PART_COUNT = 3;
+		static constexpr int PART_DAYS = 0;
+		static constexpr int PART_MILLISECONDS = 1;
+		static constexpr int PART_NEGATIVE = 2;
+
+		CTimeSpan m_TimeSpan;
+	};
+
 class CAEONVectorInt32 : public TAEONVector<int, CAEONVectorInt32>
 	{
 	public:

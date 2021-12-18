@@ -65,6 +65,7 @@ const char *g_szDayNameIMF[] =
 	};
 
 CDateTime NULL_DATETIME;
+CTimeSpan const CTimeSpan::m_Null;
 
 //	CDateTime -----------------------------------------------------------------
 

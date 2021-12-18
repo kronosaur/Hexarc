@@ -31,6 +31,7 @@ DECLARE_CONST_STRING(TYPENAME_SIGNED,					"Signed");
 DECLARE_CONST_STRING(TYPENAME_STRING,					"String");
 DECLARE_CONST_STRING(TYPENAME_STRUCT,					"Struct");
 DECLARE_CONST_STRING(TYPENAME_TABLE,					"Table");
+DECLARE_CONST_STRING(TYPENAME_TIME_SPAN,				"TimeSpan");
 DECLARE_CONST_STRING(TYPENAME_UINT_32,					"UInt32");
 DECLARE_CONST_STRING(TYPENAME_UINT_64,					"UInt64");
 DECLARE_CONST_STRING(TYPENAME_UNSIGNED,					"Unsigned");
@@ -337,6 +338,15 @@ void CAEONTypeSystem::InitCoreTypes ()
 			false
 			})
 		);
+
+	AddCoreType(new CDatatypeSimple(
+		{
+		MakeFullyQualifiedName(NULL_STR, TYPENAME_TIME_SPAN), 
+		IDatatype::TIME_SPAN,
+		{  },
+		false
+		})
+	);
 
 	AddCoreType(new CDatatypeSimple(
 		{

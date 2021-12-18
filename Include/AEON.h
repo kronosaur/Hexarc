@@ -111,6 +111,7 @@ class CDatum
 			typeObject =		14,			//	A typed struct
 			typeTable =			15,			//	A table (each column is a typed array)
 			typeDatatype =		16,			//	A datatype (IDatatype)
+			typeTimeSpan =		17,	
 
 			typeCustom =		100,
 			};
@@ -309,17 +310,18 @@ class IDatatype
 		static constexpr DWORD ARRAY =				18;	//	An array of Any
 		static constexpr DWORD STRUCT =				19;	//	A struct of Any
 		static constexpr DWORD DATE_TIME =			20;	//	A dateTime
-		static constexpr DWORD BINARY =				21;	//	A binary blob
-		static constexpr DWORD FUNCTION =			22;	//	A function
-		static constexpr DWORD OBJECT =				23;	//	An object (datatype is a class definition)
-		static constexpr DWORD TABLE =				24;	//	A table (datatype is a schema)
+		static constexpr DWORD TIME_SPAN =			21;	//	A timespan
+		static constexpr DWORD BINARY =				22;	//	A binary blob
+		static constexpr DWORD FUNCTION =			23;	//	A function
+		static constexpr DWORD OBJECT =				24;	//	An object (datatype is a class definition)
+		static constexpr DWORD TABLE =				25;	//	A table (datatype is a schema)
 
-		static constexpr DWORD ARRAY_INT_32 =		25;
-		static constexpr DWORD ARRAY_FLOAT_64 =		26;
-		static constexpr DWORD ARRAY_STRING =		27;
-		static constexpr DWORD ARRAY_DATE_TIME =	28;
-		static constexpr DWORD ARRAY_INT_64 =		29;
-		static constexpr DWORD ARRAY_INT_IP =		30;
+		static constexpr DWORD ARRAY_INT_32 =		26;
+		static constexpr DWORD ARRAY_FLOAT_64 =		27;
+		static constexpr DWORD ARRAY_STRING =		28;
+		static constexpr DWORD ARRAY_DATE_TIME =	29;
+		static constexpr DWORD ARRAY_INT_64 =		30;
+		static constexpr DWORD ARRAY_INT_IP =		31;
 
 		enum class ECategory
 			{
@@ -470,6 +472,7 @@ class IComplexDatum
 		virtual const CIPInteger &CastCIPInteger (void) const { return NULL_IPINTEGER; }
 		virtual const CRGBA32Image &CastCRGBA32Image (void) const { return CRGBA32Image::Null(); }
 		virtual const CString &CastCString (void) const { return NULL_STR; }
+		virtual const CTimeSpan &CastCTimeSpan () const { return CTimeSpan::Null(); }
 		virtual DWORDLONG CastDWORDLONG (void) const { return 0; }
 		virtual const IDatatype &CastIDatatype (void) const;
 		virtual int CastInteger32 (void) const { return 0; }

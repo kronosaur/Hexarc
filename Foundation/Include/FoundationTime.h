@@ -158,6 +158,7 @@ class CTimeSpan
 		int Milliseconds (void) const { return (SECONDS_PER_DAY * 1000 * m_Days) + m_Milliseconds; }
 		DWORDLONG Milliseconds64 (void) const { return ((DWORDLONG)SECONDS_PER_DAY * (DWORDLONG)m_Days * 1000) + (DWORDLONG)m_Milliseconds; }
 		int MillisecondsSinceMidnight (void) const { return (int)m_Milliseconds; }
+		static const CTimeSpan &Null () { return m_Null; }
 
 		CString Format (const CString &sFormat) const;
 
@@ -165,6 +166,8 @@ class CTimeSpan
 		DWORD m_Days = 0;
 		DWORD m_Milliseconds = 0;
 		bool m_bNegative = false;
+
+		static const CTimeSpan m_Null;
 	};
 
 CDateTime timeAddTime (const CDateTime &StartTime, const CTimeSpan &Addition);
