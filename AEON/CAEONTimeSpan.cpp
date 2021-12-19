@@ -25,22 +25,37 @@ CString CAEONTimeSpan::AsString (void) const
 
 	if (m_TimeSpan.Days() == 0)
 		{
-		return strPattern("%02d:%02d:%02d.%03d",
+		if (iMilliseconds == 0)
+			return strPattern("%02d:%02d:%02d",
+					iHours,
+					iMinutes,
+					iSeconds
+					);
+		else
+			return strPattern("%02d:%02d:%02d.%03d",
 				iHours,
 				iMinutes,
 				iSeconds,
 				iMilliseconds
-				);
+			);
 		}
 	else
 		{
-		return strPattern("%d:%02d:%02d:%02d.%03d",
+		if (iMilliseconds == 0)
+			return strPattern("%d:%02d:%02d:%02d",
+					m_TimeSpan.Days(),
+					iHours,
+					iMinutes,
+					iSeconds
+					);
+		else
+			return strPattern("%d:%02d:%02d:%02d.%03d",
 				m_TimeSpan.Days(),
 				iHours,
 				iMinutes,
 				iSeconds,
 				iMilliseconds
-				);
+			);
 		}
 	}
 
