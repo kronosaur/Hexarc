@@ -160,6 +160,7 @@ class CDatum
 		CDatum (const CIPInteger &Value);
 		CDatum (const CRGBA32Image &Value);
 		CDatum (CRGBA32Image &&Value);
+		CDatum (const CTimeSpan &TimeSpan);
 		explicit CDatum (Types iType);
 		explicit CDatum (bool bValue) : m_dwData(bValue ? CONST_TRUE : 0) { }
 

@@ -299,6 +299,22 @@ CDatum::CDatum (CRGBA32Image &&Value)
 	m_dwData = ((DWORD_PTR)pValue | AEON_TYPE_COMPLEX);
 	}
 
+CDatum::CDatum (const CTimeSpan &TimeSpan)
+
+//	CDatum constructor
+
+	{
+	CAEONTimeSpan *pTimeSpan = new CAEONTimeSpan(TimeSpan);
+
+	//	Take ownership of the complex type
+
+	g_ComplexAlloc.New(pTimeSpan);
+
+	//	Store the pointer and assign type
+
+	m_dwData = ((DWORD_PTR)pTimeSpan | AEON_TYPE_COMPLEX);
+	}
+
 CDatum::operator int () const
 
 //	int cast operator
