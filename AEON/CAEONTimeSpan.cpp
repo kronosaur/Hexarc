@@ -21,7 +21,7 @@ CString CAEONTimeSpan::AsString (void) const
 	int iSeconds = iTimeSecs % 60;
 	int iTimeMinutes = iTimeSecs / 60;
 	int iMinutes = iTimeMinutes % 60;
-	int iHours = iTimeMinutes % 60;
+	int iHours = iTimeMinutes / 60;
 
 	if (m_TimeSpan.Days() == 0)
 		{

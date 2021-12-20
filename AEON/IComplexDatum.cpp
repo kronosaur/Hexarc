@@ -592,14 +592,49 @@ CString CComplexDateTime::AsString (void) const
 //	comparable to other strings).
 
 	{
-	return strPattern("%04d-%02d-%02dT%02d:%02d:%02d.%04d",
-			m_DateTime.Year(),
-			m_DateTime.Month(),
-			m_DateTime.Day(),
-			m_DateTime.Hour(),
-			m_DateTime.Minute(),
-			m_DateTime.Second(),
-			m_DateTime.Millisecond());
+	if (m_DateTime.HasDate() && m_DateTime.HasTime())
+		{
+		if (m_DateTime.Millisecond() == 0)
+			return strPattern("%04d-%02d-%02dT%02d:%02d:%02d",
+					m_DateTime.Year(),
+					m_DateTime.Month(),
+					m_DateTime.Day(),
+					m_DateTime.Hour(),
+					m_DateTime.Minute(),
+					m_DateTime.Second());
+		else
+			return strPattern("%04d-%02d-%02dT%02d:%02d:%02d.%03d",
+					m_DateTime.Year(),
+					m_DateTime.Month(),
+					m_DateTime.Day(),
+					m_DateTime.Hour(),
+					m_DateTime.Minute(),
+					m_DateTime.Second(),
+					m_DateTime.Millisecond());
+		}
+	else if (m_DateTime.HasDate())
+		{
+		return strPattern("%04d-%02d-%02d",
+				m_DateTime.Year(),
+				m_DateTime.Month(),
+				m_DateTime.Day());
+		}
+	else if (m_DateTime.HasTime())
+		{
+		if (m_DateTime.Millisecond() == 0)
+			return strPattern("%02d:%02d:%02d",
+					m_DateTime.Hour(),
+					m_DateTime.Minute(),
+					m_DateTime.Second());
+		else
+			return strPattern("%02d:%02d:%02d.%03d",
+					m_DateTime.Hour(),
+					m_DateTime.Minute(),
+					m_DateTime.Second(),
+					m_DateTime.Millisecond());
+		}
+	else
+		return NULL_STR;
 	}
 
 bool CComplexDateTime::CreateFromString (const CString &sString, CDateTime *retDateTime)
@@ -762,7 +797,7 @@ void CComplexDateTime::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) 
 		case CDatum::EFormat::AEONScript:
 		case CDatum::EFormat::AEONLocal:
 			{
-			CString sDate = strPattern("#%d-%02d-%02dT%02d:%02d:%02d.%04d",
+			CString sDate = strPattern("#%d-%02d-%02dT%02d:%02d:%02d.%03d",
 					m_DateTime.Year(),
 					m_DateTime.Month(),
 					m_DateTime.Day(),
@@ -777,7 +812,7 @@ void CComplexDateTime::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) 
 
 		case CDatum::EFormat::JSON:
 			{
-			CString sDate = strPattern("\"%d-%02d-%02dT%02d:%02d:%02d.%04d\"",
+			CString sDate = strPattern("\"%d-%02d-%02dT%02d:%02d:%02d.%03d\"",
 					m_DateTime.Year(),
 					m_DateTime.Month(),
 					m_DateTime.Day(),

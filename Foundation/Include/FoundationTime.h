@@ -124,6 +124,8 @@ class CDateTime
 		int MillisecondsSinceMidnight (void) const;
 
 		static int GetDaysInMonth (int iMonth, int iYear = 0);
+		static bool IsValidDate (int iDay, int iMonth, int iYear);
+		static bool IsValidTime (int iHour, int iMinute, int iSecond, int iMillisecond = 0);
 
 	private:
 		static bool ParseAuto (const char *pPos, const char *pPosEnd, StandardFormats iFormat, CDateTime *retResult);

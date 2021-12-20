@@ -193,9 +193,18 @@ CDateTime::CDateTime (int iDay, int iMonth, int iYear)
 //	CDateTime constructor
 
 	{
-	m_Time.wYear = iYear;
-	m_Time.wMonth = iMonth;
-	m_Time.wDay = iDay;
+	if (IsValidDate(iDay, iMonth, iYear))
+		{
+		m_Time.wYear = iYear;
+		m_Time.wMonth = iMonth;
+		m_Time.wDay = iDay;
+		}
+	else
+		{
+		m_Time.wYear = 1;
+		m_Time.wMonth = 1;
+		m_Time.wDay = 1;
+		}
 
 	m_Time.wHour = 0;
 	m_Time.wMinute = 0;
@@ -210,6 +219,12 @@ CDateTime::CDateTime (int iDay, int iMonth, int iYear, int iHour, int iMinute, i
 //	CDateTime constructor
 
 	{
+	if (!IsValidDate(iDay, iMonth, iYear) || !IsValidTime(iHour, iMinute, iSecond, iMillisecond))
+		{
+		*this = CDateTime();
+		return;
+		}
+
 	m_Time.wYear = iYear;
 	m_Time.wMonth = iMonth;
 	m_Time.wDay = iDay;
@@ -796,6 +811,33 @@ int CDateTime::GetDaysInMonth (int iMonth, int iYear)
 		else
 			return g_DaysInMonth[iMonth - 1];
 		}
+	}
+
+bool CDateTime::IsValidDate (int iDay, int iMonth, int iYear)
+
+//	IsValidDate
+//
+//	Returns TRUE if this is a valid date.
+
+	{
+	if (iYear == 1 && iMonth == 1 && iDay == 1)
+		return false;
+	else if (iYear < 1 || iMonth < 1 || iDay < 1)
+		return false;
+	else if (iMonth > 12 || iDay > GetDaysInMonth(iMonth, iYear))
+		return false;
+	else
+		return true;
+	}
+
+bool CDateTime::IsValidTime (int iHour, int iMinute, int iSecond, int iMillisecond)
+
+//	IsValidTime
+//
+//	Returns TRUE if this is a valid time.
+
+	{
+	return (iHour >= 0 && iHour <= 23 && iMinute >= 0 && iMinute <= 59 && iSecond >= 0 && iSecond <= 60 && iMillisecond >= 0 && iMillisecond <= 999);
 	}
 
 int CDateTime::MillisecondsSinceMidnight (void) const
