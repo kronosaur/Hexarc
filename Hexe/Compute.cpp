@@ -1030,6 +1030,18 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 
 						m_Stack.Push(CDatum(std::move(Result)));
 						}
+					else if (dA.GetBasicType() == CDatum::typeDateTime && dB.GetBasicType() == CDatum::typeTimeSpan)
+						{
+						m_Stack.Push(CDatum(CDateTime(timeAddTime(dA, dB))));
+						}
+					else if (dA.GetBasicType() == CDatum::typeTimeSpan && dB.GetBasicType() == CDatum::typeDateTime)
+						{
+						m_Stack.Push(CDatum(CDateTime(timeAddTime(dB, dA))));
+						}
+					else if (dA.GetBasicType() == CDatum::typeTimeSpan && dB.GetBasicType() == CDatum::typeTimeSpan)
+						{
+						m_Stack.Push(CDatum(CTimeSpan::Add(dA, dB)));
+						}
 					else
 						{
 						CNumberValue Result(dA);
@@ -1216,6 +1228,18 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 						else
 							m_Stack.Push(CDatum(iResult));
 #endif
+						}
+					else if (dA.GetBasicType() == CDatum::typeDateTime && dB.GetBasicType() == CDatum::typeDateTime)
+						{
+						m_Stack.Push(CDatum(timeSpan(dB, dA)));
+						}
+					else if (dA.GetBasicType() == CDatum::typeDateTime && dB.GetBasicType() == CDatum::typeTimeSpan)
+						{
+						m_Stack.Push(CDatum(timeSubtractTime(dA, dB)));
+						}
+					else if (dA.GetBasicType() == CDatum::typeTimeSpan && dB.GetBasicType() == CDatum::typeTimeSpan)
+						{
+						m_Stack.Push(CDatum(CTimeSpan::Subtract(dA, dB)));
 						}
 					else
 						{

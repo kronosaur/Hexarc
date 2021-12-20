@@ -541,6 +541,21 @@ CDatum::operator const CDateTime & () const
 		}
 	}
 
+CDatum::operator const CTimeSpan & () const
+
+//	CTimeSpan cast operator
+
+	{
+	switch (m_dwData & AEON_TYPE_MASK)
+		{
+		case AEON_TYPE_COMPLEX:
+			return raw_GetComplex()->CastCTimeSpan();
+
+		default:
+			return CTimeSpan::Null();
+		}
+	}
+
 CDatum::operator const CRGBA32Image & () const
 
 //	CRGBA32Image cast operator

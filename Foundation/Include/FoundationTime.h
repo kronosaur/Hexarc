@@ -164,6 +164,9 @@ class CTimeSpan
 
 		CString Format (const CString &sFormat) const;
 
+		static CTimeSpan Add (const CTimeSpan &A, const CTimeSpan &B);
+		static CTimeSpan Subtract (const CTimeSpan &A, const CTimeSpan &B);
+
 	private:
 		DWORD m_Days = 0;
 		DWORD m_Milliseconds = 0;

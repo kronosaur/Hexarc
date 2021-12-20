@@ -85,6 +85,7 @@ DECLARE_CONST_STRING(TYPENAME_BINARY,					"binary")
 DECLARE_CONST_STRING(TYPENAME_BINARY_FILE,				"binaryFile")
 DECLARE_CONST_STRING(TYPENAME_IMAGE32,					"image32")
 DECLARE_CONST_STRING(TYPENAME_IP_INTEGER,				"ipInteger")
+DECLARE_CONST_STRING(TYPENAME_TIME_SPAN,				"timeSpan")
 
 DECLARE_CONST_STRING(ERR_COLON_EXPECTED,				"Colon expected in struct: %s.")
 DECLARE_CONST_STRING(ERR_UNEXPECTED_TOKEN_IN_STRUCT,	"Unexpected token in struct: %s.")
@@ -543,6 +544,8 @@ CAEONScriptParser::ETokens CAEONScriptParser::ParseExternal (CDatum *retDatum)
 		pDatum = new CComplexBinaryFile;
 	else if (strEquals(dTypename, TYPENAME_IMAGE32))
 		pDatum = new CComplexImage32;
+	else if (strEquals(dTypename, TYPENAME_TIME_SPAN))
+		pDatum = new CAEONTimeSpan;
 	else
 		{
 		IComplexFactory *pFactory;

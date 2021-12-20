@@ -5,6 +5,8 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_MINUS,							"-");
+
 DECLARE_CONST_STRING(TYPENAME_TABLE,					"table");
 DECLARE_CONST_STRING(TYPENAME_TIME_SPAN,				"timeSpan");
 
@@ -23,16 +25,22 @@ CString CAEONTimeSpan::AsString (void) const
 	int iMinutes = iTimeMinutes % 60;
 	int iHours = iTimeMinutes / 60;
 
+	CString sSign;
+	if (m_TimeSpan.IsNegative())
+		sSign = STR_MINUS;
+
 	if (m_TimeSpan.Days() == 0)
 		{
 		if (iMilliseconds == 0)
-			return strPattern("%02d:%02d:%02d",
+			return strPattern("%s%02d:%02d:%02d",
+					sSign,
 					iHours,
 					iMinutes,
 					iSeconds
 					);
 		else
-			return strPattern("%02d:%02d:%02d.%03d",
+			return strPattern("%s%02d:%02d:%02d.%03d",
+				sSign,
 				iHours,
 				iMinutes,
 				iSeconds,
@@ -42,14 +50,16 @@ CString CAEONTimeSpan::AsString (void) const
 	else
 		{
 		if (iMilliseconds == 0)
-			return strPattern("%d:%02d:%02d:%02d",
+			return strPattern("%s%d:%02d:%02d:%02d",
+					sSign,
 					m_TimeSpan.Days(),
 					iHours,
 					iMinutes,
 					iSeconds
 					);
 		else
-			return strPattern("%d:%02d:%02d:%02d.%03d",
+			return strPattern("%s%d:%02d:%02d:%02d.%03d",
+				sSign,
 				m_TimeSpan.Days(),
 				iHours,
 				iMinutes,

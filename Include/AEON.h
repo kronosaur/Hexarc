@@ -190,6 +190,7 @@ class CDatum
 		operator const CString & () const;
 		operator const CDateTime & () const;
 		operator const CRGBA32Image & () const;
+		operator const CTimeSpan & () const;
 		operator const IDatatype & () const;
 
 		//	Standard interface

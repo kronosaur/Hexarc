@@ -1989,6 +1989,47 @@ CTimeSpan::CTimeSpan (const CTimeSpan &Src, bool bNegative) :
 	{
 	}
 
+CTimeSpan CTimeSpan::Add (const CTimeSpan &A, const CTimeSpan &B)
+
+//	Add
+//
+//	Add two timespans together.
+
+	{
+	if (A.IsNegative() == B.IsNegative())
+		{
+		DWORDLONG dwTotal = A.Milliseconds64() + B.Milliseconds64();
+		return CTimeSpan(dwTotal, A.IsNegative());
+		}
+	else if (A.IsNegative())
+		{
+		DWORDLONG dwA = A.Milliseconds64();
+		DWORDLONG dwB = B.Milliseconds64();
+		if (dwB >= dwA)
+			{
+			return CTimeSpan(dwB - dwA, false);
+			}
+		else
+			{
+			return CTimeSpan(dwA - dwB, true);
+			}
+		}
+	else
+		return Add(B, A);
+	}
+
+CTimeSpan CTimeSpan::Subtract (const CTimeSpan &A, const CTimeSpan &B)
+
+//	Subtract
+//
+//	Subtracts B from A.
+
+	{
+	CTimeSpan MinusB = B;
+	MinusB.m_bNegative = !MinusB.m_bNegative;
+	return Add(A, MinusB);
+	}
+
 CString FormatTwoUnits (const CString &sMajor, const CString &sMinor, int iMinor)
 	{
 	if (iMinor == 0)
@@ -2123,7 +2164,7 @@ CTimeSpan timeSpan (const CDateTime &StartTime, const CDateTime &EndTime)
 	int iEndTime = EndTime.MillisecondsSinceMidnight();
 
 	int iMilliseconds = 0;
-	if (iEndTime > iStartTime)
+	if (iEndTime >= iStartTime)
 		{
 		iMilliseconds = iEndTime - iStartTime;
 		}
