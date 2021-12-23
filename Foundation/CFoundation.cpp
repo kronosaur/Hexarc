@@ -36,6 +36,21 @@ bool CFoundation::Boot (DWORD dwFlags, CString *retsError)
 	return g_Foundation.Startup(dwFlags, retsError);
 	}
 
+CFoundation::SCPUInfo CFoundation::GetCPUInfo ()
+
+//	GetCPUInfo
+//
+//	Returns CPU info.
+
+	{
+	SYSTEM_INFO SI;
+	::GetSystemInfo(&SI);
+
+	SCPUInfo Info;
+	Info.iLogicalProcessorCount = SI.dwNumberOfProcessors;
+	return Info;
+	}
+
 void CFoundation::Shutdown (void)
 
 //	Shutdown

@@ -114,10 +114,16 @@ class CFoundation
 	public:
 		static constexpr DWORD BOOT_FLAG_COM =		0x00000001;
 
+		struct SCPUInfo
+			{
+			int iLogicalProcessorCount = 0;
+			};
+
 		CFoundation (void);
 		~CFoundation (void);
 
 		static bool Boot (DWORD dwFlags = 0, CString *retsError = NULL);
+		static SCPUInfo GetCPUInfo ();
 
 	private:
 		bool Startup (DWORD dwFlags, CString *retsError = NULL);
