@@ -1690,6 +1690,9 @@ int CHexeProcess::ExecuteCompare (CDatum dValue1, CDatum dValue2)
 				return KeyCompare(dValue1.GetCount(), dValue2.GetCount());
 				}
 
+			case CDatum::typeDatatype:
+				return KeyCompare(((const IDatatype &)dValue1).GetFullyQualifiedName(), ((const IDatatype &)dValue2).GetFullyQualifiedName());
+
 			default:
 				return KeyCompare(dValue1.AsString(), dValue2.AsString());
 			}
@@ -1961,6 +1964,9 @@ bool CHexeProcess::ExecuteIsEquivalent (CDatum dValue1, CDatum dValue2)
 
 				return true;
 				}
+
+			case CDatum::typeDatatype:
+				return strEquals(((const IDatatype &)dValue1).GetFullyQualifiedName(), ((const IDatatype &)dValue2).GetFullyQualifiedName());
 
 			default:
 				return false;
