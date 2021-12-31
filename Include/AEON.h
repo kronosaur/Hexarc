@@ -18,6 +18,7 @@
 //#define DEBUG_BLOB_PERF
 #endif
 
+class CAEONTypeSystem;
 class CComplexStruct;
 class CNumberValue;
 class IAEONParseExtension;
@@ -419,10 +420,13 @@ class CAEONTypeSystem
 		static CDatum GetCoreType (DWORD dwType);
 		static int GetCoreTypeCount () { return m_CoreTypes.GetCount(); }
 		static const TArray<CDatum> &GetCoreTypes () { if (m_CoreTypes.GetCount() == 0) InitCoreTypes(); return m_CoreTypes; }
+		bool IsEmpty () const { return m_Types.GetCount() == 0; }
 		static CString MakeFullyQualifiedName (const CString &sFullyQualifiedScope, const CString &sName);
 		void Mark ();
 		static void MarkCoreTypes ();
 		static CString ParseNameFromFullyQualifiedName (const CString &sValue);
+
+		static CAEONTypeSystem &Null () { return m_Null; }
 
 	private:
 		static void AddCoreType (IDatatype *pNewDatatype);
@@ -432,6 +436,7 @@ class CAEONTypeSystem
 		TSortMap<CString, CDatum> m_Types;
 
 		static TArray<CDatum> m_CoreTypes;
+		static CAEONTypeSystem m_Null;
 	};
 
 //	IAEONTable Interface -------------------------------------------------------

@@ -323,8 +323,8 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 			case opPushCoreType:
 				{
 				DWORD dwCoreType = GetOperand(*m_pIP);
-				if (m_pTypes && dwCoreType > 0 && (int)dwCoreType < m_pTypes->GetCoreTypeCount())
-					m_Stack.Push(m_pTypes->GetCoreType(dwCoreType));
+				if (dwCoreType > 0 && (int)dwCoreType < m_Types.GetCoreTypeCount())
+					m_Stack.Push(m_Types.GetCoreType(dwCoreType));
 				else
 					m_Stack.Push(CDatum());
 

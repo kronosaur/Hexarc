@@ -267,12 +267,13 @@ class CHexeProcess : public IInvokeCtx
 		void DeleteAll (void);
 		void DeleteLibraryCtx (const CString &sLibrary) { m_LibraryCtx.DeleteAt(sLibrary); }
 		bool FindGlobalDef (const CString &sIdentifier, CDatum *retdValue = NULL);
-		CDatum FindType (const CString &sFullyQualifiedName) const { if (m_pTypes) return m_pTypes->FindType(sFullyQualifiedName); else return CAEONTypeSystem::GetCoreType(IDatatype::ANY); }
+		CDatum FindType (const CString &sFullyQualifiedName) const { return m_Types.FindType(sFullyQualifiedName); }
 		DWORDLONG GetComputes () const { return m_dwComputes; }
 		CDatum GetGlobalEnv (void) { return m_dGlobalEnv; }
 		DWORDLONG GetLibraryTime () const { return m_dwLibraryTime; }
 		CHexeStack &GetStack () { return m_Stack; }
-		const CAEONTypeSystem *GetTypeSystem () const { return m_pTypes; }
+		const CAEONTypeSystem &GetTypeSystem () const { return m_Types; }
+		CAEONTypeSystem &GetTypeSystem () { return m_Types; }
 		bool InitFrom (const CHexeProcess &Process, CString *retsError = NULL);
 		bool LoadEntryPoints (const TArray<CHexeDocument::SEntryPoint> &EntryPoints, CString *retsError);
 		bool LoadEntryPoints (const CHexeDocument &Program, CString *retsError);
@@ -292,7 +293,7 @@ class CHexeProcess : public IInvokeCtx
 		void SetMaxExecutionTime (DWORDLONG dwMilliseconds) { m_dwMaxExecutionTime = dwMilliseconds; }
 		void SetOptionAddConcatenatesStrings (bool bValue = true) { m_bAddConcatenatesStrings = bValue; }
 		void SetSecurityCtx (const CHexeSecurityCtx &Ctx);
-		void SetTypeSystem (const CAEONTypeSystem &Types) { m_pTypes = &Types; }
+		void SetTypeSystem (const CAEONTypeSystem &Types) { m_Types = Types; }
 
 		//	Execution helpers
 		static int ExecuteCompare (CDatum dValue1, CDatum dValue2);
@@ -346,7 +347,7 @@ class CHexeProcess : public IInvokeCtx
 
 		//	Execution State
 
-		const CAEONTypeSystem *m_pTypes = NULL;		//	Static types
+		CAEONTypeSystem m_Types;					//	Static types
 		CDatum m_dExpression;						//	Current expression being executed
 		CHexeStack m_Stack;							//	Stack
 		DWORD *m_pIP = NULL;						//	Current instruction pointer

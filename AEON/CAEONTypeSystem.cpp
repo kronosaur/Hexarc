@@ -43,6 +43,7 @@ DECLARE_CONST_STRING(TYPENAME_UINT_64,					"UInt64");
 DECLARE_CONST_STRING(TYPENAME_UNSIGNED,					"Unsigned");
 
 TArray<CDatum> CAEONTypeSystem::m_CoreTypes;
+CAEONTypeSystem CAEONTypeSystem::m_Null;
 
 void CAEONTypeSystem::AddCoreType (IDatatype *pNewDatatype)
 
