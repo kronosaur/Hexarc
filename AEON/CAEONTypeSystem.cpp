@@ -5,28 +5,34 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(FIELD_DATATYPE,					"datatype");
+DECLARE_CONST_STRING(FIELD_DESCRIPTION,					"description");
+DECLARE_CONST_STRING(FIELD_LABEL,						"label");
+DECLARE_CONST_STRING(FIELD_NAME,						"name");
+
 DECLARE_CONST_STRING(TYPENAME_ANY,						"Any");
 DECLARE_CONST_STRING(TYPENAME_ARRAY,					"Array");
-DECLARE_CONST_STRING(TYPENAME_ARRAY_DATE_TIME,			"Array@DateTime");
-DECLARE_CONST_STRING(TYPENAME_ARRAY_FLOAT_64,			"Array@Float64");
-DECLARE_CONST_STRING(TYPENAME_ARRAY_INT_32,				"Array@Int32");
-DECLARE_CONST_STRING(TYPENAME_ARRAY_INT_64,				"Array@Int64");
-DECLARE_CONST_STRING(TYPENAME_ARRAY_INT_IP,				"Array@IntIP");
-DECLARE_CONST_STRING(TYPENAME_ARRAY_STRING,				"Array@String");
+DECLARE_CONST_STRING(TYPENAME_ARRAY_DATE_TIME,			"ArrayOfDateTime");
+DECLARE_CONST_STRING(TYPENAME_ARRAY_FLOAT_64,			"ArrayOfFloat64");
+DECLARE_CONST_STRING(TYPENAME_ARRAY_INT_32,				"ArrayOfInt32");
+DECLARE_CONST_STRING(TYPENAME_ARRAY_INT_64,				"ArrayOfInt64");
+DECLARE_CONST_STRING(TYPENAME_ARRAY_INT_IP,				"ArrayOfIntIP");
+DECLARE_CONST_STRING(TYPENAME_ARRAY_STRING,				"ArrayOfString");
 DECLARE_CONST_STRING(TYPENAME_BINARY,					"Binary");
 DECLARE_CONST_STRING(TYPENAME_BOOL,						"Bool");
 DECLARE_CONST_STRING(TYPENAME_DATATYPE,					"Datatype");
 DECLARE_CONST_STRING(TYPENAME_DATE_TIME,				"DateTime");
 DECLARE_CONST_STRING(TYPENAME_FLOAT_64,					"Float64");
-DECLARE_CONST_STRING(TYPENAME_FUNCTION,					"Function");
+DECLARE_CONST_STRING(TYPENAME_FUNCTION,					"FunctionType");
 DECLARE_CONST_STRING(TYPENAME_INT_32,					"Int32");
 DECLARE_CONST_STRING(TYPENAME_INT_64,					"Int64");
 DECLARE_CONST_STRING(TYPENAME_INT_IP,					"IntIP");
 DECLARE_CONST_STRING(TYPENAME_INTEGER,					"Integer");
-DECLARE_CONST_STRING(TYPENAME_NULL,						"Null");
+DECLARE_CONST_STRING(TYPENAME_NULL,						"NullType");
 DECLARE_CONST_STRING(TYPENAME_NUMBER,					"Number");
 DECLARE_CONST_STRING(TYPENAME_OBJECT,					"Object");
 DECLARE_CONST_STRING(TYPENAME_REAL,						"Real");
+DECLARE_CONST_STRING(TYPENAME_SCHEMA_TABLE,				"SchemaTable");
 DECLARE_CONST_STRING(TYPENAME_SIGNED,					"Signed");
 DECLARE_CONST_STRING(TYPENAME_STRING,					"String");
 DECLARE_CONST_STRING(TYPENAME_STRUCT,					"Struct");
@@ -103,6 +109,25 @@ CDatum CAEONTypeSystem::CreateDatatypeSchema (const CString &sFullyQualifiedName
 		*retpNewType = pNewType;
 
 	return dNewType;
+	}
+
+IDatatype *CAEONTypeSystem::CreateSchemaTable ()
+
+//	CreateSchemaTable
+//
+//	Creates a datatype representing the table used to define a table schema.
+
+	{
+	CString sFullyQualifiedName = CAEONTypeSystem::MakeFullyQualifiedName(NULL_STR, TYPENAME_SCHEMA_TABLE);
+
+	IDatatype *pNewType = new CDatatypeSchema({ sFullyQualifiedName, { CAEONTypeSystem::GetCoreType(IDatatype::TABLE) }, IDatatype::SCHEMA_TABLE });
+
+	pNewType->AddMember(FIELD_NAME, IDatatype::EMemberType::InstanceVar, GetCoreType(IDatatype::STRING));
+	pNewType->AddMember(FIELD_DATATYPE, IDatatype::EMemberType::InstanceVar, GetCoreType(IDatatype::DATATYPE));
+	pNewType->AddMember(FIELD_LABEL, IDatatype::EMemberType::InstanceVar, GetCoreType(IDatatype::STRING));
+	pNewType->AddMember(FIELD_DESCRIPTION, IDatatype::EMemberType::InstanceVar, GetCoreType(IDatatype::STRING));
+
+	return pNewType;
 	}
 
 CDatum CAEONTypeSystem::FindType (const CString &sFullyQualifiedName, const IDatatype **retpDatatype) const
@@ -431,6 +456,8 @@ void CAEONTypeSystem::InitCoreTypes ()
 			GetCoreType(IDatatype::INT_IP)
 			})
 		);
+
+	AddCoreType(CreateSchemaTable());
 	}
 
 CString CAEONTypeSystem::MakeFullyQualifiedName (const CString &sFullyQualifiedScope, const CString &sName)
@@ -488,3 +515,9 @@ CString CAEONTypeSystem::ParseNameFromFullyQualifiedName (const CString &sValue)
 		return NULL_STR;
 	}
 
+//	IDatatype ------------------------------------------------------------------
+
+CString IDatatype::GetName () const
+	{
+	return CAEONTypeSystem::ParseNameFromFullyQualifiedName(GetFullyQualifiedName());
+	}

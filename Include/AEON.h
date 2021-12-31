@@ -325,6 +325,8 @@ class IDatatype
 		static constexpr DWORD ARRAY_INT_64 =		30;
 		static constexpr DWORD ARRAY_INT_IP =		31;
 
+		static constexpr DWORD SCHEMA_TABLE =		32;	//	A table describing a schema
+
 		enum class ECategory
 			{
 			Unknown,
@@ -367,6 +369,8 @@ class IDatatype
 		const CString &GetFullyQualifiedName () const { return m_sFullyQualifiedName; }
 		SMemberDesc GetMember (int iIndex) const { return OnGetMember(iIndex); }
 		int GetMemberCount () const { return OnGetMemberCount(); }
+		CDatum GetMembersAsTable () const { return OnGetMembersAsTable(); }
+		CString GetName () const;
 		EMemberType HasMember (const CString &sName, CDatum *retdType = NULL) const { return OnHasMember(sName, retdType); }
 		bool IsA (const IDatatype &Type) const { return OnIsA(Type); }
 		bool IsAbstract () const { return OnIsAbstract(); }
@@ -383,6 +387,7 @@ class IDatatype
 		virtual DWORD OnGetCoreType () const { return UNKNOWN; }
 		virtual SMemberDesc OnGetMember (int iIndex) const { throw CException(errFail); }
 		virtual int OnGetMemberCount () const { return 0; }
+		virtual CDatum OnGetMembersAsTable () const { return CDatum(); }
 		virtual bool OnIsA (const IDatatype &Type) const { return (&Type == this) || Type.IsAny(); }
 		virtual bool OnIsAbstract () const { return false; }
 		virtual bool OnIsAny () const { return false; }
@@ -412,6 +417,7 @@ class CAEONTypeSystem
 		static CDatum CreateDatatypeSchema (const CString &sFullyQualifiedName, const CDatatypeList &Implements, IDatatype **retpNewType = NULL);
 		CDatum FindType (const CString &sFullyQualifiedName, const IDatatype **retpDatatype = NULL) const;
 		static CDatum GetCoreType (DWORD dwType);
+		static int GetCoreTypeCount () { return m_CoreTypes.GetCount(); }
 		static const TArray<CDatum> &GetCoreTypes () { if (m_CoreTypes.GetCount() == 0) InitCoreTypes(); return m_CoreTypes; }
 		static CString MakeFullyQualifiedName (const CString &sFullyQualifiedScope, const CString &sName);
 		void Mark ();
@@ -420,6 +426,7 @@ class CAEONTypeSystem
 
 	private:
 		static void AddCoreType (IDatatype *pNewDatatype);
+		static IDatatype *CreateSchemaTable ();
 		static void InitCoreTypes ();
 
 		TSortMap<CString, CDatum> m_Types;

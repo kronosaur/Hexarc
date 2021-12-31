@@ -9,7 +9,25 @@ DECLARE_CONST_STRING(TYPENAME_DATATYPE,				"datatype")
 
 TDatumPropertyHandler<CComplexDatatype> CComplexDatatype::m_Properties = {
 	{
+		"fields",
+		"A table representing the fields of the type.",
+		[](const CComplexDatatype &Obj, const CString &sProperty)
+			{
+			return Obj.m_pType->GetMembersAsTable();
+			},
+		NULL,
+		},
+	{
 		"name",
+		"Name of the datatype.",
+		[](const CComplexDatatype &Obj, const CString &sProperty)
+			{
+			return CDatum(Obj.m_pType->GetName());
+			},
+		NULL,
+		},
+	{
+		"symbol",
 		"Fully-qualified name of the datatype.",
 		[](const CComplexDatatype &Obj, const CString &sProperty)
 			{

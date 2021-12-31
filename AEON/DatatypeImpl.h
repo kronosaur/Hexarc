@@ -164,9 +164,11 @@ class CDatatypeSchema : public IDatatype
 			{
 			CString sFullyQualifiedName;
 			CDatatypeList Implements;
+			DWORD dwCoreType = 0;
 			};
 
 		CDatatypeSchema (const SCreate &Create) : IDatatype(Create.sFullyQualifiedName),
+				m_dwCoreType(Create.dwCoreType),
 				m_Implements(Create.Implements)
 			{ }
 
@@ -174,6 +176,7 @@ class CDatatypeSchema : public IDatatype
 
 		struct SColumn
 			{
+			int iOrdinal = 0;
 			CString sName;
 			CDatum dType;
 			};
@@ -182,13 +185,17 @@ class CDatatypeSchema : public IDatatype
 
 		virtual bool OnAddMember (const CString &sName, EMemberType iType, CDatum dType, CString *retsError = NULL) override;
 		virtual ECategory OnGetClass () const override { return IDatatype::ECategory::Schema; }
+		virtual DWORD OnGetCoreType () const override { return m_dwCoreType; }
 		virtual SMemberDesc OnGetMember (int iIndex) const { if (iIndex < 0 || iIndex >= m_Columns.GetCount()) throw CException(errFail); return SMemberDesc({ EMemberType::InstanceVar, m_Columns[iIndex].sName, m_Columns[iIndex].dType }); }
 		virtual int OnGetMemberCount () const { return m_Columns.GetCount(); }
+		virtual CDatum OnGetMembersAsTable () const override;
 		virtual EMemberType OnHasMember (const CString &sName, CDatum *retdType = NULL) const override;
 		virtual bool OnIsA (const IDatatype &Type) const override { return (&Type == this || Type.IsAny() || m_Implements.IsA(Type)); }
 		virtual void OnMark () override;
 
-		TSortMap<CString, SColumn> m_Columns;
+		TArray<SColumn> m_Columns;
+		TSortMap<CString, int> m_ColumnsByName;
+		DWORD m_dwCoreType = 0;
 		CDatatypeList m_Implements;
 	};
 
@@ -226,6 +233,9 @@ class CComplexDatatype : public IComplexDatum
 		virtual void SetElement (const CString &sKey, CDatum dDatum) override { m_Properties.SetProperty(*this, sKey, dDatum, NULL); }
 
 	protected:
+
+		//	IComplexDatum
+
 		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const override { return CalcSerializeAsStructSize(iFormat); }
 		virtual void OnMarked (void) override { m_pType->Mark(); }
 

@@ -320,6 +320,18 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				break;
 				}
 
+			case opPushCoreType:
+				{
+				DWORD dwCoreType = GetOperand(*m_pIP);
+				if (m_pTypes && dwCoreType > 0 && (int)dwCoreType < m_pTypes->GetCoreTypeCount())
+					m_Stack.Push(m_pTypes->GetCoreType(dwCoreType));
+				else
+					m_Stack.Push(CDatum());
+
+				m_pIP++;
+				break;
+				}
+
 			case opNot:
 				if (m_Stack.Pop().IsNil())
 					m_Stack.Push(true);
