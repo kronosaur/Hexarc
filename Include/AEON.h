@@ -178,6 +178,7 @@ class CDatum
 		static bool CreateStringFromHandoff (CString &sString, CDatum *retDatum);
 		static bool CreateStringFromHandoff (CStringBuffer &String, CDatum *retDatum);
 		static CDatum CreateTable (CDatum dType, CDatum dValue = CDatum());
+		static CDatum CreateTableFromDesc (CAEONTypeSystem &TypeSystem, CDatum dDesc);
 		static bool Deserialize (EFormat iFormat, IByteStream &Stream, IAEONParseExtension *pExtension, CDatum *retDatum);
 		static bool Deserialize (EFormat iFormat, IByteStream &Stream, CDatum *retDatum) { return Deserialize(iFormat, Stream, NULL, retDatum); }
 		static Types GetStringValueType (const CString &sValue);
@@ -263,6 +264,9 @@ class CDatum
 		static constexpr DWORD_PTR CONST_FREE =		0xfeee0001;
 
 		size_t CalcSerializeSizeAEONScript (EFormat iFormat) const;
+		static CDatum CreateTableFromArray (CAEONTypeSystem &TypeSystem, CDatum dValue);
+		static CDatum CreateTableFromDatatype (CAEONTypeSystem &TypeSystem, CDatum dType);
+		static CDatum CreateTableFromStruct (CAEONTypeSystem &TypeSystem, CDatum dValue);
 		static int DefaultCompare (void *pCtx, const CDatum &dKey1, const CDatum &dKey2);
 		static bool DeserializeAEONScript (IByteStream &Stream, IAEONParseExtension *pExtension, CDatum *retDatum);
 		static bool DeserializeAEONScript (IByteStream &Stream, CDatum *retDatum) { return DeserializeAEONScript(Stream, NULL, retDatum); }

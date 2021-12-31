@@ -1306,6 +1306,81 @@ CDatum CDatum::CreateTable (CDatum dType, CDatum dValue)
 	return dTable;
 	}
 
+CDatum CDatum::CreateTableFromArray (CAEONTypeSystem &TypeSystem, CDatum dValue)
+
+//	CreateTableFromArray
+//
+//	Creates a table from an array, creating a schema as necessary.
+
+	{
+	return CDatum();
+	}
+
+CDatum CDatum::CreateTableFromDatatype (CAEONTypeSystem &TypeSystem, CDatum dType)
+
+//	CreateTableFromDatatype
+//
+//	Creates an empty table from a datatype, creating a schema if necessary.
+
+	{
+	const IDatatype &Type = dType;
+
+	//	If this is a schema datatype, then we're done.
+
+	if (Type.GetClass() == IDatatype::ECategory::Schema)
+		return CreateTable(dType);
+
+	//	Otherwise, nothing.
+
+	else
+		return CDatum();
+	}
+
+CDatum CDatum::CreateTableFromDesc (CAEONTypeSystem &TypeSystem, CDatum dDesc)
+
+//	CreateTableFromDesc
+//
+//	Creates a table from various possible descriptors. We support the following:
+//
+//	schema: If dDesc is a schema, we create an empty table with the given
+//		schema.
+//
+//	In case of error, we return nil
+
+	{
+	switch (dDesc.GetBasicType())
+		{
+		case CDatum::typeArray:
+			return CreateTableFromArray(TypeSystem, dDesc);
+
+		case CDatum::typeDatatype:
+			return CreateTableFromDatatype(TypeSystem, dDesc);
+
+		case CDatum::typeStruct:
+			return CreateTableFromStruct(TypeSystem, dDesc);
+
+		case CDatum::typeTable:
+			return dDesc.Clone();
+
+		default:
+			return CDatum();
+		}
+
+	return CDatum();
+	}
+
+CDatum CDatum::CreateTableFromStruct (CAEONTypeSystem &TypeSystem, CDatum dValue)
+
+//	CreateTableFromStruct
+//
+//	Creates a table from a structure, generating a schema, if necessary.
+
+	{
+	//	We treat each field of the struct as a column.
+
+	return CDatum();
+	}
+
 int CDatum::DefaultCompare (void *pCtx, const CDatum &dKey1, const CDatum &dKey2)
 
 //	DefaultCompare
