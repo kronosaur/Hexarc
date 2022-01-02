@@ -378,6 +378,7 @@ class IDatatype
 		CString GetName () const;
 		EMemberType HasMember (const CString &sName, CDatum *retdType = NULL) const { return OnHasMember(sName, retdType); }
 		bool IsA (const IDatatype &Type) const { return OnIsA(Type); }
+		bool IsACoreType (DWORD dwType) const;
 		bool IsAbstract () const { return OnIsAbstract(); }
 		bool IsAny () const { return OnIsAny(); }
 		void Mark () { OnMark(); }

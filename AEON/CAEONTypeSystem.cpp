@@ -522,3 +522,10 @@ CString IDatatype::GetName () const
 	{
 	return CAEONTypeSystem::ParseNameFromFullyQualifiedName(GetFullyQualifiedName());
 	}
+
+bool IDatatype::IsACoreType (DWORD dwType) const
+	{
+	CDatum dType = CAEONTypeSystem::GetCoreType(dwType);
+	const IDatatype &Type = dType;
+	return IsA(Type);
+	}
