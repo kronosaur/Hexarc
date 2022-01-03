@@ -354,7 +354,7 @@ class CHexeProcess : public IInvokeCtx
 		CDatum m_dCodeBank;							//	Current code bank
 		CHexeCode *m_pCodeBank = NULL;				//	Current code bank
 		CHexeCallStack m_CallStack;					//	Call stack
-		bool m_bInEventHandler = false;				//	Inside event handler
+		int m_iEventHandlerLevel = 0;				//	>0 = Inside event handler
 
 		CDatum m_dGlobalEnv;						//	Process global environment
 

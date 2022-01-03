@@ -787,7 +787,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 						{
 						//	Must be in an event handler.
 
-						if (!m_bInEventHandler)
+						if (m_iEventHandlerLevel <= 0)
 							throw CException(errFail);
 
 						//	Pop the result
@@ -799,7 +799,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 						//	NOTE: We don't need to restore m_LocalEnvStack because the function 
 						//	did that in its return code (call to opExitEnv).
 
-						m_bInEventHandler = false;
+						m_iEventHandlerLevel--;
 						*retResult = dEventHandlerResult;
 						return ERun::EventHandlerDone;
 						}

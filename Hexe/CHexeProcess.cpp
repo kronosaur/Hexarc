@@ -475,14 +475,6 @@ CHexeProcess::ERun CHexeProcess::RunEventHandler (CDatum dFunc, const TArray<CDa
 //	When the function returns Run will exit with InputRequest.
 
 	{
-	//	Can't nest
-
-	if (m_bInEventHandler)
-		{
-		CHexeError::Create(NULL_STR, ERR_CANT_NEST_EVENT_HANDLER, &retResult);
-		return ERun::Error;
-		}
-
 	//	Validate function
 
 	CDatum dNewCodeBank;
@@ -524,7 +516,7 @@ CHexeProcess::ERun CHexeProcess::RunEventHandler (CDatum dFunc, const TArray<CDa
 
 	//	Remember that we're in an event handler.
 
-	m_bInEventHandler = true;
+	m_iEventHandlerLevel++;
 
 	//	Progress
 
