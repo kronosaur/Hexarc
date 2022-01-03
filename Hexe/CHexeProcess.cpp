@@ -329,6 +329,7 @@ void CHexeProcess::Mark (void)
 	m_dExpression.Mark();
 	m_dCodeBank.Mark();
 	m_CallStack.Mark();
+	m_Types.Mark();
 
 	m_dGlobalEnv.Mark();
 	m_dCurGlobalEnv.Mark();
