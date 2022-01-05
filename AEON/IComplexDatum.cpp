@@ -497,6 +497,20 @@ size_t CComplexArray::CalcMemorySize (void) const
 	return dwSize;
 	}
 
+bool CComplexArray::Contains (CDatum dValue) const
+
+//	Contains
+//
+//	Returns TRUE if we contain dValue.
+
+	{
+	for (int i = 0; i < m_Array.GetCount(); i++)
+		if (m_Array[i].Contains(dValue))
+			return true;
+
+	return false;
+	}
+
 bool CComplexArray::FindElement (CDatum dValue, int *retiIndex) const
 
 //	FindElement
@@ -928,6 +942,20 @@ CString CComplexStruct::AsString (void) const
 	CString sOutput;
 	sOutput.TakeHandoff(Output);
 	return sOutput;
+	}
+
+bool CComplexStruct::Contains (CDatum dValue) const
+
+//	Contains
+//
+//	Returns TRUE if we contain dValue.
+
+	{
+	for (int i = 0; i < m_Map.GetCount(); i++)
+		if (m_Map[i].Contains(dValue))
+			return true;
+
+	return false;
 	}
 
 bool CComplexStruct::FindElement (const CString &sKey, CDatum *retpValue)

@@ -19,6 +19,19 @@ const int COMPRISING_LOCAL_ENV =						2;
 const int COMPRISING_OFFSET =							3;
 const int COMPRISING_COUNT =							4;
 
+bool CHexeFunction::Contains (CDatum dValue) const
+
+//	Contains
+//
+//	Returns TRUE if we contain the given value.
+
+	{
+	if (m_dLocalEnv.Contains(dValue))
+		return true;
+
+	return false;
+	}
+
 void CHexeFunction::Create (CDatum dCodeBank, int iCodeOffset, CDatum dGlobalEnv, CDatum dLocalEnv, CDatum *retdFunc)
 
 //	Create
@@ -177,15 +190,22 @@ void CHexeFunction::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruc
 	//	NOTE: We only serialize a single level. In the future, we should be 
 	//	smarter about only saving variables used by the function (in a closure).
 
+	CHexeLocalEnvironment *pCurrentLocalEnv = CHexeLocalEnvironment::Upconvert(m_dLocalEnv);
 	CHexeLocalEnvironment *pLocalEnv = new CHexeLocalEnvironment;
+	pLocalEnv->SetNextArg(pCurrentLocalEnv->GetNextArg());
+
+	CDatum dSelf(CDatum::raw_AsComplex(this));
+
 	for (int i = 0; i < m_dLocalEnv.GetCount(); i++)
 		{
 		pLocalEnv->SetArgumentKey(0, i, m_dLocalEnv.GetKey(i));
 		CDatum dValue = m_dLocalEnv.GetElement(i);
 
+		CString sKey = m_dLocalEnv.GetKey(i);
+
 		//	Make sure we don't try to save ourselves.
 
-		if (CHexeFunction::Upconvert(dValue) == this)
+		if (dValue.Contains(dSelf))
 			continue;
 
 		//	Add

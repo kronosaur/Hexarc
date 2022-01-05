@@ -204,6 +204,7 @@ class CDatum
 		size_t CalcMemorySize (void) const;
 		size_t CalcSerializeSize (EFormat iFormat) const;
 		CDatum Clone (void) const;
+		bool Contains (CDatum dValue) const;
 		bool Find (CDatum dValue, int *retiIndex = NULL) const;
 		bool FindElement (const CString &sKey, CDatum *retpValue);
 		int GetArrayCount (void) const;
@@ -258,8 +259,10 @@ class CDatum
 		static void MarkAndSweep (void);
 		static bool RegisterExternalType (const CString &sTypename, IComplexFactory *pFactory);
 		static void RegisterMarkProc (MARKPROC fnProc);
+		static CDatum raw_AsComplex (const void *pValue) { CDatum dResult; dResult.m_dwData = ((DWORD_PTR)pValue | AEON_TYPE_COMPLEX); return dResult; }
 
 	private:
+
 		static constexpr DWORD_PTR CONST_TRUE =		0xaaaa0001;
 		static constexpr DWORD_PTR CONST_FREE =		0xfeee0001;
 
@@ -499,6 +502,7 @@ class IComplexDatum
 		virtual int CastInteger32 (void) const { return 0; }
 		void ClearMark (void) { m_bMarked = false; }
 		virtual IComplexDatum *Clone (void) const = 0;
+		virtual bool Contains (CDatum dValue) const { return false; }
 		bool DeserializeAEONScript (CDatum::EFormat iFormat, const CString &sTypename, CCharStream *pStream);
 		virtual bool DeserializeJSON (const CString &sTypename, const TArray<CDatum> &Data);
 		virtual bool Find (CDatum dValue, int *retiIndex = NULL) const { return false; }
@@ -579,6 +583,7 @@ class CComplexArray : public IComplexDatum
 		virtual CString AsString (void) const override;
 		virtual size_t CalcMemorySize (void) const override;
 		virtual IComplexDatum *Clone (void) const override { return new CComplexArray(m_Array); }
+		virtual bool Contains (CDatum dValue) const override;
 		virtual bool Find (CDatum dValue, int *retiIndex = NULL) const override { return FindElement(dValue, retiIndex); }
 		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeArray; }
 		virtual int GetCount (void) const override { return m_Array.GetCount(); }
@@ -812,6 +817,7 @@ class CComplexStruct : public IComplexDatum
 		virtual CString AsString (void) const override;
 		virtual size_t CalcMemorySize (void) const override;
 		virtual IComplexDatum *Clone (void) const override { return new CComplexStruct(m_Map); }
+		virtual bool Contains (CDatum dValue) const override;
 		virtual bool FindElement (const CString &sKey, CDatum *retpValue) override;
 		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeStruct; }
 		virtual int GetCount (void) const override { return m_Map.GetCount(); }

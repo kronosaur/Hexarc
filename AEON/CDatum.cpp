@@ -932,6 +932,26 @@ CDatum CDatum::Clone (void) const
 		}
 	}
 
+bool CDatum::Contains (CDatum dValue) const
+
+//	Contains
+//
+//	Returns TRUE this datum contains dValue.
+
+	{
+	if (dValue.m_dwData == m_dwData)
+		return true;
+
+	switch (m_dwData & AEON_TYPE_MASK)
+		{
+		case AEON_TYPE_COMPLEX:
+			return raw_GetComplex()->Contains(dValue);
+
+		default:
+			return false;
+		}
+	}
+
 CDatum CDatum::CreateArrayAsType (CDatum dType, CDatum dValue)
 
 //	CreateArrayAsType

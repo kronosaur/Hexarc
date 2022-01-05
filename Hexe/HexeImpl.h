@@ -122,6 +122,7 @@ class CHexeFunction : public TExternalDatum<CHexeFunction>
 
 		//	IComplexDatum
 		virtual bool CanInvoke (void) const override { return true; }
+		virtual bool Contains (CDatum dValue) const override;
 		virtual CDatum::ECallType GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) const override;
 		virtual int GetCount (void) const override;
 		virtual CDatum GetElement (int iIndex) const override;
@@ -218,15 +219,18 @@ class CHexeLocalEnvironment : public TExternalDatum<CHexeLocalEnvironment>
 
 		bool FindArgument (const CString &sArg, int *retiLevel, int *retiIndex);
 		CDatum GetArgument (int iLevel, int iIndex);
-		inline CDatum GetParentEnv (void) { return m_dParentEnv; }
-		inline void ResetNextArg (void) { m_iNextArg = 0; }
+		int GetNextArg () const { return m_iNextArg; }
+		CDatum GetParentEnv (void) { return m_dParentEnv; }
+		void ResetNextArg (void) { m_iNextArg = 0; }
 		void SetArgumentKey (int iLevel, int iIndex, const CString &sKey);
 		void SetArgumentValue (int iLevel, int iIndex, CDatum dValue);
-		inline void SetElement (int iIndex, CDatum dValue) { m_Array[iIndex].dValue = dValue; }
-		inline void SetNextArgKey (const CString &sKey) { SetArgumentKey(0, m_iNextArg++, sKey); }
-		inline void SetParentEnv (CDatum dParentEnv) { m_dParentEnv = dParentEnv; }
+		void SetElement (int iIndex, CDatum dValue) { m_Array[iIndex].dValue = dValue; }
+		void SetNextArg (int iValue) { m_iNextArg = iValue; }
+		void SetNextArgKey (const CString &sKey) { SetArgumentKey(0, m_iNextArg++, sKey); }
+		void SetParentEnv (CDatum dParentEnv) { m_dParentEnv = dParentEnv; }
 
 		//	IComplexDatum
+		virtual bool Contains (CDatum dValue) const override;
 		virtual int GetCount (void) const override { return m_Array.GetCount(); }
 		virtual CDatum GetElement (int iIndex) const override { return (iIndex < m_Array.GetCount() ? m_Array[iIndex].dValue : CDatum()); }
 		virtual CDatum GetElement (const CString &sKey) const override;
