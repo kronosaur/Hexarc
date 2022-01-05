@@ -5,12 +5,12 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(FIELD_GLOBAL_ENV,					"globalEnv")
-DECLARE_CONST_STRING(FIELD_HEXE_CODE,					"hexeCode")
-DECLARE_CONST_STRING(FIELD_LOCAL_ENV,					"localEnv")
-DECLARE_CONST_STRING(FIELD_OFFSETX,						"offset")	//	NOTE: Unable to use FIELD_OFFSET as name
+DECLARE_CONST_STRING(FIELD_GLOBAL_ENV,					"globalEnv");
+DECLARE_CONST_STRING(FIELD_HEXE_CODE,					"hexeCode");
+DECLARE_CONST_STRING(FIELD_LOCAL_ENV,					"localEnv");
+DECLARE_CONST_STRING(FIELD_OFFSETX,						"offset");	//	NOTE: Unable to use FIELD_OFFSET as name
 
-DECLARE_CONST_STRING(TYPENAME_HEXE_FUNCTION,			"hexeFunction")
+DECLARE_CONST_STRING(TYPENAME_HEXE_FUNCTION,			"hexeFunction");
 const CString &CHexeFunction::StaticGetTypename (void) { return TYPENAME_HEXE_FUNCTION; }
 
 const int COMPRISING_GLOBAL_ENV =						0;

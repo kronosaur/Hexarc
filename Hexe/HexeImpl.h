@@ -110,7 +110,7 @@ class CHexePrimitive : public TExternalDatum<CHexePrimitive>
 class CHexeFunction : public TExternalDatum<CHexeFunction>
 	{
 	public:
-		CHexeFunction (void) : m_pGlobalEnv(NULL) { }
+		CHexeFunction (void) { }
 
 		static void Create (CDatum dCodeBank, int iCodeOffset, CDatum dGlobalEnv, CDatum dLocalEnv, CDatum *retdFunc);
 		static const CString &StaticGetTypename (void);
@@ -135,10 +135,10 @@ class CHexeFunction : public TExternalDatum<CHexeFunction>
 
 	private:
 		CDatum m_dHexeCode;
-		int m_iOffset;
+		int m_iOffset = 0;
 
 		CDatum m_dGlobalEnv;
-		CHexeGlobalEnvironment *m_pGlobalEnv;
+		CHexeGlobalEnvironment *m_pGlobalEnv = NULL;
 
 		CDatum m_dLocalEnv;
 	};
@@ -234,6 +234,7 @@ class CHexeLocalEnvironment : public TExternalDatum<CHexeLocalEnvironment>
 		virtual void SetElement (const CString &sKey, CDatum dDatum) override;
 
 	protected:
+		virtual bool OnDeserialize (CDatum::EFormat iFormat, CDatum dStruct) override;
 		virtual DWORD OnGetSerializeFlags (void) const override { return FLAG_SERIALIZE_AS_STRUCT; }
 		virtual void OnMarked (void) override;
 		virtual void OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const override;

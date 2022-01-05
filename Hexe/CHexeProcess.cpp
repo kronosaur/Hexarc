@@ -5,6 +5,12 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(FIELD_ABORT_TIME,					"abortTime");
+DECLARE_CONST_STRING(FIELD_ADD_CONCATENATES_STRINGS,	"addConcatenatesStrings");
+DECLARE_CONST_STRING(FIELD_LIBRARIES,					"libraries");
+DECLARE_CONST_STRING(FIELD_MAX_EXECUTION_TIME,			"maxExecutionTime");
+DECLARE_CONST_STRING(FIELD_TYPES,						"types");
+
 DECLARE_CONST_STRING(LIBRARY_CORE,						"core");
 
 DECLARE_CONST_STRING(TYPE_HEXE_LISP,					"$hexeLisp");
@@ -75,6 +81,7 @@ void CHexeProcess::DeleteAll (void)
 
 	m_pCurGlobalEnv = new CHexeGlobalEnvironment;
 	m_dCurGlobalEnv = CDatum(m_pCurGlobalEnv);
+	m_Libraries.DeleteAll();
 
 	m_dLocalEnv = CDatum();
 	m_pLocalEnv = NULL;
@@ -143,6 +150,34 @@ bool CHexeProcess::InitFrom (const CHexeProcess &Process, CString *retsError)
 		CHexeGlobalEnvironment *pGlobalEnv = new CHexeGlobalEnvironment(pSrcGlobalEnv);
 		m_dGlobalEnv = CDatum(pGlobalEnv);
 		}
+
+	return true;
+	}
+
+bool CHexeProcess::InitFrom (CDatum dSerialized, CString *retsError)
+
+//	InitFrom
+//
+//	Initialize from a serialized process.
+
+	{
+	DeleteAll();
+
+	if (!m_Types.InitFrom(dSerialized.GetElement(FIELD_TYPES), retsError))
+		return false;
+
+	CDatum dLibraries = dSerialized.GetElement(FIELD_LIBRARIES);
+	for (int i = 0; i < dLibraries.GetCount(); i++)
+		{
+		if (!LoadLibrary(dLibraries.GetElement(i), retsError))
+			return false;
+		}
+
+	m_dwMaxExecutionTime = dSerialized.GetElement(FIELD_MAX_EXECUTION_TIME);
+	m_dwAbortTime = dSerialized.GetElement(FIELD_ABORT_TIME);
+	m_bAddConcatenatesStrings = !dSerialized.GetElement(FIELD_ADD_CONCATENATES_STRINGS).IsNil();
+
+	//	Success!
 
 	return true;
 	}
@@ -278,11 +313,11 @@ bool CHexeProcess::LoadLibrary (const CString &sName, CString *retsError)
 //	Loads the definitions in the given library (from the Hexe Librarian)
 
 	{
-	int i;
-	DWORD dwLibraryID;
-
 	InitGlobalEnv();
 
+	m_Libraries.Insert(sName);
+
+	DWORD dwLibraryID;
 	if (!g_HexeLibrarian.FindLibrary(sName, &dwLibraryID))
 		{
 		if (retsError)
@@ -290,7 +325,7 @@ bool CHexeProcess::LoadLibrary (const CString &sName, CString *retsError)
 		return false;
 		}
 
-	for (i = 0; i < g_HexeLibrarian.GetEntryCount(dwLibraryID); i++)
+	for (int i = 0; i < g_HexeLibrarian.GetEntryCount(dwLibraryID); i++)
 		{
 		CDatum dFunction;
 		const CString &sFunction = g_HexeLibrarian.GetEntry(dwLibraryID, i, &dFunction);
@@ -377,8 +412,6 @@ CHexeProcess::ERun CHexeProcess::Run (CDatum dFunc, const TArray<CDatum> &Args, 
 //	Runs the given function with the given arguments.
 
 	{
-	int i;
-
 	//	First we generate code to call the function
 
 	CDatum dExpression;
@@ -389,7 +422,7 @@ CHexeProcess::ERun CHexeProcess::Run (CDatum dFunc, const TArray<CDatum> &Args, 
 	m_Stack.DeleteAll();
 	m_Stack.Push(dFunc);
 
-	for (i = 0; i < Args.GetCount(); i++)
+	for (int i = 0; i < Args.GetCount(); i++)
 		m_Stack.Push(Args[i]);
 
 	//	Now call the function
@@ -617,6 +650,33 @@ CHexeProcess::ERun CHexeProcess::RunWithStack (CDatum dExpression, CDatum *retRe
 		m_pComputeProgress->OnStop();
 
 	return iRun;
+	}
+
+CDatum CHexeProcess::Serialize () const
+
+//	Serialize
+//
+//	Serialize into a struct.
+
+	{
+	CDatum dResult(CDatum::typeStruct);
+
+	dResult.SetElement(FIELD_TYPES, m_Types.Serialize());
+
+	CDatum dLibraries(CDatum::typeArray);
+	for (int i = 0; i < m_Libraries.GetCount(); i++)
+		dLibraries.Append(m_Libraries[i]);
+
+	dResult.SetElement(FIELD_LIBRARIES, dLibraries);
+
+	dResult.SetElement(FIELD_MAX_EXECUTION_TIME, m_dwMaxExecutionTime);
+	dResult.SetElement(FIELD_ABORT_TIME, m_dwAbortTime);
+	if (m_bAddConcatenatesStrings)
+		dResult.SetElement(FIELD_ADD_CONCATENATES_STRINGS, CDatum(true));
+
+	//	Done
+
+	return dResult;
 	}
 
 void *CHexeProcess::SetLibraryCtx (const CString &sLibrary, void *pCtx)

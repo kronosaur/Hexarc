@@ -85,6 +85,19 @@ const IDatatype &IComplexDatum::CastIDatatype (void) const
 	return (const IDatatype &)CAEONTypeSystem::GetCoreType(IDatatype::ANY);
 	}
 
+bool IComplexDatum::OnDeserialize (CDatum::EFormat iFormat, CDatum dStruct)
+
+//	OnDeserialize
+//
+//	Descendants can override this to deserialize from a struct.
+
+	{
+	for (int i = 0; i < dStruct.GetCount(); i++)
+		SetElement(dStruct.GetKey(i), dStruct.GetElement(i));
+
+	return true;
+	}
+
 bool IComplexDatum::DeserializeAEONScript (CDatum::EFormat iFormat, const CString &sTypename, CCharStream *pStream)
 
 //	DeserializeAEONScript
@@ -92,7 +105,6 @@ bool IComplexDatum::DeserializeAEONScript (CDatum::EFormat iFormat, const CStrin
 //	Deserialize AEONScript
 
 	{
-	int i;
 	DWORD dwFlags = OnGetSerializeFlags();
 
 	//	If we have an open brace then we've stored everything as a structure.
@@ -115,8 +127,8 @@ bool IComplexDatum::DeserializeAEONScript (CDatum::EFormat iFormat, const CStrin
 		//	Take all the fields in the structure and apply them to our object
 		//	(our descendants will do the right thing).
 
-		for (i = 0; i < dData.GetCount(); i++)
-			SetElement(dData.GetKey(i), dData.GetElement(i));
+		if (!OnDeserialize(iFormat, dData))
+			return false;
 		}
 
 	//	Otherwise we expect base64 encoded data

@@ -275,6 +275,7 @@ class CHexeProcess : public IInvokeCtx
 		const CAEONTypeSystem &GetTypeSystem () const { return m_Types; }
 		CAEONTypeSystem &GetTypeSystem () { return m_Types; }
 		bool InitFrom (const CHexeProcess &Process, CString *retsError = NULL);
+		bool InitFrom (CDatum dSerialized, CString *retsError = NULL);
 		bool LoadEntryPoints (const TArray<CHexeDocument::SEntryPoint> &EntryPoints, CString *retsError);
 		bool LoadEntryPoints (const CHexeDocument &Program, CString *retsError);
 		bool LoadHexeDefinitions (const TArray<CDatum> &Definitions, CString *retsError);
@@ -288,6 +289,7 @@ class CHexeProcess : public IInvokeCtx
 		ERun Run (CDatum dFunc, CDatum dCallExpression, const TArray<CDatum> *pInitialStack, CDatum *retResult);
 		ERun RunContinues (CDatum dAsyncResult, CDatum *retResult);
 		ERun RunEventHandler (CDatum dFunc, const TArray<CDatum> &Args, CDatum &retResult);
+		CDatum Serialize () const;
 		void SetComputeProgress (IHexeComputeProgress &Progress) { m_pComputeProgress = &Progress; }
 		void *SetLibraryCtx (const CString &sLibrary, void *pCtx);
 		void SetMaxExecutionTime (DWORDLONG dwMilliseconds) { m_dwMaxExecutionTime = dwMilliseconds; }
@@ -347,6 +349,7 @@ class CHexeProcess : public IInvokeCtx
 
 		//	Execution State
 
+		TArray<CString> m_Libraries;				//	Libraries loaded
 		CAEONTypeSystem m_Types;					//	Static types
 		CDatum m_dExpression;						//	Current expression being executed
 		CHexeStack m_Stack;							//	Stack
@@ -398,6 +401,8 @@ class CHexe
 		static bool Boot (void);
 
 		static bool InvokeHexarcMsg (const CString &sMsg, CDatum dPayload, CDatum &retdResult);
+		static bool RunFunctionWithCtx (CDatum dFunc, CDatum dArgs, CDatum dCtx, CDatum &retdResult);
+		static bool RunFunction1ArgWithCtx (CDatum dFunc, CDatum dArg, CDatum dCtx, CDatum &retdResult);
 
 	private:
 		static void Mark (void);

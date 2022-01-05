@@ -425,11 +425,13 @@ class CAEONTypeSystem
 		static CDatum GetCoreType (DWORD dwType);
 		static int GetCoreTypeCount () { return m_CoreTypes.GetCount(); }
 		static const TArray<CDatum> &GetCoreTypes () { if (m_CoreTypes.GetCount() == 0) InitCoreTypes(); return m_CoreTypes; }
+		bool InitFrom (CDatum dSerialized, CString *retsError = NULL);
 		bool IsEmpty () const { return m_Types.GetCount() == 0; }
 		static CString MakeFullyQualifiedName (const CString &sFullyQualifiedScope, const CString &sName);
 		void Mark ();
 		static void MarkCoreTypes ();
 		static CString ParseNameFromFullyQualifiedName (const CString &sValue);
+		CDatum Serialize () const;
 
 		static CAEONTypeSystem &Null () { return m_Null; }
 
@@ -535,6 +537,7 @@ class IComplexDatum
 	protected:
 		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const { return 0; }
 		virtual bool OnDeserialize (CDatum::EFormat iFormat, const CString &sTypename, IByteStream &Stream) { ASSERT(false); return false; }
+		virtual bool OnDeserialize (CDatum::EFormat iFormat, CDatum dStruct);
 		virtual DWORD OnGetSerializeFlags (void) const { return 0; }
 		virtual void OnMarked (void) { }
 		virtual void OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const { ASSERT(false); }

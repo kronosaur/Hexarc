@@ -226,3 +226,37 @@ void CHexe::Mark (void)
 	{
 	g_HexeLibrarian.Mark();
 	}
+
+bool CHexe::RunFunctionWithCtx (CDatum dFunc, CDatum dArgs, CDatum dCtx, CDatum &retdResult)
+
+//	RunFunctionWithCtx
+//
+//	Composes a response from a library function to call an function with 
+//	arguments.
+
+	{
+	CDatum dResult(CDatum::typeArray);
+	dResult.Append(dFunc);
+	dResult.Append(dArgs);
+	dResult.Append(dCtx);
+
+	retdResult = dResult;
+
+	//	FALSE means special result.
+
+	return false;
+	}
+
+bool CHexe::RunFunction1ArgWithCtx (CDatum dFunc, CDatum dArg, CDatum dCtx, CDatum &retdResult)
+
+//	RunFunction1ArgWithCtx
+//
+//	Composes a response from a library function to call an function with 
+//	arguments.
+
+	{
+	CDatum dArgs(CDatum::typeArray);
+	dArgs.Append(dArg);
+
+	return RunFunctionWithCtx(dFunc, dArgs, dCtx, retdResult);
+	}

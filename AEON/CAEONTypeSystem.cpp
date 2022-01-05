@@ -461,6 +461,16 @@ void CAEONTypeSystem::InitCoreTypes ()
 	AddCoreType(CreateSchemaTable());
 	}
 
+bool CAEONTypeSystem::InitFrom (CDatum dSerialized, CString *retsError)
+
+//	InitFrom
+//
+//	Initialize from a serialized struct.
+
+	{
+	return true;
+	}
+
 CString CAEONTypeSystem::MakeFullyQualifiedName (const CString &sFullyQualifiedScope, const CString &sName)
 
 //	MakeFullyQualifiedName
@@ -514,6 +524,16 @@ CString CAEONTypeSystem::ParseNameFromFullyQualifiedName (const CString &sValue)
 		return CString(pEnd + 1);
 	else
 		return NULL_STR;
+	}
+
+CDatum CAEONTypeSystem::Serialize () const
+
+//	Serialize
+//
+//	Serializes all types.
+
+	{
+	return CDatum();
 	}
 
 //	IDatatype ------------------------------------------------------------------

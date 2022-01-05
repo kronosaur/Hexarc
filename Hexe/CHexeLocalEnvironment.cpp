@@ -5,7 +5,11 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(TYPENAME_HEXE_LOCAL_ENVIRONMENT,	"hexeLocalEnvironment")
+DECLARE_CONST_STRING(FIELD_NEXT_ARG,					"nextArg");
+DECLARE_CONST_STRING(FIELD_PARENT,						"parent");
+DECLARE_CONST_STRING(FIELD_VALUES,						"values");
+
+DECLARE_CONST_STRING(TYPENAME_HEXE_LOCAL_ENVIRONMENT,	"hexeLocalEnvironment");
 const CString &CHexeLocalEnvironment::StaticGetTypename (void) { return TYPENAME_HEXE_LOCAL_ENVIRONMENT; }
 
 bool CHexeLocalEnvironment::FindArgument (const CString &sArg, int *retiLevel, int *retiIndex)
@@ -86,6 +90,31 @@ CDatum CHexeLocalEnvironment::GetElement (const CString &sKey) const
 	return CDatum();
 	}
 
+bool CHexeLocalEnvironment::OnDeserialize (CDatum::EFormat iFormat, CDatum dStruct)
+
+//	OnDeserialize
+//
+//	Deserialize.
+
+	{
+	CDatum dValues = dStruct.GetElement(FIELD_VALUES);
+
+	m_Array.DeleteAll();
+	m_Array.GrowToFit(dValues.GetCount());
+
+	for (int i = 0; i < dValues.GetCount(); i++)
+		{
+		auto pEntry = m_Array.Insert();
+		pEntry->sArg = dValues.GetKey(i);
+		pEntry->dValue = dValues.GetElement(i);
+		}
+
+	m_iNextArg = dStruct.GetElement(FIELD_NEXT_ARG);
+	m_dParentEnv = dStruct.GetElement(FIELD_PARENT);
+
+	return true;
+	}
+
 void CHexeLocalEnvironment::OnMarked (void)
 
 //	OnMarked
@@ -108,8 +137,15 @@ void CHexeLocalEnvironment::OnSerialize (CDatum::EFormat iFormat, CComplexStruct
 //	Serialize all elements for obects that are serialized as structures.
 
 	{
-	//	NOTE: We don't bother serializing anything, since we can't fully
-	//	serialize primitive functions, etc.
+	CDatum dValues(CDatum::typeStruct);
+	dValues.GrowToFit(m_Array.GetCount());
+	for (int i = 0; i < m_Array.GetCount(); i++)
+		dValues.SetElement(m_Array[i].sArg, m_Array[i].dValue);
+
+	pStruct->SetElement(FIELD_VALUES, dValues);
+
+	pStruct->SetElement(FIELD_NEXT_ARG, m_iNextArg);
+//	pStruct->SetElement(FIELD_PARENT, m_dParentEnv);
 	}
 
 void CHexeLocalEnvironment::SetArgumentKey (int iLevel, int iIndex, const CString &sKey)
