@@ -5,6 +5,7 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(FIELD_LOCAL_ENV_PARENT,			"localEnv_parent");
 DECLARE_CONST_STRING(FIELD_NEXT_ARG,					"nextArg");
 DECLARE_CONST_STRING(FIELD_PARENT,						"parent");
 DECLARE_CONST_STRING(FIELD_VALUES,						"values");
@@ -81,11 +82,12 @@ CDatum CHexeLocalEnvironment::GetElement (const CString &sKey) const
 //	Returns the element
 
 	{
-	int i;
-
-	for (i = 0; i < m_Array.GetCount(); i++)
+	for (int i = 0; i < m_Array.GetCount(); i++)
 		if (strEquals(sKey, m_Array[i].sArg))
 			return m_Array[i].dValue;
+
+	if (strEquals(sKey, FIELD_LOCAL_ENV_PARENT))
+		return m_dParentEnv;
 
 	return CDatum();
 	}
