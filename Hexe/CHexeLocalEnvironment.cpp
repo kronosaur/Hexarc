@@ -102,13 +102,13 @@ bool CHexeLocalEnvironment::OnDeserialize (CDatum::EFormat iFormat, CDatum dStru
 	CDatum dValues = dStruct.GetElement(FIELD_VALUES);
 
 	m_Array.DeleteAll();
-	m_Array.GrowToFit(dValues.GetCount());
+	m_Array.GrowToFit(dValues.GetCount() / 2);
 
-	for (int i = 0; i < dValues.GetCount(); i++)
+	for (int i = 0; i < dValues.GetCount(); i += 2)
 		{
 		auto pEntry = m_Array.Insert();
-		pEntry->sArg = dValues.GetKey(i);
-		pEntry->dValue = dValues.GetElement(i);
+		pEntry->sArg = dValues.GetElement(i);
+		pEntry->dValue = dValues.GetElement(i + 1);
 		}
 
 	m_iNextArg = dStruct.GetElement(FIELD_NEXT_ARG);
@@ -139,15 +139,19 @@ void CHexeLocalEnvironment::OnSerialize (CDatum::EFormat iFormat, CComplexStruct
 //	Serialize all elements for obects that are serialized as structures.
 
 	{
-	CDatum dValues(CDatum::typeStruct);
-	dValues.GrowToFit(m_Array.GetCount());
+	CDatum dValues(CDatum::typeArray);
+	dValues.GrowToFit(2 * m_Array.GetCount());
 	for (int i = 0; i < m_Array.GetCount(); i++)
-		dValues.SetElement(m_Array[i].sArg, m_Array[i].dValue);
+		{
+		dValues.Append(m_Array[i].sArg);
+		dValues.Append(m_Array[i].dValue);
+		}
 
 	pStruct->SetElement(FIELD_VALUES, dValues);
 
 	pStruct->SetElement(FIELD_NEXT_ARG, m_iNextArg);
-//	pStruct->SetElement(FIELD_PARENT, m_dParentEnv);
+
+	//	NOTE: We do not serialize the parent because it is a pointer.
 	}
 
 void CHexeLocalEnvironment::SetArgumentKey (int iLevel, int iIndex, const CString &sKey)

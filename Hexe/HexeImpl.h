@@ -132,6 +132,7 @@ class CHexeFunction : public TExternalDatum<CHexeFunction>
 	protected:
 		virtual DWORD OnGetSerializeFlags (void) const override { return FLAG_SERIALIZE_AS_STRUCT; }
 		virtual void OnMarked (void) override { m_dHexeCode.Mark(); m_dGlobalEnv.Mark(); m_dLocalEnv.Mark(); }
+		virtual void OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const override;
 
 	private:
 		CDatum m_dHexeCode;

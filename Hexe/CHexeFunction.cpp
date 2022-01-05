@@ -161,6 +161,44 @@ CString CHexeFunction::GetKey (int iIndex) const
 		}
 	}
 
+void CHexeFunction::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const
+
+//	OnSerialize
+//
+//	Serialize the function.
+
+	{
+	//	Serialize code
+
+	pStruct->SetElement(FIELD_HEXE_CODE, m_dHexeCode);
+	pStruct->SetElement(FIELD_OFFSETX, m_iOffset);
+
+	//	Serialize local environment.
+	//	NOTE: We only serialize a single level. In the future, we should be 
+	//	smarter about only saving variables used by the function (in a closure).
+
+	CHexeLocalEnvironment *pLocalEnv = new CHexeLocalEnvironment;
+	for (int i = 0; i < m_dLocalEnv.GetCount(); i++)
+		{
+		pLocalEnv->SetArgumentKey(0, i, m_dLocalEnv.GetKey(i));
+		CDatum dValue = m_dLocalEnv.GetElement(i);
+
+		//	Make sure we don't try to save ourselves.
+
+		if (CHexeFunction::Upconvert(dValue) == this)
+			continue;
+
+		//	Add
+
+		pLocalEnv->SetArgumentValue(0, i, dValue);
+		}
+
+	pStruct->SetElement(FIELD_LOCAL_ENV, CDatum(pLocalEnv));
+
+	//	NOTE: We do not serialize the global environment because we don't know
+	//	how. Instead, we should attached it on deserialize.
+	}
+
 void CHexeFunction::SetElement (const CString &sKey, CDatum dDatum)
 
 //	SetElement
