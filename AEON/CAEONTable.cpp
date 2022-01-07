@@ -151,6 +151,23 @@ CString CAEONTable::AsString (void) const
 	return CString(Buffer);
 	}
 
+CDatum CAEONTable::CalcColumnDatatype (CDatum dValue)
+
+//	CalcColumnDatatype
+//
+//	Computes the column datatype based on a value.
+
+	{
+	if (dValue.GetBasicType() == CDatum::typeArray)
+		{
+		return dValue.GetElement(0).GetDatatype();
+		}
+	else
+		{
+		return dValue.GetDatatype();
+		}
+	}
+
 size_t CAEONTable::CalcMemorySize (void) const
 
 //	CalcMemorySize
@@ -164,6 +181,99 @@ size_t CAEONTable::CalcMemorySize (void) const
 		iSize += m_Cols[i].CalcMemorySize();
 
 	return iSize;
+	}
+
+CDatum CAEONTable::CreateTableFromArray (CAEONTypeSystem &TypeSystem, CDatum dValue)
+
+//	CreateTableFromArray
+//
+//	Creates a table from an array, creating a schema as necessary.
+
+	{
+	return CDatum();
+	}
+
+CDatum CAEONTable::CreateTableFromDatatype (CAEONTypeSystem &TypeSystem, CDatum dType)
+
+//	CreateTableFromDatatype
+//
+//	Creates an empty table from a datatype, creating a schema if necessary.
+
+	{
+	const IDatatype &Type = dType;
+
+	//	If this is a schema datatype, then we're done.
+
+	if (Type.GetClass() == IDatatype::ECategory::Schema)
+		return CDatum::CreateTable(dType);
+
+	//	Otherwise, nothing.
+
+	else
+		return CDatum();
+	}
+
+CDatum CAEONTable::CreateTableFromStruct (CAEONTypeSystem &TypeSystem, CDatum dValue)
+
+//	CreateTableFromStruct
+//
+//	Creates a table from a structure, generating a schema, if necessary.
+
+	{
+	int iRows = 0;
+
+	//	We treat each field of the struct as a column.
+
+	TArray<IDatatype::SMemberDesc> Columns;
+	Columns.GrowToFit(dValue.GetCount());
+	for (int i = 0; i < dValue.GetCount(); i++)
+		{
+		CDatum dColumnValues = dValue.GetElement(i);
+
+		auto pNewColumn = Columns.Insert();
+		pNewColumn->iType = IDatatype::EMemberType::InstanceVar;
+		pNewColumn->sName = dValue.GetKey(i);
+		pNewColumn->dType = CalcColumnDatatype(dColumnValues);
+
+		if (dColumnValues.GetBasicType() == CDatum::typeArray)
+			iRows = Max(iRows, dColumnValues.GetCount());
+		else
+			iRows = Max(iRows, 1);
+		}
+
+	//	Create a new schema.
+
+	CDatum dSchema = TypeSystem.AddAnonymousSchema(Columns);
+	if (dSchema.IsNil())
+		return CDatum();
+
+	//	Create the table.
+
+	CAEONTable *pNewTable = new CAEONTable(dSchema);
+	pNewTable->GrowToFit(iRows);
+	pNewTable->m_iRows = iRows;
+
+	for (int i = 0; i < dValue.GetCount(); i++)
+		{
+		CDatum dColumnValues = dValue.GetElement(i);
+		int iValueCount = dColumnValues.GetCount();
+		if (iValueCount == 0)
+			{
+			for (int iRow = 0; iRow < iRows; iRow++)
+				{
+				pNewTable->m_Cols[i].Append(CDatum());
+				}
+			}
+		else
+			{
+			for (int iRow = 0; iRow < iRows; iRow++)
+				{
+				pNewTable->m_Cols[i].Append(dColumnValues.GetElement(iRow % iValueCount));
+				}
+			}
+		}
+
+	return CDatum(pNewTable);
 	}
 
 IAEONTable::EResult CAEONTable::DeleteAllRows ()

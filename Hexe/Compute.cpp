@@ -1484,7 +1484,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 							m_Stack.Push(dObject.GetElement(sField));
 
 							//	Push a nil this pointer. In opMakeMethodEnv we 
-							//	detect this an deal with it appropriately.
+							//	detect this and deal with it appropriately.
 
 							m_Stack.Push(CDatum());
 							break;

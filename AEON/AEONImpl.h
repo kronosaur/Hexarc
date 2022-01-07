@@ -136,6 +136,10 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual void Sort (ESortOptions Order = AscendingSort, TArray<CDatum>::COMPAREPROC pfCompare = NULL, void *pCtx = NULL) override { throw CException(errFail); }
 		virtual void SetElement (int iIndex, CDatum dDatum) override;
 
+		static CDatum CreateTableFromArray (CAEONTypeSystem &TypeSystem, CDatum dValue);
+		static CDatum CreateTableFromDatatype (CAEONTypeSystem &TypeSystem, CDatum dType);
+		static CDatum CreateTableFromStruct (CAEONTypeSystem &TypeSystem, CDatum dValue);
+
 	protected:
 
 		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const override;
@@ -145,6 +149,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 
 	private:
 
+		static CDatum CalcColumnDatatype (CDatum dValue);
 		void SetSchema (CDatum dSchema);
 
 		int m_iRows = 0;

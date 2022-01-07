@@ -267,9 +267,6 @@ class CDatum
 		static constexpr DWORD_PTR CONST_FREE =		0xfeee0001;
 
 		size_t CalcSerializeSizeAEONScript (EFormat iFormat) const;
-		static CDatum CreateTableFromArray (CAEONTypeSystem &TypeSystem, CDatum dValue);
-		static CDatum CreateTableFromDatatype (CAEONTypeSystem &TypeSystem, CDatum dType);
-		static CDatum CreateTableFromStruct (CAEONTypeSystem &TypeSystem, CDatum dValue);
 		static int DefaultCompare (void *pCtx, const CDatum &dKey1, const CDatum &dKey2);
 		static bool DeserializeAEONScript (IByteStream &Stream, IAEONParseExtension *pExtension, CDatum *retDatum);
 		static bool DeserializeAEONScript (IByteStream &Stream, CDatum *retDatum) { return DeserializeAEONScript(Stream, NULL, retDatum); }
@@ -421,6 +418,7 @@ class CDatatypeList
 class CAEONTypeSystem
 	{
 	public:
+		CDatum AddAnonymousSchema (const TArray<IDatatype::SMemberDesc> &Columns);
 		bool AddType (CDatum dType);
 		static CDatum CreateDatatypeClass (const CString &sFullyQualifiedName, const CDatatypeList &Implements, IDatatype **retpNewType = NULL);
 		static CDatum CreateDatatypeSchema (const CString &sFullyQualifiedName, const CDatatypeList &Implements, IDatatype **retpNewType = NULL);
@@ -444,6 +442,7 @@ class CAEONTypeSystem
 		static void InitCoreTypes ();
 
 		TSortMap<CString, CDatum> m_Types;
+		DWORD m_dwNextAnonymousID = 1;
 
 		static TArray<CDatum> m_CoreTypes;
 		static CAEONTypeSystem m_Null;

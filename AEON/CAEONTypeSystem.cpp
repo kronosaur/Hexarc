@@ -45,6 +45,30 @@ DECLARE_CONST_STRING(TYPENAME_UNSIGNED,					"Unsigned");
 TArray<CDatum> CAEONTypeSystem::m_CoreTypes;
 CAEONTypeSystem CAEONTypeSystem::m_Null;
 
+CDatum CAEONTypeSystem::AddAnonymousSchema (const TArray<IDatatype::SMemberDesc> &Columns)
+
+//	AddAnonymousSchema
+//
+//	Adds a new schema.
+
+	{
+	CString sFullyQualifiedName = CAEONTypeSystem::MakeFullyQualifiedName(NULL_STR, strPattern("AnonymousTable%03d", m_dwNextAnonymousID++));
+
+	IDatatype *pNewType = new CDatatypeSchema({ sFullyQualifiedName, { CAEONTypeSystem::GetCoreType(IDatatype::TABLE) } });
+
+	for (int i = 0; i < Columns.GetCount(); i++)
+		{
+		if (!pNewType->AddMember(Columns[i].sName, IDatatype::EMemberType::InstanceVar, Columns[i].dType))
+			return CDatum();
+		}
+
+	CDatum dType(new CComplexDatatype(pNewType));
+	if (!AddType(dType))
+		return CDatum();
+
+	return dType;
+	}
+
 void CAEONTypeSystem::AddCoreType (IDatatype *pNewDatatype)
 
 //	AddCoreType
