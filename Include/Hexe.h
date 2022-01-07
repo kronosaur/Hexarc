@@ -333,9 +333,11 @@ class CHexeProcess : public IInvokeCtx
 		static bool ValidateHexarcMessage (const CString &sMsg, CDatum dPayload, CString *retsAddr, CDatum *retdResult);
 
 		//	Execution helpers
+
 		void ExecuteArrayMemberItem (CDatum dArray, const CString &sField);
 		ERun ExecuteHandleInvokeResult (CDatum::InvokeResult iInvokeResult, CDatum dExpression, CDatum dInvokeResult, CDatum *retResult);
 		static bool ExecuteMakeFlagsFromArray (CDatum dOptions, CDatum dMap, CDatum *retdResult);
+		bool ExecutePushObjectMethod (CDatum &retResult);
 		static bool ExecuteSetAt (CDatum dOriginal, CDatum dKey, CDatum dValue, CDatum *retdResult);
 		void ExecuteTableMemberItem (CDatum dTable, const CString &sField);
 

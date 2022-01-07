@@ -1424,78 +1424,8 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				break;
 
 			case opPushObjectMethod:
-				iCount = GetOperand(*m_pIP);
-
-				if (iCount == 2)
-					{
-					CString sField = m_Stack.Pop().AsString();
-					CDatum dObject = m_Stack.Pop();
-
-					switch (dObject.GetBasicType())
-						{
-						case CDatum::typeObject:
-							{
-							const IDatatype &Type = dObject.GetDatatype();
-							if (!Type.IsAny())
-								{
-								auto iMemberType = Type.HasMember(sField);
-								switch (iMemberType)
-									{
-									case IDatatype::EMemberType::InstanceMethod:
-									case IDatatype::EMemberType::StaticMethod:
-										{
-										CString sFunctionName = strPattern("%s$%s", Type.GetFullyQualifiedName(), sField);
-										if (!m_pCurGlobalEnv->Find(sFunctionName, &dValue))
-											{
-											CHexeError::Create(NULL_STR, strPattern(ERR_UNBOUND_VARIABLE, sFunctionName), retResult);
-											return ERun::Error;
-											}
-
-										m_Stack.Push(dValue);
-
-										//	We always push the this pointer.
-
-										m_Stack.Push(dObject);
-										break;
-										}
-
-									default:
-										//	LATER: This should probably be an error.
-										m_Stack.Push(CDatum());
-										break;
-									}
-								}
-							else
-								{
-								m_Stack.Push(dObject.GetElement(sField));
-
-								//	If we have no type defined, we assume it is 
-								//	member function, so we pass the this pointer.
-								//	We only need this because some built-in 
-								//	objects don't have a type defined. In the future,
-								//	we should define types for all objects.
-
-								m_Stack.Push(dObject);
-								}
-							break;
-							}
-
-						default:
-							m_Stack.Push(dObject.GetElement(sField));
-
-							//	Push a nil this pointer. In opMakeMethodEnv we 
-							//	detect this and deal with it appropriately.
-
-							m_Stack.Push(CDatum());
-							break;
-						}
-					}
-				else
-					{
-					//	LATER: This should probably be an error.
-					m_Stack.Push(CDatum());
-					}
-
+				if (!ExecutePushObjectMethod(*retResult))
+					return ERun::Error;
 				m_pIP++;
 				break;
 
@@ -2037,6 +1967,114 @@ bool CHexeProcess::ExecuteMakeFlagsFromArray (CDatum dOptions, CDatum dMap, CDat
 		}
 
 	*retdResult = CDatum((int)dwFlags);
+	return true;
+	}
+
+bool CHexeProcess::ExecutePushObjectMethod (CDatum &retResult)
+
+//	ExecutePushObjectMethod
+//
+//	Implement opPushObjectMethod
+
+	{
+	int iCount = GetOperand(*m_pIP);
+
+	//	LATER: This should probably be an error.
+
+	if (iCount != 2)
+		{
+		m_Stack.Push(CDatum());
+		return true;
+		}
+
+	//	Get the object and method and figure out what to do based on the type of
+	//	object on the stack.
+
+	CString sField = m_Stack.Pop().AsString();
+	CDatum dObject = m_Stack.Pop();
+
+	switch (dObject.GetBasicType())
+		{
+		case CDatum::typeTable:
+			{
+			//	Look for a global function of the form, Table.xyz.
+
+			CString sFunctionName = strPattern("Table.%s", sField);
+
+			CDatum dValue;
+			if (!m_pCurGlobalEnv->Find(sFunctionName, &dValue))
+				{
+				CHexeError::Create(NULL_STR, strPattern(ERR_UNBOUND_VARIABLE, sFunctionName), &retResult);
+				return false;
+				}
+
+			m_Stack.Push(dValue);
+
+			//	We always push the this pointer.
+
+			m_Stack.Push(dObject);
+			break;
+			}
+
+		case CDatum::typeObject:
+			{
+			const IDatatype &Type = dObject.GetDatatype();
+			if (!Type.IsAny())
+				{
+				auto iMemberType = Type.HasMember(sField);
+				switch (iMemberType)
+					{
+					case IDatatype::EMemberType::InstanceMethod:
+					case IDatatype::EMemberType::StaticMethod:
+						{
+						CString sFunctionName = strPattern("%s$%s", Type.GetFullyQualifiedName(), sField);
+
+						CDatum dValue;
+						if (!m_pCurGlobalEnv->Find(sFunctionName, &dValue))
+							{
+							CHexeError::Create(NULL_STR, strPattern(ERR_UNBOUND_VARIABLE, sFunctionName), &retResult);
+							return false;
+							}
+
+						m_Stack.Push(dValue);
+
+						//	We always push the this pointer.
+
+						m_Stack.Push(dObject);
+						break;
+						}
+
+					default:
+						//	LATER: This should probably be an error.
+						m_Stack.Push(CDatum());
+						break;
+					}
+				}
+			else
+				{
+				m_Stack.Push(dObject.GetElement(sField));
+
+				//	If we have no type defined, we assume it is 
+				//	member function, so we pass the this pointer.
+				//	We only need this because some built-in 
+				//	objects don't have a type defined. In the future,
+				//	we should define types for all objects.
+
+				m_Stack.Push(dObject);
+				}
+			break;
+			}
+
+		default:
+			m_Stack.Push(dObject.GetElement(sField));
+
+			//	Push a nil this pointer. In opMakeMethodEnv we 
+			//	detect this and deal with it appropriately.
+
+			m_Stack.Push(CDatum());
+			break;
+		}
+
 	return true;
 	}
 
