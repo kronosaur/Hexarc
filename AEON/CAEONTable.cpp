@@ -56,6 +56,14 @@ IAEONTable::EResult CAEONTable::AppendRow (CDatum dRow)
 		auto ColumnDesc = Schema.GetMember(i);
 
 		CDatum dValue = dRow.GetElement(ColumnDesc.sName);
+
+		//	Make sure we're not trying to add ourselves.
+
+		if (dValue.Contains(CDatum::raw_AsComplex(this)) || dValue.Contains(m_Cols[i]))
+			dValue = CDatum();
+
+		//	Add it
+
 		m_Cols[i].Append(dValue);
 		}
 
