@@ -221,6 +221,7 @@ class CDatum
 		CRGBA32Image *GetImageInterface ();
 		CRGBA32Image &GetImageInterfaceOrThrow () { auto pValue = GetImageInterface(); if (!pValue) throw CException(errFail); else return *pValue; }
 		CString GetKey (int iIndex) const;
+		CDatum GetMethod (const CString &sMethod) const;
 		IAEONTable *GetTableInterface ();
 		const IAEONTable *GetTableInterface () const { return const_cast<CDatum *>(this)->GetTableInterface(); }
 		const CString &GetTypename (void) const;
@@ -517,6 +518,7 @@ class IComplexDatum
 		virtual CDatum GetElement (const CString &sKey) const { return CDatum(); }
 		virtual CRGBA32Image *GetImageInterface () { return NULL; }
 		virtual CString GetKey (int iIndex) const { return NULL_STR; }
+		virtual CDatum GetMethod (const CString &sMethod) const { return CDatum(); }
 		virtual CDatum::Types GetNumberType (int *retiValue) { return CDatum::typeUnknown; }
 		virtual IAEONTable *GetTableInterface () { return NULL; }
 		virtual const CString &GetTypename (void) const = 0;

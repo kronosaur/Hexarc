@@ -15,6 +15,25 @@ DECLARE_CONST_STRING(TYPE_HEXARC_MSG,					"hexarcMsg");
 
 CHexeLibrarian g_HexeLibrarian;
 
+//template <class OBJ> TArray<struct TDatumMethodHandler<OBJ>::SEntry> TDatumMethodHandler<OBJ>::m_Methods;
+
+CDatum CHexeLibrarian::CreateFunction (const SFunctionDef &Def)
+
+//	CreateFunction
+//
+//	Creates a library function.
+
+	{
+	CHexeLibraryFunction *pFunc = new CHexeLibraryFunction;
+	pFunc->SetName(CString(Def.pName));
+	pFunc->SetArgList(CString(Def.pArgList));
+	pFunc->SetHelp(CString(Def.pHelp));
+	pFunc->SetFunction(Def.pfFunc, Def.dwData);
+	pFunc->SetExecutionRights(Def.dwExecutionRights);
+
+	return CDatum(pFunc);
+	}
+
 CDatum CHexeLibrarian::FindFunction (const CString &sLibrary, const CString &sFunction) const
 
 //	FindFunction

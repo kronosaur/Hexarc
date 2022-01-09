@@ -152,6 +152,12 @@ class CHexeLibraryFunction : public TExternalDatum<CHexeLibraryFunction>
 		static void Create (const SLibraryFuncDef &Def, CDatum *retdFunc);
 		static const CString &StaticGetTypename (void);
 
+		void SetArgList (CString &&sValue) { m_sArgList = std::move(sValue); }
+		void SetExecutionRights (DWORD dwValue) { m_dwExecutionRights = dwValue; }
+		void SetFunction (FHexeLibraryFunc pfFunc, DWORD dwData = 0) { m_pfFunc = pfFunc; m_dwData = dwData; }
+		void SetHelp (CString &&sValue) { m_sHelpLine = std::move(sValue); }
+		void SetName (CString &&sValue) { m_sName = std::move(sValue); }
+
 		//	IComplexDatum
 
 		virtual bool CanInvoke (void) const override { return true; }
@@ -167,11 +173,11 @@ class CHexeLibraryFunction : public TExternalDatum<CHexeLibraryFunction>
 		static CDatum::InvokeResult HandleSpecialResult (CDatum *retdResult);
 
 		CString m_sName;
-		FHexeLibraryFunc m_pfFunc;
-		DWORD m_dwData;
+		FHexeLibraryFunc m_pfFunc = NULL;
+		DWORD m_dwData = 0;
 		CString m_sArgList;
 		CString m_sHelpLine;
-		DWORD m_dwExecutionRights;
+		DWORD m_dwExecutionRights = 0;
 	};
 
 //	CHexeGlobalEnvironment -----------------------------------------------------

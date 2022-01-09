@@ -2111,6 +2111,23 @@ CString CDatum::GetKey (int iIndex) const
 		}
 	}
 
+CDatum CDatum::GetMethod (const CString &sMethod) const
+
+//	GetMethod
+//
+//	Returns a function definition (or nil).
+
+	{
+	switch (m_dwData & AEON_TYPE_MASK)
+		{
+		case AEON_TYPE_COMPLEX:
+			return raw_GetComplex()->GetMethod(sMethod);
+
+		default:
+			return CDatum();
+		}
+	}
+
 CDatum::Types CDatum::GetNumberType (int *retiValue, CDatum *retdConverted) const
 
 //	GetNumberType

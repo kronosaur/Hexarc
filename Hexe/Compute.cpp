@@ -1343,6 +1343,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 			case opSetStructItem:
 				{
 				//	LATER: Check for reference loops
+				//	LATER: Handle errors inside SetElement.
 
 				CDatum dField = m_Stack.Pop();
 				CDatum dStruct = m_Stack.Pop();
@@ -2052,7 +2053,14 @@ bool CHexeProcess::ExecutePushObjectMethod (CDatum &retResult)
 				}
 			else
 				{
-				m_Stack.Push(dObject.GetElement(sField));
+				CDatum dMember = dObject.GetMethod(sField);
+				if (dMember.IsNil() || dMember.GetCallInfo() == CDatum::ECallType::None)
+					{
+					CHexeError::Create(NULL_STR, strPattern(ERR_UNBOUND_VARIABLE, sField), &retResult);
+					return false;
+					}
+
+				m_Stack.Push(dMember);
 
 				//	If we have no type defined, we assume it is 
 				//	member function, so we pass the this pointer.

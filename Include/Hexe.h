@@ -98,6 +98,17 @@ struct SLibraryFuncDef
 class CHexeLibrarian
 	{
 	public:
+		struct SFunctionDef
+			{
+			LPCSTR pName = "";
+			LPCSTR pArgList = "";
+			LPCSTR pHelp = "";
+
+			FHexeLibraryFunc pfFunc = NULL;
+			DWORD dwData = 0;
+			DWORD dwExecutionRights = 0;
+			};
+
 		CDatum FindFunction (const CString &sLibrary, const CString &sFunction) const;
 		bool FindLibrary (const CString &sName, DWORD *retdwLibraryID) const;
 		const CString &GetEntry (DWORD dwLibrary, int iIndex, CDatum *retdFunction);
@@ -106,6 +117,8 @@ class CHexeLibrarian
 		void Mark (void);
 		void RegisterCoreLibraries (void);
 		void RegisterLibrary (const CString &sName, int iCount, SLibraryFuncDef *pNewLibrary);
+
+		static CDatum CreateFunction (const SFunctionDef &Def);
 
 	private:
 		struct SLibrary
@@ -418,3 +431,4 @@ bool HexeGetPolygon2DArg (CDatum dArg, const CPolygon2D **retpPolygon, CPolygon2
 bool HexeGetVector2DArg (CDatum dArgList, int *ioArg, CVector2D *retVector, CDatum *retdResult);
 
 #include "HexeConsole.h"
+#include "HexeUtil.h"

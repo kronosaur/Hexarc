@@ -195,6 +195,14 @@ template <class VALUE> class TArray : public CArrayBase
 				Resize(GetSize() + iCount * sizeof(VALUE), true, GetGranularity() * sizeof(VALUE));
 			}
 
+		void GrowToFit (size_t iCount)
+			{
+			if (iCount > INT32_MAX)
+				throw CException(errFail);
+
+			GrowToFit((int)iCount);
+			}
+
 		void Insert (const VALUE &Value, int iIndex = -1)
 			{
 			int iOffset;
