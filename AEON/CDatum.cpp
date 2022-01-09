@@ -17,6 +17,7 @@ DECLARE_CONST_STRING(STR_TRUE,							"true");
 DECLARE_CONST_STRING(ERR_UNKNOWN_FORMAT,				"Unable to determine file format: %s.");
 DECLARE_CONST_STRING(ERR_CANT_OPEN_FILE,				"Unable to open file: %s.");
 DECLARE_CONST_STRING(ERR_DESERIALIZE_ERROR,				"Unable to parse file: %s.");
+DECLARE_CONST_STRING(ERR_NO_METHODS,					"Methods not supported.");
 
 static TAllocatorGC<DWORD> g_IntAlloc;
 static TAllocatorGC<double> g_DoubleAlloc;
@@ -2470,6 +2471,24 @@ CDatum::InvokeResult CDatum::InvokeContinues (IInvokeCtx *pCtx, CDatum dContext,
 		default:
 			*retdResult = CDatum();
 			return InvokeResult::error;
+		}
+	}
+
+bool CDatum::InvokeMethodImpl (const CString &sMethod, IInvokeCtx &Ctx, CDatum dLocalEnv, CDatum &retdResult)
+
+//	InvokeMethodImpl
+//
+//	Invokes a method.
+
+	{
+	switch (m_dwData & AEON_TYPE_MASK)
+		{
+		case AEON_TYPE_COMPLEX:
+			return raw_GetComplex()->InvokeMethodImpl(*this, sMethod, Ctx, dLocalEnv, retdResult);
+
+		default:
+			retdResult = ERR_NO_METHODS;
+			return false;
 		}
 	}
 

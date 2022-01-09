@@ -250,6 +250,7 @@ class CDatum
 		ECallType GetCallInfo (CDatum *retdCodeBank = NULL, DWORD **retpIP = NULL) const;
 		InvokeResult Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, DWORD dwExecutionRights, CDatum *retdResult);
 		InvokeResult InvokeContinues (IInvokeCtx *pCtx, CDatum dContext, CDatum dResult, CDatum *retdResult);
+		bool InvokeMethodImpl (const CString &sMethod, IInvokeCtx &Ctx, CDatum dLocalEnv, CDatum &retdResult);
 
 		//	Utilities
 		void AsAttributeList (CAttributeList *retAttribs) const;
@@ -525,6 +526,7 @@ class IComplexDatum
 		virtual void GrowToFit (int iCount) { }
 		virtual CDatum::InvokeResult Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, DWORD dwExecutionRights, CDatum *retdResult) { *retdResult = CDatum(); return CDatum::InvokeResult::ok; }
 		virtual CDatum::InvokeResult InvokeContinues (IInvokeCtx *pCtx, CDatum dContext, CDatum dResult, CDatum *retdResult) { *retdResult = CDatum(); return CDatum::InvokeResult::ok; }
+		virtual bool InvokeMethodImpl(CDatum dObj, const CString &sMethod, IInvokeCtx &Ctx, CDatum dLocalEnv, CDatum &retdResult) { retdResult = CString("Methods not supported."); return false; }
 		virtual bool IsArray (void) const = 0;
 		virtual bool IsError (void) const { return false; }
 		virtual bool IsIPInteger (void) const { return false; }

@@ -61,6 +61,25 @@ class TDatumMethodHandler
 			return m_Methods[*pEntry].dFunc;
 			}
 
+		bool InvokeMethod (CDatum dObj, const CString &sMethod, IInvokeCtx &Ctx, CDatum dLocalEnv, CDatum dContinueCtx, CDatum &retdResult)
+			{
+			IComplexDatum *pObj = dObj.GetComplex();
+			if (!pObj)
+				{
+				retdResult = strPattern("Invalid object: %s.", dObj.AsString());
+				return false;
+				}
+
+			auto *pEntry = m_Table.GetAt(sMethod);
+			if (!pEntry)
+				{
+				retdResult = strPattern("Undefined method: %s.", sMethod);
+				return false;
+				}
+
+			return m_Methods[*pEntry].fnInvoke(*(OBJ *)pObj, Ctx, sMethod, dLocalEnv, dContinueCtx, retdResult);
+			}
+
 	private:
 		struct SEntry
 			{
