@@ -904,6 +904,7 @@ class CNumberValue
 	public:
 		CNumberValue (CDatum dValue);
 
+		void Abs ();
 		void Add (CDatum dValue);
 		int Compare (CDatum dValue) const {  CNumberValue Src(dValue); return Compare(Src); }
 		int Compare (const CNumberValue &Value) const;

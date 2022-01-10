@@ -55,6 +55,11 @@ class CIPInteger
 		bool operator== (const CIPInteger &Src) const;
 		bool operator!= (const CIPInteger &Src) const;
 
+		bool operator> (const CIPInteger &Other) const { return (Compare(Other) == 1); }
+		bool operator< (const CIPInteger &Other) const { return (Compare(Other) == -1); }
+		bool operator>= (const CIPInteger &Other) const { return (Compare(Other) != -1); }
+		bool operator<= (const CIPInteger &Other) const { return (Compare(Other) != 1); }
+
 		CIPInteger &operator+= (const CIPInteger &Src);
 		CIPInteger operator + (const CIPInteger &Src) const;
 		CIPInteger &operator-= (const CIPInteger &Src);
@@ -72,6 +77,7 @@ class CIPInteger
 		DWORDLONG AsInteger64Unsigned (void) const;
 		CString AsString (void) const;
 		int Compare (const CIPInteger &Src) const;
+		bool FitsAsInteger32Signed (void) const;
 		bool FitsAsInteger64Unsigned (void) const;
 		DWORD GetSize (void) const;
 		void InitFromBytes (const IMemoryBlock &Data);

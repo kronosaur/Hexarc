@@ -51,6 +51,8 @@ const DWORD STREAM_SIGNATURE_POSITIVE = 'IP1+';
 const DWORD STREAM_SIGNATURE_NEGATIVE = 'IP1-';
 
 CIPInteger NULL_IPINTEGER;
+static CIPInteger MIN_INT32((LONGLONG)INT_MIN);
+static CIPInteger MAX_INT32((LONGLONG)INT_MAX);
 
 CIPInteger::CIPInteger (void)
 
@@ -557,6 +559,20 @@ bool CIPInteger::Deserialize (IByteStream &Stream, CIPInteger *retpValue)
 	delete [] pTemp;
 
 	return true;
+	}
+
+bool CIPInteger::FitsAsInteger32Signed (void) const
+
+//	FitsAsInteger32Signed
+//
+//	Returns TRUE if we can represent this integer in a 32-bit signed int.
+
+	{
+	DWORD dwSize = (DWORD)bdConvToOctets((BIGD)m_Value, NULL, 0);
+	if (dwSize > 4)
+		return false;
+
+	return (*this >= MIN_INT32 && *this <= MAX_INT32);
 	}
 
 bool CIPInteger::FitsAsInteger64Unsigned (void) const

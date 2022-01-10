@@ -48,6 +48,36 @@ CNumberValue::CNumberValue (CDatum dValue) :
 		}
 	}
 
+void CNumberValue::Abs ()
+
+//	Abs
+//
+//	Take the absolute value.
+
+	{
+	switch (m_iType)
+		{
+		case CDatum::typeInteger32:
+			SetInteger(abs(GetInteger()));
+			break;
+
+		case CDatum::typeDouble:
+			SetDouble(abs(GetDouble()));
+			break;
+
+		case CDatum::typeIntegerIP:
+			{
+			const CIPInteger &X = GetIPInteger();
+			if (X.IsNegative())
+				SetIPInteger(-X);
+			break;
+			}
+
+		default:
+			break;
+		}
+	}
+
 void CNumberValue::Add (CDatum dValue)
 
 //	Add
