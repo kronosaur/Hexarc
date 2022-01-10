@@ -36,7 +36,7 @@ CNumberValue::CNumberValue (CDatum dValue) :
 			break;
 
 		case CDatum::typeIntegerIP:
-			m_pValue = (void *)&((const CIPInteger &)dValue);
+			m_pValue = (void *)&((const CIPInteger &)m_dOriginalValue);
 			break;
 
 		default:
