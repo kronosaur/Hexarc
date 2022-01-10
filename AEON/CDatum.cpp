@@ -1459,6 +1459,9 @@ int CDatum::DefaultCompare (void *pCtx, const CDatum &dKey1, const CDatum &dKey2
 			case CDatum::typeDateTime:
 				return ((const CDateTime &)dKey1).Compare((const CDateTime &)dKey2);
 
+			case CDatum::typeTimeSpan:
+				return ((const CTimeSpan &)dKey1).Compare((const CTimeSpan &)dKey2);
+
 			case CDatum::typeArray:
 				if (dKey1.GetCount() > dKey2.GetCount())
 					return 1;
@@ -2561,6 +2564,9 @@ bool CDatum::IsEqual (CDatum dValue) const
 
 		case typeDateTime:
 			return (dValue.GetBasicType() == typeDateTime && ((const CDateTime &)*this == (const CDateTime &)dValue));
+
+		case typeTimeSpan:
+			return (dValue.GetBasicType() == typeTimeSpan && ((const CTimeSpan &)*this == (const CTimeSpan &)dValue));
 
 		case typeDatatype:
 			return (dValue.GetBasicType() == typeDatatype && strEquals(((const IDatatype &)*this).GetFullyQualifiedName(), ((const IDatatype &)dValue).GetFullyQualifiedName()));

@@ -152,6 +152,18 @@ class CTimeSpan
 		CTimeSpan (DWORD dwDays, DWORD dwMilliseconds, bool bNegative = false);
 		CTimeSpan (const CTimeSpan &Src, bool bNegative);
 
+		bool operator== (const CTimeSpan &Other) const 
+			{ return (m_Days == Other.m_Days) && (m_Milliseconds == Other.m_Milliseconds) && (m_bNegative == Other.m_bNegative); }
+
+		bool operator!= (const CTimeSpan &Other) const 
+			{ return (m_Days != Other.m_Days) || (m_Milliseconds != Other.m_Milliseconds) || (m_bNegative == Other.m_bNegative); }
+
+		bool operator> (const CTimeSpan &Other) const { return (Compare(Other) == 1); }
+		bool operator< (const CTimeSpan &Other) const { return (Compare(Other) == -1); }
+		bool operator>= (const CTimeSpan &Other) const { return (Compare(Other) != -1); }
+		bool operator<= (const CTimeSpan &Other) const { return (Compare(Other) != 1); }
+
+		int Compare (const CTimeSpan &Src) const;
 		int Days (void) const { return (int)m_Days; }
 		bool IsEmpty (void) const { return (m_Days == 0 && m_Milliseconds == 0); }
 		bool IsNegative (void) const { return m_bNegative; }
@@ -174,6 +186,8 @@ class CTimeSpan
 
 		static const CTimeSpan m_Null;
 	};
+
+inline int KeyCompare (const CTimeSpan &Key1, const CTimeSpan &Key2) { return Key1.Compare(Key2); }
 
 CDateTime timeAddTime (const CDateTime &StartTime, const CTimeSpan &Addition);
 CString timeGetMonthName (int iMonth);

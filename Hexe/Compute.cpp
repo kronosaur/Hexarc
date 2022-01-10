@@ -1596,6 +1596,9 @@ int CHexeProcess::ExecuteCompare (CDatum dValue1, CDatum dValue2)
 			case CDatum::typeDateTime:
 				return KeyCompare((const CDateTime &)dValue1,  (const CDateTime &)dValue2);
 
+			case CDatum::typeTimeSpan:
+				return KeyCompare((const CDateTime &)dValue1,  (const CDateTime &)dValue2);
+
 			case CDatum::typeArray:
 				{
 				int iCount = Min(dValue1.GetCount(), dValue2.GetCount());
@@ -1875,6 +1878,9 @@ bool CHexeProcess::ExecuteIsEquivalent (CDatum dValue1, CDatum dValue2)
 
 			case CDatum::typeDateTime:
 				return ((const CDateTime &)dValue1) == ((const CDateTime &)dValue2);
+
+			case CDatum::typeTimeSpan:
+				return ((const CTimeSpan &)dValue1) == ((const CTimeSpan &)dValue2);
 
 			case CDatum::typeArray:
 				{

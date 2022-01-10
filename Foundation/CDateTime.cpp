@@ -2018,6 +2018,59 @@ CTimeSpan CTimeSpan::Add (const CTimeSpan &A, const CTimeSpan &B)
 		return Add(B, A);
 	}
 
+int CTimeSpan::Compare (const CTimeSpan &Src) const
+
+//	Compare
+//
+//	If this > Src,		1
+//	If this == Src,		0
+//	If this < Src,		-1
+
+	{
+	if (m_bNegative && !Src.m_bNegative)
+		return -1;
+	else if (!m_bNegative && Src.m_bNegative)
+		return 1;
+
+	//	Both are negative
+
+	else if (m_bNegative)
+		{
+		if (m_Days > Src.m_Days)
+			return -1;
+		else if (m_Days < Src.m_Days)
+			return 1;
+		else
+			{
+			if (m_Milliseconds > Src.m_Milliseconds)
+				return -1;
+			else if (m_Milliseconds < Src.m_Milliseconds)
+				return 1;
+			else
+				return 0;
+			}
+		}
+
+	//	Both are positive
+
+	else
+		{
+		if (m_Days > Src.m_Days)
+			return 1;
+		else if (m_Days < Src.m_Days)
+			return -1;
+		else
+			{
+			if (m_Milliseconds > Src.m_Milliseconds)
+				return 1;
+			else if (m_Milliseconds < Src.m_Milliseconds)
+				return -1;
+			else
+				return 0;
+			}
+		}
+	}
+
 CTimeSpan CTimeSpan::Subtract (const CTimeSpan &A, const CTimeSpan &B)
 
 //	Subtract
