@@ -88,6 +88,7 @@ enum EOpCodes
 	opMakeAsType =			0x40000000,
 	opMakeDatatype =		0x41000000,
 	opPushCoreType =		0x42000000,
+	opPushNaN =				0x43000000,
 
 	opHalt =				0xff000000,
 

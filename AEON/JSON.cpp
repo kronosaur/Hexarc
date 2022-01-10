@@ -81,6 +81,10 @@ void CDatum::SerializeJSON (IByteStream &Stream) const
 					{
 					switch (m_dwData)
 						{
+						case CONST_NAN:
+							Stream.Write("nan", 3);
+							break;
+							
 						case CONST_TRUE:
 							Stream.Write("true", 4);
 							break;

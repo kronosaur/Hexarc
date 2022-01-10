@@ -74,6 +74,11 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				m_pIP++;
 				break;
 
+			case opPushNaN:
+				m_Stack.Push(CDatum::CreateNaN());
+				m_pIP++;
+				break;
+
 			case opPushIntShort:
 				m_Stack.Push(CDatum(CHexeCode::GetOperandInt(*m_pIP)));
 				m_pIP++;

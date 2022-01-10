@@ -11,6 +11,7 @@ DECLARE_CONST_STRING(TYPENAME_NIL,						"nil");
 DECLARE_CONST_STRING(TYPENAME_STRING,					"string");
 DECLARE_CONST_STRING(TYPENAME_TRUE,						"true");
 
+DECLARE_CONST_STRING(STR_NAN,							"nan");
 DECLARE_CONST_STRING(STR_NIL,							"nil");
 DECLARE_CONST_STRING(STR_TRUE,							"true");
 
@@ -333,6 +334,9 @@ CDatum::operator int () const
 					{
 					switch (m_dwData)
 						{
+						case CONST_NAN:
+							return 0;
+
 						case CONST_TRUE:
 							return 1;
 
@@ -382,6 +386,9 @@ CDatum::operator DWORD () const
 					{
 					switch (m_dwData)
 						{
+						case CONST_NAN:
+							return 0;
+
 						case CONST_TRUE:
 							return 1;
 
@@ -431,6 +438,9 @@ CDatum::operator DWORDLONG () const
 					{
 					switch (m_dwData)
 						{
+						case CONST_NAN:
+							return 0;
+
 						case CONST_TRUE:
 							return 1;
 
@@ -480,6 +490,9 @@ CDatum::operator double () const
 					{
 					switch (m_dwData)
 						{
+						case CONST_NAN:
+							return std::nan("");
+
 						case CONST_TRUE:
 							return 1.0;
 
@@ -612,6 +625,9 @@ CDatum::operator const CString & () const
 					{
 					switch (m_dwData)
 						{
+						case CONST_NAN:
+							return STR_NAN;
+
 						case CONST_TRUE:
 							return STR_TRUE;
 
@@ -776,6 +792,9 @@ CString CDatum::AsString (void) const
 					{
 					switch (m_dwData)
 						{
+						case CONST_NAN:
+							return STR_NAN;
+
 						case CONST_TRUE:
 							return STR_TRUE;
 
@@ -1222,6 +1241,18 @@ bool CDatum::CreateIPIntegerFromHandoff (CIPInteger &Value, CDatum *retdDatum)
 
 	*retdDatum = CDatum(pIPInt);
 	return true;
+	}
+
+CDatum CDatum::CreateNaN ()
+
+//	CreateNaN
+//
+//	Creates the special value NaN
+
+	{
+	CDatum dResult;
+	dResult.m_dwData = CONST_NAN;
+	return dResult;
 	}
 
 CDatum CDatum::CreateObject (CDatum dType, CDatum dValue)
@@ -1740,6 +1771,9 @@ CDatum::Types CDatum::GetBasicType (void) const
 					{
 					switch (m_dwData)
 						{
+						case CONST_NAN:
+							return typeDouble;
+
 						case CONST_TRUE:
 							return typeTrue;
 
@@ -1809,6 +1843,9 @@ CDatum CDatum::GetDatatype () const
 					{
 					switch (m_dwData)
 						{
+						case CONST_NAN:
+							return CAEONTypeSystem::GetCoreType(IDatatype::FLOAT_64);
+							
 						case CONST_TRUE:
 							return CAEONTypeSystem::GetCoreType(IDatatype::BOOL);
 
@@ -2187,6 +2224,9 @@ CDatum::Types CDatum::GetNumberType (int *retiValue, CDatum *retdConverted) cons
 					{
 					switch (m_dwData)
 						{
+						case CONST_NAN:
+							return typeDouble;
+
 						case CONST_TRUE:
 							if (retiValue)
 								*retiValue = 1;
@@ -2406,6 +2446,9 @@ const CString &CDatum::GetTypename (void) const
 					{
 					switch (m_dwData)
 						{
+						case CONST_NAN:
+							return TYPENAME_DOUBLE;
+							
 						case CONST_TRUE:
 							return TYPENAME_TRUE;
 

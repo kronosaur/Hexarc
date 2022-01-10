@@ -174,6 +174,7 @@ class CDatum
 		static bool CreateFromStringValue (const CString &sValue, CDatum *retdDatum);
 		static bool CreateIPInteger (const CIPInteger &Value, CDatum *retdDatum);
 		static bool CreateIPIntegerFromHandoff (CIPInteger &Value, CDatum *retdDatum);
+		static CDatum CreateNaN ();
 		static CDatum CreateObject (CDatum dType, CDatum dValue = CDatum());
 		static bool CreateStringFromHandoff (CString &sString, CDatum *retDatum);
 		static bool CreateStringFromHandoff (CStringBuffer &String, CDatum *retDatum);
@@ -265,6 +266,7 @@ class CDatum
 
 	private:
 
+		static constexpr DWORD_PTR CONST_NAN =		0x12020001;
 		static constexpr DWORD_PTR CONST_TRUE =		0xaaaa0001;
 		static constexpr DWORD_PTR CONST_FREE =		0xfeee0001;
 

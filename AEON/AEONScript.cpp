@@ -79,6 +79,7 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_NAN,							"nan")
 DECLARE_CONST_STRING(STR_NIL,							"nil")
 
 DECLARE_CONST_STRING(TYPENAME_BINARY,					"binary")
@@ -125,6 +126,10 @@ size_t CDatum::CalcSerializeSizeAEONScript (EFormat iFormat) const
 					{
 					switch (m_dwData)
 						{
+						case CONST_NAN:
+							TotalSize = 3;	//	"nan"
+							break;
+
 						case CONST_TRUE:
 							TotalSize = 4;	//	"true"
 							break;
@@ -216,6 +221,10 @@ void CDatum::SerializeAEONScript (EFormat iFormat, IByteStream &Stream) const
 					{
 					switch (m_dwData)
 						{
+						case CONST_NAN:
+							Stream.Write("nan", 3);
+							break;
+
 						case CONST_TRUE:
 							Stream.Write("true", 4);
 							break;
@@ -627,6 +636,9 @@ CAEONScriptParser::ETokens CAEONScriptParser::ParseLiteral (CDatum *retDatum)
 	CString sLiteral(Stream.GetPointer(), Stream.GetLength());
 	if (strEquals(strToLower(sLiteral), STR_NIL))
 		*retDatum = CDatum();
+	else if (strEquals(strToLower(sLiteral), STR_NAN))
+		*retDatum = CDatum::CreateNaN();
+
 	//	LATER: literal true
 	else
 		*retDatum = CDatum(sLiteral);
