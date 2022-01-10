@@ -906,6 +906,8 @@ class CNumberValue
 
 		void Abs ();
 		void Add (CDatum dValue);
+		double AsDouble () const;
+		CIPInteger AsIPInteger () const;
 		int Compare (CDatum dValue) const {  CNumberValue Src(dValue); return Compare(Src); }
 		int Compare (const CNumberValue &Value) const;
 		void ConvertToDouble (void);
@@ -917,6 +919,7 @@ class CNumberValue
 		int GetInteger (void) const { return (int)(DWORD_PTR)m_pValue; }
 		DWORDLONG GetInteger64 (void) const { return m_ilValue; }
 		const CIPInteger &GetIPInteger (void) const { return *(CIPInteger *)m_pValue; }
+		CDatum::Types GetType () const { return m_iType; }
 		bool IsValidNumber (void) const { return !m_bNotANumber; }
 		bool IsNegative () const;
 		void Max (CDatum dValue);
@@ -929,6 +932,7 @@ class CNumberValue
 		void SetInteger (int iValue) { m_pValue = (void *)(DWORD_PTR)iValue; m_bUpconverted = true; m_iType = CDatum::typeInteger32; }
 		void SetInteger64 (DWORDLONG ilValue) { m_ilValue = ilValue; m_bUpconverted = true; m_iType = CDatum::typeInteger64; }
 		void SetIPInteger (const CIPInteger &Value) { m_ipValue = Value; m_pValue = &m_ipValue; m_bUpconverted = true; m_iType = CDatum::typeIntegerIP; }
+		void SetNil () { m_bUpconverted = true; m_iType = CDatum::typeNil; }
 		void Subtract (CDatum dValue);
 		void Upconvert (CNumberValue &Src);
 
@@ -942,6 +946,9 @@ class CNumberValue
 		double m_rValue;
 		DWORDLONG m_ilValue;
 		CIPInteger m_ipValue;
+
+		static constexpr int MAX_EXP_FOR_INT32 = 9;
+		static const int MAX_BASE_FOR_EXP[MAX_EXP_FOR_INT32 + 1];
 	};
 
 //	IInvokeCtx -----------------------------------------------------------------

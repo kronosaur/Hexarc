@@ -71,21 +71,28 @@ class CIPInteger
 		CIPInteger operator / (const CIPInteger &Src) const;
 		CIPInteger &operator%= (const CIPInteger &Src);
 		CIPInteger operator % (const CIPInteger &Src) const;
+		CIPInteger &operator>>= (size_t iBits);
+		CIPInteger operator >> (size_t iBits) const;
+		CIPInteger &operator<<= (size_t iBits);
+		CIPInteger operator << (size_t iBits) const;
 
 		int AsByteArray (TArray<BYTE> *retValue) const;
 		int AsInteger32Signed (void) const;
 		DWORDLONG AsInteger64Unsigned (void) const;
 		CString AsString (void) const;
 		int Compare (const CIPInteger &Src) const;
+		static bool Deserialize (IByteStream &Stream, CIPInteger *retpValue);
 		bool FitsAsInteger32Signed (void) const;
 		bool FitsAsInteger64Unsigned (void) const;
 		DWORD GetSize (void) const;
 		void InitFromBytes (const IMemoryBlock &Data);
 		void InitFromString (const CString &sString);
 		bool IsEmpty (void) const;
+		bool IsEven () const;
 		bool IsNegative (void) const { return m_bNegative; }
+		bool IsOdd () const;
 		bool IsZero () const;
-		static bool Deserialize (IByteStream &Stream, CIPInteger *retpValue);
+		CIPInteger Power (const CIPInteger &Exp) const;
 		bool Serialize (IByteStream &Stream) const;
 		void TakeHandoff (CIPInteger &Src);
 		void WriteBytes (IByteStream &Stream) const;

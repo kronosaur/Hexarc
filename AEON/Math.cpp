@@ -5,6 +5,8 @@
 
 #include "stdafx.h"
 
+const int CNumberValue::MAX_BASE_FOR_EXP[MAX_EXP_FOR_INT32 + 1] = { 0, 0, 46340, 1290, 215, 73, 35, 21, 14, 10 };
+
 //	CNumberValue ---------------------------------------------------------------
 
 CNumberValue::CNumberValue (CDatum dValue) :
@@ -109,6 +111,52 @@ void CNumberValue::Add (CDatum dValue)
 		default:
 			SetInteger(0);
 			break;
+		}
+	}
+
+double CNumberValue::AsDouble () const
+
+//	AsDouble
+//
+//	Returns a double (or nan if we can't convert).
+
+	{
+	switch (m_iType)
+		{
+		case CDatum::typeInteger32:
+			return (double)GetInteger();
+
+		case CDatum::typeInteger64:
+			return (double)GetInteger64();
+
+		case CDatum::typeDouble:
+			return GetDouble();
+
+		default:
+			return nan("");
+		}
+	}
+
+CIPInteger CNumberValue::AsIPInteger () const
+
+//	AsIPInteger
+//
+//	Returns as an IP integer.
+
+	{
+	switch (m_iType)
+		{
+		case CDatum::typeInteger32:
+			return CIPInteger(GetInteger());
+
+		case CDatum::typeInteger64:
+			return CIPInteger(GetInteger64());
+
+		case CDatum::typeIntegerIP:
+			return GetIPInteger();
+
+		default:
+			return CIPInteger();
 		}
 	}
 
@@ -711,37 +759,55 @@ void CNumberValue::Power (CDatum dValue)
 //	Raise number to the given power.
 
 	{
-	CNumberValue Src(dValue);
-	Upconvert(Src);
+	CNumberValue Exp(dValue);
+	Upconvert(Exp);
 
 	switch (m_iType)
 		{
 		case CDatum::typeInteger32:
-			//	LATER: Handle overflow
-			if (Src.GetInteger() >= 0)
-				SetInteger((int)pow((double)GetInteger(), (double)Src.GetInteger()));
+			{
+			int iExp = Exp.GetInteger();
+			int iBase = GetInteger();
+
+			if (iExp == 0)
+				SetInteger(1);
+
+			else if (iExp < 0)
+				SetDouble(pow((double)iBase, (double)iExp));
+
+			else if (iExp == 1)
+				{ }
+
+			else if (iExp <= MAX_EXP_FOR_INT32 && iBase <= MAX_BASE_FOR_EXP[iExp])
+				{
+				//	LATER: Do an integer algorithm.
+				SetInteger((int)pow((double)iBase, (double)iExp));
+				}
 			else
-				SetDouble(pow((double)GetInteger(), (double)Src.GetInteger()));
+				{
+				CIPInteger IPBase(iBase);
+				CIPInteger IPExp(iExp);
+				SetIPInteger(IPBase.Power(IPExp));
+				}
+
 			break;
+			}
 
 		case CDatum::typeInteger64:
-			//	LATER: Handle overflow
-			if (Src.GetInteger64() >= 0)
-				SetInteger64((LONGLONG)pow((double)GetInteger64(), (double)Src.GetInteger64()));
-			else
-				SetDouble(pow((double)GetInteger64(), (double)Src.GetInteger64()));
+		case CDatum::typeIntegerIP:
+			{
+			CIPInteger IPBase(AsIPInteger());
+			CIPInteger IPExp(Exp.AsIPInteger());
+			SetIPInteger(IPBase.Power(IPExp));
 			break;
+			}
 
 		case CDatum::typeDouble:
-			SetDouble(pow(GetDouble(), Src.GetDouble()));
-			break;
-
-		case CDatum::typeIntegerIP:
-			//	NOT YET IMPLEMENTED
+			SetDouble(pow(GetDouble(), Exp.GetDouble()));
 			break;
 
 		default:
-			SetInteger(0);
+			SetNil();
 			break;
 		}
 	}

@@ -206,7 +206,12 @@ CIPInteger &CIPInteger::operator+= (const CIPInteger &Src)
 //	CIPInteger operator +=
 
 	{
-	if (m_bNegative == Src.m_bNegative)
+	if (this == &Src)
+		{
+		CIPInteger Result = *this + Src;
+		*this = Result;
+		}
+	else if (m_bNegative == Src.m_bNegative)
 		bdAdd_s((BIGD)m_Value, (BIGD)m_Value, (BIGD)Src.m_Value);
 	else
 		{
@@ -330,8 +335,16 @@ CIPInteger &CIPInteger::operator *= (const CIPInteger &Src)
 //	CIPInteger operator *=
 
 	{
-	bdMultiply_s((BIGD)m_Value, (BIGD)m_Value, (BIGD)Src.m_Value);
-	m_bNegative = (m_bNegative != Src.m_bNegative);
+	if (this == &Src)
+		{
+		CIPInteger Result = *this * Src;
+		*this = Result;
+		}
+	else
+		{
+		bdMultiply_s((BIGD)m_Value, (BIGD)m_Value, (BIGD)Src.m_Value);
+		m_bNegative = (m_bNegative != Src.m_bNegative);
+		}
 
 	return *this;
 	}
@@ -400,6 +413,52 @@ CIPInteger CIPInteger::operator % (const CIPInteger &Src) const
 	bool bNewNegative = (m_bNegative != Src.m_bNegative);
 
 	return CIPInteger(NewValue, bNewNegative);
+	}
+
+CIPInteger &CIPInteger::operator >>= (size_t iBits)
+
+//	CIPInteger operator >>=
+
+	{
+	void *NewValue = bdNew();
+	bdShiftRight((BIGD)NewValue, (BIGD)m_Value, iBits);
+
+	*this = CIPInteger(NewValue, m_bNegative);
+	return *this;
+	}
+
+CIPInteger CIPInteger::operator >> (size_t iBits) const
+
+//	CIPInteger operator >>
+
+	{
+	void *NewValue = bdNew();
+	bdShiftRight((BIGD)NewValue, (BIGD)m_Value, iBits);
+
+	return CIPInteger(NewValue, m_bNegative);
+	}
+
+CIPInteger &CIPInteger::operator <<= (size_t iBits)
+
+//	CIPInteger operator <<=
+
+	{
+	void *NewValue = bdNew();
+	bdShiftLeft((BIGD)NewValue, (BIGD)m_Value, iBits);
+
+	*this = CIPInteger(NewValue, m_bNegative);
+	return *this;
+	}
+
+CIPInteger CIPInteger::operator << (size_t iBits) const
+
+//	CIPInteger operator <<
+
+	{
+	void *NewValue = bdNew();
+	bdShiftLeft((BIGD)NewValue, (BIGD)m_Value, iBits);
+
+	return CIPInteger(NewValue, m_bNegative);
 	}
 
 int CIPInteger::AsByteArray (TArray<BYTE> *retValue) const
@@ -660,6 +719,26 @@ bool CIPInteger::IsEmpty (void) const
 	return (bdIsZero((BIGD)m_Value) == -1);
 	}
 
+bool CIPInteger::IsEven () const
+
+//	IsEven
+//
+//	Returns true if we're even.
+
+	{
+	return (IsEmpty() || bdIsEven((BIGD)m_Value) != 0);
+	}
+
+bool CIPInteger::IsOdd () const
+
+//	IsOdd
+//
+//	Returns true if we're odd.
+
+	{
+	return (!IsEmpty() && bdIsOdd((BIGD)m_Value) != 0);
+	}
+
 bool CIPInteger::IsZero () const
 
 //	IsZero
@@ -667,7 +746,45 @@ bool CIPInteger::IsZero () const
 //	Returns true if 0.
 
 	{
-	return (bdIsZero((BIGD)m_Value) == 1);
+	return (bdIsZero((BIGD)m_Value) != 0);
+	}
+
+CIPInteger CIPInteger::Power (const CIPInteger &Exp) const
+
+//	Power
+//
+//	Raise to the given power.
+
+	{
+	const CIPInteger TWO(2);
+
+	if (Exp.IsNegative())
+		return CIPInteger();
+	else if (Exp.IsZero())
+		return CIPInteger(1);
+	else
+		{
+		CIPInteger Result(1);
+		CIPInteger BaseTmp(*this);
+		CIPInteger ExpTmp(Exp);
+
+		while (true)
+			{
+			if (ExpTmp.IsOdd())
+				Result *= BaseTmp;
+
+			ExpTmp >>= 1;
+			if (ExpTmp.IsZero())
+				break;
+
+			BaseTmp *= BaseTmp;
+			}
+
+		if (m_bNegative)
+			Result.m_bNegative = Exp.IsOdd();
+
+		return Result;
+		}
 	}
 
 void CIPInteger::TakeHandoff (CIPInteger &Src)
