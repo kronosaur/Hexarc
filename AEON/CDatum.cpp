@@ -2216,7 +2216,7 @@ CDatum::Types CDatum::GetNumberType (int *retiValue, CDatum *retdConverted) cons
 				CDatum dNumberValue;
 				if (!CDatum::CreateFromStringValue(*this, &dNumberValue)
 						|| !dNumberValue.IsNumber())
-					return typeUnknown;
+					return typeNaN;
 
 				if (retdConverted)
 					*retdConverted = dNumberValue;
@@ -2242,7 +2242,7 @@ CDatum::Types CDatum::GetNumberType (int *retiValue, CDatum *retdConverted) cons
 
 						default:
 							ASSERT(false);
-							return typeUnknown;
+							return typeNaN;
 						}
 					}
 
@@ -2261,7 +2261,7 @@ CDatum::Types CDatum::GetNumberType (int *retiValue, CDatum *retdConverted) cons
 
 				default:
 					ASSERT(false);
-					return typeUnknown;
+					return typeNaN;
 				}
 
 		case AEON_TYPE_COMPLEX:
@@ -2269,7 +2269,7 @@ CDatum::Types CDatum::GetNumberType (int *retiValue, CDatum *retdConverted) cons
 
 		default:
 			ASSERT(false);
-			return typeUnknown;
+			return typeNaN;
 		}
 	}
 
@@ -2416,6 +2416,9 @@ CDatum::Types CDatum::GetStringValueType (const CString &sValue)
 		case stateHex:
 			//	LATER:
 			return typeString;
+
+		case stateHex0:
+			return typeInteger32;
 
 		case stateInteger:
 			if (strOverflowsInteger32(sValue))

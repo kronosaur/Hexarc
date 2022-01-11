@@ -523,7 +523,7 @@ class IComplexDatum
 		virtual CRGBA32Image *GetImageInterface () { return NULL; }
 		virtual CString GetKey (int iIndex) const { return NULL_STR; }
 		virtual CDatum GetMethod (const CString &sMethod) const { return CDatum(); }
-		virtual CDatum::Types GetNumberType (int *retiValue) { return CDatum::typeUnknown; }
+		virtual CDatum::Types GetNumberType (int *retiValue) { return CDatum::typeNaN; }
 		virtual IAEONTable *GetTableInterface () { return NULL; }
 		virtual const CString &GetTypename (void) const = 0;
 		virtual void GrowToFit (int iCount) { }

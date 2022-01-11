@@ -79,6 +79,10 @@ void CNumberValue::Abs ()
 			break;
 			}
 
+		case CDatum::typeNaN:
+			SetNaN();
+			break;
+
 		default:
 			break;
 		}
