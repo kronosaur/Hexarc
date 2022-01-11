@@ -109,6 +109,13 @@ class CHexeLibrarian
 			DWORD dwExecutionRights = 0;
 			};
 
+		struct SConstDoubleDef
+			{
+			LPCSTR pName = "";
+			LPCSTR pHelp = "";
+			double rValue = 0.0;
+			};
+
 		CDatum FindFunction (const CString &sLibrary, const CString &sFunction) const;
 		bool FindLibrary (const CString &sName, DWORD *retdwLibraryID) const;
 		const CString &GetEntry (DWORD dwLibrary, int iIndex, CDatum *retdFunction);
