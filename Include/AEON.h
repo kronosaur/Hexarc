@@ -113,6 +113,7 @@ class CDatum
 			typeTable =			15,			//	A table (each column is a typed array)
 			typeDatatype =		16,			//	A datatype (IDatatype)
 			typeTimeSpan =		17,	
+			typeNaN =			18,
 
 			typeCustom =		100,
 			};
@@ -932,6 +933,7 @@ class CNumberValue
 		void SetInteger (int iValue) { m_pValue = (void *)(DWORD_PTR)iValue; m_bUpconverted = true; m_iType = CDatum::typeInteger32; }
 		void SetInteger64 (DWORDLONG ilValue) { m_ilValue = ilValue; m_bUpconverted = true; m_iType = CDatum::typeInteger64; }
 		void SetIPInteger (const CIPInteger &Value) { m_ipValue = Value; m_pValue = &m_ipValue; m_bUpconverted = true; m_iType = CDatum::typeIntegerIP; }
+		void SetNaN () { m_bUpconverted = true; m_iType = CDatum::typeNaN; }
 		void SetNil () { m_bUpconverted = true; m_iType = CDatum::typeNil; }
 		void Subtract (CDatum dValue);
 		void Upconvert (CNumberValue &Src);

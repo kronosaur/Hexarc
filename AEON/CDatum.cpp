@@ -79,6 +79,10 @@ CDatum::CDatum (Types iType)
 			*this = CDatum(new CAEONObject(CAEONTypeSystem::GetCoreType(IDatatype::ANY)));
 			break;
 
+		case typeNaN:
+			m_dwData = CONST_NAN;
+			break;
+
 		default:
 			ASSERT(false);
 			m_dwData = 0;
@@ -1424,6 +1428,7 @@ int CDatum::DefaultCompare (void *pCtx, const CDatum &dKey1, const CDatum &dKey2
 			{
 			case CDatum::typeNil:
 			case CDatum::typeTrue:
+			case CDatum::typeNaN:
 				return 0;
 
 			case CDatum::typeInteger32:
@@ -1775,7 +1780,7 @@ CDatum::Types CDatum::GetBasicType (void) const
 					switch (m_dwData)
 						{
 						case CONST_NAN:
-							return typeDouble;
+							return typeNaN;
 
 						case CONST_TRUE:
 							return typeTrue;
@@ -2228,7 +2233,7 @@ CDatum::Types CDatum::GetNumberType (int *retiValue, CDatum *retdConverted) cons
 					switch (m_dwData)
 						{
 						case CONST_NAN:
-							return typeDouble;
+							return typeNaN;
 
 						case CONST_TRUE:
 							if (retiValue)
@@ -2558,6 +2563,9 @@ bool CDatum::IsEqual (CDatum dValue) const
 		case typeIntegerIP:
 		case typeDouble:
 			return (dValue.IsNumber() && CNumberValue(*this).Compare(dValue) == 0);
+
+		case typeNaN:
+			return (dValue.GetBasicType() == typeNaN);
 
 		case typeString:
 			return (dValue.GetBasicType() == typeString && strEquals(*this, dValue));

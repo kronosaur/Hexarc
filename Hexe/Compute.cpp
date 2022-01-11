@@ -1576,6 +1576,7 @@ int CHexeProcess::ExecuteCompare (CDatum dValue1, CDatum dValue2)
 			{
 			case CDatum::typeNil:
 			case CDatum::typeTrue:
+			case CDatum::typeNaN:
 				return 0;
 
 			case CDatum::typeInteger32:
@@ -1859,6 +1860,7 @@ bool CHexeProcess::ExecuteIsEquivalent (CDatum dValue1, CDatum dValue2)
 			{
 			case CDatum::typeNil:
 			case CDatum::typeTrue:
+			case CDatum::typeNaN:
 				return true;
 
 			case CDatum::typeInteger32:
