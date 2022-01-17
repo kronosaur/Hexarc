@@ -245,6 +245,14 @@ CSSLAsyncEngine::EResults CSSLAsyncEngine::Process (CString *retsError)
 				if (!Init(false, retsError))
 					return resError;
 
+				//	Make sure we set the host name on the SSL object because we need 
+				//	it in the TLS handshake for SNI.
+
+				if (!m_sHostname.IsEmpty())
+					{
+					int res = SSL_set_tlsext_host_name(COpenSSL::AsSSL(m_pSSL), (LPSTR)m_sHostname);
+					}
+
 				//	Connect
 
 				int err = SSL_connect(COpenSSL::AsSSL(m_pSSL));

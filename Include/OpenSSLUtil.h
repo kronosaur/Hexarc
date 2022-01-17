@@ -323,6 +323,7 @@ class CSSLAsyncEngine
 		inline const IMemoryBlock &GetBuffer (void) const { return m_Buffer; }
 		int GetInternalState (void) const { return (int)m_iState; }
 		void Send (IMemoryBlock &Data);
+		void SetHostname (const CString &sHostname) { m_sHostname = sHostname; }
 		void Receive (void);
 
 		EResults Process (CString *retsError);
@@ -347,6 +348,7 @@ class CSSLAsyncEngine
 
 		bool Init (bool bAsServer, CString *retsError);
 
+		CString m_sHostname;
 		EStates m_iState;
 		CSSLCtx *m_pSSLCtx;					//	SSL_CTX object
 		OpenSSL_SSLPtr m_pSSL;				//	SSL session object

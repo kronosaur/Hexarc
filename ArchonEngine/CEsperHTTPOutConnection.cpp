@@ -169,6 +169,12 @@ void CEsperHTTPOutConnection::OnSocketOperationComplete (EOperations iOp, DWORD 
 
 				m_pSSL = new CSSLAsyncEngine;
 
+				//	Set the hostname so that we can support SNI
+
+				m_pSSL->SetHostname(m_sAddress);
+
+				//	Start handshake
+
 				m_iSSLSavedState = stateSendRequest;
 				OpProcessSSL();
 				}
