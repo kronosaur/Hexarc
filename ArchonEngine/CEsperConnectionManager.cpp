@@ -619,6 +619,22 @@ void CEsperConnectionManager::LogTrace (const CString &sText)
 #endif
 	}
 
+void CEsperConnectionManager::Mark ()
+
+//	Mark
+//
+//	Mark data in use
+
+	{
+	SIDTableEnumerator i;
+	m_Connections.Reset(i);
+	while (m_Connections.HasMore(i))
+		{
+		CEsperConnection *pConnection = m_Connections.GetNext(i);
+		pConnection->Mark();
+		}
+	}
+
 bool CEsperConnectionManager::Process (void)
 
 //	Process

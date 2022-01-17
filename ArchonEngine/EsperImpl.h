@@ -97,6 +97,7 @@ class CEsperAMP1ConnectionOut : public CEsperConnection
 			stateSendRequest,
 			};
 
+		virtual void OnMark () override { m_Msg.dPayload.Mark(); }
 		bool OpConnect (bool bReconnect = false);
 		bool OpRead (EStates iNewState = stateWaitForResponse);
 		bool OpSendAuth (void);
@@ -168,6 +169,7 @@ class CEsperHTTPOutConnection : public CEsperConnection
 			stateWaitToSendSSLDataThenReady,
 			};
 
+		virtual void OnMark () override { m_Msg.dPayload.Mark(); }
 		void OnSSLOperationComplete (void);
 
 		bool OpConnect (bool bReconnect = false);
@@ -234,6 +236,8 @@ class CEsperSimpleConnection : public CEsperConnection
 			stateReplyOnWrite,
 			};
 
+		virtual void OnMark () override { m_Msg.dPayload.Mark(); }
+
 		CEsperConnectionManager &m_Manager;
 
 		EStates m_iState;
@@ -279,6 +283,7 @@ class CEsperTLSConnectionIn : public CEsperConnection
 			stateWaitToSendSSLDataThenReady,
 			};
 
+		virtual void OnMark () override { m_Msg.dPayload.Mark(); }
 		void OnSSLOperationComplete (void);
 		bool OpProcessSSL (CString *retsError = NULL);
 		bool OpRead (EStates iNewState);

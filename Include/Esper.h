@@ -87,9 +87,13 @@ class CEsperConnection : public CIOCPSocket
 		virtual void ClearBusy (void) = 0;
 		virtual const CString &GetHostConnection (void) { return NULL_STR; }
 		virtual CDatum GetProperty (const CString &sProperty) const { return CDatum(); }
+		void Mark () { OnMark(); }
 		virtual void OnConnect (void) { }
 		virtual bool SetBusy (void) = 0;
 		virtual bool SetProperty (const CString &sProperty, CDatum dValue) { return false; }
+
+	private:
+		virtual void OnMark () { }
 	};
 
 class CEsperListenerThread : public TThread<CEsperListenerThread>
@@ -257,6 +261,7 @@ class CEsperConnectionManager
 		bool IsIdle (void);
 		void Log (const CString &sMsg, const CString &sText) { if (m_pArchon) m_pArchon->Log(sMsg, sText); }
 		void LogTrace (const CString &sText);
+		void Mark ();
 		bool Process (void);
 		void ResetConnection (CDatum dConnection);
 		void SendMessageCommand (const CString &sAddress, const CString &sMsg, const CString &sReplyAddr, DWORD dwTicket, CDatum dPayload) { if (m_pArchon) m_pArchon->SendMessageCommand(sAddress, sMsg, sReplyAddr, dwTicket, dPayload); }

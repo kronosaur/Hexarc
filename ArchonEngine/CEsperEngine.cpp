@@ -327,13 +327,13 @@ void CEsperEngine::Mark (void)
 //	Mark all AEON data in use
 
 	{
-	int i;
-
-	for (i = 0; i < m_Listeners.GetCount(); i++)
+	for (int i = 0; i < m_Listeners.GetCount(); i++)
 		m_Listeners[i]->Mark();
 
-	for (i = 0; i < m_Workers.GetCount(); i++)
+	for (int i = 0; i < m_Workers.GetCount(); i++)
 		m_Workers[i]->Mark();
+
+	m_Connections.Mark();
 	}
 
 void CEsperEngine::MsgEsperAMP1 (const SArchonMessage &Msg)
