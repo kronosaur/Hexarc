@@ -190,30 +190,32 @@ void CHexeFunction::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruc
 	//	NOTE: We only serialize a single level. In the future, we should be 
 	//	smarter about only saving variables used by the function (in a closure).
 
-	CHexeLocalEnvironment *pCurrentLocalEnv = CHexeLocalEnvironment::Upconvert(m_dLocalEnv);
-	CHexeLocalEnvironment *pLocalEnv = new CHexeLocalEnvironment;
-	pLocalEnv->SetNextArg(pCurrentLocalEnv->GetNextArg());
-
-	CDatum dSelf(CDatum::raw_AsComplex(this));
-
-	for (int i = 0; i < m_dLocalEnv.GetCount(); i++)
+	if (CHexeLocalEnvironment *pCurrentLocalEnv = CHexeLocalEnvironment::Upconvert(m_dLocalEnv))
 		{
-		pLocalEnv->SetArgumentKey(0, i, m_dLocalEnv.GetKey(i));
-		CDatum dValue = m_dLocalEnv.GetElement(i);
+		CHexeLocalEnvironment *pLocalEnv = new CHexeLocalEnvironment;
+		pLocalEnv->SetNextArg(pCurrentLocalEnv->GetNextArg());
 
-		CString sKey = m_dLocalEnv.GetKey(i);
+		CDatum dSelf(CDatum::raw_AsComplex(this));
 
-		//	Make sure we don't try to save ourselves.
+		for (int i = 0; i < m_dLocalEnv.GetCount(); i++)
+			{
+			pLocalEnv->SetArgumentKey(0, i, m_dLocalEnv.GetKey(i));
+			CDatum dValue = m_dLocalEnv.GetElement(i);
 
-		if (dValue.Contains(dSelf))
-			continue;
+			CString sKey = m_dLocalEnv.GetKey(i);
 
-		//	Add
+			//	Make sure we don't try to save ourselves.
 
-		pLocalEnv->SetArgumentValue(0, i, dValue);
+			if (dValue.Contains(dSelf))
+				continue;
+
+			//	Add
+
+			pLocalEnv->SetArgumentValue(0, i, dValue);
+			}
+
+		pStruct->SetElement(FIELD_LOCAL_ENV, CDatum(pLocalEnv));
 		}
-
-	pStruct->SetElement(FIELD_LOCAL_ENV, CDatum(pLocalEnv));
 
 	//	NOTE: We do not serialize the global environment because we don't know
 	//	how. Instead, we should attached it on deserialize.
