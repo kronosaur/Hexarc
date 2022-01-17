@@ -59,6 +59,13 @@ bool CSSLSocketStream::Connect (const CString &sHostname, DWORD dwPort, bool bUs
 			m_pBIO = BIO_new_socket((int)(SOCKET)m_Socket, BIO_NOCLOSE);
 			SSL_set_bio(COpenSSL::AsSSL(m_pSSL), COpenSSL::AsBIO(m_pBIO), COpenSSL::AsBIO(m_pBIO));
 
+			//	Make sure we set the host name on the SSL object because we need 
+			//	it in the TLS handshake for SNI.
+
+			int res = SSL_set_tlsext_host_name(COpenSSL::AsSSL(m_pSSL), (LPSTR)sHostname);
+
+			//	Connect
+
 			while (true)
 				{
 				int err = SSL_connect(COpenSSL::AsSSL(m_pSSL));
