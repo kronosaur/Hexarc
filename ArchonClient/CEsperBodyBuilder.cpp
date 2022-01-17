@@ -43,7 +43,7 @@ CEsperBodyBuilder::CEsperBodyBuilder (void) : m_Body(DEFAULT_SIZE),
 	{
 	}
 
-void CEsperBodyBuilder::Append (void *pPos, int iLength)
+void CEsperBodyBuilder::Append (const void *pPos, int iLength)
 
 //	Append
 //
@@ -766,7 +766,7 @@ bool CEsperBodyBuilder::ProcessMultipartHeader (void)
 		}
 	}
 
-bool CEsperBodyBuilder::ProcessMultipartMoreContent (void *pPos, int iLength)
+bool CEsperBodyBuilder::ProcessMultipartMoreContent (const void *pPos, int iLength)
 
 //	ProcessMultipartMoreContent
 //

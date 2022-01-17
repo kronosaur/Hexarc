@@ -14,7 +14,7 @@ CHTTPMessageBodyBuilder::CHTTPMessageBodyBuilder (void) : m_Body(DEFAULT_SIZE)
 	{
 	}
 
-void CHTTPMessageBodyBuilder::Append (void *pPos, int iLength)
+void CHTTPMessageBodyBuilder::Append (const void *pPos, int iLength)
 
 //	Append
 //

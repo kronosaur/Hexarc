@@ -91,7 +91,7 @@ class CEsperBodyBuilder : public IMediaTypeBuilder
 
 		//	IMediaTypeBuilder interface
 
-		virtual void Append (void *pPos, int iLength) override;
+		virtual void Append (const void *pPos, int iLength) override;
 		virtual bool CreateMedia (IMediaTypePtr *retpBody) override;
 		virtual int GetLength (void) const override { return m_iBodyRead; }
 		virtual void Init (const CString &sMediaType) override;
@@ -142,7 +142,7 @@ class CEsperBodyBuilder : public IMediaTypeBuilder
 		EParseResults ParseMultipartBoundary (void);
 		bool ProcessMultipartFirstBoundary (void);
 		bool ProcessMultipartHeader (void);
-		bool ProcessMultipartMoreContent (void *pPos, int iLength);
+		bool ProcessMultipartMoreContent (const void *pPos, int iLength);
 		bool ProcessMultipartStartContent (void);
 		void ResetMultipartTemps (void);
 
@@ -184,7 +184,7 @@ class CEsperMultipartParser
 		bool ParseAsDatum (CDatum *retdBody);
 
 	private:
-		bool ParseToBoundary (char *pPos, char *pPosEnd, const CString &sBoundary, const CString &sPartType, CDatum *retdData, char **retpPos) const;
+		bool ParseToBoundary (const char *pPos, const char *pPosEnd, const CString &sBoundary, const CString &sPartType, CDatum *retdData, const char **retpPos) const;
 
 		CString m_sMediaType;
 		IMemoryBlock &m_Block;

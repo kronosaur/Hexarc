@@ -51,8 +51,8 @@ bool CEsperMultipartParser::ParseAsDatum (CDatum *retdBody)
 
 	//	Parse the buffer
 
-	char *pPos = m_Block.GetPointer();
-	char *pPosEnd = pPos + m_Block.GetLength();
+	const char *pPos = m_Block.GetPointer();
+	const char *pPosEnd = pPos + m_Block.GetLength();
 
 	//	Read the boundary
 
@@ -62,8 +62,8 @@ bool CEsperMultipartParser::ParseAsDatum (CDatum *retdBody)
 	if (pPos == pPosEnd || *pPos++ != '-')
 		return false;
 
-	char *pBoundary = sBoundary.GetParsePointer();
-	char *pBoundaryEnd = pBoundary + sBoundary.GetLength();
+	const char *pBoundary = sBoundary.GetParsePointer();
+	const char *pBoundaryEnd = pBoundary + sBoundary.GetLength();
 	while (pPos < pPosEnd && pBoundary < pBoundaryEnd && *pPos == *pBoundary)
 		{
 		pPos++;
@@ -165,7 +165,7 @@ bool CEsperMultipartParser::ParseAsDatum (CDatum *retdBody)
 	return true;
 	}
 
-bool CEsperMultipartParser::ParseToBoundary (char *pPos, char *pPosEnd, const CString &sBoundary, const CString &sPartType, CDatum *retdData, char **retpPos) const
+bool CEsperMultipartParser::ParseToBoundary (const char *pPos, const char *pPosEnd, const CString &sBoundary, const CString &sPartType, CDatum *retdData, const char **retpPos) const
 
 //	ParseToBoundary
 //
@@ -186,12 +186,12 @@ bool CEsperMultipartParser::ParseToBoundary (char *pPos, char *pPosEnd, const CS
 		stateDone,
 		};
 
-	char *pBoundary = sBoundary.GetParsePointer();
-	char *pBoundaryEnd = pBoundary + sBoundary.GetLength();
+	const char *pBoundary = sBoundary.GetParsePointer();
+	const char *pBoundaryEnd = pBoundary + sBoundary.GetLength();
 
 	EStates iState = stateParsing;
-	char *pStart = pPos;
-	char *pEnd;
+	const char *pStart = pPos;
+	const char *pEnd;
 
 	while (iState != stateDone)
 		{

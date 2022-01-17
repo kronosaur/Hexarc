@@ -332,8 +332,8 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 //	We assume that InitFromPartialBufferReset has been called.
 
 	{
-	char *pPos;
-	char *pEndPos;
+	const char *pPos;
+	const char *pEndPos;
 
 	if (!m_pBodyBuilder)
 		{
@@ -377,7 +377,7 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 				{
 				//	Remember the original position in case we need to back-track.
 
-				char *pOriginalPos = pPos;
+				const char *pOriginalPos = pPos;
 
 				//	Get the first token. If we don't find the delimiter, then we 
 				//	need more data.
@@ -579,7 +579,7 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 				if (FindHeader(HEADER_TRANSFER_ENCODING, &sEncoding)
 						&& strEquals(sEncoding, ENCODING_CHUNKED))
 					{
-					char *pOriginalPos = pPos;
+					const char *pOriginalPos = pPos;
 
 					//	Read the chunk size line
 
@@ -635,7 +635,7 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 						{
 						//	Read the terminating line end
 
-						char *pOriginalPos = pPos;
+						const char *pOriginalPos = pPos;
 
 						if (!ParseToken(pPos, pEndPos, '\r', &pPos, NULL))
 							{
@@ -698,7 +698,7 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 
 			case stateChunkEnd:
 				{
-				char *pOriginalPos = pPos;
+				const char *pOriginalPos = pPos;
 
 				if (!ParseToken(pPos, pEndPos, '\r', &pPos, NULL))
 					{
@@ -740,7 +740,7 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 					{
 					//	Read the terminating line end
 
-					char *pOriginalPos = pPos;
+					const char *pOriginalPos = pPos;
 
 					if (!ParseToken(pPos, pEndPos, '\r', &pPos, NULL))
 						{
@@ -1002,7 +1002,7 @@ void CHTTPMessage::ParseCookies (const CString &sValue, TSortMap<CString, CStrin
 		}
 	}
 
-bool CHTTPMessage::ParseHeader (char *pPos, char *pEndPos, CString *retpField, CString *retpValue, char **retpPos, bool *retbHeadersDone)
+bool CHTTPMessage::ParseHeader (const char *pPos, const char *pEndPos, CString *retpField, CString *retpValue, const char **retpPos, bool *retbHeadersDone)
 
 //	ParseHeader
 //
@@ -1046,7 +1046,7 @@ bool CHTTPMessage::ParseHeader (char *pPos, char *pEndPos, CString *retpField, C
 
 	//	Parse the field name
 
-	char *pStart = pPos;
+	const char *pStart = pPos;
 	while (pPos < pEndPos && *pPos != ':' && *pPos != ' ' && *pPos != '\t')
 		pPos++;
 
@@ -1217,7 +1217,7 @@ bool CHTTPMessage::ParseRequestedURL (CString *retsProtocol, CString *retsHost, 
 	return true;
 	}
 
-bool CHTTPMessage::ParseToken (char *pPos, char *pEndPos, char chDelimiter, char **retpPos, CString *retsToken) const
+bool CHTTPMessage::ParseToken (const char *pPos, const char *pEndPos, char chDelimiter, const char **retpPos, CString *retsToken) const
 
 //	ParseToken
 //
@@ -1225,7 +1225,7 @@ bool CHTTPMessage::ParseToken (char *pPos, char *pEndPos, char chDelimiter, char
 //	then we return FALSE.
 
 	{
-	char *pStart = pPos;
+	const char *pStart = pPos;
 	while (pPos < pEndPos && *pPos != chDelimiter)
 		pPos++;
 

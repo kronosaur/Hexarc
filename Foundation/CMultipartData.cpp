@@ -34,8 +34,8 @@ bool CMultipartData::DecodeFromBuffer (const CString &sMediaType, const IMemoryB
 
 	//	Parse the buffer
 
-	char *pPos = Buffer.GetPointer();
-	char *pPosEnd = pPos + Buffer.GetLength();
+	const char *pPos = Buffer.GetPointer();
+	const char *pPosEnd = pPos + Buffer.GetLength();
 
 	m_Parts.DeleteAll();
 
@@ -47,8 +47,8 @@ bool CMultipartData::DecodeFromBuffer (const CString &sMediaType, const IMemoryB
 	if (pPos == pPosEnd || *pPos++ != '-')
 		return false;
 
-	char *pBoundary = sBoundary.GetParsePointer();
-	char *pBoundaryEnd = pBoundary + sBoundary.GetLength();
+	const char *pBoundary = sBoundary.GetParsePointer();
+	const char *pBoundaryEnd = pBoundary + sBoundary.GetLength();
 	while (pPos < pPosEnd && pBoundary < pBoundaryEnd && *pPos == *pBoundary)
 		{
 		pPos++;
@@ -161,7 +161,7 @@ const CString &CMultipartData::GetMediaType (void) const
 	return MEDIA_MULTIPART_FORM;
 	}
 
-bool CMultipartData::ParseToBoundary (char *pPos, char *pPosEnd, const CString &sBoundary, CString *retsData, char **retpPos) const
+bool CMultipartData::ParseToBoundary (const char *pPos, const char *pPosEnd, const CString &sBoundary, CString *retsData, const char **retpPos) const
 
 //	ParseToBoundary
 //
@@ -182,12 +182,12 @@ bool CMultipartData::ParseToBoundary (char *pPos, char *pPosEnd, const CString &
 		stateDone,
 		};
 
-	char *pBoundary = sBoundary.GetParsePointer();
-	char *pBoundaryEnd = pBoundary + sBoundary.GetLength();
+	const char *pBoundary = sBoundary.GetParsePointer();
+	const char *pBoundaryEnd = pBoundary + sBoundary.GetLength();
 
 	EStates iState = stateParsing;
-	char *pStart = pPos;
-	char *pEnd;
+	const char *pStart = pPos;
+	const char *pEnd;
 
 	while (iState != stateDone)
 		{

@@ -255,7 +255,7 @@ class IMediaTypeBuilder
 			}
 
 		virtual ~IMediaTypeBuilder (void) { }
-		virtual void Append (void *pPos, int iLength) = 0;
+		virtual void Append (const void *pPos, int iLength) = 0;
 		virtual bool CreateMedia (IMediaTypePtr *retpBody) = 0;
 		virtual int GetLength (void) const = 0;
 		virtual void Init (const CString &sMediaType) = 0;
@@ -274,7 +274,7 @@ class CHTTPMessageBodyBuilder : public IMediaTypeBuilder
 
 		//	IMediaTypeBuilder interface
 
-		virtual void Append (void *pPos, int iLength) override;
+		virtual void Append (const void *pPos, int iLength) override;
 		virtual bool CreateMedia (IMediaTypePtr *retpBody) override;
 		virtual int GetLength (void) const override { return m_Body.GetLength(); }
 		virtual void Init (const CString &sMediaType) override;
@@ -340,7 +340,7 @@ class CHTTPMessage
 		CString DebugGetInitState (void) const;
 
 		static void ParseCookies (const CString &sValue, TSortMap<CString, CString> *retCookies);
-		static bool ParseHeader (char *pPos, char *pEndPos, CString *retpField, CString *retpValue, char **retpPos, bool *retbHeadersDone);
+		static bool ParseHeader (const char *pPos, const char *pEndPos, CString *retpField, CString *retpValue, const char **retpPos, bool *retbHeadersDone);
 		static bool ParseHeaderValue (const CString &sValue, CString *retsValue, TSortMap<CString, CString> *retFields);
 		static CString StatusMessageFromStatusCode (DWORD dwStatusCode);
 
@@ -368,7 +368,7 @@ class CHTTPMessage
 			LPCSTR pszMessage = NULL;
 			};
 
-		bool ParseToken (char *pPos, char *pEndPos, char chDelimiter, char **retpPos, CString *retsToken) const;
+		bool ParseToken (const char *pPos, const char *pEndPos, char chDelimiter, const char **retpPos, CString *retsToken) const;
 
 		MessageTypes m_iType;
 		CString m_sMethod;				//	If method is blank, then this is a response
@@ -438,7 +438,7 @@ class CMultipartData : public IMediaType
 			CString sData;
 			};
 
-		bool ParseToBoundary (char *pPos, char *pPosEnd, const CString &sBoundary, CString *retsData, char **retpPos) const;
+		bool ParseToBoundary (const char *pPos, const char *pPosEnd, const CString &sBoundary, CString *retsData, const char **retpPos) const;
 
 		TArray<SPart> m_Parts;
 	};
