@@ -44,6 +44,8 @@ CIOCPSocket::CIOCPSocket (const CString &sAddress, DWORD dwPort) : IIOCPEntry(IO
 		if (NewSocket.Create(pAI->ai_family, CSocket::EType::TCP))
 			m_hSocket = NewSocket.Handoff();
 		}
+	else
+		m_hSocket = INVALID_SOCKET;
 	}
 
 CIOCPSocket::~CIOCPSocket (void)

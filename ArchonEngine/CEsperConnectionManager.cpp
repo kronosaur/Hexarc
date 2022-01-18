@@ -25,6 +25,7 @@ DECLARE_CONST_STRING(PROTOCOL_AMP1,						"amp1")
 
 DECLARE_CONST_STRING(WORKER_SIGNAL_SHUTDOWN,			"Worker.shutdown")
 
+DECLARE_CONST_STRING(ERR_CANT_CONNECT,					"Unable to connect to: %s.")
 DECLARE_CONST_STRING(ERR_CRASH,							"Crash in IO operation.")
 DECLARE_CONST_STRING(ERR_INVALID_CONNECTION,			"Invalid connection: %x.")
 DECLARE_CONST_STRING(ERR_INVALID_CONNECT_ADDR,			"Invalid connection address.")
@@ -115,6 +116,13 @@ bool CEsperConnectionManager::BeginHTTPOperation (const CString &sHostConnection
 		//	Create a new connection
 
 		pConnection = new CEsperHTTPOutConnection(*this, sHostConnection, sAddress, dwPort);
+		if (pConnection->GetSocket() == INVALID_SOCKET)
+			{
+			delete pConnection;
+			if (retsError) *retsError = strPattern(ERR_CANT_CONNECT, sAddress);
+			return false;
+			}
+
 		AddConnection(pConnection);
 
 		//	Add it to our list of outbound connections
