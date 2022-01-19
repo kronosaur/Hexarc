@@ -240,18 +240,18 @@ bool CUserInfoSession::OnProcessMessage (const SArchonMessage &Msg)
 			return false;
 			}
 
-		//	If we get back nil then the user does not exist.
-
-		else if (Msg.dPayload.IsNil())
-			{
-			SendMessageReplyError(MSG_ERROR_DOES_NOT_EXIST, strPattern(ERR_UNKNOWN_USERNAME, m_sUsername));
-			return false;
-			}
-
 		//	Otherwise, we handle the result based on the original message
 
 		else if (strEquals(GetOriginalMsg().sMsg, MSG_CRYPTOSAUR_CHECK_PASSWORD_SHA1))
 			{
+			//	Handle invalid user the same as invalid password.
+
+			if (Msg.dPayload.IsNil())
+				{
+				SendMessageReplyError(MSG_ERROR_DOES_NOT_EXIST, ERR_INVALID_USERNAME_OR_PASSWORD);
+				return false;
+				}
+
 			//	Get the parameters from the original message
 
 			CDatum dChallenge = GetOriginalMsg().dPayload.GetElement(1);
@@ -279,6 +279,15 @@ bool CUserInfoSession::OnProcessMessage (const SArchonMessage &Msg)
 
 		else if (strEquals(GetOriginalMsg().sMsg, MSG_CRYPTOSAUR_HAS_RIGHTS))
 			{
+			//	Treat invalid user as no rights, so that we don't leak 
+			//	user information.
+
+			if (Msg.dPayload.IsNil())
+				{
+				SendMessageReply(MSG_REPLY_DATA, CDatum());
+				return false;
+				}
+
 			CDatum dRights = Msg.dPayload.GetElement(FIELD_RIGHTS);
 			CDatum dRightsRequired = m_dPayload.GetElement(1);
 
@@ -308,6 +317,14 @@ bool CUserInfoSession::OnProcessMessage (const SArchonMessage &Msg)
 
 		else if (strEquals(GetOriginalMsg().sMsg, MSG_CRYPTOSAUR_LOGIN_USER))
 			{
+			//	Handle invalid user the same as invalid password.
+
+			if (Msg.dPayload.IsNil())
+				{
+				SendMessageReplyError(MSG_ERROR_DOES_NOT_EXIST, ERR_INVALID_USERNAME_OR_PASSWORD);
+				return false;
+				}
+
 			//	Get the parameters from the original message
 
 			CDatum dRequestAuthDesc = GetOriginalMsg().dPayload.GetElement(1);
