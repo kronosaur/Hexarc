@@ -76,7 +76,7 @@ void CCryptosaurEngine::MsgCreateScopedCredentials (const SArchonMessage &Msg, c
 
 //	MsgCreateScopedCredentials
 //
-//	Cryptosaur.createScopedCredentials {username} {authDesc}
+//	Cryptosaur.createScopedCredentials {username} {authDesc} {regenCredentials}
 
 	{
 	//	Any service can create a new user

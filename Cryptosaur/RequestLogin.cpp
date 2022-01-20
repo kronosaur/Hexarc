@@ -10,6 +10,7 @@ DECLARE_CONST_STRING(ADDRESS_AEON_COMMAND,				"Aeon.command")
 DECLARE_CONST_STRING(AUTH_TYPE_SHA1,					"SHA1")
 
 DECLARE_CONST_STRING(FIELD_AUTH_DESC,					"authDesc")
+DECLARE_CONST_STRING(FIELD_AUTHORITY,					"authority");
 DECLARE_CONST_STRING(FIELD_CHALLENGE,					"challenge")
 DECLARE_CONST_STRING(FIELD_CHALLENGE_EXPIRATION,		"challengeExpiration")
 DECLARE_CONST_STRING(FIELD_CREDENTIALS,					"credentials")
@@ -305,6 +306,11 @@ bool CChangeUserSession::OnProcessMessage (const SArchonMessage &Msg)
 			else if (strEquals(GetOriginalMsg().sMsg, MSG_CRYPTOSAUR_CHANGE_PASSWORD))
 				{
 				CDatum dCurrentAuthDesc = dUserData.GetElement(FIELD_AUTH_DESC);
+				if (!dCurrentAuthDesc.GetElement(FIELD_AUTHORITY).IsNil())
+					{
+					SendMessageReplyError(MSG_ERROR_DOES_NOT_EXIST, ERR_INVALID_USERNAME_OR_PASSWORD);
+					return false;
+					}
 
 				CDatum dOldAuthDesc = m_dPayload.GetElement(1);
 				CDatum dNewAuthDesc = m_dPayload.GetElement(2);
@@ -394,6 +400,11 @@ bool CChangeUserSession::OnProcessMessage (const SArchonMessage &Msg)
 			else if (strEquals(GetOriginalMsg().sMsg, MSG_CRYPTOSAUR_RESET_PASSWORD_MANUAL))
 				{
 				CDatum dCurrentAuthDesc = dUserData.GetElement(FIELD_AUTH_DESC);
+				if (!dCurrentAuthDesc.GetElement(FIELD_AUTHORITY).IsNil())
+					{
+					SendMessageReplyError(MSG_ERROR_DOES_NOT_EXIST, ERR_INVALID_USERNAME_OR_PASSWORD);
+					return false;
+					}
 
 				//	Generate a new (random) password (with 8 characters)
 
@@ -564,6 +575,13 @@ bool CChangeUserSession::OnProcessMessage (const SArchonMessage &Msg)
 
 			else
 				{
+				CDatum dCurrentAuthDesc = dUserData.GetElement(FIELD_AUTH_DESC);
+				if (!dCurrentAuthDesc.GetElement(FIELD_AUTHORITY).IsNil())
+					{
+					SendMessageReplyError(MSG_ERROR_DOES_NOT_EXIST, ERR_INVALID_USERNAME_OR_PASSWORD);
+					return false;
+					}
+
 				bool bActual = (!m_dPayload.GetElement(1).IsNil() && !m_sScope.IsEmpty());
 
 				//	Get the authDesc that we need to modify

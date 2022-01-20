@@ -179,6 +179,7 @@
     <ClCompile Include="CCryptosaurEngine.cpp" />
     <ClCompile Include="CreateScopedCredentials.cpp" />
     <ClCompile Include="CreateUser.cpp" />
+    <ClCompile Include="MsgCreateAuthToken.cpp" />
     <ClCompile Include="MsgGetKey.cpp" />
     <ClCompile Include="MsgSetCertificate.cpp" />
     <ClCompile Include="MsgSetKey.cpp" />

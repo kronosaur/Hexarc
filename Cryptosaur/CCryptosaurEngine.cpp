@@ -50,6 +50,7 @@ DECLARE_CONST_STRING(MSG_ARC_HOUSEKEEPING,				"Arc.housekeeping")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_ADD_RIGHTS,			"Cryptosaur.addRights")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_CHANGE_PASSWORD,	"Cryptosaur.changePassword")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_CREATE_ADMIN,		"Cryptosaur.createAdmin")
+DECLARE_CONST_STRING(MSG_CRYPTOSAUR_CREATE_AUTH_TOKEN,	"Cryptosaur.createAuthToken")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_CREATE_SCOPED_CREDENTIALS,	"Cryptosaur.createScopedCredentials")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_CREATE_USER,		"Cryptosaur.createUser")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_GET_CERTIFICATE,	"Cryptosaur.getCertificate")
@@ -86,6 +87,9 @@ CCryptosaurEngine::SMessageHandler CCryptosaurEngine::m_MsgHandlerList[] =
 
 		//	Cryptosaur.createAdmin {username} {authDesc}
 		{	MSG_CRYPTOSAUR_CREATE_ADMIN,				&CCryptosaurEngine::MsgCreateAdmin },
+
+		//	Cryptosaur.createAuthToken {username} {authDesc}
+		{	MSG_CRYPTOSAUR_CREATE_AUTH_TOKEN,			&CCryptosaurEngine::MsgCreateAuthToken },
 
 		//	Cryptosaur.createScopedCredentials {username} {authDesc}
 		{	MSG_CRYPTOSAUR_CREATE_SCOPED_CREDENTIALS,	&CCryptosaurEngine::MsgCreateScopedCredentials },
@@ -512,6 +516,14 @@ CString CCryptosaurEngine::ValidateSandbox (const CString &sSandbox)
 //	Makes sure the sandbox name is in the proper format.
 
 	{
+	//	Handle the degenerate case. If callers need to worry about null 
+	//	sandbox IDs, then they should check for null when this returns.
+
+	if (sSandbox.IsEmpty())
+		return NULL_STR;
+
+	//	See if we already have a dot
+
 	bool bFoundDot = false;
 	const char *pPos = sSandbox.GetParsePointer();
 	const char *pPosEnd = pPos + sSandbox.GetLength();

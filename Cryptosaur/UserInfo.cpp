@@ -13,6 +13,7 @@ DECLARE_CONST_STRING(FIELD_AUTH_DESC_SUFFIX,			".authDesc")
 DECLARE_CONST_STRING(FIELD_AUTH_TOKEN,					"authToken")
 DECLARE_CONST_STRING(FIELD_AUTH_TOKEN_INFINITE,			"authTokenInfinite")
 DECLARE_CONST_STRING(FIELD_AUTH_TOKEN_LIFETIME,			"authTokenLifetime")
+DECLARE_CONST_STRING(FIELD_AUTHORITY,					"authority");
 DECLARE_CONST_STRING(FIELD_CHALLENGE,					"challenge")
 DECLARE_CONST_STRING(FIELD_CHALLENGE_CREDENTIALS,		"challengeCredentials")
 DECLARE_CONST_STRING(FIELD_CHALLENGE_EXPIRATION,		"challengeExpiration")
@@ -367,6 +368,15 @@ bool CUserInfoSession::OnProcessMessage (const SArchonMessage &Msg)
 			//	with. We treat it the same as a username/password failure.
 
 			if (dAuthDesc.IsNil())
+				{
+				SendMessageReplyError(MSG_ERROR_DOES_NOT_EXIST, ERR_INVALID_USERNAME_OR_PASSWORD);
+				return false;
+				}
+
+			//	If this record is a delegated user (i.e., some other system has 
+			//	the user's credentials) then we fail.
+
+			else if (!dAuthDesc.GetElement(FIELD_AUTHORITY).IsNil())
 				{
 				SendMessageReplyError(MSG_ERROR_DOES_NOT_EXIST, ERR_INVALID_USERNAME_OR_PASSWORD);
 				return false;

@@ -83,6 +83,7 @@ class CCryptosaurEngine : public TSimpleEngine<CCryptosaurEngine>
 		void MsgChangePassword (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgCheckPasswordSHA1 (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgCreateAdmin (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
+		void MsgCreateAuthToken (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgCreateScopedCredentials (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgCreateUser (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgGetCertificate (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
