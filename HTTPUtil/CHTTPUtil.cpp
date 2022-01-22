@@ -5,6 +5,11 @@
 
 #include "pch.h"
 
+DECLARE_CONST_STRING(FIELD_DATA,						"data");
+DECLARE_CONST_STRING(FIELD_HEADERS,						"headers");
+DECLARE_CONST_STRING(FIELD_STATUS,						"status");
+DECLARE_CONST_STRING(FIELD_STATUS_CODE,					"statusCode");
+
 DECLARE_CONST_STRING(HEADER_CONTENT_TYPE,				"content-type");
 DECLARE_CONST_STRING(HEADER_HOST,						"host");
 
@@ -268,11 +273,6 @@ CDatum CHTTPUtil::ConvertHeadersToDatum (const CHTTPMessage &Message)
 
 CDatum CHTTPUtil::DecodeResponse (const CHTTPMessage &Response)
 	{
-	CDatum dResult(CDatum::typeArray);
-	dResult.Append((int)Response.GetStatusCode());
-	dResult.Append(Response.GetStatusMsg());
-	dResult.Append(ConvertHeadersToDatum(Response));
-
 	CDatum dBody;
 	if (false)
 		dBody = CDatum(Response.GetBodyBuffer());
@@ -281,11 +281,29 @@ CDatum CHTTPUtil::DecodeResponse (const CHTTPMessage &Response)
 		ConvertBodyToDatum(Response, dBody);
 		}
 
-	//	OK if we get an error; dBody will be the error.
-
-	dResult.Append(dBody);
+	CDatum dResult(CDatum::typeStruct);
+	dResult.SetElement(FIELD_STATUS_CODE, Response.GetStatusCode());
+	dResult.SetElement(FIELD_STATUS, Response.GetStatusMsg());
+	dResult.SetElement(FIELD_HEADERS, ConvertHeadersToDatum(Response));
+	dResult.SetElement(FIELD_DATA, dBody);
 
 	//	Done
+
+	return dResult;
+	}
+
+CDatum CHTTPUtil::DecodeResponse (CDatum dResponse)
+
+//	DecodeResponse
+//
+//	Decodes a response from Esper.
+
+	{
+	CDatum dResult(CDatum::typeStruct);
+	dResult.SetElement(FIELD_STATUS_CODE, dResponse.GetElement(0));
+	dResult.SetElement(FIELD_STATUS, dResponse.GetElement(1));
+	dResult.SetElement(FIELD_HEADERS, dResponse.GetElement(2));
+	dResult.SetElement(FIELD_DATA, dResponse.GetElement(3));
 
 	return dResult;
 	}
