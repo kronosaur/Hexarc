@@ -8,3 +8,4 @@
 #include "Foundation.h"
 #include "OpenSSLUtil.h"
 #include "ArchonClient.h"
+#include "HTTPUtil.h"

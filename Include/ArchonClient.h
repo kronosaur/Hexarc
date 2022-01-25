@@ -75,7 +75,6 @@ class CEsperInterface
 		static bool ConvertFormURLEncodedToDatum (const CString &sText, CDatum *retdValue);
 		static CDatum ConvertHeadersToDatum (const CHTTPMessage &Message);
 		static CDatum DecodeHTTPResponse (const CHTTPMessage &Message, bool bRawBody);
-		static void EncodeHTTPRequest (const CString &sMethod, const CString &sHost, const CString &sPath, CDatum dHeaders, CDatum dBody, CHTTPMessage *retMessage);
 		static bool HTTP (const CString &sMethod, const CString &sURL, CDatum dHeaders, CDatum dBody, CDatum dOptions, CDatum *retdResult);
 	};
 

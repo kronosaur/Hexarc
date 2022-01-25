@@ -330,48 +330,6 @@ CDatum CEsperInterface::DecodeHTTPResponse (const CHTTPMessage &Message, bool bR
 	return CDatum(pResult);
 	}
 
-void CEsperInterface::EncodeHTTPRequest (const CString &sMethod, const CString &sHost, const CString &sPath, CDatum dHeaders, CDatum dBody, CHTTPMessage *retMessage)
-
-//	EncodeHTTPRequest
-//
-//	Encodes a message
-
-	{
-	int i;
-
-	retMessage->InitRequest(sMethod, sPath);
-
-	//	Add headers
-
-	bool bFoundHost = false;
-	for (i = 0; i < dHeaders.GetCount(); i++)
-		{
-		retMessage->AddHeader(dHeaders.GetKey(i), (const CString &)dHeaders.GetElement(i));
-		if (strEquals(strToLower(dHeaders.GetKey(i)), HEADER_HOST))
-			bFoundHost = true;
-		}
-
-	//	Add body
-
-	if (!dBody.IsNil())
-		{
-		CString sMediaType;
-		if (!retMessage->FindHeader(HEADER_CONTENT_TYPE, &sMediaType))
-			sMediaType = MEDIA_TYPE_TEXT;
-
-		IMediaTypePtr pBody = IMediaTypePtr(new CRawMediaType);
-		pBody->DecodeFromBuffer(sMediaType, CStringBuffer(dBody.AsString()));
-
-		retMessage->SetBody(pBody);
-		}
-
-
-	//	If there is no Host header and we have a host, then add it
-
-	if (!bFoundHost && !sHost.IsEmpty())
-		retMessage->AddHeader(HEADER_HOST, sHost);
-	}
-
 bool CEsperInterface::HTTP (const CString &sMethod, const CString &sURL, CDatum dHeaders, CDatum dBody, CDatum dOptions, CDatum *retdResult)
 
 //	HTTP
@@ -416,8 +374,7 @@ bool CEsperInterface::HTTP (const CString &sMethod, const CString &sURL, CDatum 
 
 	//	Serialize to an HTTP message buffer
 
-	CHTTPMessage Request;
-	CEsperInterface::EncodeHTTPRequest(sMethod, (bProxy ? NULL_STR : sHost), sPath, dHeaders, dBody, &Request);
+	CHTTPMessage Request = CHTTPUtil::EncodeRequest(sMethod, (bProxy ? NULL_STR : sHost), sPath, dHeaders, dBody);
 
 	CStringBuffer RequestBuffer;
 	Request.WriteToBuffer(RequestBuffer);

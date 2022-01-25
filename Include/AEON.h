@@ -257,6 +257,7 @@ class CDatum
 
 		//	Utilities
 		void AsAttributeList (CAttributeList *retAttribs) const;
+		CDatum MergeKeysNoCase () const;
 		void Sort (ESortOptions Order = AscendingSort, TArray<CDatum>::COMPAREPROC pfCompare = NULL, void *pCtx = NULL);
 
 		//	Implementation details

@@ -76,7 +76,7 @@ bool CEsperHTTPOutConnection::BeginHTTPRequest (const SArchonMessage &Msg, const
 	m_Msg = Msg;
 	m_bProxy = !Request.dOptions.GetElement(FIELD_PROXY).IsNil();
 	m_bRaw = !Request.dOptions.GetElement(FIELD_RAW).IsNil();
-	CEsperInterface::EncodeHTTPRequest(Request.sMethod, (m_bProxy ? NULL_STR : Request.sHost), Request.sPath, Request.dHeaders, Request.dBody, &m_HTTPMessage);
+	m_HTTPMessage = CHTTPUtil::EncodeRequest(Request.sMethod, (m_bProxy ? NULL_STR : Request.sHost), Request.sPath, Request.dHeaders, Request.dBody);
 
 	//	Allow reconnect in case of error.
 

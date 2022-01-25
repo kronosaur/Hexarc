@@ -314,6 +314,11 @@ CHTTPMessage CHTTPUtil::EncodeRequest (const CString &sMethod, const CString &sH
 	Request.InitRequest(sMethod, sPath);
 
 	//	Add headers
+	//
+	//	NOTE: HTTP headers are case-insensitive, but dHeaders has case-sensitive 
+	//	keys, which means we could end up adding multiple headers with the same
+	//	name. For now, it is up to callers to not be stupid, but in the future
+	//	we might catch that here.
 
 	bool bFoundHost = false;
 	for (int i = 0; i < dHeaders.GetCount(); i++)

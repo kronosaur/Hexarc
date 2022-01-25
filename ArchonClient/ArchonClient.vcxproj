@@ -211,6 +211,9 @@
       <Project>{d5b6db61-9bc4-4867-b814-7586a54cb0af}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
+    <ProjectReference Include="..\HTTPUtil\HTTPUtil.vcxproj">
+      <Project>{5bd4add5-0a8d-4da7-a0f2-1274395f5234}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\OpenSSL\OpenSSL.vcxproj">
       <Project>{dbb0e39d-c26d-401c-abbe-26f888ac1694}</Project>
     </ProjectReference>

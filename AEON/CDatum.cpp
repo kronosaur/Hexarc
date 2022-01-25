@@ -2736,6 +2736,25 @@ void CDatum::MarkAndSweep (void)
 	g_ComplexAlloc.Sweep();
 	}
 
+CDatum CDatum::MergeKeysNoCase () const
+
+//	MergeKeysNoCase
+//
+//	Creates a new struct with keys merged so that they are case-insensitive.
+//	For now, we throw away duplicate keys, but in the future we can add flags
+//	to combine keys.
+
+	{
+	CDatum dResult(CDatum::typeStruct);
+
+	for (int i = 0; i < GetCount(); i++)
+		{
+		dResult.SetElement(strToLower(GetKey(i)), GetElement(i));
+		}
+
+	return dResult;
+	}
+
 double CDatum::raw_GetDouble (void) const
 
 //	raw_GetDouble
