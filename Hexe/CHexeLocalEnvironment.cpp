@@ -13,7 +13,7 @@ DECLARE_CONST_STRING(FIELD_VALUES,						"values");
 DECLARE_CONST_STRING(TYPENAME_HEXE_LOCAL_ENVIRONMENT,	"hexeLocalEnvironment");
 const CString &CHexeLocalEnvironment::StaticGetTypename (void) { return TYPENAME_HEXE_LOCAL_ENVIRONMENT; }
 
-bool CHexeLocalEnvironment::Contains (CDatum dValue) const
+bool CHexeLocalEnvironment::Contains (CDatum dValue, TArray<IComplexDatum *> &retChecked) const
 
 //	Contains
 //
@@ -21,7 +21,7 @@ bool CHexeLocalEnvironment::Contains (CDatum dValue) const
 
 	{
 	for (int i = 0; i < m_Array.GetCount(); i++)
-		if (m_Array[i].dValue.Contains(dValue))
+		if (m_Array[i].dValue.Contains(dValue, retChecked))
 			return true;
 
 	return false;

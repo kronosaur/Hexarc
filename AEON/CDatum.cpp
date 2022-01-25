@@ -956,7 +956,7 @@ CDatum CDatum::Clone (void) const
 		}
 	}
 
-bool CDatum::Contains (CDatum dValue) const
+bool CDatum::Contains (CDatum dValue, TArray<IComplexDatum *> &retChecked) const
 
 //	Contains
 //
@@ -969,7 +969,16 @@ bool CDatum::Contains (CDatum dValue) const
 	switch (m_dwData & AEON_TYPE_MASK)
 		{
 		case AEON_TYPE_COMPLEX:
-			return raw_GetComplex()->Contains(dValue);
+			{
+			auto pComplex = raw_GetComplex();
+
+			if (retChecked.Find(pComplex))
+				return false;
+
+			retChecked.Insert(pComplex);
+
+			return pComplex->Contains(dValue, retChecked);
+			}
 
 		default:
 			return false;
@@ -2542,6 +2551,23 @@ bool CDatum::InvokeMethodImpl (const CString &sMethod, IInvokeCtx &Ctx, CDatum d
 
 		default:
 			retdResult = ERR_NO_METHODS;
+			return false;
+		}
+	}
+
+bool CDatum::IsArray () const
+
+//	IsArray
+//
+//	Returns TRUE if we are an array type
+
+	{
+	switch (m_dwData & AEON_TYPE_MASK)
+		{
+		case AEON_TYPE_COMPLEX:
+			return raw_GetComplex()->IsArray();
+
+		default:
 			return false;
 		}
 	}

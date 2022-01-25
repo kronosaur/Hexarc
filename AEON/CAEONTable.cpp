@@ -59,7 +59,9 @@ IAEONTable::EResult CAEONTable::AppendRow (CDatum dRow)
 
 		//	Make sure we're not trying to add ourselves.
 
-		if (dValue.Contains(CDatum::raw_AsComplex(this)) || dValue.Contains(m_Cols[i]))
+		TArray<IComplexDatum *> Checked1;
+		TArray<IComplexDatum *> Checked2;
+		if (dValue.Contains(CDatum::raw_AsComplex(this), Checked1) || dValue.Contains(m_Cols[i], Checked2))
 			dValue = CDatum();
 
 		//	Add it

@@ -122,7 +122,7 @@ class CHexeFunction : public TExternalDatum<CHexeFunction>
 
 		//	IComplexDatum
 		virtual bool CanInvoke (void) const override { return true; }
-		virtual bool Contains (CDatum dValue) const override;
+		virtual bool Contains (CDatum dValue, TArray<IComplexDatum *> &retChecked) const override;
 		virtual CDatum::ECallType GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) const override;
 		virtual int GetCount (void) const override;
 		virtual CDatum GetElement (int iIndex) const override;
@@ -236,7 +236,7 @@ class CHexeLocalEnvironment : public TExternalDatum<CHexeLocalEnvironment>
 		void SetParentEnv (CDatum dParentEnv) { m_dParentEnv = dParentEnv; }
 
 		//	IComplexDatum
-		virtual bool Contains (CDatum dValue) const override;
+		virtual bool Contains (CDatum dValue, TArray<IComplexDatum *> &retChecked) const override;
 		virtual int GetCount (void) const override { return m_Array.GetCount(); }
 		virtual CDatum GetElement (int iIndex) const override { return (iIndex < m_Array.GetCount() ? m_Array[iIndex].dValue : CDatum()); }
 		virtual CDatum GetElement (const CString &sKey) const override;

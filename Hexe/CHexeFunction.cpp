@@ -19,14 +19,14 @@ const int COMPRISING_LOCAL_ENV =						2;
 const int COMPRISING_OFFSET =							3;
 const int COMPRISING_COUNT =							4;
 
-bool CHexeFunction::Contains (CDatum dValue) const
+bool CHexeFunction::Contains (CDatum dValue, TArray<IComplexDatum *> &retChecked) const
 
 //	Contains
 //
 //	Returns TRUE if we contain the given value.
 
 	{
-	if (m_dLocalEnv.Contains(dValue))
+	if (m_dLocalEnv.Contains(dValue, retChecked))
 		return true;
 
 	return false;
@@ -206,7 +206,8 @@ void CHexeFunction::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruc
 
 			//	Make sure we don't try to save ourselves.
 
-			if (dValue.Contains(dSelf))
+			TArray<IComplexDatum *> Checked;
+			if (dValue.Contains(dSelf, Checked))
 				continue;
 
 			//	Add

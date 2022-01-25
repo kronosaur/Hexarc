@@ -497,7 +497,7 @@ size_t CComplexArray::CalcMemorySize (void) const
 	return dwSize;
 	}
 
-bool CComplexArray::Contains (CDatum dValue) const
+bool CComplexArray::Contains (CDatum dValue, TArray<IComplexDatum *> &retChecked) const
 
 //	Contains
 //
@@ -505,7 +505,7 @@ bool CComplexArray::Contains (CDatum dValue) const
 
 	{
 	for (int i = 0; i < m_Array.GetCount(); i++)
-		if (m_Array[i].Contains(dValue))
+		if (m_Array[i].Contains(dValue, retChecked))
 			return true;
 
 	return false;
@@ -944,7 +944,7 @@ CString CComplexStruct::AsString (void) const
 	return sOutput;
 	}
 
-bool CComplexStruct::Contains (CDatum dValue) const
+bool CComplexStruct::Contains (CDatum dValue, TArray<IComplexDatum *> &retChecked) const
 
 //	Contains
 //
@@ -952,7 +952,7 @@ bool CComplexStruct::Contains (CDatum dValue) const
 
 	{
 	for (int i = 0; i < m_Map.GetCount(); i++)
-		if (m_Map[i].Contains(dValue))
+		if (m_Map[i].Contains(dValue, retChecked))
 			return true;
 
 	return false;
