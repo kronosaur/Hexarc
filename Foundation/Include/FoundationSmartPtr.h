@@ -131,7 +131,7 @@ template <class OBJ> class TUniquePtr
 			m_pPtr = Src.m_pPtr;
 			Src.m_pPtr = NULL;
 
-			if (pOld)
+			if (pOld && pOld != m_pPtr)
 				delete pOld;
 
 			return *this;
@@ -157,13 +157,18 @@ template <class OBJ> class TUniquePtr
 
 			m_pPtr = pPtr;
 
-			if (pOld)
+			if (pOld && pOld != m_pPtr)
 				delete pOld;
 			}
 
 		void Set (const TUniquePtr<OBJ> &Src)
 			{
 			*this = Src;
+			}
+
+		void Set (TUniquePtr<OBJ> &&Src)
+			{
+			TakeHandoff(Src);
 			}
 
 		void TakeHandoff (TUniquePtr<OBJ> &Src)
@@ -173,7 +178,7 @@ template <class OBJ> class TUniquePtr
 			m_pPtr = Src.m_pPtr;
 			Src.m_pPtr = NULL;
 
-			if (pOld)
+			if (pOld && pOld != m_pPtr)
 				delete pOld;
 			}
 
