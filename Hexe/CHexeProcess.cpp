@@ -470,13 +470,6 @@ CHexeProcess::ERun CHexeProcess::RunContinues (CDatum dAsyncResult, CDatum *retR
 		return ERun::Error;
 		}
 
-	//	Set abort time
-
-	if (m_dwMaxExecutionTime)
-		m_dwAbortTime = ::sysGetTickCount64() + m_dwMaxExecutionTime;
-	else
-		m_dwAbortTime = 0;
-
 	//	Push the result on the stack
 
 	m_Stack.Push(dAsyncResult);
@@ -590,13 +583,6 @@ CHexeProcess::ERun CHexeProcess::RunWithStack (CDatum dExpression, CDatum *retRe
 //	previously.
 
 	{
-	//	Set abort time
-
-	if (m_dwMaxExecutionTime)
-		m_dwAbortTime = ::sysGetTickCount64() + m_dwMaxExecutionTime;
-	else
-		m_dwAbortTime = 0;
-
 	//	Prepare the context
 
 	m_dExpression = dExpression;

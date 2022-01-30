@@ -41,6 +41,15 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 	CComplexArray *pArray;
 	CComplexStruct *pStruct;
 
+	//	Set abort time
+
+	if (m_dwMaxExecutionTime)
+		m_dwAbortTime = ::sysGetTickCount64() + m_dwMaxExecutionTime;
+	else
+		m_dwAbortTime = 0;
+
+	//	Run
+
 	while (true)
 		{
 		switch (GetOpCode(*m_pIP))
