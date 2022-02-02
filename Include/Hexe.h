@@ -358,6 +358,7 @@ class CHexeProcess : public IInvokeCtx
 		void ExecuteArrayMemberItem (CDatum dArray, const CString &sField);
 		ERun ExecuteHandleInvokeResult (CDatum::InvokeResult iInvokeResult, CDatum dExpression, CDatum dInvokeResult, CDatum *retResult);
 		static bool ExecuteMakeFlagsFromArray (CDatum dOptions, CDatum dMap, CDatum *retdResult);
+		bool ExecuteObjectMemberItem (CDatum dObject, const CString &sField, CDatum &retdResult);
 		bool ExecutePushObjectMethod (CDatum &retResult);
 		static bool ExecuteSetAt (CDatum dOriginal, CDatum dKey, CDatum dValue, CDatum *retdResult);
 		void ExecuteTableMemberItem (CDatum dTable, const CString &sField);

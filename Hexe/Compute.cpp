@@ -26,6 +26,7 @@ DECLARE_CONST_STRING(ERR_NOT_ARRAY_OR_STRUCT,			"Unable to set item: not an arra
 DECLARE_CONST_STRING(ERR_UNBOUND_VARIABLE,				"Undefined identifier: %s.");
 DECLARE_CONST_STRING(ERR_EXECUTION_TOOK_TOO_LONG,		"Execution took too long.");
 DECLARE_CONST_STRING(ERR_DUPLICATE_VARIABLE,			"Duplicate definition: %s.");
+DECLARE_CONST_STRING(ERR_INVALID_OPERAND_COUNT,			"Invalid operand count.");
 
 CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 
@@ -1341,70 +1342,37 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				}
 
 			case opPushObjectItem:
+				{
 				iCount = GetOperand(*m_pIP);
+				if (iCount != 2)
+					return RuntimeError(ERR_INVALID_OPERAND_COUNT, *retResult);
 
-				if (iCount == 2)
+				CString sField = m_Stack.Pop().AsString();
+				CDatum dObject = m_Stack.Pop();
+
+				switch (dObject.GetBasicType())
 					{
-					CString sField = m_Stack.Pop().AsString();
-					CDatum dObject = m_Stack.Pop();
+					case CDatum::typeObject:
+						if (!ExecuteObjectMemberItem(dObject, sField, *retResult))
+							return ERun::Error;
+						break;
 
-					switch (dObject.GetBasicType())
-						{
-						case CDatum::typeObject:
-							{
-							const IDatatype &Type = dObject.GetDatatype();
-							if (!Type.IsAny())
-								{
-								auto iMemberType = Type.HasMember(sField);
-								switch (iMemberType)
-									{
-									case IDatatype::EMemberType::InstanceMethod:
-									case IDatatype::EMemberType::StaticMethod:
-										{
-										CString sFunctionName = strPattern("%s$%s", Type.GetFullyQualifiedName(), sField);
-										if (!m_pCurGlobalEnv->Find(sFunctionName, &dValue))
-											return RuntimeError(strPattern(ERR_UNBOUND_VARIABLE, sFunctionName), *retResult);
+					case CDatum::typeArray:
+						ExecuteArrayMemberItem(dObject, sField);
+						break;
 
-										m_Stack.Push(dValue);
-										break;
-										}
+					case CDatum::typeTable:
+						ExecuteTableMemberItem(dObject, sField);
+						break;
 
-									case IDatatype::EMemberType::InstanceVar:
-										m_Stack.Push(dObject.GetElement(sField));
-										break;
-
-									default:
-										m_Stack.Push(CDatum());
-										break;
-									}
-								}
-							else
-								{
-								m_Stack.Push(dObject.GetElement(sField));
-								}
-							break;
-							}
-
-						case CDatum::typeArray:
-							ExecuteArrayMemberItem(dObject, sField);
-							break;
-
-						case CDatum::typeTable:
-							ExecuteTableMemberItem(dObject, sField);
-							break;
-
-						default:
-							m_Stack.Push(dObject.GetElement(sField));
-							break;
-						}
-					}
-				else
-					{
-					m_Stack.Push(CDatum());
+					default:
+						m_Stack.Push(dObject.GetElement(sField));
+						break;
 					}
 
 				m_pIP++;
 				break;
+				}
 
 			case opPushObjectMethod:
 				if (!ExecutePushObjectMethod(*retResult))
@@ -1945,6 +1913,52 @@ bool CHexeProcess::ExecuteMakeFlagsFromArray (CDatum dOptions, CDatum dMap, CDat
 		}
 
 	*retdResult = CDatum((int)dwFlags);
+	return true;
+	}
+
+bool CHexeProcess::ExecuteObjectMemberItem (CDatum dObject, const CString &sField, CDatum &retdResult)
+
+//	ExecuteObjectMemberItem
+//
+//	Push an object member.
+
+	{
+	const IDatatype &Type = dObject.GetDatatype();
+	if (!Type.IsAny())
+		{
+		auto iMemberType = Type.HasMember(sField);
+		switch (iMemberType)
+			{
+			case IDatatype::EMemberType::InstanceMethod:
+			case IDatatype::EMemberType::StaticMethod:
+				{
+				CString sFunctionName = strPattern("%s$%s", Type.GetFullyQualifiedName(), sField);
+
+				CDatum dValue;
+				if (!m_pCurGlobalEnv->Find(sFunctionName, &dValue))
+					{
+					RuntimeError(strPattern(ERR_UNBOUND_VARIABLE, sFunctionName), retdResult);
+					return false;
+					}
+
+				m_Stack.Push(dValue);
+				break;
+				}
+
+			case IDatatype::EMemberType::InstanceVar:
+				m_Stack.Push(dObject.GetElement(sField));
+				break;
+
+			default:
+				m_Stack.Push(CDatum());
+				break;
+			}
+		}
+	else
+		{
+		m_Stack.Push(dObject.GetElement(sField));
+		}
+
 	return true;
 	}
 
