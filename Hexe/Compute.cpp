@@ -29,6 +29,7 @@ DECLARE_CONST_STRING(ERR_UNBOUND_VARIABLE,				"Undefined identifier: %s.");
 DECLARE_CONST_STRING(ERR_EXECUTION_TOOK_TOO_LONG,		"Execution took too long.");
 DECLARE_CONST_STRING(ERR_DUPLICATE_VARIABLE,			"Duplicate definition: %s.");
 DECLARE_CONST_STRING(ERR_INVALID_OPERAND_COUNT,			"Invalid operand count.");
+DECLARE_CONST_STRING(ERR_CANT_SET_FUNCTION_MEMBER,		"Function objects are read-only.");
 
 CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 
@@ -1381,6 +1382,32 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				break;
 				}
 
+			case opSetObjectItem:
+				{
+				//	LATER: Check for reference loops
+				//	LATER: Handle errors inside SetElement.
+
+				CString sField = m_Stack.Pop().AsString();
+				CDatum dObject = m_Stack.Pop();
+				CDatum dValue = m_Stack.Pop();
+
+				switch (dObject.GetBasicType())
+					{
+					case CDatum::typeCustom:
+						if (!ExecuteSetCustomMemberItem(dObject, sField, dValue, *retResult))
+							return ERun::Error;
+						break;
+
+					default:
+						dObject.SetElement(sField, dValue);
+						break;
+					}
+
+				m_Stack.Push(dValue);
+				m_pIP++;
+				break;
+				}
+
 			case opPushObjectMethod:
 				if (!ExecutePushObjectMethod(*retResult))
 					return ERun::Error;
@@ -2208,6 +2235,28 @@ bool CHexeProcess::ExecuteSetAt (CDatum dOriginal, CDatum dKey, CDatum dValue, C
 			CHexeError::Create(NULL_STR, ERR_NOT_ARRAY_OR_STRUCT, retdResult);
 			return false;
 		}
+	}
+
+bool CHexeProcess::ExecuteSetCustomMemberItem (CDatum dObject, const CString &sField, CDatum dValue, CDatum &retdResult)
+
+//	ExecuteSetCustomMemberItem
+//
+//	Sets a member item.
+
+	{
+	const CString &sTypename = dObject.GetTypename();
+
+	if (strEquals(sTypename, TYPENAME_HEXE_FUNCTION))
+		{
+		RuntimeError(ERR_CANT_SET_FUNCTION_MEMBER, retdResult);
+		return false;
+		}
+	else
+		{
+		dObject.SetElement(sField, dValue);
+		}
+
+	return true;
 	}
 
 void CHexeProcess::ExecuteTableMemberItem (CDatum dTable, const CString &sField)

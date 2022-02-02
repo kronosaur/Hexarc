@@ -362,6 +362,7 @@ class CHexeProcess : public IInvokeCtx
 		bool ExecuteObjectMemberItem (CDatum dObject, const CString &sField, CDatum &retdResult);
 		bool ExecutePushObjectMethod (CDatum &retResult);
 		static bool ExecuteSetAt (CDatum dOriginal, CDatum dKey, CDatum dValue, CDatum *retdResult);
+		bool ExecuteSetCustomMemberItem (CDatum dObject, const CString &sField, CDatum dValue, CDatum &retdResult);
 		void ExecuteTableMemberItem (CDatum dTable, const CString &sField);
 
 		//	Options
