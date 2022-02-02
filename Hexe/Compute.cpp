@@ -64,10 +64,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				//	NOTE: We leave the value of the definition on the stack
 				m_pCurGlobalEnv->SetAt(m_pCodeBank->GetString(GetOperand(*m_pIP)), m_Stack.Get(), &bNew);
 				if (!bNew)
-					{
-					CHexeError::Create(NULL_STR, strPattern(ERR_DUPLICATE_VARIABLE, m_pCodeBank->GetString(GetOperand(*m_pIP))), retResult);
-					return ERun::Error;
-					}
+					return RuntimeError(strPattern(ERR_DUPLICATE_VARIABLE, m_pCodeBank->GetString(GetOperand(*m_pIP))), *retResult);
 
 				m_pIP++;
 				break;
@@ -116,10 +113,8 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 
 			case opPushGlobal:
 				if (!m_pCurGlobalEnv->Find(m_pCodeBank->GetStringLiteral(GetOperand(*m_pIP)), &dValue))
-					{
-					CHexeError::Create(NULL_STR, strPattern(ERR_UNBOUND_VARIABLE, m_pCodeBank->GetStringLiteral(GetOperand(*m_pIP))), retResult);
-					return ERun::Error;
-					}
+					return RuntimeError(strPattern(ERR_UNBOUND_VARIABLE, m_pCodeBank->GetStringLiteral(GetOperand(*m_pIP))), *retResult);
+
 				m_Stack.Push(dValue);
 				m_pIP++;
 				break;
@@ -128,10 +123,8 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				{
 				int iPos;
 				if (!m_pCurGlobalEnv->FindPos(m_pCodeBank->GetStringLiteral(GetOperand(*m_pIP)), &iPos))
-					{
-					CHexeError::Create(NULL_STR, strPattern(ERR_UNBOUND_VARIABLE, m_pCodeBank->GetStringLiteral(GetOperand(*m_pIP))), retResult);
-					return ERun::Error;
-					}
+					return RuntimeError(strPattern(ERR_UNBOUND_VARIABLE, m_pCodeBank->GetStringLiteral(GetOperand(*m_pIP))), *retResult);
+
 				m_pCurGlobalEnv->SetAt(iPos, m_Stack.Get());
 				m_pIP++;
 				break;
@@ -141,10 +134,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				{
 				int iPos;
 				if (!m_pCurGlobalEnv->FindPos(m_pCodeBank->GetStringLiteral(GetOperand(*m_pIP)), &iPos))
-					{
-					CHexeError::Create(NULL_STR, strPattern(ERR_UNBOUND_VARIABLE, m_pCodeBank->GetStringLiteral(GetOperand(*m_pIP))), retResult);
-					return ERun::Error;
-					}
+					return RuntimeError(strPattern(ERR_UNBOUND_VARIABLE, m_pCodeBank->GetStringLiteral(GetOperand(*m_pIP))), *retResult);
 
 				CDatum dValue = m_Stack.Pop();
 				CDatum dKey = m_Stack.Pop();
@@ -722,10 +712,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 						//	Make sure we haven't exceeded our execution time.
 
 						if (m_dwAbortTime && ::sysGetTickCount64() >= m_dwAbortTime)
-							{
-							CHexeError::Create(NULL_STR, ERR_EXECUTION_TOOK_TOO_LONG, retResult);
-							return ERun::Error;
-							}
+							return RuntimeError(ERR_EXECUTION_TOOK_TOO_LONG, *retResult);
 
 						//	Send the message
 
@@ -742,8 +729,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 						}
 
 					default:
-						CHexeError::Create(NULL_STR, strPattern(ERR_NOT_A_FUNCTION, dNewExpression.AsString()), retResult);
-						return ERun::Error;
+						return RuntimeError(strPattern(ERR_NOT_A_FUNCTION, dNewExpression.AsString()), *retResult);
 					}
 
 				break;
@@ -759,10 +745,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				//	Make sure we haven't exceeded our execution time.
 
 				if (m_dwAbortTime && ::sysGetTickCount64() >= m_dwAbortTime)
-					{
-					CHexeError::Create(NULL_STR, ERR_EXECUTION_TOOK_TOO_LONG, retResult);
-					return ERun::Error;
-					}
+					return RuntimeError(ERR_EXECUTION_TOOK_TOO_LONG, *retResult);
 
 				//	Send the message
 
@@ -1099,10 +1082,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 					CDatum dDivisor = m_Stack.Pop();
 					CNumberValue Dividend(m_Stack.Pop());
 					if (!Dividend.Divide(dDivisor))
-						{
-						CHexeError::Create(NULL_STR, ERR_DIVISION_BY_ZERO, retResult);
-						return ERun::Error;
-						}
+						return RuntimeError(ERR_DIVISION_BY_ZERO, *retResult);
 
 					m_Stack.Push(Dividend.GetDatum());
 					}
@@ -1111,10 +1091,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 					CDatum dDivisor = m_Stack.Pop();
 					CNumberValue Dividend(1.0);
 					if (!Dividend.Divide(dDivisor))
-						{
-						CHexeError::Create(NULL_STR, ERR_DIVISION_BY_ZERO, retResult);
-						return ERun::Error;
-						}
+						return RuntimeError(ERR_DIVISION_BY_ZERO, *retResult);
 
 					m_Stack.Push(Dividend.GetDatum());
 					}
@@ -1127,10 +1104,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 						Result.Multiply(m_Stack.Pop());
 
 					if (!Result.DivideReversed(m_Stack.Pop()))
-						{
-						CHexeError::Create(NULL_STR, ERR_DIVISION_BY_ZERO, retResult);
-						return ERun::Error;
-						}
+						return RuntimeError(ERR_DIVISION_BY_ZERO, *retResult);
 
 					m_Stack.Push(Result.GetDatum());
 					}
@@ -1182,10 +1156,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 					CDatum dDivisor = m_Stack.Pop();
 					CNumberValue Dividend(m_Stack.Pop());
 					if (!Dividend.Mod(dDivisor))
-						{
-						CHexeError::Create(NULL_STR, ERR_DIVISION_BY_ZERO, retResult);
-						return ERun::Error;
-						}
+						return RuntimeError(ERR_DIVISION_BY_ZERO, *retResult);
 
 					m_Stack.Push(Dividend.GetDatum());
 					}
@@ -1392,10 +1363,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 										{
 										CString sFunctionName = strPattern("%s$%s", Type.GetFullyQualifiedName(), sField);
 										if (!m_pCurGlobalEnv->Find(sFunctionName, &dValue))
-											{
-											CHexeError::Create(NULL_STR, strPattern(ERR_UNBOUND_VARIABLE, sFunctionName), retResult);
-											return ERun::Error;
-											}
+											return RuntimeError(strPattern(ERR_UNBOUND_VARIABLE, sFunctionName), *retResult);
 
 										m_Stack.Push(dValue);
 										break;
@@ -1514,8 +1482,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				return ERun::OK;
 
 			default:
-				CHexeError::Create(NULL_STR, ERR_INVALID_OP_CODE, retResult);
-				return ERun::Error;
+				return RuntimeError(ERR_INVALID_OP_CODE, *retResult);
 			}
 
 		//	Track computes
@@ -1527,19 +1494,13 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 		if ((m_dwComputes % STOP_CHECK_COUNT) == 0)
 			{
 			if (m_dwAbortTime && ::sysGetTickCount64() >= m_dwAbortTime)
-				{
-				CHexeError::Create(NULL_STR, ERR_EXECUTION_TOOK_TOO_LONG, retResult);
-				return ERun::Error;
-				}
+				return RuntimeError(ERR_EXECUTION_TOOK_TOO_LONG, *retResult);
 
 			if (m_pComputeProgress)
 				{
 				m_pComputeProgress->OnCompute(m_dwComputes, m_dwLibraryTime);
 				if (m_pComputeProgress->OnAbortCheck())
-					{
-					CHexeError::Create(NULL_STR, ERR_EXECUTION_TOOK_TOO_LONG, retResult);
-					return ERun::Error;
-					}
+					return RuntimeError(ERR_EXECUTION_TOOK_TOO_LONG, *retResult);
 				}
 			}
 		}
@@ -1749,10 +1710,7 @@ CHexeProcess::ERun CHexeProcess::ExecuteHandleInvokeResult (CDatum::InvokeResult
 			CDatum dNewCodeBank;
 			DWORD *pNewIP;
 			if (dFunction.GetCallInfo(&dNewCodeBank, &pNewIP) != CDatum::ECallType::Call)
-				{
-				CHexeError::Create(NULL_STR, ERR_INVALID_PRIMITIVE_SUB, retResult);
-				return ERun::Error;
-				}
+				return RuntimeError(ERR_INVALID_PRIMITIVE_SUB, *retResult);
 
 			//	Encode everything we need to save into the code bank
 			//	datum (we unpack it in opReturn).
@@ -1838,10 +1796,7 @@ CHexeProcess::ERun CHexeProcess::ExecuteHandleInvokeResult (CDatum::InvokeResult
 		//	Otherwise, generic error (this should never happen).
 
 		default:
-			{
-			CHexeError::Create(NULL_STR, strPattern(ERR_NOT_A_FUNCTION, dExpression.AsString()), retResult);
-			return ERun::Error;
-			}
+			return RuntimeError(strPattern(ERR_NOT_A_FUNCTION, dExpression.AsString()), *retResult);
 		}
 	}
 
@@ -2229,3 +2184,15 @@ void CHexeProcess::ExecuteTableMemberItem (CDatum dTable, const CString &sField)
 	else
 		m_Stack.Push(CDatum());
 	}
+
+CHexeProcess::ERun CHexeProcess::RuntimeError (const CString &sError, CDatum &retdResult)
+
+//	CreateRuntimeError
+//
+//	Helper for returning an error from the compute engine.
+
+	{
+	CHexeError::Create(NULL_STR, sError, &retdResult);
+	return ERun::Error;
+	}
+
