@@ -15,6 +15,8 @@ DECLARE_CONST_STRING(FIELD_PAYLOAD,						"payload");
 
 DECLARE_CONST_STRING(TYPE_EVENT_HANDLER_CALL,			"eventHandlerCall");
 
+DECLARE_CONST_STRING(TYPENAME_HEXE_FUNCTION,			"hexeFunction");
+
 DECLARE_CONST_STRING(ERR_COLON_EXPECTED,				"':' expected: %s.");
 DECLARE_CONST_STRING(ERR_DIVISION_BY_ZERO,				"Divide by zero error.");
 DECLARE_CONST_STRING(ERR_INVALID_KEY,					"Invalid key: %s.");
@@ -1352,13 +1354,18 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 
 				switch (dObject.GetBasicType())
 					{
-					case CDatum::typeObject:
-						if (!ExecuteObjectMemberItem(dObject, sField, *retResult))
+					case CDatum::typeArray:
+						ExecuteArrayMemberItem(dObject, sField);
+						break;
+
+					case CDatum::typeCustom:
+						if (!ExecuteCustomMemberItem(dObject, sField, *retResult))
 							return ERun::Error;
 						break;
 
-					case CDatum::typeArray:
-						ExecuteArrayMemberItem(dObject, sField);
+					case CDatum::typeObject:
+						if (!ExecuteObjectMemberItem(dObject, sField, *retResult))
+							return ERun::Error;
 						break;
 
 					case CDatum::typeTable:
@@ -1636,6 +1643,25 @@ int CHexeProcess::ExecuteCompare (CDatum dValue1, CDatum dValue2)
 
 	else
 		return KeyCompare(dValue1.AsString(), dValue2.AsString());
+	}
+
+bool CHexeProcess::ExecuteCustomMemberItem (CDatum dObject, const CString &sField, CDatum &retdResult)
+
+//	ExecuteCustomMemberItem
+//
+//	Push an object member.
+
+	{
+	const CString &sTypename = dObject.GetTypename();
+
+	if (strEquals(sTypename, TYPENAME_HEXE_FUNCTION))
+		{
+		m_Stack.Push(dObject.GetElement(sField));
+		}
+	else
+		m_Stack.Push(dObject.GetElement(sField));
+
+	return true;
 	}
 
 CHexeProcess::ERun CHexeProcess::ExecuteHandleInvokeResult (CDatum::InvokeResult iInvokeResult, CDatum dExpression, CDatum dInvokeResult, CDatum *retResult)
