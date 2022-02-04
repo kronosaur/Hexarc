@@ -81,6 +81,7 @@
 
 DECLARE_CONST_STRING(STR_NAN,							"nan")
 DECLARE_CONST_STRING(STR_NIL,							"nil")
+DECLARE_CONST_STRING(STR_TRUE,							"true")
 
 DECLARE_CONST_STRING(TYPENAME_BINARY,					"binary")
 DECLARE_CONST_STRING(TYPENAME_BINARY_FILE,				"binaryFile")
@@ -638,8 +639,8 @@ CAEONScriptParser::ETokens CAEONScriptParser::ParseLiteral (CDatum *retDatum)
 		*retDatum = CDatum();
 	else if (strEquals(strToLower(sLiteral), STR_NAN))
 		*retDatum = CDatum::CreateNaN();
-
-	//	LATER: literal true
+	else if (strEquals(strToLower(sLiteral), STR_TRUE))
+		*retDatum = CDatum(true);
 	else
 		*retDatum = CDatum(sLiteral);
 
