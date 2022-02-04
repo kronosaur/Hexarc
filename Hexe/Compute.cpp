@@ -30,6 +30,7 @@ DECLARE_CONST_STRING(ERR_EXECUTION_TOOK_TOO_LONG,		"Execution took too long.");
 DECLARE_CONST_STRING(ERR_DUPLICATE_VARIABLE,			"Duplicate definition: %s.");
 DECLARE_CONST_STRING(ERR_INVALID_OPERAND_COUNT,			"Invalid operand count.");
 DECLARE_CONST_STRING(ERR_CANT_SET_FUNCTION_MEMBER,		"Function objects are read-only.");
+DECLARE_CONST_STRING(ERR_UNSUPPORTED_OP,				"Unsupported opcode.");
 
 CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 
@@ -970,97 +971,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 					CDatum dB = m_Stack.Pop();
 					CDatum dA = m_Stack.Pop();
 
-					int iValue1;
-					int iValue2;
-					if ((dA.GetNumberType(&iValue1) == CDatum::typeInteger32)
-							&& (dB.GetNumberType(&iValue2) == CDatum::typeInteger32))
-						{
-#ifdef _WIN64
-						LONGLONG iResult = (LONGLONG)iValue1 + (LONGLONG)iValue2;
-						if (iResult >= INT_MIN && iResult <= INT_MAX)
-							m_Stack.Push(CDatum((int)iResult));
-						else
-							{
-							CNumberValue Result(dA);
-							Result.ConvertToIPInteger();
-							Result.Add(dB);
-							m_Stack.Push(Result.GetDatum());
-							}
-#else
-						int iResult;
-						bool bOverflow = false;
-
-						//	Add the integers, making sure that we keep track if
-						//	we overflow.
-
-						__asm
-							{
-							mov eax,iValue1
-							mov ebx,iValue2
-							add eax,ebx
-							mov iResult,eax
-							jno exitAdd
-							mov bOverflow,1
-							exitAdd:
-							}
-
-						//	If we overflow, we do it with big integers
-
-						if (bOverflow)
-							{
-							CNumberValue Result(dA);
-							Result.ConvertToIPInteger();
-							Result.Add(dB);
-							m_Stack.Push(Result.GetDatum());
-							}
-
-						//	Otherwise, we're done
-
-						else
-							m_Stack.Push(CDatum(iResult));
-#endif
-						}
-					else if (m_bAddConcatenatesStrings
-							&& (dA.GetBasicType() == CDatum::typeString && dB.GetBasicType() == CDatum::typeString))
-						{
-						const CString &sA = dA;
-						const CString &sB = dB;
-						CString sResult(sA.GetLength() + sB.GetLength());
-						utlMemCopy(sA.GetParsePointer(), sResult.GetParsePointer(), sA.GetLength());
-						utlMemCopy(sB.GetParsePointer(), sResult.GetParsePointer() + sA.GetLength(), sB.GetLength());
-						m_Stack.Push(CDatum(std::move(sResult)));
-						}
-					else if (m_bAddConcatenatesStrings
-							&& (dA.GetBasicType() == CDatum::typeString || dB.GetBasicType() == CDatum::typeString))
-						{
-						CStringBuffer Result;
-
-						CString sA = dA.AsString();
-						Result.Write((LPSTR)sA, sA.GetLength());
-
-						CString sB = dB.AsString();
-						Result.Write((LPSTR)sB, sB.GetLength());
-
-						m_Stack.Push(CDatum(std::move(Result)));
-						}
-					else if (dA.GetBasicType() == CDatum::typeDateTime && dB.GetBasicType() == CDatum::typeTimeSpan)
-						{
-						m_Stack.Push(CDatum(CDateTime(timeAddTime(dA, dB))));
-						}
-					else if (dA.GetBasicType() == CDatum::typeTimeSpan && dB.GetBasicType() == CDatum::typeDateTime)
-						{
-						m_Stack.Push(CDatum(CDateTime(timeAddTime(dB, dA))));
-						}
-					else if (dA.GetBasicType() == CDatum::typeTimeSpan && dB.GetBasicType() == CDatum::typeTimeSpan)
-						{
-						m_Stack.Push(CDatum(CTimeSpan::Add(dA, dB)));
-						}
-					else
-						{
-						CNumberValue Result(dA);
-						Result.Add(dB);
-						m_Stack.Push(Result.GetDatum());
-						}
+					m_Stack.Push(ExecuteOpAdd(dA, dB, m_bAddConcatenatesStrings));
 					}
 				else if (iCount == 0)
 					m_Stack.Push(CDatum(0));
@@ -1180,77 +1091,11 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 					CDatum dB = m_Stack.Pop();
 					CDatum dA = m_Stack.Pop();
 
-					int iValue1;
-					int iValue2;
-					if ((dA.GetNumberType(&iValue1) == CDatum::typeInteger32)
-							&& (dB.GetNumberType(&iValue2) == CDatum::typeInteger32))
-						{
-#ifdef _WIN64
-						LONGLONG iResult = (LONGLONG)iValue1 - (LONGLONG)iValue2;
-						if (iResult >= INT_MIN && iResult <= INT_MAX)
-							m_Stack.Push(CDatum((int)iResult));
-						else
-							{
-							CNumberValue Result(dA);
-							Result.ConvertToIPInteger();
-							Result.Add(dB);
-							m_Stack.Push(Result.GetDatum());
-							}
-#else
-						int iResult;
-						bool bOverflow = false;
-
-						//	Subtract the integers, making sure that we keep track if
-						//	we overflow.
-
-						__asm
-							{
-							mov eax,iValue1
-							mov ebx,iValue2
-							sub eax,ebx
-							mov iResult,eax
-							jno exitSub
-							mov bOverflow,1
-							exitSub:
-							}
-
-						//	If we overflow, we do it with big integers
-
-						if (bOverflow)
-							{
-							CNumberValue Result(dA);
-							Result.ConvertToIPInteger();
-							Result.Subtract(dB);
-							m_Stack.Push(Result.GetDatum());
-							}
-
-						//	Otherwise, we're done
-
-						else
-							m_Stack.Push(CDatum(iResult));
-#endif
-						}
-					else if (dA.GetBasicType() == CDatum::typeDateTime && dB.GetBasicType() == CDatum::typeDateTime)
-						{
-						m_Stack.Push(CDatum(timeSpan(dB, dA)));
-						}
-					else if (dA.GetBasicType() == CDatum::typeDateTime && dB.GetBasicType() == CDatum::typeTimeSpan)
-						{
-						m_Stack.Push(CDatum(timeSubtractTime(dA, dB)));
-						}
-					else if (dA.GetBasicType() == CDatum::typeTimeSpan && dB.GetBasicType() == CDatum::typeTimeSpan)
-						{
-						m_Stack.Push(CDatum(CTimeSpan::Subtract(dA, dB)));
-						}
-					else
-						{
-						CNumberValue Result(dA);
-						Result.Subtract(dB);
-						m_Stack.Push(Result.GetDatum());
-						}
+					m_Stack.Push(ExecuteOpSubtract(dA, dB));
 					}
 				else if (iCount == 0)
 					m_Stack.Push(CDatum(0));
+
 				else if (iCount == 1)
 					{
 					CNumberValue Result(CDatum(0));
@@ -1523,6 +1368,88 @@ void CHexeProcess::ExecuteArrayMemberItem (CDatum dArray, const CString &sField)
 		}
 	else
 		m_Stack.Push(CDatum());
+	}
+
+CDatum CHexeProcess::ExecuteBinaryOp (EOpCodes iOp, CDatum dLeft, CDatum dRight)
+
+//	ExecuteBinaryOp
+//
+//	This is used by callers to duplicate the functionality of VM.
+
+	{
+	switch (iOp)
+		{
+		case opAdd:
+			return ExecuteOpAdd(dLeft, dRight, true);
+			
+		case opDivide:
+			{
+			CNumberValue Dividend(dLeft);
+			if (!Dividend.Divide(dRight))
+				{
+				CDatum dError;
+				CHexeError::Create(NULL_STR, ERR_DIVISION_BY_ZERO, &dError);
+				return dError;
+				}
+
+			return Dividend.GetDatum();
+			}
+
+		case opIsEqual:
+			return CDatum(ExecuteIsEquivalent(dLeft, dRight));
+
+		case opIsGreater:
+			return CDatum(ExecuteCompare(dLeft, dRight) == -1);
+
+		case opIsGreaterOrEqual:
+			return CDatum(ExecuteCompare(dLeft, dRight) != 1);
+
+		case opIsLess:
+			return CDatum(ExecuteCompare(dLeft, dRight) == 1);
+
+		case opIsLessOrEqual:
+			return CDatum(ExecuteCompare(dLeft, dRight) != -1);
+
+		case opIsNotEqual:
+			return CDatum(!ExecuteIsEquivalent(dLeft, dRight));
+
+		case opMod:
+			{
+			CNumberValue Result(dLeft);
+			if (!Result.Mod(dRight))
+				{
+				CDatum dError;
+				CHexeError::Create(NULL_STR, ERR_DIVISION_BY_ZERO, &dError);
+				return dError;
+				}
+
+			return Result.GetDatum();
+			}
+
+		case opMultiply:
+			{
+			CNumberValue Result(dLeft);
+			Result.Multiply(dRight);
+			return Result.GetDatum();
+			}
+
+		case opPower:
+			{
+			CNumberValue Result(dLeft);
+			Result.Power(dRight);
+			return Result.GetDatum();
+			}
+
+		case opSubtract:
+			return ExecuteOpSubtract(dLeft, dRight);
+
+		default:
+			{
+			CDatum dError;
+			CHexeError::Create(NULL_STR, ERR_UNSUPPORTED_OP, &dError);
+			return dError;
+			}
+		}
 	}
 
 int CHexeProcess::ExecuteCompare (CDatum dValue1, CDatum dValue2)
@@ -2015,6 +1942,102 @@ bool CHexeProcess::ExecuteObjectMemberItem (CDatum dObject, const CString &sFiel
 	return true;
 	}
 
+CDatum CHexeProcess::ExecuteOpAdd (CDatum dLeft, CDatum dRight, bool bConcatenateStrings)
+
+//	ExecuteOpAdd
+//
+//	Binary operation
+
+	{
+	int iValue1;
+	int iValue2;
+	if ((dLeft.GetNumberType(&iValue1) == CDatum::typeInteger32)
+			&& (dRight.GetNumberType(&iValue2) == CDatum::typeInteger32))
+		{
+		LONGLONG iResult = (LONGLONG)iValue1 + (LONGLONG)iValue2;
+		if (iResult >= INT_MIN && iResult <= INT_MAX)
+			return CDatum((int)iResult);
+		else
+			{
+			CNumberValue Result(dLeft);
+			Result.ConvertToIPInteger();
+			Result.Add(dRight);
+			return Result.GetDatum();
+			}
+		}
+	else if (bConcatenateStrings
+			&& (dLeft.GetBasicType() == CDatum::typeString && dRight.GetBasicType() == CDatum::typeString))
+		{
+		const CString &sA = dLeft;
+		const CString &sB = dRight;
+		CString sResult(sA.GetLength() + sB.GetLength());
+		utlMemCopy(sA.GetParsePointer(), sResult.GetParsePointer(), sA.GetLength());
+		utlMemCopy(sB.GetParsePointer(), sResult.GetParsePointer() + sA.GetLength(), sB.GetLength());
+		return CDatum(std::move(sResult));
+		}
+	else if (dLeft.GetBasicType() == CDatum::typeDateTime && dRight.GetBasicType() == CDatum::typeTimeSpan)
+		{
+		return CDatum(CDateTime(timeAddTime(dLeft, dRight)));
+		}
+	else if (dLeft.GetBasicType() == CDatum::typeTimeSpan && dRight.GetBasicType() == CDatum::typeDateTime)
+		{
+		return CDatum(CDateTime(timeAddTime(dRight, dLeft)));
+		}
+	else if (dLeft.GetBasicType() == CDatum::typeTimeSpan && dRight.GetBasicType() == CDatum::typeTimeSpan)
+		{
+		return CDatum(CTimeSpan::Add(dLeft, dRight));
+		}
+	else
+		{
+		CNumberValue Result(dLeft);
+		Result.Add(dRight);
+		return Result.GetDatum();
+		}
+	}
+
+CDatum CHexeProcess::ExecuteOpSubtract (CDatum dLeft, CDatum dRight)
+
+//	ExecuteOpSubtract
+//
+//	Binary operation
+
+	{
+	int iValue1;
+	int iValue2;
+	if ((dLeft.GetNumberType(&iValue1) == CDatum::typeInteger32)
+			&& (dRight.GetNumberType(&iValue2) == CDatum::typeInteger32))
+		{
+		LONGLONG iResult = (LONGLONG)iValue1 - (LONGLONG)iValue2;
+		if (iResult >= INT_MIN && iResult <= INT_MAX)
+			return CDatum((int)iResult);
+		else
+			{
+			CNumberValue Result(dLeft);
+			Result.ConvertToIPInteger();
+			Result.Subtract(dRight);
+			return Result.GetDatum();
+			}
+		}
+	else if (dLeft.GetBasicType() == CDatum::typeDateTime && dRight.GetBasicType() == CDatum::typeDateTime)
+		{
+		return CDatum(timeSpan(dRight, dLeft));
+		}
+	else if (dLeft.GetBasicType() == CDatum::typeDateTime && dRight.GetBasicType() == CDatum::typeTimeSpan)
+		{
+		return CDatum(timeSubtractTime(dLeft, dRight));
+		}
+	else if (dLeft.GetBasicType() == CDatum::typeTimeSpan && dRight.GetBasicType() == CDatum::typeTimeSpan)
+		{
+		return CDatum(CTimeSpan::Subtract(dLeft, dRight));
+		}
+	else
+		{
+		CNumberValue Result(dLeft);
+		Result.Subtract(dRight);
+		return Result.GetDatum();
+		}
+	}
+
 bool CHexeProcess::ExecutePushObjectMethod (CDatum &retResult)
 
 //	ExecutePushObjectMethod
@@ -2272,6 +2295,34 @@ void CHexeProcess::ExecuteTableMemberItem (CDatum dTable, const CString &sField)
 		}
 	else
 		m_Stack.Push(CDatum());
+	}
+
+CDatum CHexeProcess::ExecuteUnaryOp (EOpCodes iOp, CDatum dValue)
+
+//	ExecuteUnaryOp
+//
+//	Duplicates VM functionality.
+
+	{
+	switch (iOp)
+		{
+		case opNot:
+			return CDatum(dValue.IsNil());
+
+		case opSubtract:
+			{
+			CNumberValue Result(CDatum(0));
+			Result.Subtract(dValue);
+			return Result.GetDatum();
+			}
+
+		default:
+			{
+			CDatum dError;
+			CHexeError::Create(NULL_STR, ERR_UNSUPPORTED_OP, &dError);
+			return dError;
+			}
+		}
 	}
 
 CHexeProcess::ERun CHexeProcess::RuntimeError (const CString &sError, CDatum &retdResult)

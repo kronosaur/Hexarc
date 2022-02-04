@@ -318,8 +318,10 @@ class CHexeProcess : public IInvokeCtx
 		void SetTypeSystem (const CAEONTypeSystem &Types) { m_Types = Types; }
 
 		//	Execution helpers
+		static CDatum ExecuteBinaryOp (EOpCodes iOp, CDatum dLeft, CDatum dRight);
 		static int ExecuteCompare (CDatum dValue1, CDatum dValue2);
 		static bool ExecuteIsEquivalent (CDatum dValue1, CDatum dValue2);
+		static CDatum ExecuteUnaryOp (EOpCodes iOp, CDatum dValue);
 
 		//	IInvokeCtx virtuals
 		virtual void *GetLibraryCtx (const CString &sLibrary) override { void **ppCtx = m_LibraryCtx.GetAt(sLibrary); return (ppCtx ? *ppCtx : NULL); }
@@ -360,6 +362,8 @@ class CHexeProcess : public IInvokeCtx
 		ERun ExecuteHandleInvokeResult (CDatum::InvokeResult iInvokeResult, CDatum dExpression, CDatum dInvokeResult, CDatum *retResult);
 		static bool ExecuteMakeFlagsFromArray (CDatum dOptions, CDatum dMap, CDatum *retdResult);
 		bool ExecuteObjectMemberItem (CDatum dObject, const CString &sField, CDatum &retdResult);
+		static CDatum ExecuteOpAdd (CDatum dLeft, CDatum dRight, bool bConcatenateStrings);
+		static CDatum ExecuteOpSubtract (CDatum dLeft, CDatum dRight);
 		bool ExecutePushObjectMethod (CDatum &retResult);
 		static bool ExecuteSetAt (CDatum dOriginal, CDatum dKey, CDatum dValue, CDatum *retdResult);
 		bool ExecuteSetCustomMemberItem (CDatum dObject, const CString &sField, CDatum dValue, CDatum &retdResult);

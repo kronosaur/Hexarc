@@ -112,13 +112,16 @@ class CHexeFunction : public TExternalDatum<CHexeFunction>
 	public:
 		CHexeFunction (void) { }
 
-		static void Create (CDatum dCodeBank, int iCodeOffset, CDatum dGlobalEnv, CDatum dLocalEnv, CDatum *retdFunc);
+		static CDatum Create (CDatum dCodeBank, int iCodeOffset, CDatum dGlobalEnv, CDatum dLocalEnv, CDatum dAttribs);
+		static void Create (CDatum dCodeBank, int iCodeOffset, CDatum dGlobalEnv, CDatum dLocalEnv, CDatum *retdFunc)
+			{ *retdFunc = Create(dCodeBank, iCodeOffset, dGlobalEnv, dLocalEnv, CDatum()); }
 		static const CString &StaticGetTypename (void);
 
+		CDatum GetAttribs () const { return m_dAttribs; }
 		DWORD *GetCode (CDatum *retdCodeBank);
-		inline CDatum GetGlobalEnv (void) { return m_dGlobalEnv; }
-		inline CHexeGlobalEnvironment *GetGlobalEnvPointer (void) { return m_pGlobalEnv; }
-		inline CDatum GetLocalEnv (void) { return m_dLocalEnv; }
+		CDatum GetGlobalEnv (void) { return m_dGlobalEnv; }
+		CHexeGlobalEnvironment *GetGlobalEnvPointer (void) { return m_pGlobalEnv; }
+		CDatum GetLocalEnv (void) { return m_dLocalEnv; }
 
 		//	IComplexDatum
 		virtual bool CanInvoke (void) const override { return true; }
@@ -132,12 +135,13 @@ class CHexeFunction : public TExternalDatum<CHexeFunction>
 
 	protected:
 		virtual DWORD OnGetSerializeFlags (void) const override { return FLAG_SERIALIZE_AS_STRUCT; }
-		virtual void OnMarked (void) override { m_dHexeCode.Mark(); m_dGlobalEnv.Mark(); m_dLocalEnv.Mark(); }
+		virtual void OnMarked (void) override { m_dHexeCode.Mark(); m_dGlobalEnv.Mark(); m_dLocalEnv.Mark(); m_dAttribs.Mark(); }
 		virtual void OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const override;
 
 	private:
 		CDatum m_dHexeCode;
 		int m_iOffset = 0;
+		CDatum m_dAttribs;
 
 		CDatum m_dGlobalEnv;
 		CHexeGlobalEnvironment *m_pGlobalEnv = NULL;
