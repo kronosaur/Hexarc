@@ -5,6 +5,7 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(FIELD_ATTRIBS,						"attributes");
 DECLARE_CONST_STRING(FIELD_GLOBAL_ENV,					"globalEnv");
 DECLARE_CONST_STRING(FIELD_HEXE_CODE,					"hexeCode");
 DECLARE_CONST_STRING(FIELD_LOCAL_ENV,					"localEnv");
@@ -13,11 +14,12 @@ DECLARE_CONST_STRING(FIELD_OFFSETX,						"offset");	//	NOTE: Unable to use FIELD
 DECLARE_CONST_STRING(TYPENAME_HEXE_FUNCTION,			"hexeFunction");
 const CString &CHexeFunction::StaticGetTypename (void) { return TYPENAME_HEXE_FUNCTION; }
 
-const int COMPRISING_GLOBAL_ENV =						0;
-const int COMPRISING_HEXE_CODE =						1;
-const int COMPRISING_LOCAL_ENV =						2;
-const int COMPRISING_OFFSET =							3;
-const int COMPRISING_COUNT =							4;
+const int COMPRISING_ATTRIBS =							0;
+const int COMPRISING_GLOBAL_ENV =						1;
+const int COMPRISING_HEXE_CODE =						2;
+const int COMPRISING_LOCAL_ENV =						3;
+const int COMPRISING_OFFSET =							4;
+const int COMPRISING_COUNT =							5;
 
 bool CHexeFunction::Contains (CDatum dValue, TArray<IComplexDatum *> &retChecked) const
 
@@ -32,7 +34,7 @@ bool CHexeFunction::Contains (CDatum dValue, TArray<IComplexDatum *> &retChecked
 	return false;
 	}
 
-void CHexeFunction::Create (CDatum dCodeBank, int iCodeOffset, CDatum dGlobalEnv, CDatum dLocalEnv, CDatum *retdFunc)
+CDatum CHexeFunction::Create (CDatum dCodeBank, int iCodeOffset, CDatum dGlobalEnv, CDatum dLocalEnv, CDatum dAttribs)
 
 //	Create
 //
@@ -43,13 +45,14 @@ void CHexeFunction::Create (CDatum dCodeBank, int iCodeOffset, CDatum dGlobalEnv
 
 	pFunc->m_dHexeCode = dCodeBank;
 	pFunc->m_iOffset = iCodeOffset;
+	pFunc->m_dAttribs = dAttribs;
 
 	pFunc->m_pGlobalEnv = CHexeGlobalEnvironment::Upconvert(dGlobalEnv);
 	pFunc->m_dGlobalEnv = (pFunc->m_pGlobalEnv ? dGlobalEnv : CDatum());
 
 	pFunc->m_dLocalEnv = dLocalEnv;
 
-	*retdFunc = CDatum(pFunc);
+	return CDatum(pFunc);
 	}
 
 CDatum::ECallType CHexeFunction::GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) const
@@ -112,6 +115,9 @@ CDatum CHexeFunction::GetElement (int iIndex) const
 	{
 	switch (iIndex)
 		{
+		case COMPRISING_ATTRIBS:
+			return m_dAttribs;
+
 		case COMPRISING_GLOBAL_ENV:
 			return m_dGlobalEnv;
 
@@ -136,7 +142,9 @@ CDatum CHexeFunction::GetElement (const CString &sKey) const
 //	Returns comprising elements
 
 	{
-	if (strEquals(sKey, FIELD_GLOBAL_ENV))
+	if (strEquals(sKey, FIELD_ATTRIBS))
+		return m_dAttribs;
+	else if (strEquals(sKey, FIELD_GLOBAL_ENV))
 		return m_dGlobalEnv;
 	else if (strEquals(sKey, FIELD_HEXE_CODE))
 		return m_dHexeCode;
@@ -157,6 +165,9 @@ CString CHexeFunction::GetKey (int iIndex) const
 	{
 	switch (iIndex)
 		{
+		case COMPRISING_ATTRIBS:
+			return FIELD_ATTRIBS;
+
 		case COMPRISING_GLOBAL_ENV:
 			return FIELD_GLOBAL_ENV;
 
@@ -185,6 +196,7 @@ void CHexeFunction::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruc
 
 	pStruct->SetElement(FIELD_HEXE_CODE, m_dHexeCode);
 	pStruct->SetElement(FIELD_OFFSETX, m_iOffset);
+	pStruct->SetElement(FIELD_ATTRIBS, m_dAttribs);
 
 	//	Serialize local environment.
 	//	NOTE: We only serialize a single level. In the future, we should be 
@@ -229,7 +241,9 @@ void CHexeFunction::SetElement (const CString &sKey, CDatum dDatum)
 //	Sets a comprising element
 
 	{
-	if (strEquals(sKey, FIELD_GLOBAL_ENV))
+	if (strEquals(sKey, FIELD_ATTRIBS))
+		m_dAttribs = dDatum;
+	else if (strEquals(sKey, FIELD_GLOBAL_ENV))
 		{
 		m_pGlobalEnv = CHexeGlobalEnvironment::Upconvert(dDatum);
 		m_dGlobalEnv = (m_pGlobalEnv ? dDatum : CDatum());
