@@ -521,6 +521,14 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				m_pIP++;
 				break;
 
+			case opMakeFunc2:
+				{
+				CDatum dAttribs = m_Stack.Pop();
+				m_Stack.Push(CHexeFunction::Create(m_dCodeBank, GetOperand(*m_pIP), m_dCurGlobalEnv, m_dLocalEnv, dAttribs));
+				m_pIP++;
+				break;
+				}
+
 			case opMakePrimitive:
 				CHexePrimitive::Create((CDatum::ECallType)GetOperand(*m_pIP), &dValue);
 				m_Stack.Push(dValue);

@@ -33,6 +33,7 @@ DECLARE_CONST_STRING(OP_MAKE_BLOCK_ENV,					"makeBlockEnv")
 DECLARE_CONST_STRING(OP_MAKE_ENV,						"makeEnv")
 DECLARE_CONST_STRING(OP_MAKE_FLAGS_FROM_ARRAY,			"makeFlagsFromArray")
 DECLARE_CONST_STRING(OP_MAKE_FUNC,						"makeFunc")
+DECLARE_CONST_STRING(OP_MAKE_FUNC2,						"makeFunc2")
 DECLARE_CONST_STRING(OP_MAKE_PRIMITIVE,					"makePrimitive")
 DECLARE_CONST_STRING(OP_MAKE_STRUCT,					"makeStruct")
 DECLARE_CONST_STRING(OP_MAP_RESULT,						"mapResult")
@@ -83,6 +84,7 @@ static SOpCodeInfo OPCODE_INFO[] =
 
 	//	Function calls
 	SOpCodeInfo(opMakeFunc,			OP_MAKE_FUNC,			operandCodeOffset ),
+	SOpCodeInfo(opMakeFunc2,		OP_MAKE_FUNC2,			operandCodeOffset ),
 	SOpCodeInfo(opMakeEnv,			OP_MAKE_ENV,			operandIntShort ),
 	SOpCodeInfo(opMakeApplyEnv,		OP_MAKE_APPLY_ENV,		operandIntShort ),
 	SOpCodeInfo(opCall,				OP_CALL,				operandNone ),

@@ -90,6 +90,7 @@ enum EOpCodes
 	opPushCoreType =		0x42000000,
 	opPushNaN =				0x43000000,
 	opSetObjectItem =		0x44000000,
+	opMakeFunc2 =			0x45000000,
 
 	opHalt =				0xff000000,
 
