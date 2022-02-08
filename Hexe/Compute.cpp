@@ -1959,7 +1959,18 @@ CDatum CHexeProcess::ExecuteOpAdd (CDatum dLeft, CDatum dRight, bool bConcatenat
 	{
 	int iValue1;
 	int iValue2;
-	if ((dLeft.GetNumberType(&iValue1) == CDatum::typeInteger32)
+
+	if (bConcatenateStrings
+			&& (dLeft.GetBasicType() == CDatum::typeString && dRight.GetBasicType() == CDatum::typeString))
+		{
+		const CString &sA = dLeft;
+		const CString &sB = dRight;
+		CString sResult(sA.GetLength() + sB.GetLength());
+		utlMemCopy(sA.GetParsePointer(), sResult.GetParsePointer(), sA.GetLength());
+		utlMemCopy(sB.GetParsePointer(), sResult.GetParsePointer() + sA.GetLength(), sB.GetLength());
+		return CDatum(std::move(sResult));
+		}
+	else if ((dLeft.GetNumberType(&iValue1) == CDatum::typeInteger32)
 			&& (dRight.GetNumberType(&iValue2) == CDatum::typeInteger32))
 		{
 		LONGLONG iResult = (LONGLONG)iValue1 + (LONGLONG)iValue2;
@@ -1974,10 +1985,10 @@ CDatum CHexeProcess::ExecuteOpAdd (CDatum dLeft, CDatum dRight, bool bConcatenat
 			}
 		}
 	else if (bConcatenateStrings
-			&& (dLeft.GetBasicType() == CDatum::typeString && dRight.GetBasicType() == CDatum::typeString))
+			&& (dLeft.GetBasicType() == CDatum::typeString || dRight.GetBasicType() == CDatum::typeString))
 		{
-		const CString &sA = dLeft;
-		const CString &sB = dRight;
+		CString sA = dLeft.AsString();
+		CString sB = dRight.AsString();
 		CString sResult(sA.GetLength() + sB.GetLength());
 		utlMemCopy(sA.GetParsePointer(), sResult.GetParsePointer(), sA.GetLength());
 		utlMemCopy(sB.GetParsePointer(), sResult.GetParsePointer() + sA.GetLength(), sB.GetLength());
