@@ -2092,7 +2092,11 @@ CDatum CHexeProcess::ExecuteOpAdd (CDatum dLeft, CDatum dRight, bool bConcatenat
 	int iValue1;
 	int iValue2;
 
-	if (bConcatenateStrings
+	if (dLeft.IsNil())
+		return dRight;
+	else if (dRight.IsNil())
+		return dLeft;
+	else if (bConcatenateStrings
 			&& (dLeft.GetBasicType() == CDatum::typeString && dRight.GetBasicType() == CDatum::typeString))
 		{
 		const CString &sA = dLeft;
