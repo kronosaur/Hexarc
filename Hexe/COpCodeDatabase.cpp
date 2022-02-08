@@ -20,9 +20,11 @@ DECLARE_CONST_STRING(OP_INC_LOCAL_INT,					"incLocalInt")
 DECLARE_CONST_STRING(OP_IS_EQUAL,						"isEqual")
 DECLARE_CONST_STRING(OP_IS_GREATER,						"isGreater")
 DECLARE_CONST_STRING(OP_IS_GREATER_OR_EQUAL,			"isGreaterOrEqual")
+DECLARE_CONST_STRING(OP_IS_IDENTICAL,					"isIdentical")
 DECLARE_CONST_STRING(OP_IS_LESS,						"isLess")
 DECLARE_CONST_STRING(OP_IS_LESS_OR_EQUAL,				"isLessOrEqual")
 DECLARE_CONST_STRING(OP_IS_NOT_EQUAL,					"isNotEqual")
+DECLARE_CONST_STRING(OP_IS_NOT_IDENTICAL,				"isNotIdentical")
 DECLARE_CONST_STRING(OP_JUMP,							"jump")
 DECLARE_CONST_STRING(OP_JUMP_IF_NIL,					"jumpIfNil")
 DECLARE_CONST_STRING(OP_JUMP_IF_NIL_NO_POP,				"jumpIfNilNoPop")
@@ -66,11 +68,13 @@ static SOpCodeInfo OPCODE_INFO[] =
 
 	//	Comparisons
 	SOpCodeInfo(opIsEqual,			OP_IS_EQUAL,			operandIntShort ),
+	SOpCodeInfo(opIsEqual,			OP_IS_IDENTICAL,		operandIntShort ),
 	SOpCodeInfo(opIsLess,			OP_IS_LESS,				operandIntShort ),
 	SOpCodeInfo(opIsGreater,		OP_IS_GREATER,			operandIntShort ),
 	SOpCodeInfo(opIsLessOrEqual,	OP_IS_LESS_OR_EQUAL,	operandIntShort ),
 	SOpCodeInfo(opIsGreaterOrEqual,	OP_IS_GREATER_OR_EQUAL,	operandIntShort ),
 	SOpCodeInfo(opIsNotEqual,		OP_IS_NOT_EQUAL,		operandIntShort ),
+	SOpCodeInfo(opIsNotIdentical,	OP_IS_NOT_IDENTICAL,	operandIntShort ),
 	SOpCodeInfo(opNot,				OP_NOT,					operandNone ),
 
 	//	Control flow

@@ -953,7 +953,7 @@ class CNumberValue
 		DWORDLONG m_ilValue;
 		CIPInteger m_ipValue;
 
-		static constexpr int MAX_EXP_FOR_INT32 = 9;
+		static constexpr int MAX_EXP_FOR_INT32 = 30;
 		static const int MAX_BASE_FOR_EXP[MAX_EXP_FOR_INT32 + 1];
 	};
 

@@ -321,6 +321,7 @@ class CHexeProcess : public IInvokeCtx
 		static CDatum ExecuteBinaryOp (EOpCodes iOp, CDatum dLeft, CDatum dRight);
 		static int ExecuteCompare (CDatum dValue1, CDatum dValue2);
 		static bool ExecuteIsEquivalent (CDatum dValue1, CDatum dValue2);
+		static bool ExecuteIsIdentical (CDatum dValue1, CDatum dValue2);
 		static CDatum ExecuteUnaryOp (EOpCodes iOp, CDatum dValue);
 
 		//	IInvokeCtx virtuals

@@ -374,6 +374,31 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				m_pIP++;
 				break;
 
+			case opIsIdentical:
+				iCount = GetOperand(*m_pIP);
+				if (iCount == 0)
+					bCondition = true;
+				else
+					{
+					bCondition = true;
+					dValue = m_Stack.Pop();
+
+					for (i = 1; i < iCount; i++)
+						{
+						CDatum dValue2 = m_Stack.Pop();
+						if (bCondition && !ExecuteIsIdentical(dValue, dValue2))
+							bCondition = false;
+						}
+					}
+
+				if (bCondition)
+					m_Stack.Push(CDatum(true));
+				else
+					m_Stack.Push(CDatum());
+
+				m_pIP++;
+				break;
+
 			case opIsNotEqual:
 				iCount = GetOperand(*m_pIP);
 				if (iCount == 0)
@@ -387,6 +412,31 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 						{
 						CDatum dValue2 = m_Stack.Pop();
 						if (bCondition && !ExecuteIsEquivalent(dValue, dValue2))
+							bCondition = false;
+						}
+					}
+
+				if (!bCondition)
+					m_Stack.Push(CDatum(true));
+				else
+					m_Stack.Push(CDatum());
+
+				m_pIP++;
+				break;
+
+			case opIsNotIdentical:
+				iCount = GetOperand(*m_pIP);
+				if (iCount == 0)
+					bCondition = true;
+				else
+					{
+					bCondition = true;
+					dValue = m_Stack.Pop();
+
+					for (i = 1; i < iCount; i++)
+						{
+						CDatum dValue2 = m_Stack.Pop();
+						if (bCondition && !ExecuteIsIdentical(dValue, dValue2))
 							bCondition = false;
 						}
 					}
@@ -1412,6 +1462,9 @@ CDatum CHexeProcess::ExecuteBinaryOp (EOpCodes iOp, CDatum dLeft, CDatum dRight)
 		case opIsGreaterOrEqual:
 			return CDatum(ExecuteCompare(dLeft, dRight) != 1);
 
+		case opIsIdentical:
+			return CDatum(ExecuteIsIdentical(dLeft, dRight));
+
 		case opIsLess:
 			return CDatum(ExecuteCompare(dLeft, dRight) == 1);
 
@@ -1420,6 +1473,9 @@ CDatum CHexeProcess::ExecuteBinaryOp (EOpCodes iOp, CDatum dLeft, CDatum dRight)
 
 		case opIsNotEqual:
 			return CDatum(!ExecuteIsEquivalent(dLeft, dRight));
+
+		case opIsNotIdentical:
+			return CDatum(!ExecuteIsIdentical(dLeft, dRight));
 
 		case opMod:
 			{
@@ -1877,6 +1933,82 @@ bool CHexeProcess::ExecuteIsEquivalent (CDatum dValue1, CDatum dValue2)
 
 	else
 		return false;
+	}
+
+bool CHexeProcess::ExecuteIsIdentical (CDatum dValue1, CDatum dValue2)
+
+//	ExecuteIsIdentical
+//
+//	Returns TRUE if dValue1 is the same as dValue2
+
+	{
+	CDatum::Types iType = dValue1.GetBasicType();
+
+	//	Must be the same type
+
+	if (dValue2.GetBasicType() != iType)
+		return false;
+
+	switch (iType)
+		{
+		case CDatum::typeNil:
+		case CDatum::typeTrue:
+		case CDatum::typeNaN:
+			return true;
+
+		case CDatum::typeInteger32:
+			return (int)dValue1 == (int)dValue2;
+
+		case CDatum::typeInteger64:
+			return (DWORDLONG)dValue1 == (DWORDLONG)dValue2;
+
+		case CDatum::typeDouble:
+			return (double)dValue1 == (double)dValue2;
+
+		case CDatum::typeIntegerIP:
+			return ((const CIPInteger &)dValue1) == ((const CIPInteger &)dValue2);
+
+		case CDatum::typeString:
+			//	Case-sensitive compare
+			return strEquals(dValue1, dValue2);
+
+		case CDatum::typeDateTime:
+			return ((const CDateTime &)dValue1) == ((const CDateTime &)dValue2);
+
+		case CDatum::typeTimeSpan:
+			return ((const CTimeSpan &)dValue1) == ((const CTimeSpan &)dValue2);
+
+		case CDatum::typeArray:
+			{
+			if (dValue1.GetCount() != dValue2.GetCount())
+				return false;
+
+			for (int i = 0; i < dValue1.GetCount(); i++)
+				if (!ExecuteIsIdentical(dValue1.GetElement(i), dValue2.GetElement(i)))
+					return false;
+
+			return true;
+			}
+
+		case CDatum::typeStruct:
+			{
+			if (dValue1.GetCount() != dValue2.GetCount())
+				return false;
+
+			for (int i = 0; i < dValue1.GetCount(); i++)
+				if (!strEquals(strToLower(dValue1.GetKey(i)), strToLower(dValue2.GetKey(i)))
+						|| !ExecuteIsIdentical(dValue1.GetElement(i), dValue2.GetElement(i)))
+					return false;
+
+			return true;
+			}
+
+		case CDatum::typeDatatype:
+			return strEquals(((const IDatatype &)dValue1).GetFullyQualifiedName(), ((const IDatatype &)dValue2).GetFullyQualifiedName());
+
+		default:
+			return false;
+		}
 	}
 
 bool CHexeProcess::ExecuteMakeFlagsFromArray (CDatum dOptions, CDatum dMap, CDatum *retdResult)
