@@ -1258,6 +1258,10 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 
 				switch (dObject.GetBasicType())
 					{
+					case CDatum::typeNil:
+						ExecuteNilMemberItem(sField);
+						break;
+
 					case CDatum::typeArray:
 						ExecuteArrayMemberItem(dObject, sField);
 						break;
@@ -2034,6 +2038,21 @@ bool CHexeProcess::ExecuteMakeFlagsFromArray (CDatum dOptions, CDatum dMap, CDat
 
 	*retdResult = CDatum((int)dwFlags);
 	return true;
+	}
+
+void CHexeProcess::ExecuteNilMemberItem (const CString &sField)
+
+//	ExecuteNilMemberItem
+//
+//	Member items of nil.
+
+	{
+	if (strEqualsNoCase(sField, FIELD_LENGTH))
+		{
+		m_Stack.Push(0);
+		}
+	else
+		m_Stack.Push(CDatum());
 	}
 
 bool CHexeProcess::ExecuteObjectMemberItem (CDatum dObject, const CString &sField, CDatum &retdResult)
