@@ -66,7 +66,7 @@ void CHexeCode::Create (const CHexeCodeIntermediate &Intermediate, int iEntryPoi
 
 		//	Write the block header
 
-		BLOCKHEADER dwHeader = ComposeHeader(blockCode, Source.GetLength() + sizeof(BLOCKHEADER));
+		BLOCKHEADER dwHeader = ComposeHeader(EBlockType::Code, Source.GetLength() + sizeof(BLOCKHEADER));
 		Dest.Write(&dwHeader, sizeof(BLOCKHEADER));
 
 		//	Write the code
@@ -80,14 +80,14 @@ void CHexeCode::Create (const CHexeCodeIntermediate &Intermediate, int iEntryPoi
 		{
 		CDatum dSource = Intermediate.GetDatumBlock(i);
 		CString sSource;
-		BlockTypes iBlockType;
+		EBlockType iBlockType;
 
 		//	If this is a string, then we store it as a string
 
 		if (dSource.GetBasicType() == CDatum::typeString)
 			{
 			sSource = dSource;
-			iBlockType = blockString;
+			iBlockType = EBlockType::String;
 			}
 
 		//	Otherwise we serialize as a datum
@@ -97,7 +97,7 @@ void CHexeCode::Create (const CHexeCodeIntermediate &Intermediate, int iEntryPoi
 			CStringBuffer Stream;
 			dSource.Serialize(CDatum::EFormat::AEONScript, Stream);
 			sSource.TakeHandoff(Stream);
-			iBlockType = blockDatum;
+			iBlockType = EBlockType::Datum;
 			}
 
 		//	Write the block header

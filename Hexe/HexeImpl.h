@@ -72,25 +72,25 @@ class CHexeCode : public TExternalDatum<CHexeCode>
 		virtual void OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
 
 	private:
-		enum BlockTypes
+		enum class EBlockType
 			{
-			blockUnknown =			0x00000000,
+			Unknown =			0x00000000,
 
-			blockCode =				0x10000000,
-			blockString =			0x20000000,
-			blockDatum =			0x30000000,
-
-			blockTypeMask =			0xf0000000,
-			blockLenMask =			0x0fffffff,
+			Code =				0x10000000,
+			String =			0x20000000,
+			Datum =				0x30000000,
 			};
 
 		typedef DWORD BLOCKHEADER;
 
+		static constexpr DWORD BLOCK_TYPE_MASK =	0xf0000000;
+		static constexpr DWORD BLOCK_LEN_MASK =		0x0fffffff;
+
 		static constexpr DWORD VERSION =		2;
 		static constexpr DWORD VERSION_NEW =	0xffffffff;
 
-		static BLOCKHEADER ComposeHeader (BlockTypes iType, DWORD dwSize) { return ((DWORD)iType | dwSize); }
-		static DWORD GetBlockSize (BLOCKHEADER dwHeader) { return (dwHeader & blockLenMask); }
+		static BLOCKHEADER ComposeHeader (EBlockType iType, DWORD dwSize) { return ((DWORD)iType | dwSize); }
+		static DWORD GetBlockSize (BLOCKHEADER dwHeader) { return (dwHeader & BLOCK_LEN_MASK); }
 
 		CBuffer m_Code;
 		TArray<int> m_CodeOffsets;
