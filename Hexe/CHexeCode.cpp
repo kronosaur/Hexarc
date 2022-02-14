@@ -319,6 +319,19 @@ int CHexeCode::GetOperandInt (DWORD dwCode)
 		return (int)dwOperand;
 	}
 
+CDatum CHexeCode::GetStringFromID(int iID) const
+
+//	GetStringFromID
+//
+//	Gets a string datum from a data block ID.
+
+	{
+	if (iID < 0 || iID >= m_DataOffsets.GetCount())
+		return CDatum();
+
+	return GetString(m_DataOffsets[iID]);
+	}
+
 bool CHexeCode::OnDeserialize (CDatum::EFormat iFormat, const CString &sTypename, IByteStream &Stream)
 
 //	OnDeserialize

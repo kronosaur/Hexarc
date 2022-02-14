@@ -53,6 +53,7 @@ DECLARE_CONST_STRING(OP_PUSH_LOCAL_ITEM,				"pushLocalItem")
 DECLARE_CONST_STRING(OP_PUSH_LOCAL_LENGTH,				"pushLocalLength")
 DECLARE_CONST_STRING(OP_PUSH_NIL,						"pushNil")
 DECLARE_CONST_STRING(OP_PUSH_STR,						"pushStr")
+DECLARE_CONST_STRING(OP_PUSH_STR_FROM_CODE,				"pushStrFromCode")
 DECLARE_CONST_STRING(OP_PUSH_STR_NULL,					"pushStrNull")
 DECLARE_CONST_STRING(OP_PUSH_TRUE,						"pushTrue")
 DECLARE_CONST_STRING(OP_RETURN,							"return")
@@ -125,6 +126,7 @@ static SOpCodeInfo OPCODE_INFO[] =
 	SOpCodeInfo(opPushIntShort,		OP_PUSH_INT_SHORT,		operandIntShort ),
 	SOpCodeInfo(opPushStr,			OP_PUSH_STR,			operandStringOffset ),
 	SOpCodeInfo(opPushStrNull,		OP_PUSH_STR_NULL,		operandNone ),
+	SOpCodeInfo(opPushStrFromCode,	OP_PUSH_STR_FROM_CODE,	operandIntShort ),
 
 	//	Math
 	SOpCodeInfo(opAdd,				OP_ADD,					operandIntShort ),

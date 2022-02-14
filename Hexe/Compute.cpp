@@ -111,6 +111,11 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				m_pIP++;
 				break;
 
+			case opPushStrFromCode:
+				m_Stack.Push(GetStringFromDataBlock(GetOperand(*m_pIP)));
+				m_pIP++;
+				break;
+
 			case opPushStrNull:
 				m_Stack.Push(CDatum(NULL_STR));
 				m_pIP++;

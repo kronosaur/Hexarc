@@ -93,6 +93,7 @@ enum EOpCodes
 	opMakeFunc2 =			0x45000000,
 	opIsIdentical =			0x46000000,
 	opIsNotIdentical =		0x47000000,
+	opPushStrFromCode =		0x48000000,
 
 	opHalt =				0xff000000,
 

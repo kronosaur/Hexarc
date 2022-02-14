@@ -64,6 +64,7 @@ class CHexeCode : public TExternalDatum<CHexeCode>
 		CDatum GetDatumFromID (int iID) const;
 		static int GetOperandInt (DWORD dwCode);
 		CString GetString (int iOffset) const { return CString(m_Code.GetPointer() + iOffset); }
+		CDatum GetStringFromID (int iID) const;
 		CString GetStringLiteral (int iOffset) const { return CString(m_Code.GetPointer() + iOffset, -1, true); }
 
 	protected:

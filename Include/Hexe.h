@@ -346,6 +346,7 @@ class CHexeProcess : public IInvokeCtx
 		static bool FindHexarcMessage (const CString &sMsg, CString *retsAddr = NULL);
 		void GetCurrentSecurityCtx (CHexeSecurityCtx *retCtx);
 		CDatum GetCurrentSecurityCtx (void);
+		CDatum GetStringFromDataBlock (int iID);
 		void InitGlobalEnv (CHexeGlobalEnvironment **retpGlobalEnv = NULL);
 		static bool ParseHyperionServiceMessage (const CString &sMsg, CDatum dPayload, CString &sAddr, CString &sNewMsg, CDatum &dNewPayload);
 		ERun RunWithStack (CDatum dExpression, CDatum *retResult);
@@ -403,6 +404,7 @@ class CHexeProcess : public IInvokeCtx
 		TSortMap<CString, void *> m_LibraryCtx;		//	Ctx for each library
 		CHexeSecurityCtx m_UserSecurity;			//	User security context
 
+		TArray<CDatum> m_DataCache;					//	Cached data from code bank
 		IHexeComputeProgress *m_pComputeProgress = NULL;
 		DWORDLONG m_dwComputes = 0;					//	Total instructions processed so far.
 		DWORDLONG m_dwLibraryTime = 0;				//	Total milliseconds spent executing
