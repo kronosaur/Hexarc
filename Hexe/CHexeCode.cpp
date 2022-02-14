@@ -46,22 +46,15 @@ void CHexeCode::Create (const CHexeCodeIntermediate &Intermediate, int iEntryPoi
 //	Creates a code buffer and returns an entry point
 
 	{
-	int i;
-
 	//	Allocate a new code object
 
 	CHexeCode *pCodeObj = new CHexeCode;
 	CDatum dCodeObj(pCodeObj);
 	CBuffer &Dest = pCodeObj->m_Code;
 
-	//	Keep track of offsets
-
-	TArray<int> CodeOffsets;
-	TArray<int> DataOffsets;
-
 	//	Write out all code blocks first
 
-	for (i = 0; i < Intermediate.GetCodeBlockCount(); i++)
+	for (int i = 0; i < Intermediate.GetCodeBlockCount(); i++)
 		{
 		const CBuffer &Source = Intermediate.GetCodeBlock(i);
 
@@ -69,7 +62,7 @@ void CHexeCode::Create (const CHexeCodeIntermediate &Intermediate, int iEntryPoi
 		//	the block header.
 
 		int iOffset = Dest.GetPos() + sizeof(BLOCKHEADER);
-		CodeOffsets.Insert(iOffset);
+		pCodeObj->m_CodeOffsets.Insert(iOffset);
 
 		//	Write the block header
 
@@ -83,7 +76,7 @@ void CHexeCode::Create (const CHexeCodeIntermediate &Intermediate, int iEntryPoi
 
 	//	Write out the datums
 
-	for (i = 0; i < Intermediate.GetDatumBlockCount(); i++)
+	for (int i = 0; i < Intermediate.GetDatumBlockCount(); i++)
 		{
 		CDatum dSource = Intermediate.GetDatumBlock(i);
 		CString sSource;
@@ -120,7 +113,7 @@ void CHexeCode::Create (const CHexeCodeIntermediate &Intermediate, int iEntryPoi
 
 		//	Remember the offset
 
-		DataOffsets.Insert(Dest.GetPos());
+		pCodeObj->m_DataOffsets.Insert(Dest.GetPos());
 
 		//	Write the rest of the string
 
@@ -133,10 +126,10 @@ void CHexeCode::Create (const CHexeCodeIntermediate &Intermediate, int iEntryPoi
 
 	//	Now that we have all the offset, we fix up the code buffers with the correct offset
 
-	for (i = 0; i < CodeOffsets.GetCount(); i++)
+	for (int i = 0; i < pCodeObj->m_CodeOffsets.GetCount(); i++)
 		{
-		DWORD *pBlockStart = (DWORD *)(Dest.GetPointer() + CodeOffsets[i] - sizeof(DWORD));
-		DWORD *pPos = (DWORD *)(Dest.GetPointer() + CodeOffsets[i]);
+		DWORD *pBlockStart = (DWORD *)(Dest.GetPointer() + pCodeObj->m_CodeOffsets[i] - sizeof(DWORD));
+		DWORD *pPos = (DWORD *)(Dest.GetPointer() + pCodeObj->m_CodeOffsets[i]);
 		DWORD *pPosEnd = (DWORD *)((char *)pBlockStart + GetBlockSize(*pBlockStart));
 
 		while (pPos < pPosEnd)
@@ -146,9 +139,9 @@ void CHexeCode::Create (const CHexeCodeIntermediate &Intermediate, int iEntryPoi
 			//	Fix up offsets
 
 			if (pInfo->iOperand == operandCodeOffset)
-				*pPos = MakeOpCode(pInfo->dwOpCode, CodeOffsets[GetOperand(*pPos)]);
+				*pPos = MakeOpCode(pInfo->dwOpCode, pCodeObj->m_CodeOffsets[GetOperand(*pPos)]);
 			else if (pInfo->iOperand == operandStringOffset || pInfo->iOperand == operandDatumOffset)
-				*pPos = MakeOpCode(pInfo->dwOpCode, DataOffsets[GetOperand(*pPos)]);
+				*pPos = MakeOpCode(pInfo->dwOpCode, pCodeObj->m_DataOffsets[GetOperand(*pPos)]);
 
 			//	Next op code
 
@@ -158,7 +151,7 @@ void CHexeCode::Create (const CHexeCodeIntermediate &Intermediate, int iEntryPoi
 
 	//	Create a function that points to the given offset
 
-	CHexeFunction::Create(dCodeObj, CodeOffsets[iEntryPoint], CDatum(), CDatum(), retdEntryPoint);
+	CHexeFunction::Create(dCodeObj, pCodeObj->m_CodeOffsets[iEntryPoint], CDatum(), CDatum(), retdEntryPoint);
 	}
 
 void CHexeCode::CreateFunctionCall (const CString &sFunction, const TArray<CDatum> &Args, CDatum *retdEntryPoint)
@@ -281,7 +274,7 @@ void CHexeCode::CreateInvokeCall (const TArray<CDatum> &Args, CDatum *retdEntryP
 	Create(CodeBlocks, iBlock, retdEntryPoint);
 	}
 
-CDatum CHexeCode::GetDatum (int iOffset)
+CDatum CHexeCode::GetDatum (int iOffset) const
 
 //	GetDatum
 //
@@ -304,6 +297,19 @@ CDatum CHexeCode::GetDatum (int iOffset)
 	return dDatum;
 	}
 
+CDatum CHexeCode::GetDatumFromID(int iID) const
+
+//	GetDatumFromID
+//
+//	Gets a datum from a data block ID.
+
+	{
+	if (iID < 0 || iID >= m_DataOffsets.GetCount())
+		return CDatum();
+
+	return GetDatum(m_DataOffsets[iID]);
+	}
+
 int CHexeCode::GetOperandInt (DWORD dwCode)
 	{
 	DWORD dwOperand = GetOperand(dwCode);
@@ -323,10 +329,40 @@ bool CHexeCode::OnDeserialize (CDatum::EFormat iFormat, const CString &sTypename
 	DWORD dwLength;
 	Stream.Read(&dwLength, sizeof(DWORD));
 
-	m_Code.SetLength(dwLength);
+	if (dwLength == VERSION_NEW)
+		{
+		DWORD dwVersion;
+		Stream.Read(&dwVersion, sizeof(DWORD));
 
-	if (dwLength > 0)
-		Stream.Read(m_Code.GetPointer(), m_Code.GetLength());
+		//	Read code block
+
+		Stream.Read(&dwLength, sizeof(DWORD));
+		m_Code.SetLength(dwLength);
+
+		if (dwLength)
+			Stream.Read(m_Code.GetPointer(), m_Code.GetLength());
+
+		//	Read code offsets
+
+		Stream.Read(&dwLength, sizeof(DWORD));
+		m_CodeOffsets.InsertEmpty(dwLength);
+		if (dwLength)
+			Stream.Read(&m_CodeOffsets[0], dwLength * sizeof(DWORD));
+
+		//	Read data offsets
+
+		Stream.Read(&dwLength, sizeof(DWORD));
+		m_DataOffsets.InsertEmpty(dwLength);
+		if (dwLength)
+			Stream.Read(&m_DataOffsets[0], dwLength * sizeof(DWORD));
+		}
+	else
+		{
+		m_Code.SetLength(dwLength);
+
+		if (dwLength)
+			Stream.Read(m_Code.GetPointer(), m_Code.GetLength());
+		}
 
 	return true;
 	}
@@ -338,9 +374,34 @@ void CHexeCode::OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const
 //	Serialize
 
 	{
-	DWORD dwLength = m_Code.GetLength();
+	//	Write marker to indicate that we're a new version
 
+	DWORD dwSave = VERSION_NEW;
+	Stream.Write(&dwSave, sizeof(DWORD));
+
+	//	Write the version number
+
+	dwSave = VERSION;
+	Stream.Write(&dwSave, sizeof(DWORD));
+
+	//	Write the code block
+
+	DWORD dwLength = m_Code.GetLength();
 	Stream.Write(&dwLength, sizeof(DWORD));
 	if (dwLength)
 		Stream.Write(m_Code.GetPointer(), m_Code.GetLength());
+
+	//	Write the code offsets
+
+	dwLength = m_CodeOffsets.GetCount();
+	Stream.Write(&dwLength, sizeof(DWORD));
+	if (dwLength)
+		Stream.Write(&m_CodeOffsets[0], dwLength * sizeof(DWORD));
+
+	//	Write the data offsets
+
+	dwLength = m_DataOffsets.GetCount();
+	Stream.Write(&dwLength, sizeof(DWORD));
+	if (dwLength)
+		Stream.Write(&m_DataOffsets[0], dwLength * sizeof(DWORD));
 	}

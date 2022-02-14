@@ -34,7 +34,7 @@ class COpCodeDatabase
 		COpCodeDatabase (void);
 
 		DWORD *Advance (DWORD *pPos);
-		inline SOpCodeInfo *GetInfo (DWORD dwOpCode) { return m_Info[dwOpCode >> 24]; }
+		SOpCodeInfo *GetInfo (DWORD dwOpCode) { return m_Info[dwOpCode >> 24]; }
 
 	private:
 		SOpCodeInfo *m_Info[opCodeCount];
@@ -59,11 +59,12 @@ class CHexeCode : public TExternalDatum<CHexeCode>
 		static void CreateInvokeCall (const TArray<CDatum> &Args, CDatum *retdEntryPoint);
 		static const CString &StaticGetTypename (void);
 
-		inline DWORD *GetCode (int iOffset) { return (DWORD *)(m_Code.GetPointer() + iOffset); }
-		CDatum GetDatum (int iOffset);
+		DWORD *GetCode (int iOffset) { return (DWORD *)(m_Code.GetPointer() + iOffset); }
+		CDatum GetDatum (int iOffset) const;
+		CDatum GetDatumFromID (int iID) const;
 		static int GetOperandInt (DWORD dwCode);
-		inline CString GetString (int iOffset) { return CString(m_Code.GetPointer() + iOffset); }
-		inline CString GetStringLiteral (int iOffset) { return CString(m_Code.GetPointer() + iOffset, -1, true); }
+		CString GetString (int iOffset) const { return CString(m_Code.GetPointer() + iOffset); }
+		CString GetStringLiteral (int iOffset) const { return CString(m_Code.GetPointer() + iOffset, -1, true); }
 
 	protected:
 		//	IComplexDatum
@@ -85,10 +86,15 @@ class CHexeCode : public TExternalDatum<CHexeCode>
 
 		typedef DWORD BLOCKHEADER;
 
-		inline static BLOCKHEADER ComposeHeader (BlockTypes iType, DWORD dwSize) { return ((DWORD)iType | dwSize); }
-		inline static DWORD GetBlockSize (BLOCKHEADER dwHeader) { return (dwHeader & blockLenMask); }
+		static constexpr DWORD VERSION =		2;
+		static constexpr DWORD VERSION_NEW =	0xffffffff;
+
+		static BLOCKHEADER ComposeHeader (BlockTypes iType, DWORD dwSize) { return ((DWORD)iType | dwSize); }
+		static DWORD GetBlockSize (BLOCKHEADER dwHeader) { return (dwHeader & blockLenMask); }
 
 		CBuffer m_Code;
+		TArray<int> m_CodeOffsets;
+		TArray<int> m_DataOffsets;
 	};
 
 //	CHexeFunction --------------------------------------------------------------
@@ -194,13 +200,13 @@ class CHexeGlobalEnvironment : public TExternalDatum<CHexeGlobalEnvironment>
 
 		static const CString &StaticGetTypename (void);
 
-		inline bool Find (const CString &sIdentifier, CDatum *retdValue) { return m_Env.Find(sIdentifier, retdValue); }
-		inline bool FindPos (const CString &sIdentifier, int *retiPos) { return m_Env.FindPos(sIdentifier, retiPos); }
-		inline CDatum GetAt (int iIndex) { return m_Env[iIndex]; }
-		inline void GetServiceSecurity (CHexeSecurityCtx *retCtx) { m_ServiceSecurity.GetServiceSecurity(retCtx); }
-		inline void SetAt (int iIndex, CDatum dValue) { m_Env[iIndex] = dValue; }
-		inline void SetAt (const CString &sIdentifier, CDatum dValue, bool *retbNew = NULL) { m_Env.SetAt(sIdentifier, dValue, retbNew); }
-		inline void SetServiceSecurity (const CHexeSecurityCtx &Ctx) { m_ServiceSecurity.SetServiceSecurity(Ctx); }
+		bool Find (const CString &sIdentifier, CDatum *retdValue) { return m_Env.Find(sIdentifier, retdValue); }
+		bool FindPos (const CString &sIdentifier, int *retiPos) { return m_Env.FindPos(sIdentifier, retiPos); }
+		CDatum GetAt (int iIndex) { return m_Env[iIndex]; }
+		void GetServiceSecurity (CHexeSecurityCtx *retCtx) { m_ServiceSecurity.GetServiceSecurity(retCtx); }
+		void SetAt (int iIndex, CDatum dValue) { m_Env[iIndex] = dValue; }
+		void SetAt (const CString &sIdentifier, CDatum dValue, bool *retbNew = NULL) { m_Env.SetAt(sIdentifier, dValue, retbNew); }
+		void SetServiceSecurity (const CHexeSecurityCtx &Ctx) { m_ServiceSecurity.SetServiceSecurity(Ctx); }
 
 		//	IComplexDatum
 		virtual int GetCount (void) const override { return m_Env.GetCount(); }
@@ -294,9 +300,9 @@ class CLispParser
 
 		CLispParser (void) : m_pStream(NULL) { }
 
-		inline CString ComposeError (const CString &sError) { return m_pStream->ComposeError(sError); }
-		inline ETokens GetToken (CDatum *retdDatum = NULL) const { if (retdDatum) *retdDatum = m_dToken; return m_iToken; }
-		inline bool Init (CCharStream *pStream) { m_pStream = pStream; return true; }
+		CString ComposeError (const CString &sError) { return m_pStream->ComposeError(sError); }
+		ETokens GetToken (CDatum *retdDatum = NULL) const { if (retdDatum) *retdDatum = m_dToken; return m_iToken; }
+		bool Init (CCharStream *pStream) { m_pStream = pStream; return true; }
 		ETokens ParseToken (CDatum *retdDatum = NULL);
 
 	private:
