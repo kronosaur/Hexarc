@@ -1253,7 +1253,12 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				if (iCount != 2)
 					return RuntimeError(ERR_INVALID_OPERAND_COUNT, *retResult);
 
-				CString sField = m_Stack.Pop().AsString();
+				//	NOTE: We always expect this to be a string. Compilers should
+				//	convert to string if necessary. Otherwise, performance will
+				//	suffer.
+
+				CDatum dField = m_Stack.Pop();
+				const CString &sField = dField;
 				CDatum dObject = m_Stack.Pop();
 
 				switch (dObject.GetBasicType())
@@ -1294,9 +1299,14 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				//	LATER: Check for reference loops
 				//	LATER: Handle errors inside SetElement.
 
-				CString sField = m_Stack.Pop().AsString();
+				CDatum dField = m_Stack.Pop();
 				CDatum dObject = m_Stack.Pop();
 				CDatum dValue = m_Stack.Pop();
+
+				//	NOTE: For performance reasons, this should always be a 
+				//	CDatum::typeString. Compilers should enforce this.
+
+				const CString &sField = dField;
 
 				switch (dObject.GetBasicType())
 					{
