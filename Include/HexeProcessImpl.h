@@ -14,20 +14,29 @@
 class CHexeStack
 	{
 	public:
-		CHexeStack (void) : m_iTop(-1) { }
+		static constexpr int DEFAULT_SIZE = 4000;
+
+		CHexeStack (int iSize = DEFAULT_SIZE) { m_Stack.InsertEmpty(DEFAULT_SIZE); }
 
 		void DeleteAll (void) { m_Stack.DeleteAll(); m_iTop = -1; }
-		CDatum Get (void) { return (m_iTop == -1 ? CDatum() : m_Stack[m_iTop]); }
-		CDatum Get (int iIndex) const;
+		CDatum Get (void) const { return m_Stack[m_iTop]; }
+		CDatum Get (int iIndex) const { return m_Stack[m_iTop - iIndex]; }
+
 		int GetCount () const { return m_iTop + 1; }
 		void Mark (void);
-		CDatum Pop (void) { return (m_iTop == -1 ? CDatum() : m_Stack[m_iTop--]); }
-		void Pop (int iCount) { if (m_iTop + 1 >= iCount) m_iTop -= iCount; else m_iTop = -1; }
-		void Push (CDatum dData);
+		CDatum Pop (void) { return m_Stack[m_iTop--]; }
+		void Pop (int iCount) { m_iTop -= iCount; }
+		void Push (CDatum dData) { m_Stack[++m_iTop] = dData; }
+
+		CDatum SafeGet (void) const { return (m_iTop == -1 ? CDatum() : m_Stack[m_iTop]); }
+		CDatum SafeGet (int iIndex) const;
+		CDatum SafePop (void) { return (m_iTop == -1 ? CDatum() : m_Stack[m_iTop--]); }
+		void SafePop (int iCount) { if (m_iTop + 1 >= iCount) m_iTop -= iCount; else m_iTop = -1; }
+		void SafePush (CDatum dData);
 
 	private:
 		TArray<CDatum> m_Stack;
-		int m_iTop;						//	Index to item at top of stack
+		int m_iTop = -1;						//	Index to item at top of stack
 	};
 
 //	CHexeCallStack -------------------------------------------------------------

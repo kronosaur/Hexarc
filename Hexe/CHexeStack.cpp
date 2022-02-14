@@ -5,9 +5,20 @@
 
 #include "stdafx.h"
 
-CDatum CHexeStack::Get (int iIndex) const
+void CHexeStack::Mark (void)
 
-//	Get
+//	Mark
+//
+//	Mark data in use
+
+	{
+	for (int i = 0; i < m_iTop + 1; i++)
+		m_Stack[i].Mark();
+	}
+
+CDatum CHexeStack::SafeGet (int iIndex) const
+
+//	SafeGet
 //
 //	Returns the nth element of the stack.
 
@@ -22,22 +33,9 @@ CDatum CHexeStack::Get (int iIndex) const
 	return m_Stack[iEntry];
 	}
 
-void CHexeStack::Mark (void)
+void CHexeStack::SafePush (CDatum dData)
 
-//	Mark
-//
-//	Mark data in use
-
-	{
-	int i;
-
-	for (i = 0; i < m_iTop + 1; i++)
-		m_Stack[i].Mark();
-	}
-
-void CHexeStack::Push (CDatum dData)
-
-//	Push
+//	SafePush
 //
 //	Push the datum
 
@@ -45,7 +43,8 @@ void CHexeStack::Push (CDatum dData)
 	m_iTop++;
 
 	if (m_iTop >= m_Stack.GetCount())
-		m_Stack.InsertEmpty(100);
+		m_Stack.InsertEmpty(1000);
 
 	m_Stack[m_iTop] = dData;
 	}
+
