@@ -10,6 +10,7 @@ DECLARE_CONST_STRING(OP_APPEND_LOCAL_ITEM,				"appendLocalItem")
 DECLARE_CONST_STRING(OP_CALL,							"call")
 DECLARE_CONST_STRING(OP_DEFINE,							"define")
 DECLARE_CONST_STRING(OP_DEFINE_ARG,						"defineArg")
+DECLARE_CONST_STRING(OP_DEFINE_ARG_FROM_CODE,			"defineArgFromCode")
 DECLARE_CONST_STRING(OP_DIVIDE,							"divide")
 DECLARE_CONST_STRING(OP_ENTER_ENV,						"enterEnv")
 DECLARE_CONST_STRING(OP_ERROR,							"error")
@@ -95,6 +96,7 @@ static SOpCodeInfo OPCODE_INFO[] =
 	SOpCodeInfo(opCall,				OP_CALL,				operandNone ),
 	SOpCodeInfo(opEnterEnv,			OP_ENTER_ENV,			operandNone ),
 	SOpCodeInfo(opDefineArg,		OP_DEFINE_ARG,			operandStringOffset ),
+	SOpCodeInfo(opDefineArgFromCode,OP_DEFINE_ARG_FROM_CODE,operandIntShort ),
 	SOpCodeInfo(opExitEnv,			OP_EXIT_ENV,			operandNone ),
 	SOpCodeInfo(opReturn,			OP_RETURN,				operandNone ),
 	SOpCodeInfo(opMakePrimitive,	OP_MAKE_PRIMITIVE,		operandIntShort ),

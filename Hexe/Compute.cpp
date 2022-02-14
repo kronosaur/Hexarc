@@ -700,6 +700,11 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				m_pIP++;
 				break;
 
+			case opDefineArgFromCode:
+				m_pLocalEnv->SetNextArgKey(GetStringFromDataBlock(GetOperand(*m_pIP)));
+				m_pIP++;
+				break;
+
 			case opExitEnv:
 				m_LocalEnvStack.Restore(&m_dCurGlobalEnv, &m_pCurGlobalEnv, &m_dLocalEnv, &m_pLocalEnv);
 				m_pIP++;

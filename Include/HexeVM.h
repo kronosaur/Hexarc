@@ -94,6 +94,7 @@ enum EOpCodes
 	opIsIdentical =			0x46000000,
 	opIsNotIdentical =		0x47000000,
 	opPushStrFromCode =		0x48000000,
+	opDefineArgFromCode =	0x49000000,
 
 	opHalt =				0xff000000,
 
