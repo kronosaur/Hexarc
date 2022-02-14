@@ -43,8 +43,9 @@ class CIPInteger
 class CIPInteger
 	{
 	public:
-		CIPInteger (void);
+		CIPInteger (void) { }
 		CIPInteger (const CIPInteger &Src);
+		CIPInteger (CIPInteger &&Src) noexcept;
 		CIPInteger (int iSrc);
 		CIPInteger (DWORDLONG ilSrc);
 		CIPInteger (LONGLONG ilSrc);
@@ -52,6 +53,7 @@ class CIPInteger
 		~CIPInteger (void);
 
 		CIPInteger &operator= (const CIPInteger &Src);
+		CIPInteger &operator= (CIPInteger &&Src) noexcept;
 		bool operator== (const CIPInteger &Src) const;
 		bool operator!= (const CIPInteger &Src) const;
 
@@ -100,8 +102,8 @@ class CIPInteger
 	private:
 		CIPInteger (void *Value, bool bNegative) : m_Value(Value), m_bNegative(bNegative) { }
 
-		void *m_Value;
-		bool m_bNegative;
+		void *m_Value = NULL;
+		bool m_bNegative = false;
 	};
 
 #endif

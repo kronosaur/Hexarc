@@ -54,23 +54,28 @@ CIPInteger NULL_IPINTEGER;
 static CIPInteger MIN_INT32((LONGLONG)INT_MIN);
 static CIPInteger MAX_INT32((LONGLONG)INT_MAX);
 
-CIPInteger::CIPInteger (void)
-
-//	CIPInteger constructor
-
-	{
-	m_Value = bdNew();
-	m_bNegative = false;
-	}
-
 CIPInteger::CIPInteger (const CIPInteger &Src)
 
 //	CIPInteger constructor
 
 	{
-	m_Value = bdNew();
-	bdSetEqual((BIGD)m_Value, (BIGD)Src.m_Value);
+	if (Src.m_Value)
+		{
+		m_Value = bdNew();
+		bdSetEqual((BIGD)m_Value, (BIGD)Src.m_Value);
+		m_bNegative = Src.m_bNegative;
+		}
+	}
+
+CIPInteger::CIPInteger(CIPInteger&& Src) noexcept
+
+//	CIPInteger constructor
+
+	{
+	m_Value = Src.m_Value;
 	m_bNegative = Src.m_bNegative;
+
+	Src.m_Value = NULL;
 	}
 
 CIPInteger::CIPInteger (int iSrc)
@@ -172,7 +177,8 @@ CIPInteger::~CIPInteger (void)
 //	CIPInteger destructor
 
 	{
-	bdFree((BIGD *)&m_Value);
+	if (m_Value)
+		bdFree((BIGD *)&m_Value);
 	}
 
 CIPInteger &CIPInteger::operator= (const CIPInteger &Src)
@@ -180,8 +186,26 @@ CIPInteger &CIPInteger::operator= (const CIPInteger &Src)
 //	CIPInteger operator =
 
 	{
+	if (!m_Value)
+		m_Value = bdNew();
+
 	bdSetEqual((BIGD)m_Value, (BIGD)Src.m_Value);
 	m_bNegative = Src.m_bNegative;
+	return *this;
+	}
+
+CIPInteger& CIPInteger::operator= (CIPInteger&& Src) noexcept
+
+//	CIPInteger operator =
+
+	{
+	if (m_Value)
+		bdFree((BIGD *)&m_Value);
+
+	m_Value = Src.m_Value;
+	m_bNegative = Src.m_bNegative;
+
+	Src.m_Value = NULL;
 	return *this;
 	}
 
@@ -190,7 +214,10 @@ bool CIPInteger::operator== (const CIPInteger &Src) const
 //	CIPInteger operator ==
 
 	{
-	return ((bdCompare((BIGD)m_Value, (BIGD)Src.m_Value) == 0) && (m_bNegative == Src.m_bNegative));
+	if (m_Value && Src.m_Value)
+		return ((bdCompare((BIGD)m_Value, (BIGD)Src.m_Value) == 0) && (m_bNegative == Src.m_bNegative));
+	else
+		return (m_Value == Src.m_Value);
 	}
 
 bool CIPInteger::operator!= (const CIPInteger &Src) const
@@ -198,7 +225,10 @@ bool CIPInteger::operator!= (const CIPInteger &Src) const
 //	CIPInteger operator !=
 
 	{
-	return ((bdCompare((BIGD)m_Value, (BIGD)Src.m_Value) != 0) || (m_bNegative != Src.m_bNegative));
+	if (m_Value && Src.m_Value)
+		return ((bdCompare((BIGD)m_Value, (BIGD)Src.m_Value) != 0) || (m_bNegative != Src.m_bNegative));
+	else
+		return (m_Value != Src.m_Value);
 	}
 
 CIPInteger &CIPInteger::operator+= (const CIPInteger &Src)
@@ -206,6 +236,11 @@ CIPInteger &CIPInteger::operator+= (const CIPInteger &Src)
 //	CIPInteger operator +=
 
 	{
+	if (!Src.m_Value)
+		return *this;
+	else if (!m_Value)
+		m_Value = bdNew();
+
 	if (this == &Src)
 		{
 		CIPInteger Result = *this + Src;
@@ -238,6 +273,11 @@ CIPInteger CIPInteger::operator+ (const CIPInteger &Src) const
 //	CIPInteger operator +
 
 	{
+	if (!Src.m_Value)
+		return *this;
+	else if (!m_Value)
+		return Src;
+
 	void *NewValue = bdNew();
 	bool bNewNegative = m_bNegative;
 
@@ -268,6 +308,11 @@ CIPInteger &CIPInteger::operator-= (const CIPInteger &Src)
 //	CIPInteger operator -=
 
 	{
+	if (!Src.m_Value)
+		return *this;
+	else if (!m_Value)
+		m_Value = bdNew();
+
 	if (m_bNegative != Src.m_bNegative)
 		bdAdd_s((BIGD)m_Value, (BIGD)m_Value, (BIGD)Src.m_Value);
 	else
@@ -295,6 +340,9 @@ CIPInteger CIPInteger::operator - (void) const
 //	CIPInteger operator -
 
 	{
+	if (!m_Value)
+		return *this;
+
 	void *NewValue = bdNew();
 	bdSetEqual((BIGD)NewValue, (BIGD)m_Value);
 	return CIPInteger(NewValue, !m_bNegative);
@@ -305,6 +353,11 @@ CIPInteger CIPInteger::operator- (const CIPInteger &Src) const
 //	CIPInteger operator -
 
 	{
+	if (!Src.m_Value)
+		return *this;
+	else if (!m_Value)
+		return -Src;
+
 	void *NewValue = bdNew();
 	bool bNewNegative = m_bNegative;
 
@@ -335,6 +388,14 @@ CIPInteger &CIPInteger::operator *= (const CIPInteger &Src)
 //	CIPInteger operator *=
 
 	{
+	if (!Src.m_Value)
+		{
+		*this = CIPInteger(0);
+		return *this;
+		}
+	else if (!m_Value)
+		m_Value = bdNew();
+
 	if (this == &Src)
 		{
 		CIPInteger Result = *this * Src;
@@ -354,6 +415,11 @@ CIPInteger CIPInteger::operator * (const CIPInteger &Src) const
 //	CIPInteger operator *
 
 	{
+	if (!Src.m_Value)
+		return CIPInteger(0);
+	else if (!m_Value)
+		return CIPInteger(0);
+
 	void *NewValue = bdNew();
 	bdMultiply_s((BIGD)NewValue, (BIGD)m_Value, (BIGD)Src.m_Value);
 	bool bNewNegative = (m_bNegative != Src.m_bNegative);
@@ -366,7 +432,15 @@ CIPInteger &CIPInteger::operator /= (const CIPInteger &Src)
 //	CIPInteger operator /=
 
 	{
-	CIPInteger Remainder;
+	if (!Src.m_Value)
+		{
+		*this = CIPInteger(0);
+		return *this;
+		}
+	else if (!m_Value)
+		m_Value = bdNew();
+
+	CIPInteger Remainder(bdNew(), false);
 
 	bdDivide_s((BIGD)m_Value, (BIGD)Remainder.m_Value, (BIGD)m_Value, (BIGD)Src.m_Value);
 	m_bNegative = (m_bNegative != Src.m_bNegative);
@@ -379,7 +453,12 @@ CIPInteger CIPInteger::operator / (const CIPInteger &Src) const
 //	CIPInteger operator /
 
 	{
-	CIPInteger Remainder;
+	if (!Src.m_Value)
+		return CIPInteger(0);
+	else if (!m_Value)
+		return CIPInteger(0);
+
+	CIPInteger Remainder(bdNew(), false);
 
 	void *NewValue = bdNew();
 	bdDivide_s((BIGD)NewValue, (BIGD)Remainder.m_Value, (BIGD)m_Value, (BIGD)Src.m_Value);
@@ -393,7 +472,15 @@ CIPInteger &CIPInteger::operator %= (const CIPInteger &Src)
 //	CIPInteger operator %=
 
 	{
-	CIPInteger Quotient;
+	if (!Src.m_Value)
+		{
+		*this = CIPInteger(0);
+		return *this;
+		}
+	else if (!m_Value)
+		m_Value = bdNew();
+
+	CIPInteger Quotient(bdNew(), false);
 
 	bdDivide_s((BIGD)Quotient.m_Value, (BIGD)m_Value, (BIGD)m_Value, (BIGD)Src.m_Value);
 	m_bNegative = (m_bNegative != Src.m_bNegative);
@@ -406,7 +493,12 @@ CIPInteger CIPInteger::operator % (const CIPInteger &Src) const
 //	CIPInteger operator %
 
 	{
-	CIPInteger Quotient;
+	if (!Src.m_Value)
+		return CIPInteger(0);
+	else if (!m_Value)
+		return CIPInteger(0);
+
+	CIPInteger Quotient(bdNew(), false);
 
 	void *NewValue = bdNew();
 	bdDivide_s((BIGD)Quotient.m_Value, (BIGD)NewValue, (BIGD)m_Value, (BIGD)Src.m_Value);
@@ -420,6 +512,9 @@ CIPInteger &CIPInteger::operator >>= (size_t iBits)
 //	CIPInteger operator >>=
 
 	{
+	if (!m_Value)
+		m_Value = bdNew();
+
 	void *NewValue = bdNew();
 	bdShiftRight((BIGD)NewValue, (BIGD)m_Value, iBits);
 
@@ -432,6 +527,9 @@ CIPInteger CIPInteger::operator >> (size_t iBits) const
 //	CIPInteger operator >>
 
 	{
+	if (!m_Value)
+		return CIPInteger(0);
+
 	void *NewValue = bdNew();
 	bdShiftRight((BIGD)NewValue, (BIGD)m_Value, iBits);
 
@@ -443,6 +541,9 @@ CIPInteger &CIPInteger::operator <<= (size_t iBits)
 //	CIPInteger operator <<=
 
 	{
+	if (!m_Value)
+		m_Value = bdNew();
+
 	void *NewValue = bdNew();
 	bdShiftLeft((BIGD)NewValue, (BIGD)m_Value, iBits);
 
@@ -455,6 +556,9 @@ CIPInteger CIPInteger::operator << (size_t iBits) const
 //	CIPInteger operator <<
 
 	{
+	if (!m_Value)
+		return CIPInteger(0);
+
 	void *NewValue = bdNew();
 	bdShiftLeft((BIGD)NewValue, (BIGD)m_Value, iBits);
 
@@ -470,6 +574,8 @@ int CIPInteger::AsByteArray (TArray<BYTE> *retValue) const
 
 	{
 	retValue->DeleteAll();
+	if (!m_Value)
+		return 0;
 
 	DWORD dwSize = (DWORD)bdConvToOctets((BIGD)m_Value, NULL, 0);
 	if (dwSize > 0)
@@ -490,6 +596,9 @@ int CIPInteger::AsInteger32Signed (void) const
 //	NOTE: Callers must first make sure that the value fits in 32 bits
 
 	{
+	if (!m_Value)
+		return 0;
+
 	BYTE BigEndian[sizeof(DWORD)];
 
 	//	Get the bytes
@@ -519,6 +628,9 @@ DWORDLONG CIPInteger::AsInteger64Unsigned (void) const
 //	integer fits.
 
 	{
+	if (!m_Value)
+		return 0;
+
 	BYTE BigEndian[sizeof(DWORDLONG)];
 
 	//	Get the bytes
@@ -542,6 +654,9 @@ CString CIPInteger::AsString (void) const
 //	Convert to a string
 
 	{
+	if (!m_Value)
+		return NULL_STR;
+
 	CStringBuffer Buffer;
 	int iOffset = 0;
 
@@ -578,7 +693,14 @@ int CIPInteger::Compare (const CIPInteger &Src) const
 //	If this < Src,		-1
 
 	{
-	if (m_bNegative && !Src.m_bNegative)
+	if (!Src.m_Value && !m_Value)
+		return 0;
+	else if (!Src.m_Value)
+		return 1;
+	else if (!m_Value)
+		return -1;
+
+	else if (m_bNegative && !Src.m_bNegative)
 		return -1;
 	else if (!m_bNegative && Src.m_bNegative)
 		return 1;
@@ -609,6 +731,9 @@ bool CIPInteger::Deserialize (IByteStream &Stream, CIPInteger *retpValue)
 	else
 		return false;
 
+	if (!retpValue->m_Value)
+		retpValue->m_Value = bdNew();
+
 	DWORD dwSize;
 	Stream.Read(&dwSize, sizeof(DWORD));
 
@@ -627,6 +752,9 @@ bool CIPInteger::FitsAsInteger32Signed (void) const
 //	Returns TRUE if we can represent this integer in a 32-bit signed int.
 
 	{
+	if (!m_Value)
+		return true;
+
 	DWORD dwSize = (DWORD)bdConvToOctets((BIGD)m_Value, NULL, 0);
 	if (dwSize > 4)
 		return false;
@@ -642,7 +770,10 @@ bool CIPInteger::FitsAsInteger64Unsigned (void) const
 //	of data.
 
 	{
-	if (m_bNegative)
+	if (!m_Value)
+		return true;
+
+	else if (m_bNegative)
 		return false;
 
 	DWORD dwSize = (DWORD)bdConvToOctets((BIGD)m_Value, NULL, 0);
@@ -659,6 +790,9 @@ DWORD CIPInteger::GetSize (void) const
 //	Returns the size in bytes
 
 	{
+	if (!m_Value)
+		return 0;
+
 	return (DWORD)bdConvToOctets((BIGD)m_Value, NULL, 0);
 	}
 
@@ -670,6 +804,9 @@ void CIPInteger::InitFromBytes (const IMemoryBlock &Data)
 //	(most significant byte is first--which is the reverse of Intel architectures).
 
 	{
+	if (!m_Value)
+		m_Value = bdNew();
+
 	bdConvFromOctets((BIGD)m_Value, (BYTE *)Data.GetPointer(), Data.GetLength());
 	m_bNegative = false;
 	}
@@ -681,6 +818,9 @@ void CIPInteger::InitFromString (const CString &sString)
 //	Initializes from a string representation
 
 	{
+	if (!m_Value)
+		m_Value = bdNew();
+
 	char *pPos = sString.GetParsePointer();
 	char *pPosEnd = pPos + sString.GetLength();
 
@@ -716,7 +856,7 @@ bool CIPInteger::IsEmpty (void) const
 //	different from being equal to 0.
 
 	{
-	return (bdIsZero((BIGD)m_Value) == -1);
+	return !m_Value || (bdIsZero((BIGD)m_Value) == -1);
 	}
 
 bool CIPInteger::IsEven () const
@@ -746,7 +886,7 @@ bool CIPInteger::IsZero () const
 //	Returns true if 0.
 
 	{
-	return (bdIsZero((BIGD)m_Value) != 0);
+	return (m_Value && bdIsZero((BIGD)m_Value) != 0);
 	}
 
 CIPInteger CIPInteger::Power (const CIPInteger &Exp) const
@@ -756,6 +896,11 @@ CIPInteger CIPInteger::Power (const CIPInteger &Exp) const
 //	Raise to the given power.
 
 	{
+	if (!m_Value)
+		return CIPInteger(0);
+	else if (!Exp.m_Value)
+		return CIPInteger(0);
+
 	const CIPInteger TWO(2);
 
 	if (Exp.IsNegative())
@@ -812,6 +957,13 @@ bool CIPInteger::Serialize (IByteStream &Stream) const
 	dwSave = (m_bNegative ? STREAM_SIGNATURE_NEGATIVE : STREAM_SIGNATURE_POSITIVE);
 	Stream.Write(&dwSave, sizeof(DWORD));
 
+	if (!m_Value)
+		{
+		dwSave = 0;
+		Stream.Write(&dwSave, sizeof(DWORD));
+		return true;
+		}
+
 	DWORD dwSize = (DWORD)bdConvToOctets((BIGD)m_Value, NULL, 0);
 	Stream.Write(&dwSize, sizeof(DWORD));
 
@@ -834,6 +986,9 @@ void CIPInteger::WriteBytes (IByteStream &Stream) const
 //	signature).
 
 	{
+	if (!m_Value)
+		return;
+
 	DWORD dwSize = (DWORD)bdConvToOctets((BIGD)m_Value, NULL, 0);
 
 	BYTE *pTemp = new BYTE [dwSize];
