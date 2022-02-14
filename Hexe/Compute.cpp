@@ -1946,72 +1946,144 @@ bool CHexeProcess::ExecuteIsIdentical (CDatum dValue1, CDatum dValue2)
 //	Returns TRUE if dValue1 is the same as dValue2
 
 	{
-	CDatum::Types iType = dValue1.GetBasicType();
+	CDatum::Types iType1 = dValue1.GetBasicType();
+	CDatum::Types iType2 = dValue2.GetBasicType();
 
-	//	Must be the same type
-
-	if (dValue2.GetBasicType() != iType)
-		return false;
-
-	switch (iType)
+	if (iType1 == iType2)
 		{
-		case CDatum::typeNil:
-		case CDatum::typeTrue:
-		case CDatum::typeNaN:
-			return true;
-
-		case CDatum::typeInteger32:
-			return (int)dValue1 == (int)dValue2;
-
-		case CDatum::typeInteger64:
-			return (DWORDLONG)dValue1 == (DWORDLONG)dValue2;
-
-		case CDatum::typeDouble:
-			return (double)dValue1 == (double)dValue2;
-
-		case CDatum::typeIntegerIP:
-			return ((const CIPInteger &)dValue1) == ((const CIPInteger &)dValue2);
-
-		case CDatum::typeString:
-			//	Case-sensitive compare
-			return strEquals(dValue1, dValue2);
-
-		case CDatum::typeDateTime:
-			return ((const CDateTime &)dValue1) == ((const CDateTime &)dValue2);
-
-		case CDatum::typeTimeSpan:
-			return ((const CTimeSpan &)dValue1) == ((const CTimeSpan &)dValue2);
-
-		case CDatum::typeArray:
+		switch (iType1)
 			{
-			if (dValue1.GetCount() != dValue2.GetCount())
-				return false;
+			case CDatum::typeNil:
+			case CDatum::typeTrue:
+			case CDatum::typeNaN:
+				return true;
 
-			for (int i = 0; i < dValue1.GetCount(); i++)
-				if (!ExecuteIsIdentical(dValue1.GetElement(i), dValue2.GetElement(i)))
+			case CDatum::typeInteger32:
+				return (int)dValue1 == (int)dValue2;
+
+			case CDatum::typeInteger64:
+				return (DWORDLONG)dValue1 == (DWORDLONG)dValue2;
+
+			case CDatum::typeDouble:
+				return (double)dValue1 == (double)dValue2;
+
+			case CDatum::typeIntegerIP:
+				return ((const CIPInteger &)dValue1) == ((const CIPInteger &)dValue2);
+
+			case CDatum::typeString:
+				//	Case-sensitive compare
+				return strEquals(dValue1, dValue2);
+
+			case CDatum::typeDateTime:
+				return ((const CDateTime &)dValue1) == ((const CDateTime &)dValue2);
+
+			case CDatum::typeTimeSpan:
+				return ((const CTimeSpan &)dValue1) == ((const CTimeSpan &)dValue2);
+
+			case CDatum::typeArray:
+				{
+				if (dValue1.GetCount() != dValue2.GetCount())
 					return false;
 
-			return true;
-			}
+				for (int i = 0; i < dValue1.GetCount(); i++)
+					if (!ExecuteIsIdentical(dValue1.GetElement(i), dValue2.GetElement(i)))
+						return false;
 
-		case CDatum::typeStruct:
-			{
-			if (dValue1.GetCount() != dValue2.GetCount())
-				return false;
+				return true;
+				}
 
-			for (int i = 0; i < dValue1.GetCount(); i++)
-				if (!strEquals(strToLower(dValue1.GetKey(i)), strToLower(dValue2.GetKey(i)))
-						|| !ExecuteIsIdentical(dValue1.GetElement(i), dValue2.GetElement(i)))
+			case CDatum::typeStruct:
+				{
+				if (dValue1.GetCount() != dValue2.GetCount())
 					return false;
 
-			return true;
+				for (int i = 0; i < dValue1.GetCount(); i++)
+					if (!strEquals(strToLower(dValue1.GetKey(i)), strToLower(dValue2.GetKey(i)))
+							|| !ExecuteIsIdentical(dValue1.GetElement(i), dValue2.GetElement(i)))
+						return false;
+
+				return true;
+				}
+
+			case CDatum::typeDatatype:
+				return strEquals(((const IDatatype &)dValue1).GetFullyQualifiedName(), ((const IDatatype &)dValue2).GetFullyQualifiedName());
+
+			default:
+				return false;
 			}
+		}
+	else
+		{
+		switch (iType1)
+			{
+			case CDatum::typeInteger32:
+				{
+				switch (iType2)
+					{
+					case CDatum::typeInteger64:
+						{
+						int iValue1 = dValue1;
+						DWORDLONG dwValue2 = dValue2;
+						return (iValue1 >= 0 && (DWORDLONG)iValue1 == dwValue2);
+						}
 
-		case CDatum::typeDatatype:
-			return strEquals(((const IDatatype &)dValue1).GetFullyQualifiedName(), ((const IDatatype &)dValue2).GetFullyQualifiedName());
+					case CDatum::typeIntegerIP:
+						{
+						CIPInteger Value1((int)dValue1);
+						return Value1 == (const CIPInteger &)dValue2;
+						}
 
-		default:
-			return false;
+					default:
+						return false;
+					}
+				}
+
+			case CDatum::typeInteger64:
+				{
+				switch (iType2)
+					{
+					case CDatum::typeInteger32:
+						{
+						int iValue2 = dValue2;
+						DWORDLONG dwValue1 = dValue1;
+						return (iValue2 >= 0 && (DWORDLONG)iValue2 == dwValue1);
+						}
+
+					case CDatum::typeIntegerIP:
+						{
+						CIPInteger Value1((DWORDLONG)dValue1);
+						return Value1 == (const CIPInteger &)dValue2;
+						}
+
+					default:
+						return false;
+					}
+				}
+
+			case CDatum::typeIntegerIP:
+				{
+				switch (iType2)
+					{
+					case CDatum::typeInteger32:
+						{
+						CIPInteger Value2((int)dValue2);
+						return Value2 == (const CIPInteger &)dValue1;
+						}
+
+					case CDatum::typeInteger64:
+						{
+						CIPInteger Value2((DWORDLONG)dValue2);
+						return Value2 == (const CIPInteger &)dValue1;
+						}
+
+					default:
+						return false;
+					}
+				}
+
+			default:
+				return false;
+			}
 		}
 	}
 
