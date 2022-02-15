@@ -105,6 +105,8 @@ enum EOpCodes
 	opDivide2 =				0x51000000,
 	opMultiply2 =			0x52000000,
 	opSubtract2 =			0x53000000,
+	opPushArrayItemI =		0x54000000,
+	opSetArrayItemI =		0x55000000,
 
 	opHalt =				0xff000000,
 

@@ -52,6 +52,8 @@ DECLARE_CONST_STRING(OP_NOT,							"not")
 DECLARE_CONST_STRING(OP_POP,							"pop")
 DECLARE_CONST_STRING(OP_POP_LOCAL,						"popLocal")
 DECLARE_CONST_STRING(OP_POP_LOCAL_L0,					"popLocalL0")
+DECLARE_CONST_STRING(OP_PUSH_ARRAY_ITEM,				"pushArrayItem")
+DECLARE_CONST_STRING(OP_PUSH_ARRAY_ITEM_I,				"pushArrayItemI")
 DECLARE_CONST_STRING(OP_PUSH_DATUM,						"pushDatum")
 DECLARE_CONST_STRING(OP_PUSH_GLOBAL,					"pushGlobal")
 DECLARE_CONST_STRING(OP_PUSH_INT,						"pushInt")
@@ -66,6 +68,8 @@ DECLARE_CONST_STRING(OP_PUSH_STR,						"pushStr")
 DECLARE_CONST_STRING(OP_PUSH_STR_NULL,					"pushStrNull")
 DECLARE_CONST_STRING(OP_PUSH_TRUE,						"pushTrue")
 DECLARE_CONST_STRING(OP_RETURN,							"return")
+DECLARE_CONST_STRING(OP_SET_ARRAY_ITEM,					"setArrayItem")
+DECLARE_CONST_STRING(OP_SET_ARRAY_ITEM_I,				"setArrayItemI")
 DECLARE_CONST_STRING(OP_SET_GLOBAL,						"setGlobal")
 DECLARE_CONST_STRING(OP_SET_GLOBAL_ITEM,				"setGlobalItem")
 DECLARE_CONST_STRING(OP_SET_LOCAL,						"setLocal")
@@ -131,8 +135,12 @@ static SOpCodeInfo OPCODE_INFO[] =
 	SOpCodeInfo(opAppendLocalItem,	OP_APPEND_LOCAL_ITEM,	operandIntShort ),
 	SOpCodeInfo(opMakeArray,		OP_MAKE_ARRAY,			operandIntShort ),
 	SOpCodeInfo(opMakeStruct,		OP_MAKE_STRUCT,			operandIntShort ),
+	SOpCodeInfo(opPushArrayItem,	OP_PUSH_ARRAY_ITEM,		operandIntShort ),
+	SOpCodeInfo(opPushArrayItemI,	OP_PUSH_ARRAY_ITEM_I,	operandIntShort ),
 	SOpCodeInfo(opPushLocalItem,	OP_PUSH_LOCAL_ITEM,		operandIntShort ),
 	SOpCodeInfo(opPushLocalLength,	OP_PUSH_LOCAL_LENGTH,	operandIntShort ),
+	SOpCodeInfo(opSetArrayItem,		OP_SET_ARRAY_ITEM,		operandIntShort ),
+	SOpCodeInfo(opSetArrayItemI,	OP_SET_ARRAY_ITEM_I,	operandIntShort ),
 	SOpCodeInfo(opSetGlobalItem,	OP_SET_GLOBAL_ITEM,		operandStringOffset ),
 	SOpCodeInfo(opSetLocalItem,		OP_SET_LOCAL_ITEM,		operandIntShort ),
 
