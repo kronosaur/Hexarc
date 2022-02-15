@@ -663,7 +663,6 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				m_dLocalEnv = CDatum(m_pLocalEnv);
 
 				m_pLocalEnv->SetParentEnv(dPrevEnv);
-				m_pLocalEnv->ResetNextArg();
 
 				m_pIP++;
 				break;
@@ -1097,7 +1096,6 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 					{
 					CDatum dB = m_Stack.Pop();
 					CDatum dA = m_Stack.Pop();
-
 					m_Stack.Push(ExecuteOpAdd(dA, dB, m_bAddConcatenatesStrings));
 					}
 				else if (iCount == 0)
@@ -1111,6 +1109,22 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 
 					m_Stack.Push(Result.GetDatum());
 					}
+
+				m_pIP++;
+				break;
+				}
+
+			case opAdd2:
+				{
+				CDatum dB = m_Stack.Pop();
+				CDatum dA = m_Stack.Pop();
+
+				if (dA.GetBasicType() == CDatum::typeDouble && dB.GetBasicType() == CDatum::typeDouble)
+					{
+					m_Stack.Push((double)dA + (double)dB);
+					}
+				else
+					m_Stack.Push(ExecuteOpAdd(dA, dB, m_bAddConcatenatesStrings));
 
 				m_pIP++;
 				break;
@@ -1154,6 +1168,32 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				m_pIP++;
 				break;
 
+			case opDivide2:
+				{
+				CDatum dDivisor = m_Stack.Pop();
+				CDatum dDividend = m_Stack.Pop();
+
+				if (dDivisor.GetBasicType() == CDatum::typeDouble && dDividend.GetBasicType() == CDatum::typeDouble)
+					{
+					double rDivisor = dDivisor;
+					if (rDivisor == 0.0)
+						m_Stack.Push(CDatum::CreateNaN());
+					else
+						m_Stack.Push((double)dDividend / rDivisor);
+					}
+				else
+					{
+					CNumberValue Dividend(dDividend);
+					if (!Dividend.Divide(dDivisor))
+						m_Stack.Push(CDatum::CreateNaN());
+					else
+						m_Stack.Push(Dividend.GetDatum());
+					}
+
+				m_pIP++;
+				break;
+				}
+
 			case opMultiply:
 				iCount = GetOperand(*m_pIP);
 
@@ -1171,6 +1211,27 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 
 				m_pIP++;
 				break;
+
+			case opMultiply2:
+				{
+				CDatum dB = m_Stack.Pop();
+				CDatum dA = m_Stack.Pop();
+
+				if (dA.GetBasicType() == CDatum::typeDouble && dB.GetBasicType() == CDatum::typeDouble)
+					{
+					m_Stack.Push((double)dA * (double)dB);
+					}
+				else
+					{
+					CNumberValue Result(dA);
+					Result.Multiply(dB);
+
+					m_Stack.Push(Result.GetDatum());
+					}
+
+				m_pIP++;
+				break;
+				}
 
 			case opPower:
 				iCount = GetOperand(*m_pIP);
@@ -1242,6 +1303,22 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 
 				m_pIP++;
 				break;
+
+			case opSubtract2:
+				{
+				CDatum dB = m_Stack.Pop();
+				CDatum dA = m_Stack.Pop();
+
+				if (dA.GetBasicType() == CDatum::typeDouble && dB.GetBasicType() == CDatum::typeDouble)
+					{
+					m_Stack.Push((double)dA - (double)dB);
+					}
+				else
+					m_Stack.Push(ExecuteOpSubtract(dA, dB));
+
+				m_pIP++;
+				break;
+				}
 
 			case opPushArrayItem:
 				iCount = GetOperand(*m_pIP);
@@ -1318,9 +1395,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 
 			case opPushObjectItem:
 				{
-				iCount = GetOperand(*m_pIP);
-				if (iCount != 2)
-					return RuntimeError(ERR_INVALID_OPERAND_COUNT, *retResult);
+				DebugCheck(GetOperand(*m_pIP) == 2);
 
 				//	NOTE: We always expect this to be a string. Compilers should
 				//	convert to string if necessary. Otherwise, performance will

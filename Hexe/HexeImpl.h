@@ -253,7 +253,7 @@ class CHexeLocalEnvironment : public TExternalDatum<CHexeLocalEnvironment>
 		void SetArgumentValue (int iIndex, CDatum dValue) { m_pArray[iIndex].dValue = dValue; }
 		void SetArgumentValue (int iLevel, int iIndex, CDatum dValue);
 		void SetElement (int iIndex, CDatum dValue) { m_pArray[iIndex].dValue = dValue; }
-		void SetNextArg (int iValue) { m_iNextArg = iValue; }
+		void SetNextArg (int iValue) { GrowArray(iValue); m_iNextArg = iValue; }
 		void SetNextArgKey (const CString &sKey) { SetArgumentKey(0, m_iNextArg++, sKey); }
 		void SetParentEnv (CDatum dParentEnv) { m_dParentEnv = dParentEnv; }
 

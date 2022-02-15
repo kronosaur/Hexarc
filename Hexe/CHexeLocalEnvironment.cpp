@@ -163,22 +163,16 @@ bool CHexeLocalEnvironment::OnDeserialize (CDatum::EFormat iFormat, CDatum dStru
 	CDatum dValues = dStruct.GetElement(FIELD_VALUES);
 	int iCount = dValues.GetCount() / 2;
 
-	m_DynamicArray.DeleteAll();
+	GrowArray(iCount);
 	m_iNextArg = iCount;
-	if (iCount <= DEFAULT_SIZE)
-		{
-		m_pArray = m_BaseArray;
-		}
-	else
-		{
-		m_DynamicArray.InsertEmpty(iCount);
-		m_pArray = &m_DynamicArray[0];
-		}
 
+	int iArg = 0;
 	for (int i = 0; i < dValues.GetCount(); i += 2)
 		{
-		m_pArray[i].sArg = dValues.GetElement(i);
-		m_pArray[i].dValue = dValues.GetElement(i + 1);
+		m_pArray[iArg].sArg = dValues.GetElement(i);
+		m_pArray[iArg].dValue = dValues.GetElement(i + 1);
+
+		iArg++;
 		}
 
 	m_dParentEnv = dStruct.GetElement(FIELD_PARENT);
@@ -232,7 +226,7 @@ void CHexeLocalEnvironment::SetArgumentKey (int iLevel, int iIndex, const CStrin
 		{
 		if (iIndex >= GetCount())
 			{
-			GrowArray(iIndex);
+			GrowArray(iIndex + 1);
 			m_iNextArg = iIndex + 1;
 			}
 
@@ -259,7 +253,7 @@ void CHexeLocalEnvironment::SetArgumentValue (int iLevel, int iIndex, CDatum dVa
 		{
 		if (iIndex >= GetCount())
 			{
-			GrowArray(iIndex);
+			GrowArray(iIndex + 1);
 			m_iNextArg = iIndex + 1;
 			}
 

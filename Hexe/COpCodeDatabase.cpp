@@ -6,6 +6,7 @@
 #include "stdafx.h"
 
 DECLARE_CONST_STRING(OP_ADD,							"add")
+DECLARE_CONST_STRING(OP_ADD2,							"add2")
 DECLARE_CONST_STRING(OP_APPEND_LOCAL_ITEM,				"appendLocalItem")
 DECLARE_CONST_STRING(OP_CALL,							"call")
 DECLARE_CONST_STRING(OP_DEFINE,							"define")
@@ -13,6 +14,7 @@ DECLARE_CONST_STRING(OP_DEFINE_ARG,						"defineArg")
 DECLARE_CONST_STRING(OP_DEFINE_ARG_FROM_CODE,			"defineArgFromCode")
 DECLARE_CONST_STRING(OP_DEFINE_NEXT_ARG,				"defineNextArg")
 DECLARE_CONST_STRING(OP_DIVIDE,							"divide")
+DECLARE_CONST_STRING(OP_DIVIDE2,						"divide2")
 DECLARE_CONST_STRING(OP_ENTER_ENV,						"enterEnv")
 DECLARE_CONST_STRING(OP_ERROR,							"error")
 DECLARE_CONST_STRING(OP_EXIT_ENV,						"exitEnv")
@@ -44,6 +46,7 @@ DECLARE_CONST_STRING(OP_MAKE_PRIMITIVE,					"makePrimitive")
 DECLARE_CONST_STRING(OP_MAKE_STRUCT,					"makeStruct")
 DECLARE_CONST_STRING(OP_MAP_RESULT,						"mapResult")
 DECLARE_CONST_STRING(OP_MULTIPLY,						"multiply")
+DECLARE_CONST_STRING(OP_MULTIPLY2,						"multiply2")
 DECLARE_CONST_STRING(OP_NO_OP,							"noOp")
 DECLARE_CONST_STRING(OP_NOT,							"not")
 DECLARE_CONST_STRING(OP_POP,							"pop")
@@ -69,6 +72,7 @@ DECLARE_CONST_STRING(OP_SET_LOCAL,						"setLocal")
 DECLARE_CONST_STRING(OP_SET_LOCAL_L0,					"setLocalL0")
 DECLARE_CONST_STRING(OP_SET_LOCAL_ITEM,					"setLocalItem")
 DECLARE_CONST_STRING(OP_SUBTRACT,						"subtract")
+DECLARE_CONST_STRING(OP_SUBTRACT2,						"subtract2")
 
 static SOpCodeInfo OPCODE_INFO[] = 
 	{
@@ -144,10 +148,14 @@ static SOpCodeInfo OPCODE_INFO[] =
 
 	//	Math
 	SOpCodeInfo(opAdd,				OP_ADD,					operandIntShort ),
+	SOpCodeInfo(opAdd2,				OP_ADD2,				operandNone ),
 	SOpCodeInfo(opDivide,			OP_DIVIDE,				operandIntShort ),
+	SOpCodeInfo(opDivide2,			OP_DIVIDE2,				operandNone ),
 	SOpCodeInfo(opIncLocalInt,		OP_INC_LOCAL_INT,		operandIntShort ),
 	SOpCodeInfo(opMultiply,			OP_MULTIPLY,			operandIntShort ),
+	SOpCodeInfo(opMultiply2,		OP_MULTIPLY2,			operandNone ),
 	SOpCodeInfo(opSubtract,			OP_SUBTRACT,			operandIntShort ),
+	SOpCodeInfo(opSubtract2,		OP_SUBTRACT2,			operandNone ),
 
 	//	Miscellaneous
 	SOpCodeInfo(opError,			OP_ERROR,				operandIntShort ),
