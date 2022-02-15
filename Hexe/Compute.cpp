@@ -1096,7 +1096,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 					{
 					CDatum dB = m_Stack.Pop();
 					CDatum dA = m_Stack.Pop();
-					m_Stack.Push(ExecuteOpAdd(dA, dB, m_bAddConcatenatesStrings));
+					m_Stack.Push(ExecuteOpAddCompatible(dA, dB, m_bAddConcatenatesStrings));
 					}
 				else if (iCount == 0)
 					m_Stack.Push(CDatum(0));
@@ -1124,7 +1124,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 					m_Stack.Push((double)dA + (double)dB);
 					}
 				else
-					m_Stack.Push(ExecuteOpAdd(dA, dB, m_bAddConcatenatesStrings));
+					m_Stack.Push(ExecuteOpAdd(dA, dB));
 
 				m_pIP++;
 				break;
@@ -1182,13 +1182,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 						m_Stack.Push((double)dDividend / rDivisor);
 					}
 				else
-					{
-					CNumberValue Dividend(dDividend);
-					if (!Dividend.Divide(dDivisor))
-						m_Stack.Push(CDatum::CreateNaN());
-					else
-						m_Stack.Push(Dividend.GetDatum());
-					}
+					m_Stack.Push(ExecuteOpDivide(dDividend, dDivisor));
 
 				m_pIP++;
 				break;
@@ -1222,12 +1216,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 					m_Stack.Push((double)dA * (double)dB);
 					}
 				else
-					{
-					CNumberValue Result(dA);
-					Result.Multiply(dB);
-
-					m_Stack.Push(Result.GetDatum());
-					}
+					m_Stack.Push(ExecuteOpMultiply(dA, dB));
 
 				m_pIP++;
 				break;
@@ -1628,20 +1617,10 @@ CDatum CHexeProcess::ExecuteBinaryOp (EOpCodes iOp, CDatum dLeft, CDatum dRight)
 	switch (iOp)
 		{
 		case opAdd:
-			return ExecuteOpAdd(dLeft, dRight, true);
+			return ExecuteOpAdd(dLeft, dRight);
 			
 		case opDivide:
-			{
-			CNumberValue Dividend(dLeft);
-			if (!Dividend.Divide(dRight))
-				{
-				CDatum dError;
-				CHexeError::Create(NULL_STR, ERR_DIVISION_BY_ZERO, &dError);
-				return dError;
-				}
-
-			return Dividend.GetDatum();
-			}
+			return ExecuteOpDivide(dLeft, dRight);
 
 		case opIsEqual:
 			return CDatum(ExecuteIsEquivalent(dLeft, dRight));
@@ -1681,11 +1660,7 @@ CDatum CHexeProcess::ExecuteBinaryOp (EOpCodes iOp, CDatum dLeft, CDatum dRight)
 			}
 
 		case opMultiply:
-			{
-			CNumberValue Result(dLeft);
-			Result.Multiply(dRight);
-			return Result.GetDatum();
-			}
+			return CDatum(ExecuteOpMultiply(dLeft, dRight));
 
 		case opPower:
 			{
@@ -2395,9 +2370,126 @@ bool CHexeProcess::ExecuteObjectMemberItem (CDatum dObject, const CString &sFiel
 	return true;
 	}
 
-CDatum CHexeProcess::ExecuteOpAdd (CDatum dLeft, CDatum dRight, bool bConcatenateStrings)
+CDatum CHexeProcess::ExecuteOpAdd (CDatum dLeft, CDatum dRight)
 
 //	ExecuteOpAdd
+//
+//	Binary operation
+
+	{
+	CDatum::Types iLeftType = dLeft.GetBasicType();
+	CDatum::Types iRightType = dRight.GetBasicType();
+
+	int iValue1;
+	int iValue2;
+
+	if (iLeftType == CDatum::typeDouble && iRightType == CDatum::typeDouble)
+		{
+		return CDatum((double)dLeft + (double)dRight);
+		}
+	else if (iLeftType == CDatum::typeInteger32 && iRightType == CDatum::typeInteger32)
+		{
+		LONGLONG iResult = (LONGLONG)(int)dLeft + (LONGLONG)(int)dRight;
+		if (iResult >= INT_MIN && iResult <= INT_MAX)
+			return CDatum((int)iResult);
+		else
+			{
+			CNumberValue Result(dLeft);
+			Result.ConvertToIPInteger();
+			Result.Add(dRight);
+			return Result.GetDatum();
+			}
+		}
+	else if (iLeftType == CDatum::typeString && iRightType == CDatum::typeString)
+		{
+		const CString &sA = dLeft;
+		const CString &sB = dRight;
+		CString sResult(sA.GetLength() + sB.GetLength());
+		utlMemCopy(sA.GetParsePointer(), sResult.GetParsePointer(), sA.GetLength());
+		utlMemCopy(sB.GetParsePointer(), sResult.GetParsePointer() + sA.GetLength(), sB.GetLength());
+		return CDatum(std::move(sResult));
+		}
+	else if (dLeft.IsNil())
+		return dRight;
+	else if (dRight.IsNil())
+		return dLeft;
+	else if ((dLeft.GetNumberType(&iValue1) == CDatum::typeInteger32)
+			&& (dRight.GetNumberType(&iValue2) == CDatum::typeInteger32))
+		{
+		LONGLONG iResult = (LONGLONG)iValue1 + (LONGLONG)iValue2;
+		if (iResult >= INT_MIN && iResult <= INT_MAX)
+			return CDatum((int)iResult);
+		else
+			{
+			CNumberValue Result(dLeft);
+			Result.ConvertToIPInteger();
+			Result.Add(dRight);
+			return Result.GetDatum();
+			}
+		}
+	else if (iLeftType == CDatum::typeArray && iRightType == CDatum::typeArray)
+		{
+		int iCount = Min(dLeft.GetCount(), dRight.GetCount());
+		CDatum dResult(CDatum::typeArray);
+		dResult.GrowToFit(iCount);
+
+		for (int i = 0; i < iCount; i++)
+			dResult.Append(ExecuteOpAdd(dLeft.GetElement(i), dRight.GetElement(i)));
+
+		return dResult;
+		}
+	else if (iLeftType == CDatum::typeArray)
+		{
+		CDatum dResult(CDatum::typeArray);
+		dResult.GrowToFit(dLeft.GetCount());
+
+		for (int i = 0; i < dLeft.GetCount(); i++)
+			dResult.Append(ExecuteOpAdd(dLeft.GetElement(i), dRight));
+
+		return dResult;
+		}
+	else if (iRightType == CDatum::typeArray)
+		{
+		CDatum dResult(CDatum::typeArray);
+		dResult.GrowToFit(dRight.GetCount());
+
+		for (int i = 0; i < dRight.GetCount(); i++)
+			dResult.Append(ExecuteOpAdd(dLeft, dRight.GetElement(i)));
+
+		return dResult;
+		}
+	else if (iLeftType == CDatum::typeString || iRightType == CDatum::typeString)
+		{
+		CString sA = dLeft.AsString();
+		CString sB = dRight.AsString();
+		CString sResult(sA.GetLength() + sB.GetLength());
+		utlMemCopy(sA.GetParsePointer(), sResult.GetParsePointer(), sA.GetLength());
+		utlMemCopy(sB.GetParsePointer(), sResult.GetParsePointer() + sA.GetLength(), sB.GetLength());
+		return CDatum(std::move(sResult));
+		}
+	else if (iLeftType == CDatum::typeDateTime && iRightType == CDatum::typeTimeSpan)
+		{
+		return CDatum(CDateTime(timeAddTime(dLeft, dRight)));
+		}
+	else if (iLeftType == CDatum::typeTimeSpan && iRightType == CDatum::typeDateTime)
+		{
+		return CDatum(CDateTime(timeAddTime(dRight, dLeft)));
+		}
+	else if (iLeftType == CDatum::typeTimeSpan && iRightType == CDatum::typeTimeSpan)
+		{
+		return CDatum(CTimeSpan::Add(dLeft, dRight));
+		}
+	else
+		{
+		CNumberValue Result(dLeft);
+		Result.Add(dRight);
+		return Result.GetDatum();
+		}
+	}
+
+CDatum CHexeProcess::ExecuteOpAddCompatible (CDatum dLeft, CDatum dRight, bool bConcatenateStrings)
+
+//	ExecuteOpAddCompatible
 //
 //	Binary operation
 
@@ -2463,6 +2555,119 @@ CDatum CHexeProcess::ExecuteOpAdd (CDatum dLeft, CDatum dRight, bool bConcatenat
 		}
 	}
 
+CDatum CHexeProcess::ExecuteOpDivide (CDatum dLeft, CDatum dRight)
+
+//	ExecuteOpDivide
+//
+//	Binary operation
+
+	{
+	CDatum::Types iLeftType = dLeft.GetBasicType();
+	CDatum::Types iRightType = dRight.GetBasicType();
+
+	if (iLeftType == CDatum::typeDouble && iRightType == CDatum::typeDouble)
+		{
+		double rDivisor = dRight;
+		if (rDivisor == 0.0)
+			return CDatum::CreateNaN();
+		else
+			return CDatum((double)dLeft / rDivisor);
+		}
+	else if (iLeftType == CDatum::typeArray && iRightType == CDatum::typeArray)
+		{
+		int iCount = Min(dLeft.GetCount(), dRight.GetCount());
+		CDatum dResult(CDatum::typeArray);
+		dResult.GrowToFit(iCount);
+
+		for (int i = 0; i < iCount; i++)
+			dResult.Append(ExecuteOpDivide(dLeft.GetElement(i), dRight.GetElement(i)));
+
+		return dResult;
+		}
+	else if (iLeftType == CDatum::typeArray)
+		{
+		CDatum dResult(CDatum::typeArray);
+		dResult.GrowToFit(dLeft.GetCount());
+
+		for (int i = 0; i < dLeft.GetCount(); i++)
+			dResult.Append(ExecuteOpDivide(dLeft.GetElement(i), dRight));
+
+		return dResult;
+		}
+	else if (iRightType == CDatum::typeArray)
+		{
+		CDatum dResult(CDatum::typeArray);
+		dResult.GrowToFit(dRight.GetCount());
+
+		for (int i = 0; i < dRight.GetCount(); i++)
+			dResult.Append(ExecuteOpDivide(dLeft, dRight.GetElement(i)));
+
+		return dResult;
+		}
+	else
+		{
+		CNumberValue Dividend(dLeft);
+		if (!Dividend.Divide(dRight))
+			return CDatum::CreateNaN();
+		else
+			return Dividend.GetDatum();
+		}
+	}
+
+CDatum CHexeProcess::ExecuteOpMultiply (CDatum dLeft, CDatum dRight)
+
+//	ExecuteOpMultiply
+//
+//	Binary operation
+
+	{
+	CDatum::Types iLeftType = dLeft.GetBasicType();
+	CDatum::Types iRightType = dRight.GetBasicType();
+
+	if (iLeftType == CDatum::typeDouble && iRightType == CDatum::typeDouble)
+		{
+		return CDatum((double)dLeft * (double)dRight);
+		}
+	else if (iLeftType == CDatum::typeArray && iRightType == CDatum::typeArray)
+		{
+		int iCount = Min(dLeft.GetCount(), dRight.GetCount());
+		CDatum dResult(CDatum::typeArray);
+		dResult.GrowToFit(iCount);
+
+		for (int i = 0; i < iCount; i++)
+			dResult.Append(ExecuteOpMultiply(dLeft.GetElement(i), dRight.GetElement(i)));
+
+		return dResult;
+		}
+	else if (iLeftType == CDatum::typeArray)
+		{
+		CDatum dResult(CDatum::typeArray);
+		dResult.GrowToFit(dLeft.GetCount());
+
+		for (int i = 0; i < dLeft.GetCount(); i++)
+			dResult.Append(ExecuteOpMultiply(dLeft.GetElement(i), dRight));
+
+		return dResult;
+		}
+	else if (iRightType == CDatum::typeArray)
+		{
+		CDatum dResult(CDatum::typeArray);
+		dResult.GrowToFit(dRight.GetCount());
+
+		for (int i = 0; i < dRight.GetCount(); i++)
+			dResult.Append(ExecuteOpMultiply(dLeft, dRight.GetElement(i)));
+
+		return dResult;
+		}
+	else
+		{
+		CNumberValue Result(dLeft);
+		Result.Multiply(dRight);
+
+		return Result.GetDatum();
+		}
+	}
+
 CDatum CHexeProcess::ExecuteOpSubtract (CDatum dLeft, CDatum dRight)
 
 //	ExecuteOpSubtract
@@ -2470,9 +2675,17 @@ CDatum CHexeProcess::ExecuteOpSubtract (CDatum dLeft, CDatum dRight)
 //	Binary operation
 
 	{
+	CDatum::Types iLeftType = dLeft.GetBasicType();
+	CDatum::Types iRightType = dRight.GetBasicType();
+
 	int iValue1;
 	int iValue2;
-	if ((dLeft.GetNumberType(&iValue1) == CDatum::typeInteger32)
+
+	if (iLeftType == CDatum::typeDouble && iRightType == CDatum::typeDouble)
+		{
+		return CDatum((double)dLeft - (double)dRight);
+		}
+	else if ((dLeft.GetNumberType(&iValue1) == CDatum::typeInteger32)
 			&& (dRight.GetNumberType(&iValue2) == CDatum::typeInteger32))
 		{
 		LONGLONG iResult = (LONGLONG)iValue1 - (LONGLONG)iValue2;
@@ -2486,15 +2699,46 @@ CDatum CHexeProcess::ExecuteOpSubtract (CDatum dLeft, CDatum dRight)
 			return Result.GetDatum();
 			}
 		}
-	else if (dLeft.GetBasicType() == CDatum::typeDateTime && dRight.GetBasicType() == CDatum::typeDateTime)
+	else if (iLeftType == CDatum::typeArray && iRightType == CDatum::typeArray)
+		{
+		int iCount = Min(dLeft.GetCount(), dRight.GetCount());
+		CDatum dResult(CDatum::typeArray);
+		dResult.GrowToFit(iCount);
+
+		for (int i = 0; i < iCount; i++)
+			dResult.Append(ExecuteOpSubtract(dLeft.GetElement(i), dRight.GetElement(i)));
+
+		return dResult;
+		}
+	else if (iLeftType == CDatum::typeArray)
+		{
+		CDatum dResult(CDatum::typeArray);
+		dResult.GrowToFit(dLeft.GetCount());
+
+		for (int i = 0; i < dLeft.GetCount(); i++)
+			dResult.Append(ExecuteOpSubtract(dLeft.GetElement(i), dRight));
+
+		return dResult;
+		}
+	else if (iRightType == CDatum::typeArray)
+		{
+		CDatum dResult(CDatum::typeArray);
+		dResult.GrowToFit(dRight.GetCount());
+
+		for (int i = 0; i < dRight.GetCount(); i++)
+			dResult.Append(ExecuteOpSubtract(dLeft, dRight.GetElement(i)));
+
+		return dResult;
+		}
+	else if (iLeftType == CDatum::typeDateTime && iRightType == CDatum::typeDateTime)
 		{
 		return CDatum(timeSpan(dRight, dLeft));
 		}
-	else if (dLeft.GetBasicType() == CDatum::typeDateTime && dRight.GetBasicType() == CDatum::typeTimeSpan)
+	else if (iLeftType == CDatum::typeDateTime && iRightType == CDatum::typeTimeSpan)
 		{
 		return CDatum(timeSubtractTime(dLeft, dRight));
 		}
-	else if (dLeft.GetBasicType() == CDatum::typeTimeSpan && dRight.GetBasicType() == CDatum::typeTimeSpan)
+	else if (iLeftType == CDatum::typeTimeSpan && iRightType == CDatum::typeTimeSpan)
 		{
 		return CDatum(CTimeSpan::Subtract(dLeft, dRight));
 		}
