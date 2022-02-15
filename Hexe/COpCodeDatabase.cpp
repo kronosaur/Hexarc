@@ -11,12 +11,14 @@ DECLARE_CONST_STRING(OP_CALL,							"call")
 DECLARE_CONST_STRING(OP_DEFINE,							"define")
 DECLARE_CONST_STRING(OP_DEFINE_ARG,						"defineArg")
 DECLARE_CONST_STRING(OP_DEFINE_ARG_FROM_CODE,			"defineArgFromCode")
+DECLARE_CONST_STRING(OP_DEFINE_NEXT_ARG,				"defineNextArg")
 DECLARE_CONST_STRING(OP_DIVIDE,							"divide")
 DECLARE_CONST_STRING(OP_ENTER_ENV,						"enterEnv")
 DECLARE_CONST_STRING(OP_ERROR,							"error")
 DECLARE_CONST_STRING(OP_EXIT_ENV,						"exitEnv")
 DECLARE_CONST_STRING(OP_HALT,							"halt")
 DECLARE_CONST_STRING(OP_HEXARC_MSG,						"hexarcMsg")
+DECLARE_CONST_STRING(OP_INC_LOCAL_L0,					"incLocalL0")
 DECLARE_CONST_STRING(OP_INC_LOCAL_INT,					"incLocalInt")
 DECLARE_CONST_STRING(OP_IS_EQUAL,						"isEqual")
 DECLARE_CONST_STRING(OP_IS_GREATER,						"isGreater")
@@ -37,6 +39,7 @@ DECLARE_CONST_STRING(OP_MAKE_ENV,						"makeEnv")
 DECLARE_CONST_STRING(OP_MAKE_FLAGS_FROM_ARRAY,			"makeFlagsFromArray")
 DECLARE_CONST_STRING(OP_MAKE_FUNC,						"makeFunc")
 DECLARE_CONST_STRING(OP_MAKE_FUNC2,						"makeFunc2")
+DECLARE_CONST_STRING(OP_MAKE_LOCAL_ENV,					"makeLocalEnv")
 DECLARE_CONST_STRING(OP_MAKE_PRIMITIVE,					"makePrimitive")
 DECLARE_CONST_STRING(OP_MAKE_STRUCT,					"makeStruct")
 DECLARE_CONST_STRING(OP_MAP_RESULT,						"mapResult")
@@ -45,22 +48,25 @@ DECLARE_CONST_STRING(OP_NO_OP,							"noOp")
 DECLARE_CONST_STRING(OP_NOT,							"not")
 DECLARE_CONST_STRING(OP_POP,							"pop")
 DECLARE_CONST_STRING(OP_POP_LOCAL,						"popLocal")
+DECLARE_CONST_STRING(OP_POP_LOCAL_L0,					"popLocalL0")
 DECLARE_CONST_STRING(OP_PUSH_DATUM,						"pushDatum")
 DECLARE_CONST_STRING(OP_PUSH_GLOBAL,					"pushGlobal")
 DECLARE_CONST_STRING(OP_PUSH_INT,						"pushInt")
 DECLARE_CONST_STRING(OP_PUSH_INT_SHORT,					"pushIntShort")
+DECLARE_CONST_STRING(OP_PUSH_LITERAL,					"pushLiteral")
 DECLARE_CONST_STRING(OP_PUSH_LOCAL,						"pushLocal")
+DECLARE_CONST_STRING(OP_PUSH_LOCAL_L0,					"pushLocalL0")
 DECLARE_CONST_STRING(OP_PUSH_LOCAL_ITEM,				"pushLocalItem")
 DECLARE_CONST_STRING(OP_PUSH_LOCAL_LENGTH,				"pushLocalLength")
 DECLARE_CONST_STRING(OP_PUSH_NIL,						"pushNil")
 DECLARE_CONST_STRING(OP_PUSH_STR,						"pushStr")
-DECLARE_CONST_STRING(OP_PUSH_STR_FROM_CODE,				"pushStrFromCode")
 DECLARE_CONST_STRING(OP_PUSH_STR_NULL,					"pushStrNull")
 DECLARE_CONST_STRING(OP_PUSH_TRUE,						"pushTrue")
 DECLARE_CONST_STRING(OP_RETURN,							"return")
 DECLARE_CONST_STRING(OP_SET_GLOBAL,						"setGlobal")
 DECLARE_CONST_STRING(OP_SET_GLOBAL_ITEM,				"setGlobalItem")
 DECLARE_CONST_STRING(OP_SET_LOCAL,						"setLocal")
+DECLARE_CONST_STRING(OP_SET_LOCAL_L0,					"setLocalL0")
 DECLARE_CONST_STRING(OP_SET_LOCAL_ITEM,					"setLocalItem")
 DECLARE_CONST_STRING(OP_SUBTRACT,						"subtract")
 
@@ -87,6 +93,7 @@ static SOpCodeInfo OPCODE_INFO[] =
 	SOpCodeInfo(opPop,				OP_POP,					operandIntShort ),
 	SOpCodeInfo(opHexarcMsg,		OP_HEXARC_MSG,			operandNone ),
 	SOpCodeInfo(opMakeBlockEnv,		OP_MAKE_BLOCK_ENV,		operandNone ),
+	SOpCodeInfo(opMakeLocalEnv,		OP_MAKE_LOCAL_ENV,		operandIntShort ),
 
 	//	Function calls
 	SOpCodeInfo(opMakeFunc,			OP_MAKE_FUNC,			operandCodeOffset ),
@@ -97,14 +104,19 @@ static SOpCodeInfo OPCODE_INFO[] =
 	SOpCodeInfo(opEnterEnv,			OP_ENTER_ENV,			operandNone ),
 	SOpCodeInfo(opDefineArg,		OP_DEFINE_ARG,			operandStringOffset ),
 	SOpCodeInfo(opDefineArgFromCode,OP_DEFINE_ARG_FROM_CODE,operandIntShort ),
+	SOpCodeInfo(opDefineNextArg,	OP_DEFINE_NEXT_ARG,		operandNone ),
 	SOpCodeInfo(opExitEnv,			OP_EXIT_ENV,			operandNone ),
 	SOpCodeInfo(opReturn,			OP_RETURN,				operandNone ),
 	SOpCodeInfo(opMakePrimitive,	OP_MAKE_PRIMITIVE,		operandIntShort ),
 
 	//	Local environment
+	SOpCodeInfo(opIncLocalL0,		OP_INC_LOCAL_L0,		operandIntShort ),
 	SOpCodeInfo(opPopLocal,			OP_POP_LOCAL,			operandIntShort ),
+	SOpCodeInfo(opPopLocalL0,		OP_POP_LOCAL_L0,		operandIntShort ),
 	SOpCodeInfo(opPushLocal,		OP_PUSH_LOCAL,			operandIntShort ),
+	SOpCodeInfo(opPushLocalL0,		OP_PUSH_LOCAL_L0,		operandIntShort ),
 	SOpCodeInfo(opSetLocal,			OP_SET_LOCAL,			operandIntShort ),
+	SOpCodeInfo(opSetLocalL0,		OP_SET_LOCAL_L0,		operandIntShort ),
 
 	//	Global environment
 	SOpCodeInfo(opDefine,			OP_DEFINE,				operandStringOffset ),
@@ -128,7 +140,7 @@ static SOpCodeInfo OPCODE_INFO[] =
 	SOpCodeInfo(opPushIntShort,		OP_PUSH_INT_SHORT,		operandIntShort ),
 	SOpCodeInfo(opPushStr,			OP_PUSH_STR,			operandStringOffset ),
 	SOpCodeInfo(opPushStrNull,		OP_PUSH_STR_NULL,		operandNone ),
-	SOpCodeInfo(opPushStrFromCode,	OP_PUSH_STR_FROM_CODE,	operandIntShort ),
+	SOpCodeInfo(opPushLiteral,		OP_PUSH_LITERAL,		operandIntShort ),
 
 	//	Math
 	SOpCodeInfo(opAdd,				OP_ADD,					operandIntShort ),

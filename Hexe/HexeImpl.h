@@ -60,16 +60,17 @@ class CHexeCode : public TExternalDatum<CHexeCode>
 		static const CString &StaticGetTypename (void);
 
 		DWORD *GetCode (int iOffset) { return (DWORD *)(m_Code.GetPointer() + iOffset); }
+		int GetDataBlockCount () const { return m_DataOffsets.GetCount(); }
 		CDatum GetDatum (int iOffset) const;
-		CDatum GetDatumFromID (int iID) const;
+		CDatum GetDatumFromID (int iID) const { if (iID < 0 || iID >= m_DataCache.GetCount()) throw CException(errFail); return m_DataCache[iID]; }
 		static int GetOperandInt (DWORD dwCode);
 		CString GetString (int iOffset) const { return CString(m_Code.GetPointer() + iOffset); }
-		CDatum GetStringFromID (int iID) const;
 		CString GetStringLiteral (int iOffset) const { return CString(m_Code.GetPointer() + iOffset, -1, true); }
 
 	protected:
 		//	IComplexDatum
 		virtual bool OnDeserialize (CDatum::EFormat iFormat, const CString &sTypename, IByteStream &Stream) override;
+		virtual void OnMarked (void) override;
 		virtual void OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
 
 	private:
@@ -91,11 +92,15 @@ class CHexeCode : public TExternalDatum<CHexeCode>
 		static constexpr DWORD VERSION_NEW =	0xffffffff;
 
 		static BLOCKHEADER ComposeHeader (EBlockType iType, DWORD dwSize) { return ((DWORD)iType | dwSize); }
+		CDatum CreateDatum (int iID) const;
 		static DWORD GetBlockSize (BLOCKHEADER dwHeader) { return (dwHeader & BLOCK_LEN_MASK); }
+		static EBlockType GetBlockType (BLOCKHEADER dwHeader) { return (EBlockType)(dwHeader & BLOCK_TYPE_MASK); }
 
 		CBuffer m_Code;
 		TArray<int> m_CodeOffsets;
 		TArray<int> m_DataOffsets;
+
+		TArray<CDatum> m_DataCache;
 	};
 
 //	CHexeFunction --------------------------------------------------------------
@@ -232,14 +237,20 @@ class CHexeGlobalEnvironment : public TExternalDatum<CHexeGlobalEnvironment>
 class CHexeLocalEnvironment : public TExternalDatum<CHexeLocalEnvironment>
 	{
 	public:
+		CHexeLocalEnvironment () { }
+		explicit CHexeLocalEnvironment (int iCount);
+
 		static const CString &StaticGetTypename (void);
 
 		bool FindArgument (const CString &sArg, int *retiLevel, int *retiIndex);
+		CDatum GetArgument (int iIndex) const { return m_Array[iIndex].dValue; }
 		CDatum GetArgument (int iLevel, int iIndex);
 		int GetNextArg () const { return m_iNextArg; }
 		CDatum GetParentEnv (void) { return m_dParentEnv; }
+		void IncArgumentValue (int iIndex, int iInc);
 		void ResetNextArg (void) { m_iNextArg = 0; }
 		void SetArgumentKey (int iLevel, int iIndex, const CString &sKey);
+		void SetArgumentValue (int iIndex, CDatum dValue) { m_Array[iIndex].dValue = dValue; }
 		void SetArgumentValue (int iLevel, int iIndex, CDatum dValue);
 		void SetElement (int iIndex, CDatum dValue) { m_Array[iIndex].dValue = dValue; }
 		void SetNextArg (int iValue) { m_iNextArg = iValue; }
@@ -270,7 +281,7 @@ class CHexeLocalEnvironment : public TExternalDatum<CHexeLocalEnvironment>
 
 		TArray<SEntry> m_Array;
 		CDatum m_dParentEnv;
-		int m_iNextArg;
+		int m_iNextArg = 0;
 	};
 
 //	CLispParser ----------------------------------------------------------------

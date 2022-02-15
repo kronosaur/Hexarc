@@ -78,7 +78,6 @@ void CHexeProcess::DeleteAll (void)
 	m_dCodeBank = CDatum();
 	m_pCodeBank = NULL;
 	m_CallStack.DeleteAll();
-	m_DataCache.DeleteAll();
 
 	m_pCurGlobalEnv = new CHexeGlobalEnvironment;
 	m_dCurGlobalEnv = CDatum(m_pCurGlobalEnv);
@@ -133,32 +132,14 @@ CDatum CHexeProcess::GetCurrentSecurityCtx (void)
 	return Ctx.AsDatum();
 	}
 
-CDatum CHexeProcess::GetStringFromDataBlock(int iID)
+CDatum CHexeProcess::GetStringFromDataBlock (int iID)
 
 //	GetStringFromDataBlock
 //
 //	Return string from the data cache.
 
 	{
-	if (iID < 0)
-		throw CException(errFail);
-
-	CDatum dValue;
-	if (iID < m_DataCache.GetCount())
-		dValue = m_DataCache[iID];
-
-	if (!dValue.IsNil())
-		return dValue;
-
-	if (!m_pCodeBank)
-		return CDatum();
-
-	dValue = m_pCodeBank->GetStringFromID(iID);
-	if (iID >= m_DataCache.GetCount())
-		m_DataCache.InsertEmpty(iID + 1 - m_DataCache.GetCount());
-
-	m_DataCache[iID] = dValue;
-	return dValue;
+	return m_pCodeBank->GetDatumFromID(iID);
 	}
 
 bool CHexeProcess::InitFrom (const CHexeProcess &Process, CString *retsError)
@@ -401,9 +382,6 @@ void CHexeProcess::Mark (void)
 	m_dLocalEnv.Mark();
 	m_LocalEnvStack.Mark();
 
-	for (int i = 0; i < m_DataCache.GetCount(); i++)
-		m_DataCache[i].Mark();
-
 //	m_dSecurityCtx.Mark();
 	}
 
@@ -576,7 +554,6 @@ CHexeProcess::ERun CHexeProcess::RunEventHandler (CDatum dFunc, const TArray<CDa
 	m_dExpression = dFunc;
 	m_dCodeBank = dNewCodeBank;
 	m_pCodeBank = CHexeCode::Upconvert(m_dCodeBank);
-	m_DataCache.DeleteAll();
 
 	m_pIP = pNewIP;
 
@@ -653,8 +630,6 @@ CHexeProcess::ERun CHexeProcess::RunWithStack (CDatum dExpression, CDatum *retRe
 
 	m_dLocalEnv = CDatum();
 	m_pLocalEnv = NULL;
-
-	m_DataCache.DeleteAll();
 
 	//	Progress
 

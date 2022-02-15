@@ -320,6 +320,7 @@ class CHexeProcess : public IInvokeCtx
 		//	Execution helpers
 		static CDatum ExecuteBinaryOp (EOpCodes iOp, CDatum dLeft, CDatum dRight);
 		static int ExecuteCompare (CDatum dValue1, CDatum dValue2);
+		static CDatum ExecuteIncrement (CDatum dValue, int iInc);
 		static bool ExecuteIsEquivalent (CDatum dValue1, CDatum dValue2);
 		static bool ExecuteIsIdentical (CDatum dValue1, CDatum dValue2);
 		static CDatum ExecuteUnaryOp (EOpCodes iOp, CDatum dValue);
@@ -404,7 +405,6 @@ class CHexeProcess : public IInvokeCtx
 		TSortMap<CString, void *> m_LibraryCtx;		//	Ctx for each library
 		CHexeSecurityCtx m_UserSecurity;			//	User security context
 
-		TArray<CDatum> m_DataCache;					//	Cached data from code bank
 		IHexeComputeProgress *m_pComputeProgress = NULL;
 		DWORDLONG m_dwComputes = 0;					//	Total instructions processed so far.
 		DWORDLONG m_dwLibraryTime = 0;				//	Total milliseconds spent executing

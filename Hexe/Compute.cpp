@@ -32,6 +32,16 @@ DECLARE_CONST_STRING(ERR_INVALID_OPERAND_COUNT,			"Invalid operand count.");
 DECLARE_CONST_STRING(ERR_CANT_SET_FUNCTION_MEMBER,		"Function objects are read-only.");
 DECLARE_CONST_STRING(ERR_UNSUPPORTED_OP,				"Unsupported opcode.");
 
+#ifdef DEBUG
+
+inline void DebugCheck (bool bExpr) { if (!bExpr) throw CException(errFail); }
+
+#else
+
+inline void DebugCheck (bool bExpr) { }
+
+#endif
+
 CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 
 //	Execute
@@ -111,7 +121,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				m_pIP++;
 				break;
 
-			case opPushStrFromCode:
+			case opPushLiteral:
 				m_Stack.Push(GetStringFromDataBlock(GetOperand(*m_pIP)));
 				m_pIP++;
 				break;
@@ -644,6 +654,21 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				break;
 				}
 
+			case opMakeLocalEnv:
+				{
+				CDatum dPrevEnv = m_dLocalEnv;
+
+				m_LocalEnvStack.Save(m_dCurGlobalEnv, m_pCurGlobalEnv, m_dLocalEnv, m_pLocalEnv);
+				m_pLocalEnv = new CHexeLocalEnvironment(GetOperand(*m_pIP));
+				m_dLocalEnv = CDatum(m_pLocalEnv);
+
+				m_pLocalEnv->SetParentEnv(dPrevEnv);
+				m_pLocalEnv->ResetNextArg();
+
+				m_pIP++;
+				break;
+				}
+
 			case opMakeMethodEnv:
 				{
 				m_LocalEnvStack.Save(m_dCurGlobalEnv, m_pCurGlobalEnv, m_dLocalEnv, m_pLocalEnv);
@@ -702,6 +727,11 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 
 			case opDefineArgFromCode:
 				m_pLocalEnv->SetNextArgKey(GetStringFromDataBlock(GetOperand(*m_pIP)));
+				m_pIP++;
+				break;
+
+			case opDefineNextArg:
+				m_pLocalEnv->SetNextArgKey(NULL_STR);
 				m_pIP++;
 				break;
 
@@ -915,10 +945,24 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 			case opPushLocal:
 				{
 				DWORD dwOperand = GetOperand(*m_pIP);
-				m_Stack.Push(m_pLocalEnv->GetArgument((dwOperand >> 8), (dwOperand & 0xff)));
+				int iLevel = (dwOperand >> 8);
+				int iIndex = (dwOperand & 0xff);
+
+				CHexeLocalEnvironment *pEnv = m_pLocalEnv;
+				while (iLevel--)
+					{
+					pEnv = CHexeLocalEnvironment::UpconvertRaw(pEnv->GetParentEnv());
+					}
+
+				m_Stack.Push(pEnv->GetArgument(iIndex));
 				m_pIP++;
 				break;
 				}
+
+			case opPushLocalL0:
+				m_Stack.Push(m_pLocalEnv->GetArgument(GetOperand(*m_pIP)));
+				m_pIP++;
+				break;
 
 			case opPushLocalItem:
 				{
@@ -961,6 +1005,11 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				break;
 				}
 
+			case opPopLocalL0:
+				m_pLocalEnv->SetArgumentValue(GetOperand(*m_pIP), m_Stack.Pop());
+				m_pIP++;
+				break;
+
 			case opSetLocal:
 				{
 				DWORD dwOperand = GetOperand(*m_pIP);
@@ -968,6 +1017,11 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				m_pIP++;
 				break;
 				}
+
+			case opSetLocalL0:
+				m_pLocalEnv->SetArgumentValue(GetOperand(*m_pIP), m_Stack.Get());
+				m_pIP++;
+				break;
 
 			case opIncLocalInt:
 				{
@@ -978,6 +1032,11 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				m_pIP++;
 				break;
 				}
+
+			case opIncLocalL0:
+				m_pLocalEnv->IncArgumentValue(GetOperand(*m_pIP), 1);
+				m_pIP++;
+				break;
 
 			case opSetLocalItem:
 				{
@@ -1833,6 +1892,42 @@ CHexeProcess::ERun CHexeProcess::ExecuteHandleInvokeResult (CDatum::InvokeResult
 
 		default:
 			return RuntimeError(strPattern(ERR_NOT_A_FUNCTION, dExpression.AsString()), *retResult);
+		}
+	}
+
+CDatum CHexeProcess::ExecuteIncrement (CDatum dValue, int iInc)
+
+//	ExecuteIncrement
+//
+//	Increments the given value by an integet value. This should be faster than 
+//	general purpose addition.
+
+	{
+	switch (dValue.GetBasicType())
+		{
+		case CDatum::typeNil:
+			return CDatum(iInc);
+
+		case CDatum::typeInteger32:
+			{
+			LONGLONG iResult = (LONGLONG)(int)dValue + (LONGLONG)iInc;
+			if (iResult >= INT_MIN && iResult <= INT_MAX)
+				return CDatum((int)iResult);
+			else
+				{
+				CNumberValue Result(dValue);
+				Result.ConvertToIPInteger();
+				Result.Add(iInc);
+				return Result.GetDatum();
+				}
+			}
+
+		default:
+			{
+			CNumberValue Result(dValue);
+			Result.Add(iInc);
+			return Result.GetDatum();
+			}
 		}
 	}
 

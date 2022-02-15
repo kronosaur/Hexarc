@@ -13,6 +13,15 @@ DECLARE_CONST_STRING(FIELD_VALUES,						"values");
 DECLARE_CONST_STRING(TYPENAME_HEXE_LOCAL_ENVIRONMENT,	"hexeLocalEnvironment");
 const CString &CHexeLocalEnvironment::StaticGetTypename (void) { return TYPENAME_HEXE_LOCAL_ENVIRONMENT; }
 
+CHexeLocalEnvironment::CHexeLocalEnvironment(int iCount)
+
+//	CHexeLocalEnvironment constructor
+
+	{
+	m_Array.InsertEmpty(iCount);
+	m_iNextArg = iCount;
+	}
+
 bool CHexeLocalEnvironment::Contains (CDatum dValue, TArray<IComplexDatum *> &retChecked) const
 
 //	Contains
@@ -71,9 +80,6 @@ CDatum CHexeLocalEnvironment::GetArgument (int iLevel, int iIndex)
 
 	if (iLevel == 0)
 		{
-		if (iIndex < 0 || iIndex >= m_Array.GetCount())
-			return CDatum();
-
 		return m_Array[iIndex].dValue;
 		}
 
@@ -83,7 +89,7 @@ CDatum CHexeLocalEnvironment::GetArgument (int iLevel, int iIndex)
 		{
 		CHexeLocalEnvironment *pParent = CHexeLocalEnvironment::Upconvert(m_dParentEnv);
 		if (pParent == NULL)
-			return CDatum();
+			throw CException(errFail);
 		
 		return pParent->GetArgument(iLevel - 1, iIndex);
 		}
@@ -104,6 +110,16 @@ CDatum CHexeLocalEnvironment::GetElement (const CString &sKey) const
 		return m_dParentEnv;
 
 	return CDatum();
+	}
+
+void CHexeLocalEnvironment::IncArgumentValue(int iIndex, int iInc)
+
+//	IncArgumentValue
+//
+//	Increment the given variable,
+
+	{
+	m_Array[iIndex].dValue = CHexeProcess::ExecuteIncrement(m_Array[iIndex].dValue, iInc);
 	}
 
 bool CHexeLocalEnvironment::OnDeserialize (CDatum::EFormat iFormat, CDatum dStruct)

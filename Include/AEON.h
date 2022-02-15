@@ -266,6 +266,7 @@ class CDatum
 		static bool RegisterExternalType (const CString &sTypename, IComplexFactory *pFactory);
 		static void RegisterMarkProc (MARKPROC fnProc);
 		static CDatum raw_AsComplex (const void *pValue) { CDatum dResult; dResult.m_dwData = ((DWORD_PTR)pValue | AEON_TYPE_COMPLEX); return dResult; }
+		IComplexDatum *raw_GetComplex (void) const { return (IComplexDatum *)(m_dwData & AEON_POINTER_MASK); }
 
 	private:
 
@@ -282,7 +283,6 @@ class CDatum
 		static bool DetectFileFormat (const CString &sFilespec, IMemoryBlock &Data, EFormat *retiFormat, CString *retsError);
 		DWORD GetNumberIndex (void) const { return (DWORD)(m_dwData >> 4); }
 		bool IsAllocatedInteger (void) const { return (m_dwData & AEON_NUMBER_TYPE_MASK) == AEON_NUMBER_32BIT; }
-		IComplexDatum *raw_GetComplex (void) const { return (IComplexDatum *)(m_dwData & AEON_POINTER_MASK); }
 		double raw_GetDouble (void) const;
 		int raw_GetInt32 (void) const;
 		const CString &raw_GetString (void) const { ASSERT(AEON_TYPE_STRING == 0x00); return *(CString *)&m_dwData; }
@@ -867,6 +867,20 @@ template <class VALUE> class TExternalDatum : public IComplexDatum
 				return NULL;
 
 			return (VALUE *)pComplex;
+			}
+
+		static VALUE *UpconvertRaw (CDatum dData)
+			{
+#ifdef DEBUG
+			VALUE *pResult = Upconvert(dData);
+			if (!pResult)
+				throw CException(errFail);
+
+			return pResult;
+#else
+			IComplexDatum *pComplex = dData.raw_GetComplex();
+			return (VALUE *)pComplex;
+#endif
 			}
 
 		static void RegisterFactory (void)

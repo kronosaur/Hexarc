@@ -93,8 +93,14 @@ enum EOpCodes
 	opMakeFunc2 =			0x45000000,
 	opIsIdentical =			0x46000000,
 	opIsNotIdentical =		0x47000000,
-	opPushStrFromCode =		0x48000000,
+	opPushLiteral =			0x48000000,
 	opDefineArgFromCode =	0x49000000,
+	opDefineNextArg =		0x4a000000,
+	opPushLocalL0 =			0x4b000000,
+	opPopLocalL0 =			0x4c000000,
+	opSetLocalL0 =			0x4d000000,
+	opIncLocalL0 =			0x4e000000,
+	opMakeLocalEnv =		0x4f000000,
 
 	opHalt =				0xff000000,
 

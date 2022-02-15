@@ -115,6 +115,10 @@ void CHexeCode::Create (const CHexeCodeIntermediate &Intermediate, int iEntryPoi
 
 		pCodeObj->m_DataOffsets.Insert(Dest.GetPos());
 
+		//	Add to cache, since we have it.
+
+		pCodeObj->m_DataCache.Insert(dSource);
+
 		//	Write the rest of the string
 
 		Dest.Write(sSource.GetParsePointer(), sSource.GetLength());
@@ -152,6 +156,32 @@ void CHexeCode::Create (const CHexeCodeIntermediate &Intermediate, int iEntryPoi
 	//	Create a function that points to the given offset
 
 	CHexeFunction::Create(dCodeObj, pCodeObj->m_CodeOffsets[iEntryPoint], CDatum(), CDatum(), retdEntryPoint);
+	}
+
+CDatum CHexeCode::CreateDatum (int iID) const
+
+//	CreateDatum
+//
+//	Creates a datum for the given data block.
+
+	{
+	int iOffset = m_DataOffsets[iID];
+	BLOCKHEADER *pBlockStart = (BLOCKHEADER *)(m_Code.GetPointer() + iOffset - sizeof(BLOCKHEADER) - sizeof(DWORD));
+
+	CString sData(m_Code.GetPointer() + iOffset, -1, true);
+	if (GetBlockType(*pBlockStart) == EBlockType::String)
+		return CDatum(sData);
+	else
+		{
+		CStringBuffer Data(sData);
+		CDatum dDatum;
+		if (!CDatum::Deserialize(CDatum::EFormat::AEONScript, Data, &dDatum))
+			CHexeError::Create(NULL_STR, strPattern(ERR_INVALID_LITERAL, sData), &dDatum);
+
+		//	Done
+
+		return dDatum;
+		}
 	}
 
 void CHexeCode::CreateFunctionCall (const CString &sFunction, const TArray<CDatum> &Args, CDatum *retdEntryPoint)
@@ -297,19 +327,6 @@ CDatum CHexeCode::GetDatum (int iOffset) const
 	return dDatum;
 	}
 
-CDatum CHexeCode::GetDatumFromID(int iID) const
-
-//	GetDatumFromID
-//
-//	Gets a datum from a data block ID.
-
-	{
-	if (iID < 0 || iID >= m_DataOffsets.GetCount())
-		return CDatum();
-
-	return GetDatum(m_DataOffsets[iID]);
-	}
-
 int CHexeCode::GetOperandInt (DWORD dwCode)
 	{
 	DWORD dwOperand = GetOperand(dwCode);
@@ -319,17 +336,15 @@ int CHexeCode::GetOperandInt (DWORD dwCode)
 		return (int)dwOperand;
 	}
 
-CDatum CHexeCode::GetStringFromID(int iID) const
+void CHexeCode::OnMarked (void)
 
-//	GetStringFromID
+//	OnMarked
 //
-//	Gets a string datum from a data block ID.
+//	Mark data in use
 
 	{
-	if (iID < 0 || iID >= m_DataOffsets.GetCount())
-		return CDatum();
-
-	return GetString(m_DataOffsets[iID]);
+	for (int i = 0; i < m_DataCache.GetCount(); i++)
+		m_DataCache[i].Mark();
 	}
 
 bool CHexeCode::OnDeserialize (CDatum::EFormat iFormat, const CString &sTypename, IByteStream &Stream)
@@ -376,6 +391,12 @@ bool CHexeCode::OnDeserialize (CDatum::EFormat iFormat, const CString &sTypename
 		if (dwLength)
 			Stream.Read(m_Code.GetPointer(), m_Code.GetLength());
 		}
+
+	//	Initialize the cache.
+
+	m_DataCache.InsertEmpty(m_DataOffsets.GetCount());
+	for (int i = 0; i < m_DataOffsets.GetCount(); i++)
+		m_DataCache[i] = CreateDatum(i);
 
 	return true;
 	}
