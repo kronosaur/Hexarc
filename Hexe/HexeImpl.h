@@ -237,32 +237,32 @@ class CHexeGlobalEnvironment : public TExternalDatum<CHexeGlobalEnvironment>
 class CHexeLocalEnvironment : public TExternalDatum<CHexeLocalEnvironment>
 	{
 	public:
-		CHexeLocalEnvironment () { }
+		CHexeLocalEnvironment () { m_pArray = m_BaseArray; }
 		explicit CHexeLocalEnvironment (int iCount);
 
 		static const CString &StaticGetTypename (void);
 
 		bool FindArgument (const CString &sArg, int *retiLevel, int *retiIndex);
-		CDatum GetArgument (int iIndex) const { return m_Array[iIndex].dValue; }
+		CDatum GetArgument (int iIndex) const { return m_pArray[iIndex].dValue; }
 		CDatum GetArgument (int iLevel, int iIndex);
 		int GetNextArg () const { return m_iNextArg; }
 		CDatum GetParentEnv (void) { return m_dParentEnv; }
 		void IncArgumentValue (int iIndex, int iInc);
 		void ResetNextArg (void) { m_iNextArg = 0; }
 		void SetArgumentKey (int iLevel, int iIndex, const CString &sKey);
-		void SetArgumentValue (int iIndex, CDatum dValue) { m_Array[iIndex].dValue = dValue; }
+		void SetArgumentValue (int iIndex, CDatum dValue) { m_pArray[iIndex].dValue = dValue; }
 		void SetArgumentValue (int iLevel, int iIndex, CDatum dValue);
-		void SetElement (int iIndex, CDatum dValue) { m_Array[iIndex].dValue = dValue; }
+		void SetElement (int iIndex, CDatum dValue) { m_pArray[iIndex].dValue = dValue; }
 		void SetNextArg (int iValue) { m_iNextArg = iValue; }
 		void SetNextArgKey (const CString &sKey) { SetArgumentKey(0, m_iNextArg++, sKey); }
 		void SetParentEnv (CDatum dParentEnv) { m_dParentEnv = dParentEnv; }
 
 		//	IComplexDatum
 		virtual bool Contains (CDatum dValue, TArray<IComplexDatum *> &retChecked) const override;
-		virtual int GetCount (void) const override { return m_Array.GetCount(); }
-		virtual CDatum GetElement (int iIndex) const override { return (iIndex < m_Array.GetCount() ? m_Array[iIndex].dValue : CDatum()); }
+		virtual int GetCount (void) const override { return m_iNextArg; }
+		virtual CDatum GetElement (int iIndex) const override { return (iIndex < GetCount() ? m_pArray[iIndex].dValue : CDatum()); }
 		virtual CDatum GetElement (const CString &sKey) const override;
-		virtual CString GetKey (int iIndex) const override { return m_Array[iIndex].sArg; }
+		virtual CString GetKey (int iIndex) const override { return m_pArray[iIndex].sArg; }
 		virtual bool IsArray (void) const override { return true; }
 		virtual void SetElement (const CString &sKey, CDatum dDatum) override;
 
@@ -273,15 +273,23 @@ class CHexeLocalEnvironment : public TExternalDatum<CHexeLocalEnvironment>
 		virtual void OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const override;
 
 	private:
+		static constexpr int DEFAULT_SIZE = 10;
+
 		struct SEntry
 			{
 			CString sArg;
 			CDatum dValue;
 			};
 
-		TArray<SEntry> m_Array;
+		void GrowArray (int iNewCount);
+
 		CDatum m_dParentEnv;
 		int m_iNextArg = 0;
+
+		SEntry m_BaseArray[DEFAULT_SIZE];
+		SEntry *m_pArray = NULL;
+
+		TArray<SEntry> m_DynamicArray;
 	};
 
 //	CLispParser ----------------------------------------------------------------
