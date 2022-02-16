@@ -108,6 +108,23 @@ enum EOpCodes
 	opPushArrayItemI =		0x54000000,
 	opSetArrayItemI =		0x55000000,
 
+	opMutateArrayItemAdd =	0x56000000,
+	opMutateArrayItemSubtract =	0x57000000,
+	opMutateArrayItemMultiply =	0x58000000,
+	opMutateArrayItemDivide =	0x59000000,
+	opMutateObjectItemAdd =	0x5a000000,
+	opMutateObjectItemSubtract =	0x5b000000,
+	opMutateObjectItemMultiply =	0x5c000000,
+	opMutateObjectItemDivide =	0x5d000000,
+	opMutateGlobalAdd =		0x5e000000,
+	opMutateGlobalSubtract =	0x5f000000,
+	opMutateGlobalMultiply =	0x60000000,
+	opMutateGlobalDivide =	0x61000000,
+	opMutateLocalAdd =		0x62000000,
+	opMutateLocalSubtract =	0x63000000,
+	opMutateLocalMultiply =	0x64000000,
+	opMutateLocalDivide =	0x65000000,
+
 	opHalt =				0xff000000,
 
 	opCodeCount =			256,

@@ -150,6 +150,66 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				break;
 				}
 
+			case opMutateGlobalAdd:
+				{
+				int iPos;
+				if (!m_pCurGlobalEnv->FindPos(GetStringFromDataBlock(GetOperand(*m_pIP)), &iPos))
+					return RuntimeError(strPattern(ERR_UNBOUND_VARIABLE, m_pCodeBank->GetStringLiteral(GetOperand(*m_pIP))), *retResult);
+
+				CDatum dValue = m_Stack.Pop();
+				CDatum dResult = ExecuteOpAdd(m_pCurGlobalEnv->GetAt(iPos), dValue);
+				m_pCurGlobalEnv->SetAt(iPos, dResult);
+
+				m_Stack.Push(dResult);
+				m_pIP++;
+				break;
+				}
+
+			case opMutateGlobalSubtract:
+				{
+				int iPos;
+				if (!m_pCurGlobalEnv->FindPos(GetStringFromDataBlock(GetOperand(*m_pIP)), &iPos))
+					return RuntimeError(strPattern(ERR_UNBOUND_VARIABLE, m_pCodeBank->GetStringLiteral(GetOperand(*m_pIP))), *retResult);
+
+				CDatum dValue = m_Stack.Pop();
+				CDatum dResult = ExecuteOpSubtract(m_pCurGlobalEnv->GetAt(iPos), dValue);
+				m_pCurGlobalEnv->SetAt(iPos, dResult);
+
+				m_Stack.Push(dResult);
+				m_pIP++;
+				break;
+				}
+
+			case opMutateGlobalMultiply:
+				{
+				int iPos;
+				if (!m_pCurGlobalEnv->FindPos(GetStringFromDataBlock(GetOperand(*m_pIP)), &iPos))
+					return RuntimeError(strPattern(ERR_UNBOUND_VARIABLE, m_pCodeBank->GetStringLiteral(GetOperand(*m_pIP))), *retResult);
+
+				CDatum dValue = m_Stack.Pop();
+				CDatum dResult = ExecuteOpMultiply(m_pCurGlobalEnv->GetAt(iPos), dValue);
+				m_pCurGlobalEnv->SetAt(iPos, dResult);
+
+				m_Stack.Push(dResult);
+				m_pIP++;
+				break;
+				}
+
+			case opMutateGlobalDivide:
+				{
+				int iPos;
+				if (!m_pCurGlobalEnv->FindPos(GetStringFromDataBlock(GetOperand(*m_pIP)), &iPos))
+					return RuntimeError(strPattern(ERR_UNBOUND_VARIABLE, m_pCodeBank->GetStringLiteral(GetOperand(*m_pIP))), *retResult);
+
+				CDatum dValue = m_Stack.Pop();
+				CDatum dResult = ExecuteOpDivide(m_pCurGlobalEnv->GetAt(iPos), dValue);
+				m_pCurGlobalEnv->SetAt(iPos, dResult);
+
+				m_Stack.Push(dResult);
+				m_pIP++;
+				break;
+				}
+
 			case opSetGlobalItem:
 				{
 				int iPos;
@@ -1022,6 +1082,90 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				m_pIP++;
 				break;
 
+			case opMutateLocalAdd:
+				{
+				DWORD dwOperand = GetOperand(*m_pIP);
+				int iLevel = (dwOperand >> 8);
+				int iIndex = (dwOperand & 0xff);
+
+				CHexeLocalEnvironment *pEnv = m_pLocalEnv;
+				while (iLevel--)
+					{
+					pEnv = CHexeLocalEnvironment::UpconvertRaw(pEnv->GetParentEnv());
+					}
+
+				CDatum dValue = m_Stack.Pop();
+				CDatum dResult = ExecuteOpAdd(pEnv->GetArgument(iIndex), dValue);
+				pEnv->SetArgumentValue(iIndex, dResult);
+				m_Stack.Push(dResult);
+
+				m_pIP++;
+				break;
+				}
+
+			case opMutateLocalSubtract:
+				{
+				DWORD dwOperand = GetOperand(*m_pIP);
+				int iLevel = (dwOperand >> 8);
+				int iIndex = (dwOperand & 0xff);
+
+				CHexeLocalEnvironment *pEnv = m_pLocalEnv;
+				while (iLevel--)
+					{
+					pEnv = CHexeLocalEnvironment::UpconvertRaw(pEnv->GetParentEnv());
+					}
+
+				CDatum dValue = m_Stack.Pop();
+				CDatum dResult = ExecuteOpSubtract(pEnv->GetArgument(iIndex), dValue);
+				pEnv->SetArgumentValue(iIndex, dResult);
+				m_Stack.Push(dResult);
+
+				m_pIP++;
+				break;
+				}
+
+			case opMutateLocalMultiply:
+				{
+				DWORD dwOperand = GetOperand(*m_pIP);
+				int iLevel = (dwOperand >> 8);
+				int iIndex = (dwOperand & 0xff);
+
+				CHexeLocalEnvironment *pEnv = m_pLocalEnv;
+				while (iLevel--)
+					{
+					pEnv = CHexeLocalEnvironment::UpconvertRaw(pEnv->GetParentEnv());
+					}
+
+				CDatum dValue = m_Stack.Pop();
+				CDatum dResult = ExecuteOpMultiply(pEnv->GetArgument(iIndex), dValue);
+				pEnv->SetArgumentValue(iIndex, dResult);
+				m_Stack.Push(dResult);
+
+				m_pIP++;
+				break;
+				}
+
+			case opMutateLocalDivide:
+				{
+				DWORD dwOperand = GetOperand(*m_pIP);
+				int iLevel = (dwOperand >> 8);
+				int iIndex = (dwOperand & 0xff);
+
+				CHexeLocalEnvironment *pEnv = m_pLocalEnv;
+				while (iLevel--)
+					{
+					pEnv = CHexeLocalEnvironment::UpconvertRaw(pEnv->GetParentEnv());
+					}
+
+				CDatum dValue = m_Stack.Pop();
+				CDatum dResult = ExecuteOpDivide(pEnv->GetArgument(iIndex), dValue);
+				pEnv->SetArgumentValue(iIndex, dResult);
+				m_Stack.Push(dResult);
+
+				m_pIP++;
+				break;
+				}
+
 			case opIncLocalInt:
 				{
 				DWORD dwOperand = GetOperand(*m_pIP);
@@ -1382,6 +1526,90 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				break;
 				}
 
+			case opMutateArrayItemAdd:
+				{
+				int iIndex = m_Stack.Pop();
+				CDatum dArray = m_Stack.Pop();
+				CDatum dValue = m_Stack.Pop();
+				if (iIndex >= 0 && iIndex < dArray.GetCount())
+					{
+					CDatum dElement = dArray.GetElement(iIndex);
+					CDatum dResult = ExecuteOpAdd(dElement, dValue);
+					dArray.SetElement(iIndex, dResult);
+					m_Stack.Push(dResult);
+					}
+				else
+					{
+					m_Stack.Push(CDatum());
+					}
+
+				m_pIP++;
+				break;
+				}
+
+			case opMutateArrayItemSubtract:
+				{
+				int iIndex = m_Stack.Pop();
+				CDatum dArray = m_Stack.Pop();
+				CDatum dValue = m_Stack.Pop();
+				if (iIndex >= 0 && iIndex < dArray.GetCount())
+					{
+					CDatum dElement = dArray.GetElement(iIndex);
+					CDatum dResult = ExecuteOpSubtract(dElement, dValue);
+					dArray.SetElement(iIndex, dResult);
+					m_Stack.Push(dResult);
+					}
+				else
+					{
+					m_Stack.Push(CDatum());
+					}
+
+				m_pIP++;
+				break;
+				}
+
+			case opMutateArrayItemMultiply:
+				{
+				int iIndex = m_Stack.Pop();
+				CDatum dArray = m_Stack.Pop();
+				CDatum dValue = m_Stack.Pop();
+				if (iIndex >= 0 && iIndex < dArray.GetCount())
+					{
+					CDatum dElement = dArray.GetElement(iIndex);
+					CDatum dResult = ExecuteOpMultiply(dElement, dValue);
+					dArray.SetElement(iIndex, dResult);
+					m_Stack.Push(dResult);
+					}
+				else
+					{
+					m_Stack.Push(CDatum());
+					}
+
+				m_pIP++;
+				break;
+				}
+
+			case opMutateArrayItemDivide:
+				{
+				int iIndex = m_Stack.Pop();
+				CDatum dArray = m_Stack.Pop();
+				CDatum dValue = m_Stack.Pop();
+				if (iIndex >= 0 && iIndex < dArray.GetCount())
+					{
+					CDatum dElement = dArray.GetElement(iIndex);
+					CDatum dResult = ExecuteOpDivide(dElement, dValue);
+					dArray.SetElement(iIndex, dResult);
+					m_Stack.Push(dResult);
+					}
+				else
+					{
+					m_Stack.Push(CDatum());
+					}
+
+				m_pIP++;
+				break;
+				}
+
 			case opPushStructItem:
 				iCount = GetOperand(*m_pIP);
 
@@ -1486,6 +1714,86 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 					}
 
 				m_Stack.Push(dValue);
+				m_pIP++;
+				break;
+				}
+
+			case opMutateObjectItemAdd:
+				{
+				CDatum dField = m_Stack.Pop();
+				CDatum dObject = m_Stack.Pop();
+				CDatum dValue = m_Stack.Pop();
+
+				//	NOTE: For performance reasons, this should always be a 
+				//	CDatum::typeString. Compilers should enforce this.
+
+				const CString &sField = dField;
+
+				CDatum dElement = dObject.GetElement(sField);
+				CDatum dResult = ExecuteOpAdd(dElement, dValue);
+				dObject.SetElement(sField, dResult);
+
+				m_Stack.Push(dResult);
+				m_pIP++;
+				break;
+				}
+
+			case opMutateObjectItemSubtract:
+				{
+				CDatum dField = m_Stack.Pop();
+				CDatum dObject = m_Stack.Pop();
+				CDatum dValue = m_Stack.Pop();
+
+				//	NOTE: For performance reasons, this should always be a 
+				//	CDatum::typeString. Compilers should enforce this.
+
+				const CString &sField = dField;
+
+				CDatum dElement = dObject.GetElement(sField);
+				CDatum dResult = ExecuteOpSubtract(dElement, dValue);
+				dObject.SetElement(sField, dResult);
+
+				m_Stack.Push(dResult);
+				m_pIP++;
+				break;
+				}
+
+			case opMutateObjectItemMultiply:
+				{
+				CDatum dField = m_Stack.Pop();
+				CDatum dObject = m_Stack.Pop();
+				CDatum dValue = m_Stack.Pop();
+
+				//	NOTE: For performance reasons, this should always be a 
+				//	CDatum::typeString. Compilers should enforce this.
+
+				const CString &sField = dField;
+
+				CDatum dElement = dObject.GetElement(sField);
+				CDatum dResult = ExecuteOpMultiply(dElement, dValue);
+				dObject.SetElement(sField, dResult);
+
+				m_Stack.Push(dResult);
+				m_pIP++;
+				break;
+				}
+
+			case opMutateObjectItemDivide:
+				{
+				CDatum dField = m_Stack.Pop();
+				CDatum dObject = m_Stack.Pop();
+				CDatum dValue = m_Stack.Pop();
+
+				//	NOTE: For performance reasons, this should always be a 
+				//	CDatum::typeString. Compilers should enforce this.
+
+				const CString &sField = dField;
+
+				CDatum dElement = dObject.GetElement(sField);
+				CDatum dResult = ExecuteOpDivide(dElement, dValue);
+				dObject.SetElement(sField, dResult);
+
+				m_Stack.Push(dResult);
 				m_pIP++;
 				break;
 				}
