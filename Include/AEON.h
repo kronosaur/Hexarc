@@ -582,11 +582,13 @@ class CComplexArray : public IComplexDatum
 		CComplexArray (CDatum dSrc);
 		CComplexArray (const TArray<CString> &Src);
 		CComplexArray (const TArray<CDatum> &Src);
+		explicit CComplexArray (int iCount) { m_Array.InsertEmpty(iCount); }
 
 		void Delete (int iIndex) { m_Array.Delete(iIndex); }
 		bool FindElement (CDatum dValue, int *retiIndex = NULL) const;
 		void Insert (CDatum Element, int iIndex = -1) { m_Array.Insert(Element, iIndex); }
 		void InsertEmpty (int iCount = 1, int iIndex = -1) { m_Array.InsertEmpty(iCount, iIndex); }
+		void SetAt (int iIndex, CDatum dValue) { m_Array[iIndex] = dValue; }
 
 		//	IComplexDatum
 		virtual void Append (CDatum dDatum) override { m_Array.Insert(dDatum); }

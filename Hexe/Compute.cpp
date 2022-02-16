@@ -2430,11 +2430,31 @@ CDatum CHexeProcess::ExecuteOpAdd (CDatum dLeft, CDatum dRight)
 	else if (iLeftType == CDatum::typeArray && iRightType == CDatum::typeArray)
 		{
 		int iCount = Min(dLeft.GetCount(), dRight.GetCount());
-		CDatum dResult(CDatum::typeArray);
-		dResult.GrowToFit(iCount);
+		CComplexArray *pArray = new CComplexArray(iCount);
+		CDatum dResult(pArray);
 
 		for (int i = 0; i < iCount; i++)
-			dResult.Append(ExecuteOpAdd(dLeft.GetElement(i), dRight.GetElement(i)));
+			{
+			CDatum dLeftElement = dLeft.GetElement(i);
+			CDatum dRightElement = dRight.GetElement(i);
+			CDatum::Types iLeftType = dLeftElement.GetBasicType();
+
+			if (dRightElement.GetBasicType() == iLeftType)
+				{
+				switch (iLeftType)
+					{
+					case CDatum::typeDouble:
+						pArray->SetAt(i, CDatum((double)dLeftElement + (double)dRightElement));
+						break;
+
+					default:
+						pArray->SetAt(i, ExecuteOpAdd(dLeft.GetElement(i), dRight.GetElement(i)));
+						break;
+					}
+				}
+			else
+				pArray->SetAt(i, ExecuteOpAdd(dLeft.GetElement(i), dRight.GetElement(i)));
+			}
 
 		return dResult;
 		}
@@ -2640,25 +2660,11 @@ CDatum CHexeProcess::ExecuteOpMultiply (CDatum dLeft, CDatum dRight)
 		return dResult;
 		}
 	else if (iLeftType == CDatum::typeArray)
-		{
-		CDatum dResult(CDatum::typeArray);
-		dResult.GrowToFit(dLeft.GetCount());
+		return ExecuteOpMultiplyArray(dLeft, dRight);
 
-		for (int i = 0; i < dLeft.GetCount(); i++)
-			dResult.Append(ExecuteOpMultiply(dLeft.GetElement(i), dRight));
-
-		return dResult;
-		}
 	else if (iRightType == CDatum::typeArray)
-		{
-		CDatum dResult(CDatum::typeArray);
-		dResult.GrowToFit(dRight.GetCount());
+		return ExecuteOpMultiplyArray(dRight, dLeft);
 
-		for (int i = 0; i < dRight.GetCount(); i++)
-			dResult.Append(ExecuteOpMultiply(dLeft, dRight.GetElement(i)));
-
-		return dResult;
-		}
 	else
 		{
 		CNumberValue Result(dLeft);
@@ -2666,6 +2672,50 @@ CDatum CHexeProcess::ExecuteOpMultiply (CDatum dLeft, CDatum dRight)
 
 		return Result.GetDatum();
 		}
+	}
+
+CDatum CHexeProcess::ExecuteOpMultiplyArray (CDatum dArray, CDatum dValue)
+
+//	ExecuteOpMultiplyArray
+//
+//	Multiply an array by a scalar.
+
+	{
+	CComplexArray *pArray = new CComplexArray(dArray.GetCount());
+	CDatum dResult(pArray);
+
+	switch (dValue.GetBasicType())
+		{
+		case CDatum::typeDouble:
+			{
+			double rValue = dValue;
+
+			for (int i = 0; i < dArray.GetCount(); i++)
+				{
+				CDatum dElement = dArray.GetElement(i);
+
+				switch (dElement.GetBasicType())
+					{
+					case CDatum::typeDouble:
+						pArray->SetAt(i, CDatum((double)dElement * rValue));
+						break;
+
+					default:
+						pArray->SetAt(i, ExecuteOpMultiply(dElement, dValue));
+						break;
+					}
+				}
+
+			break;
+			}
+
+		default:
+			for (int i = 0; i < dArray.GetCount(); i++)
+				pArray->SetAt(i, ExecuteOpMultiply(dArray.GetElement(i), dValue));
+			break;
+		}
+
+	return dResult;
 	}
 
 CDatum CHexeProcess::ExecuteOpSubtract (CDatum dLeft, CDatum dRight)
@@ -2702,11 +2752,31 @@ CDatum CHexeProcess::ExecuteOpSubtract (CDatum dLeft, CDatum dRight)
 	else if (iLeftType == CDatum::typeArray && iRightType == CDatum::typeArray)
 		{
 		int iCount = Min(dLeft.GetCount(), dRight.GetCount());
-		CDatum dResult(CDatum::typeArray);
-		dResult.GrowToFit(iCount);
+		CComplexArray *pArray = new CComplexArray(iCount);
+		CDatum dResult(pArray);
 
 		for (int i = 0; i < iCount; i++)
-			dResult.Append(ExecuteOpSubtract(dLeft.GetElement(i), dRight.GetElement(i)));
+			{
+			CDatum dLeftElement = dLeft.GetElement(i);
+			CDatum dRightElement = dRight.GetElement(i);
+			CDatum::Types iLeftType = dLeftElement.GetBasicType();
+
+			if (dRightElement.GetBasicType() == iLeftType)
+				{
+				switch (iLeftType)
+					{
+					case CDatum::typeDouble:
+						pArray->SetAt(i, CDatum((double)dLeftElement - (double)dRightElement));
+						break;
+
+					default:
+						pArray->SetAt(i, ExecuteOpSubtract(dLeft.GetElement(i), dRight.GetElement(i)));
+						break;
+					}
+				}
+			else
+				pArray->SetAt(i, ExecuteOpSubtract(dLeft.GetElement(i), dRight.GetElement(i)));
+			}
 
 		return dResult;
 		}
