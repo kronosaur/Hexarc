@@ -476,6 +476,7 @@ class IAEONTable
 		virtual EResult AppendSlice (CDatum dSlice) { return EResult::NotImplemented; }
 		virtual EResult AppendTable (CDatum dTable) { return EResult::NotImplemented; }
 		virtual EResult DeleteAllRows () { return EResult::NotImplemented; }
+		virtual bool FindCol (const CString &sName, int *retiCol = NULL) const { return false; }
 		virtual int GetColCount () const { return 0; }
 		virtual CString GetColName (int iCol) const { return NULL_STR; }
 		virtual CDatum GetDataSlice (int iFirstRow, int iRowCount) const { return CDatum(); }

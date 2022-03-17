@@ -109,6 +109,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual EResult AppendSlice (CDatum dSlice) override;
 		virtual EResult AppendTable (CDatum dTable) override;
 		virtual EResult DeleteAllRows () override;
+		virtual bool FindCol (const CString &sName, int *retiCol = NULL) const override;
 		virtual int GetColCount () const override;
 		virtual CString GetColName (int iCol) const override;
 		virtual CDatum GetDataSlice (int iFirstRow, int iRowCount) const override;

@@ -62,30 +62,32 @@ class CString
 		CString operator + (const CString &sStr) const;
 
 		int GetLength (void) const;
-		inline char *GetPointer (void) const { return m_pString; }
-		inline char *GetParsePointer (void) const { return (m_pString ? m_pString : &BLANK_STRING[4]); }
-		inline LPSTR Handoff (void) { LPSTR pTemp = m_pString; m_pString = NULL; return pTemp; }
-		inline bool IsEmpty (void) const { return (GetLength() == 0); }
-		inline bool IsLiteral (void) const { return (m_pString == NULL || GetLengthParameter() < 0); }
+		char *GetPointer (void) const { return m_pString; }
+		char *GetParsePointer (void) const { return (m_pString ? m_pString : &BLANK_STRING[4]); }
+		LPSTR Handoff (void) { LPSTR pTemp = m_pString; m_pString = NULL; return pTemp; }
+		bool IsEmpty (void) const { return (GetLength() == 0); }
+		bool IsLiteral (void) const { return (m_pString == NULL || GetLengthParameter() < 0); }
 		bool IsWhitespace (void) const;
 		void Serialize (IByteStream &Stream) const;
 		void SerializeJSON (IByteStream &Stream) const;
 		void SetLength (int iLength);
 		void TakeHandoff (CString &sStr);
 		void TakeHandoff (CStringBuffer &Buffer);
-		inline void TakeHandoffLPSTR (LPSTR pStr) { CleanUp(); m_pString = pStr; }
+		void TakeHandoffLPSTR (LPSTR pStr) { CleanUp(); m_pString = pStr; }
+
+		static CString IncrementTrailingNumber (const CString &sStr);
 
 	private:
-		inline CString (LPSTR pString, const char *pPrivate) { m_pString = pString; }
+		CString (LPSTR pString, const char *pPrivate) { m_pString = pString; }
 
 		void CleanUp (void);
 		LPSTR CopyBuffer (void) const;
 		static LPSTR CreateBufferFromUTF16 (LPTSTR pStr, int iLen);
-		inline LPSTR GetBuffer (void) const { return (m_pString - sizeof(int)); }
-		inline int GetBufferLength (void) const { return (sizeof(int) + GetLength() + 1); }
-		inline int GetLengthParameter (void) const { return *((int *)(m_pString - sizeof(int))); }
+		LPSTR GetBuffer (void) const { return (m_pString - sizeof(int)); }
+		int GetBufferLength (void) const { return (sizeof(int) + GetLength() + 1); }
+		int GetLengthParameter (void) const { return *((int *)(m_pString - sizeof(int))); }
 		void Init (LPCSTR pStr, int iLen);
-		inline void SetLengthParameter (int iLength) { *((int *)(m_pString - sizeof(int))) = iLength; }
+		void SetLengthParameter (int iLength) { *((int *)(m_pString - sizeof(int))) = iLength; }
 
 		LPSTR m_pString;
 
@@ -117,8 +119,8 @@ template <int l> class TFixedString
 			m_szString[0] = '\0';
 			}
 
-		inline operator CString () const { return (m_iLength == 0 ? NULL_STR : CString(m_szString, m_iLength, true)); }
-		inline operator LPSTR () const { return m_szString; }
+		operator CString () const { return (m_iLength == 0 ? NULL_STR : CString(m_szString, m_iLength, true)); }
+		operator LPSTR () const { return m_szString; }
 
 		TFixedString<l> &operator= (const CString &sStr)
 			{
@@ -136,7 +138,7 @@ template <int l> class TFixedString
 			return *this;
 			}
 
-		inline int GetLength (void) const { return -m_iLength; }
+		int GetLength (void) const { return -m_iLength; }
 
 	private:
 		int m_iLength;
@@ -166,7 +168,7 @@ class CString16
 		static int CalcLength (LPCTSTR pStr);
 		int GetLength (void) const { return CalcLength(m_pString); }
 		bool IsASCII () const;
-		inline bool IsEmpty (void) const { return GetLength() == 0; }
+		bool IsEmpty (void) const { return GetLength() == 0; }
 
 	private:
 		static LPTSTR CreateUTF16BufferFromUTF8 (LPSTR pStr, int iLen);

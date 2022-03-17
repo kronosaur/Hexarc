@@ -299,6 +299,28 @@ IAEONTable::EResult CAEONTable::DeleteAllRows ()
 	return EResult::OK;
 	}
 
+bool CAEONTable::FindCol (const CString &sName, int *retiCol) const
+
+//	FindCol
+//
+//	Find column.
+
+	{
+	const IDatatype &Schema = m_dSchema;
+	for (int i = 0; i < Schema.GetMemberCount(); i++)
+		{
+		if (strEqualsNoCase(sName, Schema.GetMember(i).sName))
+			{
+			if (retiCol)
+				*retiCol = i;
+
+			return true;
+			}
+		}
+
+	return false;
+	}
+
 int CAEONTable::GetColCount () const
 
 //	GetColCount

@@ -639,6 +639,35 @@ int CString::GetLength (void) const
 		return 0;
 	}
 
+CString CString::IncrementTrailingNumber (const CString &sStr)
+
+//	IncrementTrailingNumber
+//
+//	If a string has a trailing integer, we increment it. Otherwise, we add the
+//	integer 2.
+
+	{
+	if (sStr.IsEmpty())
+		return NULL_STR;
+
+	const char *pPos = sStr.GetParsePointer();
+	const char *pNumber = pPos + sStr.GetLength();
+	while (pNumber > pPos && strIsDigit(pNumber - 1))
+		pNumber--;
+
+	CString sNumber(pNumber);
+	if (sNumber.IsEmpty() || strOverflowsInteger32(sNumber))
+		return strPattern("%s2", sStr);
+	else
+		{
+		int iNumber = strParseInt(sNumber, 1);
+		if (iNumber == INT_MAX)
+			return strPattern("%s2", sStr);
+
+		return strPattern("%s%d", CString(pPos, (pNumber - pPos)), iNumber + 1);
+		}
+	}
+
 void CString::Init (LPCSTR pStr, int iLen)
 
 //	Init
