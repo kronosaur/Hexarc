@@ -67,7 +67,7 @@ CIPInteger::CIPInteger (const CIPInteger &Src)
 		}
 	}
 
-CIPInteger::CIPInteger(CIPInteger&& Src) noexcept
+CIPInteger::CIPInteger (CIPInteger&& Src) noexcept
 
 //	CIPInteger constructor
 
@@ -186,7 +186,14 @@ CIPInteger &CIPInteger::operator= (const CIPInteger &Src)
 //	CIPInteger operator =
 
 	{
-	if (!m_Value)
+	if (!Src.m_Value && !m_Value)
+		return *this;
+	else if (!Src.m_Value)
+		{
+		bdFree((BIGD *)&m_Value);
+		return *this;
+		}
+	else if (!m_Value)
 		m_Value = bdNew();
 
 	bdSetEqual((BIGD)m_Value, (BIGD)Src.m_Value);
