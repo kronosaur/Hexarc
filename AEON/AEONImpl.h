@@ -110,6 +110,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual EResult AppendTable (CDatum dTable) override;
 		virtual EResult DeleteAllRows () override;
 		virtual bool FindCol (const CString &sName, int *retiCol = NULL) const override;
+		virtual CDatum GetCol (int iIndex) const override { return ((iIndex >= 0 && iIndex < m_Cols.GetCount()) ? m_Cols[iIndex] : CDatum()); }
 		virtual int GetColCount () const override;
 		virtual CString GetColName (int iCol) const override;
 		virtual CDatum GetDataSlice (int iFirstRow, int iRowCount) const override;
@@ -133,7 +134,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual void GrowToFit (int iCount) override;
 		virtual bool IsArray (void) const override { return true; }
 		virtual bool IsNil (void) const override { return (GetCount() == 0); }
-		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
+		virtual void ResolveDatatypes (const CAEONTypeSystem &TypeSystem) override;
 		virtual void Sort (ESortOptions Order = AscendingSort, TArray<CDatum>::COMPAREPROC pfCompare = NULL, void *pCtx = NULL) override { throw CException(errFail); }
 		virtual void SetElement (int iIndex, CDatum dDatum) override;
 
@@ -144,11 +145,14 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 	protected:
 
 		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const override;
+		virtual bool OnDeserialize (CDatum::EFormat iFormat, CDatum dStruct) override;
+		virtual DWORD OnGetSerializeFlags (void) const override { return FLAG_SERIALIZE_AS_STRUCT; }
 		virtual void OnMarked (void) override;
-
-		void SerializeRow (IByteStream &Stream, CDatum::EFormat iFormat, int iRow) const;
+		virtual void OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const override;
 
 	private:
+
+		CAEONTable () { }
 
 		static CDatum CalcColumnDatatype (CDatum dValue);
 		void SetSchema (CDatum dSchema);
@@ -160,4 +164,6 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		//	We can always rely on m_dSchema being of type ECategory::Schema.
 
 		CDatum m_dSchema;
+
+		friend class CAEONScriptParser;
 	};

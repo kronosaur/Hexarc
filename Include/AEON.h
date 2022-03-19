@@ -234,6 +234,7 @@ class CDatum
 		bool IsError (void) const;
 		bool IsNil (void) const;
 		void Mark (void);
+		void ResolveDatatypes (const CAEONTypeSystem &TypeSystem);
 		void Serialize (EFormat iFormat, IByteStream &Stream) const;
 		CString SerializeToString (EFormat iFormat) const;
 		void SetElement (IInvokeCtx *pCtx, const CString &sKey, CDatum dValue);
@@ -351,6 +352,18 @@ class IDatatype
 			Schema,							//	A table definition
 			};
 
+		enum class EImplementation
+			{
+			Unknown,
+
+			Any,
+			Array,
+			Class,
+			Number,
+			Schema,
+			Simple,
+			};
+
 		enum class EMemberType
 			{
 			None,
@@ -373,12 +386,23 @@ class IDatatype
 				m_sFullyQualifiedName(sFullyQualifiedName)
 			{ }
 
+		IDatatype (const IDatatype &Src) = delete;
+		IDatatype (IDatatype &&Src) = delete;
+
 		virtual ~IDatatype () { }
 
+		IDatatype &operator = (const IDatatype &Src) = delete;
+		IDatatype &operator = (IDatatype &&Src) = delete;
+
+		bool operator == (const IDatatype &Src) const;
+		bool operator != (const IDatatype &Src) const { return !(*this == Src); }
+
 		bool AddMember (const CString &sName, EMemberType iType, CDatum dType, CString *retsError = NULL) { return OnAddMember(sName, iType, dType, retsError); }
+		static TUniquePtr<IDatatype> Deserialize (CDatum::EFormat iFormat, IByteStream &Stream);
 		ECategory GetClass () const { return OnGetClass(); }
 		DWORD GetCoreType () const { return OnGetCoreType(); }
 		const CString &GetFullyQualifiedName () const { return m_sFullyQualifiedName; }
+		EImplementation GetImplementation () const { return OnGetImplementation(); }
 		SMemberDesc GetMember (int iIndex) const { return OnGetMember(iIndex); }
 		int GetMemberCount () const { return OnGetMemberCount(); }
 		CDatum GetMembersAsTable () const { return OnGetMembersAsTable(); }
@@ -389,15 +413,19 @@ class IDatatype
 		bool IsAbstract () const { return OnIsAbstract(); }
 		bool IsAny () const { return OnIsAny(); }
 		void Mark () { OnMark(); }
-		
+		void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const;
+
 	private:
 
 		//	IDatatype virtuals
 
 		virtual bool OnAddMember (const CString &sName, EMemberType iType, CDatum dType, CString *retsError = NULL) { throw CException(errFail); }
+		virtual bool OnDeserialize (CDatum::EFormat iFormat, IByteStream &Stream) = 0;
+		virtual bool OnEquals (const IDatatype &Src) const = 0;
 		virtual EMemberType OnHasMember (const CString &sName, CDatum *retdType = NULL) const { return EMemberType::None; }
 		virtual ECategory OnGetClass () const = 0;
 		virtual DWORD OnGetCoreType () const { return UNKNOWN; }
+		virtual EImplementation OnGetImplementation () const = 0;
 		virtual SMemberDesc OnGetMember (int iIndex) const { throw CException(errFail); }
 		virtual int OnGetMemberCount () const { return 0; }
 		virtual CDatum OnGetMembersAsTable () const { return CDatum(); }
@@ -405,6 +433,7 @@ class IDatatype
 		virtual bool OnIsAbstract () const { return false; }
 		virtual bool OnIsAny () const { return false; }
 		virtual void OnMark () { }
+		virtual void OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const = 0;
 		
 		CString m_sFullyQualifiedName;
 	};
@@ -414,9 +443,14 @@ class CDatatypeList
 	public:
 		CDatatypeList (const std::initializer_list<CDatum> &List = {});
 
+		bool operator == (const CDatatypeList &Src) const;
+		bool operator != (const CDatatypeList &Src) const { return !(*this == Src); }
+
 		void AddType (CDatum dType) { m_Types.Insert(dType); }
+		static bool Deserialize (CDatum::EFormat iFormat, IByteStream &Stream, CDatatypeList &retList);
 		bool IsA (const IDatatype &Type) const;
 		void Mark ();
+		void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const;
 
 	private:
 		TArray<CDatum> m_Types;
@@ -441,6 +475,7 @@ class CAEONTypeSystem
 		void Mark ();
 		static void MarkCoreTypes ();
 		static CString ParseNameFromFullyQualifiedName (const CString &sValue);
+		CDatum ResolveType (CDatum dType) const;
 		CDatum Serialize () const;
 
 		static CAEONTypeSystem &Null () { return m_Null; }
@@ -477,6 +512,7 @@ class IAEONTable
 		virtual EResult AppendTable (CDatum dTable) { return EResult::NotImplemented; }
 		virtual EResult DeleteAllRows () { return EResult::NotImplemented; }
 		virtual bool FindCol (const CString &sName, int *retiCol = NULL) const { return false; }
+		virtual CDatum GetCol (int iIndex) const { return CDatum(); }
 		virtual int GetColCount () const { return 0; }
 		virtual CString GetColName (int iCol) const { return NULL_STR; }
 		virtual CDatum GetDataSlice (int iFirstRow, int iRowCount) const { return CDatum(); }
@@ -542,6 +578,7 @@ class IComplexDatum
 		virtual bool IsMemoryBlock (void) const { const CString &sData = CastCString(); return (sData.GetLength() > 0); }
 		virtual bool IsNil (void) const { return false; }
 		void Mark (void) { if (!m_bMarked) { m_bMarked = true; OnMarked(); } }	//	Check m_bMarked to avoid infinite recursion
+		virtual void ResolveDatatypes (const CAEONTypeSystem &TypeSystem) { }
 		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const;
 		virtual void SetElement (IInvokeCtx *pCtx, const CString &sKey, CDatum dDatum) { SetElement(sKey, dDatum); }
 		virtual void SetElement (const CString &sKey, CDatum dDatum) { }

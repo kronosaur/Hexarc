@@ -196,12 +196,16 @@
     <ClCompile Include="CComplexDatatype.cpp" />
     <ClCompile Include="CComplexImage32.cpp" />
     <ClCompile Include="CComplexInteger.cpp" />
+    <ClCompile Include="CDatatypeArray.cpp" />
     <ClCompile Include="CDatatypeClass.cpp" />
     <ClCompile Include="CDatatypeList.cpp" />
+    <ClCompile Include="CDatatypeNumber.cpp" />
     <ClCompile Include="CDatatypeSchema.cpp" />
+    <ClCompile Include="CDatatypeSimple.cpp" />
     <ClCompile Include="CDatum.cpp" />
     <ClCompile Include="HTTP.cpp" />
     <ClCompile Include="IComplexDatum.cpp" />
+    <ClCompile Include="IDatatype.cpp" />
     <ClCompile Include="JSON.cpp" />
     <ClCompile Include="Math.cpp" />
     <ClCompile Include="stdafx.cpp">

@@ -50,6 +50,62 @@ bool CDatatypeSchema::OnAddMember (const CString &sName, EMemberType iType, CDat
 	return true;
 	}
 
+bool CDatatypeSchema::OnDeserialize (CDatum::EFormat iFormat, IByteStream &Stream)
+	{
+	Stream.Read(&m_dwCoreType, sizeof(DWORD));
+
+	if (!CDatatypeList::Deserialize(iFormat, Stream, m_Implements))
+		return false;
+
+	DWORD dwCount;
+	Stream.Read(&dwCount, sizeof(DWORD));
+	m_Columns.InsertEmpty(dwCount);
+
+	for (int i = 0; i < m_Columns.GetCount(); i++)
+		{
+		m_Columns[i].sName = CString::Deserialize(Stream);
+		Stream.Read(&m_Columns[i].iOrdinal, sizeof(DWORD));
+
+		TUniquePtr<IDatatype> pType = IDatatype::Deserialize(iFormat, Stream);
+		if (!pType)
+			return false;
+
+		m_Columns[i].dType = CDatum(new CComplexDatatype(std::move(pType)));
+
+		m_ColumnsByName.SetAt(m_Columns[i].sName, i);
+		}
+
+	return true;
+	}
+
+bool CDatatypeSchema::OnEquals (const IDatatype &Src) const
+	{
+	auto &Other = (const CDatatypeSchema &)Src;
+
+	if (m_dwCoreType != Other.m_dwCoreType)
+		return false;
+
+	if (m_Implements != Other.m_Implements)
+		return false;
+
+	if (m_Columns.GetCount() != Other.m_Columns.GetCount())
+		return false;
+
+	for (int i = 0; i < m_Columns.GetCount(); i++)
+		{
+		if (!strEquals(m_Columns[i].sName, Other.m_Columns[i].sName))
+			return false;
+
+		if (m_Columns[i].iOrdinal != Other.m_Columns[i].iOrdinal)
+			return false;
+
+		if ((const IDatatype &)m_Columns[i].dType != (const IDatatype &)Other.m_Columns[i].dType)
+			return false;
+		}
+
+	return true;
+	}
+
 CDatum CDatatypeSchema::OnGetMembersAsTable () const
 
 //	OnGetMembersAsTable
@@ -111,4 +167,24 @@ void CDatatypeSchema::OnMark ()
 		m_Columns[i].dType.Mark();
 
 	m_Implements.Mark();
+	}
+
+void CDatatypeSchema::OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const
+	{
+	Stream.Write(&m_dwCoreType, sizeof(DWORD));
+
+	m_Implements.Serialize(iFormat, Stream);
+
+	DWORD dwCount = m_Columns.GetCount();
+	Stream.Write(&dwCount, sizeof(DWORD));
+
+	for (int i = 0; i < m_Columns.GetCount(); i++)
+		{
+		m_Columns[i].sName.Serialize(Stream);
+
+		Stream.Write(&m_Columns[i].iOrdinal, sizeof(DWORD));
+
+		const IDatatype &Type = m_Columns[i].dType;
+		Type.Serialize(iFormat, Stream);
+		}
 	}

@@ -84,6 +84,18 @@
     <ClCompile Include="CAEONTimeSpan.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CDatatypeSimple.cpp">
+      <Filter>Source Files\Type System</Filter>
+    </ClCompile>
+    <ClCompile Include="CDatatypeNumber.cpp">
+      <Filter>Source Files\Type System</Filter>
+    </ClCompile>
+    <ClCompile Include="CDatatypeArray.cpp">
+      <Filter>Source Files\Type System</Filter>
+    </ClCompile>
+    <ClCompile Include="IDatatype.cpp">
+      <Filter>Source Files\Type System</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Include\AEON.h">

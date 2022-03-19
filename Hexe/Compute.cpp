@@ -2394,6 +2394,30 @@ bool CHexeProcess::ExecuteIsEquivalent (CDatum dValue1, CDatum dValue2)
 				return true;
 				}
 
+			case CDatum::typeTable:
+				{
+				CDatum dSchema1 = dValue1.GetDatatype();
+				CDatum dSchema2 = dValue2.GetDatatype();
+				if (!ExecuteIsEquivalent(dSchema1, dSchema2))
+					return false;
+
+				IAEONTable *pTable1 = dValue1.GetTableInterface();
+				IAEONTable *pTable2 = dValue2.GetTableInterface();
+				if (pTable1 == NULL || pTable2 == NULL)
+					return false;
+
+				for (int i = 0; i < pTable1->GetColCount(); i++)
+					{
+					CDatum dCol1 = pTable1->GetCol(i);
+					CDatum dCol2 = pTable2->GetCol(i);
+
+					if (!ExecuteIsEquivalent(dCol1, dCol2))
+						return false;
+					}
+
+				return true;
+				}
+
 			case CDatum::typeDatatype:
 				return strEquals(((const IDatatype &)dValue1).GetFullyQualifiedName(), ((const IDatatype &)dValue2).GetFullyQualifiedName());
 
@@ -2510,8 +2534,32 @@ bool CHexeProcess::ExecuteIsIdentical (CDatum dValue1, CDatum dValue2)
 				return true;
 				}
 
+			case CDatum::typeTable:
+				{
+				CDatum dSchema1 = dValue1.GetDatatype();
+				CDatum dSchema2 = dValue2.GetDatatype();
+				if (!ExecuteIsIdentical(dSchema1, dSchema2))
+					return false;
+
+				IAEONTable *pTable1 = dValue1.GetTableInterface();
+				IAEONTable *pTable2 = dValue2.GetTableInterface();
+				if (pTable1 == NULL || pTable2 == NULL)
+					return false;
+
+				for (int i = 0; i < pTable1->GetColCount(); i++)
+					{
+					CDatum dCol1 = pTable1->GetCol(i);
+					CDatum dCol2 = pTable2->GetCol(i);
+
+					if (!ExecuteIsIdentical(dCol1, dCol2))
+						return false;
+					}
+
+				return true;
+				}
+
 			case CDatum::typeDatatype:
-				return strEquals(((const IDatatype &)dValue1).GetFullyQualifiedName(), ((const IDatatype &)dValue2).GetFullyQualifiedName());
+				return (const IDatatype &)dValue1 == (const IDatatype &)dValue2;
 
 			default:
 				return false;

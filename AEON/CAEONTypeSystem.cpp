@@ -54,7 +54,7 @@ CDatum CAEONTypeSystem::AddAnonymousSchema (const TArray<IDatatype::SMemberDesc>
 	{
 	CString sFullyQualifiedName = CAEONTypeSystem::MakeFullyQualifiedName(NULL_STR, strPattern("AnonymousTable%03d", m_dwNextAnonymousID++));
 
-	IDatatype *pNewType = new CDatatypeSchema({ sFullyQualifiedName, { CAEONTypeSystem::GetCoreType(IDatatype::TABLE) } });
+	IDatatype *pNewType = new CDatatypeSchema(CDatatypeSchema::SCreate({ sFullyQualifiedName, { CAEONTypeSystem::GetCoreType(IDatatype::TABLE) } }));
 
 	for (int i = 0; i < Columns.GetCount(); i++)
 		{
@@ -145,7 +145,7 @@ IDatatype *CAEONTypeSystem::CreateSchemaTable ()
 	{
 	CString sFullyQualifiedName = CAEONTypeSystem::MakeFullyQualifiedName(NULL_STR, TYPENAME_SCHEMA_TABLE);
 
-	IDatatype *pNewType = new CDatatypeSchema({ sFullyQualifiedName, { CAEONTypeSystem::GetCoreType(IDatatype::TABLE) }, IDatatype::SCHEMA_TABLE });
+	IDatatype *pNewType = new CDatatypeSchema(CDatatypeSchema::SCreate({ sFullyQualifiedName, { CAEONTypeSystem::GetCoreType(IDatatype::TABLE) }, IDatatype::SCHEMA_TABLE }));
 
 	pNewType->AddMember(FIELD_NAME, IDatatype::EMemberType::InstanceVar, GetCoreType(IDatatype::STRING));
 	pNewType->AddMember(FIELD_DATATYPE, IDatatype::EMemberType::InstanceVar, GetCoreType(IDatatype::DATATYPE));
@@ -550,6 +550,32 @@ CString CAEONTypeSystem::ParseNameFromFullyQualifiedName (const CString &sValue)
 		return NULL_STR;
 	}
 
+CDatum CAEONTypeSystem::ResolveType (CDatum dType) const
+
+//	ResolveType
+//
+//	Compares dType against our list of types. If this refers to one of our types
+//	then we return it unchanged. If the type is equal to one of our types, then
+//	we return our type (this helps when we deserialize a type). Otherwise, we
+//	return the type unchanged.
+
+	{
+	if (dType.GetBasicType() != CDatum::typeDatatype)
+		return dType;
+
+	const IDatatype &Type = dType;
+	for (int i = 0; i < m_Types.GetCount(); i++)
+		{
+		const IDatatype &OurType = m_Types[i];
+		if (&Type == &OurType)
+			return dType;
+		else if (Type == OurType)
+			return m_Types[i];
+		}
+
+	return dType;
+	}
+
 CDatum CAEONTypeSystem::Serialize () const
 
 //	Serialize
@@ -560,16 +586,3 @@ CDatum CAEONTypeSystem::Serialize () const
 	return CDatum();
 	}
 
-//	IDatatype ------------------------------------------------------------------
-
-CString IDatatype::GetName () const
-	{
-	return CAEONTypeSystem::ParseNameFromFullyQualifiedName(GetFullyQualifiedName());
-	}
-
-bool IDatatype::IsACoreType (DWORD dwType) const
-	{
-	CDatum dType = CAEONTypeSystem::GetCoreType(dwType);
-	const IDatatype &Type = dType;
-	return IsA(Type);
-	}

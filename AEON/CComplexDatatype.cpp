@@ -41,3 +41,92 @@ const CString &CComplexDatatype::GetTypename (void) const
 	{
 	return TYPENAME_DATATYPE;
 	}
+
+int CComplexDatatype::GetID (IDatatype::EImplementation iValue)
+	{
+	switch (iValue)
+		{
+		case IDatatype::EImplementation::Any:
+			return IMPL_ANY_ID;
+
+		case IDatatype::EImplementation::Array:
+			return IMPL_ARRAY_ID;
+
+		case IDatatype::EImplementation::Class:
+			return IMPL_CLASS_ID;
+
+		case IDatatype::EImplementation::Number:
+			return IMPL_NUMBER_ID;
+
+		case IDatatype::EImplementation::Schema:
+			return IMPL_SCHEMA_ID;
+
+		case IDatatype::EImplementation::Simple:
+			return IMPL_SIMPLE_ID;
+
+		default:
+			throw CException(errFail);
+		}
+	}
+
+IDatatype::EImplementation CComplexDatatype::GetImplementation (int iID)
+	{
+	switch (iID)
+		{
+		case IMPL_ANY_ID:
+			return IDatatype::EImplementation::Any;
+
+		case IMPL_ARRAY_ID:
+			return IDatatype::EImplementation::Array;
+
+		case IMPL_CLASS_ID:
+			return IDatatype::EImplementation::Class;
+
+		case IMPL_NUMBER_ID:
+			return IDatatype::EImplementation::Number;
+
+		case IMPL_SCHEMA_ID:
+			return IDatatype::EImplementation::Schema;
+
+		case IMPL_SIMPLE_ID:
+			return IDatatype::EImplementation::Simple;
+
+		default:
+			return IDatatype::EImplementation::Unknown;
+		}
+	}
+
+size_t CComplexDatatype::OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const
+
+//	OnCalcSerializeSizeAEONScript
+//
+//	Returns a heuristic estimate for serialization size (this helps us to 
+//	allocate buffers during serialize.
+
+	{
+	return 0;
+	}
+
+bool CComplexDatatype::OnDeserialize (CDatum::EFormat iFormat, const CString &sTypename, IByteStream &Stream)
+
+//	OnDeserialize
+//
+//	Deserialize from a stream.
+
+	{
+	m_pType = std::move(IDatatype::Deserialize(iFormat, Stream));
+	if (!m_pType)
+		return false;
+
+	return true;
+	}
+		
+void CComplexDatatype::OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const
+
+//	OnSerialize
+//
+//	Serialize to stream.
+
+	{
+	m_pType->Serialize(iFormat, Stream);
+	}

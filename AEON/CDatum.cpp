@@ -2800,6 +2800,25 @@ void CDatum::RegisterMarkProc (MARKPROC fnProc)
 	g_MarkList.Insert(fnProc);
 	}
 
+void CDatum::ResolveDatatypes (const CAEONTypeSystem &TypeSystem)
+
+//	ResolveDatatypes
+//
+//	If we have references to datatypes, we resolve them against the type system 
+//	so that we match. This is helpful when we serialize/deserialize values.
+
+	{
+	switch (m_dwData & AEON_TYPE_MASK)
+		{
+		case AEON_TYPE_COMPLEX:
+			raw_GetComplex()->ResolveDatatypes(TypeSystem);
+			break;
+
+		default:
+			break;
+		}
+	}
+
 void CDatum::Serialize (EFormat iFormat, IByteStream &Stream) const
 
 //	Serialize

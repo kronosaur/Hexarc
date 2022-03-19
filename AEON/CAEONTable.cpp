@@ -5,6 +5,12 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(FIELD_COLUMNS,						"columns");
+DECLARE_CONST_STRING(FIELD_DATATYPE,					"datatype");
+DECLARE_CONST_STRING(FIELD_NAME,						"name");
+DECLARE_CONST_STRING(FIELD_ROWS,						"rows");
+DECLARE_CONST_STRING(FIELD_VALUES,						"values");
+
 DECLARE_CONST_STRING(TYPENAME_TABLE,					"table");
 
 void CAEONTable::Append (CDatum dDatum)
@@ -481,6 +487,45 @@ size_t CAEONTable::OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const
 	return CalcMemorySize();
 	}
 
+bool CAEONTable::OnDeserialize (CDatum::EFormat iFormat, CDatum dStruct)
+
+//	OnDeserialize
+//
+//	Load from the given struct.
+
+	{
+	CDatum dSchema = dStruct.GetElement(FIELD_DATATYPE);
+	const IDatatype &Schema = dSchema;
+	if (Schema.GetClass() != IDatatype::ECategory::Schema)
+		return false;
+
+	SetSchema(dSchema);
+
+	CDatum dCols = dStruct.GetElement(FIELD_COLUMNS);
+
+	m_iRows = -1;
+	for (int i = 0; i < m_Cols.GetCount(); i++)
+		{
+		CDatum dColDef = dCols.GetElement(i);
+		if (dColDef.IsNil())
+			continue;
+
+		CDatum dValues = dColDef.GetElement(FIELD_VALUES);
+
+		if (m_iRows == -1)
+			m_iRows = dValues.GetCount();
+		else
+			m_iRows = Min(m_iRows, dValues.GetCount());
+
+		m_Cols[i] = dValues;
+		}
+
+	if (m_iRows == -1)
+		m_iRows = 0;
+
+	return true;
+	}
+
 void CAEONTable::OnMarked (void)
 
 //	OnMarked
@@ -494,128 +539,50 @@ void CAEONTable::OnMarked (void)
 		m_Cols[i].Mark();
 	}
 
-void CAEONTable::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const
+void CAEONTable::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const
 
-//	Serialize
+//	OnSerialize
 //
-//	Serialize
-
-	{
-	switch (iFormat)
-		{
-		case CDatum::EFormat::AEONScript:
-		case CDatum::EFormat::AEONLocal:
-			{
-			Stream.Write("(", 1);
-
-			for (int i = 0; i < m_iRows; i++)
-				{
-				if (i != 0)
-					Stream.Write(" ", 1);
-
-				SerializeRow(Stream, iFormat, i);
-				}
-
-			Stream.Write(")", 1);
-			break;
-			}
-
-		case CDatum::EFormat::JSON:
-			{
-			Stream.Write("[", 1);
-
-			for (int i = 0; i < m_iRows; i++)
-				{
-				if (i != 0)
-					Stream.Write(", ", 2);
-
-				SerializeRow(Stream, iFormat, i);
-				}
-
-			Stream.Write("]", 1);
-			break;
-			}
-
-		default:
-			IComplexDatum::Serialize(iFormat, Stream);
-			break;
-		}
-	}
-
-void CAEONTable::SerializeRow (IByteStream &Stream, CDatum::EFormat iFormat, int iRow) const
-
-//	SerializeRow
-//
-//	Serializes the given row.
+//	Serialize to a structure.
 
 	{
 	const IDatatype &Schema = m_dSchema;
 
-	switch (iFormat)
+	pStruct->SetElement(FIELD_DATATYPE, m_dSchema);
+	pStruct->SetElement(FIELD_ROWS, m_iRows);
+
+	CDatum dCols(CDatum::typeArray);
+	for (int i = 0; i < Schema.GetMemberCount(); i++)
 		{
-		case CDatum::EFormat::AEONScript:
-		case CDatum::EFormat::AEONLocal:
-			{
-			Stream.Write("{", 1);
+		CDatum dColDef(CDatum::CDatum::typeStruct);
+		auto ColumnDef = Schema.GetMember(i);
+		
+		dColDef.SetElement(FIELD_NAME, ColumnDef.sName);
+		if (i < m_Cols.GetCount())
+			dColDef.SetElement(FIELD_VALUES, m_Cols[i]);
 
-			for (int i = 0; i < Schema.GetMemberCount(); i++)
-				{
-				auto ColumnDef = Schema.GetMember(i);
-
-				if (i != 0)
-					Stream.Write(" ", 1);
-
-				//	Write the key
-
-				CDatum Key(ColumnDef.sName);
-				Key.Serialize(iFormat, Stream);
-
-				//	Separator
-
-				Stream.Write(":", 1);
-
-				//	Write the value
-
-				m_Cols[i].GetElement(iRow).Serialize(iFormat, Stream);
-				}
-
-			Stream.Write("}", 1);
-			break;
-			}
-
-		case CDatum::EFormat::JSON:
-			{
-			Stream.Write("{", 1);
-
-			for (int i = 0; i < GetCount(); i++)
-				{
-				auto ColumnDef = Schema.GetMember(i);
-
-				if (i != 0)
-					Stream.Write(", ", 2);
-
-				//	Write the key
-
-				CDatum Key(ColumnDef.sName);
-				Key.Serialize(iFormat, Stream);
-
-				//	Separator
-
-				Stream.Write(": ", 2);
-
-				//	Write the value
-
-				m_Cols[i].GetElement(iRow).Serialize(iFormat, Stream);
-				}
-
-			Stream.Write("}", 1);
-			break;
-			}
-
-		default:
-			CDatum().Serialize(iFormat, Stream);
-			break;
+		dCols.Append(dColDef);
 		}
+
+	pStruct->SetElement(FIELD_COLUMNS, dCols);
+	}
+
+void CAEONTable::ResolveDatatypes (const CAEONTypeSystem &TypeSystem)
+
+//	ResovleDatatypes
+//
+//	Resolve datatypes.
+
+	{
+	//	If this schema is already registered with the type system, then use 
+	//	its copy. This is helpful when we've serialized/deserialized a table.
+
+	m_dSchema = TypeSystem.ResolveType(m_dSchema);
+
+	//	Now resolve all columns.
+
+	for (int i = 0; i < m_Cols.GetCount(); i++)
+		m_Cols[i].ResolveDatatypes(TypeSystem);
 	}
 
 void CAEONTable::SetElement (int iIndex, CDatum dDatum)
