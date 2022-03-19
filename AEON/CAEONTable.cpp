@@ -517,7 +517,9 @@ bool CAEONTable::OnDeserialize (CDatum::EFormat iFormat, CDatum dStruct)
 		else
 			m_iRows = Min(m_iRows, dValues.GetCount());
 
-		m_Cols[i] = dValues;
+		m_Cols[i].GrowToFit(dValues.GetCount());
+		for (int j = 0; j < dValues.GetCount(); j++)
+			m_Cols[i].Append(dValues.GetElement(j));
 		}
 
 	if (m_iRows == -1)
