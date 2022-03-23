@@ -14,6 +14,7 @@
 #endif
 
 const int DEFAULT_TIMEOUT =								30 * 1000;
+const int LONG_POLL_TIMEOUT =							120 * 100;
 
 DECLARE_CONST_STRING(ADDRESS_ESPER_COMMAND,				"Esper.command");
 
@@ -670,18 +671,10 @@ bool CHTTPSession::ProcessStateWaitingForRPCLongPollResult (const SArchonMessage
 
 	if (strEquals(Msg.sMsg, MSG_ERROR_TIMEOUT))
 		{
-		SArchonMessage LongPollTimeoutMsg = Msg;
-		LongPollTimeoutMsg.sMsg = MSG_ERROR_LONG_POLL;
+		//	Keep waiting.
 
-		//	HACK: We set the error message to "TIMEOUT: ..." which the RPC
-		//	processor detects so that it can treat long-poll timeouts slightly
-		//	differently. In the future, we should figure out a way to extract
-		//	the sMsg value out of a CHexeError.
-
-		LongPollTimeoutMsg.dPayload = CDatum(ERR_LONG_POLL_TIMEOUT);
-
-		m_Ctx.pService->HandleRPCResult(m_Ctx, LongPollTimeoutMsg);
-		return ProcessServiceResult(m_Ctx, LongPollTimeoutMsg);
+		ResetTimeout(GenerateAddress(PORT_HYPERION_COMMAND), LONG_POLL_TIMEOUT);
+		return true;
 		}
 
 	//	Log
@@ -707,8 +700,11 @@ bool CHTTPSession::ProcessStateWaitingForRPCResult (const SArchonMessage &Msg)
 		m_iState = State::waitingForRPCLongPoll;
 
 		//	Set the timeout again (because it was cleared when we got a reply).
+		//	NOTE: We want this to be longer than the RPC handler time out. 
+		//	Otherwise, we might time out while the RPC handler still thinks we
+		//	need a reply, and then we'll reply to the wrong session.
 
-		ResetTimeout(GenerateAddress(PORT_HYPERION_COMMAND), DEFAULT_TIMEOUT);
+		ResetTimeout(GenerateAddress(PORT_HYPERION_COMMAND), LONG_POLL_TIMEOUT);
 		return true;
 		}
 	else if (strEquals(Msg.sMsg, MSG_ERROR_TIMEOUT))
