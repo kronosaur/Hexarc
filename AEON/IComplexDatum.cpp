@@ -250,17 +250,31 @@ void IComplexDatum::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) con
 				{
 				Stream.Write("[\"AEON2011:", 11);
 				Stream.Write(GetTypename());
-				Stream.Write(":v1\", \"", 7);
+				Stream.Write(":v1\", ", 6);
 				}
 
-			//	LATER: Handle serialization/deserialization of struct-based objects
+			if (dwFlags & FLAG_SERIALIZE_AS_STRUCT)
+				{
+				CComplexStruct *pStruct = new CComplexStruct;
 
-			CBase64Encoder Encoder(&Stream);
-			OnSerialize(iFormat, Encoder);
-			Encoder.Close();
+				OnSerialize(iFormat, pStruct);
+
+				CDatum dDatum(pStruct);
+				dDatum.Serialize(iFormat, Stream);
+				}
+			else
+				{
+				Stream.Write("\"", 1);
+
+				CBase64Encoder Encoder(&Stream);
+				OnSerialize(iFormat, Encoder);
+				Encoder.Close();
+
+				Stream.Write("\"", 1);
+				}
 
 			if (!(dwFlags & FLAG_SERIALIZE_NO_TYPENAME))
-				Stream.Write("\"]", 2);
+				Stream.Write("]", 1);
 			break;
 			}
 
