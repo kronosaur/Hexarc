@@ -724,6 +724,69 @@ CDateTime CDatum::AsDateTime (void) const
 		}
 	}
 
+CIPInteger CDatum::AsIPInteger () const
+
+//	AsIPInteger
+//
+//	Returns an IPInteger
+
+	{
+	switch (m_dwData & AEON_TYPE_MASK)
+		{
+		case AEON_TYPE_STRING:
+			{
+			if (m_dwData == 0)
+				return CIPInteger(0);
+			else
+				{
+				CIPInteger Result;
+				Result.InitFromString(raw_GetString());
+				return Result;
+				}
+			}
+
+		case AEON_TYPE_NUMBER:
+			switch (m_dwData & AEON_NUMBER_TYPE_MASK)
+				{
+				case AEON_NUMBER_CONSTANT:
+					{
+					switch (m_dwData)
+						{
+						case CONST_NAN:
+							return CIPInteger(0);
+
+						case CONST_TRUE:
+							return CIPInteger(1);
+
+						default:
+							ASSERT(false);
+							return CIPInteger(0);
+						}
+					}
+
+				case AEON_NUMBER_28BIT:
+					return CIPInteger((int)(m_dwData & AEON_NUMBER_MASK) >> 4);
+
+				case AEON_NUMBER_32BIT:
+					return CIPInteger((int)g_IntAlloc.Get(GetNumberIndex()));
+
+				case AEON_NUMBER_DOUBLE:
+					return CIPInteger(g_DoubleAlloc.Get(GetNumberIndex()));
+
+				default:
+					ASSERT(false);
+					return CIPInteger(0);
+				}
+
+		case AEON_TYPE_COMPLEX:
+			return raw_GetComplex()->CastCIPInteger();
+
+		default:
+			ASSERT(false);
+			return CIPInteger(0);
+		}
+	}
+
 CDatum CDatum::AsOptions (bool *retbConverted) const
 
 //	AsOptions

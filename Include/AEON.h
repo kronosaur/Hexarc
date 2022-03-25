@@ -200,6 +200,7 @@ class CDatum
 		//	Standard interface
 		void Append (CDatum dValue);
 		CDateTime AsDateTime (void) const;
+		CIPInteger AsIPInteger () const;
 		CDatum AsOptions (bool *retbConverted = NULL) const;
 		CString AsString (void) const;
 		TArray<CString> AsStringArray (void) const;
