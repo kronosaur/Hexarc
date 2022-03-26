@@ -737,10 +737,12 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				int iArgCount = GetOperand(*m_pIP);
 
 				//	Look for the this pointer. If we have a valid (non-nil) this
-				//	pointer, then we include it as the first parameter.
+				//	pointer, then we include it as the first parameter. [But we
+				//	make sure it is exactly nil; otherwise we might have an 
+				//	empty table or array that is treated as nil.]
 
 				CDatum dThis = m_Stack.Get(iArgCount);
-				if (!dThis.IsNil())
+				if (!dThis.IsIdenticalToNil())
 					iArgCount++;
 
 				//	Pop arguments into local environment.
@@ -750,7 +752,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 
 				//	Pop the this pointer, if necessary.
 
-				if (dThis.IsNil())
+				if (dThis.IsIdenticalToNil())
 					m_Stack.Pop();
 
 				m_pIP++;

@@ -233,6 +233,7 @@ class CDatum
 		bool IsMemoryBlock (void) const;
 		bool IsEqual (CDatum dValue) const;
 		bool IsError (void) const;
+		bool IsIdenticalToNil () const { return (m_dwData == 0); }
 		bool IsNil (void) const;
 		void Mark (void);
 		void ResolveDatatypes (const CAEONTypeSystem &TypeSystem);
