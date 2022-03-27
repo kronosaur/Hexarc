@@ -138,9 +138,9 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual void Sort (ESortOptions Order = AscendingSort, TArray<CDatum>::COMPAREPROC pfCompare = NULL, void *pCtx = NULL) override { throw CException(errFail); }
 		virtual void SetElement (int iIndex, CDatum dDatum) override;
 
-		static CDatum CreateTableFromArray (CAEONTypeSystem &TypeSystem, CDatum dValue);
-		static CDatum CreateTableFromDatatype (CAEONTypeSystem &TypeSystem, CDatum dType);
-		static CDatum CreateTableFromStruct (CAEONTypeSystem &TypeSystem, CDatum dValue);
+		static bool CreateTableFromArray (CAEONTypeSystem &TypeSystem, CDatum dValue, CDatum &retdDatum);
+		static bool CreateTableFromDatatype (CAEONTypeSystem &TypeSystem, CDatum dType, CDatum &retdDatum);
+		static bool CreateTableFromStruct (CAEONTypeSystem &TypeSystem, CDatum dValue, CDatum &retdDatum);
 
 	protected:
 

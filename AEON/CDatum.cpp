@@ -19,6 +19,7 @@ DECLARE_CONST_STRING(ERR_UNKNOWN_FORMAT,				"Unable to determine file format: %s
 DECLARE_CONST_STRING(ERR_CANT_OPEN_FILE,				"Unable to open file: %s.");
 DECLARE_CONST_STRING(ERR_DESERIALIZE_ERROR,				"Unable to parse file: %s.");
 DECLARE_CONST_STRING(ERR_NO_METHODS,					"Methods not supported.");
+DECLARE_CONST_STRING(ERR_INVALID_TABLE_DESC,			"Invalid table descriptor.");
 
 static TAllocatorGC<DWORD> g_IntAlloc;
 static TAllocatorGC<double> g_DoubleAlloc;
@@ -1434,7 +1435,7 @@ CDatum CDatum::CreateTable (CDatum dType, CDatum dValue)
 	return dTable;
 	}
 
-CDatum CDatum::CreateTableFromDesc (CAEONTypeSystem &TypeSystem, CDatum dDesc)
+bool CDatum::CreateTableFromDesc (CAEONTypeSystem &TypeSystem, CDatum dDesc, CDatum &retdDatum)
 
 //	CreateTableFromDesc
 //
@@ -1448,23 +1449,27 @@ CDatum CDatum::CreateTableFromDesc (CAEONTypeSystem &TypeSystem, CDatum dDesc)
 	{
 	switch (dDesc.GetBasicType())
 		{
+		case CDatum::typeNil:
+			retdDatum = CDatum();
+			return true;
+
 		case CDatum::typeArray:
-			return CAEONTable::CreateTableFromArray(TypeSystem, dDesc);
+			return CAEONTable::CreateTableFromArray(TypeSystem, dDesc, retdDatum);
 
 		case CDatum::typeDatatype:
-			return CAEONTable::CreateTableFromDatatype(TypeSystem, dDesc);
+			return CAEONTable::CreateTableFromDatatype(TypeSystem, dDesc, retdDatum);
 
 		case CDatum::typeStruct:
-			return CAEONTable::CreateTableFromStruct(TypeSystem, dDesc);
+			return CAEONTable::CreateTableFromStruct(TypeSystem, dDesc, retdDatum);
 
 		case CDatum::typeTable:
-			return dDesc.Clone();
+			retdDatum = dDesc.Clone();
+			return true;
 
 		default:
-			return CDatum();
+			retdDatum = ERR_INVALID_TABLE_DESC;
+			return false;
 		}
-
-	return CDatum();
 	}
 
 int CDatum::DefaultCompare (void *pCtx, const CDatum &dKey1, const CDatum &dKey2)
