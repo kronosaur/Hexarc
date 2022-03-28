@@ -330,7 +330,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 			case opMakeArray:
 				iCount = GetOperand(*m_pIP);
 				if (iCount == 0)
-					m_Stack.Push(CDatum());
+					m_Stack.Push(CDatum(CDatum::typeArray));
 				else
 					{
 					pArray = new CComplexArray;
