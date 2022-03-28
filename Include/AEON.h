@@ -221,6 +221,7 @@ class CDatum
 		CDatum GetElement (int iIndex) const;
 		CDatum GetElement (IInvokeCtx *pCtx, const CString &sKey) const;
 		CDatum GetElement (const CString &sKey) const;
+		CDatum GetElement (CDatum dIndex) const;
 		CRGBA32Image *GetImageInterface ();
 		CRGBA32Image &GetImageInterfaceOrThrow () { auto pValue = GetImageInterface(); if (!pValue) throw CException(errFail); else return *pValue; }
 		CString GetKey (int iIndex) const;
@@ -242,6 +243,7 @@ class CDatum
 		void SetElement (IInvokeCtx *pCtx, const CString &sKey, CDatum dValue);
 		void SetElement (const CString &sKey, CDatum dValue);
 		void SetElement (int iIndex, CDatum dValue);
+		void SetElement (CDatum dIndex, CDatum dValue);
 		void WriteBinaryToStream (IByteStream &Stream, int iPos = 0, int iLength = -1, IProgressEvents *pProgress = NULL) const;
 
 		static int Compare (CDatum dValue1, CDatum dValue2) { return DefaultCompare(NULL, dValue1, dValue2); }
@@ -559,6 +561,7 @@ class IComplexDatum
 		virtual CDatum::ECallType GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) const { return CDatum::ECallType::None; }
 		virtual int GetCount (void) const = 0;
 		virtual CDatum GetDatatype () const;
+		virtual CDatum GetElement (CDatum dIndex) const { return GetElement((int)dIndex); }
 		virtual CDatum GetElement (IInvokeCtx *pCtx, int iIndex) const { return GetElement(iIndex); }
 		virtual CDatum GetElement (int iIndex) const = 0;
 		virtual CDatum GetElement (IInvokeCtx *pCtx, const CString &sKey) const { return GetElement(sKey); }
@@ -582,6 +585,7 @@ class IComplexDatum
 		void Mark (void) { if (!m_bMarked) { m_bMarked = true; OnMarked(); } }	//	Check m_bMarked to avoid infinite recursion
 		virtual void ResolveDatatypes (const CAEONTypeSystem &TypeSystem) { }
 		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const;
+		virtual void SetElement (CDatum dIndex, CDatum dDatum) { SetElement((int)dIndex, dDatum); }
 		virtual void SetElement (IInvokeCtx *pCtx, const CString &sKey, CDatum dDatum) { SetElement(sKey, dDatum); }
 		virtual void SetElement (const CString &sKey, CDatum dDatum) { }
 		virtual void SetElement (int iIndex, CDatum dDatum) { }
@@ -640,6 +644,7 @@ class CComplexArray : public IComplexDatum
 		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeArray; }
 		virtual int GetCount (void) const override { return m_Array.GetCount(); }
 		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY); }
+		virtual CDatum GetElement (CDatum dIndex) const override { int iIndex = (int)dIndex; return ((iIndex >= 0 && iIndex < m_Array.GetCount()) ? m_Array[iIndex] : CDatum()); }
 		virtual CDatum GetElement (int iIndex) const override { return ((iIndex >= 0 && iIndex < m_Array.GetCount()) ? m_Array[iIndex] : CDatum()); }
 		virtual const CString &GetTypename (void) const override;
 		virtual void GrowToFit (int iCount) override { m_Array.GrowToFit(iCount); }
@@ -647,7 +652,8 @@ class CComplexArray : public IComplexDatum
 		virtual bool IsNil (void) const override { return (GetCount() == 0); }
 		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
 		virtual void Sort (ESortOptions Order = AscendingSort, TArray<CDatum>::COMPAREPROC pfCompare = NULL, void *pCtx = NULL) override { if (pfCompare) m_Array.Sort(pCtx, pfCompare, Order); else m_Array.Sort(Order); }
-		virtual void SetElement (int iIndex, CDatum dDatum) override { m_Array[iIndex] = dDatum; }
+		virtual void SetElement (CDatum dIndex, CDatum dDatum) override { int iIndex = (int)dIndex; if (iIndex >= 0 && iIndex < m_Array.GetCount()) m_Array[iIndex] = dDatum; }
+		virtual void SetElement (int iIndex, CDatum dDatum) override { if (iIndex >= 0 && iIndex < m_Array.GetCount()) m_Array[iIndex] = dDatum; }
 
 	protected:
 		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const override;
@@ -874,6 +880,7 @@ class CComplexStruct : public IComplexDatum
 		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeStruct; }
 		virtual int GetCount (void) const override { return m_Map.GetCount(); }
 		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::STRUCT); }
+		virtual CDatum GetElement (CDatum dIndex) const override;
 		virtual CDatum GetElement (int iIndex) const override { return ((iIndex >= 0 && iIndex < m_Map.GetCount()) ? m_Map[iIndex] : CDatum()); }
 		virtual CDatum GetElement (const CString &sKey) const override { CDatum *pValue = m_Map.GetAt(sKey); return (pValue ? *pValue : CDatum()); }
 		virtual CString GetKey (int iIndex) const override { return m_Map.GetKey(iIndex); }
@@ -882,6 +889,7 @@ class CComplexStruct : public IComplexDatum
 		virtual bool IsArray (void) const override { return true; }
 		virtual bool IsNil (void) const override { return (GetCount() == 0); }
 		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const override { SerializeAsStruct(iFormat, Stream); }
+		virtual void SetElement (CDatum dIndex, CDatum dDatum) override;
 		virtual void SetElement (const CString &sKey, CDatum dDatum) override { m_Map.SetAt(sKey, dDatum); }
 
 	protected:

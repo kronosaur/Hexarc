@@ -2123,6 +2123,23 @@ int CDatum::GetCount (void) const
 		}
 	}
 
+CDatum CDatum::GetElement (CDatum dIndex) const
+
+//	GetElement
+//
+//	Gets the appropriate element
+
+	{
+	switch (m_dwData & AEON_TYPE_MASK)
+		{
+		case AEON_TYPE_COMPLEX:
+			return raw_GetComplex()->GetElement(dIndex);
+
+		default:
+			return CDatum();
+		}
+	}
+
 CDatum CDatum::GetElement (IInvokeCtx *pCtx, int iIndex) const
 
 //	GetElement
@@ -2920,6 +2937,27 @@ CString CDatum::SerializeToString (EFormat iFormat) const
 	CStringBuffer Output;
 	Serialize(iFormat, Output);
 	return CString::CreateFromHandoff(Output);
+	}
+
+void CDatum::SetElement (CDatum dIndex, CDatum dValue)
+
+//	SetElement
+//
+//	Sets the value to the datum. Note that this modifies the datum in place.
+//	Do not use this unless you are sure about who else might have a pointer
+//	to the datum.
+
+	{
+	switch (m_dwData & AEON_TYPE_MASK)
+		{
+		case AEON_TYPE_COMPLEX:
+			raw_GetComplex()->SetElement(dIndex, dValue);
+			break;
+
+		default:
+			//	Nothing happens
+			break;
+		}
 	}
 
 void CDatum::SetElement (IInvokeCtx *pCtx, const CString &sKey, CDatum dValue)

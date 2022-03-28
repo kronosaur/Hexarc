@@ -958,6 +958,24 @@ CString CComplexStruct::AsString (void) const
 	return sOutput;
 	}
 
+size_t CComplexStruct::CalcMemorySize (void) const
+
+//	CalcMemorySize
+//
+//	Computes the amount of memory being used.
+
+	{
+	size_t dwSize = 0;
+
+	for (int i = 0; i < m_Map.GetCount(); i++)
+		{
+		dwSize += m_Map.GetKey(i).GetLength() + sizeof(DWORD) + 1;
+		dwSize += m_Map[i].CalcMemorySize();
+		}
+
+	return dwSize;
+	}
+
 bool CComplexStruct::Contains (CDatum dValue, TArray<IComplexDatum *> &retChecked) const
 
 //	Contains
@@ -989,22 +1007,31 @@ bool CComplexStruct::FindElement (const CString &sKey, CDatum *retpValue)
 	return true;
 	}
 
-size_t CComplexStruct::CalcMemorySize (void) const
+CDatum CComplexStruct::GetElement (CDatum dIndex) const
 
-//	CalcMemorySize
+//	GetElement
 //
-//	Computes the amount of memory being used.
+//	Returns the element.
 
 	{
-	size_t dwSize = 0;
-
-	for (int i = 0; i < m_Map.GetCount(); i++)
+	if (dIndex.IsNil())
+		return CDatum();
+	else if (dIndex.GetBasicType() == CDatum::typeInteger32)
 		{
-		dwSize += m_Map.GetKey(i).GetLength() + sizeof(DWORD) + 1;
-		dwSize += m_Map[i].CalcMemorySize();
+		int iIndex = dIndex;
+		if (iIndex >= 0 && iIndex < m_Map.GetCount())
+			return m_Map[iIndex];
+		else
+			return CDatum();
 		}
-
-	return dwSize;
+	else
+		{
+		CDatum* pValue = m_Map.GetAt(dIndex.AsString());
+		if (pValue)
+			return *pValue;
+		else
+			return CDatum();
+		}
 	}
 
 void CComplexStruct::OnMarked (void)
@@ -1018,3 +1045,23 @@ void CComplexStruct::OnMarked (void)
 		m_Map[i].Mark();
 	}
 
+void CComplexStruct::SetElement (CDatum dIndex, CDatum dDatum)
+
+//	SetElement
+//
+//	Sets the element.
+
+	{
+	if (dIndex.IsNil())
+		{ }
+	else if (dIndex.GetBasicType() == CDatum::typeInteger32)
+		{
+		int iIndex = dIndex;
+		if (iIndex >= 0 && iIndex < m_Map.GetCount())
+			m_Map[iIndex] = dDatum;
+		}
+	else
+		{
+		m_Map.SetAt(dIndex.AsString(), dDatum);
+		}
+	}

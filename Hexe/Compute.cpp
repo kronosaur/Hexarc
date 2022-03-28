@@ -1456,24 +1456,15 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				}
 
 			case opPushArrayItem:
-				iCount = GetOperand(*m_pIP);
+				{
+				DebugCheck(GetOperand(*m_pIP) == 2);
 
-				if (iCount == 2)
-					{
-					int iIndex = m_Stack.Pop();
-					CDatum dArray = m_Stack.Pop();
-					if (iIndex >= 0 && iIndex < dArray.GetCount())
-						m_Stack.Push(dArray.GetElement(iIndex));
-					else
-						m_Stack.Push(CDatum());
-					}
-				else
-					{
-					m_Stack.Push(CDatum());
-					}
-
+				CDatum dIndex = m_Stack.Pop();
+				CDatum dArray = m_Stack.Pop();
+				m_Stack.Push(dArray.GetElement(dIndex));
 				m_pIP++;
 				break;
+				}
 
 			case opPushArrayItemI:
 				{
@@ -1492,19 +1483,11 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				{
 				//	LATER: Check for reference loops
 
-				int iIndex = m_Stack.Pop();
+				CDatum dIndex = m_Stack.Pop();
 				CDatum dArray = m_Stack.Pop();
 				CDatum dValue = m_Stack.Pop();
-				if (iIndex >= 0 && iIndex < dArray.GetCount())
-					{
-					dArray.SetElement(iIndex, dValue);
-					m_Stack.Push(dValue);
-					}
-				else
-					{
-					m_Stack.Push(CDatum());
-					}
-
+				dArray.SetElement(dIndex, dValue);
+				m_Stack.Push(dValue);
 				m_pIP++;
 				break;
 				}
