@@ -279,3 +279,18 @@ bool CHexe::RunFunction1ArgWithCtx (CDatum dFunc, CDatum dArg, CDatum dCtx, CDat
 
 	return RunFunctionWithCtx(dFunc, dArgs, dCtx, retdResult);
 	}
+
+bool CHexe::RunFunction2ArgWithCtx(CDatum dFunc, CDatum dArg1, CDatum dArg2, CDatum dCtx, CDatum& retdResult)
+
+//	RunFunction1ArgWithCtx
+//
+//	Composes a response from a library function to call an function with 
+//	arguments.
+
+	{
+	CDatum dArgs(CDatum::typeArray);
+	dArgs.Append(dArg1);
+	dArgs.Append(dArg2);
+
+	return RunFunctionWithCtx(dFunc, dArgs, dCtx, retdResult);
+	}

@@ -441,6 +441,7 @@ class CHexe
 		static bool InvokeHexarcMsg (const CString &sMsg, CDatum dPayload, CDatum &retdResult);
 		static bool RunFunctionWithCtx (CDatum dFunc, CDatum dArgs, CDatum dCtx, CDatum &retdResult);
 		static bool RunFunction1ArgWithCtx (CDatum dFunc, CDatum dArg, CDatum dCtx, CDatum &retdResult);
+		static bool RunFunction2ArgWithCtx(CDatum dFunc, CDatum dArg1, CDatum dArg2, CDatum dCtx, CDatum& retdResult);
 
 	private:
 		static void Mark (void);
