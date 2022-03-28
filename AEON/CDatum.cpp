@@ -19,6 +19,7 @@ DECLARE_CONST_STRING(ERR_UNKNOWN_FORMAT,				"Unable to determine file format: %s
 DECLARE_CONST_STRING(ERR_CANT_OPEN_FILE,				"Unable to open file: %s.");
 DECLARE_CONST_STRING(ERR_DESERIALIZE_ERROR,				"Unable to parse file: %s.");
 DECLARE_CONST_STRING(ERR_NO_METHODS,					"Methods not supported.");
+DECLARE_CONST_STRING(ERR_INVALID_TABLE_DESC,			"Invalid table descriptor.");
 
 static TAllocatorGC<DWORD> g_IntAlloc;
 static TAllocatorGC<double> g_DoubleAlloc;
@@ -724,6 +725,69 @@ CDateTime CDatum::AsDateTime (void) const
 		}
 	}
 
+CIPInteger CDatum::AsIPInteger () const
+
+//	AsIPInteger
+//
+//	Returns an IPInteger
+
+	{
+	switch (m_dwData & AEON_TYPE_MASK)
+		{
+		case AEON_TYPE_STRING:
+			{
+			if (m_dwData == 0)
+				return CIPInteger(0);
+			else
+				{
+				CIPInteger Result;
+				Result.InitFromString(raw_GetString());
+				return Result;
+				}
+			}
+
+		case AEON_TYPE_NUMBER:
+			switch (m_dwData & AEON_NUMBER_TYPE_MASK)
+				{
+				case AEON_NUMBER_CONSTANT:
+					{
+					switch (m_dwData)
+						{
+						case CONST_NAN:
+							return CIPInteger(0);
+
+						case CONST_TRUE:
+							return CIPInteger(1);
+
+						default:
+							ASSERT(false);
+							return CIPInteger(0);
+						}
+					}
+
+				case AEON_NUMBER_28BIT:
+					return CIPInteger((int)(m_dwData & AEON_NUMBER_MASK) >> 4);
+
+				case AEON_NUMBER_32BIT:
+					return CIPInteger((int)g_IntAlloc.Get(GetNumberIndex()));
+
+				case AEON_NUMBER_DOUBLE:
+					return CIPInteger(g_DoubleAlloc.Get(GetNumberIndex()));
+
+				default:
+					ASSERT(false);
+					return CIPInteger(0);
+				}
+
+		case AEON_TYPE_COMPLEX:
+			return raw_GetComplex()->CastCIPInteger();
+
+		default:
+			ASSERT(false);
+			return CIPInteger(0);
+		}
+	}
+
 CDatum CDatum::AsOptions (bool *retbConverted) const
 
 //	AsOptions
@@ -1371,7 +1435,7 @@ CDatum CDatum::CreateTable (CDatum dType, CDatum dValue)
 	return dTable;
 	}
 
-CDatum CDatum::CreateTableFromDesc (CAEONTypeSystem &TypeSystem, CDatum dDesc)
+bool CDatum::CreateTableFromDesc (CAEONTypeSystem &TypeSystem, CDatum dDesc, CDatum &retdDatum)
 
 //	CreateTableFromDesc
 //
@@ -1385,23 +1449,27 @@ CDatum CDatum::CreateTableFromDesc (CAEONTypeSystem &TypeSystem, CDatum dDesc)
 	{
 	switch (dDesc.GetBasicType())
 		{
+		case CDatum::typeNil:
+			retdDatum = CDatum();
+			return true;
+
 		case CDatum::typeArray:
-			return CAEONTable::CreateTableFromArray(TypeSystem, dDesc);
+			return CAEONTable::CreateTableFromArray(TypeSystem, dDesc, retdDatum);
 
 		case CDatum::typeDatatype:
-			return CAEONTable::CreateTableFromDatatype(TypeSystem, dDesc);
+			return CAEONTable::CreateTableFromDatatype(TypeSystem, dDesc, retdDatum);
 
 		case CDatum::typeStruct:
-			return CAEONTable::CreateTableFromStruct(TypeSystem, dDesc);
+			return CAEONTable::CreateTableFromStruct(TypeSystem, dDesc, retdDatum);
 
 		case CDatum::typeTable:
-			return dDesc.Clone();
+			retdDatum = dDesc.Clone();
+			return true;
 
 		default:
-			return CDatum();
+			retdDatum = ERR_INVALID_TABLE_DESC;
+			return false;
 		}
-
-	return CDatum();
 	}
 
 int CDatum::DefaultCompare (void *pCtx, const CDatum &dKey1, const CDatum &dKey2)

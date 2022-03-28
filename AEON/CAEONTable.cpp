@@ -13,6 +13,10 @@ DECLARE_CONST_STRING(FIELD_VALUES,						"values");
 
 DECLARE_CONST_STRING(TYPENAME_TABLE,					"table");
 
+DECLARE_CONST_STRING(ERR_INVALID_TABLE_SCHEMA,			"Invalid table schema.");
+DECLARE_CONST_STRING(ERR_INVALID_TABLE_ARRAY,			"First element in array must be a structure.");
+DECLARE_CONST_STRING(ERR_UNABLE_TO_CREATE_SCHEMA,		"Unable to create schema.");
+
 void CAEONTable::Append (CDatum dDatum)
 
 //	Append
@@ -199,17 +203,66 @@ size_t CAEONTable::CalcMemorySize (void) const
 	return iSize;
 	}
 
-CDatum CAEONTable::CreateTableFromArray (CAEONTypeSystem &TypeSystem, CDatum dValue)
+bool CAEONTable::CreateTableFromArray (CAEONTypeSystem &TypeSystem, CDatum dValue, CDatum &retdDatum)
 
 //	CreateTableFromArray
 //
 //	Creates a table from an array, creating a schema as necessary.
 
 	{
-	return CDatum();
+	if (dValue.IsNil())
+		{
+		retdDatum = CDatum();
+		return true;
+		}
+
+	//	The first row is special because we use it to compose the schema.
+
+	CDatum dSchema;
+	CDatum dFirstRow = dValue.GetElement(0);
+	int iStartRow = 0;
+	if (dFirstRow.GetBasicType() == CDatum::typeStruct)
+		{
+		TArray<IDatatype::SMemberDesc> Columns;
+		Columns.GrowToFit(dFirstRow.GetCount());
+		for (int i = 0; i < dFirstRow.GetCount(); i++)
+			{
+			auto pNewColumn = Columns.Insert();
+			pNewColumn->iType = IDatatype::EMemberType::InstanceVar;
+			pNewColumn->sName = dFirstRow.GetKey(i);
+			pNewColumn->dType = dFirstRow.GetElement(i).GetDatatype();
+			}
+
+		dSchema = TypeSystem.AddAnonymousSchema(Columns);
+		if (dSchema.IsNil())
+			{
+			retdDatum = ERR_UNABLE_TO_CREATE_SCHEMA;
+			return false;
+			}
+		}
+	else
+		{
+		retdDatum = ERR_INVALID_TABLE_ARRAY;
+		return false;
+		}
+
+	//	Create the table.
+
+	CAEONTable *pNewTable = new CAEONTable(dSchema);
+	retdDatum = CDatum(pNewTable);
+	pNewTable->GrowToFit(dValue.GetCount() - iStartRow);
+
+	//	Now load everything else.
+
+	for (int i = iStartRow; i < dValue.GetCount(); i++)
+		{
+		pNewTable->AppendRow(dValue.GetElement(i));
+		}
+
+	return true;
 	}
 
-CDatum CAEONTable::CreateTableFromDatatype (CAEONTypeSystem &TypeSystem, CDatum dType)
+bool CAEONTable::CreateTableFromDatatype (CAEONTypeSystem &TypeSystem, CDatum dType, CDatum &retdDatum)
 
 //	CreateTableFromDatatype
 //
@@ -221,15 +274,21 @@ CDatum CAEONTable::CreateTableFromDatatype (CAEONTypeSystem &TypeSystem, CDatum 
 	//	If this is a schema datatype, then we're done.
 
 	if (Type.GetClass() == IDatatype::ECategory::Schema)
-		return CDatum::CreateTable(dType);
+		{
+		retdDatum = CDatum::CreateTable(dType);
+		return true;
+		}
 
 	//	Otherwise, nothing.
 
 	else
-		return CDatum();
+		{
+		retdDatum = ERR_INVALID_TABLE_SCHEMA;
+		return false;
+		}
 	}
 
-CDatum CAEONTable::CreateTableFromStruct (CAEONTypeSystem &TypeSystem, CDatum dValue)
+bool CAEONTable::CreateTableFromStruct (CAEONTypeSystem &TypeSystem, CDatum dValue, CDatum &retdDatum)
 
 //	CreateTableFromStruct
 //
@@ -237,6 +296,12 @@ CDatum CAEONTable::CreateTableFromStruct (CAEONTypeSystem &TypeSystem, CDatum dV
 
 	{
 	int iRows = 0;
+	
+	if (dValue.IsNil())
+		{
+		retdDatum = CDatum();
+		return true;
+		}
 
 	//	We treat each field of the struct as a column.
 
@@ -261,7 +326,10 @@ CDatum CAEONTable::CreateTableFromStruct (CAEONTypeSystem &TypeSystem, CDatum dV
 
 	CDatum dSchema = TypeSystem.AddAnonymousSchema(Columns);
 	if (dSchema.IsNil())
-		return CDatum();
+		{
+		retdDatum = ERR_UNABLE_TO_CREATE_SCHEMA;
+		return false;
+		}
 
 	//	Create the table.
 
@@ -289,7 +357,8 @@ CDatum CAEONTable::CreateTableFromStruct (CAEONTypeSystem &TypeSystem, CDatum dV
 			}
 		}
 
-	return CDatum(pNewTable);
+	retdDatum = CDatum(pNewTable);
+	return true;
 	}
 
 IAEONTable::EResult CAEONTable::DeleteAllRows ()

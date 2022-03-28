@@ -59,7 +59,7 @@ local.properties
 *.VC.db
 *.VC.opendb
 *.VC.db-*
-
+.vs/Hexarc/v17/fileList.bin
 
 # Build results
 

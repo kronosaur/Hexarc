@@ -180,7 +180,7 @@ class CDatum
 		static bool CreateStringFromHandoff (CString &sString, CDatum *retDatum);
 		static bool CreateStringFromHandoff (CStringBuffer &String, CDatum *retDatum);
 		static CDatum CreateTable (CDatum dType, CDatum dValue = CDatum());
-		static CDatum CreateTableFromDesc (CAEONTypeSystem &TypeSystem, CDatum dDesc);
+		static bool CreateTableFromDesc (CAEONTypeSystem &TypeSystem, CDatum dDesc, CDatum &retdDatum);
 		static bool Deserialize (EFormat iFormat, IByteStream &Stream, IAEONParseExtension *pExtension, CDatum *retDatum);
 		static bool Deserialize (EFormat iFormat, IByteStream &Stream, CDatum *retDatum) { return Deserialize(iFormat, Stream, NULL, retDatum); }
 		static Types GetStringValueType (const CString &sValue);
@@ -200,6 +200,7 @@ class CDatum
 		//	Standard interface
 		void Append (CDatum dValue);
 		CDateTime AsDateTime (void) const;
+		CIPInteger AsIPInteger () const;
 		CDatum AsOptions (bool *retbConverted = NULL) const;
 		CString AsString (void) const;
 		TArray<CString> AsStringArray (void) const;
@@ -232,6 +233,7 @@ class CDatum
 		bool IsMemoryBlock (void) const;
 		bool IsEqual (CDatum dValue) const;
 		bool IsError (void) const;
+		bool IsIdenticalToNil () const { return (m_dwData == 0); }
 		bool IsNil (void) const;
 		void Mark (void);
 		void ResolveDatatypes (const CAEONTypeSystem &TypeSystem);
