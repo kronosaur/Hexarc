@@ -527,7 +527,7 @@ template <class VALUE> class TIDTable
 	{
 	public:
 		TIDTable (void) { }
-		TIDTable (int iGranularity) : m_Array(iGranularity), m_iCustomID(1) { }
+		TIDTable (int iGranularity) : m_Array(iGranularity) { }
 		TIDTable (const TIDTable<VALUE> &Obj) : m_Array(Obj.m_Array), m_Free(Obj.m_Free) { }
 
 		~TIDTable (void) { DeleteAll(); }
@@ -739,7 +739,7 @@ template <class VALUE> class TIDTable
 
 		TArray<SEntry> m_Array;
 		TArray<DWORD> m_Free;
-		int m_iCustomID;
+		int m_iCustomID = 1;
 	};
 
 #if 0

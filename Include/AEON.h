@@ -533,7 +533,7 @@ class IComplexDatum
 		static constexpr DWORD FLAG_SERIALIZE_AS_STRUCT =	0x00000001;
 		static constexpr DWORD FLAG_SERIALIZE_NO_TYPENAME =	0x00000002;
 
-		IComplexDatum (void) : m_bMarked(false) { }
+		IComplexDatum (void) { }
 		virtual ~IComplexDatum (void) { }
 
 		virtual void Append (CDatum dDatum) { }
@@ -606,7 +606,7 @@ class IComplexDatum
 		CString StructAsString () const;
 
 	private:
-		bool m_bMarked;
+		bool m_bMarked = false;
 	};
 
 class IComplexFactory
