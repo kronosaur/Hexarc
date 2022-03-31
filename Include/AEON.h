@@ -252,6 +252,7 @@ class CDatum
 		bool FitsAsDWORDLONG (void) const { Types iType = GetNumberType(NULL); return (iType == typeInteger32 || iType == typeInteger64); }
 		Types GetNumberType (int *retiValue, CDatum *retdConverted = NULL) const;
 		bool IsNumber (void) const;
+		bool IsNumberInt32 () const;
 
 		//	Function related methods
 		bool CanInvoke (void) const;
@@ -561,7 +562,7 @@ class IComplexDatum
 		virtual CDatum::ECallType GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) const { return CDatum::ECallType::None; }
 		virtual int GetCount (void) const = 0;
 		virtual CDatum GetDatatype () const;
-		virtual CDatum GetElement (CDatum dIndex) const { return GetElement((int)dIndex); }
+		virtual CDatum GetElement (CDatum dIndex) const;
 		virtual CDatum GetElement (IInvokeCtx *pCtx, int iIndex) const { return GetElement(iIndex); }
 		virtual CDatum GetElement (int iIndex) const = 0;
 		virtual CDatum GetElement (IInvokeCtx *pCtx, const CString &sKey) const { return GetElement(sKey); }
@@ -585,7 +586,7 @@ class IComplexDatum
 		void Mark (void) { if (!m_bMarked) { m_bMarked = true; OnMarked(); } }	//	Check m_bMarked to avoid infinite recursion
 		virtual void ResolveDatatypes (const CAEONTypeSystem &TypeSystem) { }
 		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const;
-		virtual void SetElement (CDatum dIndex, CDatum dDatum) { SetElement((int)dIndex, dDatum); }
+		virtual void SetElement (CDatum dIndex, CDatum dDatum);
 		virtual void SetElement (IInvokeCtx *pCtx, const CString &sKey, CDatum dDatum) { SetElement(sKey, dDatum); }
 		virtual void SetElement (const CString &sKey, CDatum dDatum) { }
 		virtual void SetElement (int iIndex, CDatum dDatum) { }

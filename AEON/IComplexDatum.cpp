@@ -186,6 +186,21 @@ CDatum IComplexDatum::GetDatatype () const
 	return CAEONTypeSystem::GetCoreType(IDatatype::ANY);
 	}
 
+CDatum IComplexDatum::GetElement (CDatum dIndex) const
+
+//	GetElement
+//
+//	Returns the element.
+
+	{
+	if (dIndex.IsNil())
+		return CDatum();
+	else if (dIndex.IsNumberInt32())
+		return GetElement((int)dIndex);
+	else
+		return GetElement(dIndex.AsString());
+	}
+
 void IComplexDatum::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const
 
 //	OnSerialize
@@ -351,6 +366,21 @@ void IComplexDatum::SerializeAsStruct (CDatum::EFormat iFormat, IByteStream &Str
 			IComplexDatum::Serialize(iFormat, Stream);
 			break;
 		}
+	}
+
+void IComplexDatum::SetElement (CDatum dIndex, CDatum dDatum)
+
+//	SetElement
+//
+//	Sets the element.
+
+	{
+	if (dIndex.IsNil())
+		{ }
+	else if (dIndex.IsNumberInt32())
+		SetElement((int)dIndex, dDatum);
+	else
+		SetElement(dIndex.AsString(), dDatum);
 	}
 
 CString IComplexDatum::StructAsString () const
@@ -1016,7 +1046,7 @@ CDatum CComplexStruct::GetElement (CDatum dIndex) const
 	{
 	if (dIndex.IsNil())
 		return CDatum();
-	else if (dIndex.GetBasicType() == CDatum::typeInteger32)
+	else if (dIndex.IsNumberInt32())
 		{
 		int iIndex = dIndex;
 		if (iIndex >= 0 && iIndex < m_Map.GetCount())
@@ -1054,7 +1084,7 @@ void CComplexStruct::SetElement (CDatum dIndex, CDatum dDatum)
 	{
 	if (dIndex.IsNil())
 		{ }
-	else if (dIndex.GetBasicType() == CDatum::typeInteger32)
+	else if (dIndex.IsNumberInt32())
 		{
 		int iIndex = dIndex;
 		if (iIndex >= 0 && iIndex < m_Map.GetCount())

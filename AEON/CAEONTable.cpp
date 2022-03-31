@@ -17,6 +17,37 @@ DECLARE_CONST_STRING(ERR_INVALID_TABLE_SCHEMA,			"Invalid table schema.");
 DECLARE_CONST_STRING(ERR_INVALID_TABLE_ARRAY,			"First element in array must be a structure.");
 DECLARE_CONST_STRING(ERR_UNABLE_TO_CREATE_SCHEMA,		"Unable to create schema.");
 
+TDatumPropertyHandler<CAEONTable> CAEONTable::m_Properties = {
+	{
+		"column",
+		"Returns a structure of column values.",
+		[](const CAEONTable &Obj, const CString &sProperty)
+			{
+			CDatum dResult(CDatum::typeStruct);
+
+			const IDatatype &Schema = Obj.m_dSchema;
+			for (int i = 0; i < Schema.GetMemberCount(); i++)
+				{
+				auto ColumnDesc = Schema.GetMember(i);
+
+				dResult.SetElement(ColumnDesc.sName, Obj.m_Cols[i]);
+				}
+
+			return dResult;
+			},
+		NULL,
+		},
+	{
+		"length",
+		"Returns the number of rows in the table.",
+		[](const CAEONTable &Obj, const CString &sProperty)
+			{
+			return CDatum(Obj.GetRowCount());
+			},
+		NULL,
+		},
+	};
+
 void CAEONTable::Append (CDatum dDatum)
 
 //	Append

@@ -2764,6 +2764,44 @@ bool CDatum::IsNumber (void) const
 		}
 	}
 
+bool CDatum::IsNumberInt32 () const
+
+//	IsNumberInt32
+//
+//	Returns TRUE if this value can be safely (losslessly) cast to a 32-bit 
+//	signed integer.
+
+	{
+	switch (GetBasicType())
+		{
+		case typeInteger32:
+			return true;
+
+		case typeInteger64:
+			{
+			DWORDLONG dwValue = (DWORDLONG)*this;
+			return (dwValue <= (DWORDLONG)INT_MAX);
+			}
+
+		case typeIntegerIP:
+			{
+			const auto &Value = (const CIPInteger &)*this;
+			return Value.FitsAsInteger32Signed();
+			}
+
+		case typeDouble:
+			{
+			double rValue = (double)*this;
+			return ((double)(int)rValue == rValue
+					&& rValue >= (double)INT_MIN
+					&& rValue <= (double)INT_MAX);
+			}
+
+		default:
+			return false;
+		}
+	}
+
 void CDatum::Mark (void)
 
 //	Mark
