@@ -257,6 +257,33 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 					m_pIP++;
 				break;
 
+			case opCompareForEach:
+				{
+				//	In this scope we have three variables:
+				//
+				//	0: The list element (user-defined)
+				//	1: The array index ($i)
+				//	2: The array ($array)
+				//
+				//	We compare the array index against the length of the array.
+				//	If less, then we push true; otherwise nil.
+
+				int iIndex = (int)m_pLocalEnv->GetArgument(1);
+				CDatum dArray = m_pLocalEnv->GetArgument(2);
+				m_Stack.Push(CDatum(iIndex < dArray.GetCount()));
+				m_pIP++;
+				break;
+				}
+
+			case opSetForEachItem:
+				{
+				int iIndex = (int)m_pLocalEnv->GetArgument(1);
+				CDatum dArray = m_pLocalEnv->GetArgument(2);
+				m_pLocalEnv->SetArgumentValue(0, dArray.GetElement(iIndex));
+				m_pIP++;
+				break;
+				}
+
 			case opCompareStep:
 				{
 				//	The stack has (in reverse order)

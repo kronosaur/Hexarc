@@ -125,6 +125,9 @@ enum EOpCodes
 	opMutateLocalMultiply =	0x64000000,
 	opMutateLocalDivide =	0x65000000,
 
+	opCompareForEach =		0x66000000,
+	opSetForEachItem =		0x67000000,
+
 	opHalt =				0xff000000,
 
 	opCodeCount =			256,

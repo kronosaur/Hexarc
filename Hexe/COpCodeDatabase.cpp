@@ -9,6 +9,7 @@ DECLARE_CONST_STRING(OP_ADD,							"add")
 DECLARE_CONST_STRING(OP_ADD2,							"add2")
 DECLARE_CONST_STRING(OP_APPEND_LOCAL_ITEM,				"appendLocalItem")
 DECLARE_CONST_STRING(OP_CALL,							"call")
+DECLARE_CONST_STRING(OP_COMPARE_FOR_EACH,				"compareForEach")
 DECLARE_CONST_STRING(OP_DEFINE,							"define")
 DECLARE_CONST_STRING(OP_DEFINE_ARG,						"defineArg")
 DECLARE_CONST_STRING(OP_DEFINE_ARG_FROM_CODE,			"defineArgFromCode")
@@ -70,6 +71,7 @@ DECLARE_CONST_STRING(OP_PUSH_TRUE,						"pushTrue")
 DECLARE_CONST_STRING(OP_RETURN,							"return")
 DECLARE_CONST_STRING(OP_SET_ARRAY_ITEM,					"setArrayItem")
 DECLARE_CONST_STRING(OP_SET_ARRAY_ITEM_I,				"setArrayItemI")
+DECLARE_CONST_STRING(OP_SET_FOR_EACH_ITEM,				"setForEachItem")
 DECLARE_CONST_STRING(OP_SET_GLOBAL,						"setGlobal")
 DECLARE_CONST_STRING(OP_SET_GLOBAL_ITEM,				"setGlobalItem")
 DECLARE_CONST_STRING(OP_SET_LOCAL,						"setLocal")
@@ -164,6 +166,11 @@ static SOpCodeInfo OPCODE_INFO[] =
 	SOpCodeInfo(opMultiply2,		OP_MULTIPLY2,			operandNone ),
 	SOpCodeInfo(opSubtract,			OP_SUBTRACT,			operandIntShort ),
 	SOpCodeInfo(opSubtract2,		OP_SUBTRACT2,			operandNone ),
+
+	//	For Each
+
+	SOpCodeInfo(opCompareForEach,	OP_COMPARE_FOR_EACH,	operandNone ),
+	SOpCodeInfo(opSetForEachItem,	OP_SET_FOR_EACH_ITEM,	operandNone ),
 
 	//	Miscellaneous
 	SOpCodeInfo(opError,			OP_ERROR,				operandIntShort ),
