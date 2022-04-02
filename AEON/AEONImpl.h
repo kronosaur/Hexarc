@@ -128,7 +128,6 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeTable; }
 		virtual int GetCount (void) const override { return m_iRows; }
 		virtual CDatum GetDatatype () const override { return m_dSchema; }
-//		virtual CDatum GetElement (CDatum dIndex) const override;
 		virtual CDatum GetElement (int iIndex) const override;
 		virtual CDatum GetElement (const CString &sKey) const override { return m_Properties.GetProperty(*this, sKey); }
 		virtual IAEONTable *GetTableInterface () { return this; }
@@ -138,7 +137,6 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual bool IsNil (void) const override { return (GetCount() == 0); }
 		virtual void ResolveDatatypes (const CAEONTypeSystem &TypeSystem) override;
 		virtual void Sort (ESortOptions Order = AscendingSort, TArray<CDatum>::COMPAREPROC pfCompare = NULL, void *pCtx = NULL) override { throw CException(errFail); }
-//		virtual void SetElement (CDatum dIndex, CDatum dDatum) override;
 		virtual void SetElement (int iIndex, CDatum dDatum) override;
 		virtual void SetElement (const CString &sKey, CDatum dDatum) override { m_Properties.SetProperty(*this, sKey, dDatum, NULL); }
 

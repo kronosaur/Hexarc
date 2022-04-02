@@ -2123,23 +2123,6 @@ int CDatum::GetCount (void) const
 		}
 	}
 
-CDatum CDatum::GetElement (CDatum dIndex) const
-
-//	GetElement
-//
-//	Gets the appropriate element
-
-	{
-	switch (m_dwData & AEON_TYPE_MASK)
-		{
-		case AEON_TYPE_COMPLEX:
-			return raw_GetComplex()->GetElement(dIndex);
-
-		default:
-			return CDatum();
-		}
-	}
-
 CDatum CDatum::GetElement (IInvokeCtx *pCtx, int iIndex) const
 
 //	GetElement
@@ -2228,6 +2211,23 @@ CDatum CDatum::GetElement (const CString &sKey) const
 		{
 		case AEON_TYPE_COMPLEX:
 			return raw_GetComplex()->GetElement(sKey);
+
+		default:
+			return CDatum();
+		}
+	}
+
+CDatum CDatum::GetElementAt (CDatum dIndex) const
+
+//	GetElement
+//
+//	Gets the appropriate element
+
+	{
+	switch (m_dwData & AEON_TYPE_MASK)
+		{
+		case AEON_TYPE_COMPLEX:
+			return raw_GetComplex()->GetElementAt(dIndex);
 
 		default:
 			return CDatum();
@@ -2351,6 +2351,8 @@ CDatum::Types CDatum::GetNumberType (int *retiValue, CDatum *retdConverted) cons
 					return typeInteger32;
 
 				case AEON_NUMBER_DOUBLE:
+					if (retiValue)
+						*retiValue = (int)g_DoubleAlloc.Get(GetNumberIndex());
 					return typeDouble;
 
 				default:
@@ -2977,27 +2979,6 @@ CString CDatum::SerializeToString (EFormat iFormat) const
 	return CString::CreateFromHandoff(Output);
 	}
 
-void CDatum::SetElement (CDatum dIndex, CDatum dValue)
-
-//	SetElement
-//
-//	Sets the value to the datum. Note that this modifies the datum in place.
-//	Do not use this unless you are sure about who else might have a pointer
-//	to the datum.
-
-	{
-	switch (m_dwData & AEON_TYPE_MASK)
-		{
-		case AEON_TYPE_COMPLEX:
-			raw_GetComplex()->SetElement(dIndex, dValue);
-			break;
-
-		default:
-			//	Nothing happens
-			break;
-		}
-	}
-
 void CDatum::SetElement (IInvokeCtx *pCtx, const CString &sKey, CDatum dValue)
 
 //	SetElement
@@ -3053,6 +3034,27 @@ void CDatum::SetElement (int iIndex, CDatum dValue)
 		{
 		case AEON_TYPE_COMPLEX:
 			raw_GetComplex()->SetElement(iIndex, dValue);
+			break;
+
+		default:
+			//	Nothing happens
+			break;
+		}
+	}
+
+void CDatum::SetElementAt (CDatum dIndex, CDatum dValue)
+
+//	SetElement
+//
+//	Sets the value to the datum. Note that this modifies the datum in place.
+//	Do not use this unless you are sure about who else might have a pointer
+//	to the datum.
+
+	{
+	switch (m_dwData & AEON_TYPE_MASK)
+		{
+		case AEON_TYPE_COMPLEX:
+			raw_GetComplex()->SetElementAt(dIndex, dValue);
 			break;
 
 		default:

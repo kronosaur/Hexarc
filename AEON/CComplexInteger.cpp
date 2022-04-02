@@ -36,9 +36,19 @@ CDatum::Types CComplexInteger::GetNumberType (int *retiValue)
 //	Returns the number type
 
 	{
+	//	If we fit as a 32-bit integer.
+
+	if (m_Value.FitsAsInteger32Signed())
+		{
+		if (retiValue)
+			*retiValue = m_Value.AsInteger32Signed();
+
+		return CDatum::typeInteger32;
+		}
+
 	//	If we fit in a DWORDLONG, then return that.
 
-	if (m_Value.FitsAsInteger64Unsigned())
+	else if (m_Value.FitsAsInteger64Unsigned())
 		return CDatum::typeInteger64;
 
 	//	Otherwise we need to be an infinite precision integer

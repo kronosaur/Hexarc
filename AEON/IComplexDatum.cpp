@@ -186,7 +186,7 @@ CDatum IComplexDatum::GetDatatype () const
 	return CAEONTypeSystem::GetCoreType(IDatatype::ANY);
 	}
 
-CDatum IComplexDatum::GetElement (CDatum dIndex) const
+CDatum IComplexDatum::GetElementAt (CDatum dIndex) const
 
 //	GetElement
 //
@@ -368,7 +368,7 @@ void IComplexDatum::SerializeAsStruct (CDatum::EFormat iFormat, IByteStream &Str
 		}
 	}
 
-void IComplexDatum::SetElement (CDatum dIndex, CDatum dDatum)
+void IComplexDatum::SetElementAt (CDatum dIndex, CDatum dDatum)
 
 //	SetElement
 //
@@ -575,6 +575,30 @@ bool CComplexArray::FindElement (CDatum dValue, int *retiIndex) const
 	return false;
 	}
 
+CDatum CComplexArray::GetElementAt (CDatum dIndex) const
+
+//	GetElementAt
+//
+//	Returns the element at the index.
+	
+	{
+	int iIndex;
+	auto iType = dIndex.GetNumberType(&iIndex);
+	
+	switch (iType)
+		{
+		case CDatum::typeInteger32:
+		case CDatum::typeDouble:
+			if (iIndex >= 0 && iIndex < m_Array.GetCount())
+				return m_Array[iIndex];
+			else
+				return CDatum();
+
+		default:
+			return CDatum();
+		}
+	}
+
 size_t CComplexArray::OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const
 
 //	OnCalcSerializeSizeAEONScript
@@ -648,6 +672,29 @@ void CComplexArray::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) con
 
 		default:
 			IComplexDatum::Serialize(iFormat, Stream);
+			break;
+		}
+	}
+
+void CComplexArray::SetElementAt (CDatum dIndex, CDatum dDatum)
+
+//	SetElementAt
+//
+//	Sets element at the index.
+
+	{
+	int iIndex;
+	auto iType = dIndex.GetNumberType(&iIndex);
+	
+	switch (iType)
+		{
+		case CDatum::typeInteger32:
+		case CDatum::typeDouble:
+			if (iIndex >= 0 && iIndex < m_Array.GetCount())
+				m_Array[iIndex] = dDatum;
+			break;
+
+		default:
 			break;
 		}
 	}
@@ -1037,7 +1084,7 @@ bool CComplexStruct::FindElement (const CString &sKey, CDatum *retpValue)
 	return true;
 	}
 
-CDatum CComplexStruct::GetElement (CDatum dIndex) const
+CDatum CComplexStruct::GetElementAt (CDatum dIndex) const
 
 //	GetElement
 //
@@ -1075,7 +1122,7 @@ void CComplexStruct::OnMarked (void)
 		m_Map[i].Mark();
 	}
 
-void CComplexStruct::SetElement (CDatum dIndex, CDatum dDatum)
+void CComplexStruct::SetElementAt (CDatum dIndex, CDatum dDatum)
 
 //	SetElement
 //
