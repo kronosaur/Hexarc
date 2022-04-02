@@ -19,18 +19,18 @@ DECLARE_CONST_STRING(ERR_UNABLE_TO_CREATE_SCHEMA,		"Unable to create schema.");
 
 TDatumPropertyHandler<CAEONTable> CAEONTable::m_Properties = {
 	{
-		"column",
-		"Returns a structure of column values.",
+		"columns",
+		"Returns an array of all column IDs.",
 		[](const CAEONTable &Obj, const CString &sProperty)
 			{
-			CDatum dResult(CDatum::typeStruct);
+			CDatum dResult(CDatum::typeArray);
 
 			const IDatatype &Schema = Obj.m_dSchema;
 			for (int i = 0; i < Schema.GetMemberCount(); i++)
 				{
 				auto ColumnDesc = Schema.GetMember(i);
 
-				dResult.SetElement(ColumnDesc.sName, Obj.m_Cols[i]);
+				dResult.Append(ColumnDesc.sName);
 				}
 
 			return dResult;
@@ -477,6 +477,25 @@ CDatum CAEONTable::GetDataSlice (int iFirstRow, int iRowCount) const
 	return dResult;
 	}
 
+CDatum CAEONTable::GetElementAt (CDatum dIndex) const
+
+//	GetElementAt
+//
+//	Handles array subscript
+
+	{
+	int iIndex;
+
+	if (dIndex.IsNil())
+		return CDatum();
+	else if (dIndex.IsNumberInt32(&iIndex))
+		return GetElement(iIndex);
+	else if (FindCol(dIndex.AsString(), &iIndex))
+		return m_Cols[iIndex];
+	else
+		return CDatum();
+	}
+
 CDatum CAEONTable::GetFieldValue (int iRow, int iCol) const
 
 //	GetFieldValue
@@ -704,6 +723,53 @@ void CAEONTable::SetElement (int iIndex, CDatum dDatum)
 
 		CDatum dValue = dDatum.GetElement(ColumnDesc.sName);
 		m_Cols[i].SetElement(iIndex, dValue);
+		}
+	}
+
+void CAEONTable::SetElementAt (CDatum dIndex, CDatum dDatum)
+
+//	SetElementAt
+//
+//	Sets a row or a column
+
+	{
+	int iIndex;
+
+	if (dIndex.IsNil())
+		{ }
+	else if (dIndex.IsNumberInt32(&iIndex))
+		SetElement(iIndex, dDatum);
+	else if (FindCol(dIndex.AsString(), &iIndex))
+		{
+		if (dDatum.GetCount() <= m_iRows)
+			{
+			for (int i = 0; i < dDatum.GetCount(); i++)
+				m_Cols[iIndex].SetElement(i, dDatum.GetElement(i));
+
+			for (int i = dDatum.GetCount(); i < m_iRows; i++)
+				m_Cols[iIndex].SetElement(i, CDatum());
+			}
+		else
+			{
+			int iExtraRows = dDatum.GetCount() - m_iRows;
+
+			for (int i = 0; i < m_iRows; i++)
+				m_Cols[iIndex].SetElement(i, dDatum.GetElement(i));
+
+			m_Cols[iIndex].GrowToFit(iExtraRows);
+			for (int i = m_iRows; i < dDatum.GetCount(); i++)
+				m_Cols[iIndex].Append(dDatum.GetElement(i));
+
+			for (int i = 0; i < m_Cols.GetCount(); i++)
+				{
+				if (i == iIndex)
+					continue;
+
+				m_Cols[i].GrowToFit(iExtraRows);
+				for (int j = 0; j < iExtraRows; j++)
+					m_Cols[i].Append(CDatum());
+				}
+			}
 		}
 	}
 

@@ -682,6 +682,67 @@ void CDatum::Append (CDatum dValue)
 		}
 	}
 
+int CDatum::AsArrayIndex () const
+
+//	AsArrayIndex
+//
+//	Converts to a 32-bit signed index. If we return -1, then conversion failed.
+
+	{
+	switch (m_dwData & AEON_TYPE_MASK)
+		{
+		case AEON_TYPE_STRING:
+			{
+			if (m_dwData == 0)
+				return -1;
+			else
+				{
+				CDatum dNumberValue;
+				if (!CDatum::CreateFromStringValue(*this, &dNumberValue)
+						|| !dNumberValue.IsNumber())
+					return -1;
+
+				return dNumberValue.AsArrayIndex();
+				}
+			}
+
+		case AEON_TYPE_NUMBER:
+			switch (m_dwData & AEON_NUMBER_TYPE_MASK)
+				{
+				case AEON_NUMBER_CONSTANT:
+					{
+					switch (m_dwData)
+						{
+						case CONST_NAN:
+						case CONST_TRUE:
+							return -1;
+
+						default:
+							return -1;
+						}
+					}
+
+				case AEON_NUMBER_28BIT:
+					return ((int)(m_dwData & AEON_NUMBER_MASK) >> 4);
+
+				case AEON_NUMBER_32BIT:
+					return (int)g_IntAlloc.Get(GetNumberIndex());
+
+				case AEON_NUMBER_DOUBLE:
+					return (int)g_DoubleAlloc.Get(GetNumberIndex());
+
+				default:
+					return -1;
+				}
+
+		case AEON_TYPE_COMPLEX:
+			return raw_GetComplex()->AsArrayIndex();
+
+		default:
+			return -1;
+		}
+	}
+
 void CDatum::AsAttributeList (CAttributeList *retAttribs) const
 
 //	AsAttributeList
@@ -2766,37 +2827,60 @@ bool CDatum::IsNumber (void) const
 		}
 	}
 
-bool CDatum::IsNumberInt32 () const
+bool CDatum::IsNumberInt32 (int *retiValue) const
 
 //	IsNumberInt32
 //
 //	Returns TRUE if this value can be safely (losslessly) cast to a 32-bit 
 //	signed integer.
+//
+//	NOTE: Unlike some other number functions, we don't convert strings to 
+//	numbers because callers rely on this to tell the difference between (e.g.)
+//	numeric indices vs. string indices.
 
 	{
 	switch (GetBasicType())
 		{
 		case typeInteger32:
+			if (retiValue) *retiValue = (int)*this;
 			return true;
 
 		case typeInteger64:
 			{
 			DWORDLONG dwValue = (DWORDLONG)*this;
-			return (dwValue <= (DWORDLONG)INT_MAX);
+			if (dwValue <= (DWORDLONG)INT_MAX)
+				{
+				if (retiValue) *retiValue = (int)dwValue;
+				return true;
+				}
+			else
+				return false;
 			}
 
 		case typeIntegerIP:
 			{
 			const auto &Value = (const CIPInteger &)*this;
-			return Value.FitsAsInteger32Signed();
+			if (Value.FitsAsInteger32Signed())
+				{
+				if (retiValue) *retiValue = Value.AsInteger32Signed();
+				return true;
+				}
+			else
+				return false;
 			}
 
 		case typeDouble:
 			{
 			double rValue = (double)*this;
-			return ((double)(int)rValue == rValue
+			if ((double)(int)rValue == rValue
 					&& rValue >= (double)INT_MIN
-					&& rValue <= (double)INT_MAX);
+					&& rValue <= (double)INT_MAX)
+				{
+				if (retiValue) *retiValue = (int)rValue;
+				return true;
+				}
+			else
+				return false;
 			}
 
 		default:

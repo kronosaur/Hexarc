@@ -8,6 +8,19 @@
 DECLARE_CONST_STRING(TYPENAME_IP_INTEGER,				"ipInteger")
 const CString &CComplexInteger::GetTypename (void) const { return TYPENAME_IP_INTEGER; }
 
+int CComplexInteger::AsArrayIndex () const
+
+//	AsArrayIndex
+//
+//	Converts to 32-bit array index (or -1).
+
+	{
+	if (m_Value.FitsAsInteger32Signed())
+		return m_Value.AsInteger32Signed();
+	else
+		return -1;
+	}
+
 DWORDLONG CComplexInteger::CastDWORDLONG (void) const
 
 //	CastDWORDLONG

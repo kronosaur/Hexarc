@@ -199,6 +199,7 @@ class CDatum
 
 		//	Standard interface
 		void Append (CDatum dValue);
+		int AsArrayIndex () const;
 		CDateTime AsDateTime (void) const;
 		CIPInteger AsIPInteger () const;
 		CDatum AsOptions (bool *retbConverted = NULL) const;
@@ -252,7 +253,7 @@ class CDatum
 		bool FitsAsDWORDLONG (void) const { Types iType = GetNumberType(NULL); return (iType == typeInteger32 || iType == typeInteger64); }
 		Types GetNumberType (int *retiValue, CDatum *retdConverted = NULL) const;
 		bool IsNumber (void) const;
-		bool IsNumberInt32 () const;
+		bool IsNumberInt32 (int *retiValue = NULL) const;
 
 		//	Function related methods
 		bool CanInvoke (void) const;
@@ -538,6 +539,7 @@ class IComplexDatum
 		virtual ~IComplexDatum (void) { }
 
 		virtual void Append (CDatum dDatum) { }
+		virtual int AsArrayIndex () const { return -1; }
 		virtual CString AsString (void) const { return NULL_STR; }
 		virtual size_t CalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const;
 		virtual size_t CalcMemorySize (void) const = 0;
@@ -835,6 +837,7 @@ class CComplexInteger : public IComplexDatum
 		void TakeHandoff (CIPInteger &Value) { m_Value.TakeHandoff(Value); }
 
 		//	IComplexDatum
+		virtual int AsArrayIndex () const override;
 		virtual CString AsString (void) const override { return m_Value.AsString(); }
 		virtual size_t CalcMemorySize (void) const override { return m_Value.GetSize(); }
 		virtual const CIPInteger &CastCIPInteger (void) const override { return m_Value; }

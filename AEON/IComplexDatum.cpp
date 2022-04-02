@@ -193,10 +193,12 @@ CDatum IComplexDatum::GetElementAt (CDatum dIndex) const
 //	Returns the element.
 
 	{
+	int iIndex;
+
 	if (dIndex.IsNil())
 		return CDatum();
-	else if (dIndex.IsNumberInt32())
-		return GetElement((int)dIndex);
+	else if (dIndex.IsNumberInt32(&iIndex))
+		return GetElement(iIndex);
 	else
 		return GetElement(dIndex.AsString());
 	}
@@ -375,10 +377,12 @@ void IComplexDatum::SetElementAt (CDatum dIndex, CDatum dDatum)
 //	Sets the element.
 
 	{
+	int iIndex;
+
 	if (dIndex.IsNil())
 		{ }
-	else if (dIndex.IsNumberInt32())
-		SetElement((int)dIndex, dDatum);
+	else if (dIndex.IsNumberInt32(&iIndex))
+		SetElement(iIndex, dDatum);
 	else
 		SetElement(dIndex.AsString(), dDatum);
 	}
@@ -582,21 +586,11 @@ CDatum CComplexArray::GetElementAt (CDatum dIndex) const
 //	Returns the element at the index.
 	
 	{
-	int iIndex;
-	auto iType = dIndex.GetNumberType(&iIndex);
-	
-	switch (iType)
-		{
-		case CDatum::typeInteger32:
-		case CDatum::typeDouble:
-			if (iIndex >= 0 && iIndex < m_Array.GetCount())
-				return m_Array[iIndex];
-			else
-				return CDatum();
-
-		default:
-			return CDatum();
-		}
+	int iIndex = dIndex.AsArrayIndex();
+	if (iIndex >= 0 && iIndex < m_Array.GetCount())
+		return m_Array[iIndex];
+	else
+		return CDatum();
 	}
 
 size_t CComplexArray::OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const
@@ -683,20 +677,9 @@ void CComplexArray::SetElementAt (CDatum dIndex, CDatum dDatum)
 //	Sets element at the index.
 
 	{
-	int iIndex;
-	auto iType = dIndex.GetNumberType(&iIndex);
-	
-	switch (iType)
-		{
-		case CDatum::typeInteger32:
-		case CDatum::typeDouble:
-			if (iIndex >= 0 && iIndex < m_Array.GetCount())
-				m_Array[iIndex] = dDatum;
-			break;
-
-		default:
-			break;
-		}
+	int iIndex = dIndex.AsArrayIndex();
+	if (iIndex >= 0 && iIndex < m_Array.GetCount())
+		m_Array[iIndex] = dDatum;
 	}
 
 //	CComplexDateTime -----------------------------------------------------------
