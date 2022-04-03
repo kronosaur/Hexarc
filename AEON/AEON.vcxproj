@@ -187,6 +187,7 @@
     <ClCompile Include="CAEONFactoryList.cpp" />
     <ClCompile Include="CAEONPolygon2D.cpp" />
     <ClCompile Include="CAEONTable.cpp" />
+    <ClCompile Include="CAEONTableRef.cpp" />
     <ClCompile Include="CAEONTimeSpan.cpp" />
     <ClCompile Include="CAEONTypeSystem.cpp" />
     <ClCompile Include="CAEONVector.cpp" />
@@ -204,6 +205,7 @@
     <ClCompile Include="CDatatypeSimple.cpp" />
     <ClCompile Include="CDatum.cpp" />
     <ClCompile Include="HTTP.cpp" />
+    <ClCompile Include="IAEONTable.cpp" />
     <ClCompile Include="IComplexDatum.cpp" />
     <ClCompile Include="IDatatype.cpp" />
     <ClCompile Include="JSON.cpp" />

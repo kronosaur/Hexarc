@@ -769,8 +769,27 @@ void CAEONTable::SetElementAt (CDatum dIndex, CDatum dDatum)
 				for (int j = 0; j < iExtraRows; j++)
 					m_Cols[i].Append(CDatum());
 				}
+
+			m_iRows += iExtraRows;
 			}
 		}
+	}
+
+bool CAEONTable::SetFieldValue (int iRow, int iCol, CDatum dValue)
+
+//	SetFieldValue
+//
+//	Sets the value.
+
+	{
+	if (iRow < 0 || iRow >= m_iRows)
+		return false;
+
+	if (iCol < 0 || iCol >= m_Cols.GetCount())
+		return false;
+
+	m_Cols[iCol].SetElement(iRow, dValue);
+	return true;
 	}
 
 void CAEONTable::SetSchema (CDatum dSchema)

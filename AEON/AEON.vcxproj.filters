@@ -96,6 +96,12 @@
     <ClCompile Include="IDatatype.cpp">
       <Filter>Source Files\Type System</Filter>
     </ClCompile>
+    <ClCompile Include="CAEONTableRef.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="IAEONTable.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Include\AEON.h">
