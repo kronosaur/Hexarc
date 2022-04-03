@@ -102,6 +102,15 @@
     <ClCompile Include="IAEONTable.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CComplexArray.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CComplexDateTime.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CComplexStruct.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Include\AEON.h">

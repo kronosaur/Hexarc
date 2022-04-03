@@ -192,11 +192,14 @@
     <ClCompile Include="CAEONTypeSystem.cpp" />
     <ClCompile Include="CAEONVector.cpp" />
     <ClCompile Include="CAEONVector2D.cpp" />
+    <ClCompile Include="CComplexArray.cpp" />
     <ClCompile Include="CComplexBinary.cpp" />
     <ClCompile Include="CComplexBinaryFile.cpp" />
     <ClCompile Include="CComplexDatatype.cpp" />
+    <ClCompile Include="CComplexDateTime.cpp" />
     <ClCompile Include="CComplexImage32.cpp" />
     <ClCompile Include="CComplexInteger.cpp" />
+    <ClCompile Include="CComplexStruct.cpp" />
     <ClCompile Include="CDatatypeArray.cpp" />
     <ClCompile Include="CDatatypeClass.cpp" />
     <ClCompile Include="CDatatypeList.cpp" />
