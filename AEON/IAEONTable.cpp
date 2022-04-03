@@ -24,18 +24,22 @@ bool IAEONTable::CreateSchema (CAEONTypeSystem& TypeSystem, CDatum dTable, SSubs
 //	Creates a subset schema.
 
 	{
+	//	Otherwise we need to construct a new schema.
+
+	const IDatatype &Schema = dTable.GetDatatype();
+
 	//	If no columns listed, then we take all the columns in the source table,
 	//	which means the schema is the same.
 
 	if (Subset.Cols.GetCount() == 0)
 		{
 		retdSchema = dTable.GetDatatype();
+		Subset.Cols.InsertEmpty(Schema.GetMemberCount());
+		for (int i = 0; i < Subset.Cols.GetCount(); i++)
+			Subset.Cols[i] = i;
+
 		return true;
 		}
-
-	//	Otherwise we need to construct a new schema.
-
-	const IDatatype &Schema = dTable.GetDatatype();
 
 	//	Make a list of columns to take.
 
