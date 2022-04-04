@@ -107,6 +107,19 @@ const CString &CAEONTimeSpan::GetTypename (void) const
 	return TYPENAME_TIME_SPAN;
 	}
 
+CDatum CAEONTimeSpan::MathAbs () const
+
+//	MathAbs
+//
+//	Computes absolute value.
+
+	{
+	if (m_TimeSpan.IsNegative())
+		return CDatum(CTimeSpan(m_TimeSpan, false));
+	else
+		return CDatum::raw_AsComplex(this);
+	}
+
 size_t CAEONTimeSpan::OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const
 
 //	OnCalcSerializeAEONScript

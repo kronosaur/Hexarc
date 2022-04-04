@@ -42,7 +42,7 @@
     <ClCompile Include="JSON.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Math.cpp">
+    <ClCompile Include="CNumberValue.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="stdafx.cpp">
@@ -109,6 +109,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CComplexStruct.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AEONMath.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CAEONStore.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

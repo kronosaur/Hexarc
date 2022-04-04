@@ -209,9 +209,59 @@ CDatum CAEONTable::CalcColumnDatatype (CDatum dValue)
 //	Computes the column datatype based on a value.
 
 	{
-	if (dValue.GetBasicType() == CDatum::typeArray)
+	if (dValue.IsArray())
 		{
-		return dValue.GetElement(0).GetDatatype();
+		const IDatatype &ArrayType = dValue.GetDatatype();
+
+		switch (ArrayType.GetCoreType())
+			{
+			case IDatatype::ARRAY_INT_32:
+				return CAEONTypeSystem::GetCoreType(IDatatype::INT_32);
+
+			case IDatatype::ARRAY_FLOAT_64:
+				return CAEONTypeSystem::GetCoreType(IDatatype::FLOAT_64);
+
+			case IDatatype::ARRAY_STRING:
+				return CAEONTypeSystem::GetCoreType(IDatatype::STRING);
+
+			//	For everything else, see if we can compute an element type based
+			//	on the values.
+
+			default:
+				{
+				if (dValue.GetCount() == 0)
+					return CAEONTypeSystem::GetCoreType(IDatatype::ANY);
+				else
+					{
+					CDatum::Types iElementType = dValue.GetElement(0).GetBasicType();
+					if (iElementType != CDatum::typeInteger32
+							&& iElementType != CDatum::typeDouble
+							&& iElementType != CDatum::typeString)
+						return CAEONTypeSystem::GetCoreType(IDatatype::ANY);
+
+					for (int i = 1; i < dValue.GetCount(); i++)
+						{
+						if (dValue.GetElement(i).GetBasicType() != iElementType)
+							return CAEONTypeSystem::GetCoreType(IDatatype::ANY);
+						}
+
+					switch (iElementType)
+						{
+						case CDatum::typeInteger32:
+							return CAEONTypeSystem::GetCoreType(IDatatype::INT_32);
+
+						case CDatum::typeDouble:
+							return CAEONTypeSystem::GetCoreType(IDatatype::FLOAT_64);
+
+						case CDatum::typeString:
+							return CAEONTypeSystem::GetCoreType(IDatatype::STRING);
+
+						default:
+							return CAEONTypeSystem::GetCoreType(IDatatype::ANY);
+						}
+					}
+				}
+			}
 		}
 	else
 		{

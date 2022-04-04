@@ -1,7 +1,7 @@
-//	Math.cpp
+//	CNumberValue.cpp
 //
-//	Math functions
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	CNumberValue class
+//	Copyright (c) 2011 Kronosaur Productions, LLC. All Rights Reserved.
 
 #include "stdafx.h"
 

@@ -177,6 +177,22 @@ CDatum CComplexArray::GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) 
 		return CDatum();
 	}
 
+CDatum CComplexArray::MathAbs () const
+
+//	MathAbs
+//
+//	Returns a new array of absolute values.
+
+	{
+	CDatum dResult(CDatum::typeArray);
+	dResult.GrowToFit(m_Array.GetCount());
+	for (int i = 0; i < m_Array.GetCount(); i++)
+		{
+		dResult.Append(m_Array[i].MathAbs());
+		}
+	return dResult;
+	}
+
 size_t CComplexArray::OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const
 
 //	OnCalcSerializeSizeAEONScript
@@ -264,60 +280,5 @@ void CComplexArray::SetElementAt (CDatum dIndex, CDatum dDatum)
 	int iIndex = dIndex.AsArrayIndex();
 	if (iIndex >= 0 && iIndex < m_Array.GetCount())
 		m_Array[iIndex] = dDatum;
-	}
-
-//	CComplexDateTime -----------------------------------------------------------
-
-CString CComplexDateTime::AsString (void) const
-
-//	AsString
-//
-//	NOTE: We rely on the fact that the returned string is sortable (i.e.,
-//	comparable to other strings).
-
-	{
-	if (m_DateTime.HasDate() && m_DateTime.HasTime())
-		{
-		if (m_DateTime.Millisecond() == 0)
-			return strPattern("%04d-%02d-%02dT%02d:%02d:%02d",
-					m_DateTime.Year(),
-					m_DateTime.Month(),
-					m_DateTime.Day(),
-					m_DateTime.Hour(),
-					m_DateTime.Minute(),
-					m_DateTime.Second());
-		else
-			return strPattern("%04d-%02d-%02dT%02d:%02d:%02d.%03d",
-					m_DateTime.Year(),
-					m_DateTime.Month(),
-					m_DateTime.Day(),
-					m_DateTime.Hour(),
-					m_DateTime.Minute(),
-					m_DateTime.Second(),
-					m_DateTime.Millisecond());
-		}
-	else if (m_DateTime.HasDate())
-		{
-		return strPattern("%04d-%02d-%02d",
-				m_DateTime.Year(),
-				m_DateTime.Month(),
-				m_DateTime.Day());
-		}
-	else if (m_DateTime.HasTime())
-		{
-		if (m_DateTime.Millisecond() == 0)
-			return strPattern("%02d:%02d:%02d",
-					m_DateTime.Hour(),
-					m_DateTime.Minute(),
-					m_DateTime.Second());
-		else
-			return strPattern("%02d:%02d:%02d.%03d",
-					m_DateTime.Hour(),
-					m_DateTime.Minute(),
-					m_DateTime.Second(),
-					m_DateTime.Millisecond());
-		}
-	else
-		return NULL_STR;
 	}
 

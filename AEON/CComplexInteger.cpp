@@ -70,6 +70,19 @@ CDatum::Types CComplexInteger::GetNumberType (int *retiValue)
 		return CDatum::typeIntegerIP;
 	}
 
+CDatum CComplexInteger::MathAbs () const
+
+//	MathAbs
+//
+//	Absolte value.
+
+	{
+	if (m_Value.IsNegative())
+		return CDatum(-m_Value);
+	else
+		return CDatum::raw_AsComplex(this);
+	}
+
 size_t CComplexInteger::OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const
 
 //	OnCalcSerializeSizeAEONScript

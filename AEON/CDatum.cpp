@@ -21,13 +21,8 @@ DECLARE_CONST_STRING(ERR_DESERIALIZE_ERROR,				"Unable to parse file: %s.");
 DECLARE_CONST_STRING(ERR_NO_METHODS,					"Methods not supported.");
 DECLARE_CONST_STRING(ERR_INVALID_TABLE_DESC,			"Invalid table descriptor.");
 
-static TAllocatorGC<DWORD> g_IntAlloc;
-static TAllocatorGC<double> g_DoubleAlloc;
-static CGCStringAllocator g_StringAlloc;
-static CGCComplexAllocator g_ComplexAlloc;
 static CAEONFactoryList *g_pFactories = NULL;
 static int g_iUnalignedLiteralCount = 0;
-static TArray<MARKPROC> g_MarkList;
 
 CDatum::CDatum (Types iType)
 
@@ -107,7 +102,7 @@ CDatum::CDatum (int iValue)
 
 	else
 		{
-		DWORD_PTR dwID = g_IntAlloc.New(dwValue);
+		DWORD_PTR dwID = CAEONStore::Alloc(dwValue);
 		m_dwData = (dwID << 4) | AEON_NUMBER_32BIT;
 		}
 	}
@@ -126,7 +121,7 @@ CDatum::CDatum (DWORD dwValue)
 
 	else
 		{
-		DWORD_PTR dwID = g_IntAlloc.New(dwValue);
+		DWORD_PTR dwID = CAEONStore::Alloc(dwValue);
 		m_dwData = (dwID << 4) | AEON_NUMBER_32BIT;
 		}
 	}
@@ -142,7 +137,7 @@ CDatum::CDatum (DWORDLONG ilValue)
 
 	//	Take ownership of the complex type
 
-	g_ComplexAlloc.New(pIPInt);
+	CAEONStore::Alloc(pIPInt);
 
 	//	Store the pointer and assign type
 
@@ -154,7 +149,7 @@ CDatum::CDatum (double rValue)
 //	CDatum constructor
 
 	{
-	DWORD_PTR dwID = g_DoubleAlloc.New(rValue);
+	DWORD_PTR dwID = CAEONStore::Alloc(rValue);
 	m_dwData = (dwID << 4) | AEON_NUMBER_DOUBLE;
 	}
 
@@ -197,7 +192,7 @@ CDatum::CDatum (const CString &sString)
 	//	(If pString is NULL then this is represented as Nil).
 
 	if (pString)
-		g_StringAlloc.New(pString);
+		CAEONStore::Alloc(pString);
 
 	//	Store the pointer
 
@@ -230,7 +225,7 @@ CDatum::CDatum (IComplexDatum *pValue)
 
 	//	Take ownership of the complex type
 
-	g_ComplexAlloc.New(pValue);
+	CAEONStore::Alloc(pValue);
 
 	//	Store the pointer and assign type
 
@@ -248,7 +243,7 @@ CDatum::CDatum (const CDateTime &DateTime)
 
 		//	Take ownership of the complex type
 
-		g_ComplexAlloc.New(pDateTime);
+		CAEONStore::Alloc(pDateTime);
 
 		//	Store the pointer and assign type
 
@@ -267,7 +262,7 @@ CDatum::CDatum (const CIPInteger &Value)
 
 	//	Take ownership of the complex type
 
-	g_ComplexAlloc.New(pValue);
+	CAEONStore::Alloc(pValue);
 
 	//	Store the pointer and assign type
 
@@ -283,7 +278,7 @@ CDatum::CDatum (const CRGBA32Image &Value)
 
 	//	Take ownership of the complex type
 
-	g_ComplexAlloc.New(pValue);
+	CAEONStore::Alloc(pValue);
 
 	//	Store the pointer and assign type
 
@@ -299,7 +294,7 @@ CDatum::CDatum (CRGBA32Image &&Value)
 
 	//	Take ownership of the complex type
 
-	g_ComplexAlloc.New(pValue);
+	CAEONStore::Alloc(pValue);
 
 	//	Store the pointer and assign type
 
@@ -315,7 +310,7 @@ CDatum::CDatum (const CTimeSpan &TimeSpan)
 
 	//	Take ownership of the complex type
 
-	g_ComplexAlloc.New(pTimeSpan);
+	CAEONStore::Alloc(pTimeSpan);
 
 	//	Store the pointer and assign type
 
@@ -355,10 +350,10 @@ CDatum::operator int () const
 					return ((int)(m_dwData & AEON_NUMBER_MASK) >> 4);
 
 				case AEON_NUMBER_32BIT:
-					return (int)g_IntAlloc.Get(GetNumberIndex());
+					return CAEONStore::GetInt(GetNumberIndex());
 
 				case AEON_NUMBER_DOUBLE:
-					return (int)g_DoubleAlloc.Get(GetNumberIndex());
+					return (int)CAEONStore::GetDouble(GetNumberIndex());
 
 				default:
 					ASSERT(false);
@@ -407,10 +402,10 @@ CDatum::operator DWORD () const
 					return ((int)(m_dwData & AEON_NUMBER_MASK) >> 4);
 
 				case AEON_NUMBER_32BIT:
-					return (int)g_IntAlloc.Get(GetNumberIndex());
+					return CAEONStore::GetInt(GetNumberIndex());
 
 				case AEON_NUMBER_DOUBLE:
-					return (int)g_DoubleAlloc.Get(GetNumberIndex());
+					return (int)CAEONStore::GetDouble(GetNumberIndex());
 
 				default:
 					ASSERT(false);
@@ -459,10 +454,10 @@ CDatum::operator DWORDLONG () const
 					return ((DWORDLONG)(m_dwData & AEON_NUMBER_MASK) >> 4);
 
 				case AEON_NUMBER_32BIT:
-					return (DWORDLONG)g_IntAlloc.Get(GetNumberIndex());
+					return (DWORDLONG)CAEONStore::GetInt(GetNumberIndex());
 
 				case AEON_NUMBER_DOUBLE:
-					return (DWORDLONG)g_DoubleAlloc.Get(GetNumberIndex());
+					return (DWORDLONG)CAEONStore::GetDouble(GetNumberIndex());
 
 				default:
 					ASSERT(false);
@@ -511,10 +506,10 @@ CDatum::operator double () const
 					return (double)((int)(m_dwData & AEON_NUMBER_MASK) >> 4);
 
 				case AEON_NUMBER_32BIT:
-					return (double)(int)g_IntAlloc.Get(GetNumberIndex());
+					return (double)(int)CAEONStore::GetInt(GetNumberIndex());
 
 				case AEON_NUMBER_DOUBLE:
-					return g_DoubleAlloc.Get(GetNumberIndex());
+					return CAEONStore::GetDouble(GetNumberIndex());
 
 				default:
 					ASSERT(false);
@@ -726,10 +721,10 @@ int CDatum::AsArrayIndex () const
 					return ((int)(m_dwData & AEON_NUMBER_MASK) >> 4);
 
 				case AEON_NUMBER_32BIT:
-					return (int)g_IntAlloc.Get(GetNumberIndex());
+					return CAEONStore::GetInt(GetNumberIndex());
 
 				case AEON_NUMBER_DOUBLE:
-					return (int)g_DoubleAlloc.Get(GetNumberIndex());
+					return (int)CAEONStore::GetDouble(GetNumberIndex());
 
 				default:
 					return -1;
@@ -830,10 +825,10 @@ CIPInteger CDatum::AsIPInteger () const
 					return CIPInteger((int)(m_dwData & AEON_NUMBER_MASK) >> 4);
 
 				case AEON_NUMBER_32BIT:
-					return CIPInteger((int)g_IntAlloc.Get(GetNumberIndex()));
+					return CIPInteger((int)CAEONStore::GetInt(GetNumberIndex()));
 
 				case AEON_NUMBER_DOUBLE:
-					return CIPInteger(g_DoubleAlloc.Get(GetNumberIndex()));
+					return CIPInteger(CAEONStore::GetDouble(GetNumberIndex()));
 
 				default:
 					ASSERT(false);
@@ -938,7 +933,7 @@ CString CDatum::AsString (void) const
 					return strFromInt((int)*this);
 
 				case AEON_NUMBER_DOUBLE:
-					return strFromDouble(g_DoubleAlloc.Get(GetNumberIndex()));
+					return strFromDouble(CAEONStore::GetDouble(GetNumberIndex()));
 
 				default:
 					ASSERT(false);
@@ -1437,7 +1432,7 @@ bool CDatum::CreateStringFromHandoff (CString &sString, CDatum *retDatum)
 		//	(If pString is NULL then this is represented as Nil).
 
 		if (pString)
-			g_StringAlloc.New(pString);
+			CAEONStore::Alloc(pString);
 
 		//	Store the pointer
 
@@ -1464,7 +1459,7 @@ bool CDatum::CreateStringFromHandoff (CStringBuffer &String, CDatum *retDatum)
 	//	(If pString is NULL then this is represented as Nil).
 
 	if (pString)
-		g_StringAlloc.New(pString);
+		CAEONStore::Alloc(pString);
 
 	//	Store the pointer
 
@@ -2408,12 +2403,12 @@ CDatum::Types CDatum::GetNumberType (int *retiValue, CDatum *retdConverted) cons
 
 				case AEON_NUMBER_32BIT:
 					if (retiValue)
-						*retiValue = (int)g_IntAlloc.Get(GetNumberIndex());
+						*retiValue = CAEONStore::GetInt(GetNumberIndex());
 					return typeInteger32;
 
 				case AEON_NUMBER_DOUBLE:
 					if (retiValue)
-						*retiValue = (int)g_DoubleAlloc.Get(GetNumberIndex());
+						*retiValue = (int)CAEONStore::GetDouble(GetNumberIndex());
 					return typeDouble;
 
 				default:
@@ -2899,24 +2894,24 @@ void CDatum::Mark (void)
 		{
 		case AEON_TYPE_STRING:
 			if (m_dwData != 0)
-				g_StringAlloc.Mark((LPSTR)m_dwData);
+				CAEONStore::MarkString((LPSTR)m_dwData);
 			break;
 
 		case AEON_TYPE_NUMBER:
 			switch (m_dwData & AEON_NUMBER_TYPE_MASK)
 				{
 				case AEON_NUMBER_32BIT:
-					g_IntAlloc.Mark(GetNumberIndex());
+					CAEONStore::MarkInit(GetNumberIndex());
 					break;
 
 				case AEON_NUMBER_DOUBLE:
-					g_DoubleAlloc.Mark(GetNumberIndex());
+					CAEONStore::MarkDouble(GetNumberIndex());
 					break;
 				}
 			break;
 
 		case AEON_TYPE_COMPLEX:
-			g_ComplexAlloc.Mark(raw_GetComplex());
+			CAEONStore::MarkComplex(raw_GetComplex());
 			break;
 		}
 	}
@@ -2931,18 +2926,7 @@ void CDatum::MarkAndSweep (void)
 
 	{
 	CAEONTypeSystem::MarkCoreTypes();
-
-	//	Mark all object that we know about
-
-	for (int i = 0; i < g_MarkList.GetCount(); i++)
-		g_MarkList[i]();
-
-	//	Sweep
-
-	g_DoubleAlloc.Sweep();
-	g_IntAlloc.Sweep();
-	g_StringAlloc.Sweep();
-	g_ComplexAlloc.Sweep();
+	CAEONStore::Sweep();
 	}
 
 CDatum CDatum::MergeKeysNoCase () const
@@ -2971,7 +2955,7 @@ double CDatum::raw_GetDouble (void) const
 //	Returns a double
 
 	{
-	return g_DoubleAlloc.Get(GetNumberIndex());
+	return CAEONStore::GetDouble(GetNumberIndex());
 	}
 
 int CDatum::raw_GetInt32 (void) const
@@ -2981,7 +2965,7 @@ int CDatum::raw_GetInt32 (void) const
 //	Returns an integer
 
 	{
-	return (int)g_IntAlloc.Get(GetNumberIndex());
+	return CAEONStore::GetInt(GetNumberIndex());
 	}
 
 bool CDatum::RegisterExternalType (const CString &sTypename, IComplexFactory *pFactory)
@@ -3006,7 +2990,7 @@ void CDatum::RegisterMarkProc (MARKPROC fnProc)
 //	Register a procedure that will mark data in use
 
 	{
-	g_MarkList.Insert(fnProc);
+	CAEONStore::RegisterMarkProc(fnProc);
 	}
 
 void CDatum::ResolveDatatypes (const CAEONTypeSystem &TypeSystem)

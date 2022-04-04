@@ -7,6 +7,44 @@
 
 #include "TAEONVector.h"
 
+class CComplexInteger : public IComplexDatum
+	{
+	public:
+		CComplexInteger (void) { }
+		CComplexInteger (DWORDLONG ilValue) : m_Value(ilValue) { }
+		CComplexInteger (const CIPInteger &Value) : m_Value(Value) { }
+
+		void TakeHandoff (CIPInteger &Value) { m_Value.TakeHandoff(Value); }
+
+		//	IComplexDatum
+		virtual int AsArrayIndex () const override;
+		virtual CString AsString (void) const override { return m_Value.AsString(); }
+		virtual size_t CalcMemorySize (void) const override { return m_Value.GetSize(); }
+		virtual const CIPInteger &CastCIPInteger (void) const override { return m_Value; }
+		virtual DWORDLONG CastDWORDLONG (void) const override;
+		virtual int CastInteger32 (void) const override;
+		virtual IComplexDatum *Clone (void) const override { return new CComplexInteger(m_Value); }
+		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeIntegerIP; }
+		virtual int GetCount (void) const override { return 1; }
+		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::INT_IP); }
+		virtual CDatum GetElement (int iIndex) const override { return CDatum(); }
+		virtual CDatum::Types GetNumberType (int *retiValue) override;
+		virtual const CString &GetTypename (void) const override;
+		virtual bool IsArray (void) const override { return false; }
+		virtual bool IsIPInteger (void) const override { return true; }
+		virtual CDatum MathAbs () const override;
+		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
+
+	protected:
+		//	IComplexDatum
+		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const override;
+		virtual bool OnDeserialize (CDatum::EFormat iFormat, const CString &sTypename, IByteStream &Stream) override { return CIPInteger::Deserialize(Stream, &m_Value); }
+		virtual void OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const override { m_Value.Serialize(Stream); }
+
+	private:
+		CIPInteger m_Value;
+	};
+
 class CAEONObject : public CComplexStruct
 	{
 	public:
@@ -24,77 +62,6 @@ class CAEONObject : public CComplexStruct
 
 	private:
 		CDatum m_dType;
-	};
-
-class CAEONTimeSpan : public IComplexDatum
-	{
-	public:
-		CAEONTimeSpan (void) { }
-		CAEONTimeSpan (const CTimeSpan &TimeSpan) : m_TimeSpan(TimeSpan) { }
-
-		virtual CString AsString (void) const override;
-		virtual size_t CalcMemorySize (void) const override { return sizeof(CAEONTimeSpan); }
-		virtual const CTimeSpan &CastCTimeSpan () const { return m_TimeSpan; }
-		virtual IComplexDatum *Clone (void) const override { return new CAEONTimeSpan(m_TimeSpan); }
-		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeTimeSpan; }
-		virtual int GetCount (void) const { return PART_COUNT; };
-		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::TIME_SPAN); }
-		virtual CDatum GetElement (int iIndex) const override;
-		virtual CDatum GetElement (const CString &sKey) const override;
-		virtual const CString &GetTypename (void) const override;
-		virtual bool IsArray (void) const override { return true; }
-
-	protected:
-		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const override;
-		virtual bool OnDeserialize (CDatum::EFormat iFormat, const CString &sTypename, IByteStream &Stream) override;
-		virtual void OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
-
-	private:
-		static constexpr int PART_COUNT = 3;
-		static constexpr int PART_DAYS = 0;
-		static constexpr int PART_MILLISECONDS = 1;
-		static constexpr int PART_NEGATIVE = 2;
-
-		CTimeSpan m_TimeSpan;
-	};
-
-class CAEONVectorInt32 : public TAEONVector<int, CAEONVectorInt32>
-	{
-	public:
-		CAEONVectorInt32 () { }
-		CAEONVectorInt32 (const TArray<int> &Src) : TAEONVector<int, CAEONVectorInt32>(Src) { }
-		CAEONVectorInt32 (const TArray<CDatum> &Src) : TAEONVector<int, CAEONVectorInt32>(Src) { }
-
-		virtual IComplexDatum *Clone (void) const override { return new CAEONVectorInt32(m_Array); }
-		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY_INT_32); }
-		virtual const CString &GetTypename (void) const override;
-	};
-
-class CAEONVectorFloat64 : public TAEONVector<double, CAEONVectorFloat64>
-	{
-	public:
-		CAEONVectorFloat64 () { }
-		CAEONVectorFloat64 (const TArray<double> &Src) : TAEONVector<double, CAEONVectorFloat64>(Src) { }
-		CAEONVectorFloat64 (const TArray<CDatum> &Src) : TAEONVector<double, CAEONVectorFloat64>(Src) { }
-
-		virtual IComplexDatum *Clone (void) const override { return new CAEONVectorFloat64(m_Array); }
-		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY_FLOAT_64); }
-		virtual const CString &GetTypename (void) const override;
-	};
-
-class CAEONVectorString : public TAEONVector<CString, CAEONVectorString>
-	{
-	public:
-		CAEONVectorString () { }
-		CAEONVectorString (const TArray<CString> &Src) : TAEONVector<CString, CAEONVectorString>(Src) { }
-		CAEONVectorString (const TArray<CDatum> &Src) : TAEONVector<CString, CAEONVectorString>(Src) { }
-
-		static CString FromDatum (CDatum dValue) { return dValue.AsString(); }
-		static CDatum ToDatum (CString Value) { return CDatum(Value); }
-
-		virtual IComplexDatum *Clone (void) const override { return new CAEONVectorString(m_Array); }
-		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY_STRING); }
-		virtual const CString &GetTypename (void) const override;
 	};
 
 class CAEONTable : public IComplexDatum, public IAEONTable
@@ -246,3 +213,79 @@ class CAEONTableRef : public IComplexDatum, public IAEONTable
 
 		friend class CAEONScriptParser;
 	};
+
+class CAEONTimeSpan : public IComplexDatum
+	{
+	public:
+		CAEONTimeSpan (void) { }
+		CAEONTimeSpan (const CTimeSpan &TimeSpan) : m_TimeSpan(TimeSpan) { }
+
+		virtual CString AsString (void) const override;
+		virtual size_t CalcMemorySize (void) const override { return sizeof(CAEONTimeSpan); }
+		virtual const CTimeSpan &CastCTimeSpan () const { return m_TimeSpan; }
+		virtual IComplexDatum *Clone (void) const override { return new CAEONTimeSpan(m_TimeSpan); }
+		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeTimeSpan; }
+		virtual int GetCount (void) const { return PART_COUNT; };
+		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::TIME_SPAN); }
+		virtual CDatum GetElement (int iIndex) const override;
+		virtual CDatum GetElement (const CString &sKey) const override;
+		virtual const CString &GetTypename (void) const override;
+		virtual bool IsArray (void) const override { return true; }
+		virtual CDatum MathAbs () const override;
+
+	protected:
+		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const override;
+		virtual bool OnDeserialize (CDatum::EFormat iFormat, const CString &sTypename, IByteStream &Stream) override;
+		virtual void OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
+
+	private:
+		static constexpr int PART_COUNT = 3;
+		static constexpr int PART_DAYS = 0;
+		static constexpr int PART_MILLISECONDS = 1;
+		static constexpr int PART_NEGATIVE = 2;
+
+		CTimeSpan m_TimeSpan;
+	};
+
+class CAEONVectorInt32 : public TAEONVector<int, CAEONVectorInt32>
+	{
+	public:
+		CAEONVectorInt32 () { }
+		CAEONVectorInt32 (const TArray<int> &Src) : TAEONVector<int, CAEONVectorInt32>(Src) { }
+		CAEONVectorInt32 (const TArray<CDatum> &Src) : TAEONVector<int, CAEONVectorInt32>(Src) { }
+
+		virtual IComplexDatum *Clone (void) const override { return new CAEONVectorInt32(m_Array); }
+		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY_INT_32); }
+		virtual const CString &GetTypename (void) const override;
+		virtual CDatum MathAbs () const override;
+	};
+
+class CAEONVectorFloat64 : public TAEONVector<double, CAEONVectorFloat64>
+	{
+	public:
+		CAEONVectorFloat64 () { }
+		CAEONVectorFloat64 (const TArray<double> &Src) : TAEONVector<double, CAEONVectorFloat64>(Src) { }
+		CAEONVectorFloat64 (const TArray<CDatum> &Src) : TAEONVector<double, CAEONVectorFloat64>(Src) { }
+
+		virtual IComplexDatum *Clone (void) const override { return new CAEONVectorFloat64(m_Array); }
+		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY_FLOAT_64); }
+		virtual const CString &GetTypename (void) const override;
+		virtual CDatum MathAbs () const override;
+	};
+
+class CAEONVectorString : public TAEONVector<CString, CAEONVectorString>
+	{
+	public:
+		CAEONVectorString () { }
+		CAEONVectorString (const TArray<CString> &Src) : TAEONVector<CString, CAEONVectorString>(Src) { }
+		CAEONVectorString (const TArray<CDatum> &Src) : TAEONVector<CString, CAEONVectorString>(Src) { }
+
+		static CString FromDatum (CDatum dValue) { return dValue.AsString(); }
+		static CDatum ToDatum (CString Value) { return CDatum(Value); }
+
+		virtual IComplexDatum *Clone (void) const override { return new CAEONVectorString(m_Array); }
+		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY_STRING); }
+		virtual const CString &GetTypename (void) const override;
+		virtual CDatum MathAbs () const override;
+	};
+

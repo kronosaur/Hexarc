@@ -222,7 +222,7 @@ template <class VALUE> class TAllocatorGC
 			*pMeta = FLAG_FREE;
 			}
 
-		inline const VALUE &Get (DWORD dwID)
+		inline const VALUE &Get (DWORD dwID) const
 			{
 			return *GetValue(dwID);
 			}
@@ -341,13 +341,42 @@ template <class VALUE> class TAllocatorGC
 			m_MetaBack.Insert(pNewMeta);
 			}
 
-		inline BYTE *GetMeta (DWORD dwID) { return m_MetaBack[dwID / SEGMENT_SIZE] + (dwID % SEGMENT_SIZE); }
-		inline VALUE *GetValue (DWORD dwID) { return m_ValueBack[dwID / SEGMENT_SIZE] + (dwID % SEGMENT_SIZE); }
+		inline BYTE *GetMeta (DWORD dwID) const { return m_MetaBack[dwID / SEGMENT_SIZE] + (dwID % SEGMENT_SIZE); }
+		inline VALUE *GetValue (DWORD dwID) const { return m_ValueBack[dwID / SEGMENT_SIZE] + (dwID % SEGMENT_SIZE); }
 
 		CCriticalSection m_cs;
 		TArray<VALUE *> m_ValueBack;
 		TArray<BYTE *> m_MetaBack;
 		DWORD m_dwFirstFree;
+	};
+
+class CAEONStore
+	{
+	public:
+		static DWORD Alloc (IComplexDatum* pValue) { return m_ComplexAlloc.New(pValue); }
+		static DWORD Alloc (double rValue) { return m_DoubleAlloc.New(rValue); }
+		static DWORD Alloc (DWORD dwValue) { return m_IntAlloc.New(dwValue); }
+		static DWORD Alloc (LPSTR pValue) { return m_StringAlloc.New(pValue); }
+
+		static double GetDouble (DWORD dwID) { return m_DoubleAlloc.Get(dwID); }
+		static int GetInt (DWORD dwID) { return (int)m_IntAlloc.Get(dwID); }
+
+		static void MarkComplex (IComplexDatum* pValue) { m_ComplexAlloc.Mark(pValue); }
+		static void MarkDouble (DWORD dwID) { m_DoubleAlloc.Mark(dwID); }
+		static void MarkInit (DWORD dwID) { m_IntAlloc.Mark(dwID); }
+		static void MarkString (LPSTR Value) { m_StringAlloc.Mark(Value); }
+
+		static void RegisterMarkProc (MARKPROC fnProc) { m_MarkList.Insert(fnProc); }
+
+		static void Sweep ();
+
+	private:
+		static TAllocatorGC<DWORD> m_IntAlloc;
+		static TAllocatorGC<double> m_DoubleAlloc;
+		static CGCStringAllocator m_StringAlloc;
+		static CGCComplexAllocator m_ComplexAlloc;
+
+		static TArray<MARKPROC> m_MarkList;
 	};
 
 class CAEONFactoryList
