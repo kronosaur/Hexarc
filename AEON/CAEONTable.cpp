@@ -477,7 +477,7 @@ CDatum CAEONTable::GetDataSlice (int iFirstRow, int iRowCount) const
 	return dResult;
 	}
 
-CDatum CAEONTable::GetElementAt (CDatum dIndex) const
+CDatum CAEONTable::GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) const
 
 //	GetElementAt
 //
@@ -490,6 +490,44 @@ CDatum CAEONTable::GetElementAt (CDatum dIndex) const
 		return CDatum();
 	else if (dIndex.IsNumberInt32(&iIndex))
 		return GetElement(iIndex);
+	else if (dIndex.IsArray())
+		{
+		IAEONTable::SSubset Subset;
+
+		if (dIndex.GetCount() == 0)
+			{ }
+		else if (dIndex.GetElement(0).IsNumberInt32())
+			{
+			//	NOTE: We allow rows to be out of order or even duplicated.
+			//	But the row must exist.
+
+			for (int i = 0; i < dIndex.GetCount(); i++)
+				{
+				if (dIndex.GetElement(i).IsNumberInt32(&iIndex) && iIndex >= 0 && iIndex < GetRowCount())
+					Subset.Rows.Insert(iIndex);
+				}
+			}
+		else
+			{
+			Subset.bAllRows = true;
+
+			for (int i = 0; i < dIndex.GetCount(); i++)
+				{
+				int iCol;
+				if (FindCol(dIndex.GetElement(i).AsString(), &iCol))
+					Subset.Cols.Insert(iCol);
+				}
+			}
+
+		//	Create the subset
+
+		CDatum dResult;
+
+		if (!IAEONTable::CreateRef(TypeSystem, CDatum::raw_AsComplex(this), std::move(Subset), dResult))
+			return CDatum();
+
+		return dResult;
+		}
 	else if (FindCol(dIndex.AsString(), &iIndex))
 		return m_Cols[iIndex];
 	else

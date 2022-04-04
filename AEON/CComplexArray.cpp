@@ -147,7 +147,7 @@ bool CComplexArray::FindElement (CDatum dValue, int *retiIndex) const
 	return false;
 	}
 
-CDatum CComplexArray::GetElementAt (CDatum dIndex) const
+CDatum CComplexArray::GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) const
 
 //	GetElementAt
 //
@@ -157,6 +157,22 @@ CDatum CComplexArray::GetElementAt (CDatum dIndex) const
 	int iIndex = dIndex.AsArrayIndex();
 	if (iIndex >= 0 && iIndex < m_Array.GetCount())
 		return m_Array[iIndex];
+	else if (dIndex.IsArray())
+		{
+		CDatum dResult(CDatum::typeArray);
+		dResult.GrowToFit(dIndex.GetCount());
+
+		for (int i = 0; i < dIndex.GetCount(); i++)
+			{
+			int iIndex = dIndex.GetElement(i).AsArrayIndex();
+			if (iIndex >= 0 && iIndex < m_Array.GetCount())
+				dResult.Append(m_Array[iIndex]);
+			else
+				dResult.Append(CDatum());
+			}
+
+		return dResult;
+		}
 	else
 		return CDatum();
 	}

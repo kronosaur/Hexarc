@@ -216,7 +216,7 @@ CDatum CAEONTableRef::GetDataSlice (int iFirstRow, int iRowCount) const
 	return dResult;
 	}
 
-CDatum CAEONTableRef::GetElementAt (CDatum dIndex) const
+CDatum CAEONTableRef::GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) const
 
 //	GetElementAt
 //

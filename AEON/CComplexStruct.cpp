@@ -141,22 +141,48 @@ bool CComplexStruct::FindElement (const CString &sKey, CDatum *retpValue)
 	return true;
 	}
 
-CDatum CComplexStruct::GetElementAt (CDatum dIndex) const
+CDatum CComplexStruct::GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) const
 
 //	GetElement
 //
 //	Returns the element.
 
 	{
+	int iIndex;
+
 	if (dIndex.IsNil())
 		return CDatum();
-	else if (dIndex.IsNumberInt32())
+	else if (dIndex.IsNumberInt32(&iIndex))
 		{
-		int iIndex = dIndex;
 		if (iIndex >= 0 && iIndex < m_Map.GetCount())
 			return m_Map[iIndex];
 		else
 			return CDatum();
+		}
+	else if (dIndex.IsArray())
+		{
+		CDatum dResult(CDatum::typeStruct);
+
+		for (int i = 0; i < dIndex.GetCount(); i++)
+			{
+			CDatum dEntry = dIndex.GetElement(i);
+			if (dEntry.IsNil())
+				{ }
+			else if (dEntry.IsNumberInt32(&iIndex))
+				{
+				if (iIndex >= 0 && iIndex < m_Map.GetCount())
+					dResult.SetElement(m_Map.GetKey(iIndex), m_Map[iIndex]);
+				}
+			else
+				{
+				CString sKey = dEntry.AsString();
+				CDatum* pValue = m_Map.GetAt(sKey);
+				if (pValue)
+					dResult.SetElement(sKey, *pValue);
+				}
+			}
+
+		return dResult;
 		}
 	else
 		{

@@ -2278,7 +2278,7 @@ CDatum CDatum::GetElement (const CString &sKey) const
 		}
 	}
 
-CDatum CDatum::GetElementAt (CDatum dIndex) const
+CDatum CDatum::GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) const
 
 //	GetElement
 //
@@ -2288,7 +2288,7 @@ CDatum CDatum::GetElementAt (CDatum dIndex) const
 	switch (m_dwData & AEON_TYPE_MASK)
 		{
 		case AEON_TYPE_COMPLEX:
-			return raw_GetComplex()->GetElementAt(dIndex);
+			return raw_GetComplex()->GetElementAt(TypeSystem, dIndex);
 
 		default:
 			return CDatum();

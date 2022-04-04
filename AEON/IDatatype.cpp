@@ -13,8 +13,11 @@ bool IDatatype::operator == (const IDatatype &Src) const
 	if (GetImplementation() != Src.GetImplementation())
 		return false;
 
-	if (!strEquals(m_sFullyQualifiedName, Src.m_sFullyQualifiedName))
-		return false;
+	//	If we're the same, then we're guaranteed to be equal. But sometimes we
+	//	can have two different named types that are equal (e.g., table schemas).
+
+	if (strEquals(m_sFullyQualifiedName, Src.m_sFullyQualifiedName))
+		return true;
 
 	return OnEquals(Src);
 	}

@@ -1488,7 +1488,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 
 				CDatum dIndex = m_Stack.Pop();
 				CDatum dArray = m_Stack.Pop();
-				m_Stack.Push(dArray.GetElementAt(dIndex));
+				m_Stack.Push(dArray.GetElementAt(m_Types, dIndex));
 				m_pIP++;
 				break;
 				}

@@ -131,7 +131,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual CDatum GetDatatype () const override { return m_dSchema; }
 		virtual CDatum GetElement (int iIndex) const override;
 		virtual CDatum GetElement (const CString &sKey) const override { return m_Properties.GetProperty(*this, sKey); }
-		virtual CDatum GetElementAt (CDatum dIndex) const override;
+		virtual CDatum GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) const override;
 		virtual IAEONTable *GetTableInterface () { return this; }
 		virtual const CString &GetTypename (void) const override;
 		virtual void GrowToFit (int iCount) override;
@@ -209,7 +209,7 @@ class CAEONTableRef : public IComplexDatum, public IAEONTable
 		virtual CDatum GetDatatype () const override { return m_dSchema; }
 		virtual CDatum GetElement (int iIndex) const override;
 		virtual CDatum GetElement (const CString& sKey) const override { return m_Properties.GetProperty(*this, sKey); }
-		virtual CDatum GetElementAt (CDatum dIndex) const override;
+		virtual CDatum GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) const override;
 		virtual IAEONTable* GetTableInterface () { return this; }
 		virtual const CString& GetTypename (void) const override;
 		virtual void GrowToFit (int iCount) override { }

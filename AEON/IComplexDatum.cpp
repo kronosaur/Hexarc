@@ -172,7 +172,7 @@ CDatum IComplexDatum::GetDatatype () const
 	return CAEONTypeSystem::GetCoreType(IDatatype::ANY);
 	}
 
-CDatum IComplexDatum::GetElementAt (CDatum dIndex) const
+CDatum IComplexDatum::GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) const
 
 //	GetElement
 //
