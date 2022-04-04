@@ -38,7 +38,7 @@ bool CHexeLocalEnvironment::Contains (CDatum dValue, TArray<IComplexDatum *> &re
 //	Returns TRUE if we contain the given value.
 
 	{
-	for (int i = 0; i < GetCount(); i++)
+	for (int i = 0; i < GetArgumentCount(); i++)
 		if (m_pArray[i].dValue.Contains(dValue, retChecked))
 			return true;
 
@@ -54,7 +54,7 @@ bool CHexeLocalEnvironment::FindArgument (const CString &sArg, int *retiLevel, i
 	{
 	//	See if it is in our environment
 
-	for (int i = 0; i < GetCount(); i++)
+	for (int i = 0; i < GetArgumentCount(); i++)
 		if (strEquals(sArg, m_pArray[i].sArg))
 			{
 			*retiLevel = 0;
@@ -109,7 +109,7 @@ CDatum CHexeLocalEnvironment::GetElement (const CString &sKey) const
 //	Returns the element
 
 	{
-	for (int i = 0; i < GetCount(); i++)
+	for (int i = 0; i < GetArgumentCount(); i++)
 		if (strEquals(sKey, m_pArray[i].sArg))
 			return m_pArray[i].dValue;
 
@@ -135,9 +135,9 @@ void CHexeLocalEnvironment::GrowArray (int iNewCount)
 		m_DynamicArray.InsertEmpty(iNewCount - iCurCount);
 		m_pArray = &m_DynamicArray[0];
 
-		if (iCurCount == 0 && GetCount() > 0)
+		if (iCurCount == 0 && GetArgumentCount() > 0)
 			{
-			for (int i = 0; i < GetCount(); i++)
+			for (int i = 0; i < GetArgumentCount(); i++)
 				m_pArray[i] = m_BaseArray[i];
 			}
 		}
@@ -151,6 +151,52 @@ void CHexeLocalEnvironment::IncArgumentValue(int iIndex, int iInc)
 
 	{
 	m_pArray[iIndex].dValue = CHexeProcess::ExecuteIncrement(m_pArray[iIndex].dValue, iInc);
+	}
+
+CDatum CHexeLocalEnvironment::MathMax () const
+
+//	MathMax
+//
+//	Returns the max value.
+
+	{
+	int iCount = GetArgumentCount();
+	if (iCount == 0)
+		return CDatum();
+
+	CNumberValue Result(m_pArray[0].dValue.MathMax());
+	for (int i = 1; i < iCount; i++)
+		{
+		Result.Max(m_pArray[i].dValue.MathMax());
+		}
+
+	if (Result.IsValidNumber())
+		return Result.GetDatum();
+	else
+		return CDatum::CreateNaN();
+	}
+
+CDatum CHexeLocalEnvironment::MathMin () const
+
+//	MathMin
+//
+//	Returns the min value.
+
+	{
+	int iCount = GetArgumentCount();
+	if (iCount == 0)
+		return CDatum();
+
+	CNumberValue Result(m_pArray[0].dValue.MathMin());
+	for (int i = 1; i < iCount; i++)
+		{
+		Result.Min(m_pArray[i].dValue.MathMin());
+		}
+
+	if (Result.IsValidNumber())
+		return Result.GetDatum();
+	else
+		return CDatum::CreateNaN();
 	}
 
 bool CHexeLocalEnvironment::OnDeserialize (CDatum::EFormat iFormat, CDatum dStruct)
@@ -187,7 +233,7 @@ void CHexeLocalEnvironment::OnMarked (void)
 //	Marks data in use
 
 	{
-	for (int i = 0; i < GetCount(); i++)
+	for (int i = 0; i < GetArgumentCount(); i++)
 		m_pArray[i].dValue.Mark();
 
 	m_dParentEnv.Mark();
@@ -201,8 +247,8 @@ void CHexeLocalEnvironment::OnSerialize (CDatum::EFormat iFormat, CComplexStruct
 
 	{
 	CDatum dValues(CDatum::typeArray);
-	dValues.GrowToFit(2 * GetCount());
-	for (int i = 0; i < GetCount(); i++)
+	dValues.GrowToFit(2 * GetArgumentCount());
+	for (int i = 0; i < GetArgumentCount(); i++)
 		{
 		dValues.Append(m_pArray[i].sArg);
 		dValues.Append(m_pArray[i].dValue);
@@ -224,7 +270,7 @@ void CHexeLocalEnvironment::SetArgumentKey (int iLevel, int iIndex, const CStrin
 	{
 	if (iLevel == 0)
 		{
-		if (iIndex >= GetCount())
+		if (iIndex >= GetArgumentCount())
 			{
 			GrowArray(iIndex + 1);
 			m_iNextArg = iIndex + 1;
@@ -251,7 +297,7 @@ void CHexeLocalEnvironment::SetArgumentValue (int iLevel, int iIndex, CDatum dVa
 	{
 	if (iLevel == 0)
 		{
-		if (iIndex >= GetCount())
+		if (iIndex >= GetArgumentCount())
 			{
 			GrowArray(iIndex + 1);
 			m_iNextArg = iIndex + 1;
@@ -276,7 +322,7 @@ void CHexeLocalEnvironment::SetElement (const CString &sKey, CDatum dValue)
 //	Sets the element
 
 	{
-	for (int i = 0; i < GetCount(); i++)
+	for (int i = 0; i < GetArgumentCount(); i++)
 		if (strEquals(sKey, m_pArray[i].sArg))
 			{
 			m_pArray[i].dValue = dValue;
@@ -285,7 +331,7 @@ void CHexeLocalEnvironment::SetElement (const CString &sKey, CDatum dValue)
 
 	//	If we get here then we need to add the value
 
-	GrowArray(GetCount() + 1);
+	GrowArray(GetArgumentCount() + 1);
 
 	SEntry *pEntry = &m_pArray[m_iNextArg];
 	pEntry->sArg = sKey;

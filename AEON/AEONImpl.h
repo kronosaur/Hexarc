@@ -33,6 +33,8 @@ class CComplexInteger : public IComplexDatum
 		virtual bool IsArray (void) const override { return false; }
 		virtual bool IsIPInteger (void) const override { return true; }
 		virtual CDatum MathAbs () const override;
+		virtual CDatum MathMax () const override { return CDatum::raw_AsComplex(this); }
+		virtual CDatum MathMin () const override { return CDatum::raw_AsComplex(this); }
 		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
 
 	protected:
@@ -258,6 +260,8 @@ class CAEONVectorInt32 : public TAEONVector<int, CAEONVectorInt32>
 		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY_INT_32); }
 		virtual const CString &GetTypename (void) const override;
 		virtual CDatum MathAbs () const override;
+		virtual CDatum MathMax () const override;
+		virtual CDatum MathMin () const override;
 	};
 
 class CAEONVectorFloat64 : public TAEONVector<double, CAEONVectorFloat64>
@@ -271,6 +275,8 @@ class CAEONVectorFloat64 : public TAEONVector<double, CAEONVectorFloat64>
 		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY_FLOAT_64); }
 		virtual const CString &GetTypename (void) const override;
 		virtual CDatum MathAbs () const override;
+		virtual CDatum MathMax () const override;
+		virtual CDatum MathMin () const override;
 	};
 
 class CAEONVectorString : public TAEONVector<CString, CAEONVectorString>
@@ -287,5 +293,7 @@ class CAEONVectorString : public TAEONVector<CString, CAEONVectorString>
 		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY_STRING); }
 		virtual const CString &GetTypename (void) const override;
 		virtual CDatum MathAbs () const override;
+		virtual CDatum MathMax () const override;
+		virtual CDatum MathMin () const override;
 	};
 

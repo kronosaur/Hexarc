@@ -193,6 +193,50 @@ CDatum CComplexArray::MathAbs () const
 	return dResult;
 	}
 
+CDatum CComplexArray::MathMax () const
+
+//	MathMax
+//
+//	Compute the maximum value.
+
+	{
+	if (m_Array.GetCount() == 0)
+		return CDatum();
+
+	CNumberValue Result(m_Array[0].MathMax());
+	for (int i = 1; i < m_Array.GetCount(); i++)
+		{
+		Result.Max(m_Array[i].MathMax());
+		}
+
+	if (Result.IsValidNumber())
+		return Result.GetDatum();
+	else
+		return CDatum::CreateNaN();
+	}
+
+CDatum CComplexArray::MathMin () const
+
+//	MathMin
+//
+//	Compute the minimum value.
+
+	{
+	if (m_Array.GetCount() == 0)
+		return CDatum();
+
+	CNumberValue Result(m_Array[0].MathMin());
+	for (int i = 1; i < m_Array.GetCount(); i++)
+		{
+		Result.Min(m_Array[i].MathMin());
+		}
+
+	if (Result.IsValidNumber())
+		return Result.GetDatum();
+	else
+		return CDatum::CreateNaN();
+	}
+
 size_t CComplexArray::OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const
 
 //	OnCalcSerializeSizeAEONScript

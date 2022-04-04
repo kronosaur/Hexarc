@@ -259,11 +259,13 @@ class CHexeLocalEnvironment : public TExternalDatum<CHexeLocalEnvironment>
 
 		//	IComplexDatum
 		virtual bool Contains (CDatum dValue, TArray<IComplexDatum *> &retChecked) const override;
-		virtual int GetCount (void) const override { return m_iNextArg; }
-		virtual CDatum GetElement (int iIndex) const override { return (iIndex < GetCount() ? m_pArray[iIndex].dValue : CDatum()); }
+		virtual int GetCount (void) const override { return GetArgumentCount(); }
+		virtual CDatum GetElement (int iIndex) const override { return (iIndex < GetArgumentCount() ? m_pArray[iIndex].dValue : CDatum()); }
 		virtual CDatum GetElement (const CString &sKey) const override;
 		virtual CString GetKey (int iIndex) const override { return m_pArray[iIndex].sArg; }
 		virtual bool IsArray (void) const override { return true; }
+		virtual CDatum MathMax () const override;
+		virtual CDatum MathMin () const override;
 		virtual void SetElement (const CString &sKey, CDatum dDatum) override;
 
 	protected:
@@ -281,6 +283,7 @@ class CHexeLocalEnvironment : public TExternalDatum<CHexeLocalEnvironment>
 			CDatum dValue;
 			};
 
+		int GetArgumentCount () const { return m_iNextArg; }
 		void GrowArray (int iNewCount);
 
 		CDatum m_dParentEnv;

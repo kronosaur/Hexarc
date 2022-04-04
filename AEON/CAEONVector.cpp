@@ -28,6 +28,32 @@ CDatum CAEONVectorFloat64::MathAbs () const
 	return dResult;
 	}
 
+CDatum CAEONVectorFloat64::MathMax () const
+	{
+	if (m_Array.GetCount() == 0)
+		return CDatum();
+
+	double rMax = m_Array[0];
+	for (int i = 1; i < m_Array.GetCount(); i++)
+		if (m_Array[i] > rMax)
+			rMax = m_Array[i];
+
+	return CDatum(rMax);
+	}
+
+CDatum CAEONVectorFloat64::MathMin () const
+	{
+	if (m_Array.GetCount() == 0)
+		return CDatum();
+
+	double rMin = m_Array[0];
+	for (int i = 1; i < m_Array.GetCount(); i++)
+		if (m_Array[i] < rMin)
+			rMin = m_Array[i];
+
+	return CDatum(rMin);
+	}
+
 //	CAEONVectorInt32 -----------------------------------------------------------
 
 const CString &CAEONVectorInt32::GetTypename (void) const
@@ -47,6 +73,32 @@ CDatum CAEONVectorInt32::MathAbs () const
 	return dResult;
 	}
 
+CDatum CAEONVectorInt32::MathMax () const
+	{
+	if (m_Array.GetCount() == 0)
+		return CDatum();
+
+	int iMax = m_Array[0];
+	for (int i = 1; i < m_Array.GetCount(); i++)
+		if (m_Array[i] > iMax)
+			iMax = m_Array[i];
+
+	return CDatum(iMax);
+	}
+
+CDatum CAEONVectorInt32::MathMin () const
+	{
+	if (m_Array.GetCount() == 0)
+		return CDatum();
+
+	int iMin = m_Array[0];
+	for (int i = 1; i < m_Array.GetCount(); i++)
+		if (m_Array[i] < iMin)
+			iMin = m_Array[i];
+
+	return CDatum(iMin);
+	}
+
 //	CAEONVectorString ----------------------------------------------------------
 
 const CString &CAEONVectorString::GetTypename (void) const
@@ -59,5 +111,51 @@ CDatum CAEONVectorString::MathAbs () const
 	//	LATER: Convert to appropriate result array
 
 	return CDatum::CreateNaN();
+	}
+
+CDatum CAEONVectorString::MathMax () const
+	{
+	if (m_Array.GetCount() == 0)
+		return CDatum();
+
+	CDatum dValue;
+	if (!CDatum::CreateFromStringValue(m_Array[0], &dValue)
+			|| !dValue.IsNumber())
+		return CDatum::CreateNaN();
+
+	CNumberValue Max(dValue);
+	for (int i = 1; i < m_Array.GetCount(); i++)
+		{
+		if (!CDatum::CreateFromStringValue(m_Array[i], &dValue)
+				|| !dValue.IsNumber())
+			return CDatum::CreateNaN();
+
+		Max.Max(dValue);
+		}
+
+	return Max.GetDatum();
+	}
+
+CDatum CAEONVectorString::MathMin () const
+	{
+	if (m_Array.GetCount() == 0)
+		return CDatum();
+
+	CDatum dValue;
+	if (!CDatum::CreateFromStringValue(m_Array[0], &dValue)
+			|| !dValue.IsNumber())
+		return CDatum::CreateNaN();
+
+	CNumberValue Min(dValue);
+	for (int i = 1; i < m_Array.GetCount(); i++)
+		{
+		if (!CDatum::CreateFromStringValue(m_Array[i], &dValue)
+				|| !dValue.IsNumber())
+			return CDatum::CreateNaN();
+
+		Min.Min(dValue);
+		}
+
+	return Min.GetDatum();
 	}
 

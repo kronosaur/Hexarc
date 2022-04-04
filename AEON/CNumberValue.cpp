@@ -543,11 +543,39 @@ CDatum CNumberValue::GetDatum (void)
 		}
 	}
 
+bool CNumberValue::IsNegative () const
+
+//	IsNegative
+//
+//	Returns TRUE if negative.
+
+	{
+	switch (m_iType)
+		{
+		case CDatum::typeInteger32:
+			return GetInteger() < 0;
+
+		case CDatum::typeInteger64:
+			return GetInteger64() < 0;
+
+		case CDatum::typeDouble:
+			return GetDouble() < 0.0;
+
+		case CDatum::typeIntegerIP:
+			return GetIPInteger().IsNegative();
+
+		default:
+			return false;
+		}
+	}
+
 void CNumberValue::Max (CDatum dValue)
 
 //	Max
 //
 //	Keeps the maximum of dValue or current value.
+//	NOTE: We expect dValue to be a scalar; the caller is responsible for 
+//	reducing arrays, etc.
 
 	{
 	CNumberValue Src(dValue);
@@ -585,37 +613,13 @@ void CNumberValue::Max (CDatum dValue)
 		}
 	}
 
-bool CNumberValue::IsNegative () const
-
-//	IsNegative
-//
-//	Returns TRUE if negative.
-
-	{
-	switch (m_iType)
-		{
-		case CDatum::typeInteger32:
-			return GetInteger() < 0;
-
-		case CDatum::typeInteger64:
-			return GetInteger64() < 0;
-
-		case CDatum::typeDouble:
-			return GetDouble() < 0.0;
-
-		case CDatum::typeIntegerIP:
-			return GetIPInteger().IsNegative();
-
-		default:
-			return false;
-		}
-	}
-
 void CNumberValue::Min (CDatum dValue)
 
 //	Min
 //
 //	Keeps the minimum of dValue or current value.
+//	NOTE: We expect dValue to be a scalar; the caller is responsible for 
+//	reducing arrays, etc.
 
 	{
 	CNumberValue Src(dValue);

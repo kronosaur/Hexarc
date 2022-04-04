@@ -255,6 +255,8 @@ class CDatum
 		bool IsNumber (void) const;
 		bool IsNumberInt32 (int *retiValue = NULL) const;
 		CDatum MathAbs () const;
+		CDatum MathMax () const;
+		CDatum MathMin () const;
 
 		//	Function related methods
 		bool CanInvoke (void) const;
@@ -601,6 +603,8 @@ class IComplexDatum
 		virtual bool IsNil (void) const { return false; }
 		void Mark (void) { if (!m_bMarked) { m_bMarked = true; OnMarked(); } }	//	Check m_bMarked to avoid infinite recursion
 		virtual CDatum MathAbs () const { return CDatum::CreateNaN(); }
+		virtual CDatum MathMax () const { return CDatum::CreateNaN(); }
+		virtual CDatum MathMin () const { return CDatum::CreateNaN(); }
 		virtual void ResolveDatatypes (const CAEONTypeSystem &TypeSystem) { }
 		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const;
 		virtual void SetElement (IInvokeCtx *pCtx, const CString &sKey, CDatum dDatum) { SetElement(sKey, dDatum); }
@@ -669,6 +673,8 @@ class CComplexArray : public IComplexDatum
 		virtual bool IsArray (void) const override { return true; }
 		virtual bool IsNil (void) const override { return (GetCount() == 0); }
 		virtual CDatum MathAbs () const override;
+		virtual CDatum MathMax () const override;
+		virtual CDatum MathMin () const override;
 		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
 		virtual void Sort (ESortOptions Order = AscendingSort, TArray<CDatum>::COMPAREPROC pfCompare = NULL, void *pCtx = NULL) override { if (pfCompare) m_Array.Sort(pCtx, pfCompare, Order); else m_Array.Sort(Order); }
 		virtual void SetElement (int iIndex, CDatum dDatum) override { if (iIndex >= 0 && iIndex < m_Array.GetCount()) m_Array[iIndex] = dDatum; }
