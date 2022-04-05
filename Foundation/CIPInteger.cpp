@@ -594,6 +594,18 @@ int CIPInteger::AsByteArray (TArray<BYTE> *retValue) const
 	return dwSize;
 	}
 
+double CIPInteger::AsDouble () const
+
+//	AsDouble
+//
+//	Convert to double.
+
+	{
+	//	LATER: For now we do it brute-force via string conversion.
+
+	return strToDouble(AsString());
+	}
+
 int CIPInteger::AsInteger32Signed (void) const
 
 //	AsInteger32Signed

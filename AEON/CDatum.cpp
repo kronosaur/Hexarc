@@ -497,8 +497,7 @@ CDatum::operator double () const
 							return 1.0;
 
 						default:
-							ASSERT(false);
-							return 0.0;
+							return CreateNaN();
 						}
 					}
 
@@ -512,16 +511,14 @@ CDatum::operator double () const
 					return CAEONStore::GetDouble(GetNumberIndex());
 
 				default:
-					ASSERT(false);
-					return 0.0;
+					return CreateNaN();
 				}
 
 		case AEON_TYPE_COMPLEX:
-			return 0.0;
+			return raw_GetComplex()->CastDouble();
 
 		default:
-			ASSERT(false);
-			return 0.0;
+			return CreateNaN();
 		}
 	}
 
@@ -1123,6 +1120,10 @@ CDatum CDatum::CreateArrayAsType (CDatum dType, CDatum dValue)
 		{
 		case IDatatype::INT_32:
 			dArray = CDatum::VectorOf(CDatum::typeInteger32);
+			break;
+
+		case IDatatype::INT_IP:
+			dArray = CDatum::VectorOf(CDatum::typeIntegerIP);
 			break;
 
 		case IDatatype::FLOAT_64:
@@ -3153,29 +3154,44 @@ void CDatum::Sort (ESortOptions Order, TArray<CDatum>::COMPAREPROC pfCompare, vo
 		}
 	}
 
-CDatum CDatum::VectorOf (Types iType)
+CDatum CDatum::VectorOf (Types iType, CDatum dValues)
 
 //	VectorOf
 //
 //	Creates a vector of the given type.
 
 	{
+	CDatum dVector;
+
 	switch (iType)
 		{
 		case typeUnknown:
-			return CDatum(CDatum::typeArray);
+			dVector = CDatum(CDatum::typeArray);
+			break;
 
 		case typeDouble:
-			return CDatum(new CAEONVectorFloat64());
+			dVector = CDatum(new CAEONVectorFloat64());
+			break;
 
 		case typeInteger32:
-			return CDatum(new CAEONVectorInt32());
+			dVector = CDatum(new CAEONVectorInt32());
+			break;
+
+		case typeIntegerIP:
+			dVector = CDatum(new CAEONVectorIntIP());
+			break;
 
 		case typeString:
-			return CDatum(new CAEONVectorString());
+			dVector = CDatum(new CAEONVectorString());
+			break;
 
 		default:
 			//	Not supported
 			throw CException(errFail);
 		}
+	
+	for (int i = 0; i < dValues.GetCount(); i++)
+		dVector.Append(dValues.GetElement(i));
+
+	return dVector;
 	}

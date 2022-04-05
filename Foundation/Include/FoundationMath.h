@@ -79,6 +79,7 @@ class CIPInteger
 		CIPInteger operator << (size_t iBits) const;
 
 		int AsByteArray (TArray<BYTE> *retValue) const;
+		double AsDouble () const;
 		int AsInteger32Signed (void) const;
 		DWORDLONG AsInteger64Unsigned (void) const;
 		CString AsString (void) const;

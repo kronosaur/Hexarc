@@ -7,6 +7,7 @@
 
 DECLARE_CONST_STRING(TYPENAME_VECTOR_FLOAT_64,			"vector_Float64");
 DECLARE_CONST_STRING(TYPENAME_VECTOR_INT_32,			"vector_Int32");
+DECLARE_CONST_STRING(TYPENAME_VECTOR_INT_IP,			"vector_IntIP");
 DECLARE_CONST_STRING(TYPENAME_VECTOR_STRING,			"vector_String");
 
 //	CAEONVectorFloat64 ---------------------------------------------------------
@@ -54,6 +55,18 @@ CDatum CAEONVectorFloat64::MathMin () const
 	return CDatum(rMin);
 	}
 
+CDatum CAEONVectorFloat64::MathSum () const
+	{
+	if (m_Array.GetCount() == 0)
+		return CDatum();
+
+	double rResult = m_Array[0];
+	for (int i = 1; i < m_Array.GetCount(); i++)
+		rResult += m_Array[i];
+
+	return CDatum(rResult);
+	}
+
 //	CAEONVectorInt32 -----------------------------------------------------------
 
 const CString &CAEONVectorInt32::GetTypename (void) const
@@ -97,6 +110,98 @@ CDatum CAEONVectorInt32::MathMin () const
 			iMin = m_Array[i];
 
 	return CDatum(iMin);
+	}
+
+CDatum CAEONVectorInt32::MathSum () const
+	{
+	if (m_Array.GetCount() == 0)
+		return CDatum();
+
+	bool bIPInt = false;
+	CIPInteger Result;
+
+	LONGLONG iResult = m_Array[0];
+	for (int i = 1; i < m_Array.GetCount(); i++)
+		{
+		if (bIPInt)
+			{
+			Result += CIPInteger(m_Array[i]);
+			}
+		else
+			{
+			iResult += (LONGLONG)m_Array[i];
+			if (iResult < INT_MIN || iResult > INT_MAX)
+				{
+				Result = CIPInteger(iResult);
+				bIPInt = true;
+				}
+			}
+		}
+
+	if (bIPInt)
+		return CDatum(Result);
+	else
+		return CDatum((int)iResult);
+	}
+
+//	CAEONVectorIntIP -----------------------------------------------------------
+
+const CString &CAEONVectorIntIP::GetTypename (void) const
+	{
+	return TYPENAME_VECTOR_INT_IP;
+	}
+
+CDatum CAEONVectorIntIP::MathAbs () const
+	{
+	CAEONVectorIntIP *pResult = new CAEONVectorIntIP;
+	CDatum dResult(pResult);
+
+	pResult->m_Array.InsertEmpty(m_Array.GetCount());
+	for (int i = 0; i < m_Array.GetCount(); i++)
+		if (m_Array[i] < 0)
+			pResult->m_Array[i] = -m_Array[i];
+		else
+			pResult->m_Array[i] = m_Array[i];
+
+	return dResult;
+	}
+
+CDatum CAEONVectorIntIP::MathMax () const
+	{
+	if (m_Array.GetCount() == 0)
+		return CDatum();
+
+	CIPInteger Max = m_Array[0];
+	for (int i = 1; i < m_Array.GetCount(); i++)
+		if (m_Array[i] > Max)
+			Max = m_Array[i];
+
+	return CDatum(Max);
+	}
+
+CDatum CAEONVectorIntIP::MathMin () const
+	{
+	if (m_Array.GetCount() == 0)
+		return CDatum();
+
+	CIPInteger Min = m_Array[0];
+	for (int i = 1; i < m_Array.GetCount(); i++)
+		if (m_Array[i] < Min)
+			Min = m_Array[i];
+
+	return CDatum(Min);
+	}
+
+CDatum CAEONVectorIntIP::MathSum () const
+	{
+	if (m_Array.GetCount() == 0)
+		return CDatum();
+
+	CIPInteger Result = m_Array[0];
+	for (int i = 1; i < m_Array.GetCount(); i++)
+		Result += m_Array[i];
+
+	return CDatum(Result);
 	}
 
 //	CAEONVectorString ----------------------------------------------------------
@@ -159,3 +264,25 @@ CDatum CAEONVectorString::MathMin () const
 	return Min.GetDatum();
 	}
 
+CDatum CAEONVectorString::MathSum () const
+	{
+	if (m_Array.GetCount() == 0)
+		return CDatum();
+
+	CDatum dValue;
+	if (!CDatum::CreateFromStringValue(m_Array[0], &dValue)
+			|| !dValue.IsNumber())
+		return CDatum::CreateNaN();
+
+	CNumberValue Result(dValue);
+	for (int i = 1; i < m_Array.GetCount(); i++)
+		{
+		if (!CDatum::CreateFromStringValue(m_Array[i], &dValue)
+				|| !dValue.IsNumber())
+			return CDatum::CreateNaN();
+
+		Result.Add(dValue);
+		}
+
+	return Result.GetDatum();
+	}

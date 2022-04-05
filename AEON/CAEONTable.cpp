@@ -218,6 +218,9 @@ CDatum CAEONTable::CalcColumnDatatype (CDatum dValue)
 			case IDatatype::ARRAY_INT_32:
 				return CAEONTypeSystem::GetCoreType(IDatatype::INT_32);
 
+			case IDatatype::ARRAY_INT_IP:
+				return CAEONTypeSystem::GetCoreType(IDatatype::INT_IP);
+
 			case IDatatype::ARRAY_FLOAT_64:
 				return CAEONTypeSystem::GetCoreType(IDatatype::FLOAT_64);
 
@@ -235,6 +238,7 @@ CDatum CAEONTable::CalcColumnDatatype (CDatum dValue)
 					{
 					CDatum::Types iElementType = dValue.GetElement(0).GetBasicType();
 					if (iElementType != CDatum::typeInteger32
+							&& iElementType != CDatum::typeIntegerIP
 							&& iElementType != CDatum::typeDouble
 							&& iElementType != CDatum::typeString)
 						return CAEONTypeSystem::GetCoreType(IDatatype::ANY);
@@ -249,6 +253,9 @@ CDatum CAEONTable::CalcColumnDatatype (CDatum dValue)
 						{
 						case CDatum::typeInteger32:
 							return CAEONTypeSystem::GetCoreType(IDatatype::INT_32);
+
+						case CDatum::typeIntegerIP:
+							return CAEONTypeSystem::GetCoreType(IDatatype::INT_IP);
 
 						case CDatum::typeDouble:
 							return CAEONTypeSystem::GetCoreType(IDatatype::FLOAT_64);
@@ -918,6 +925,10 @@ void CAEONTable::SetSchema (CDatum dSchema)
 			{
 			case IDatatype::INT_32:
 				m_Cols[i] = CDatum::VectorOf(CDatum::typeInteger32);
+				break;
+
+			case IDatatype::INT_IP:
+				m_Cols[i] = CDatum::VectorOf(CDatum::typeIntegerIP);
 				break;
 
 			case IDatatype::FLOAT_64:
