@@ -115,11 +115,10 @@ bool CLispCompiler::CompileExpression (int iBlock)
 		case CLispParser::tkIntegerDatum:
 			{
 			DWORD dwValue = (DWORD)(int)dToken;
-			DWORD dwHighByte = (dwValue & 0xff000000);
 
 			//	If the value fits in a short opcode, use that
 
-			if (dwHighByte == 0 || dwHighByte == 0xff000000)
+			if (CHexeProcess::ExecuteIsShortOperand((int)dwValue))
 				m_pCode->WriteShortOpCode(iBlock, opPushIntShort, dwValue);
 
 			//	Otherwise, long
@@ -486,11 +485,10 @@ bool CLispCompiler::CompileLiteralExpression (int iBlock)
 		case CLispParser::tkIntegerDatum:
 			{
 			DWORD dwValue = (DWORD)(int)dToken;
-			DWORD dwHighByte = (dwValue & 0xff000000);
 
 			//	If the value fits in a short opcode, use that
 
-			if (dwHighByte == 0 || dwHighByte == 0xff000000)
+			if (CHexeProcess::ExecuteIsShortOperand((int)dwValue))
 				m_pCode->WriteShortOpCode(iBlock, opPushIntShort, dwValue);
 
 			//	Otherwise, long
