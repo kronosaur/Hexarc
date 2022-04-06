@@ -144,8 +144,7 @@ size_t CDatum::CalcSerializeSizeAEONScript (EFormat iFormat) const
 					break;
 					}
 
-				case AEON_NUMBER_28BIT:
-				case AEON_NUMBER_32BIT:
+				case AEON_NUMBER_INTEGER:
 					TotalSize = 6;
 					break;
 
@@ -239,16 +238,9 @@ void CDatum::SerializeAEONScript (EFormat iFormat, IByteStream &Stream) const
 					break;
 					}
 
-				case AEON_NUMBER_28BIT:
+				case AEON_NUMBER_INTEGER:
 					{
-					CString sInt = strFromInt((int)(m_dwData & AEON_NUMBER_MASK) >> 4);
-					Stream.Write(sInt);
-					break;
-					}
-
-				case AEON_NUMBER_32BIT:
-					{
-					CString sInt = strFromInt(raw_GetInt32());
+					CString sInt = strFromInt((int)HIDWORD(m_dwData));
 					Stream.Write(sInt);
 					break;
 					}

@@ -42,11 +42,8 @@ CDatum CDatum::MathAbs () const
 						}
 					}
 
-				case AEON_NUMBER_28BIT:
-					return CDatum(abs((int)(m_dwData & AEON_NUMBER_MASK) >> 4));
-
-				case AEON_NUMBER_32BIT:
-					return CDatum(abs(CAEONStore::GetInt(GetNumberIndex())));
+				case AEON_NUMBER_INTEGER:
+					return CDatum(abs((int)HIDWORD(m_dwData)));
 
 				case AEON_NUMBER_DOUBLE:
 					return CDatum(abs(CAEONStore::GetDouble(GetNumberIndex())));
@@ -89,8 +86,7 @@ template<class FUNC> CDatum CDatum::MathArrayOp () const
 						}
 					}
 
-				case AEON_NUMBER_28BIT:
-				case AEON_NUMBER_32BIT:
+				case AEON_NUMBER_INTEGER:
 				case AEON_NUMBER_DOUBLE:
 					return *this;
 

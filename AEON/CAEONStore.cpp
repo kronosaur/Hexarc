@@ -5,7 +5,6 @@
 
 #include "stdafx.h"
 
-TAllocatorGC<DWORD> CAEONStore::m_IntAlloc;
 TAllocatorGC<double> CAEONStore::m_DoubleAlloc;
 CGCStringAllocator CAEONStore::m_StringAlloc;
 CGCComplexAllocator CAEONStore::m_ComplexAlloc;
@@ -26,7 +25,6 @@ void CAEONStore::Sweep ()
 	//	Sweep
 
 	m_DoubleAlloc.Sweep();
-	m_IntAlloc.Sweep();
 	m_StringAlloc.Sweep();
 	m_ComplexAlloc.Sweep();
 	}

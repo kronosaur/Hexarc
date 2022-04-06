@@ -92,19 +92,7 @@ CDatum::CDatum (int iValue)
 
 	{
 	DWORD dwValue = (DWORD)iValue;
-
-	//	If we fit in 28-bit range, then store in m_dwData
-
-	if (dwValue >= AEON_MIN_28BIT || dwValue <= AEON_MAX_28BIT)
-		m_dwData = (((DWORD_PTR)dwValue << 4) | AEON_NUMBER_28BIT);
-
-	//	Otherwise, we need to store the number elsewhere
-
-	else
-		{
-		DWORD_PTR dwID = CAEONStore::Alloc(dwValue);
-		m_dwData = (dwID << 4) | AEON_NUMBER_32BIT;
-		}
+	m_dwData = MAKEDWORDLONG((DWORD)AEON_NUMBER_INTEGER, dwValue);
 	}
 
 CDatum::CDatum (DWORD dwValue)
@@ -112,18 +100,7 @@ CDatum::CDatum (DWORD dwValue)
 //	CDatum constructor
 
 	{
-	//	If we fit in 28-bit range, then store in m_dwData
-
-	if (dwValue >= AEON_MIN_28BIT || dwValue <= AEON_MAX_28BIT)
-		m_dwData = (((DWORD_PTR)dwValue << 4) | AEON_NUMBER_28BIT);
-
-	//	Otherwise, we need to store the number elsewhere
-
-	else
-		{
-		DWORD_PTR dwID = CAEONStore::Alloc(dwValue);
-		m_dwData = (dwID << 4) | AEON_NUMBER_32BIT;
-		}
+	m_dwData = MAKEDWORDLONG((DWORD)AEON_NUMBER_INTEGER, dwValue);
 	}
 
 CDatum::CDatum (DWORDLONG ilValue)
@@ -267,6 +244,9 @@ CDatum::CDatum (const CIPInteger &Value)
 	//	Store the pointer and assign type
 
 	m_dwData = ((DWORD_PTR)pValue | AEON_TYPE_COMPLEX);
+
+	if (m_dwData == 0x46d)
+		throw CException(errFail);
 	}
 
 CDatum::CDatum (const CRGBA32Image &Value)
@@ -346,11 +326,8 @@ CDatum::operator int () const
 						}
 					}
 
-				case AEON_NUMBER_28BIT:
-					return ((int)(m_dwData & AEON_NUMBER_MASK) >> 4);
-
-				case AEON_NUMBER_32BIT:
-					return CAEONStore::GetInt(GetNumberIndex());
+				case AEON_NUMBER_INTEGER:
+					return (int)HIDWORD(m_dwData);
 
 				case AEON_NUMBER_DOUBLE:
 					return (int)CAEONStore::GetDouble(GetNumberIndex());
@@ -398,11 +375,8 @@ CDatum::operator DWORD () const
 						}
 					}
 
-				case AEON_NUMBER_28BIT:
-					return ((int)(m_dwData & AEON_NUMBER_MASK) >> 4);
-
-				case AEON_NUMBER_32BIT:
-					return CAEONStore::GetInt(GetNumberIndex());
+				case AEON_NUMBER_INTEGER:
+					return HIDWORD(m_dwData);
 
 				case AEON_NUMBER_DOUBLE:
 					return (int)CAEONStore::GetDouble(GetNumberIndex());
@@ -450,11 +424,8 @@ CDatum::operator DWORDLONG () const
 						}
 					}
 
-				case AEON_NUMBER_28BIT:
-					return ((DWORDLONG)(m_dwData & AEON_NUMBER_MASK) >> 4);
-
-				case AEON_NUMBER_32BIT:
-					return (DWORDLONG)CAEONStore::GetInt(GetNumberIndex());
+				case AEON_NUMBER_INTEGER:
+					return (DWORDLONG)HIDWORD(m_dwData);
 
 				case AEON_NUMBER_DOUBLE:
 					return (DWORDLONG)CAEONStore::GetDouble(GetNumberIndex());
@@ -501,11 +472,8 @@ CDatum::operator double () const
 						}
 					}
 
-				case AEON_NUMBER_28BIT:
-					return (double)((int)(m_dwData & AEON_NUMBER_MASK) >> 4);
-
-				case AEON_NUMBER_32BIT:
-					return (double)(int)CAEONStore::GetInt(GetNumberIndex());
+				case AEON_NUMBER_INTEGER:
+					return (double)(int)HIDWORD(m_dwData);
 
 				case AEON_NUMBER_DOUBLE:
 					return CAEONStore::GetDouble(GetNumberIndex());
@@ -634,8 +602,7 @@ CDatum::operator const CString & () const
 						}
 					}
 
-				case AEON_NUMBER_28BIT:
-				case AEON_NUMBER_32BIT:
+				case AEON_NUMBER_INTEGER:
 				case AEON_NUMBER_DOUBLE:
 					return NULL_STR;
 
@@ -714,11 +681,8 @@ int CDatum::AsArrayIndex () const
 						}
 					}
 
-				case AEON_NUMBER_28BIT:
-					return ((int)(m_dwData & AEON_NUMBER_MASK) >> 4);
-
-				case AEON_NUMBER_32BIT:
-					return CAEONStore::GetInt(GetNumberIndex());
+				case AEON_NUMBER_INTEGER:
+					return (int)HIDWORD(m_dwData);
 
 				case AEON_NUMBER_DOUBLE:
 					return (int)CAEONStore::GetDouble(GetNumberIndex());
@@ -818,11 +782,8 @@ CIPInteger CDatum::AsIPInteger () const
 						}
 					}
 
-				case AEON_NUMBER_28BIT:
-					return CIPInteger((int)(m_dwData & AEON_NUMBER_MASK) >> 4);
-
-				case AEON_NUMBER_32BIT:
-					return CIPInteger((int)CAEONStore::GetInt(GetNumberIndex()));
+				case AEON_NUMBER_INTEGER:
+					return CIPInteger((int)HIDWORD(m_dwData));
 
 				case AEON_NUMBER_DOUBLE:
 					return CIPInteger(CAEONStore::GetDouble(GetNumberIndex()));
@@ -925,9 +886,8 @@ CString CDatum::AsString (void) const
 						}
 					}
 
-				case AEON_NUMBER_28BIT:
-				case AEON_NUMBER_32BIT:
-					return strFromInt((int)*this);
+				case AEON_NUMBER_INTEGER:
+					return strFromInt((int)HIDWORD(m_dwData));
 
 				case AEON_NUMBER_DOUBLE:
 					return strFromDouble(CAEONStore::GetDouble(GetNumberIndex()));
@@ -985,11 +945,7 @@ size_t CDatum::CalcMemorySize (void) const
 				case AEON_NUMBER_CONSTANT:
 					break;
 
-				case AEON_NUMBER_28BIT:
-					break;
-
-				case AEON_NUMBER_32BIT:
-					dwSize += sizeof(DWORD);
+				case AEON_NUMBER_INTEGER:
 					break;
 
 				case AEON_NUMBER_DOUBLE:
@@ -1949,8 +1905,7 @@ CDatum::Types CDatum::GetBasicType (void) const
 						}
 					}
 
-				case AEON_NUMBER_28BIT:
-				case AEON_NUMBER_32BIT:
+				case AEON_NUMBER_INTEGER:
 					return typeInteger32;
 
 				case AEON_NUMBER_DOUBLE:
@@ -2020,8 +1975,7 @@ CDatum CDatum::GetDatatype () const
 						}
 					}
 
-				case AEON_NUMBER_28BIT:
-				case AEON_NUMBER_32BIT:
+				case AEON_NUMBER_INTEGER:
 					return CAEONTypeSystem::GetCoreType(IDatatype::INT_32);
 
 				case AEON_NUMBER_DOUBLE:
@@ -2421,14 +2375,9 @@ CDatum::Types CDatum::GetNumberType (int *retiValue, CDatum *retdConverted) cons
 						}
 					}
 
-				case AEON_NUMBER_28BIT:
+				case AEON_NUMBER_INTEGER:
 					if (retiValue)
-						*retiValue = ((int)(m_dwData & AEON_NUMBER_MASK) >> 4);
-					return typeInteger32;
-
-				case AEON_NUMBER_32BIT:
-					if (retiValue)
-						*retiValue = CAEONStore::GetInt(GetNumberIndex());
+						*retiValue = (int)HIDWORD(m_dwData);
 					return typeInteger32;
 
 				case AEON_NUMBER_DOUBLE:
@@ -2646,10 +2595,7 @@ const CString &CDatum::GetTypename (void) const
 						}
 					}
 
-				case AEON_NUMBER_28BIT:
-					return TYPENAME_INT32;
-
-				case AEON_NUMBER_32BIT:
+				case AEON_NUMBER_INTEGER:
 					return TYPENAME_INT32;
 
 				case AEON_NUMBER_DOUBLE:
@@ -2942,10 +2888,6 @@ void CDatum::Mark (void)
 		case AEON_TYPE_NUMBER:
 			switch (m_dwData & AEON_NUMBER_TYPE_MASK)
 				{
-				case AEON_NUMBER_32BIT:
-					CAEONStore::MarkInit(GetNumberIndex());
-					break;
-
 				case AEON_NUMBER_DOUBLE:
 					CAEONStore::MarkDouble(GetNumberIndex());
 					break;
@@ -2998,16 +2940,6 @@ double CDatum::raw_GetDouble (void) const
 
 	{
 	return CAEONStore::GetDouble(GetNumberIndex());
-	}
-
-int CDatum::raw_GetInt32 (void) const
-
-//	raw_GetInt32
-//
-//	Returns an integer
-
-	{
-	return CAEONStore::GetInt(GetNumberIndex());
 	}
 
 bool CDatum::RegisterExternalType (const CString &sTypename, IComplexFactory *pFactory)

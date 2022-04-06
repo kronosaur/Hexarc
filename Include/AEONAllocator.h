@@ -355,15 +355,12 @@ class CAEONStore
 	public:
 		static DWORD Alloc (IComplexDatum* pValue) { return m_ComplexAlloc.New(pValue); }
 		static DWORD Alloc (double rValue) { return m_DoubleAlloc.New(rValue); }
-		static DWORD Alloc (DWORD dwValue) { return m_IntAlloc.New(dwValue); }
 		static DWORD Alloc (LPSTR pValue) { return m_StringAlloc.New(pValue); }
 
 		static double GetDouble (DWORD dwID) { return m_DoubleAlloc.Get(dwID); }
-		static int GetInt (DWORD dwID) { return (int)m_IntAlloc.Get(dwID); }
 
 		static void MarkComplex (IComplexDatum* pValue) { m_ComplexAlloc.Mark(pValue); }
 		static void MarkDouble (DWORD dwID) { m_DoubleAlloc.Mark(dwID); }
-		static void MarkInit (DWORD dwID) { m_IntAlloc.Mark(dwID); }
 		static void MarkString (LPSTR Value) { m_StringAlloc.Mark(Value); }
 
 		static void RegisterMarkProc (MARKPROC fnProc) { m_MarkList.Insert(fnProc); }
@@ -371,7 +368,6 @@ class CAEONStore
 		static void Sweep ();
 
 	private:
-		static TAllocatorGC<DWORD> m_IntAlloc;
 		static TAllocatorGC<double> m_DoubleAlloc;
 		static CGCStringAllocator m_StringAlloc;
 		static CGCComplexAllocator m_ComplexAlloc;

@@ -41,8 +41,7 @@ const DWORD_PTR AEON_MARK_MASK =			0x00000001;
 
 const DWORD_PTR AEON_NUMBER_TYPE_MASK =		0x0000000F;
 const DWORD_PTR AEON_NUMBER_CONSTANT =		0x01;
-const DWORD_PTR AEON_NUMBER_28BIT =			0x05;
-const DWORD_PTR AEON_NUMBER_32BIT =			0x09;
+const DWORD_PTR AEON_NUMBER_INTEGER =		0x05;
 const DWORD_PTR AEON_NUMBER_DOUBLE =		0x0D;
 const DWORD_PTR AEON_NUMBER_MASK =			0xFFFFFFF0;
 
@@ -56,28 +55,28 @@ typedef void (*MARKPROC)(void);
 //	These values can be passed around at will, but we must be able to call Mark
 //	on all values that need to be preserved across garbage-collection runs.
 //	
-//	A CDatum is a 32-bit atom that encodes different types
+//	A CDatum is a 64-bit atom that encodes different types
 //
-//	m_dwData format (32-bit version)
+//	m_dwData format
 //
-//				3322 2222 2222 1111 1111 1100 0000 0000
-//				1098 7654 3210 9876 5432 1098 7654 3210
+//				6666 5555 5555 5544 4444 4444 3333 3333 3322 2222 2222 1111 1111 1100 0000 0000
+//				3210 9875 5432 1098 7654 3210 9876 5432 1098 7654 3210 9876 5432 1098 7654 3210
 //
-//	String:		[ Pointer to string                 ]00		//	NULL == Nil
+//	String:		[ Pointer to string                                                         ]00		//	NULL == Nil
 //
-//	Constants:	[ const ID        ] 0000 0000 0000 0001
-//	Nil:		0000 0110 0110 0110 0000 0000 0000 0001		//	0x06660001
-//	True:		1010 1010 1010 1010 0000 0000 0000 0001		//	0xAAAA0001
-//	Free:		1111 1110 1110 1110 0000 0000 0000 0001		//	0xFEEE0001
+//	Constants:	                                        [ const ID        ] 0000 0000 0000 0001
+//	Nil:		                                        0000 0110 0110 0110 0000 0000 0000 0001		//	0x06660001
+//	True:		                                        1010 1010 1010 1010 0000 0000 0000 0001		//	0xAAAA0001
+//	Free:		                                        1111 1110 1110 1110 0000 0000 0000 0001		//	0xFEEE0001
 //
-//	Symbols:	[ 27-bit ID                     ]1 0001
+//	Symbols:	                                        [ 27-bit ID                     ]1 0001
 //
-//	Integer:	[ 28-bit integer                 ] 0101
-//	Integer:	[ Index to 32-bit integer        ] 1001
-//	Double:		[ Index to double                ] 1101
+//	Integer:	[ 32-bit integer                      ] 0000 0000 0000 0000 0000 0000 0000 0101
+//	Unused:	                                                                               1001
+//	Double:		                                        [ Index to double                ] 1101
 //
-//	Void:		[ Pointer to void (external)        ]10
-//	Complex:	[ Pointer to complex obj            ]11
+//	Void:		[ Pointer to void (external)                                                ]10
+//	Complex:	[ Pointer to complex obj                                                    ]11
 //
 //	When we point to a string, we point to an allocated
 //	block of memory that conforms to a literal CString
@@ -298,9 +297,7 @@ class CDatum
 		static bool DeserializeTextUTF8 (IByteStream &Stream, CDatum *retDatum);
 		static bool DetectFileFormat (const CString &sFilespec, IMemoryBlock &Data, EFormat *retiFormat, CString *retsError);
 		DWORD GetNumberIndex () const { return (DWORD)(m_dwData >> 4); }
-		bool IsAllocatedInteger () const { return (m_dwData & AEON_NUMBER_TYPE_MASK) == AEON_NUMBER_32BIT; }
 		double raw_GetDouble () const;
-		int raw_GetInt32 () const;
 		const CString &raw_GetString () const { ASSERT(AEON_TYPE_STRING == 0x00); return *(CString *)&m_dwData; }
 		void SerializeAEONScript (EFormat iFormat, IByteStream &Stream) const;
 		void SerializeJSON (IByteStream &Stream) const;
