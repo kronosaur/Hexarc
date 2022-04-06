@@ -18,7 +18,6 @@ class CComplexInteger : public IComplexDatum
 
 		//	IComplexDatum
 		virtual int AsArrayIndex () const override;
-		virtual CDatum AsNumericVector () const { return CDatum::raw_AsComplex(this); }
 		virtual CString AsString (void) const override { return m_Value.AsString(); }
 		virtual size_t CalcMemorySize (void) const override { return m_Value.GetSize(); }
 		virtual const CIPInteger &CastCIPInteger (void) const override { return m_Value; }
@@ -110,6 +109,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual const CString &GetTypename (void) const override;
 		virtual void GrowToFit (int iCount) override;
 		virtual bool IsArray (void) const override { return true; }
+		virtual bool IsContainer () const override { return true; }
 		virtual bool IsNil (void) const override { return (GetCount() == 0); }
 		virtual void ResolveDatatypes (const CAEONTypeSystem &TypeSystem) override;
 		virtual void Sort (ESortOptions Order = AscendingSort, TArray<CDatum>::COMPAREPROC pfCompare = NULL, void *pCtx = NULL) override { throw CException(errFail); }
@@ -188,6 +188,7 @@ class CAEONTableRef : public IComplexDatum, public IAEONTable
 		virtual const CString& GetTypename (void) const override;
 		virtual void GrowToFit (int iCount) override { }
 		virtual bool IsArray (void) const override { return true; }
+		virtual bool IsContainer () const override { return true; }
 		virtual bool IsNil (void) const override { return (GetCount() == 0); }
 		virtual void ResolveDatatypes (const CAEONTypeSystem& TypeSystem) override;
 		virtual void Sort (ESortOptions Order = AscendingSort, TArray<CDatum>::COMPAREPROC pfCompare = NULL, void *pCtx = NULL) override { throw CException(errFail); }
@@ -236,6 +237,7 @@ class CAEONTimeSpan : public IComplexDatum
 		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::TIME_SPAN); }
 		virtual CDatum GetElement (int iIndex) const override;
 		virtual CDatum GetElement (const CString &sKey) const override;
+		virtual CDatum::Types GetNumberType (int *retiValue) { return CDatum::typeTimeSpan; }
 		virtual const CString &GetTypename (void) const override;
 		virtual bool IsArray (void) const override { return true; }
 		virtual CDatum MathAbs () const override;
@@ -261,7 +263,6 @@ class CAEONVectorInt32 : public TAEONVector<int, CAEONVectorInt32>
 		CAEONVectorInt32 (const TArray<int> &Src) : TAEONVector<int, CAEONVectorInt32>(Src) { }
 		CAEONVectorInt32 (const TArray<CDatum> &Src) : TAEONVector<int, CAEONVectorInt32>(Src) { }
 
-		virtual CDatum AsNumericVector () const override { return CDatum::raw_AsComplex(this); }
 		virtual IComplexDatum *Clone (void) const override { return new CAEONVectorInt32(m_Array); }
 		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY_INT_32); }
 		virtual const CString &GetTypename (void) const override;
@@ -278,7 +279,6 @@ class CAEONVectorIntIP : public TAEONVector<CIPInteger, CAEONVectorIntIP>
 		CAEONVectorIntIP (const TArray<CIPInteger> &Src) : TAEONVector<CIPInteger, CAEONVectorIntIP>(Src) { }
 		CAEONVectorIntIP (const TArray<CDatum> &Src) : TAEONVector<CIPInteger, CAEONVectorIntIP>(Src) { }
 
-		virtual CDatum AsNumericVector () const override { return CDatum::raw_AsComplex(this); }
 		virtual IComplexDatum *Clone (void) const override { return new CAEONVectorIntIP(m_Array); }
 		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY_INT_IP); }
 		virtual const CString &GetTypename (void) const override;
@@ -295,7 +295,6 @@ class CAEONVectorFloat64 : public TAEONVector<double, CAEONVectorFloat64>
 		CAEONVectorFloat64 (const TArray<double> &Src) : TAEONVector<double, CAEONVectorFloat64>(Src) { }
 		CAEONVectorFloat64 (const TArray<CDatum> &Src) : TAEONVector<double, CAEONVectorFloat64>(Src) { }
 
-		virtual CDatum AsNumericVector () const override { return CDatum::raw_AsComplex(this); }
 		virtual IComplexDatum *Clone (void) const override { return new CAEONVectorFloat64(m_Array); }
 		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY_FLOAT_64); }
 		virtual const CString &GetTypename (void) const override;

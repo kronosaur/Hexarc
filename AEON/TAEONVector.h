@@ -82,6 +82,7 @@ template <class VALUE, class IMPL> class TAEONVector : public IComplexDatum
 		virtual CDatum GetElement (int iIndex) const override { return ((iIndex >= 0 && iIndex < m_Array.GetCount()) ? IMPL::ToDatum(m_Array[iIndex]) : CDatum()); }
 		virtual void GrowToFit (int iCount) override { m_Array.GrowToFit(iCount); }
 		virtual bool IsArray (void) const override { return true; }
+		virtual bool IsContainer () const override { return true; }
 		virtual bool IsNil (void) const override { return (GetCount() == 0); }
 		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const override
 			{

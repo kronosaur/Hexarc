@@ -5,129 +5,6 @@
 
 #include "stdafx.h"
 
-void CDatum::AccumulateNumericVectors (CDatum &dResult, CDatum dValue)
-
-//	AccumulateNumericVectors
-//
-//	Generates a numeric vector in dResult by concatenating it with the value.
-//	Null values are ignored. NaN poisons the result. Callers guarantee that 
-//	dValue is a numeric vector.
-//
-//	The result is a numeric vector with homogeneous types (or null or NaN).
-
-	{
-	if (dResult.IsNil())
-		dResult = dValue;
-	else if (dValue.IsNil())
-		{ }
-	else if (dResult.IsNaN())
-		{ }
-	else if (dValue.IsNaN())
-		dResult = dValue;
-	else if (dValue.IsArray())
-		{
-		for (int i = 0; i < dValue.GetCount(); i++)
-			AccumulateNumericVectors(dResult, dValue.GetElement(i));
-		}
-	else
-		{
-		//	Turn into a vector.
-
-		if (!dResult.IsArray())
-			{
-			switch (dResult.GetBasicType())
-				{
-				case CDatum::typeInteger32:
-				case CDatum::typeIntegerIP:
-				case CDatum::typeDouble:
-					{
-					CDatum dNewVector = CDatum::VectorOf(dResult.GetBasicType());
-					dNewVector.Append(dResult);
-					dResult = dNewVector;
-					break;
-					}
-
-				default:
-					throw CException(errFail);
-				}
-			}
-
-		const IDatatype& ResultType = dResult.GetDatatype();
-		DWORD dwResultType = ResultType.GetCoreType();
-
-		switch (dValue.GetBasicType())
-			{
-			case CDatum::typeInteger32:
-				//	All vector types are compatible with integer
-				break;
-
-			case CDatum::typeIntegerIP:
-				if (dwResultType != IDatatype::ARRAY_FLOAT_64
-						&& dwResultType != IDatatype::ARRAY)
-					dResult = CDatum::VectorOf(CDatum::typeIntegerIP, dResult);
-				break;
-
-			case CDatum::typeDouble:
-				if (dwResultType != IDatatype::ARRAY_FLOAT_64)
-					dResult = CDatum::VectorOf(CDatum::typeDouble, dResult);
-				break;
-
-			default:
-				throw CException(errFail);
-			}
-
-		dResult.Append(dValue);
-		}
-	}
-
-CDatum CDatum::AsNumericVector () const
-
-//	AsNumericVector
-//
-//	Converts this datum to either a single numeric value, or a vector of 
-//	homogeneous numeric values. If this is not a number (or if any component is
-//	not a number, then we return NaN). Null values are ignored and removed.
-
-	{
-	switch (m_dwData & AEON_TYPE_MASK)
-		{
-		case AEON_TYPE_STRING:
-			{
-			if (m_dwData == 0)
-				return CDatum();
-			else
-				{
-				CNumberValue X(*this);
-				if (X.IsValidNumber())
-					return X.GetDatum();
-				else
-					return CreateNaN();
-				}
-			}
-
-		case AEON_TYPE_NUMBER:
-			switch (m_dwData & AEON_NUMBER_TYPE_MASK)
-				{
-				case AEON_NUMBER_CONSTANT:
-					return CreateNaN();
-
-				case AEON_NUMBER_28BIT:
-				case AEON_NUMBER_32BIT:
-				case AEON_NUMBER_DOUBLE:
-					return *this;
-
-				default:
-					return CreateNaN();
-				}
-
-		case AEON_TYPE_COMPLEX:
-			return raw_GetComplex()->AsNumericVector();
-
-		default:
-			return CreateNaN();
-		}
-	}
-
 CDatum CDatum::MathAbs () const
 
 //	MathAbs
@@ -227,6 +104,44 @@ template<class FUNC> CDatum CDatum::MathArrayOp () const
 		default:
 			return CreateNaN();
 		}
+	}
+
+CDatum IComplexDatum::MathSum () const
+
+//	MathSum
+//
+//	Default implementation.
+//
+//	NOTE: Vector implementation (e.g., CAEONVectorInt32) override this method
+//	and have a more efficient implementation.
+
+	{
+	CDatum dCollection(CDatum::raw_AsComplex(this));
+	if (dCollection.IsNil())
+		return CDatum();
+
+	CNumberValue Result;
+
+	bool bSuccess = dCollection.EnumElements([&Result](CDatum dValue)
+		{
+		if (dValue.IsNil())
+			return true;
+		else if (dValue.IsNaN())
+			return false;
+		else
+			{
+			Result.Add(dValue);
+			if (!Result.IsValidNumber())
+				return false;
+			}
+
+		return true;
+		});
+
+	if (!bSuccess)
+		return CDatum::CreateNaN();
+
+	return Result.GetDatum();
 	}
 
 class MATH_AVERAGE { public: static CDatum Op (IComplexDatum *pDatum) { return pDatum->MathAverage(); }	};

@@ -202,7 +202,6 @@ class CDatum
 		int AsArrayIndex () const;
 		CDateTime AsDateTime () const;
 		CIPInteger AsIPInteger () const;
-		CDatum AsNumericVector () const;
 		CDatum AsOptions (bool *retbConverted = NULL) const;
 		CString AsString () const;
 		TArray<CString> AsStringArray () const;
@@ -210,6 +209,7 @@ class CDatum
 		size_t CalcSerializeSize (EFormat iFormat) const;
 		CDatum Clone () const;
 		bool Contains (CDatum dValue, TArray<IComplexDatum *> &retChecked) const;
+		bool EnumElements (std::function<bool(CDatum)> fn);
 		bool Find (CDatum dValue, int *retiIndex = NULL) const;
 		bool FindElement (const CString &sKey, CDatum *retpValue);
 		int GetArrayCount () const;
@@ -233,6 +233,7 @@ class CDatum
 		const CString &GetTypename () const;
 		void GrowToFit (int iCount);
 		bool IsArray () const;
+		bool IsContainer () const;
 		bool IsMemoryBlock () const;
 		bool IsEqual (CDatum dValue) const;
 		bool IsError () const;
@@ -252,7 +253,6 @@ class CDatum
 		static int Compare (CDatum dValue1, CDatum dValue2) { return DefaultCompare(NULL, dValue1, dValue2); }
 
 		//	Math related methods
-		static void AccumulateNumericVectors (CDatum &dResult, CDatum dValue);
 		bool FitsAsDWORDLONG () const { Types iType = GetNumberType(NULL); return (iType == typeInteger32 || iType == typeInteger64); }
 		Types GetNumberType (int *retiValue, CDatum *retdConverted = NULL) const;
 		bool IsNumber () const;
@@ -564,7 +564,6 @@ class IComplexDatum
 
 		virtual void Append (CDatum dDatum) { }
 		virtual int AsArrayIndex () const { return -1; }
-		virtual CDatum AsNumericVector () const { return CDatum::CreateNaN(); }
 		virtual CString AsString () const { return NULL_STR; }
 		virtual size_t CalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const;
 		virtual size_t CalcMemorySize () const = 0;
@@ -606,6 +605,7 @@ class IComplexDatum
 		virtual CDatum::InvokeResult InvokeContinues (IInvokeCtx *pCtx, CDatum dContext, CDatum dResult, CDatum *retdResult) { *retdResult = CDatum(); return CDatum::InvokeResult::ok; }
 		virtual bool InvokeMethodImpl(CDatum dObj, const CString &sMethod, IInvokeCtx &Ctx, CDatum dLocalEnv, CDatum &retdResult) { retdResult = CString("Methods not supported."); return false; }
 		virtual bool IsArray () const = 0;
+		virtual bool IsContainer () const { return false; }
 		virtual bool IsError () const { return false; }
 		virtual bool IsIPInteger () const { return false; }
 		bool IsMarked () const { return m_bMarked; }
@@ -617,7 +617,7 @@ class IComplexDatum
 		virtual CDatum MathMax () const { return CDatum::CreateNaN(); }
 		virtual CDatum MathMedian () const { return CDatum::CreateNaN(); }
 		virtual CDatum MathMin () const { return CDatum::CreateNaN(); }
-		virtual CDatum MathSum () const { return CDatum::CreateNaN(); }
+		virtual CDatum MathSum () const;
 		virtual void ResolveDatatypes (const CAEONTypeSystem &TypeSystem) { }
 		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const;
 		virtual void SetElement (IInvokeCtx *pCtx, const CString &sKey, CDatum dDatum) { SetElement(sKey, dDatum); }
@@ -671,7 +671,6 @@ class CComplexArray : public IComplexDatum
 
 		//	IComplexDatum
 		virtual void Append (CDatum dDatum) override { m_Array.Insert(dDatum); }
-		virtual CDatum AsNumericVector () const override;
 		virtual CString AsString () const override;
 		virtual size_t CalcMemorySize () const override;
 		virtual IComplexDatum *Clone () const override { return new CComplexArray(m_Array); }
@@ -685,6 +684,7 @@ class CComplexArray : public IComplexDatum
 		virtual const CString &GetTypename () const override;
 		virtual void GrowToFit (int iCount) override { m_Array.GrowToFit(iCount); }
 		virtual bool IsArray () const override { return true; }
+		virtual bool IsContainer () const override { return true; }
 		virtual bool IsNil () const override { return (GetCount() == 0); }
 		virtual CDatum MathAbs () const override;
 		virtual CDatum MathMax () const override;
@@ -890,6 +890,7 @@ class CComplexStruct : public IComplexDatum
 		virtual const CString &GetTypename () const override;
 		virtual void GrowToFit (int iCount) override { m_Map.GrowToFit(iCount); }
 		virtual bool IsArray () const override { return true; }
+		virtual bool IsContainer () const override { return true; }
 		virtual bool IsNil () const override { return (GetCount() == 0); }
 		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const override { SerializeAsStruct(iFormat, Stream); }
 		virtual void SetElement (const CString &sKey, CDatum dDatum) override { m_Map.SetAt(sKey, dDatum); }
@@ -974,7 +975,13 @@ template <class VALUE> class TExternalDatum : public IComplexDatum
 class CNumberValue
 	{
 	public:
-		CNumberValue (CDatum dValue);
+		CNumberValue () { }
+		CNumberValue (CDatum dValue) { InitFrom(dValue); }
+		CNumberValue (const CNumberValue& Src) = delete;
+		CNumberValue (CNumberValue&& Src) = delete;
+
+		CNumberValue& operator = (const CNumberValue& Src) = delete;
+		CNumberValue& operator = (CNumberValue&& Src) = delete;
 
 		void Abs ();
 		void Add (CDatum dValue);
@@ -991,9 +998,11 @@ class CNumberValue
 		int GetInteger () const { return (int)(DWORD_PTR)m_pValue; }
 		DWORDLONG GetInteger64 () const { return m_ilValue; }
 		const CIPInteger &GetIPInteger () const { return *(CIPInteger *)m_pValue; }
+		const CTimeSpan &GetTimeSpan () const { return *(CTimeSpan *)m_pValue; }
 		CDatum::Types GetType () const { return m_iType; }
-		bool IsValidNumber () const { return !m_bNotANumber; }
+		bool IsNil () const { return m_iType == CDatum::typeNil; }
 		bool IsNegative () const;
+		bool IsValidNumber () const { return !m_bNotANumber; }
 		void Max (CDatum dValue);
 		void Min (CDatum dValue);
 		bool Mod (CDatum dValue);
@@ -1004,21 +1013,25 @@ class CNumberValue
 		void SetInteger (int iValue) { m_pValue = (void *)(DWORD_PTR)iValue; m_bUpconverted = true; m_iType = CDatum::typeInteger32; }
 		void SetInteger64 (DWORDLONG ilValue) { m_ilValue = ilValue; m_bUpconverted = true; m_iType = CDatum::typeInteger64; }
 		void SetIPInteger (const CIPInteger &Value) { m_ipValue = Value; m_pValue = &m_ipValue; m_bUpconverted = true; m_iType = CDatum::typeIntegerIP; }
+		void SetTimeSpan (const CTimeSpan &Value) { m_tsValue = Value; m_pValue = &m_tsValue; m_bUpconverted = true; m_iType = CDatum::typeTimeSpan; }
 		void SetNaN () { m_bUpconverted = true; m_iType = CDatum::typeNaN; }
 		void SetNil () { m_bUpconverted = true; m_iType = CDatum::typeNil; }
 		void Subtract (CDatum dValue);
 		void Upconvert (CNumberValue &Src);
 
 	private:
-		CDatum m_dOriginalValue;
-		CDatum::Types m_iType;
-		bool m_bUpconverted;
-		bool m_bNotANumber;
+		void InitFrom (CDatum dValue);
 
-		void *m_pValue;
-		double m_rValue;
-		DWORDLONG m_ilValue;
+		CDatum m_dOriginalValue;
+		CDatum::Types m_iType = CDatum::typeNil;
+		bool m_bUpconverted = false;
+		bool m_bNotANumber = false;
+
+		void *m_pValue = NULL;
+		double m_rValue = 0.0;
+		DWORDLONG m_ilValue = 0;
 		CIPInteger m_ipValue;
+		CTimeSpan m_tsValue;
 
 		static constexpr int MAX_EXP_FOR_INT32 = 30;
 		static const int MAX_BASE_FOR_EXP[MAX_EXP_FOR_INT32 + 1];

@@ -42,51 +42,6 @@ const int CNumberValue::MAX_BASE_FOR_EXP[MAX_EXP_FOR_INT32 + 1] =
 
 //	CNumberValue ---------------------------------------------------------------
 
-CNumberValue::CNumberValue (CDatum dValue) :
-		m_bUpconverted(false),
-		m_bNotANumber(false)
-
-//	CNumberValue
-//
-//	CNumberValue constructor
-
-	{
-	//	Get the number type. If necessary, this code will convert from a string
-	//	to an appropriate number.
-
-	m_iType = dValue.GetNumberType(NULL, &m_dOriginalValue);
-
-	switch (m_iType)
-		{
-		case CDatum::typeInteger32:
-			m_pValue = (void *)(DWORD_PTR)(int)dValue;
-			break;
-
-		case CDatum::typeInteger64:
-			m_ilValue = (DWORDLONG)dValue;
-			break;
-
-		case CDatum::typeDouble:
-			m_rValue = (double)dValue;
-			break;
-
-		case CDatum::typeIntegerIP:
-			m_pValue = (void *)&((const CIPInteger &)m_dOriginalValue);
-			break;
-
-		case CDatum::typeNaN:
-			m_bNotANumber = true;
-			break;
-
-		default:
-			m_dOriginalValue = CDatum((int)0);
-			m_iType = CDatum::typeInteger32;
-			m_pValue = (void *)(DWORD_PTR)0;
-			m_bNotANumber = true;
-			break;
-		}
-	}
-
 void CNumberValue::Abs ()
 
 //	Abs
@@ -112,6 +67,14 @@ void CNumberValue::Abs ()
 			break;
 			}
 
+		case CDatum::typeTimeSpan:
+			{
+			const CTimeSpan &X = GetTimeSpan();
+			if (X.IsNegative())
+				SetTimeSpan(CTimeSpan(X, false));
+			break;
+			}
+
 		case CDatum::typeNaN:
 			SetNaN();
 			break;
@@ -134,8 +97,15 @@ void CNumberValue::Add (CDatum dValue)
 	switch (m_iType)
 		{
 		case CDatum::typeInteger32:
-			SetInteger(GetInteger() + Src.GetInteger());
+			{
+			LONGLONG iResult = (LONGLONG)GetInteger() + (LONGLONG)Src.GetInteger();
+			if (iResult >= INT_MIN && iResult <= INT_MAX)
+				SetInteger((int)iResult);
+			else
+				SetIPInteger(iResult);
+
 			break;
+			}
 
 		case CDatum::typeInteger64:
 			SetInteger64(GetInteger64() + Src.GetInteger64());
@@ -147,6 +117,10 @@ void CNumberValue::Add (CDatum dValue)
 
 		case CDatum::typeIntegerIP:
 			SetIPInteger(GetIPInteger() + Src.GetIPInteger());
+			break;
+
+		case CDatum::typeTimeSpan:
+			SetTimeSpan(CTimeSpan::Add(GetTimeSpan(), Src.GetTimeSpan()));
 			break;
 
 		case CDatum::typeNaN:
@@ -293,6 +267,18 @@ int CNumberValue::Compare (const CNumberValue &Value) const
 				}
 			}
 
+		case CDatum::typeTimeSpan:
+			{
+			switch (Value.m_iType)
+				{
+				case CDatum::typeTimeSpan:
+					return KeyCompare(GetTimeSpan(), Value.GetTimeSpan());
+
+				default:
+					return 1;
+				}
+			}
+
 		default:
 			return -1;
 		}
@@ -315,10 +301,12 @@ void CNumberValue::ConvertToDouble (void)
 			m_rValue = (double)GetInteger64();
 			break;
 
-		case CDatum::typeDouble:
 		case CDatum::typeIntegerIP:
-			ASSERT(false);
+			m_rValue = GetIPInteger().AsDouble();
 			break;
+
+		case CDatum::typeDouble:
+			return;
 
 		default:
 			m_rValue = 0.0;
@@ -429,6 +417,10 @@ bool CNumberValue::Divide (CDatum dValue)
 			SetIPInteger(GetIPInteger() / Src.GetIPInteger());
 			break;
 
+		case CDatum::typeTimeSpan:
+			SetNaN();
+			break;
+
 		default:
 			SetInteger(0);
 			break;
@@ -499,6 +491,10 @@ bool CNumberValue::DivideReversed (CDatum dValue)
 			SetIPInteger(Src.GetIPInteger() / GetIPInteger());
 			break;
 
+		case CDatum::typeTimeSpan:
+			SetNaN();
+			break;
+
 		default:
 			SetInteger(0);
 			break;
@@ -538,8 +534,61 @@ CDatum CNumberValue::GetDatum (void)
 			return dValue;
 			}
 
+		case CDatum::typeTimeSpan:
+			return CDatum(GetTimeSpan());
+
 		default:
 			return CDatum();
+		}
+	}
+
+void CNumberValue::InitFrom (CDatum dValue)
+
+//	InitFrom
+//
+//	Iniitializes from the given value.
+
+	{
+	m_bUpconverted = false;
+	m_bNotANumber = false;
+
+	//	Get the number type. If necessary, this code will convert from a string
+	//	to an appropriate number.
+
+	m_iType = dValue.GetNumberType(NULL, &m_dOriginalValue);
+
+	switch (m_iType)
+		{
+		case CDatum::typeInteger32:
+			m_pValue = (void *)(DWORD_PTR)(int)dValue;
+			break;
+
+		case CDatum::typeInteger64:
+			m_ilValue = (DWORDLONG)dValue;
+			break;
+
+		case CDatum::typeDouble:
+			m_rValue = (double)dValue;
+			break;
+
+		case CDatum::typeIntegerIP:
+			m_pValue = (void *)&((const CIPInteger &)m_dOriginalValue);
+			break;
+
+		case CDatum::typeTimeSpan:
+			m_pValue = (void *)&((const CTimeSpan &)m_dOriginalValue);
+			break;
+
+		case CDatum::typeNaN:
+			m_bNotANumber = true;
+			break;
+
+		default:
+			m_dOriginalValue = CDatum((int)0);
+			m_iType = CDatum::typeInteger32;
+			m_pValue = (void *)(DWORD_PTR)0;
+			m_bNotANumber = true;
+			break;
 		}
 	}
 
@@ -563,6 +612,9 @@ bool CNumberValue::IsNegative () const
 
 		case CDatum::typeIntegerIP:
 			return GetIPInteger().IsNegative();
+
+		case CDatum::typeTimeSpan:
+			return GetTimeSpan().IsNegative();
 
 		default:
 			return false;
@@ -608,6 +660,11 @@ void CNumberValue::Max (CDatum dValue)
 				SetIPInteger(Src.GetIPInteger());
 			break;
 
+		case CDatum::typeTimeSpan:
+			if (GetTimeSpan().Compare(Src.GetTimeSpan()) == -1)
+				SetTimeSpan(Src.GetTimeSpan());
+			break;
+
 		default:
 			break;
 		}
@@ -650,6 +707,11 @@ void CNumberValue::Min (CDatum dValue)
 		case CDatum::typeIntegerIP:
 			if (GetIPInteger().Compare(Src.GetIPInteger()) == 1)
 				SetIPInteger(Src.GetIPInteger());
+			break;
+
+		case CDatum::typeTimeSpan:
+			if (GetTimeSpan().Compare(Src.GetTimeSpan()) == 1)
+				SetTimeSpan(Src.GetTimeSpan());
 			break;
 
 		default:
@@ -705,6 +767,10 @@ bool CNumberValue::Mod (CDatum dValue)
 				return false;
 
 			SetIPInteger(GetIPInteger() % Src.GetIPInteger());
+			break;
+
+		case CDatum::typeTimeSpan:
+			SetNaN();
 			break;
 
 		default:
@@ -783,6 +849,10 @@ bool CNumberValue::ModClock (CDatum dValue)
 			break;
 			}
 
+		case CDatum::typeTimeSpan:
+			SetNaN();
+			break;
+
 		default:
 			SetInteger(0);
 			break;
@@ -831,6 +901,10 @@ void CNumberValue::Multiply (CDatum dValue)
 
 		case CDatum::typeIntegerIP:
 			SetIPInteger(GetIPInteger() * Src.GetIPInteger());
+			break;
+
+		case CDatum::typeTimeSpan:
+			SetNaN();
 			break;
 
 		default:
@@ -897,6 +971,10 @@ void CNumberValue::Power (CDatum dValue)
 			SetDouble(pow(GetDouble(), Exp.GetDouble()));
 			break;
 
+		case CDatum::typeTimeSpan:
+			SetNaN();
+			break;
+
 		default:
 			SetNil();
 			break;
@@ -921,8 +999,15 @@ void CNumberValue::Subtract (CDatum dValue)
 			break;
 
 		case CDatum::typeInteger32:
-			SetInteger(GetInteger() - Src.GetInteger());
+			{
+			LONGLONG iResult = (LONGLONG)GetInteger() - (LONGLONG)Src.GetInteger();
+			if (iResult >= INT_MIN && iResult <= INT_MAX)
+				SetInteger((int)iResult);
+			else
+				SetIPInteger(iResult);
+
 			break;
+			}
 
 		case CDatum::typeInteger64:
 			SetInteger64(GetInteger64() - Src.GetInteger64());
@@ -934,6 +1019,10 @@ void CNumberValue::Subtract (CDatum dValue)
 
 		case CDatum::typeIntegerIP:
 			SetIPInteger(GetIPInteger() - Src.GetIPInteger());
+			break;
+
+		case CDatum::typeTimeSpan:
+			SetTimeSpan(CTimeSpan::Subtract(GetTimeSpan(), Src.GetTimeSpan()));
 			break;
 
 		default:
@@ -950,15 +1039,86 @@ void CNumberValue::Upconvert (CNumberValue &Src)
 //	operations on a common type.
 
 	{
+	//	If we're null, then we just take on the source.
+
+	if (m_iType == CDatum::typeNil)
+		{
+		switch (Src.m_iType)
+			{
+			case CDatum::typeInteger32:
+				SetInteger(0);
+				break;
+
+			case CDatum::typeInteger64:
+				Src.ConvertToIPInteger();
+				SetIPInteger(0);
+				break;
+
+			case CDatum::typeIntegerIP:
+				SetIPInteger(0);
+				break;
+
+			case CDatum::typeDouble:
+				SetDouble(0.0);
+				break;
+
+			case CDatum::typeTimeSpan:
+				SetTimeSpan(CTimeSpan());
+				break;
+
+			default:
+				SetNaN();
+				break;
+			}
+		}
+
 	//	If either is nan, then we've got nan.
 
-	if (m_iType == CDatum::typeNaN || Src.m_iType == CDatum::typeNaN)
+	else if (m_iType == CDatum::typeNaN || Src.m_iType == CDatum::typeNaN)
 		{
 		Src.SetNaN();
 		SetNaN();
 		}
 
-	//	We always upconvert 64-bit ints to IP.
+	//	If already the same type we don't have to do anything.
+
+	else if (m_iType == Src.m_iType)
+		{
+		//	We always upconvert 64-bit ints to IP.
+
+		if (m_iType == CDatum::typeInteger64)
+			{
+			Src.ConvertToIPInteger();
+			ConvertToIPInteger();
+			}
+
+		return;
+		}
+
+	//	If either value is a timespan (but not both) then we get nan.
+
+	else if (m_iType == CDatum::typeTimeSpan || Src.m_iType == CDatum::typeTimeSpan)
+		{
+		Src.SetNaN();
+		SetNaN();
+		}
+
+	//	If one is double then convert the other
+	//
+	//	NOTE: If we have an IPInteger and a double then we convert to double
+	//	because otherwise we'd lose the decimal part.
+	//
+	//	LATER: We could at minimum check to see if the double is an integer, and
+	//	in that case, stick to IPInteger.
+	//
+	//	LATER: Eventually we probably want arbitrary precision floats.
+
+	else if (m_iType == CDatum::typeDouble)
+		Src.ConvertToDouble();
+	else if (Src.m_iType == CDatum::typeDouble)
+		ConvertToDouble();
+
+	//	If either is a 64-bit int, then always convert both.
 
 	else if (m_iType == CDatum::typeInteger64 || Src.m_iType == CDatum::typeInteger64)
 		{
@@ -966,24 +1126,12 @@ void CNumberValue::Upconvert (CNumberValue &Src)
 		ConvertToIPInteger();
 		}
 
-	//	If already the same type we don't have to do anything.
-
-	else if (m_iType == Src.m_iType)
-		return;
-
 	//	If one is IPInteger then convert the other
 
 	else if (m_iType == CDatum::typeIntegerIP)
 		Src.ConvertToIPInteger();
 	else if (Src.m_iType == CDatum::typeIntegerIP)
 		ConvertToIPInteger();
-
-	//	If one is double then convert the other
-
-	else if (m_iType == CDatum::typeDouble)
-		Src.ConvertToDouble();
-	else if (Src.m_iType == CDatum::typeDouble)
-		ConvertToDouble();
 
 	else
 		//	Should never get here

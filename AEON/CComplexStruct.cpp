@@ -159,7 +159,7 @@ CDatum CComplexStruct::GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex)
 		else
 			return CDatum();
 		}
-	else if (dIndex.IsArray())
+	else if (dIndex.IsContainer())
 		{
 		CDatum dResult(CDatum::typeStruct);
 

@@ -153,29 +153,6 @@ void CHexeLocalEnvironment::IncArgumentValue(int iIndex, int iInc)
 	m_pArray[iIndex].dValue = CHexeProcess::ExecuteIncrement(m_pArray[iIndex].dValue, iInc);
 	}
 
-CDatum CHexeLocalEnvironment::MathAverage () const
-
-//	MathAverage
-//
-//	Returns the average value of all args (recursively).
-
-	{
-	int iCount = GetArgumentCount();
-	if (iCount == 0)
-		return CDatum();
-
-	CDatum dResult;
-	for (int i = 0; i < iCount; i++)
-		{
-		CDatum::AccumulateNumericVectors(dResult, m_pArray[i].dValue.AsNumericVector());
-		}
-
-	if (dResult.IsNaN())
-		return dResult;
-
-	return dResult.MathAverage();
-	}
-
 CDatum CHexeLocalEnvironment::MathMax () const
 
 //	MathMax
@@ -199,29 +176,6 @@ CDatum CHexeLocalEnvironment::MathMax () const
 		return CDatum::CreateNaN();
 	}
 
-CDatum CHexeLocalEnvironment::MathMedian () const
-
-//	MathMedian
-//
-//	Returns the median value of all args (recursively).
-
-	{
-	int iCount = GetArgumentCount();
-	if (iCount == 0)
-		return CDatum();
-
-	CDatum dResult;
-	for (int i = 0; i < iCount; i++)
-		{
-		CDatum::AccumulateNumericVectors(dResult, m_pArray[i].dValue.AsNumericVector());
-		}
-
-	if (dResult.IsNaN())
-		return dResult;
-
-	return dResult.MathMedian();
-	}
-
 CDatum CHexeLocalEnvironment::MathMin () const
 
 //	MathMin
@@ -243,29 +197,6 @@ CDatum CHexeLocalEnvironment::MathMin () const
 		return Result.GetDatum();
 	else
 		return CDatum::CreateNaN();
-	}
-
-CDatum CHexeLocalEnvironment::MathSum () const
-
-//	MathSum
-//
-//	Returns the sum of all args (recursively).
-
-	{
-	int iCount = GetArgumentCount();
-	if (iCount == 0)
-		return CDatum();
-
-	CDatum dResult;
-	for (int i = 0; i < iCount; i++)
-		{
-		CDatum::AccumulateNumericVectors(dResult, m_pArray[i].dValue.AsNumericVector());
-		}
-
-	if (dResult.IsNaN())
-		return dResult;
-
-	return dResult.MathSum();
 	}
 
 bool CHexeLocalEnvironment::OnDeserialize (CDatum::EFormat iFormat, CDatum dStruct)

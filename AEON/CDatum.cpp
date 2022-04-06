@@ -1797,6 +1797,30 @@ bool CDatum::DetectFileFormat (const CString &sFilespec, IMemoryBlock &Data, EFo
 	return true;
 	}
 
+bool CDatum::EnumElements (std::function<bool(CDatum)> fn)
+
+//	EnumElements
+//
+//	Enumerates over all elements, recursively. Returns FALSE if one of the calls
+//	returned FALSE.
+
+	{
+	if (IsNil())
+		return true;
+	else if (IsContainer())
+		{
+		for (int i = 0; i < GetCount(); i++)
+			{
+			if (!GetElement(i).EnumElements(fn))
+				return false;
+			}
+
+		return true;
+		}
+	else
+		return fn(*this);
+	}
+
 bool CDatum::Find (CDatum dValue, int *retiIndex) const
 
 //	Find
@@ -2710,6 +2734,23 @@ bool CDatum::IsArray () const
 		{
 		case AEON_TYPE_COMPLEX:
 			return raw_GetComplex()->IsArray();
+
+		default:
+			return false;
+		}
+	}
+
+bool CDatum::IsContainer () const
+
+//	IsContainer
+//
+//	Is a container of sub-elements.
+
+	{
+	switch (m_dwData & AEON_TYPE_MASK)
+		{
+		case AEON_TYPE_COMPLEX:
+			return raw_GetComplex()->IsContainer();
 
 		default:
 			return false;

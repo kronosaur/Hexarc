@@ -1002,6 +1002,16 @@ bool coreMath (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinu
 					return true;
 					}
 
+				case CDatum::typeTimeSpan:
+					{
+					const CTimeSpan &Value = (const CTimeSpan &)dValue;
+					if (Value.IsNegative())
+						*retdResult = CDatum(CTimeSpan(Value, false));
+					else
+						*retdResult = dValue;
+					return true;
+					}
+
 				default:
 					*retdResult = dValue;
 					return true;

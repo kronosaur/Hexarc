@@ -123,7 +123,7 @@ bool IAEONTable::CreateSchemaFromDesc (CAEONTypeSystem& TypeSystem, CDatum dSche
 			}
 		}
 
-	if (!dSchemaDesc.IsArray() || dSchemaDesc.GetCount() == 0)
+	if (!dSchemaDesc.IsContainer() || dSchemaDesc.GetCount() == 0)
 		{
 		retdSchema = ERR_INVALID_SCHEMA_DESC;
 		return false;

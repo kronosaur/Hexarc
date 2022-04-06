@@ -209,7 +209,7 @@ CDatum CAEONTable::CalcColumnDatatype (CDatum dValue)
 //	Computes the column datatype based on a value.
 
 	{
-	if (dValue.IsArray())
+	if (dValue.IsContainer())
 		{
 		const IDatatype &ArrayType = dValue.GetDatatype();
 
@@ -547,7 +547,7 @@ CDatum CAEONTable::GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) con
 		return CDatum();
 	else if (dIndex.IsNumberInt32(&iIndex))
 		return GetElement(iIndex);
-	else if (dIndex.IsArray())
+	else if (dIndex.IsContainer())
 		{
 		IAEONTable::SSubset Subset;
 

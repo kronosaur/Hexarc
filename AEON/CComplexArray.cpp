@@ -71,28 +71,6 @@ CComplexArray::CComplexArray (const TArray<CDatum> &Src)
 		}
 	}
 
-CDatum CComplexArray::AsNumericVector () const
-
-//	AsNumericVector
-//
-//	Returns a single vector of homegeneous values.
-
-	{
-	if (m_Array.GetCount() == 0)
-		return CDatum();
-
-	CDatum dResult;
-	for (int i = 0; i < m_Array.GetCount(); i++)
-		{
-		CDatum::AccumulateNumericVectors(dResult, m_Array[i].AsNumericVector());
-		}
-
-	if (dResult.IsNaN())
-		return dResult;
-
-	return dResult;
-	}
-
 CString CComplexArray::AsString (void) const
 
 //	AsString
@@ -179,7 +157,7 @@ CDatum CComplexArray::GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) 
 	int iIndex = dIndex.AsArrayIndex();
 	if (iIndex >= 0 && iIndex < m_Array.GetCount())
 		return m_Array[iIndex];
-	else if (dIndex.IsArray())
+	else if (dIndex.IsContainer())
 		{
 		CDatum dResult(CDatum::typeArray);
 		dResult.GrowToFit(dIndex.GetCount());
