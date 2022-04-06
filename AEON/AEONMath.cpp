@@ -106,6 +106,53 @@ template<class FUNC> CDatum CDatum::MathArrayOp () const
 		}
 	}
 
+CDatum IComplexDatum::MathAverage () const
+
+//	MathAverage
+//
+//	Default implementation.
+//
+//	NOTE: Vector implementation (e.g., CAEONVectorInt32) override this method
+//	and have a more efficient implementation.
+
+	{
+	CDatum dCollection(CDatum::raw_AsComplex(this));
+	if (dCollection.IsNil())
+		return CDatum();
+
+	CNumberValue Total;
+	int iCount = 0;
+
+	bool bSuccess = dCollection.EnumElements([&Total, &iCount](CDatum dValue)
+		{
+		if (dValue.IsNil())
+			return true;
+		else if (dValue.IsNaN())
+			return false;
+		else
+			{
+			iCount++;
+
+			Total.Add(dValue);
+			if (!Total.IsValidNumber())
+				return false;
+			}
+
+		return true;
+		});
+
+	if (!bSuccess)
+		return CDatum::CreateNaN();
+
+	if (iCount == 0)
+		return CDatum();
+
+	if (!Total.Divide(iCount))
+		return CDatum::CreateNaN();
+
+	return Total.GetDatum();
+	}
+
 CDatum IComplexDatum::MathSum () const
 
 //	MathSum

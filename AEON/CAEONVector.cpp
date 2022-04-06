@@ -29,6 +29,18 @@ CDatum CAEONVectorFloat64::MathAbs () const
 	return dResult;
 	}
 
+CDatum CAEONVectorFloat64::MathAverage () const
+	{
+	if (m_Array.GetCount() == 0)
+		return CDatum();
+
+	double rResult = m_Array[0];
+	for (int i = 1; i < m_Array.GetCount(); i++)
+		rResult += m_Array[i];
+
+	return CDatum(rResult / (double)m_Array.GetCount());
+	}
+
 CDatum CAEONVectorFloat64::MathMax () const
 	{
 	if (m_Array.GetCount() == 0)
@@ -84,6 +96,52 @@ CDatum CAEONVectorInt32::MathAbs () const
 		pResult->m_Array[i] = abs(m_Array[i]);
 
 	return dResult;
+	}
+
+CDatum CAEONVectorInt32::MathAverage () const
+	{
+	if (m_Array.GetCount() == 0)
+		return CDatum();
+
+	bool bIPInt = false;
+	CIPInteger Result;
+
+	LONGLONG iResult = m_Array[0];
+	for (int i = 1; i < m_Array.GetCount(); i++)
+		{
+		if (bIPInt)
+			{
+			Result += CIPInteger(m_Array[i]);
+			}
+		else
+			{
+			iResult += (LONGLONG)m_Array[i];
+			if (iResult < INT_MIN || iResult > INT_MAX)
+				{
+				Result = CIPInteger(iResult);
+				bIPInt = true;
+				}
+			}
+		}
+
+	double rResult;
+	if (bIPInt)
+		{
+		rResult = (Result.AsDouble() / (double)m_Array.GetCount());
+		}
+	else
+		{
+		rResult = (double)iResult / (double)m_Array.GetCount();
+		}
+
+	//	NOTE: OK to cast to int because average of ints cannot be outside of
+	//	int range.
+
+	double intpart;
+	if (std::modf(rResult, &intpart) == 0.0)
+		return CDatum((int)intpart);
+	else
+		return CDatum(rResult);
 	}
 
 CDatum CAEONVectorInt32::MathMax () const
@@ -166,6 +224,23 @@ CDatum CAEONVectorIntIP::MathAbs () const
 	return dResult;
 	}
 
+CDatum CAEONVectorIntIP::MathAverage () const
+	{
+	if (m_Array.GetCount() == 0)
+		return CDatum();
+
+	CIPInteger Result = m_Array[0];
+	for (int i = 1; i < m_Array.GetCount(); i++)
+		Result += m_Array[i];
+
+	double rResult = Result.AsDouble() / (double)m_Array.GetCount();
+	double intpart;
+	if (std::modf(rResult, &intpart) == 0.0)
+		return CDatum(CIPInteger(intpart));
+	else
+		return CDatum(rResult);
+	}
+
 CDatum CAEONVectorIntIP::MathMax () const
 	{
 	if (m_Array.GetCount() == 0)
@@ -218,6 +293,31 @@ CDatum CAEONVectorString::MathAbs () const
 	return CDatum::CreateNaN();
 	}
 
+CDatum CAEONVectorString::MathAverage () const
+	{
+	if (m_Array.GetCount() == 0)
+		return CDatum();
+
+	CDatum dValue;
+	if (!CDatum::CreateFromStringValue(m_Array[0], &dValue)
+			|| !dValue.IsNumber())
+		return CDatum::CreateNaN();
+
+	CNumberValue Result(dValue);
+	for (int i = 1; i < m_Array.GetCount(); i++)
+		{
+		if (!CDatum::CreateFromStringValue(m_Array[i], &dValue)
+				|| !dValue.IsNumber())
+			return CDatum::CreateNaN();
+
+		Result.Add(dValue);
+		}
+
+	if (!Result.Divide(m_Array.GetCount()))
+		return CDatum::CreateNaN();
+
+	return Result.GetDatum();
+	}
 CDatum CAEONVectorString::MathMax () const
 	{
 	if (m_Array.GetCount() == 0)

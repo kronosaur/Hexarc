@@ -267,6 +267,7 @@ class CAEONVectorInt32 : public TAEONVector<int, CAEONVectorInt32>
 		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY_INT_32); }
 		virtual const CString &GetTypename (void) const override;
 		virtual CDatum MathAbs () const override;
+		virtual CDatum MathAverage () const override;
 		virtual CDatum MathMax () const override;
 		virtual CDatum MathMin () const override;
 		virtual CDatum MathSum () const override;
@@ -283,6 +284,7 @@ class CAEONVectorIntIP : public TAEONVector<CIPInteger, CAEONVectorIntIP>
 		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY_INT_IP); }
 		virtual const CString &GetTypename (void) const override;
 		virtual CDatum MathAbs () const override;
+		virtual CDatum MathAverage () const override;
 		virtual CDatum MathMax () const override;
 		virtual CDatum MathMin () const override;
 		virtual CDatum MathSum () const override;
@@ -299,6 +301,7 @@ class CAEONVectorFloat64 : public TAEONVector<double, CAEONVectorFloat64>
 		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY_FLOAT_64); }
 		virtual const CString &GetTypename (void) const override;
 		virtual CDatum MathAbs () const override;
+		virtual CDatum MathAverage () const override;
 		virtual CDatum MathMax () const override;
 		virtual CDatum MathMin () const override;
 		virtual CDatum MathSum () const override;
@@ -318,6 +321,7 @@ class CAEONVectorString : public TAEONVector<CString, CAEONVectorString>
 		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY_STRING); }
 		virtual const CString &GetTypename (void) const override;
 		virtual CDatum MathAbs () const override;
+		virtual CDatum MathAverage () const override;
 		virtual CDatum MathMax () const override;
 		virtual CDatum MathMin () const override;
 		virtual CDatum MathSum () const override;

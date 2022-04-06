@@ -158,18 +158,13 @@ CIPInteger::CIPInteger (double rSrc)
 //	CIPInteger constructor
 
 	{
-	//	LATER: Need to convert a double to an IP.
-	m_Value = bdNew();
-	if (rSrc >= 0)
-		{
-		bdSetShort((BIGD)m_Value, (int)rSrc);
-		m_bNegative = false;
-		}
+	double rInt;
+	double rFrac = std::modf(rSrc, &rInt);
+
+	if (rInt >= (double)LLONG_MIN && rInt <= (double)LLONG_MAX)
+		*this = CIPInteger((LONGLONG)rInt);
 	else
-		{
-		bdSetShort((BIGD)m_Value, (int)-rSrc);
-		m_bNegative = true;
-		}
+		InitFromString(strFromDouble(rInt));
 	}
 
 CIPInteger::~CIPInteger (void)

@@ -363,7 +363,12 @@ bool CNumberValue::Divide (CDatum dValue)
 
 	{
 	CNumberValue Src(dValue);
-	Upconvert(Src);
+
+	//	NOTE: If we are a timespan, we don't bother upconverting; instead, we
+	//	handle all cases.
+
+	if (m_iType != CDatum::typeTimeSpan)
+		Upconvert(Src);
 
 	switch (m_iType)
 		{
@@ -411,15 +416,108 @@ bool CNumberValue::Divide (CDatum dValue)
 			break;
 
 		case CDatum::typeIntegerIP:
+			{
 			if (Src.GetIPInteger().IsZero())
 				return false;
 
-			SetIPInteger(GetIPInteger() / Src.GetIPInteger());
+			double rResult = GetIPInteger().AsDouble() / Src.GetIPInteger().AsDouble();
+			double intpart;
+			if (std::modf(rResult, &intpart) == 0.0)
+				SetIPInteger(CIPInteger(intpart));
+			else
+				SetDouble(rResult);
+
 			break;
+			}
 
 		case CDatum::typeTimeSpan:
-			SetNaN();
+			{
+			bool bNegative = GetTimeSpan().IsNegative();
+
+			switch (Src.m_iType)
+				{
+				case CDatum::typeInteger32:
+					{
+					int iDivisor = Src.GetInteger();
+					if (iDivisor == 0)
+						{
+						SetNaN();
+						break;
+						}
+
+					if (iDivisor < 0)
+						{
+						bNegative = !bNegative;
+						iDivisor = -iDivisor;
+						}
+
+					DWORDLONG dwTime = GetTimeSpan().Milliseconds64() / (DWORDLONG)iDivisor;
+					SetTimeSpan(CTimeSpan(dwTime, bNegative));
+					break;
+					}
+
+				case CDatum::typeInteger64:
+					{
+					DWORDLONG dwDivisor = Src.GetInteger64();
+					if (dwDivisor == 0)
+						{
+						SetNaN();
+						break;
+						}
+
+					DWORDLONG dwTime = GetTimeSpan().Milliseconds64() / dwDivisor;
+					SetTimeSpan(CTimeSpan(dwTime, bNegative));
+					break;
+					}
+
+				case CDatum::typeIntegerIP:
+					{
+					CIPInteger Time(GetTimeSpan().Milliseconds64());
+					CIPInteger Divisor = Src.GetIPInteger();
+					if (Divisor.IsZero())
+						{
+						SetNaN();
+						break;
+						}
+
+					if (Divisor.IsNegative())
+						{
+						bNegative = !bNegative;
+						Divisor = -Divisor;
+						}
+
+					CIPInteger Result = Time / Divisor;
+					SetTimeSpan(CTimeSpan(Result.AsInteger64Unsigned(), bNegative));
+					break;
+					}
+
+				case CDatum::typeDouble:
+					{
+					double rDivisor = Src.GetInteger();
+					if (rDivisor == 0.0)
+						{
+						SetNaN();
+						break;
+						}
+
+					if (rDivisor < 0.0)
+						{
+						bNegative = !bNegative;
+						rDivisor = -rDivisor;
+						}
+
+					DWORDLONG dwTime = (DWORDLONG)((double)GetTimeSpan().Milliseconds64() / rDivisor);
+					SetTimeSpan(CTimeSpan(dwTime, bNegative));
+					break;
+					}
+
+				default:
+					SetNaN();
+					break;
+				}
+
 			break;
+			}
 
 		default:
 			SetInteger(0);

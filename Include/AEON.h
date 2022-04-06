@@ -613,7 +613,7 @@ class IComplexDatum
 		virtual bool IsNil () const { return false; }
 		void Mark () { if (!m_bMarked) { m_bMarked = true; OnMarked(); } }	//	Check m_bMarked to avoid infinite recursion
 		virtual CDatum MathAbs () const { return CDatum::CreateNaN(); }
-		virtual CDatum MathAverage () const { return CDatum::CreateNaN(); }
+		virtual CDatum MathAverage () const;
 		virtual CDatum MathMax () const { return CDatum::CreateNaN(); }
 		virtual CDatum MathMedian () const { return CDatum::CreateNaN(); }
 		virtual CDatum MathMin () const { return CDatum::CreateNaN(); }
