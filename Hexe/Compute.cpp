@@ -2998,6 +2998,59 @@ CDatum CHexeProcess::ExecuteOpDivide (CDatum dLeft, CDatum dRight)
 		}
 	}
 
+CDatum CHexeProcess::ExecuteOpDivideMod (CDatum dDividend, CDatum dDivisor)
+
+//	ExecuteOpDivideMod
+//
+//	Returns a array of quotient and remainder.
+
+	{
+	CDatum::Types iDividendType = dDividend.GetBasicType();
+	CDatum::Types iDivisorType = dDivisor.GetBasicType();
+
+	if (iDividendType == CDatum::typeIntegerIP 
+			|| iDividendType == CDatum::typeDouble
+			|| iDivisorType == CDatum::typeIntegerIP
+			|| iDivisorType == CDatum::typeDouble)
+		{
+		CIPInteger Dividend(dDividend.AsIPInteger());
+		CIPInteger Divisor(dDivisor.AsIPInteger());
+
+		CIPInteger Quotient;
+		CIPInteger Remainder;
+		if (!Dividend.DivideMod(Divisor, Quotient, Remainder))
+			return CDatum::CreateNaN();
+
+		CDatum dResult(CDatum::typeArray);
+		dResult.GrowToFit(2);
+		dResult.Append(Quotient);
+		dResult.Append(Remainder);
+
+		return dResult;
+		}
+	else if (iDividendType == CDatum::typeInteger32 && iDivisorType == CDatum::typeInteger32)
+		{
+		int iDividend = (int)dDividend;
+		int iDivisor = (int)dDivisor;
+		if (iDivisor == 0)
+			return CDatum::CreateNaN();
+
+		int iQuotient = iDividend / iDivisor;
+		int iRemainder = iDividend % iDivisor;
+
+		CDatum dResult(CDatum::typeArray);
+		dResult.GrowToFit(2);
+		dResult.Append(iQuotient);
+		dResult.Append(iRemainder);
+
+		return dResult;
+		}
+	else
+		{
+		return CDatum::CreateNaN();
+		}
+	}
+
 CDatum CHexeProcess::ExecuteOpMultiply (CDatum dLeft, CDatum dRight)
 
 //	ExecuteOpMultiply

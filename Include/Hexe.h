@@ -325,6 +325,7 @@ class CHexeProcess : public IInvokeCtx
 		static bool ExecuteIsIdentical (CDatum dValue1, CDatum dValue2);
 		static CDatum ExecuteUnaryOp (EOpCodes iOp, CDatum dValue);
 		static bool ExecuteIsShortOperand (int iValue) { return iValue < 0x7f0000 && iValue > -0x800000; }
+		static CDatum ExecuteOpDivideMod (CDatum dDividend, CDatum dDivisor);
 
 		//	IInvokeCtx virtuals
 		virtual void *GetLibraryCtx (const CString &sLibrary) override { void **ppCtx = m_LibraryCtx.GetAt(sLibrary); return (ppCtx ? *ppCtx : NULL); }

@@ -450,6 +450,30 @@ CIPInteger &CIPInteger::operator /= (const CIPInteger &Src)
 	return *this;
 	}
 
+bool CIPInteger::DivideMod (const CIPInteger &Divisor, CIPInteger &retQuotient, CIPInteger &retRemainder) const
+
+//	DivideMod
+//
+//	Divides and returns the quotient and remainder. Returns FALSE if we divide
+//	by zero.
+
+	{
+	if (!m_Value || !Divisor.m_Value || Divisor.IsZero())
+		return false;
+
+	if (!retQuotient.m_Value)
+		retQuotient.m_Value = bdNew();
+
+	if (!retRemainder.m_Value)
+		retRemainder.m_Value = bdNew();
+
+	bdDivide_s((BIGD)retQuotient.m_Value, (BIGD)retRemainder.m_Value, (BIGD)m_Value, (BIGD)Divisor.m_Value);
+	retQuotient.m_bNegative = (m_bNegative != Divisor.m_bNegative);
+	retRemainder.m_bNegative = retQuotient.m_bNegative;
+
+	return true;
+	}
+
 CIPInteger CIPInteger::operator / (const CIPInteger &Src) const
 
 //	CIPInteger operator /

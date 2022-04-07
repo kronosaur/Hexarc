@@ -85,6 +85,7 @@ class CIPInteger
 		CString AsString (void) const;
 		int Compare (const CIPInteger &Src) const;
 		static bool Deserialize (IByteStream &Stream, CIPInteger *retpValue);
+		bool DivideMod (const CIPInteger &Divisor, CIPInteger &retQuotient, CIPInteger &retRemainder) const;
 		bool FitsAsInteger32Signed (void) const;
 		bool FitsAsInteger64Unsigned (void) const;
 		DWORD GetSize (void) const;
