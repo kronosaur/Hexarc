@@ -1016,6 +1016,8 @@ class CNumberValue
 		void Subtract (CDatum dValue);
 		void Upconvert (CNumberValue &Src);
 
+		static CDatum Divide (const CIPInteger &Dividend, const CIPInteger &Divisor);
+
 	private:
 		void InitFrom (CDatum dValue);
 

@@ -233,12 +233,7 @@ CDatum CAEONVectorIntIP::MathAverage () const
 	for (int i = 1; i < m_Array.GetCount(); i++)
 		Result += m_Array[i];
 
-	double rResult = Result.AsDouble() / (double)m_Array.GetCount();
-	double intpart;
-	if (std::modf(rResult, &intpart) == 0.0)
-		return CDatum(CIPInteger(intpart));
-	else
-		return CDatum(rResult);
+	return CNumberValue::Divide(Result, CIPInteger(m_Array.GetCount()));
 	}
 
 CDatum CAEONVectorIntIP::MathMax () const

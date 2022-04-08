@@ -355,6 +355,28 @@ void CNumberValue::ConvertToIPInteger (void)
 	m_bUpconverted = true;
 	}
 
+CDatum CNumberValue::Divide (const CIPInteger &Dividend, const CIPInteger &Divisor)
+
+//	Divide
+//
+//	Divide and return either an IPInteger or a double.
+
+	{
+	CIPInteger Quotient;
+	CIPInteger Remainder;
+	if (!Dividend.DivideMod(Divisor, Quotient, Remainder))
+		return CDatum::CreateNaN();
+
+	if (Remainder.IsZero())
+		return CDatum(Quotient);
+	else
+		{
+		double rQuotient = Quotient.AsDouble();
+		double rRemainder = Remainder.AsDouble() / Divisor.AsDouble();
+		return CDatum(rQuotient + rRemainder);
+		}
+	}
+
 bool CNumberValue::Divide (CDatum dValue)
 
 //	Divide
@@ -417,15 +439,19 @@ bool CNumberValue::Divide (CDatum dValue)
 
 		case CDatum::typeIntegerIP:
 			{
-			if (Src.GetIPInteger().IsZero())
+			CIPInteger Quotient;
+			CIPInteger Remainder;
+			if (!GetIPInteger().DivideMod(Src.GetIPInteger(), Quotient, Remainder))
 				return false;
 
-			double rResult = GetIPInteger().AsDouble() / Src.GetIPInteger().AsDouble();
-			double intpart;
-			if (std::modf(rResult, &intpart) == 0.0)
-				SetIPInteger(CIPInteger(intpart));
+			if (Remainder.IsZero())
+				SetIPInteger(Quotient);
 			else
-				SetDouble(rResult);
+				{
+				double rQuotient = Quotient.AsDouble();
+				double rRemainder = Remainder.AsDouble() / Src.GetIPInteger().AsDouble();
+				SetDouble(rQuotient + rRemainder);
+				}
 
 			break;
 			}
