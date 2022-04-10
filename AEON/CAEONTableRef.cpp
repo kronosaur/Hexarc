@@ -394,7 +394,9 @@ void CAEONTableRef::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruc
 		
 		dColDef.SetElement(FIELD_NAME, ColumnDef.sName);
 		if (i < m_Cols.GetCount())
-			dColDef.SetElement(FIELD_VALUES, m_Cols[i]);
+			{
+			dColDef.SetElement(FIELD_VALUES, GetColRef(i));
+			}
 
 		dCols.Append(dColDef);
 		}

@@ -147,6 +147,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		static TDatumPropertyHandler<CAEONTable> m_Properties;
 
 		friend class CAEONScriptParser;
+		friend class CJSONParser;
 	};
 
 class CAEONTableRef : public IComplexDatum, public IAEONTable

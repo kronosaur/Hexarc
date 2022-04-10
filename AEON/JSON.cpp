@@ -37,6 +37,7 @@ class CJSONParser
 
 DECLARE_CONST_STRING(STR_AEON_SENTINEL,					"AEON2011:");
 DECLARE_CONST_STRING(TYPENAME_IP_INTEGER,				"ipInteger");
+DECLARE_CONST_STRING(TYPENAME_TABLE_REF,				"tableRef");
 
 DECLARE_CONST_STRING(STR_INFINITY,						"\"Infinity\"");
 DECLARE_CONST_STRING(STR_NAN,							"\"NaN\"");
@@ -179,6 +180,8 @@ CJSONParser::ETokens CJSONParser::ParseArray (CDatum *retDatum)
 					IComplexDatum *pDatum = NULL;
 					if (strEquals(sTypename, TYPENAME_IP_INTEGER))
 						pDatum = new CComplexInteger;
+					else if (strEquals(sTypename, TYPENAME_TABLE_REF))
+						pDatum = new CAEONTable;
 					else
 						{
 						IComplexFactory *pFactory;
