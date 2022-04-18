@@ -1580,6 +1580,15 @@ bool CAeonTable::GetFileData (const CString &sFilePath, const SFileDataOptions &
 	if (!GetData(DEFAULT_VIEW, Path, &dFileDesc, NULL, retsError))
 		return false;
 
+	//	If we can't find the file, then GetData will return TRUE with an empty
+	//	dFileDesc. We do the same.
+
+	if (dFileDesc.IsNil())
+		{
+		*retdFileDownloadDesc = CDatum();
+		return true;
+		}
+
 	//	If the file has not been modified since the given date, then we return
 
 	if (Options.IfModifiedAfter.IsValid()

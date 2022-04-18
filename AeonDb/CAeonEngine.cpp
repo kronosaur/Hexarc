@@ -25,6 +25,7 @@ DECLARE_CONST_STRING(MSG_AEON_RESULT_TABLES,			"Aeon.resultTables")
 DECLARE_CONST_STRING(MSG_OK,							"OK")
 DECLARE_CONST_STRING(MSG_ERROR_ALREADY_EXISTS,			"Error.alreadyExists")
 DECLARE_CONST_STRING(MSG_ERROR_NOT_ALLOWED,				"Error.notAllowed")
+DECLARE_CONST_STRING(MSG_ERROR_NOT_FOUND,				"Error.notFound")
 DECLARE_CONST_STRING(MSG_ERROR_OUT_OF_DATE,				"Error.outOfDate")
 DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply")
 DECLARE_CONST_STRING(MSG_LOG_DEBUG,						"Log.debug")
@@ -83,6 +84,7 @@ DECLARE_CONST_STRING(STR_ERROR_UNKNOWN_TABLE,			"Unknown table: %s.")
 DECLARE_CONST_STRING(ERR_UNABLE_TO_FLUSH,				"Unable to save all tables to disk.")
 DECLARE_CONST_STRING(ERR_INVALID_GET_ROWS_OPTION,		"Invalid %s option: %s.")
 DECLARE_CONST_STRING(ERR_INVALID_FILE_PATH,				"Invalid filePath: %s.")
+DECLARE_CONST_STRING(ERR_FILE_NOT_FOUND,				"File not found: %s.")
 
 //	Message Table --------------------------------------------------------------
 
@@ -646,6 +648,14 @@ void CAeonEngine::MsgFileDownload (const SArchonMessage &Msg, const CHexeSecurit
 	if (!pTable->GetFileData(sFilePath, Options, &dFileDownloadDesc, &sError))
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, sError, Msg);
+		return;
+		}
+
+	//	If file not found, return a special error.
+
+	if (dFileDownloadDesc.IsNil())
+		{
+		SendMessageReplyError(MSG_ERROR_NOT_FOUND, strPattern(ERR_FILE_NOT_FOUND, sFilePath), Msg);
 		return;
 		}
 
@@ -1517,6 +1527,14 @@ void CAeonEngine::MsgTranspaceDownload (const SArchonMessage &Msg, const CHexeSe
 	if (!pTable->GetFileData(sFilePath, Options, &dFileDownloadDesc, &sError))
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, sError, Msg);
+		return;
+		}
+
+	//	If file not found, return a special error.
+
+	if (dFileDownloadDesc.IsNil())
+		{
+		SendMessageReplyError(MSG_ERROR_NOT_FOUND, strPattern(ERR_FILE_NOT_FOUND, sFilePath), Msg);
 		return;
 		}
 
