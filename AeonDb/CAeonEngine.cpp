@@ -639,7 +639,7 @@ void CAeonEngine::MsgFileDownload (const SArchonMessage &Msg, const CHexeSecurit
 		}
 
 #ifdef DEBUG_BLOB_PERF
-    DWORD dwStart = ::sysGetTickCount();
+	DWORD dwStart = ::sysGetTickCount();
 #endif
 
 	//	Get the data
@@ -660,9 +660,9 @@ void CAeonEngine::MsgFileDownload (const SArchonMessage &Msg, const CHexeSecurit
 		}
 
 #ifdef DEBUG_BLOB_PERF
-    DWORD dwTime = ::sysGetTicksElapsed(dwStart);
-    if (dwTime > 100)
-        Log(MSG_LOG_INFO, strPattern("GetFileData %s %D bytes took %D ms.", sFilePath, dFileDownloadDesc.GetElement(FIELD_DATA).GetBinarySize(), dwTime));
+	DWORD dwTime = ::sysGetTicksElapsed(dwStart);
+	if (dwTime > 100)
+		Log(MSG_LOG_INFO, strPattern("GetFileData %s %D bytes took %D ms.", sFilePath, dFileDownloadDesc.GetElement(FIELD_DATA).GetBinarySize(), dwTime));
 #endif
 
 	//	Done
@@ -789,7 +789,7 @@ void CAeonEngine::MsgFileUpload (const SArchonMessage &Msg, const CHexeSecurityC
 
 	{
 	AEONERR error;
-    CMsgProcessCtx Ctx(*GetProcessCtx(), Msg, pSecurityCtx);
+	CMsgProcessCtx Ctx(*GetProcessCtx(), Msg, pSecurityCtx);
 
 	//	Get parameters
 
@@ -868,8 +868,8 @@ void CAeonEngine::MsgFileUpload (const SArchonMessage &Msg, const CHexeSecurityC
 	CString sSessionID = strPattern("%s/%x%s", Msg.sReplyAddr, Msg.dwTicket, sFilePath);
 
 #ifdef DEBUG_FILE_UPLOAD
-    DWORD dwStart = ::sysGetTickCount();
-    Log(MSG_LOG_INFO, strPattern("Aeon.fileUpload %s [%d bytes]", sFilePath, dData.GetBinarySize()));
+	DWORD dwStart = ::sysGetTickCount();
+	Log(MSG_LOG_INFO, strPattern("Aeon.fileUpload %s [%d bytes]", sFilePath, dData.GetBinarySize()));
 #endif
 
 	//	Let the table handle the rest
@@ -885,7 +885,7 @@ void CAeonEngine::MsgFileUpload (const SArchonMessage &Msg, const CHexeSecurityC
 		}
 
 #ifdef DEBUG_FILE_UPLOAD
-    Log(MSG_LOG_INFO, strPattern("Aeon.fileUpload complete: %d seconds.", ::sysGetTicksElapsed(dwStart) / 1000));
+	Log(MSG_LOG_INFO, strPattern("Aeon.fileUpload complete: %d seconds.", ::sysGetTicksElapsed(dwStart) / 1000));
 #endif
 
 	//	Reply
