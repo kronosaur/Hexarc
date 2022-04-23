@@ -223,6 +223,7 @@ class CDatum
 		CDatum GetElement (IInvokeCtx *pCtx, const CString &sKey) const;
 		CDatum GetElement (const CString &sKey) const;
 		CDatum GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) const;
+		inline CDatum GetElementOrDefault (const CString &sKey, CDatum dDefault) const;
 		CRGBA32Image *GetImageInterface ();
 		CRGBA32Image &GetImageInterfaceOrThrow () { auto pValue = GetImageInterface(); if (!pValue) throw CException(errFail); else return *pValue; }
 		CString GetKey (int iIndex) const;
@@ -236,6 +237,7 @@ class CDatum
 		bool IsMemoryBlock () const;
 		bool IsEqual (CDatum dValue) const;
 		bool IsError () const;
+		bool IsIdenticalTo (CDatum dValue) const { return (m_dwData == dValue.m_dwData); }
 		bool IsIdenticalToNil () const { return (m_dwData == 0); }
 		bool IsNaN () const { return (m_dwData == CONST_NAN); }
 		bool IsNil () const;
@@ -1100,3 +1102,12 @@ bool urlParseQuery (const CString &sURL, CString *retsPath, CDatum *retdQuery);
 #include "AEONAllocator.h"
 #include "AEONVector.h"
 #include "AEONUtil.h"
+
+inline CDatum CDatum::GetElementOrDefault (const CString &sKey, CDatum dDefault) const
+	{
+	CDatum dResult = GetElement(sKey);
+	if (dResult.IsNil())
+		return dDefault;
+	else
+		return dResult;
+	}

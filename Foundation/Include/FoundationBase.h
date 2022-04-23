@@ -13,6 +13,7 @@
 
 #undef AddPort
 #undef DeleteFile
+#undef DeleteForm
 #undef InitiateShutdown
 #undef LoadLibrary
 #undef SendMessage
