@@ -76,6 +76,7 @@ class CString
 		void TakeHandoffLPSTR (LPSTR pStr) { CleanUp(); m_pString = pStr; }
 
 		static CString IncrementTrailingNumber (const CString &sStr);
+		static int UTF8CharSize (const char *pStartPos, const char *pEndPos);
 
 	private:
 		CString (LPSTR pString, const char *pPrivate) { m_pString = pString; }

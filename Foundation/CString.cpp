@@ -921,6 +921,62 @@ void CString::TakeHandoff (CStringBuffer &Buffer)
 	m_pString = Buffer.Handoff();
 	}
 
+int CString::UTF8CharSize (const char *pStartPos, const char *pEndPos)
+
+//	UTF8CharSize
+//
+//	Returns the size of the UTF8 character starting at the given position. 
+//	Returns 0, if this is not a valid character.
+
+	{
+	const BYTE *pPos = (const BYTE *)pStartPos;
+	if ((*pPos & 0x80) == 0x00)
+		{
+		return 1;
+		}
+	else if ((*pPos & 0xf8) == 0xf0)
+		{
+		if (pStartPos + 4 > pEndPos)
+			return 0;
+
+		if ((pPos[1] & 0xC0) != 0x80)
+			return 0;
+
+		if ((pPos[2] & 0xc0) != 0x80)
+			return 0;
+
+		if ((pPos[3] & 0xc0) != 0x80)
+			return 0;
+
+		return 4;
+		}
+	else if ((*pPos & 0xf0) == 0xe0)
+		{
+		if (pStartPos + 3 > pEndPos)
+			return 0;
+
+		if ((pPos[1] & 0xc0) != 0x80)
+			return 0;
+
+		if ((pPos[2] & 0xc0) != 0x80)
+			return 0;
+
+		return 3;
+		}
+	else if ((*pPos & 0xe0) == 0xc0)
+		{
+		if (pStartPos + 2 > pEndPos)
+			return 0;
+
+		if ((pPos[1] & 0xc0) != 0x80)
+			return 0;
+
+		return 2;
+		}
+	else
+		return 0;
+	}
+
 //	Functions
 
 bool strASCIICharInSet (char *pPos, const CString &sSet)
