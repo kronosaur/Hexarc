@@ -531,6 +531,7 @@ class IAEONTable
 			};
 
 		virtual EResult AppendColumn (CDatum dColumn) { return EResult::NotImplemented; }
+		virtual EResult AppendEmptyRow () { return EResult::NotImplemented; }
 		virtual EResult AppendRow (CDatum dRow) { return EResult::NotImplemented; }
 		virtual EResult AppendSlice (CDatum dSlice) { return EResult::NotImplemented; }
 		virtual EResult AppendTable (CDatum dTable) { return EResult::NotImplemented; }

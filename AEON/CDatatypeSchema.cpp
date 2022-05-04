@@ -11,6 +11,7 @@ DECLARE_CONST_STRING(FIELD_LABEL,						"label");
 DECLARE_CONST_STRING(FIELD_NAME,						"name");
 
 DECLARE_CONST_STRING(ERR_DUPLICATE_MEMBER,				"Duplicate member definition: %s.")
+DECLARE_CONST_STRING(ERR_BLANK_MEMBER,					"Member name cannot be blank.")
 
 bool CDatatypeSchema::OnAddMember (const CString &sName, EMemberType iType, CDatum dType, CString *retsError)
 
@@ -24,6 +25,12 @@ bool CDatatypeSchema::OnAddMember (const CString &sName, EMemberType iType, CDat
 
 	if (iType != EMemberType::InstanceVar)
 		throw CException(errFail);
+
+	if (sName.IsEmpty())
+		{
+		if (retsError) *retsError = ERR_BLANK_MEMBER;
+		return false;
+		}
 
 	int iOrdinal = m_Columns.GetCount();
 

@@ -84,6 +84,20 @@ IAEONTable::EResult CAEONTable::AppendColumn (CDatum dColumn)
 	return EResult::NotImplemented;
 	}
 
+IAEONTable::EResult CAEONTable::AppendEmptyRow ()
+
+//	AppendEmptyRow
+//
+//	Adds an empty row.
+
+	{
+	for (int i = 0; i < m_Cols.GetCount(); i++)
+		m_Cols[i].Append(CDatum());
+
+	m_iRows++;
+	return EResult::OK;
+	}
+
 IAEONTable::EResult CAEONTable::AppendRow (CDatum dRow)
 
 //	AppendRow
