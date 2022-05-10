@@ -50,6 +50,8 @@ const DWORD_PTR AEON_MAX_28BIT =			0x07FFFFFF;
 
 typedef void (*MARKPROC)(void);
 
+typedef DWORDLONG SequenceNumber;
+
 //	CDatum
 //
 //	These values can be passed around at will, but we must be able to call Mark

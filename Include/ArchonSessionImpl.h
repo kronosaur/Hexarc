@@ -140,3 +140,4 @@ class CMessageSerializerSession : public ISessionHandler
 	};
 
 #include "ArchonLambdaSessionImpl.h"
+#include "ArchonPromiseSessionImpl.h"

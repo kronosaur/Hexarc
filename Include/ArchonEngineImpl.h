@@ -341,6 +341,13 @@ template <class VALUE> class TSimpleEngine : public CSimpleEngine
 				m_Sessions.Delete(dwTicket);
 			}
 
+		template<class OBJ> void StartSession (const SArchonMessage &Msg, TUniquePtr<OBJ> &pSession) = delete;
+
+		template<class OBJ> void StartSession (const SArchonMessage &Msg, TUniquePtr<OBJ> &&pSession)
+			{
+			StartSession(Msg, pSession.Release());
+			}
+
 		//	Virtuals for derived class to override
 
 		virtual void OnMarkEx (void) { }

@@ -58,8 +58,6 @@ struct SWatermark
 
 extern SWatermark NULL_WATERMARK;
 
-typedef DWORDLONG SequenceNumber;
-
 //	Basic Interfaces
 
 class IArchonMessagePort

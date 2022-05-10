@@ -206,6 +206,8 @@
     <ClCompile Include="CMessageDispatchSession.cpp" />
     <ClCompile Include="CMessagePort.cpp" />
     <ClCompile Include="CMsgProcessKeepAlive.cpp" />
+    <ClCompile Include="CPromiseImpl.cpp" />
+    <ClCompile Include="CPromiseSession.cpp" />
     <ClCompile Include="MsgCheckUpgrade.cpp" />
     <ClCompile Include="MsgPing.cpp" />
     <ClCompile Include="MsgRemoveMachine.cpp" />
@@ -250,6 +252,7 @@
     <ClInclude Include="..\Include\ArchonEngineImpl.h" />
     <ClInclude Include="..\Include\ArchonFilterImpl.h" />
     <ClInclude Include="..\Include\ArchonLambdaSessionImpl.h" />
+    <ClInclude Include="..\Include\ArchonPromiseSessionImpl.h" />
     <ClInclude Include="..\Include\ArchonSessionImpl.h" />
     <ClInclude Include="..\Include\ArchonUtilities.h" />
     <ClInclude Include="..\Include\Esper.h" />
