@@ -195,12 +195,6 @@
     <ClCompile Include="CArchonLogOutput.cpp">
       <Filter>Source Files\Utilities</Filter>
     </ClCompile>
-    <ClCompile Include="CPromiseSession.cpp">
-      <Filter>Source Files\Utilities</Filter>
-    </ClCompile>
-    <ClCompile Include="CPromiseImpl.cpp">
-      <Filter>Source Files\Utilities</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Include\ArchonEngine.h">
