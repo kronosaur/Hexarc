@@ -13,6 +13,14 @@ class CArchonProcess;
 
 //  Basic Classes --------------------------------------------------------------
 
+enum class EPromiseResult
+	{
+	OK,						//	Pass reply to next promise or return to client
+	WaitForResponse,		//	Wait for message reply and call at fnProcess when done.
+	EndSession,				//	End the session.
+	Error,					//	Return error to client
+	};
+
 class CMsgProcessCtx
 	{
 	public:
@@ -121,6 +129,8 @@ class CSimpleEngine : public IArchonEngine, public IArchonMessagePort, protected
 		//	Helpers
 		static bool IsError (const SArchonMessage &Msg);
 		static CDatum MessageToHexeResult (const SArchonMessage &Msg);
+		static EPromiseResult ReturnEndSession (const CString &sMsg, CDatum dPayload, SArchonMessage &retReply) { retReply.sMsg = sMsg; retReply.dPayload = dPayload; return EPromiseResult::EndSession; }
+		static EPromiseResult ReturnError (const CString &sMsg, CDatum dError, SArchonMessage &retReply) { retReply.sMsg = sMsg; retReply.dPayload = dError; return EPromiseResult::Error; }
 		void SendMessageNotify (const CString &sAddress, const CString &sMsg, CDatum dPayload) { m_pProcess->SendMessageCommand(sAddress, sMsg, NULL_STR, 0, dPayload); }
 		void SendMessageReplyError (const CString &sMsg, const CString &sText, const SArchonMessage &OriginalMsg) { m_pProcess->SendMessageReply(sMsg, CDatum(sText), OriginalMsg); }
 		bool ValidateSandbox (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx, const CString &sSandbox);

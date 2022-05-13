@@ -11,14 +11,6 @@
 
 #include <functional>
 
-enum class EPromiseResult
-	{
-	OK,						//	Pass reply to next promise or return to client
-	WaitForResponse,		//	Wait for message reply and call at fnProcess when done.
-	EndSession,				//	End the session.
-	Error,					//	Return error to client
-	};
-
 template <class CTX> struct TArchonPromise
 	{
 	using ArchonPromise = TArchonPromise<CTX>;
