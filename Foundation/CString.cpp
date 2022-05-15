@@ -1015,7 +1015,7 @@ bool CString::Validate (const SStringValidate &Options) const
 
 	//	Can't lead with certain symbols
 
-	if (Options.sForbiddenLeadingChars.Find(*pPos))
+	if (Options.sForbiddenLeadingChars.Find(*pPos) != -1)
 		return false;
 
 	//	Check the rest of the name
@@ -1041,7 +1041,7 @@ bool CString::Validate (const SStringValidate &Options) const
 
 		//	Certain characters are not allowed anywhere
 
-		if (Options.sForbiddenChars.Find(*pPos))
+		if (Options.sForbiddenChars.Find(*pPos) != -1)
 			return false;
 
 		//	Advance to the next UTF8 character

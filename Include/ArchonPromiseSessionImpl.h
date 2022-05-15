@@ -247,8 +247,7 @@ template <class CTX = SDefaultSessionCtx> class TPromiseSession : public ISessio
 				}
 			else
 				{
-				SendMessageReply(Msg.sMsg, Msg.dPayload);
-				return false;
+				return HandleReply(EPromiseResult::OK, Msg);
 				}
 			}
 
