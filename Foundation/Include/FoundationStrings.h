@@ -13,6 +13,7 @@
 
 class CString16;
 class CStringBuffer;
+struct SStringValidate;
 
 //	Small a with acute: á
 #define UTF8a1	"\xc3\xa1"
@@ -61,6 +62,7 @@ class CString
 		CString &operator+= (const CString &sStr);
 		CString operator + (const CString &sStr) const;
 
+		int Find (char chChar, int iStartAt = 0) const;
 		int GetLength (void) const;
 		char *GetPointer (void) const { return m_pString; }
 		char *GetParsePointer (void) const { return (m_pString ? m_pString : &BLANK_STRING[4]); }
@@ -74,6 +76,7 @@ class CString
 		void TakeHandoff (CString &sStr);
 		void TakeHandoff (CStringBuffer &Buffer);
 		void TakeHandoffLPSTR (LPSTR pStr) { CleanUp(); m_pString = pStr; }
+		bool Validate (const SStringValidate &Options) const;
 
 		static CString IncrementTrailingNumber (const CString &sStr);
 		static int UTF8CharSize (const char *pStartPos, const char *pEndPos);
@@ -144,6 +147,21 @@ template <int l> class TFixedString
 	private:
 		int m_iLength;
 		char m_szString[l+1];
+	};
+
+//	Helpers
+
+struct SStringValidate
+	{
+	CString sForbiddenChars;
+	CString sForbiddenLeadingChars;
+	int iMinPrintableChars = 0;
+	bool bAllowTabs = false;
+	bool bAllowCRLF = false;
+	bool bAllowASCIICtrlChars = false;
+	bool bAllowLeadingWhitespace = false;
+	bool bAllowTrailingWhitespace = false;
+	bool bAllowRepeatedWhitespace = false;
 	};
 
 //	UTF-16 strings

@@ -626,6 +626,28 @@ CString CString::DeserializeJSON (IByteStream &Stream)
 	return CString::CreateFromHandoff(Result);
 	}
 
+int CString::Find (char chChar, int iStartAt) const
+
+//	Find
+//
+//	Returns the character position of the given character (or -1 if not found).
+
+	{
+	const char *pPos = GetParsePointer();
+	const char *pPosEnd = pPos + GetLength();
+	pPos = pPos + iStartAt;
+
+	while (pPos < pPosEnd)
+		{
+		if (*pPos == chChar)
+			return (int)(pPos - GetParsePointer());
+
+		pPos++;
+		}
+
+	return -1;
+	}
+
 int CString::GetLength (void) const
 
 //	GetLength
@@ -975,6 +997,104 @@ int CString::UTF8CharSize (const char *pStartPos, const char *pEndPos)
 		}
 	else
 		return 0;
+	}
+
+bool CString::Validate (const SStringValidate &Options) const
+
+//	Validate
+//
+//	Returns TRUE if the string matches the validation options.
+
+	{
+	bool bLeadingWhitespace = false;
+	bool bTrailingWhitespace = false;
+	bool bDoubleWhitespace = false;
+	bool bHasPrintableChars = false;
+	const char *pPos = GetParsePointer();
+	const char *pPosEnd = pPos + GetLength();
+
+	//	Can't lead with certain symbols
+
+	if (Options.sForbiddenLeadingChars.Find(*pPos))
+		return false;
+
+	//	Check the rest of the name
+
+	int iCount = 0;
+	while (pPos < pPosEnd)
+		{
+		if (*pPos == '\t')
+			{
+			if (!Options.bAllowTabs && !Options.bAllowASCIICtrlChars)
+				return false;
+			}
+		else if (*pPos == '\r' || *pPos == '\n')
+			{
+			if (!Options.bAllowCRLF && !Options.bAllowASCIICtrlChars)
+				return false;
+			}
+		else if (strIsASCIIControl(pPos))
+			{
+			if (!Options.bAllowASCIICtrlChars)
+				return false;
+			}
+
+		//	Certain characters are not allowed anywhere
+
+		if (Options.sForbiddenChars.Find(*pPos))
+			return false;
+
+		//	Advance to the next UTF8 character
+
+		UTF32 dwCodePoint = strParseUTF8Char(&pPos, pPosEnd);
+
+		//	Is this a printable char?
+
+		bool bIsPrintableChar = strIsPrintableChar(dwCodePoint);
+
+		//	If this is not printable and we haven't yet seen a printable char
+		//	then we have a leading whitespace
+
+		if (!bIsPrintableChar && !bHasPrintableChars)
+			bLeadingWhitespace = true;
+
+		//	We have at least one printable char
+
+		if (bIsPrintableChar)
+			bHasPrintableChars = true;
+
+		//	If the previous character was also whitespace, then that's an error
+
+		else if (bTrailingWhitespace)
+			bDoubleWhitespace = true;
+
+		bTrailingWhitespace = !bIsPrintableChar;
+
+		if (bIsPrintableChar)
+			iCount++;
+		}
+
+	//	Printable characters
+
+	if (iCount < Options.iMinPrintableChars)
+		return false;
+
+	//	Leading or trailing whitespace
+
+	if (!Options.bAllowLeadingWhitespace && bLeadingWhitespace)
+		return false;
+
+	if (!Options.bAllowTrailingWhitespace && bTrailingWhitespace)
+		return false;
+
+	//	Double whitespace
+
+	if (!Options.bAllowRepeatedWhitespace && bDoubleWhitespace)
+		return false;
+
+	//	Done
+
+	return true;
 	}
 
 //	Functions
