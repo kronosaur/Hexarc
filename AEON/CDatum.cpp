@@ -1010,7 +1010,7 @@ bool CDatum::CanInvoke (void) const
 		}
 	}
 
-CDatum CDatum::Clone (void) const
+CDatum CDatum::Clone (EClone iMode) const
 
 //	Clone
 //
@@ -1022,7 +1022,16 @@ CDatum CDatum::Clone (void) const
 		//	Complex types are the only ones with pointer to other datums
 
 		case AEON_TYPE_COMPLEX:
-			return CDatum(raw_GetComplex()->Clone());
+			{
+			auto pClone = raw_GetComplex()->Clone(iMode);
+			if (pClone)
+				return CDatum(pClone);
+
+			//	Else, it's immutable.
+
+			else
+				return *this;
+			}
 
 		default:
 			return *this;

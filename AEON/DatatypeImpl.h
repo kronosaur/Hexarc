@@ -261,7 +261,6 @@ class CComplexDatatype : public IComplexDatum
 		virtual CString AsString (void) const override { return StructAsString(); }
 		virtual size_t CalcMemorySize (void) const override { return 0; }
 		virtual const IDatatype &CastIDatatype (void) const override { return *m_pType; }
-		virtual IComplexDatum *Clone (void) const override { throw CException(errFail); }
 		virtual bool FindElement (const CString &sKey, CDatum *retpValue) override { return false; }
 		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeDatatype; }
 		virtual int GetCount (void) const override { return m_Properties.GetCount(); }

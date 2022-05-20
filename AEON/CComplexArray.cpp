@@ -113,6 +113,48 @@ size_t CComplexArray::CalcMemorySize (void) const
 	return dwSize;
 	}
 
+IComplexDatum *CComplexArray::Clone (CDatum::EClone iMode) const
+
+//	Clone
+//
+//	Clones a copy
+
+	{
+	switch (iMode)
+		{
+		case CDatum::EClone::ShallowCopy:
+			return new CComplexArray(m_Array);
+
+		case CDatum::EClone::CopyOnWrite:
+			{
+			auto pClone = new CComplexArray(m_Array);
+			pClone->m_bCopyOnWrite = true;
+			return pClone;
+			}
+
+		case CDatum::EClone::DeepCopy:
+			{
+			auto pClone = new CComplexArray(m_Array);
+			pClone->CloneContents();
+			return pClone;
+			}
+
+		default:
+			throw CException(errFail);
+		}
+	}
+
+void CComplexArray::CloneContents ()
+
+//	CloneContents
+//
+//	Clones all content so that it is a copy.
+
+	{
+	for (int i = 0; i < m_Array.GetCount(); i++)
+		m_Array[i] = m_Array[i].Clone(CDatum::EClone::DeepCopy);
+	}
+
 bool CComplexArray::Contains (CDatum dValue, TArray<IComplexDatum *> &retChecked) const
 
 //	Contains
@@ -253,6 +295,20 @@ size_t CComplexArray::OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) co
 	return TotalSize;
 	}
 
+void CComplexArray::OnCopyOnWrite ()
+
+//	OnCopyOnWrite
+//
+//	We're about to be modified, so see if we need to make a copy.
+
+	{
+	if (m_bCopyOnWrite)
+		{
+		CloneContents();
+		m_bCopyOnWrite = false;
+		}
+	}
+
 void CComplexArray::OnMarked (void)
 
 //	OnMarked
@@ -321,8 +377,9 @@ void CComplexArray::SetElementAt (CDatum dIndex, CDatum dDatum)
 //	Sets element at the index.
 
 	{
+	OnCopyOnWrite();
+
 	int iIndex = dIndex.AsArrayIndex();
 	if (iIndex >= 0 && iIndex < m_Array.GetCount())
 		m_Array[iIndex] = dDatum;
 	}
-

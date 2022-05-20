@@ -55,6 +55,8 @@ void CAEONTable::Append (CDatum dDatum)
 //	Append a row, column, or table.
 
 	{
+	OnCopyOnWrite();
+
 	switch (dDatum.GetBasicType())
 		{
 		case CDatum::typeArray:
@@ -81,6 +83,8 @@ IAEONTable::EResult CAEONTable::AppendColumn (CDatum dColumn)
 //	Appends a column.
 
 	{
+	OnCopyOnWrite();
+
 	return EResult::NotImplemented;
 	}
 
@@ -91,6 +95,8 @@ IAEONTable::EResult CAEONTable::AppendEmptyRow ()
 //	Adds an empty row.
 
 	{
+	OnCopyOnWrite();
+
 	for (int i = 0; i < m_Cols.GetCount(); i++)
 		m_Cols[i].Append(CDatum());
 
@@ -105,6 +111,8 @@ IAEONTable::EResult CAEONTable::AppendRow (CDatum dRow)
 //	Appends a row.
 
 	{
+	OnCopyOnWrite();
+
 	const IDatatype &Schema = m_dSchema;
 	for (int i = 0; i < Schema.GetMemberCount(); i++)
 		{
@@ -135,6 +143,8 @@ IAEONTable::EResult CAEONTable::AppendSlice (CDatum dSlice)
 //	Appends a slice of data using the current schema.
 
 	{
+	OnCopyOnWrite();
+
 	if (m_Cols.GetCount() == 0 || dSlice.GetCount() == 0)
 		return EResult::OK;
 
@@ -164,6 +174,8 @@ IAEONTable::EResult CAEONTable::AppendTable (CDatum dTable)
 //	Appends a table.
 
 	{
+	OnCopyOnWrite();
+
 	GrowToFit(dTable.GetCount());
 
 	for (int i = 0; i < dTable.GetCount(); i++)
@@ -303,6 +315,48 @@ size_t CAEONTable::CalcMemorySize (void) const
 		iSize += m_Cols[i].CalcMemorySize();
 
 	return iSize;
+	}
+
+IComplexDatum *CAEONTable::Clone (CDatum::EClone iMode) const
+
+//	Clone
+//
+//	Clones the table.
+
+	{
+	switch (iMode)
+		{
+		case CDatum::EClone::ShallowCopy:
+			return new CAEONTable(*this);
+
+		case CDatum::EClone::CopyOnWrite:
+			{
+			auto pClone = new CAEONTable(*this);
+			pClone->m_bCopyOnWrite = true;
+			return pClone;
+			}
+
+		case CDatum::EClone::DeepCopy:
+			{
+			auto pClone = new CAEONTable(*this);
+			pClone->CloneContents();
+			return pClone;
+			}
+
+		default:
+			throw CException(errFail);
+		}
+	}
+
+void CAEONTable::CloneContents ()
+
+//	CloneContents
+//
+//	Clones all content so that it is a copy.
+
+	{
+	for (int i = 0; i < m_Cols.GetCount(); i++)
+		m_Cols[i] = m_Cols[i].Clone(CDatum::EClone::DeepCopy);
 	}
 
 bool CAEONTable::CreateTableFromArray (CAEONTypeSystem &TypeSystem, CDatum dValue, CDatum &retdDatum)
@@ -470,6 +524,8 @@ IAEONTable::EResult CAEONTable::DeleteAllRows ()
 //	Deletes all rows (but leaves the schema intact).
 
 	{
+	OnCopyOnWrite();
+
 	//	Recreate the columns.
 
 	SetSchema(m_dSchema);
@@ -671,6 +727,8 @@ void CAEONTable::GrowToFit (int iCount)
 //	Allocate to fit an additional n rows.
 
 	{
+	OnCopyOnWrite();
+
 	for (int i = 0; i < m_Cols.GetCount(); i++)
 		m_Cols[i].GrowToFit(iCount);
 	}
@@ -715,6 +773,20 @@ size_t CAEONTable::OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const
 	return CalcMemorySize();
 	}
 
+void CAEONTable::OnCopyOnWrite ()
+
+//	OnCopyOnWrite
+//
+//	The table is about to be modified, so make a copy, if necessary.
+
+	{
+	if (m_bCopyOnWrite)
+		{
+		CloneContents();
+		m_bCopyOnWrite = false;
+		}
+	}
+
 bool CAEONTable::OnDeserialize (CDatum::EFormat iFormat, CDatum dStruct)
 
 //	OnDeserialize
@@ -722,6 +794,8 @@ bool CAEONTable::OnDeserialize (CDatum::EFormat iFormat, CDatum dStruct)
 //	Load from the given struct.
 
 	{
+	OnCopyOnWrite();
+
 	CDatum dSchema = dStruct.GetElement(FIELD_DATATYPE);
 	const IDatatype &Schema = dSchema;
 	if (Schema.GetClass() != IDatatype::ECategory::Schema)
@@ -825,6 +899,8 @@ void CAEONTable::SetElement (int iIndex, CDatum dDatum)
 	if (iIndex < 0 || iIndex >= m_iRows)
 		return;
 
+	OnCopyOnWrite();
+
 	const IDatatype &Schema = m_dSchema;
 	for (int i = 0; i < Schema.GetMemberCount(); i++)
 		{
@@ -843,6 +919,8 @@ void CAEONTable::SetElementAt (CDatum dIndex, CDatum dDatum)
 
 	{
 	int iIndex;
+
+	OnCopyOnWrite();
 
 	if (dIndex.IsNil())
 		{ }
@@ -897,6 +975,8 @@ bool CAEONTable::SetFieldValue (int iRow, int iCol, CDatum dValue)
 	if (iCol < 0 || iCol >= m_Cols.GetCount())
 		return false;
 
+	OnCopyOnWrite();
+
 	m_Cols[iCol].SetElement(iRow, dValue);
 	return true;
 	}
@@ -908,6 +988,8 @@ void CAEONTable::SetSchema (CDatum dSchema)
 //	Sets the schema. This will delete all existing data in the table.
 
 	{
+	OnCopyOnWrite();
+
 	//	Make sure this is an actual schema.
 
 	const IDatatype &Schema = dSchema;

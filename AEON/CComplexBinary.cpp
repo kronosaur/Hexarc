@@ -113,7 +113,7 @@ const CString &CComplexBinary::CastCString (void) const
 		return *(CString *)&m_pData;
 	}
 
-IComplexDatum *CComplexBinary::Clone (void) const
+IComplexDatum *CComplexBinary::Clone (CDatum::EClone iMode) const
 
 //	Clone
 //

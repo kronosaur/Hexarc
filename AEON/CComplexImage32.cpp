@@ -7,7 +7,7 @@
 
 DECLARE_CONST_STRING(TYPENAME_IMAGE32,				"image32")
 
-IComplexDatum *CComplexImage32::Clone (void) const
+IComplexDatum *CComplexImage32::Clone (CDatum::EClone iMode) const
 
 //	Clone
 //

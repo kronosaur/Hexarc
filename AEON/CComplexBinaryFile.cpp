@@ -116,7 +116,7 @@ const CString &CComplexBinaryFile::CastCString (void) const
 	return NULL_STR;
 	}
 
-IComplexDatum *CComplexBinaryFile::Clone (void) const
+IComplexDatum *CComplexBinaryFile::Clone (CDatum::EClone iMode) const
 
 //	Clone
 //

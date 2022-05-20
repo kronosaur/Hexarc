@@ -54,11 +54,11 @@ void CComplexStruct::AppendStruct (CDatum dDatum)
 //	Appends the element of the given structure
 
 	{
-	int i;
+	OnCopyOnWrite();
 
 	if (dDatum.GetBasicType() == CDatum::typeStruct)
 		{
-		for (i = 0; i < dDatum.GetCount(); i++)
+		for (int i = 0; i < dDatum.GetCount(); i++)
 			SetElement(dDatum.GetKey(i), dDatum.GetElement(i));
 		}
 	}
@@ -108,6 +108,48 @@ size_t CComplexStruct::CalcMemorySize (void) const
 		}
 
 	return dwSize;
+	}
+
+IComplexDatum *CComplexStruct::Clone (CDatum::EClone iMode) const
+
+//	Clone
+//
+//	Clones a copy
+
+	{
+	switch (iMode)
+		{
+		case CDatum::EClone::ShallowCopy:
+			return new CComplexStruct(m_Map);
+
+		case CDatum::EClone::CopyOnWrite:
+			{
+			auto pClone = new CComplexStruct(m_Map);
+			pClone->m_bCopyOnWrite = true;
+			return pClone;
+			}
+
+		case CDatum::EClone::DeepCopy:
+			{
+			auto pClone = new CComplexStruct(m_Map);
+			pClone->CloneContents();
+			return pClone;
+			}
+
+		default:
+			throw CException(errFail);
+		}
+	}
+
+void CComplexStruct::CloneContents ()
+
+//	CloneContents
+//
+//	Clones all content so that it is a copy.
+
+	{
+	for (int i = 0; i < m_Map.GetCount(); i++)
+		m_Map[i] = m_Map[i].Clone(CDatum::EClone::DeepCopy);
 	}
 
 bool CComplexStruct::Contains (CDatum dValue, TArray<IComplexDatum *> &retChecked) const
@@ -194,6 +236,20 @@ CDatum CComplexStruct::GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex)
 		}
 	}
 
+void CComplexStruct::OnCopyOnWrite ()
+
+//	OnCopyOnWrite
+//
+//	We're about to be modified, so see if we need to make a copy.
+
+	{
+	if (m_bCopyOnWrite)
+		{
+		CloneContents();
+		m_bCopyOnWrite = false;
+		}
+	}
+
 void CComplexStruct::OnMarked (void)
 
 //	OnMarked
@@ -212,6 +268,8 @@ void CComplexStruct::SetElementAt (CDatum dIndex, CDatum dDatum)
 //	Sets the element.
 
 	{
+	OnCopyOnWrite();
+
 	if (dIndex.IsNil())
 		{ }
 	else if (dIndex.IsNumberInt32())

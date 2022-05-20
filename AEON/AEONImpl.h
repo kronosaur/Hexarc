@@ -24,7 +24,6 @@ class CComplexInteger : public IComplexDatum
 		virtual double CastDouble () const override { return m_Value.AsDouble(); }
 		virtual DWORDLONG CastDWORDLONG (void) const override;
 		virtual int CastInteger32 (void) const override;
-		virtual IComplexDatum *Clone (void) const override { return new CComplexInteger(m_Value); }
 		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeIntegerIP; }
 		virtual int GetCount (void) const override { return 1; }
 		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::INT_IP); }
@@ -62,7 +61,7 @@ class CAEONObject : public CComplexStruct
 
 		//	IComplexDatum
 
-		virtual IComplexDatum *Clone (void) const override { return new CAEONObject(m_dType, m_Map); }
+		virtual IComplexDatum *Clone (CDatum::EClone iMode) const override { return new CAEONObject(m_dType, m_Map); }
 		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeObject; }
 		virtual CDatum GetDatatype () const override { return m_dType; }
 
@@ -98,7 +97,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual void Append (CDatum dDatum) override;
 		virtual CString AsString (void) const override;
 		virtual size_t CalcMemorySize (void) const override;
-		virtual IComplexDatum *Clone (void) const override { return new CAEONTable(*this); }
+		virtual IComplexDatum *Clone (CDatum::EClone iMode) const override;
 		virtual bool Find (CDatum dValue, int *retiIndex = NULL) const override { throw CException(errFail); }
 		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeTable; }
 		virtual int GetCount (void) const override { return m_iRows; }
@@ -115,7 +114,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual void ResolveDatatypes (const CAEONTypeSystem &TypeSystem) override;
 		virtual void Sort (ESortOptions Order = AscendingSort, TArray<CDatum>::COMPAREPROC pfCompare = NULL, void *pCtx = NULL) override { throw CException(errFail); }
 		virtual void SetElement (int iIndex, CDatum dDatum) override;
-		virtual void SetElement (const CString &sKey, CDatum dDatum) override { m_Properties.SetProperty(*this, sKey, dDatum, NULL); }
+		virtual void SetElement (const CString &sKey, CDatum dDatum) override { OnCopyOnWrite(); m_Properties.SetProperty(*this, sKey, dDatum, NULL); }
 		virtual void SetElementAt (CDatum dIndex, CDatum dDatum) override;
 
 		static bool CreateTableFromArray (CAEONTypeSystem &TypeSystem, CDatum dValue, CDatum &retdDatum);
@@ -135,10 +134,13 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		CAEONTable () { }
 
 		static CDatum CalcColumnDatatype (CDatum dValue);
+		void CloneContents ();
+		void OnCopyOnWrite ();
 		void SetSchema (CDatum dSchema);
 
 		int m_iRows = 0;
 		TArray<CDatum> m_Cols;
+		bool m_bCopyOnWrite = false;
 
 		//	NOTE: The constructor guarantees that we have a valid schema.
 		//	We can always rely on m_dSchema being of type ECategory::Schema.
@@ -178,7 +180,7 @@ class CAEONTableRef : public IComplexDatum, public IAEONTable
 		virtual void Append (CDatum dDatum) override { }
 		virtual CString AsString (void) const override;
 		virtual size_t CalcMemorySize (void) const override;
-		virtual IComplexDatum* Clone (void) const override { return new CAEONTableRef(*this); }
+		virtual IComplexDatum* Clone (CDatum::EClone iMode) const override { return new CAEONTableRef(*this); }
 		virtual bool Find (CDatum dValue, int* retiIndex = NULL) const override { throw CException(errFail); }
 		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeTable; }
 		virtual int GetCount (void) const override { return (m_bAllRows ? m_dTable.GetCount() : m_Rows.GetCount()); }
@@ -233,7 +235,6 @@ class CAEONTimeSpan : public IComplexDatum
 		virtual CString AsString (void) const override;
 		virtual size_t CalcMemorySize (void) const override { return sizeof(CAEONTimeSpan); }
 		virtual const CTimeSpan &CastCTimeSpan () const { return m_TimeSpan; }
-		virtual IComplexDatum *Clone (void) const override { return new CAEONTimeSpan(m_TimeSpan); }
 		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeTimeSpan; }
 		virtual int GetCount (void) const { return PART_COUNT; };
 		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::TIME_SPAN); }
@@ -265,7 +266,7 @@ class CAEONVectorInt32 : public TAEONVector<int, CAEONVectorInt32>
 		CAEONVectorInt32 (const TArray<int> &Src) : TAEONVector<int, CAEONVectorInt32>(Src) { }
 		CAEONVectorInt32 (const TArray<CDatum> &Src) : TAEONVector<int, CAEONVectorInt32>(Src) { }
 
-		virtual IComplexDatum *Clone (void) const override { return new CAEONVectorInt32(m_Array); }
+		virtual IComplexDatum *Clone (CDatum::EClone iMode) const override { return new CAEONVectorInt32(m_Array); }
 		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY_INT_32); }
 		virtual const CString &GetTypename (void) const override;
 		virtual CDatum MathAbs () const override;
@@ -282,7 +283,7 @@ class CAEONVectorIntIP : public TAEONVector<CIPInteger, CAEONVectorIntIP>
 		CAEONVectorIntIP (const TArray<CIPInteger> &Src) : TAEONVector<CIPInteger, CAEONVectorIntIP>(Src) { }
 		CAEONVectorIntIP (const TArray<CDatum> &Src) : TAEONVector<CIPInteger, CAEONVectorIntIP>(Src) { }
 
-		virtual IComplexDatum *Clone (void) const override { return new CAEONVectorIntIP(m_Array); }
+		virtual IComplexDatum *Clone (CDatum::EClone iMode) const override { return new CAEONVectorIntIP(m_Array); }
 		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY_INT_IP); }
 		virtual const CString &GetTypename (void) const override;
 		virtual CDatum MathAbs () const override;
@@ -299,7 +300,7 @@ class CAEONVectorFloat64 : public TAEONVector<double, CAEONVectorFloat64>
 		CAEONVectorFloat64 (const TArray<double> &Src) : TAEONVector<double, CAEONVectorFloat64>(Src) { }
 		CAEONVectorFloat64 (const TArray<CDatum> &Src) : TAEONVector<double, CAEONVectorFloat64>(Src) { }
 
-		virtual IComplexDatum *Clone (void) const override { return new CAEONVectorFloat64(m_Array); }
+		virtual IComplexDatum *Clone (CDatum::EClone iMode) const override { return new CAEONVectorFloat64(m_Array); }
 		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY_FLOAT_64); }
 		virtual const CString &GetTypename (void) const override;
 		virtual CDatum MathAbs () const override;
@@ -319,7 +320,7 @@ class CAEONVectorString : public TAEONVector<CString, CAEONVectorString>
 		static CString FromDatum (CDatum dValue) { return dValue.AsString(); }
 		static CDatum ToDatum (CString Value) { return CDatum(Value); }
 
-		virtual IComplexDatum *Clone (void) const override { return new CAEONVectorString(m_Array); }
+		virtual IComplexDatum *Clone (CDatum::EClone iMode) const override { return new CAEONVectorString(m_Array); }
 		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY_STRING); }
 		virtual const CString &GetTypename (void) const override;
 		virtual CDatum MathAbs () const override;
