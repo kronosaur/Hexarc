@@ -99,7 +99,7 @@ template <class OBJ> class TUniquePtr
 				m_pPtr = NULL;
 			}
 
-		TUniquePtr (TUniquePtr<OBJ> &&Src) : m_pPtr(Src.m_pPtr)
+		TUniquePtr (TUniquePtr<OBJ> &&Src) noexcept : m_pPtr(Src.m_pPtr)
 			{
 			Src.m_pPtr = NULL;
 			}
@@ -125,7 +125,7 @@ template <class OBJ> class TUniquePtr
 			return *this;
 			}
 
-		TUniquePtr<OBJ> &operator= (TUniquePtr<OBJ> &&Src)
+		TUniquePtr<OBJ> &operator= (TUniquePtr<OBJ> &&Src) noexcept
 			{
 			OBJ *pOld = m_pPtr;
 			m_pPtr = Src.m_pPtr;
