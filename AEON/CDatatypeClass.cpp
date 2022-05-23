@@ -18,7 +18,7 @@ bool CDatatypeClass::OnAddMember (const CString &sName, EMemberType iType, CDatu
 		throw CException(errFail);
 
 	bool bNew;
-	auto pEntry = m_Members.SetAt(sName, &bNew);
+	auto pEntry = m_Members.SetAt(strToLower(sName), &bNew);
 	if (!bNew)
 		{
 		if (retsError) *retsError = strPattern(ERR_DUPLICATE_MEMBER, sName);
@@ -45,7 +45,7 @@ bool CDatatypeClass::OnDeserialize (CDatum::EFormat iFormat, IByteStream &Stream
 		{
 		CString sName = CString::Deserialize(Stream);
 
-		auto *pEntry = m_Members.SetAt(sName);
+		auto *pEntry = m_Members.SetAt(strToLower(sName));
 		pEntry->sName = sName;
 
 		DWORD dwLoad;
@@ -74,7 +74,7 @@ bool CDatatypeClass::OnEquals (const IDatatype &Src) const
 
 	for (int i = 0; i < m_Members.GetCount(); i++)
 		{
-		if (!strEquals(m_Members[i].sName, Other.m_Members[i].sName))
+		if (!strEqualsNoCase(m_Members[i].sName, Other.m_Members[i].sName))
 			return false;
 
 		if (m_Members[i].iType != Other.m_Members[i].iType)
@@ -87,6 +87,20 @@ bool CDatatypeClass::OnEquals (const IDatatype &Src) const
 	return true;
 	}
 
+int CDatatypeClass::OnFindMember (const CString &sName) const
+
+//	OnFindMember
+//
+//	Returns the member index (or -1).
+
+	{
+	int iPos;
+	if (!m_Members.FindPos(strToLower(sName), &iPos))
+		return -1;
+
+	return iPos;
+	}
+
 IDatatype::EMemberType CDatatypeClass::OnHasMember (const CString &sName, CDatum *retdType) const
 
 //	HasMember
@@ -94,7 +108,7 @@ IDatatype::EMemberType CDatatypeClass::OnHasMember (const CString &sName, CDatum
 //	Looks up a member and returns its type.
 
 	{
-	auto pEntry = m_Members.GetAt(sName);
+	auto pEntry = m_Members.GetAt(strToLower(sName));
 	if (!pEntry)
 		return EMemberType::None;
 

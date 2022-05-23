@@ -178,6 +178,7 @@ class CDatatypeClass : public IDatatype
 		virtual bool OnAddMember (const CString &sName, EMemberType iType, CDatum dType, CString *retsError = NULL) override;
 		virtual bool OnDeserialize (CDatum::EFormat iFormat, IByteStream &Stream) override;
 		virtual bool OnEquals (const IDatatype &Src) const override;
+		virtual int OnFindMember (const CString &sName) const override;
 		virtual ECategory OnGetClass () const override { return IDatatype::ECategory::ClassDef; }
 		virtual EImplementation OnGetImplementation () const { return IDatatype::EImplementation::Class; }
 		virtual EMemberType OnHasMember (const CString &sName, CDatum *retdType = NULL) const override;
@@ -221,6 +222,7 @@ class CDatatypeSchema : public IDatatype
 		virtual bool OnAddMember (const CString &sName, EMemberType iType, CDatum dType, CString *retsError = NULL) override;
 		virtual bool OnDeserialize (CDatum::EFormat iFormat, IByteStream &Stream) override;
 		virtual bool OnEquals (const IDatatype &Src) const override;
+		virtual int OnFindMember (const CString &sName) const override;
 		virtual ECategory OnGetClass () const override { return IDatatype::ECategory::Schema; }
 		virtual DWORD OnGetCoreType () const override { return m_dwCoreType; }
 		virtual EImplementation OnGetImplementation () const { return IDatatype::EImplementation::Schema; }

@@ -37,7 +37,7 @@ bool CDatatypeSchema::OnAddMember (const CString &sName, EMemberType iType, CDat
 	//	Make sure this name doesn't already exist
 
 	bool bNew;
-	auto pIndex = m_ColumnsByName.SetAt(sName, &bNew);
+	auto pIndex = m_ColumnsByName.SetAt(strToLower(sName), &bNew);
 	if (!bNew)
 		{
 		if (retsError) *retsError = strPattern(ERR_DUPLICATE_MEMBER, sName);
@@ -79,7 +79,7 @@ bool CDatatypeSchema::OnDeserialize (CDatum::EFormat iFormat, IByteStream &Strea
 
 		m_Columns[i].dType = CDatum(new CComplexDatatype(std::move(pType)));
 
-		m_ColumnsByName.SetAt(m_Columns[i].sName, i);
+		m_ColumnsByName.SetAt(strToLower(m_Columns[i].sName), i);
 		}
 
 	return true;
@@ -144,6 +144,20 @@ CDatum CDatatypeSchema::OnGetMembersAsTable () const
 	return dResult;
 	}
 
+int CDatatypeSchema::OnFindMember (const CString &sName) const
+
+//	OnFindMember
+//
+//	Returns the index of the given member (or -1).
+
+	{
+	auto pIndex = m_ColumnsByName.GetAt(strToLower(sName));
+	if (!pIndex)
+		return -1;
+
+	return *pIndex;
+	}
+
 IDatatype::EMemberType CDatatypeSchema::OnHasMember (const CString &sName, CDatum *retdType) const
 
 //	HasMember
@@ -151,7 +165,7 @@ IDatatype::EMemberType CDatatypeSchema::OnHasMember (const CString &sName, CDatu
 //	Looks up a member and returns its type.
 
 	{
-	auto pEntry = m_ColumnsByName.GetAt(sName);
+	auto pEntry = m_ColumnsByName.GetAt(strToLower(sName));
 	if (!pEntry)
 		return EMemberType::None;
 

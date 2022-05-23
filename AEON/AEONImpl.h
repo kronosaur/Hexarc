@@ -77,7 +77,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		//	IAEONTable
 
 		virtual EResult AppendColumn (CDatum dColumn) override;
-		virtual EResult AppendEmptyRow () override;
+		virtual EResult AppendEmptyRow (int iCount = 1) override;
 		virtual EResult AppendRow (CDatum dRow) override;
 		virtual EResult AppendSlice (CDatum dSlice) override;
 		virtual EResult AppendTable (CDatum dTable) override;

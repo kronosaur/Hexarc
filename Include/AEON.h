@@ -424,6 +424,7 @@ class IDatatype
 
 		bool AddMember (const CString &sName, EMemberType iType, CDatum dType, CString *retsError = NULL) { return OnAddMember(sName, iType, dType, retsError); }
 		static TUniquePtr<IDatatype> Deserialize (CDatum::EFormat iFormat, IByteStream &Stream);
+		int FindMember (const CString &sName) const { return OnFindMember(sName); }
 		ECategory GetClass () const { return OnGetClass(); }
 		DWORD GetCoreType () const { return OnGetCoreType(); }
 		const CString &GetFullyQualifiedName () const { return m_sFullyQualifiedName; }
@@ -447,6 +448,7 @@ class IDatatype
 		virtual bool OnAddMember (const CString &sName, EMemberType iType, CDatum dType, CString *retsError = NULL) { throw CException(errFail); }
 		virtual bool OnDeserialize (CDatum::EFormat iFormat, IByteStream &Stream) = 0;
 		virtual bool OnEquals (const IDatatype &Src) const = 0;
+		virtual int OnFindMember (const CString &sName) const { return -1; }
 		virtual EMemberType OnHasMember (const CString &sName, CDatum *retdType = NULL) const { return EMemberType::None; }
 		virtual ECategory OnGetClass () const = 0;
 		virtual DWORD OnGetCoreType () const { return UNKNOWN; }
@@ -540,7 +542,7 @@ class IAEONTable
 			};
 
 		virtual EResult AppendColumn (CDatum dColumn) { return EResult::NotImplemented; }
-		virtual EResult AppendEmptyRow () { return EResult::NotImplemented; }
+		virtual EResult AppendEmptyRow (int iCount = 1) { return EResult::NotImplemented; }
 		virtual EResult AppendRow (CDatum dRow) { return EResult::NotImplemented; }
 		virtual EResult AppendSlice (CDatum dSlice) { return EResult::NotImplemented; }
 		virtual EResult AppendTable (CDatum dTable) { return EResult::NotImplemented; }

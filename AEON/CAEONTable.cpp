@@ -88,7 +88,7 @@ IAEONTable::EResult CAEONTable::AppendColumn (CDatum dColumn)
 	return EResult::NotImplemented;
 	}
 
-IAEONTable::EResult CAEONTable::AppendEmptyRow ()
+IAEONTable::EResult CAEONTable::AppendEmptyRow (int iCount)
 
 //	AppendEmptyRow
 //
@@ -96,11 +96,15 @@ IAEONTable::EResult CAEONTable::AppendEmptyRow ()
 
 	{
 	OnCopyOnWrite();
+	GrowToFit(iCount);
 
 	for (int i = 0; i < m_Cols.GetCount(); i++)
-		m_Cols[i].Append(CDatum());
+		{
+		for (int j = 0; j < iCount; j++)
+			m_Cols[i].Append(CDatum());
+		}
 
-	m_iRows++;
+	m_iRows += iCount;
 	return EResult::OK;
 	}
 
