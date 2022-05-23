@@ -172,7 +172,7 @@ class CDatum
 		CDatum (CRGBA32Image &&Value);
 		CDatum (const CTimeSpan &TimeSpan);
 		explicit CDatum (Types iType);
-		explicit CDatum (bool bValue) : m_dwData(bValue ? CONST_TRUE : 0) { }
+		CDatum (bool bValue) : m_dwData(bValue ? CONST_TRUE : 0) { }
 
 		static CDatum CreateArrayAsType (CDatum dType, CDatum dValue = CDatum());
 		static CDatum CreateAsType (CDatum dType, CDatum dValue = CDatum());
