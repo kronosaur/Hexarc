@@ -31,6 +31,7 @@ DECLARE_CONST_STRING(ERR_DUPLICATE_VARIABLE,			"Duplicate definition: %s.");
 DECLARE_CONST_STRING(ERR_INVALID_OPERAND_COUNT,			"Invalid operand count.");
 DECLARE_CONST_STRING(ERR_CANT_SET_FUNCTION_MEMBER,		"Function objects are read-only.");
 DECLARE_CONST_STRING(ERR_UNSUPPORTED_OP,				"Unsupported opcode.");
+DECLARE_CONST_STRING(ERR_MEMBER_FUNCTION_NOT_FOUND,		"Object does not have member function: %s.");
 
 #ifdef DEBUG
 
@@ -3333,9 +3334,8 @@ bool CHexeProcess::ExecutePushObjectMethod (CDatum &retResult)
 						}
 
 					default:
-						//	LATER: This should probably be an error.
-						m_Stack.Push(CDatum());
-						break;
+						CHexeError::Create(NULL_STR, strPattern(ERR_MEMBER_FUNCTION_NOT_FOUND, sField), &retResult);
+						return false;
 					}
 				}
 			else
@@ -3343,7 +3343,7 @@ bool CHexeProcess::ExecutePushObjectMethod (CDatum &retResult)
 				CDatum dMember = dObject.GetMethod(sField);
 				if (dMember.IsNil() || dMember.GetCallInfo() == CDatum::ECallType::None)
 					{
-					CHexeError::Create(NULL_STR, strPattern(ERR_UNBOUND_VARIABLE, sField), &retResult);
+					CHexeError::Create(NULL_STR, strPattern(ERR_MEMBER_FUNCTION_NOT_FOUND, sField), &retResult);
 					return false;
 					}
 
@@ -3361,7 +3361,14 @@ bool CHexeProcess::ExecutePushObjectMethod (CDatum &retResult)
 			}
 
 		default:
-			m_Stack.Push(dObject.GetElement(sField));
+			CDatum dMember = dObject.GetElement(sField);
+			if (dMember.IsNil() || dMember.GetCallInfo() == CDatum::ECallType::None)
+				{
+				CHexeError::Create(NULL_STR, strPattern(ERR_MEMBER_FUNCTION_NOT_FOUND, sField), &retResult);
+				return false;
+				}
+
+			m_Stack.Push(dMember);
 
 			//	Push a nil this pointer. In opMakeMethodEnv we 
 			//	detect this and deal with it appropriately.
