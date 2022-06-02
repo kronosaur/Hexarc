@@ -1143,7 +1143,7 @@ CString strCapitalize (const CString &sString)
 	int iNewLen = strGetUTF8EncodeLength(dwUpper);
 	if (iOldLen == iNewLen)
 		{
-		CString sResult = sString;
+		CString sResult(sString.GetPointer(), sString.GetLength());
 		CBuffer Buffer(sResult.GetParsePointer(), sResult.GetLength(), false);
 		strEncodeUTF8Char(dwUpper, Buffer);
 		return sResult;
