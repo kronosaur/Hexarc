@@ -52,21 +52,21 @@ CDatum CAEONTypeSystem::AddAnonymousSchema (const TArray<IDatatype::SMemberDesc>
 //	Adds a new schema.
 
 	{
-	CString sFullyQualifiedName = CAEONTypeSystem::MakeFullyQualifiedName(NULL_STR, strPattern("AnonymousTable%03d", m_dwNextAnonymousID++));
+	CDatum dNewSchema = CreateAnonymousSchema(Columns);
+	const IDatatype& NewSchema = dNewSchema;
 
-	IDatatype *pNewType = new CDatatypeSchema(CDatatypeSchema::SCreate({ sFullyQualifiedName, { CAEONTypeSystem::GetCoreType(IDatatype::TABLE) } }));
+	//	See if this schema already exists.
 
-	for (int i = 0; i < Columns.GetCount(); i++)
+	for (int i = 0; i < m_Types.GetCount(); i++)
 		{
-		if (!pNewType->AddMember(Columns[i].sName, IDatatype::EMemberType::InstanceVar, Columns[i].dType))
-			return CDatum();
+		if (NewSchema == m_Types[i])
+			return m_Types[i];
 		}
 
-	CDatum dType(new CComplexDatatype(pNewType));
-	if (!AddType(dType))
+	if (!AddType(dNewSchema))
 		return CDatum();
 
-	return dType;
+	return dNewSchema;
 	}
 
 void CAEONTypeSystem::AddCoreType (IDatatype *pNewDatatype)
@@ -102,6 +102,27 @@ bool CAEONTypeSystem::AddType (CDatum dType)
 	const IDatatype &Datatype = dType;
 	m_Types.SetAt(Datatype.GetFullyQualifiedName(), dType);
 	return true;
+	}
+
+CDatum CAEONTypeSystem::CreateAnonymousSchema (const TArray<IDatatype::SMemberDesc> &Columns)
+
+//	CreateAnonymousSchema
+//
+//	Create an anonymous schema.
+
+	{
+	CString sFullyQualifiedName = CAEONTypeSystem::MakeFullyQualifiedName(NULL_STR, strPattern("AnonymousTable%08x", mathRandom()));
+
+	IDatatype *pNewType = new CDatatypeSchema(CDatatypeSchema::SCreate({ sFullyQualifiedName, { CAEONTypeSystem::GetCoreType(IDatatype::TABLE) } }));
+
+	for (int i = 0; i < Columns.GetCount(); i++)
+		{
+		if (!pNewType->AddMember(Columns[i].sName, IDatatype::EMemberType::InstanceVar, Columns[i].dType))
+			return CDatum();
+		}
+
+	CDatum dType(new CComplexDatatype(pNewType));
+	return dType;
 	}
 
 CDatum CAEONTypeSystem::CreateDatatypeClass (const CString &sFullyQualifiedName, const CDatatypeList &Implements, IDatatype **retpNewType)

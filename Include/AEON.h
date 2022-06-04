@@ -505,6 +505,7 @@ class CAEONTypeSystem
 		CDatum ResolveType (CDatum dType) const;
 		CDatum Serialize () const;
 
+		static CDatum CreateAnonymousSchema (const TArray<IDatatype::SMemberDesc> &Columns);
 		static CAEONTypeSystem &Null () { return m_Null; }
 
 	private:
