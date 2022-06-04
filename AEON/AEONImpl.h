@@ -119,6 +119,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 
 		static bool CreateTableFromArray (CAEONTypeSystem &TypeSystem, CDatum dValue, CDatum &retdDatum);
 		static bool CreateTableFromDatatype (CAEONTypeSystem &TypeSystem, CDatum dType, CDatum &retdDatum);
+		static bool CreateTableFromNil (CAEONTypeSystem& TypeSystem, CDatum& retdDatum);
 		static bool CreateTableFromStruct (CAEONTypeSystem &TypeSystem, CDatum dValue, CDatum &retdDatum);
 
 	protected:

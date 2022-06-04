@@ -1472,8 +1472,7 @@ bool CDatum::CreateTableFromDesc (CAEONTypeSystem &TypeSystem, CDatum dDesc, CDa
 	switch (dDesc.GetBasicType())
 		{
 		case CDatum::typeNil:
-			retdDatum = CDatum();
-			return true;
+			return CAEONTable::CreateTableFromNil(TypeSystem, retdDatum);
 
 		case CDatum::typeArray:
 			return CAEONTable::CreateTableFromArray(TypeSystem, dDesc, retdDatum);

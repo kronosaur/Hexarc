@@ -363,6 +363,19 @@ void CAEONTable::CloneContents ()
 		m_Cols[i] = m_Cols[i].Clone(CDatum::EClone::DeepCopy);
 	}
 
+bool CAEONTable::CreateTableFromNil (CAEONTypeSystem& TypeSystem, CDatum& retdDatum)
+
+//	CreateTableFromNil
+//
+//	Creates a nil table with no rows or columns.
+
+	{
+	CDatum dSchema = TypeSystem.AddAnonymousSchema(TArray<IDatatype::SMemberDesc>());
+	CAEONTable *pNewTable = new CAEONTable(dSchema);
+	retdDatum = CDatum(pNewTable);
+	return true;
+	}
+
 bool CAEONTable::CreateTableFromArray (CAEONTypeSystem &TypeSystem, CDatum dValue, CDatum &retdDatum)
 
 //	CreateTableFromArray
@@ -371,10 +384,7 @@ bool CAEONTable::CreateTableFromArray (CAEONTypeSystem &TypeSystem, CDatum dValu
 
 	{
 	if (dValue.IsNil())
-		{
-		retdDatum = CDatum();
-		return true;
-		}
+		return CreateTableFromNil(TypeSystem, retdDatum);
 
 	//	The first row is special because we use it to compose the schema.
 
@@ -458,10 +468,7 @@ bool CAEONTable::CreateTableFromStruct (CAEONTypeSystem &TypeSystem, CDatum dVal
 	int iRows = 0;
 	
 	if (dValue.IsNil())
-		{
-		retdDatum = CDatum();
-		return true;
-		}
+		return CreateTableFromNil(TypeSystem, retdDatum);
 
 	//	We treat each field of the struct as a column.
 
