@@ -1,4 +1,5 @@
 //	CAEONTable.cpp
+//	CAEONTable.cpp
 //
 //	CAEONTable classes
 //	Copyright (c) 2021 Kronosaur Productions, LLC. All Rights Reserved.
@@ -615,6 +616,29 @@ CDatum CAEONTable::GetDataSlice (int iFirstRow, int iRowCount) const
 	return dResult;
 	}
 
+CDatum CAEONTable::GetElement (int iIndex) const
+
+//	GetElement
+//
+//	Return the nth row of the table (as a struct).
+
+	{
+	if (iIndex < 0 || iIndex >= m_iRows)
+		return CDatum();
+
+	CDatum dRow(CDatum::typeStruct);
+
+	const IDatatype &Schema = m_dSchema;
+	for (int i = 0; i < Schema.GetMemberCount(); i++)
+		{
+		auto ColumnDesc = Schema.GetMember(i);
+
+		dRow.SetElement(ColumnDesc.sName, m_Cols[i].GetElement(iIndex));
+		}
+
+	return dRow;
+	}
+
 CDatum CAEONTable::GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) const
 
 //	GetElementAt
@@ -698,29 +722,6 @@ int CAEONTable::GetRowCount () const
 	return m_iRows;
 	}
 
-CDatum CAEONTable::GetElement (int iIndex) const
-
-//	GetElement
-//
-//	Return the nth row of the table (as a struct).
-
-	{
-	if (iIndex < 0 || iIndex >= m_iRows)
-		return CDatum();
-
-	CDatum dRow(CDatum::typeStruct);
-
-	const IDatatype &Schema = m_dSchema;
-	for (int i = 0; i < Schema.GetMemberCount(); i++)
-		{
-		auto ColumnDesc = Schema.GetMember(i);
-
-		dRow.SetElement(ColumnDesc.sName, m_Cols[i].GetElement(iIndex));
-		}
-
-	return dRow;
-	}
-
 const CString &CAEONTable::GetTypename (void) const
 
 //	GetTypename
@@ -742,6 +743,55 @@ void CAEONTable::GrowToFit (int iCount)
 
 	for (int i = 0; i < m_Cols.GetCount(); i++)
 		m_Cols[i].GrowToFit(iCount);
+	}
+
+IAEONTable::EResult CAEONTable::InsertColumn (const CString& sName, CDatum dType, CDatum dValues, int iPos, int *retiCol)
+
+//	InsertColumn
+//
+//	Inserts a new column.
+
+	{
+	OnCopyOnWrite();
+
+	//	We need to create a new schema.
+
+	CDatum dNewSchema;
+	int iNewCol;
+	if (!InsertColumnToSchema(m_dSchema, sName, dType, iPos, dNewSchema, &iNewCol))
+		return EResult::InvalidParam;
+
+	m_dSchema = dNewSchema;
+
+	//	Create the column
+
+	CDatum dNewColumn = CreateColumn(dType);
+	m_Cols.Insert(dNewColumn, iNewCol);
+
+	//	Add the values
+
+	int iRowsLeft = GetRowCount();
+	if (dValues.IsArray())
+		{
+		for (int i = 0; i < dValues.GetCount() && iRowsLeft > 0; i++)
+			{
+			dNewColumn.Append(dValues.GetElement(i));
+			iRowsLeft--;
+			}
+		}
+
+	while (iRowsLeft > 0)
+		{
+		dNewColumn.Append(CDatum());
+		iRowsLeft--;
+		}
+
+	//	Done
+
+	if (retiCol)
+		*retiCol = iNewCol;
+
+	return EResult::OK;
 	}
 
 bool CAEONTable::IsSameSchema (CDatum dSchema) const
@@ -1027,30 +1077,6 @@ void CAEONTable::SetSchema (CDatum dSchema)
 
 		//	Create columns based on the datatype
 
-		const IDatatype &ColSchema = ColumnDesc.dType;
-		switch (ColSchema.GetCoreType())
-			{
-			case IDatatype::INT_32:
-				m_Cols[i] = CDatum::VectorOf(CDatum::typeInteger32);
-				break;
-
-			case IDatatype::INT_IP:
-				m_Cols[i] = CDatum::VectorOf(CDatum::typeIntegerIP);
-				break;
-
-			case IDatatype::FLOAT_64:
-				m_Cols[i] = CDatum::VectorOf(CDatum::typeDouble);
-				break;
-
-			case IDatatype::STRING:
-				m_Cols[i] = CDatum::VectorOf(CDatum::typeString);
-				break;
-
-			default:
-				//	For anything else, we create a generic array.
-
-				m_Cols[i] = CDatum::VectorOf(CDatum::typeUnknown);
-				break;
-			}
+		m_Cols[i] = CreateColumn(ColumnDesc.dType);
 		}
 	}

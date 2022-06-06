@@ -12,6 +12,27 @@ DECLARE_CONST_STRING(TYPENAME_VECTOR_STRING,			"vector_String");
 
 //	CAEONVectorFloat64 ---------------------------------------------------------
 
+TDatumPropertyHandler<CAEONVectorFloat64> CAEONVectorFloat64::m_Properties = {
+	{
+		"elementType",
+		"Returns the element type of the array.",
+		[](const CAEONVectorFloat64 &Obj, const CString &sProperty)
+			{
+			return CAEONTypeSystem::GetCoreType(IDatatype::FLOAT_64);
+			},
+		NULL,
+		},
+	{
+		"length",
+		"Returns the number of element in the array.",
+		[](const CAEONVectorFloat64 &Obj, const CString &sProperty)
+			{
+			return CDatum(Obj.GetCount());
+			},
+		NULL,
+		},
+	};
+
 const CString &CAEONVectorFloat64::GetTypename (void) const
 	{
 	return TYPENAME_VECTOR_FLOAT_64;
@@ -80,6 +101,27 @@ CDatum CAEONVectorFloat64::MathSum () const
 	}
 
 //	CAEONVectorInt32 -----------------------------------------------------------
+
+TDatumPropertyHandler<CAEONVectorInt32> CAEONVectorInt32::m_Properties = {
+	{
+		"elementType",
+		"Returns the element type of the array.",
+		[](const CAEONVectorInt32 &Obj, const CString &sProperty)
+			{
+			return CAEONTypeSystem::GetCoreType(IDatatype::INT_32);
+			},
+		NULL,
+		},
+	{
+		"length",
+		"Returns the number of element in the array.",
+		[](const CAEONVectorInt32 &Obj, const CString &sProperty)
+			{
+			return CDatum(Obj.GetCount());
+			},
+		NULL,
+		},
+	};
 
 const CString &CAEONVectorInt32::GetTypename (void) const
 	{
@@ -204,6 +246,27 @@ CDatum CAEONVectorInt32::MathSum () const
 
 //	CAEONVectorIntIP -----------------------------------------------------------
 
+TDatumPropertyHandler<CAEONVectorIntIP> CAEONVectorIntIP::m_Properties = {
+	{
+		"elementType",
+		"Returns the element type of the array.",
+		[](const CAEONVectorIntIP &Obj, const CString &sProperty)
+			{
+			return CAEONTypeSystem::GetCoreType(IDatatype::INT_IP);
+			},
+		NULL,
+		},
+	{
+		"length",
+		"Returns the number of element in the array.",
+		[](const CAEONVectorIntIP &Obj, const CString &sProperty)
+			{
+			return CDatum(Obj.GetCount());
+			},
+		NULL,
+		},
+	};
+
 const CString &CAEONVectorIntIP::GetTypename (void) const
 	{
 	return TYPENAME_VECTOR_INT_IP;
@@ -275,6 +338,27 @@ CDatum CAEONVectorIntIP::MathSum () const
 	}
 
 //	CAEONVectorString ----------------------------------------------------------
+
+TDatumPropertyHandler<CAEONVectorString> CAEONVectorString::m_Properties = {
+	{
+		"elementType",
+		"Returns the element type of the array.",
+		[](const CAEONVectorString &Obj, const CString &sProperty)
+			{
+			return CAEONTypeSystem::GetCoreType(IDatatype::STRING);
+			},
+		NULL,
+		},
+	{
+		"length",
+		"Returns the number of element in the array.",
+		[](const CAEONVectorString &Obj, const CString &sProperty)
+			{
+			return CDatum(Obj.GetCount());
+			},
+		NULL,
+		},
+	};
 
 const CString &CAEONVectorString::GetTypename (void) const
 	{

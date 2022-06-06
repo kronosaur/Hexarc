@@ -555,12 +555,15 @@ class IAEONTable
 		virtual CDatum GetDataSlice (int iFirstRow, int iRowCount) const { return CDatum(); }
 		virtual CDatum GetFieldValue (int iRow, int iCol) const { return CDatum(); }
 		virtual int GetRowCount () const { return 0; }
+		virtual EResult InsertColumn (const CString& sName, CDatum dType, CDatum dValues = CDatum(), int iPos = -1, int *retiCol = NULL) { return EResult::NotImplemented; }
 		virtual bool IsSameSchema (CDatum dSchema) const { return false; }
 		virtual bool SetFieldValue (int iRow, int iCol, CDatum dValue) { return false; }
 
+		static CDatum CreateColumn (CDatum dType);
 		static bool CreateRef (CAEONTypeSystem& TypeSystem, CDatum dTable, SSubset&& Subset, CDatum& retdValue);
 		static bool CreateSchema (CAEONTypeSystem& TypeSystem, CDatum dTable, SSubset& Subset, CDatum& retdSchema);
 		static bool CreateSchemaFromDesc (CAEONTypeSystem& TypeSystem, CDatum dSchemaDesc, CDatum& retdSchema);
+		static bool InsertColumnToSchema (CDatum dSchema, const CString& sName, CDatum dType, int iPos, CDatum& retdSchema, int* retiCol = NULL);
 	};
 
 //	IComplexDatum --------------------------------------------------------------
@@ -664,6 +667,13 @@ class IComplexFactory
 		virtual IComplexDatum *Create () = 0;
 	};
 
+//	Implementation -------------------------------------------------------------
+//
+//	LATER: These should move to internal headers. Callers shouldn't have to
+//	deal with the implementation classes.
+
+#include "AEONUtil.h"
+
 //	CComplexArray
 
 class CComplexArray : public IComplexDatum
@@ -692,6 +702,7 @@ class CComplexArray : public IComplexDatum
 		virtual int GetCount () const override { return m_Array.GetCount(); }
 		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY); }
 		virtual CDatum GetElement (int iIndex) const override { return ((iIndex >= 0 && iIndex < m_Array.GetCount()) ? m_Array[iIndex] : CDatum()); }
+		virtual CDatum GetElement (const CString &sKey) const override { return m_Properties.GetProperty(*this, sKey); }
 		virtual CDatum GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) const override;
 		virtual const CString &GetTypename () const override;
 		virtual void GrowToFit (int iCount) override { OnCopyOnWrite(); m_Array.GrowToFit(iCount); }
@@ -704,6 +715,7 @@ class CComplexArray : public IComplexDatum
 		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
 		virtual void Sort (ESortOptions Order = AscendingSort, TArray<CDatum>::COMPAREPROC pfCompare = NULL, void *pCtx = NULL) override { OnCopyOnWrite(); if (pfCompare) m_Array.Sort(pCtx, pfCompare, Order); else m_Array.Sort(Order); }
 		virtual void SetElement (int iIndex, CDatum dDatum) override { OnCopyOnWrite(); if (iIndex >= 0 && iIndex < m_Array.GetCount()) m_Array[iIndex] = dDatum; }
+		virtual void SetElement (const CString &sKey, CDatum dDatum) override { OnCopyOnWrite(); m_Properties.SetProperty(*this, sKey, dDatum, NULL); }
 		virtual void SetElementAt (CDatum dIndex, CDatum dDatum) override;
 
 	protected:
@@ -714,6 +726,8 @@ class CComplexArray : public IComplexDatum
 
 		bool m_bCopyOnWrite = false;
 		TArray<CDatum> m_Array;
+
+		static TDatumPropertyHandler<CComplexArray> m_Properties;
 	};
 
 class CComplexBinary : public IComplexDatum
@@ -1118,7 +1132,6 @@ bool urlParseQuery (const CString &sURL, CString *retsPath, CDatum *retdQuery);
 
 #include "AEONAllocator.h"
 #include "AEONVector.h"
-#include "AEONUtil.h"
 
 inline CDatum CDatum::GetElementOrDefault (const CString &sKey, CDatum dDefault) const
 	{

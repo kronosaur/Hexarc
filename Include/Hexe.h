@@ -362,7 +362,6 @@ class CHexeProcess : public IInvokeCtx
 		//	Execution helpers
 
 		static ERun RuntimeError (const CString &sError, CDatum &retdResult);
-		void ExecuteArrayMemberItem (CDatum dArray, const CString &sField);
 		bool ExecuteCustomMemberItem (CDatum dObject, const CString &sField, CDatum &retdResult);
 		ERun ExecuteHandleInvokeResult (CDatum::InvokeResult iInvokeResult, CDatum dExpression, CDatum dInvokeResult, CDatum *retResult);
 		static bool ExecuteMakeFlagsFromArray (CDatum dOptions, CDatum dMap, CDatum *retdResult);

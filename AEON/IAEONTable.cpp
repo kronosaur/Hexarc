@@ -13,6 +13,35 @@ DECLARE_CONST_STRING(FIELD_NAME,						"name");
 DECLARE_CONST_STRING(ERR_UNABLE_TO_CREATE_SCHEMA,		"Unable to create schema.");
 DECLARE_CONST_STRING(ERR_INVALID_SCHEMA_DESC,			"Invalid schema desc.");
 
+CDatum IAEONTable::CreateColumn (CDatum dType)
+
+//	CreateColumn
+//
+//	Creates an empty column.
+
+	{
+	const IDatatype &ColSchema = dType;
+	switch (ColSchema.GetCoreType())
+		{
+		case IDatatype::INT_32:
+			return CDatum::VectorOf(CDatum::typeInteger32);
+
+		case IDatatype::INT_IP:
+			return CDatum::VectorOf(CDatum::typeIntegerIP);
+
+		case IDatatype::FLOAT_64:
+			return CDatum::VectorOf(CDatum::typeDouble);
+
+		case IDatatype::STRING:
+			return CDatum::VectorOf(CDatum::typeString);
+
+		default:
+			//	For anything else, we create a generic array.
+
+			return CDatum::VectorOf(CDatum::typeUnknown);
+		}
+	}
+
 bool IAEONTable::CreateRef (CAEONTypeSystem& TypeSystem, CDatum dTable, SSubset&& Subset, CDatum& retdValue)
 
 //	CreateRef
@@ -165,6 +194,53 @@ bool IAEONTable::CreateSchemaFromDesc (CAEONTypeSystem& TypeSystem, CDatum dSche
 		retdSchema = ERR_UNABLE_TO_CREATE_SCHEMA;
 		return false;
 		}
+
+	return true;
+	}
+
+bool IAEONTable::InsertColumnToSchema (CDatum dSchema, const CString& sName, CDatum dType, int iPos, CDatum& retdSchema, int* retiCol)
+
+//	InsertColumnToSchema
+//
+//	Creates a new schema with a new column.
+
+	{
+	const IDatatype& OldSchema = dSchema;
+
+	if (OldSchema.FindMember(sName) != -1)
+		return false;
+
+	if (dType.GetBasicType() != CDatum::typeDatatype)
+		return false;
+
+	int iNewCol;
+	if (iPos >= 0)
+		iNewCol = Min(iPos, OldSchema.GetMemberCount());
+	else
+		iNewCol = Max(0, OldSchema.GetMemberCount() + iPos + 1);
+
+	TArray<IDatatype::SMemberDesc> Members;
+	Members.InsertEmpty(OldSchema.GetMemberCount() + 1);
+
+	int iDest = 0;
+	for (int i = 0; i < OldSchema.GetMemberCount(); i++)
+		{
+		if (iDest == iNewCol)
+			{
+			Members[iDest++] = { IDatatype::EMemberType::InstanceVar, sName, dType };
+			}
+
+		Members[iDest++] = OldSchema.GetMember(i);
+		}
+
+	if (iDest < Members.GetCount())
+		Members[iDest++] = { IDatatype::EMemberType::InstanceVar, sName, dType };
+
+	CAEONTypeSystem TypeSystem;
+	retdSchema = TypeSystem.AddAnonymousSchema(Members);
+
+	if (retiCol)
+		*retiCol = iNewCol;
 
 	return true;
 	}

@@ -1673,10 +1673,6 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 						ExecuteNilMemberItem(sField);
 						break;
 
-					case CDatum::typeArray:
-						ExecuteArrayMemberItem(dObject, sField);
-						break;
-
 					case CDatum::typeCustom:
 						if (!ExecuteCustomMemberItem(dObject, sField, *retResult))
 							return ERun::Error;
@@ -1907,21 +1903,6 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 		}
 
 	return ERun::OK;
-	}
-
-void CHexeProcess::ExecuteArrayMemberItem (CDatum dArray, const CString &sField)
-
-//	ExecuteArrayMemberItem
-//
-//	Push array properties.
-
-	{
-	if (strEqualsNoCase(sField, FIELD_LENGTH))
-		{
-		m_Stack.Push(dArray.GetCount());
-		}
-	else
-		m_Stack.Push(CDatum());
 	}
 
 CDatum CHexeProcess::ExecuteBinaryOp (EOpCodes iOp, CDatum dLeft, CDatum dRight)

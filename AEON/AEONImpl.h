@@ -89,6 +89,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual CDatum GetDataSlice (int iFirstRow, int iRowCount) const override;
 		virtual CDatum GetFieldValue (int iRow, int iCol) const override;
 		virtual int GetRowCount () const override;
+		virtual EResult InsertColumn (const CString& sName, CDatum dType, CDatum dValues = CDatum(), int iPos = -1, int *retiCol = NULL) override;
 		virtual bool IsSameSchema (CDatum dSchema) const override;
 		virtual bool SetFieldValue (int iRow, int iCol, CDatum dValue) override;
 
@@ -269,12 +270,18 @@ class CAEONVectorInt32 : public TAEONVector<int, CAEONVectorInt32>
 
 		virtual IComplexDatum *Clone (CDatum::EClone iMode) const override { return new CAEONVectorInt32(m_Array); }
 		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY_INT_32); }
+		virtual CDatum GetElement (const CString &sKey) const override { return m_Properties.GetProperty(*this, sKey); }
 		virtual const CString &GetTypename (void) const override;
 		virtual CDatum MathAbs () const override;
 		virtual CDatum MathAverage () const override;
 		virtual CDatum MathMax () const override;
 		virtual CDatum MathMin () const override;
 		virtual CDatum MathSum () const override;
+		virtual void SetElement (const CString &sKey, CDatum dDatum) override { m_Properties.SetProperty(*this, sKey, dDatum, NULL); }
+
+	private:
+
+		static TDatumPropertyHandler<CAEONVectorInt32> m_Properties;
 	};
 
 class CAEONVectorIntIP : public TAEONVector<CIPInteger, CAEONVectorIntIP>
@@ -286,12 +293,18 @@ class CAEONVectorIntIP : public TAEONVector<CIPInteger, CAEONVectorIntIP>
 
 		virtual IComplexDatum *Clone (CDatum::EClone iMode) const override { return new CAEONVectorIntIP(m_Array); }
 		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY_INT_IP); }
+		virtual CDatum GetElement (const CString &sKey) const override { return m_Properties.GetProperty(*this, sKey); }
 		virtual const CString &GetTypename (void) const override;
 		virtual CDatum MathAbs () const override;
 		virtual CDatum MathAverage () const override;
 		virtual CDatum MathMax () const override;
 		virtual CDatum MathMin () const override;
 		virtual CDatum MathSum () const override;
+		virtual void SetElement (const CString &sKey, CDatum dDatum) override { m_Properties.SetProperty(*this, sKey, dDatum, NULL); }
+
+	private:
+
+		static TDatumPropertyHandler<CAEONVectorIntIP> m_Properties;
 	};
 
 class CAEONVectorFloat64 : public TAEONVector<double, CAEONVectorFloat64>
@@ -303,12 +316,18 @@ class CAEONVectorFloat64 : public TAEONVector<double, CAEONVectorFloat64>
 
 		virtual IComplexDatum *Clone (CDatum::EClone iMode) const override { return new CAEONVectorFloat64(m_Array); }
 		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY_FLOAT_64); }
+		virtual CDatum GetElement (const CString &sKey) const override { return m_Properties.GetProperty(*this, sKey); }
 		virtual const CString &GetTypename (void) const override;
 		virtual CDatum MathAbs () const override;
 		virtual CDatum MathAverage () const override;
 		virtual CDatum MathMax () const override;
 		virtual CDatum MathMin () const override;
 		virtual CDatum MathSum () const override;
+		virtual void SetElement (const CString &sKey, CDatum dDatum) override { m_Properties.SetProperty(*this, sKey, dDatum, NULL); }
+
+	private:
+
+		static TDatumPropertyHandler<CAEONVectorFloat64> m_Properties;
 	};
 
 class CAEONVectorString : public TAEONVector<CString, CAEONVectorString>
@@ -323,11 +342,17 @@ class CAEONVectorString : public TAEONVector<CString, CAEONVectorString>
 
 		virtual IComplexDatum *Clone (CDatum::EClone iMode) const override { return new CAEONVectorString(m_Array); }
 		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY_STRING); }
+		virtual CDatum GetElement (const CString &sKey) const override { return m_Properties.GetProperty(*this, sKey); }
 		virtual const CString &GetTypename (void) const override;
 		virtual CDatum MathAbs () const override;
 		virtual CDatum MathAverage () const override;
 		virtual CDatum MathMax () const override;
 		virtual CDatum MathMin () const override;
 		virtual CDatum MathSum () const override;
+		virtual void SetElement (const CString &sKey, CDatum dDatum) override { m_Properties.SetProperty(*this, sKey, dDatum, NULL); }
+
+	private:
+
+		static TDatumPropertyHandler<CAEONVectorString> m_Properties;
 	};
 

@@ -7,6 +7,27 @@
 
 DECLARE_CONST_STRING(TYPENAME_ARRAY,					"array");
 
+TDatumPropertyHandler<CComplexArray> CComplexArray::m_Properties = {
+	{
+		"elementType",
+		"Returns the element type of the array.",
+		[](const CComplexArray &Obj, const CString &sProperty)
+			{
+			return CAEONTypeSystem::GetCoreType(IDatatype::ANY);
+			},
+		NULL,
+		},
+	{
+		"length",
+		"Returns the number of element in the array.",
+		[](const CComplexArray &Obj, const CString &sProperty)
+			{
+			return CDatum(Obj.GetCount());
+			},
+		NULL,
+		},
+	};
+
 const CString &CComplexArray::GetTypename (void) const { return TYPENAME_ARRAY; }
 
 CComplexArray::CComplexArray (CDatum dSrc)
