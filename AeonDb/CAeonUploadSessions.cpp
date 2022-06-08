@@ -552,6 +552,12 @@ bool CAeonUploadSessions::ProcessUpload (CMsgProcessCtx &Ctx,
 			bFound = true;
 			break;
 			}
+		else if (Range.iLength == 0 && iPartialPos == Range.iPos)
+			{
+			pSession->DataExpected.Delete(i);
+			bFound = true;
+			break;
+			}
 		}
 
 	if (!bFound)
