@@ -12,8 +12,10 @@
 class CJPEG
 	{
 	public:
+		static constexpr int QUALITY_DEFAULT = 80;
+
 		static bool Load (IMemoryBlock &Data, CRGBA32Image &Image, CString *retsError = NULL);
-		static bool Save (CRGBA32Image &Image, IByteStream &Output, int iQuality, CString *retsError = NULL);
+		static bool Save (const CRGBA32Image &Image, IByteStream &Output, int iQuality, CString *retsError = NULL);
 
 	private:
 	};

@@ -104,7 +104,7 @@ bool CJPEG::Load (IMemoryBlock &Data, CRGBA32Image &Image, CString *retsError)
 		}
 	}
 
-bool CJPEG::Save (CRGBA32Image &Image, IByteStream &Output, int iQuality, CString *retsError)
+bool CJPEG::Save (const CRGBA32Image &Image, IByteStream &Output, int iQuality, CString *retsError)
 
 //	Save
 //
