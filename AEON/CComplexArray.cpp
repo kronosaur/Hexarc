@@ -190,6 +190,19 @@ bool CComplexArray::Contains (CDatum dValue, TArray<IComplexDatum *> &retChecked
 	return false;
 	}
 
+void CComplexArray::DeleteElement (int iIndex)
+
+//	DeleteElement
+//
+//	Deletes the given element.
+
+	{
+	if (iIndex < 0 || iIndex >= GetCount())
+		return;
+
+	m_Array.Delete(iIndex);
+	}
+
 bool CComplexArray::FindElement (CDatum dValue, int *retiIndex) const
 
 //	FindElement

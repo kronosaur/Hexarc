@@ -1681,6 +1681,24 @@ int CDatum::DefaultCompare (void *pCtx, const CDatum &dKey1, const CDatum &dKey2
 		return 0;
 	}
 
+void CDatum::DeleteElement (int iIndex)
+
+//	DeleteElement
+//
+//	Deletes the given element.
+
+	{
+	switch (m_dwData & AEON_TYPE_MASK)
+		{
+		case AEON_TYPE_COMPLEX:
+			raw_GetComplex()->DeleteElement(iIndex);
+			break;
+
+		default:
+			break;
+		}
+	}
+
 bool CDatum::Deserialize (EFormat iFormat, IByteStream &Stream, IAEONParseExtension *pExtension, CDatum *retDatum)
 
 //	Deserialize

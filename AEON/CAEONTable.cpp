@@ -10,6 +10,7 @@ DECLARE_CONST_STRING(FIELD_COLUMNS,						"columns");
 DECLARE_CONST_STRING(FIELD_DATATYPE,					"datatype");
 DECLARE_CONST_STRING(FIELD_NAME,						"name");
 DECLARE_CONST_STRING(FIELD_ROWS,						"rows");
+DECLARE_CONST_STRING(FIELD_SEQ,							"seq");
 DECLARE_CONST_STRING(FIELD_VALUES,						"values");
 
 DECLARE_CONST_STRING(TYPENAME_TABLE,					"table");
@@ -56,7 +57,7 @@ void CAEONTable::Append (CDatum dDatum)
 //	Append a row, column, or table.
 
 	{
-	OnCopyOnWrite();
+	OnModify();
 
 	switch (dDatum.GetBasicType())
 		{
@@ -84,7 +85,7 @@ IAEONTable::EResult CAEONTable::AppendColumn (CDatum dColumn)
 //	Appends a column.
 
 	{
-	OnCopyOnWrite();
+	OnModify();
 
 	return EResult::NotImplemented;
 	}
@@ -96,7 +97,7 @@ IAEONTable::EResult CAEONTable::AppendEmptyRow (int iCount)
 //	Adds an empty row.
 
 	{
-	OnCopyOnWrite();
+	OnModify();
 	GrowToFit(iCount);
 
 	for (int i = 0; i < m_Cols.GetCount(); i++)
@@ -116,7 +117,7 @@ IAEONTable::EResult CAEONTable::AppendRow (CDatum dRow)
 //	Appends a row.
 
 	{
-	OnCopyOnWrite();
+	OnModify();
 
 	const IDatatype &Schema = m_dSchema;
 	for (int i = 0; i < Schema.GetMemberCount(); i++)
@@ -148,7 +149,7 @@ IAEONTable::EResult CAEONTable::AppendSlice (CDatum dSlice)
 //	Appends a slice of data using the current schema.
 
 	{
-	OnCopyOnWrite();
+	OnModify();
 
 	if (m_Cols.GetCount() == 0 || dSlice.GetCount() == 0)
 		return EResult::OK;
@@ -179,7 +180,7 @@ IAEONTable::EResult CAEONTable::AppendTable (CDatum dTable)
 //	Appends a table.
 
 	{
-	OnCopyOnWrite();
+	OnModify();
 
 	GrowToFit(dTable.GetCount());
 
@@ -536,11 +537,30 @@ IAEONTable::EResult CAEONTable::DeleteAllRows ()
 //	Deletes all rows (but leaves the schema intact).
 
 	{
-	OnCopyOnWrite();
+	OnModify();
 
 	//	Recreate the columns.
 
 	SetSchema(m_dSchema);
+	return EResult::OK;
+	}
+
+IAEONTable::EResult CAEONTable::DeleteRow (int iRow)
+
+//	DeleteRow
+//
+//	Deletes the given row.
+
+	{
+	if (iRow < 0 || iRow >= GetRowCount())
+		return EResult::OK;
+
+	OnModify();
+	for (int i = 0; i < m_Cols.GetCount(); i++)
+		m_Cols[i].DeleteElement(iRow);
+
+	m_iRows--;
+
 	return EResult::OK;
 	}
 
@@ -739,7 +759,7 @@ void CAEONTable::GrowToFit (int iCount)
 //	Allocate to fit an additional n rows.
 
 	{
-	OnCopyOnWrite();
+	OnModify();
 
 	for (int i = 0; i < m_Cols.GetCount(); i++)
 		m_Cols[i].GrowToFit(iCount);
@@ -752,7 +772,7 @@ IAEONTable::EResult CAEONTable::InsertColumn (const CString& sName, CDatum dType
 //	Inserts a new column.
 
 	{
-	OnCopyOnWrite();
+	OnModify();
 
 	//	We need to create a new schema.
 
@@ -834,20 +854,6 @@ size_t CAEONTable::OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const
 	return CalcMemorySize();
 	}
 
-void CAEONTable::OnCopyOnWrite ()
-
-//	OnCopyOnWrite
-//
-//	The table is about to be modified, so make a copy, if necessary.
-
-	{
-	if (m_bCopyOnWrite)
-		{
-		CloneContents();
-		m_bCopyOnWrite = false;
-		}
-	}
-
 bool CAEONTable::OnDeserialize (CDatum::EFormat iFormat, CDatum dStruct)
 
 //	OnDeserialize
@@ -855,7 +861,7 @@ bool CAEONTable::OnDeserialize (CDatum::EFormat iFormat, CDatum dStruct)
 //	Load from the given struct.
 
 	{
-	OnCopyOnWrite();
+	OnModify();
 
 	CDatum dSchema = dStruct.GetElement(FIELD_DATATYPE);
 	const IDatatype &Schema = dSchema;
@@ -888,6 +894,8 @@ bool CAEONTable::OnDeserialize (CDatum::EFormat iFormat, CDatum dStruct)
 	if (m_iRows == -1)
 		m_iRows = 0;
 
+	m_Seq = dStruct.GetElement(FIELD_SEQ);
+
 	return true;
 	}
 
@@ -904,6 +912,24 @@ void CAEONTable::OnMarked (void)
 		m_Cols[i].Mark();
 	}
 
+void CAEONTable::OnModify ()
+
+//	OnModify
+//
+//	The table is about to be modified, so make a copy, if necessary.
+
+	{
+	if (m_bCopyOnWrite)
+		{
+		CloneContents();
+		m_bCopyOnWrite = false;
+		}
+
+	//	Increment sequence so we know it got modified.
+
+	m_Seq++;
+	}
+
 void CAEONTable::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const
 
 //	OnSerialize
@@ -915,6 +941,7 @@ void CAEONTable::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) 
 
 	pStruct->SetElement(FIELD_DATATYPE, m_dSchema);
 	pStruct->SetElement(FIELD_ROWS, m_iRows);
+	pStruct->SetElement(FIELD_SEQ, m_Seq);
 
 	CDatum dCols(CDatum::typeArray);
 	for (int i = 0; i < Schema.GetMemberCount(); i++)
@@ -960,7 +987,7 @@ void CAEONTable::SetElement (int iIndex, CDatum dDatum)
 	if (iIndex < 0 || iIndex >= m_iRows)
 		return;
 
-	OnCopyOnWrite();
+	OnModify();
 
 	const IDatatype &Schema = m_dSchema;
 	for (int i = 0; i < Schema.GetMemberCount(); i++)
@@ -981,7 +1008,7 @@ void CAEONTable::SetElementAt (CDatum dIndex, CDatum dDatum)
 	{
 	int iIndex;
 
-	OnCopyOnWrite();
+	OnModify();
 
 	if (dIndex.IsNil())
 		{ }
@@ -1036,7 +1063,7 @@ bool CAEONTable::SetFieldValue (int iRow, int iCol, CDatum dValue)
 	if (iCol < 0 || iCol >= m_Cols.GetCount())
 		return false;
 
-	OnCopyOnWrite();
+	OnModify();
 
 	m_Cols[iCol].SetElement(iRow, dValue);
 	return true;
@@ -1049,7 +1076,7 @@ void CAEONTable::SetSchema (CDatum dSchema)
 //	Sets the schema. This will delete all existing data in the table.
 
 	{
-	OnCopyOnWrite();
+	OnModify();
 
 	//	Make sure this is an actual schema.
 

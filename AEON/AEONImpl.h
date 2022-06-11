@@ -82,6 +82,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual EResult AppendSlice (CDatum dSlice) override;
 		virtual EResult AppendTable (CDatum dTable) override;
 		virtual EResult DeleteAllRows () override;
+		virtual EResult DeleteRow (int iRow) override;
 		virtual bool FindCol (const CString &sName, int *retiCol = NULL) const override;
 		virtual CDatum GetCol (int iIndex) const override { return ((iIndex >= 0 && iIndex < m_Cols.GetCount()) ? m_Cols[iIndex] : CDatum()); }
 		virtual int GetColCount () const override;
@@ -89,9 +90,11 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual CDatum GetDataSlice (int iFirstRow, int iRowCount) const override;
 		virtual CDatum GetFieldValue (int iRow, int iCol) const override;
 		virtual int GetRowCount () const override;
+		virtual SequenceNumber GetSeq () const override { return m_Seq; }
 		virtual EResult InsertColumn (const CString& sName, CDatum dType, CDatum dValues = CDatum(), int iPos = -1, int *retiCol = NULL) override;
 		virtual bool IsSameSchema (CDatum dSchema) const override;
 		virtual bool SetFieldValue (int iRow, int iCol, CDatum dValue) override;
+		virtual void SetSeq (SequenceNumber Seq) override { m_Seq = Seq; }
 
 		//	IComplexDatum
 
@@ -115,7 +118,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual void ResolveDatatypes (const CAEONTypeSystem &TypeSystem) override;
 		virtual void Sort (ESortOptions Order = AscendingSort, TArray<CDatum>::COMPAREPROC pfCompare = NULL, void *pCtx = NULL) override { throw CException(errFail); }
 		virtual void SetElement (int iIndex, CDatum dDatum) override;
-		virtual void SetElement (const CString &sKey, CDatum dDatum) override { OnCopyOnWrite(); m_Properties.SetProperty(*this, sKey, dDatum, NULL); }
+		virtual void SetElement (const CString &sKey, CDatum dDatum) override { OnModify(); m_Properties.SetProperty(*this, sKey, dDatum, NULL); }
 		virtual void SetElementAt (CDatum dIndex, CDatum dDatum) override;
 
 		static bool CreateTableFromArray (CAEONTypeSystem &TypeSystem, CDatum dValue, CDatum &retdDatum);
@@ -137,7 +140,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 
 		static CDatum CalcColumnDatatype (CDatum dValue);
 		void CloneContents ();
-		void OnCopyOnWrite ();
+		void OnModify ();
 		void SetSchema (CDatum dSchema);
 
 		int m_iRows = 0;
@@ -148,6 +151,8 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		//	We can always rely on m_dSchema being of type ECategory::Schema.
 
 		CDatum m_dSchema;
+
+		SequenceNumber m_Seq = 0;
 
 		static TDatumPropertyHandler<CAEONTable> m_Properties;
 

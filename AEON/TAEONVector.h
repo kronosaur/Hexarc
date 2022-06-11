@@ -19,8 +19,6 @@ template <class VALUE, class IMPL> class TAEONVector : public IComplexDatum
 				m_Array[i] = IMPL::FromDatum(Src[i]);
 			}
 
-		void Delete (int iIndex) { m_Array.Delete(iIndex); }
-
 		bool FindElement (CDatum dValue, int *retiIndex = NULL) const
 			{
 			VALUE ValueToFind = IMPL::FromDatum(dValue);
@@ -76,6 +74,7 @@ template <class VALUE, class IMPL> class TAEONVector : public IComplexDatum
 			return dwSize;
 			}
 
+		virtual void DeleteElement (int iIndex) override { if (iIndex >= 0 && iIndex < m_Array.GetCount()) m_Array.Delete(iIndex); }
 		virtual bool Find (CDatum dValue, int *retiIndex = NULL) const override { return FindElement(dValue, retiIndex); }
 		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeArray; }
 		virtual int GetCount (void) const override { return m_Array.GetCount(); }

@@ -217,6 +217,7 @@ class CDatum
 		size_t CalcSerializeSize (EFormat iFormat) const;
 		CDatum Clone (EClone iMode = EClone::ShallowCopy) const;
 		bool Contains (CDatum dValue, TArray<IComplexDatum *> &retChecked) const;
+		void DeleteElement (int iIndex);
 		bool EnumElements (std::function<bool(CDatum)> fn);
 		bool Find (CDatum dValue, int *retiIndex = NULL) const;
 		bool FindElement (const CString &sKey, CDatum *retpValue);
@@ -548,6 +549,7 @@ class IAEONTable
 		virtual EResult AppendSlice (CDatum dSlice) { return EResult::NotImplemented; }
 		virtual EResult AppendTable (CDatum dTable) { return EResult::NotImplemented; }
 		virtual EResult DeleteAllRows () { return EResult::NotImplemented; }
+		virtual EResult DeleteRow (int iRow) { return EResult::NotImplemented; }
 		virtual bool FindCol (const CString &sName, int *retiCol = NULL) const { return false; }
 		virtual CDatum GetCol (int iIndex) const { return CDatum(); }
 		virtual int GetColCount () const { return 0; }
@@ -555,9 +557,11 @@ class IAEONTable
 		virtual CDatum GetDataSlice (int iFirstRow, int iRowCount) const { return CDatum(); }
 		virtual CDatum GetFieldValue (int iRow, int iCol) const { return CDatum(); }
 		virtual int GetRowCount () const { return 0; }
+		virtual SequenceNumber GetSeq () const { return 0; }
 		virtual EResult InsertColumn (const CString& sName, CDatum dType, CDatum dValues = CDatum(), int iPos = -1, int *retiCol = NULL) { return EResult::NotImplemented; }
 		virtual bool IsSameSchema (CDatum dSchema) const { return false; }
 		virtual bool SetFieldValue (int iRow, int iCol, CDatum dValue) { return false; }
+		virtual void SetSeq (SequenceNumber Seq) { }
 
 		static CDatum CreateColumn (CDatum dType);
 		static bool CreateRef (CAEONTypeSystem& TypeSystem, CDatum dTable, SSubset&& Subset, CDatum& retdValue);
@@ -595,6 +599,7 @@ class IComplexDatum
 		void ClearMark () { m_bMarked = false; }
 		virtual IComplexDatum *Clone (CDatum::EClone iMode) const { return NULL; }
 		virtual bool Contains (CDatum dValue, TArray<IComplexDatum *> &retChecked) const { return false; }
+		virtual void DeleteElement (int iIndex) { }
 		bool DeserializeAEONScript (CDatum::EFormat iFormat, const CString &sTypename, CCharStream *pStream);
 		virtual bool DeserializeJSON (const CString &sTypename, const TArray<CDatum> &Data);
 		virtual bool Find (CDatum dValue, int *retiIndex = NULL) const { return false; }
@@ -697,6 +702,7 @@ class CComplexArray : public IComplexDatum
 		virtual size_t CalcMemorySize () const override;
 		virtual IComplexDatum *Clone (CDatum::EClone iMode) const override;
 		virtual bool Contains (CDatum dValue, TArray<IComplexDatum *> &retChecked) const override;
+		virtual void DeleteElement (int iIndex) override;
 		virtual bool Find (CDatum dValue, int *retiIndex = NULL) const override { return FindElement(dValue, retiIndex); }
 		virtual CDatum::Types GetBasicType () const override { return CDatum::typeArray; }
 		virtual int GetCount () const override { return m_Array.GetCount(); }
