@@ -457,7 +457,7 @@ class IDatatype
 		virtual SMemberDesc OnGetMember (int iIndex) const { throw CException(errFail); }
 		virtual int OnGetMemberCount () const { return 0; }
 		virtual CDatum OnGetMembersAsTable () const { return CDatum(); }
-		virtual bool OnIsA (const IDatatype &Type) const { return (&Type == this) || Type.IsAny(); }
+		virtual bool OnIsA (const IDatatype &Type) const { return (Type == *this) || Type.IsAny(); }
 		virtual bool OnIsAbstract () const { return false; }
 		virtual bool OnIsAny () const { return false; }
 		virtual void OnMark () { }

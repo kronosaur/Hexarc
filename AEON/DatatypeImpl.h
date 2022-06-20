@@ -22,7 +22,7 @@ class CDatatypeAny : public IDatatype
 		virtual ECategory OnGetClass () const override { return IDatatype::ECategory::Simple; }
 		virtual DWORD OnGetCoreType () const override { return IDatatype::ANY; }
 		virtual EImplementation OnGetImplementation () const { return IDatatype::EImplementation::Any; }
-		virtual bool OnIsA (const IDatatype &Type) const override { return (&Type == this || Type.IsAny()); }
+		virtual bool OnIsA (const IDatatype &Type) const override { return (Type == *this || Type.IsAny()); }
 		virtual bool OnIsAbstract () const override { return true; }
 		virtual bool OnIsAny () const override { return true; }
 		virtual void OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const override { }
@@ -57,7 +57,7 @@ class CDatatypeSimple : public IDatatype
 		virtual ECategory OnGetClass () const override { return IDatatype::ECategory::Simple; }
 		virtual DWORD OnGetCoreType () const override { return m_dwCoreType; }
 		virtual EImplementation OnGetImplementation () const { return IDatatype::EImplementation::Simple; }
-		virtual bool OnIsA (const IDatatype &Type) const override { return (&Type == this || Type.IsAny() || m_Implements.IsA(Type)); }
+		virtual bool OnIsA (const IDatatype &Type) const override { return (Type == *this || Type.IsAny() || m_Implements.IsA(Type)); }
 		virtual bool OnIsAbstract () const override { return m_bAbstract; }
 		virtual void OnMark () override { m_Implements.Mark(); }
 		virtual void OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
@@ -100,7 +100,7 @@ class CDatatypeNumber : public IDatatype
 		virtual ECategory OnGetClass () const override { return IDatatype::ECategory::Number; }
 		virtual DWORD OnGetCoreType () const override { return m_dwCoreType; }
 		virtual EImplementation OnGetImplementation () const { return IDatatype::EImplementation::Number; }
-		virtual bool OnIsA (const IDatatype &Type) const override { return (&Type == this || Type.IsAny() || m_Implements.IsA(Type)); }
+		virtual bool OnIsA (const IDatatype &Type) const override { return (Type == *this || Type.IsAny() || m_Implements.IsA(Type)); }
 		virtual void OnMark () override { m_Implements.Mark(); }
 		virtual void OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
 
@@ -140,7 +140,7 @@ class CDatatypeArray : public IDatatype
 		virtual EImplementation OnGetImplementation () const { return IDatatype::EImplementation::Array; }
 		virtual SMemberDesc OnGetMember (int iIndex) const { if (iIndex != 0) throw CException(errFail); return SMemberDesc({ EMemberType::ArrayElement, NULL_STR, m_dElementType }); }
 		virtual int OnGetMemberCount () const { return 1; }
-		virtual bool OnIsA (const IDatatype &Type) const override { return (&Type == this || Type.IsAny() || ((const IDatatype &)m_dElementType).IsA(Type)); }
+		virtual bool OnIsA (const IDatatype &Type) const override { return (Type == *this || Type.IsAny() || ((const IDatatype &)m_dElementType).IsA(Type)); }
 		virtual void OnMark () override { m_dElementType.Mark(); }
 		virtual void OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
 
@@ -182,7 +182,7 @@ class CDatatypeClass : public IDatatype
 		virtual ECategory OnGetClass () const override { return IDatatype::ECategory::ClassDef; }
 		virtual EImplementation OnGetImplementation () const { return IDatatype::EImplementation::Class; }
 		virtual EMemberType OnHasMember (const CString &sName, CDatum *retdType = NULL) const override;
-		virtual bool OnIsA (const IDatatype &Type) const override { return (&Type == this || Type.IsAny() || m_Implements.IsA(Type)); }
+		virtual bool OnIsA (const IDatatype &Type) const override { return (Type == *this || Type.IsAny() || m_Implements.IsA(Type)); }
 		virtual void OnMark () override;
 		virtual void OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
 
@@ -230,7 +230,7 @@ class CDatatypeSchema : public IDatatype
 		virtual int OnGetMemberCount () const { return m_Columns.GetCount(); }
 		virtual CDatum OnGetMembersAsTable () const override;
 		virtual EMemberType OnHasMember (const CString &sName, CDatum *retdType = NULL) const override;
-		virtual bool OnIsA (const IDatatype &Type) const override { return (&Type == this || Type.IsAny() || m_Implements.IsA(Type)); }
+		virtual bool OnIsA (const IDatatype &Type) const override { return (Type == *this || Type.IsAny() || m_Implements.IsA(Type)); }
 		virtual void OnMark () override;
 		virtual void OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
 
