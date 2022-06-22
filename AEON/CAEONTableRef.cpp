@@ -517,3 +517,48 @@ bool CAEONTableRef::SetFieldValue (int iRow, int iCol, CDatum dValue)
 		return pTable->SetFieldValue(m_Rows[iRow], m_Cols[iCol], dValue);
 		}
 	}
+
+IAEONTable::EResult CAEONTableRef::SetRow (int iRow, CDatum dRow)
+
+//	SetRow
+//
+//	Sets the given row.
+
+	{
+	IAEONTable *pTable = const_cast<CDatum&>(m_dTable).GetTableInterface();
+	if (!pTable)
+		return EResult::NotATable;
+
+	int iRowActual;
+	if (m_bAllRows)
+		iRowActual = iRow;
+	else
+		{
+		if (iRow < 0 || iRow >= m_Rows.GetCount())
+			return EResult::InvalidParam;
+
+		iRowActual = m_Rows[iRow];
+		}
+
+	const IDatatype &Schema = m_dSchema;
+	for (int i = 0; i < Schema.GetMemberCount(); i++)
+		{
+		auto ColumnDesc = Schema.GetMember(i);
+
+		CDatum dValue = dRow.GetElement(ColumnDesc.sName);
+
+		//	Make sure we're not trying to add ourselves.
+
+		TArray<IComplexDatum *> Checked1;
+		TArray<IComplexDatum *> Checked2;
+		if (dValue.Contains(CDatum::raw_AsComplex(this), Checked1) || dValue.Contains(m_Cols[i], Checked2))
+			dValue = CDatum();
+
+		//	Add it
+
+		pTable->SetFieldValue(iRowActual, m_Cols[i], dValue);
+		}
+
+	return EResult::OK;
+	}
+

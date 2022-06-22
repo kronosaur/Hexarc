@@ -95,6 +95,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual bool IsSameSchema (CDatum dSchema) const override;
 		virtual bool SetFieldValue (int iRow, int iCol, CDatum dValue) override;
 		virtual void SetSeq (SequenceNumber Seq) override { m_Seq = Seq; }
+		virtual EResult SetRow (int iRow, CDatum dRow) override;
 
 		//	IComplexDatum
 
@@ -181,6 +182,7 @@ class CAEONTableRef : public IComplexDatum, public IAEONTable
 		virtual int GetRowCount () const override;
 		virtual bool IsSameSchema (CDatum dSchema) const override;
 		virtual bool SetFieldValue (int iRow, int iCol, CDatum dValue) override;
+		virtual EResult SetRow (int iRow, CDatum dRow) override;
 
 		//	IComplexDatum
 

@@ -172,7 +172,16 @@ class CDatum
 		CDatum (CRGBA32Image &&Value);
 		CDatum (const CTimeSpan &TimeSpan);
 		explicit CDatum (Types iType);
+
+		//	NOTE: this probably should be explicit. We removed explicit because
+		//	otherwise bools got converted to ints. But maybe ints should also be
+		//	explicit?
+
 		CDatum (bool bValue) : m_dwData(bValue ? CONST_TRUE : 0) { }
+
+		//	Delete this because otherwise it turns into a bool.
+
+		CDatum (const void *pValue) = delete;
 
 		static CDatum CreateArrayAsType (CDatum dType, CDatum dValue = CDatum());
 		static CDatum CreateAsType (CDatum dType, CDatum dValue = CDatum());
@@ -551,6 +560,7 @@ class IAEONTable
 		virtual EResult DeleteAllRows () { return EResult::NotImplemented; }
 		virtual EResult DeleteRow (int iRow) { return EResult::NotImplemented; }
 		virtual bool FindCol (const CString &sName, int *retiCol = NULL) const { return false; }
+		bool FindRow (int iCol, CDatum dValue, int *retiRow = NULL) const;
 		virtual CDatum GetCol (int iIndex) const { return CDatum(); }
 		virtual int GetColCount () const { return 0; }
 		virtual CString GetColName (int iCol) const { return NULL_STR; }
@@ -562,6 +572,7 @@ class IAEONTable
 		virtual bool IsSameSchema (CDatum dSchema) const { return false; }
 		virtual bool SetFieldValue (int iRow, int iCol, CDatum dValue) { return false; }
 		virtual void SetSeq (SequenceNumber Seq) { }
+		virtual EResult SetRow (int iRow, CDatum dRow) { return EResult::NotImplemented; }
 
 		static CDatum CreateColumn (CDatum dType);
 		static bool CreateRef (CAEONTypeSystem& TypeSystem, CDatum dTable, SSubset&& Subset, CDatum& retdValue);

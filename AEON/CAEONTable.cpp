@@ -1069,6 +1069,37 @@ bool CAEONTable::SetFieldValue (int iRow, int iCol, CDatum dValue)
 	return true;
 	}
 
+IAEONTable::EResult CAEONTable::SetRow (int iRow, CDatum dRow)
+
+//	SetRow
+//
+//	Sets the given row.
+
+	{
+	OnModify();
+
+	const IDatatype &Schema = m_dSchema;
+	for (int i = 0; i < Schema.GetMemberCount(); i++)
+		{
+		auto ColumnDesc = Schema.GetMember(i);
+
+		CDatum dValue = dRow.GetElement(ColumnDesc.sName);
+
+		//	Make sure we're not trying to add ourselves.
+
+		TArray<IComplexDatum *> Checked1;
+		TArray<IComplexDatum *> Checked2;
+		if (dValue.Contains(CDatum::raw_AsComplex(this), Checked1) || dValue.Contains(m_Cols[i], Checked2))
+			dValue = CDatum();
+
+		//	Add it
+
+		m_Cols[i].SetElement(iRow, dValue);
+		}
+
+	return EResult::OK;
+	}
+
 void CAEONTable::SetSchema (CDatum dSchema)
 
 //	SetSchema

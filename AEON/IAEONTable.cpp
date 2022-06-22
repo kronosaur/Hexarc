@@ -198,6 +198,28 @@ bool IAEONTable::CreateSchemaFromDesc (CAEONTypeSystem& TypeSystem, CDatum dSche
 	return true;
 	}
 
+bool IAEONTable::FindRow (int iCol, CDatum dValue, int *retiRow) const
+
+//	FindRow
+//
+//	Looks for the first row in which the given column has the given value. If
+//	found, we return TRUE and the row index. Otherwise, FALSE.
+
+	{
+	for (int i = 0; i < GetRowCount(); i++)
+		{
+		if (dValue.IsEqual(GetFieldValue(i, iCol)))
+			{
+			if (retiRow)
+				*retiRow = i;
+
+			return true;
+			}
+		}
+
+	return false;
+	}
+
 bool IAEONTable::InsertColumnToSchema (CDatum dSchema, const CString& sName, CDatum dType, int iPos, CDatum& retdSchema, int* retiCol)
 
 //	InsertColumnToSchema
