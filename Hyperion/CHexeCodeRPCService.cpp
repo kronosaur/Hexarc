@@ -9,7 +9,11 @@ DECLARE_CONST_STRING(STR_OK,							"OK")
 
 DECLARE_CONST_STRING(CACHE_NO_CACHE,					"no-cache")
 
+DECLARE_CONST_STRING(FIELD_DATA,						"data")
+DECLARE_CONST_STRING(FIELD_FILE_DESC,					"fileDesc")
+DECLARE_CONST_STRING(FIELD_FILE_PATH,					"filePath")
 DECLARE_CONST_STRING(FIELD_OUTPUT,						"output")
+DECLARE_CONST_STRING(FIELD_TYPE,						"type")
 
 DECLARE_CONST_STRING(HEADER_CACHE_CONTROL,				"Cache-Control")
 
@@ -21,9 +25,13 @@ DECLARE_CONST_STRING(LIBRARY_SESSION_HTTP_REQUEST,		"sessionHTTPRequest")
 
 DECLARE_CONST_STRING(MEDIA_TYPE_JSON,					"application/json")
 DECLARE_CONST_STRING(MEDIA_TYPE_JSON_REQUEST,			"application/jsonrequest")
+DECLARE_CONST_STRING(MEDIA_TYPE_CUSTOM,					"custom")
 DECLARE_CONST_STRING(MEDIA_TYPE_MULTIPART_FORM,			"multipart/form-data")
 DECLARE_CONST_STRING(MEDIA_TYPE_HTML,					"text/html")
 DECLARE_CONST_STRING(MEDIA_TYPE_TEXT,					"text/plain")
+
+DECLARE_CONST_STRING(RESULT_FILE_DATA,					"fileData")
+DECLARE_CONST_STRING(RESULT_FILE_PATH,					"filePath")
 
 DECLARE_CONST_STRING(STR_CRASH_PREFIX,					"CRASH: ")
 DECLARE_CONST_STRING(STR_DEBUG_PREFIX,					"DEBUG: ")
@@ -113,6 +121,53 @@ bool CHexeCodeRPCService::ComposeResponse (SHTTPRequestCtx &Ctx, CHexeProcess::E
 
 			//	LATER: Need to clean the string to make sure it conforms to HTML.
 			pBody->DecodeFromBuffer(MEDIA_TYPE_HTML, CStringBuffer(sHTML));
+			}
+		}
+
+	//	Custom handler
+
+	else if (strEquals(m_sOutputContentType, MEDIA_TYPE_CUSTOM))
+		{
+		const CString& sResultType = dResult.GetElement(FIELD_TYPE);
+		if (strEquals(sResultType, RESULT_FILE_DATA))
+			{
+			Ctx.iStatus = pstatFileDataReady;
+			Ctx.dFileDesc = dResult.GetElement(FIELD_FILE_DESC);
+			Ctx.dFileData = dResult.GetElement(FIELD_DATA);
+
+			//	Return because the caller will set up the response.
+
+			return true;
+			}
+		else if (strEquals(sResultType, RESULT_FILE_PATH))
+			{
+			Ctx.iStatus = pstatFilePathReady;
+			Ctx.sFilePath = dResult.GetElement(FIELD_FILE_PATH);
+
+			//	Return because the caller will set up the response.
+
+			return true;
+			}
+		else
+			{
+			CString sError;
+			if (iRun == CHexeProcess::ERun::Error)
+				sError = dResult;
+			else
+				sError = strPattern("Unknown result type: %s", sResultType);
+
+			//	LATER: We probably need some classes for creating HTML.
+			CString sHTML = strPattern(
+					"<!DOCTYPE html>\r\n"
+					"<html>\r\n"
+					"<body><h1>%s</h1></body>"
+					"</html>\r\n",
+
+					(LPSTR)sError);
+
+			pBody->DecodeFromBuffer(MEDIA_TYPE_HTML, CStringBuffer(sHTML));
+
+			//	Fall through
 			}
 		}
 

@@ -12,6 +12,7 @@ DECLARE_CONST_STRING(FIELD_CROP_TOP,					"cropTop");
 DECLARE_CONST_STRING(FIELD_DATA,						"data");
 DECLARE_CONST_STRING(FIELD_FILE_DESC,					"fileDesc");
 DECLARE_CONST_STRING(FIELD_MODIFIED_ON,					"modifiedOn");
+DECLARE_CONST_STRING(FIELD_TYPE,						"type");
 
 DECLARE_CONST_STRING(MSG_AEON_FILE_DOWNLOAD_DESC,		"Aeon.fileDownloadDesc");
 DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply");
@@ -25,6 +26,8 @@ DECLARE_CONST_STRING(ERR_UNSUPPORTED_IMAGE_FORMAT,		"%s: Unsupported image forma
 DECLARE_CONST_STRING(ERR_CANT_LOAD_JPEG,				"%s: Unable to load JPEG: %s");
 DECLARE_CONST_STRING(ERR_CANT_RESIZE,					"%s: Unable to resize image.");
 DECLARE_CONST_STRING(ERR_CANT_SAVE_JPEG,				"%s: Unable to save JPEG image.");
+
+static constexpr DWORD MAX_RESIZE_SIZE = 16384;
 
 class CResizeImageSession : public CAeonFileDownloadSession
 	{
@@ -44,6 +47,7 @@ class CResizeImageSession : public CAeonFileDownloadSession
 		virtual bool OnPrepareRequest (CString &sFilePath, SOptions &Options) override;
 
 	private:
+		static CImageLoader::EFormats CalcFormat (const CString& sFilePath, CDatum dFileDesc);
 		bool IsCropped (void) const { return (m_rcCrop.left != 0 || m_rcCrop.right != 0 || m_rcCrop.bottom != 0 || m_rcCrop.top != 0); }
 		void LoadOptions (CDatum dOptions);
 		bool ResizeImage (const CRGBA32Image &Input, DWORD dwNewSize, const RECT &rcCrop, CRGBA32Image &retOutput);
@@ -74,7 +78,7 @@ void CHyperionEngine::MsgResizeImage (const SArchonMessage &Msg, const CHexeSecu
 		}
 		
 	DWORD dwSize = (DWORD)Msg.dPayload.GetElement(1);
-	if (dwSize == 0)
+	if (dwSize == 0 || dwSize > MAX_RESIZE_SIZE)
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, ERR_BAD_PARAMS, Msg);
 		return;
@@ -89,6 +93,20 @@ void CHyperionEngine::MsgResizeImage (const SArchonMessage &Msg, const CHexeSecu
 	}
 
 //	CResizeImageSession --------------------------------------------------------
+
+CImageLoader::EFormats CResizeImageSession::CalcFormat (const CString& sFilePath, CDatum dFileDesc)
+
+//	CalcFormat
+//
+//	Calculates the image format based on the fileDesc and/or extension.
+
+	{
+	CString sFormat = dFileDesc.GetElement(FIELD_TYPE);
+	if (sFormat.IsEmpty())
+		sFormat = sFilePath;
+
+	return CImageLoader::GetFormatFromString(sFormat);
+	}
 
 void CResizeImageSession::LoadOptions (CDatum dOptions)
 
@@ -113,7 +131,7 @@ void CResizeImageSession::OnFileDownloaded (CDatum dFileDesc, CDatum dData)
 	{
 	//	If we don't support the format, then we just send it out unchanged.
 
-	CImageLoader::EFormats iFormat = CImageLoader::GetFormatFromExtension(GetFilePath());
+	CImageLoader::EFormats iFormat = CalcFormat(GetFilePath(), dFileDesc);
 	if (iFormat != CImageLoader::formatJPEG)
 		{
 		CDatum dResult(CDatum::typeStruct);

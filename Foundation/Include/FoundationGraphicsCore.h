@@ -78,7 +78,8 @@ class CImageLoader
 			formatPNG,
 			};
 
-		static EFormats GetFormatFromExtension (const CString &sFilespec);
+		static EFormats GetFormatFromExtension (const CString& sFilespec);
+		static EFormats GetFormatFromString (const CString& sValue);
 		static bool Load (IMemoryBlock &Data, EFormats iFormat, CRGBA32Image &Image, CString *retsError = NULL);
 	};
 
