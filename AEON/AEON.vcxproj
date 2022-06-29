@@ -227,6 +227,8 @@
   <ItemGroup>
     <ClInclude Include="..\Include\AEON.h" />
     <ClInclude Include="..\Include\AEONAllocator.h" />
+    <ClInclude Include="..\Include\AEONInterfaces.h" />
+    <ClInclude Include="..\Include\AEONTypeSystem.h" />
     <ClInclude Include="..\Include\AEONUtil.h" />
     <ClInclude Include="..\Include\AEONVector.h" />
     <ClInclude Include="AEONImpl.h" />

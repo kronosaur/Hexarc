@@ -430,10 +430,8 @@ bool coreDateTime (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCon
 			//	If a string, convert to date time
 
 			else if (dLocalEnv.GetElement(0).GetBasicType() == CDatum::typeString)
-				{
-				if (!CComplexDateTime::CreateFromString(sArg, retdResult))
-					*retdResult = CDatum();
-				}
+				*retdResult = CDatum(CDatum::typeDateTime, sArg);
+
 			else
 				{
 				CHexeError::Create(NULL_STR, strPattern(ERR_INVALID_PARAMETER, sArg), retdResult);

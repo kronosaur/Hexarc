@@ -96,7 +96,7 @@ CDatum CRowKey::AsDatum (char *pPos, EKeyTypes iKeyType, char **retpPos) const
 		case keyDatetime:
 			{
 			CString sDate(pPos);
-			CComplexDateTime::CreateFromString(sDate, &dResult);
+			dResult = CDatum(CDatum::typeDateTime, sDate);
 
 			//	Next
 

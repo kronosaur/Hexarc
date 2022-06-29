@@ -86,6 +86,44 @@ CDatum::CDatum (Types iType)
 		}
 	}
 
+CDatum::CDatum (Types iType, const CString& sValue)
+
+//	CDatum constructor
+
+	{
+	switch (iType)
+		{
+		case typeDateTime:
+			{
+			CDateTime DateTime;
+			if (CComplexDateTime::CreateFromString(sValue, &DateTime)
+					&& DateTime.IsValid())
+				{
+				CComplexDateTime *pDateTime = new CComplexDateTime(DateTime);
+
+				//	Take ownership of the complex type
+
+				CAEONStore::Alloc(pDateTime);
+
+				//	Store the pointer and assign type
+
+				m_dwData = ((DWORD_PTR)pDateTime | AEON_TYPE_COMPLEX);
+				}
+			else
+				m_dwData = 0;
+
+			break;
+			}
+
+		case typeString:
+			*this = CDatum(sValue);
+			break;
+
+		default:
+			throw CException(errFail);
+		}
+	}
+
 CDatum::CDatum (int iValue)
 
 //	CDatum constructor

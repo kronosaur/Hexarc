@@ -7,6 +7,82 @@
 
 #include "TAEONVector.h"
 
+class CComplexDateTime : public IComplexDatum
+	{
+	public:
+		CComplexDateTime () { }
+		CComplexDateTime (const CDateTime DateTime) : m_DateTime(DateTime) { }
+		
+		static bool CreateFromString (const CString &sString, CDateTime *retDateTime);
+		static bool CreateFromString (const CString &sString, CDatum *retdDatum);
+
+		virtual CString AsString () const override;
+		virtual size_t CalcMemorySize () const override { return sizeof(CComplexDateTime); }
+		virtual const CDateTime &CastCDateTime () const override { return m_DateTime; }
+		virtual CDatum::Types GetBasicType () const override { return CDatum::typeDateTime; }
+		virtual int GetCount () const override { return partCount; }
+		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::DATE_TIME); }
+		virtual CDatum GetElement (int iIndex) const override;
+		virtual CDatum GetElement (const CString &sKey) const override;
+		virtual const CString &GetTypename () const override;
+		virtual bool IsArray () const override { return true; }
+		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
+
+	protected:
+		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const override;
+
+	private:
+		enum EParts
+			{
+			partYear = 0,
+			partMonth = 1,
+			partDay = 2,
+			partHour = 3,
+			partMinute = 4,
+			partSecond = 5,
+			partMillisecond = 6,
+
+			partCount = 7,
+			};
+
+		CDateTime m_DateTime;
+	};
+
+class CComplexImage32 : public IComplexDatum
+	{
+	public:
+		CComplexImage32 () { }
+		CComplexImage32 (const CRGBA32Image &Src) :
+				m_Image(Src)
+			{ }
+
+		CComplexImage32 (CRGBA32Image &&Src) :
+				m_Image(std::move(Src))
+			{ }
+
+		//	IComplexDatum
+		virtual CString AsString () const override { return strPattern("Image %dx%d", m_Image.GetWidth(), m_Image.GetHeight()); }
+		virtual size_t CalcMemorySize () const override { return (size_t)m_Image.GetWidth() * (size_t)m_Image.GetHeight() * sizeof(DWORD); }
+		virtual const CRGBA32Image &CastCRGBA32Image () const override { return m_Image; }
+		virtual IComplexDatum *Clone (CDatum::EClone iMode) const override;
+		virtual CDatum::Types GetBasicType () const override { return CDatum::typeImage32; }
+		virtual int GetCount () const override { return 1; }
+		virtual CDatum GetElement (int iIndex) const override { return CDatum(); }
+		virtual CRGBA32Image *GetImageInterface () override { return &m_Image; }
+		virtual const CString &GetTypename () const override;
+		virtual bool IsArray () const override { return false; }
+		virtual bool IsNil () const override { return m_Image.IsEmpty(); }
+
+	protected:
+		//	IComplexDatum
+		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const override;
+		virtual bool OnDeserialize (CDatum::EFormat iFormat, const CString &sTypename, IByteStream &Stream) override;
+		virtual void OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
+
+	private:
+		CRGBA32Image m_Image;
+	};
+
 class CComplexInteger : public IComplexDatum
 	{
 	public:
