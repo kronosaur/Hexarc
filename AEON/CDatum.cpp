@@ -2074,6 +2074,23 @@ CRGBA32Image *CDatum::GetImageInterface ()
 		}
 	}
 
+IAEONCanvas *CDatum::GetCanvasInterface ()
+
+//	GetCanvasInterface
+//
+//	Returns a canvas interface (or NULL).
+
+	{
+	switch (m_dwData & AEON_TYPE_MASK)
+		{
+		case AEON_TYPE_COMPLEX:
+			return raw_GetComplex()->GetCanvasInterface();
+
+		default:
+			return NULL;
+		}
+	}
+
 IAEONTable *CDatum::GetTableInterface ()
 
 //	GetTableInterface

@@ -34,6 +34,7 @@ template <class VALUE> class TVector2D
 		TVector2D (VALUE x, VALUE y) : m_x(x), m_y(y) { }
 
 		inline bool operator == (const TVector2D<VALUE> &vA) const { return (m_x == vA.m_x && m_y == vA.m_y); }
+		inline bool operator != (const TVector2D<VALUE> &vA) const { return !(*this == vA); }
 		inline TVector2D operator - (void) const { return TVector2D(-m_x, -m_y); }
 		inline TVector2D operator + (const TVector2D<VALUE> &vA) const { return TVector2D(m_x + vA.m_x, m_y + vA.m_y); }
 		inline TVector2D operator - (const TVector2D<VALUE> &vA) const { return TVector2D(m_x - vA.m_x, m_y - vA.m_y); }

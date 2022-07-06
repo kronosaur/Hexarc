@@ -27,6 +27,8 @@ class CSmartLock;
 
 //	Miscellaneous utilities
 
+typedef DWORDLONG SequenceNumber;
+
 template <class VALUE> constexpr VALUE Abs (VALUE x) { return (x < 0 ? -x : x); }
 template <class VALUE> constexpr VALUE AlignUp (VALUE iValue, VALUE iGranularity) { return ((iValue + iGranularity - 1) / iGranularity) * iGranularity; }
 template <class VALUE> constexpr VALUE Clamp (VALUE x, VALUE a, VALUE b) { return (x < a ? a : (x > b ? b : x)); }

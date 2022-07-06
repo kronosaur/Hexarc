@@ -5,9 +5,18 @@
 
 #pragma once
 
+class IAEONCanvas
+	{
+	public:
+
+		virtual bool CreateShape (CDatum dShapeDesc) { return false; }
+		virtual CDatum RenderAsHTMLCanvasCommands (SequenceNumber Seq = 0) const { return CDatum(); }
+	};
+
 class IAEONTable
 	{
 	public:
+
 		enum class EResult
 			{
 			OK,

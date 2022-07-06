@@ -21,6 +21,7 @@
 class CAEONTypeSystem;
 class CComplexStruct;
 class CNumberValue;
+class IAEONCanvas;
 class IAEONParseExtension;
 class IAEONTable;
 class IComplexDatum;
@@ -49,8 +50,6 @@ const DWORD_PTR AEON_MIN_28BIT =			0xF8000000;
 const DWORD_PTR AEON_MAX_28BIT =			0x07FFFFFF;
 
 typedef void (*MARKPROC)(void);
-
-typedef DWORDLONG SequenceNumber;
 
 //	CDatum
 //
@@ -235,6 +234,8 @@ class CDatum
 		CDatum GetArrayElement (int iIndex) const;
 		Types GetBasicType () const;
 		int GetBinarySize () const;
+		IAEONCanvas *GetCanvasInterface ();
+		const IAEONCanvas *GetCanvasInterface () const { return const_cast<CDatum *>(this)->GetCanvasInterface(); }
 		IComplexDatum *GetComplex () const;
 		int GetCount () const;
 		CDatum GetDatatype () const;
@@ -372,6 +373,7 @@ class IComplexDatum
 		virtual CDatum::Types GetBasicType () const = 0;
 		virtual int GetBinarySize () const { return CastCString().GetLength(); }
 		virtual CDatum::ECallType GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) const { return CDatum::ECallType::None; }
+		virtual IAEONCanvas *GetCanvasInterface () { return NULL; }
 		virtual int GetCount () const = 0;
 		virtual CDatum GetDatatype () const;
 		virtual CDatum GetElement (IInvokeCtx *pCtx, int iIndex) const { return GetElement(iIndex); }
