@@ -40,6 +40,8 @@ class CRGBA32Image : public CImagePlane
 		CRGBA32Image (CRGBA32Image &&Src) noexcept;
 		virtual ~CRGBA32Image (void) { CleanUp(); }
 
+		bool operator== (const CRGBA32Image &Src) const;
+		bool operator!= (const CRGBA32Image &Src) const { return !(*this == Src); }
 		CRGBA32Image &operator= (const CRGBA32Image &Src) { CleanUp(); Copy(Src); return *this; }
 		CRGBA32Image &operator= (CRGBA32Image &&Src) noexcept;
 

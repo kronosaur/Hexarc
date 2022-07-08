@@ -22,6 +22,29 @@ CRGBA32Image::CRGBA32Image (CRGBA32Image &&Src) noexcept :
 	Src.m_bFreeRGBA = false;
 	}
 
+bool CRGBA32Image::operator== (const CRGBA32Image &Src) const
+
+//	CRGBA32Image operator==
+
+	{
+	if (IsEmpty() && Src.IsEmpty())
+		return true;
+
+	if (GetWidth() != Src.GetWidth() || GetHeight() != Src.GetHeight() || m_AlphaType != Src.m_AlphaType || m_iPitch != Src.m_iPitch)
+		return false;
+
+	const int iSize = CalcBufferSize(Src.m_iPitch / sizeof(DWORD), Src.m_cyHeight);
+	CRGBA32 *pSrc = Src.m_pRGBA;
+	CRGBA32 *pSrcEnd = pSrc + iSize;
+	CRGBA32 *pDest = m_pRGBA;
+
+	while (pSrc < pSrcEnd)
+		if (*pDest++ != *pSrc++)
+			return false;
+
+	return true;
+	}
+
 CRGBA32Image &CRGBA32Image::operator= (CRGBA32Image &&Src) noexcept
 
 //	Move operator

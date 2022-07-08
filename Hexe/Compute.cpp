@@ -2409,7 +2409,10 @@ bool CHexeProcess::ExecuteIsEquivalent (CDatum dValue1, CDatum dValue2)
 				}
 
 			case CDatum::typeDatatype:
-				return strEquals(((const IDatatype &)dValue1).GetFullyQualifiedName(), ((const IDatatype &)dValue2).GetFullyQualifiedName());
+				return (const IDatatype &)dValue1 == (const IDatatype &)dValue2;
+
+			case CDatum::typeImage32:
+				return (const CRGBA32Image&)dValue1 == (const CRGBA32Image&)dValue2;
 
 			default:
 				return false;
@@ -2550,6 +2553,9 @@ bool CHexeProcess::ExecuteIsIdentical (CDatum dValue1, CDatum dValue2)
 
 			case CDatum::typeDatatype:
 				return (const IDatatype &)dValue1 == (const IDatatype &)dValue2;
+
+			case CDatum::typeImage32:
+				return (const CRGBA32Image&)dValue1 == (const CRGBA32Image&)dValue2;
 
 			default:
 				return false;
