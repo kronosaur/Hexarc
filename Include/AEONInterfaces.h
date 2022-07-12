@@ -9,8 +9,11 @@ class IAEONCanvas
 	{
 	public:
 
-		virtual bool CreateShape (CDatum dShapeDesc) { return false; }
+		virtual int GetGraphicCount () const { return 0; }
+		virtual SequenceNumber GetSeq () const { return 0; }
+		virtual bool InsertGraphic (CDatum dDesc) { return false; }
 		virtual CDatum RenderAsHTMLCanvasCommands (SequenceNumber Seq = 0) const { return CDatum(); }
+		virtual void SetSeq (SequenceNumber Seq) { }
 	};
 
 class IAEONTable

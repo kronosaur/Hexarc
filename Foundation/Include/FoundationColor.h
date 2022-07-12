@@ -18,6 +18,9 @@ class CRGBA32
 
 		CRGBA32 (const CRGBA32 &Src) : m_dwPixel(Src.m_dwPixel) { }
 
+		explicit CRGBA32 (DWORD dwPixel) : m_dwPixel(dwPixel)
+			{ }
+
 		CRGBA32 (BYTE byRed, BYTE byGreen, BYTE byBlue)
 			{ m_dwPixel = 0xff000000 | ((DWORD)byRed << 16) | ((DWORD)byGreen << 8) | (DWORD)byBlue; }
 
