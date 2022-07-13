@@ -9,10 +9,13 @@ class IAEONCanvas
 	{
 	public:
 
+		virtual void DeleteAllGraphics () { }
 		virtual int GetGraphicCount () const { return 0; }
 		virtual SequenceNumber GetSeq () const { return 0; }
 		virtual bool InsertGraphic (CDatum dDesc) { return false; }
 		virtual CDatum RenderAsHTMLCanvasCommands (SequenceNumber Seq = 0) const { return CDatum(); }
+		virtual void SetGraphicSeq (int iIndex, SequenceNumber Seq) { }
+		virtual void SetGraphicSeq (SequenceNumber Seq) { }
 		virtual void SetSeq (SequenceNumber Seq) { }
 	};
 
