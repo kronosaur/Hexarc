@@ -114,6 +114,7 @@ class CDatum
 			typeDatatype =		16,			//	A datatype (IDatatype)
 			typeTimeSpan =		17,	
 			typeNaN =			18,
+			typeVector2D =		19,
 
 			typeCustom =		100,
 			};
@@ -170,6 +171,7 @@ class CDatum
 		CDatum (const CRGBA32Image &Value);
 		CDatum (CRGBA32Image &&Value);
 		CDatum (const CTimeSpan &TimeSpan);
+		CDatum (const CVector2D& Value);
 		explicit CDatum (Types iType);
 		CDatum (Types iType, const CString& sValue);
 
@@ -212,9 +214,11 @@ class CDatum
 		operator const CDateTime & () const;
 		operator const CRGBA32Image & () const;
 		operator const CTimeSpan & () const;
+		operator const CVector2D & () const;
 		operator const IDatatype & () const;
 
 		//	Standard interface
+
 		void Append (CDatum dValue);
 		int AsArrayIndex () const;
 		CDateTime AsDateTime () const;
@@ -234,8 +238,6 @@ class CDatum
 		CDatum GetArrayElement (int iIndex) const;
 		Types GetBasicType () const;
 		int GetBinarySize () const;
-		IAEONCanvas *GetCanvasInterface ();
-		const IAEONCanvas *GetCanvasInterface () const { return const_cast<CDatum *>(this)->GetCanvasInterface(); }
 		IComplexDatum *GetComplex () const;
 		int GetCount () const;
 		CDatum GetDatatype () const;
@@ -245,12 +247,8 @@ class CDatum
 		CDatum GetElement (const CString &sKey) const;
 		CDatum GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) const;
 		inline CDatum GetElementOrDefault (const CString &sKey, CDatum dDefault) const;
-		CRGBA32Image *GetImageInterface ();
-		CRGBA32Image &GetImageInterfaceOrThrow () { auto pValue = GetImageInterface(); if (!pValue) throw CException(errFail); else return *pValue; }
 		CString GetKey (int iIndex) const;
 		CDatum GetMethod (const CString &sMethod) const;
-		IAEONTable *GetTableInterface ();
-		const IAEONTable *GetTableInterface () const { return const_cast<CDatum *>(this)->GetTableInterface(); }
 		const CString &GetTypename () const;
 		void GrowToFit (int iCount);
 		bool IsArray () const;
@@ -271,6 +269,15 @@ class CDatum
 		void SetElement (int iIndex, CDatum dValue);
 		void SetElementAt (CDatum dIndex, CDatum dValue);
 		void WriteBinaryToStream (IByteStream &Stream, int iPos = 0, int iLength = -1, IProgressEvents *pProgress = NULL) const;
+
+		//	Special Interfaces
+
+		IAEONCanvas *GetCanvasInterface ();
+		const IAEONCanvas *GetCanvasInterface () const { return const_cast<CDatum *>(this)->GetCanvasInterface(); }
+		CRGBA32Image *GetImageInterface ();
+		CRGBA32Image &GetImageInterfaceOrThrow () { auto pValue = GetImageInterface(); if (!pValue) throw CException(errFail); else return *pValue; }
+		IAEONTable *GetTableInterface ();
+		const IAEONTable *GetTableInterface () const { return const_cast<CDatum *>(this)->GetTableInterface(); }
 
 		static int Compare (CDatum dValue1, CDatum dValue2) { return DefaultCompare(NULL, dValue1, dValue2); }
 
@@ -358,6 +365,7 @@ class IComplexDatum
 		virtual const CRGBA32Image &CastCRGBA32Image () const { return CRGBA32Image::Null(); }
 		virtual const CString &CastCString () const { return NULL_STR; }
 		virtual const CTimeSpan &CastCTimeSpan () const { return CTimeSpan::Null(); }
+		virtual const CVector2D& CastCVector2D () const { return CVector2D::Null; }
 		virtual double CastDouble () const { return CDatum::CreateNaN(); }
 		virtual DWORDLONG CastDWORDLONG () const { return 0; }
 		virtual const IDatatype &CastIDatatype () const;

@@ -2414,6 +2414,9 @@ bool CHexeProcess::ExecuteIsEquivalent (CDatum dValue1, CDatum dValue2)
 			case CDatum::typeImage32:
 				return (const CRGBA32Image&)dValue1 == (const CRGBA32Image&)dValue2;
 
+			case CDatum::typeVector2D:
+				return (const CVector2D&)dValue1 == (const CVector2D&)dValue2;
+
 			default:
 				return false;
 			}
@@ -2437,6 +2440,9 @@ bool CHexeProcess::ExecuteIsEquivalent (CDatum dValue1, CDatum dValue2)
 			case CDatum::typeArray:
 			case CDatum::typeStruct:
 				return dValue2.GetCount() == 0;
+
+			case CDatum::typeVector2D:
+				return (const CVector2D&)dValue2 == CVector2D::Null;
 
 			default:
 				return false;
@@ -2556,6 +2562,9 @@ bool CHexeProcess::ExecuteIsIdentical (CDatum dValue1, CDatum dValue2)
 
 			case CDatum::typeImage32:
 				return (const CRGBA32Image&)dValue1 == (const CRGBA32Image&)dValue2;
+
+			case CDatum::typeVector2D:
+				return (const CVector2D&)dValue1 == (const CVector2D&)dValue2;
 
 			default:
 				return false;

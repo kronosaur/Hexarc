@@ -48,6 +48,8 @@ class IDatatype
 
 		static constexpr DWORD SCHEMA_TABLE =		32;	//	A table describing a schema
 
+		static constexpr DWORD VECTOR_2D_F64 =		33;
+
 		enum class ECategory
 			{
 			Unknown,
@@ -57,6 +59,7 @@ class IDatatype
 			Array,							//	An array of some other type.
 			ClassDef,						//	A ordered set of fields and types
 			Function,						//	A function type
+			Matrix,							//	An m x n matrix
 			Schema,							//	A table definition
 			};
 
@@ -67,6 +70,7 @@ class IDatatype
 			Any,
 			Array,
 			Class,
+			Matrix,
 			Number,
 			Schema,
 			Simple,

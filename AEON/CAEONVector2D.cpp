@@ -5,11 +5,11 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(FIELD_INITIALIZE,					"initialize")
-DECLARE_CONST_STRING(FIELD_X,							"x")
-DECLARE_CONST_STRING(FIELD_Y,							"y")
+DECLARE_CONST_STRING(FIELD_INITIALIZE,					"initialize");
+DECLARE_CONST_STRING(FIELD_X,							"x");
+DECLARE_CONST_STRING(FIELD_Y,							"y");
 
-DECLARE_CONST_STRING(TYPENAME_VECTOR_2D,				"vector2D")
+DECLARE_CONST_STRING(TYPENAME_VECTOR_2D,				"vector2D");
 
 const CString &CAEONVector2D::StaticGetTypename (void) { return TYPENAME_VECTOR_2D; }
 
@@ -113,4 +113,6 @@ void CAEONVector2D::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruc
 //	Serialize
 
 	{
+	pStruct->SetElement(FIELD_X, m_vVector.X());
+	pStruct->SetElement(FIELD_Y, m_vVector.Y());
 	}

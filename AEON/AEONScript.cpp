@@ -91,6 +91,7 @@ DECLARE_CONST_STRING(TYPENAME_IP_INTEGER,				"ipInteger")
 DECLARE_CONST_STRING(TYPENAME_TABLE,					"table");
 DECLARE_CONST_STRING(TYPENAME_TABLE_REF,				"tableRef");
 DECLARE_CONST_STRING(TYPENAME_TIME_SPAN,				"timeSpan")
+DECLARE_CONST_STRING(TYPENAME_VECTOR_2D,				"vector2D")
 
 DECLARE_CONST_STRING(ERR_COLON_EXPECTED,				"Colon expected in struct: %s.")
 DECLARE_CONST_STRING(ERR_UNEXPECTED_TOKEN_IN_STRUCT,	"Unexpected token in struct: %s.")
@@ -556,6 +557,8 @@ CAEONScriptParser::ETokens CAEONScriptParser::ParseExternal (CDatum *retDatum)
 		pDatum = new CAEONTable;
 	else if (strEquals(dTypename, TYPENAME_TIME_SPAN))
 		pDatum = new CAEONTimeSpan;
+	else if (strEquals(dTypename, TYPENAME_VECTOR_2D))
+		pDatum = new CAEONVector2D;
 	else
 		{
 		IComplexFactory *pFactory;

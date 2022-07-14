@@ -8,33 +8,6 @@
 
 #pragma once
 
-class CAEONVector2D : public TExternalDatum<CAEONVector2D>
-	{
-	public:
-		CAEONVector2D (const CVector2D &vVector);
-
-		inline const CVector2D &GetVector (void) const { return m_vVector; }
-
-		static const CString &StaticGetTypename (void);
-
-		//	IComplexDatum
-		virtual int GetCount (void) const override { return 2; }
-		virtual CDatum GetElement (int iIndex) const override;
-		virtual CDatum GetElement (const CString &sKey) const override;
-		virtual bool IsArray (void) const override { return true; }
-		virtual void SetElement (int iIndex, CDatum dDatum) override;
-		virtual void SetElement (const CString &sKey, CDatum dDatum) override;
-
-	protected:
-		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const override;
-		virtual DWORD OnGetSerializeFlags (void) const override { return FLAG_SERIALIZE_AS_STRUCT; }
-		virtual void OnMarked (void) override;
-		virtual void OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const override;
-
-	private:
-		CVector2D m_vVector;
-	};
-
 class CAEONPolygon2D : public TExternalDatum<CAEONPolygon2D>
 	{
 	public:

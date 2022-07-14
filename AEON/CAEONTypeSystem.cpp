@@ -41,6 +41,7 @@ DECLARE_CONST_STRING(TYPENAME_TIME_SPAN,				"TimeSpan");
 DECLARE_CONST_STRING(TYPENAME_UINT_32,					"UInt32");
 DECLARE_CONST_STRING(TYPENAME_UINT_64,					"UInt64");
 DECLARE_CONST_STRING(TYPENAME_UNSIGNED,					"Unsigned");
+DECLARE_CONST_STRING(TYPENAME_VECTOR_2D_F64,			"Vector2DOfFloat64");
 
 TArray<CDatum> CAEONTypeSystem::m_CoreTypes;
 CAEONTypeSystem CAEONTypeSystem::m_Null;
@@ -504,6 +505,16 @@ void CAEONTypeSystem::InitCoreTypes ()
 		);
 
 	AddCoreType(CreateSchemaTable());
+
+	AddCoreType(new CDatatypeMatrix(
+		{
+			MakeFullyQualifiedName(NULL_STR, TYPENAME_VECTOR_2D_F64), 
+			IDatatype::VECTOR_2D_F64,
+			GetCoreType(IDatatype::FLOAT_64),
+			1,
+			2
+			})
+		);
 	}
 
 bool CAEONTypeSystem::InitFrom (CDatum dSerialized, CString *retsError)

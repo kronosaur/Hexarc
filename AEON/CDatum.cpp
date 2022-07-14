@@ -335,6 +335,16 @@ CDatum::CDatum (const CTimeSpan &TimeSpan)
 	m_dwData = ((DWORD_PTR)pTimeSpan | AEON_TYPE_COMPLEX);
 	}
 
+CDatum::CDatum (const CVector2D& Value)
+
+//	CDatum constructor
+
+	{
+	auto pVector = new CAEONVector2D(Value);
+	CAEONStore::Alloc(pVector);
+	m_dwData = ((DWORD_PTR)pVector | AEON_TYPE_COMPLEX);
+	}
+
 CDatum::operator int () const
 
 //	int cast operator
@@ -655,6 +665,21 @@ CDatum::operator const CString & () const
 		default:
 			ASSERT(false);
 			return NULL_STR;
+		}
+	}
+
+CDatum::operator const CVector2D& () const
+
+//	CVector2D cast operator
+
+	{
+	switch (m_dwData & AEON_TYPE_MASK)
+		{
+		case AEON_TYPE_COMPLEX:
+			return raw_GetComplex()->CastCVector2D();
+
+		default:
+			return CVector2D::Null;
 		}
 	}
 
@@ -2819,6 +2844,9 @@ bool CDatum::IsEqual (CDatum dValue) const
 
 		case typeDatatype:
 			return (dValue.GetBasicType() == typeDatatype && strEquals(((const IDatatype &)*this).GetFullyQualifiedName(), ((const IDatatype &)dValue).GetFullyQualifiedName()));
+
+		case CDatum::typeVector2D:
+			return (dValue.GetBasicType() == typeVector2D && (const CVector2D&)*this == (const CVector2D&)dValue);
 
 		//	LATER
 		case typeArray:

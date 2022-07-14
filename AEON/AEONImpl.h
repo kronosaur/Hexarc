@@ -439,3 +439,34 @@ class CAEONVectorString : public TAEONVector<CString, CAEONVectorString>
 		static TDatumPropertyHandler<CAEONVectorString> m_Properties;
 	};
 
+class CAEONVector2D : public TExternalDatum<CAEONVector2D>
+	{
+	public:
+		CAEONVector2D () { }
+		CAEONVector2D (const CVector2D &vVector);
+
+		inline const CVector2D &GetVector (void) const { return m_vVector; }
+
+		static const CString &StaticGetTypename (void);
+
+		//	IComplexDatum
+
+		virtual CDatum::Types GetBasicType () const override { return CDatum::typeVector2D; }
+		virtual int GetCount (void) const override { return 2; }
+		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::VECTOR_2D_F64); }
+		virtual CDatum GetElement (int iIndex) const override;
+		virtual CDatum GetElement (const CString &sKey) const override;
+		virtual bool IsArray (void) const override { return true; }
+		virtual void SetElement (int iIndex, CDatum dDatum) override;
+		virtual void SetElement (const CString &sKey, CDatum dDatum) override;
+
+	protected:
+		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const override;
+		virtual DWORD OnGetSerializeFlags (void) const override { return FLAG_SERIALIZE_AS_STRUCT; }
+		virtual void OnMarked (void) override;
+		virtual void OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const override;
+
+	private:
+		CVector2D m_vVector;
+	};
+

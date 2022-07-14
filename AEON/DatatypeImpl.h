@@ -190,6 +190,49 @@ class CDatatypeClass : public IDatatype
 		CDatatypeList m_Implements;
 	};
 
+class CDatatypeMatrix : public IDatatype
+	{
+	public:
+		struct SCreate
+			{
+			CString sFullyQualifiedName;
+			DWORD dwCoreType = 0;
+			CDatum dElementType;
+			int iRows = 0;
+			int iCols = 0;
+			};
+
+		CDatatypeMatrix (const CString &sFullyQualifiedName) : IDatatype(sFullyQualifiedName)
+			{ }
+
+		CDatatypeMatrix (const SCreate &Create) : IDatatype(Create.sFullyQualifiedName),
+				m_dwCoreType(Create.dwCoreType),
+				m_dElementType(Create.dElementType),
+				m_iRows(Create.iRows),
+				m_iCols(Create.iCols)
+			{ }
+
+	private:
+
+		//	IDatatype virtuals
+
+		virtual bool OnDeserialize (CDatum::EFormat iFormat, IByteStream &Stream) override;
+		virtual bool OnEquals (const IDatatype &Src) const override;
+		virtual ECategory OnGetClass () const override { return IDatatype::ECategory::Matrix; }
+		virtual DWORD OnGetCoreType () const override { return m_dwCoreType; }
+		virtual EImplementation OnGetImplementation () const { return IDatatype::EImplementation::Matrix; }
+		virtual SMemberDesc OnGetMember (int iIndex) const { if (iIndex != 0) throw CException(errFail); return SMemberDesc({ EMemberType::ArrayElement, NULL_STR, m_dElementType }); }
+		virtual int OnGetMemberCount () const { return 1; }
+		virtual bool OnIsA (const IDatatype &Type) const override { return (Type == *this || Type.IsAny() || ((const IDatatype &)m_dElementType).IsA(Type)); }
+		virtual void OnMark () override { m_dElementType.Mark(); }
+		virtual void OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
+
+		DWORD m_dwCoreType = 0;
+		CDatum m_dElementType;
+		int m_iRows = 0;
+		int m_iCols = 0;
+	};
+
 class CDatatypeSchema : public IDatatype
 	{
 	public:

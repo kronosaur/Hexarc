@@ -205,6 +205,7 @@
     <ClCompile Include="CDatatypeArray.cpp" />
     <ClCompile Include="CDatatypeClass.cpp" />
     <ClCompile Include="CDatatypeList.cpp" />
+    <ClCompile Include="CDatatypeMatrix.cpp" />
     <ClCompile Include="CDatatypeNumber.cpp" />
     <ClCompile Include="CDatatypeSchema.cpp" />
     <ClCompile Include="CDatatypeSimple.cpp" />

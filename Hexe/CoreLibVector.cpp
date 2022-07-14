@@ -237,7 +237,7 @@ bool coreVector (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dConti
 
 			//	Done
 
-			*retdResult = CDatum(new CAEONVector2D(vVector));
+			*retdResult = CDatum(vVector);
 			return true;
 			}
 
@@ -261,7 +261,7 @@ bool coreVector (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dConti
 
 			//	Done
 
-			*retdResult = CDatum(new CAEONVector2D(vVector));
+			*retdResult = CDatum(vVector);
 			return true;
 			}
 
@@ -281,7 +281,7 @@ bool coreVector (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dConti
 
 			//	Done
 
-			*retdResult = CDatum(new CAEONVector2D(vVector));
+			*retdResult = CDatum(vVector);
 			return true;
 			}
 
@@ -316,7 +316,7 @@ bool coreVector (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dConti
 
 			//	Done
 
-			*retdResult = CDatum(new CAEONVector2D(vVector / rScalar));
+			*retdResult = CDatum(vVector / rScalar);
 			return true;
 			}
 
@@ -329,7 +329,7 @@ bool coreVector (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dConti
 
 			double rAngle = dLocalEnv.GetElement(iArg++);
 
-			*retdResult = CDatum(new CAEONVector2D(vVector.Rotation(rAngle)));
+			*retdResult = CDatum(vVector.Rotation(rAngle));
 			return true;
 			}
 
@@ -340,7 +340,7 @@ bool coreVector (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dConti
 			if (!HexeGetVector2DArg(dLocalEnv, &iArg, &vVector, retdResult))
 				return false;
 
-			*retdResult = CDatum(new CAEONVector2D(vVector.ToPolar()));
+			*retdResult = CDatum(vVector.ToPolar());
 			return true;
 			}
 
@@ -351,7 +351,7 @@ bool coreVector (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dConti
 			if (!HexeGetVector2DArg(dLocalEnv, &iArg, &vVector, retdResult))
 				return false;
 
-			*retdResult = CDatum(new CAEONVector2D(vVector.Unit()));
+			*retdResult = CDatum(vVector.Unit());
 			return true;
 			}
 
@@ -362,7 +362,7 @@ bool coreVector (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dConti
 			if (!HexeGetVector2DArg(dLocalEnv, &iArg, &vVector, retdResult))
 				return false;
 
-			*retdResult = CDatum(new CAEONVector2D(vVector.ToXY()));
+			*retdResult = CDatum(vVector.ToXY());
 			return true;
 			}
 

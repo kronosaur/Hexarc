@@ -30,48 +30,52 @@ enum ERotationDirections
 template <class VALUE> class TVector2D
 	{
 	public:
-		inline TVector2D (void);
+		TVector2D (void);
 		TVector2D (VALUE x, VALUE y) : m_x(x), m_y(y) { }
 
-		inline bool operator == (const TVector2D<VALUE> &vA) const { return (m_x == vA.m_x && m_y == vA.m_y); }
-		inline bool operator != (const TVector2D<VALUE> &vA) const { return !(*this == vA); }
-		inline TVector2D operator - (void) const { return TVector2D(-m_x, -m_y); }
-		inline TVector2D operator + (const TVector2D<VALUE> &vA) const { return TVector2D(m_x + vA.m_x, m_y + vA.m_y); }
-		inline TVector2D operator - (const TVector2D<VALUE> &vA) const { return TVector2D(m_x - vA.m_x, m_y - vA.m_y); }
-		inline TVector2D operator * (VALUE a) const { return TVector2D(m_x * a, m_y * a); }
-		inline TVector2D operator / (VALUE a) const { return TVector2D(m_x / a, m_y / a); }
+		bool operator == (const TVector2D<VALUE> &vA) const { return (m_x == vA.m_x && m_y == vA.m_y); }
+		bool operator != (const TVector2D<VALUE> &vA) const { return !(*this == vA); }
+		TVector2D operator - (void) const { return TVector2D(-m_x, -m_y); }
+		TVector2D operator + (const TVector2D<VALUE> &vA) const { return TVector2D(m_x + vA.m_x, m_y + vA.m_y); }
+		TVector2D operator - (const TVector2D<VALUE> &vA) const { return TVector2D(m_x - vA.m_x, m_y - vA.m_y); }
+		TVector2D operator * (VALUE a) const { return TVector2D(m_x * a, m_y * a); }
+		TVector2D operator / (VALUE a) const { return TVector2D(m_x / a, m_y / a); }
 
-		inline VALUE Distance2 (const TVector2D<VALUE> &vA) const { double rX = (vA.m_x - m_x); double rY = (vA.m_y - m_y); return (rX * rX + rY * rY); }
-		inline VALUE Dot (const TVector2D<VALUE> &vA) const { return m_x * vA.m_x + m_y * vA.m_y; }
-		inline bool IsEqualTo (const TVector2D<VALUE> &vA, double rEpsilon2) const { return (Distance2(vA) < rEpsilon2); }
-		inline VALUE Length (void) const { return sqrt(m_x * m_x + m_y * m_y); }
-		inline VALUE Length2 (void) const { return (m_x * m_x + m_y * m_y); }
-		inline TVector2D Orthogonal (ERotationDirections iDir = dirCounterClockwise) const { if (iDir == dirClockwise) return TVector2D(m_y, -m_x); else return TVector2D(-m_y, m_x); }
-		inline TVector2D Perp (void) const { return TVector2D(-m_y, m_x); }
+		VALUE Distance2 (const TVector2D<VALUE> &vA) const { double rX = (vA.m_x - m_x); double rY = (vA.m_y - m_y); return (rX * rX + rY * rY); }
+		VALUE Dot (const TVector2D<VALUE> &vA) const { return m_x * vA.m_x + m_y * vA.m_y; }
+		bool IsEqualTo (const TVector2D<VALUE> &vA, double rEpsilon2) const { return (Distance2(vA) < rEpsilon2); }
+		VALUE Length (void) const { return sqrt(m_x * m_x + m_y * m_y); }
+		VALUE Length2 (void) const { return (m_x * m_x + m_y * m_y); }
+		TVector2D Orthogonal (ERotationDirections iDir = dirCounterClockwise) const { if (iDir == dirClockwise) return TVector2D(m_y, -m_x); else return TVector2D(-m_y, m_x); }
+		TVector2D Perp (void) const { return TVector2D(-m_y, m_x); }
 		VALUE Polar (VALUE *retrRadius = NULL) const;
 		void Randomize (VALUE xMin, VALUE xMax, VALUE yMin, VALUE yMax);
-		inline TVector2D Rotation (double rAngle) const
+		TVector2D Rotation (double rAngle) const
 			{
 			double rSin = sin(rAngle);
 			double rCos = cos(rAngle);
 			return TVector2D((m_x * rCos) - (m_y * rSin), (m_x * rSin) + (m_y * rCos));
 			}
-		inline void SetX (VALUE x) { m_x = x; }
-		inline void SetY (VALUE y) { m_y = y; }
-		inline TVector2D ToPolar (void) { return ToPolar(*this); }
-		inline TVector2D ToXY (void) { return FromPolar(*this); }
-		inline TVector2D Unit (void) const { VALUE rLength = Length(); if (rLength == 0) return TVector2D(); else return TVector2D(m_x / rLength, m_y / rLength); }
-		inline VALUE X (void) const { return m_x; }
-		inline VALUE Y (void) const { return m_y; }
+		void SetX (VALUE x) { m_x = x; }
+		void SetY (VALUE y) { m_y = y; }
+		TVector2D ToPolar (void) { return ToPolar(*this); }
+		TVector2D ToXY (void) { return FromPolar(*this); }
+		TVector2D Unit (void) const { VALUE rLength = Length(); if (rLength == 0) return TVector2D(); else return TVector2D(m_x / rLength, m_y / rLength); }
+		VALUE X (void) const { return m_x; }
+		VALUE Y (void) const { return m_y; }
 
 		static TVector2D FromPolar (const TVector2D<VALUE> &vA) { return TVector2D(vA.Y() * cos(vA.X()), vA.Y() * sin(vA.X())); }
 		static TVector2D FromPolar (VALUE Angle, VALUE Radius) { return TVector2D(Radius * cos(Angle), Radius * sin(Angle)); }
 		static TVector2D ToPolar (const TVector2D<VALUE> &vA) { double rRadius; double rAngle = vA.Polar(&rRadius); return TVector2D(rAngle, rRadius); }
 
+		static const TVector2D Null;
+
 	private:
 		VALUE m_x;
 		VALUE m_y;
 	};
+
+template <class VALUE> const TVector2D<VALUE> TVector2D<VALUE>::Null;
 
 typedef TVector2D<double> CVector2D;
 
@@ -163,8 +167,8 @@ class CCircle2D
 			ASSERT(m_rRadius >= 0.0);
 			}
 
-		inline const CVector2D &GetCenter (void) const { return m_vCenter; }
-		inline double GetRadius (void) const { return m_rRadius; }
+		const CVector2D &GetCenter (void) const { return m_vCenter; }
+		double GetRadius (void) const { return m_rRadius; }
 
 	private:
 		CVector2D m_vCenter;
@@ -183,15 +187,15 @@ class CRect2D
 			{ }
 
 		void Expand (double rValue);
-		inline double GetHeight (void) const { return (m_vUR.Y() - m_vLL.Y()); }
-		inline const CVector2D &GetLL (void) const { return m_vLL; }
-		inline const CVector2D &GetUR (void) const { return m_vUR; }
-		inline double GetWidth (void) const { return (m_vUR.X() - m_vLL.X()); }
+		double GetHeight (void) const { return (m_vUR.Y() - m_vLL.Y()); }
+		const CVector2D &GetLL (void) const { return m_vLL; }
+		const CVector2D &GetUR (void) const { return m_vUR; }
+		double GetWidth (void) const { return (m_vUR.X() - m_vLL.X()); }
 		bool LineIntersects (const CVector2D &vA, const CVector2D &vB) const;
 		bool PointIntersects (const CVector2D &vA) const;
 		bool RectIntersects (const CRect2D &Rect) const;
-		inline void SetLL (const CVector2D &vLL) { m_vLL = vLL; }
-		inline void SetUR (const CVector2D &vUR) { m_vUR = vUR; }
+		void SetLL (const CVector2D &vLL) { m_vLL = vLL; }
+		void SetUR (const CVector2D &vUR) { m_vUR = vUR; }
 		void Union (const CRect2D &Rect);
 
 	private:
@@ -225,28 +229,28 @@ class CPolygon2D
 		void Expand (double rExpansion, CPolygon2D *retResult, bool bNoValidityCheck = false) const;
 		bool FindVertex (const CVector2D &vPos, double rEpsilon2, int *retiIndex = NULL) const;
 		const CPolygon2D &GetHole (int iIndex) const { return *m_Holes[iIndex]; }
-		inline int GetHoleCount (void) const { return m_Holes.GetCount(); }
+		int GetHoleCount (void) const { return m_Holes.GetCount(); }
 		void GetHoleListHandoff (TArray<CPolygon2D> *retResult);
-		inline const CVector2D &GetVertex (int iIndex) const { return m_vPoints[iIndex]; }
-		inline int GetVertexCount (void) const { return m_vPoints.GetCount(); }
+		const CVector2D &GetVertex (int iIndex) const { return m_vPoints[iIndex]; }
+		int GetVertexCount (void) const { return m_vPoints.GetCount(); }
 		ERotationDirections GetVertexOrder (void) const;
 		bool HasVertex (const CVector2D &vPos, double rEpsilon2) const;
 		EOpResult IntersectPolygon (const CPolygon2D &ClipPoly, TArray<CPolygon2D> *retResult = NULL) const;
 		EOpResult IntersectPolygon (const TArray<CPolygon2D> &ClipRegion, TArray<CPolygon2D> *retResult = NULL) const;
-		inline bool IsEmpty (void) const { return (m_vPoints.GetCount() == 0); }
+		bool IsEmpty (void) const { return (m_vPoints.GetCount() == 0); }
 		bool IsSelfIntersecting (void) const;
 		bool LineIntersects (const CVector2D &vA, const CVector2D &vB) const;
 		bool PointIntersects (const CVector2D &vA, bool bIncludeHoles = true) const;
 		bool PointIntersectsHole (const CVector2D &vA) const;
 		void SetCanonicalVertexOrder (void);
-		inline void SetVertex (int iIndex, const CVector2D &vPoint) { m_vPoints[iIndex] = vPoint; }
+		void SetVertex (int iIndex, const CVector2D &vPoint) { m_vPoints[iIndex] = vPoint; }
 		void SetVertexOrder (ERotationDirections iDirection);
 		void Simplify (double rMinSegment, CPolygon2D *retResult) const;
 		EOpResult SubtractPolygon (const CPolygon2D &DrillRegion, TArray<CPolygon2D> *retResult = NULL) const;
 		EOpResult SubtractPolygon (const TArray<const CPolygon2D *> &DrillRegion, TArray<CPolygon2D> *retResult = NULL) const;
 		EOpResult SubtractPolygon (const TArray<CPolygon2D> &DrillRegion, TArray<CPolygon2D> *retResult = NULL) const;
-		inline void TakeHandoff (TArray<CVector2D> &Points) { m_vPoints.TakeHandoff(Points); }
-		inline void TakeHandoff (CPolygon2D &Poly) { m_vPoints.TakeHandoff(Poly.m_vPoints); m_Holes.TakeHandoff(Poly.m_Holes); }
+		void TakeHandoff (TArray<CVector2D> &Points) { m_vPoints.TakeHandoff(Points); }
+		void TakeHandoff (CPolygon2D &Poly) { m_vPoints.TakeHandoff(Poly.m_vPoints); m_Holes.TakeHandoff(Poly.m_Holes); }
 		EOpResult UnionPolygon (const CPolygon2D &Poly, CPolygon2D *retResult = NULL) const;
 
 #ifdef DEBUG
@@ -277,14 +281,14 @@ class CArc2D
 				m_rEnd(rEnd)
 			{ }
 
-		inline const CVector2D &GetCenter (void) const { return m_vCenter; }
-		inline double GetEnd (void) const { return m_rEnd; }
-		inline double GetRadius (void) const { return m_rRadius; }
-		inline double GetStart (void) const { return m_rStart; }
-		inline void SetCenter (const CVector2D &vCenter) { m_vCenter = vCenter; }
-		inline void SetEnd (double rEnd) { m_rEnd = rEnd; }
-		inline void SetRadius (double rRadius) { m_rRadius = rRadius; }
-		inline void SetStart (double rStart) { m_rStart = rStart; }
+		const CVector2D &GetCenter (void) const { return m_vCenter; }
+		double GetEnd (void) const { return m_rEnd; }
+		double GetRadius (void) const { return m_rRadius; }
+		double GetStart (void) const { return m_rStart; }
+		void SetCenter (const CVector2D &vCenter) { m_vCenter = vCenter; }
+		void SetEnd (double rEnd) { m_rEnd = rEnd; }
+		void SetRadius (double rRadius) { m_rRadius = rRadius; }
+		void SetStart (double rStart) { m_rStart = rStart; }
 
 	private:
 		CVector2D m_vCenter;
@@ -349,17 +353,17 @@ class CArcOutline
 class CVoronoiTessellation
 	{
 	public:
-		inline int GetNeighbor (int iSiteIndex, int iIndex) const { return m_Sites[iSiteIndex].Neighbors[iIndex]; }
-		inline int GetNeighborCount (int iSiteIndex) const { return m_Sites[iSiteIndex].Neighbors.GetCount(); }
-		inline const CLine2D &GetNeighborEdge (int iSiteIndex, int iIndex) const { return m_Edges[m_Sites[iSiteIndex].Edges[iIndex]].Edge; }
-		inline int GetSiteCount (void) const { return m_Sites.GetCount(); }
-		inline DWORD GetSiteData (int iIndex) const { return m_Sites[iIndex].dwData; }
-		inline void GetSiteNeighbors (int iIndex, TArray<int> *retNeighbors) const { *retNeighbors = m_Sites[iIndex].Neighbors; }
-		inline const CVector2D &GetSiteOrigin (int iIndex) const { return m_Sites[iIndex].Origin; }
-		inline void GetSitePolygon (int iIndex, TArray<CVector2D> *retPoints) const { *retPoints = m_Sites[iIndex].Polygon; }
-		inline void GetSitePolygon (int iIndex, CPolygon2D *retPoly) const { *retPoly = CPolygon2D(m_Sites[iIndex].Polygon); }
+		int GetNeighbor (int iSiteIndex, int iIndex) const { return m_Sites[iSiteIndex].Neighbors[iIndex]; }
+		int GetNeighborCount (int iSiteIndex) const { return m_Sites[iSiteIndex].Neighbors.GetCount(); }
+		const CLine2D &GetNeighborEdge (int iSiteIndex, int iIndex) const { return m_Edges[m_Sites[iSiteIndex].Edges[iIndex]].Edge; }
+		int GetSiteCount (void) const { return m_Sites.GetCount(); }
+		DWORD GetSiteData (int iIndex) const { return m_Sites[iIndex].dwData; }
+		void GetSiteNeighbors (int iIndex, TArray<int> *retNeighbors) const { *retNeighbors = m_Sites[iIndex].Neighbors; }
+		const CVector2D &GetSiteOrigin (int iIndex) const { return m_Sites[iIndex].Origin; }
+		void GetSitePolygon (int iIndex, TArray<CVector2D> *retPoints) const { *retPoints = m_Sites[iIndex].Polygon; }
+		void GetSitePolygon (int iIndex, CPolygon2D *retPoly) const { *retPoly = CPolygon2D(m_Sites[iIndex].Polygon); }
 		void Init (const TArray<CVector2D> &Points, double rWidth = 0.0, double rHeight = 0.0);
-		inline void SetSiteData (int iIndex, DWORD dwData) { m_Sites[iIndex].dwData = dwData; }
+		void SetSiteData (int iIndex, DWORD dwData) { m_Sites[iIndex].dwData = dwData; }
 
 	private:
 		struct SEdge
