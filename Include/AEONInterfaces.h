@@ -17,6 +17,8 @@ class IAEONCanvas
 		virtual void SetGraphicSeq (int iIndex, SequenceNumber Seq) { }
 		virtual void SetGraphicSeq (SequenceNumber Seq) { }
 		virtual void SetSeq (SequenceNumber Seq) { }
+
+		virtual void* raw_GetGraphicByID (DWORD dwID) const { return NULL; }
 	};
 
 class IAEONTable
