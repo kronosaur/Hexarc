@@ -181,6 +181,8 @@ class CDatatypeClass : public IDatatype
 		virtual int OnFindMember (const CString &sName) const override;
 		virtual ECategory OnGetClass () const override { return IDatatype::ECategory::ClassDef; }
 		virtual EImplementation OnGetImplementation () const { return IDatatype::EImplementation::Class; }
+		virtual SMemberDesc OnGetMember (int iIndex) const { if (iIndex >= 0 && iIndex < m_Members.GetCount()) return { m_Members[iIndex].iType, m_Members[iIndex].sName, m_Members[iIndex].dType }; else throw CException(errFail); }
+		virtual int OnGetMemberCount () const { return m_Members.GetCount(); }
 		virtual EMemberType OnHasMember (const CString &sName, CDatum *retdType = NULL) const override;
 		virtual bool OnIsA (const IDatatype &Type) const override { return (Type == *this || Type.IsAny() || m_Implements.IsA(Type)); }
 		virtual void OnMark () override;

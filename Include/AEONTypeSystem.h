@@ -48,7 +48,13 @@ class IDatatype
 
 		static constexpr DWORD SCHEMA_TABLE =		32;	//	A table describing a schema
 
-		static constexpr DWORD VECTOR_2D_F64 =		33;
+		static constexpr DWORD VECTOR_2D_F64 =		33;	//	A 2D vector (concrete)
+		static constexpr DWORD VECTOR_3D_F64 =		34;	//	LATER: A 3D vector
+		static constexpr DWORD MATRIX_F64 =			35;	//	LATER: Any matrix (abstract)
+		static constexpr DWORD MATRIX_3X3_F64 =		36;	//	LATER: A 3x3 matrix
+		static constexpr DWORD MATRIX_4X4_F64 =		37;	//	LATER: A 4x4 matrix
+
+		static constexpr DWORD CANVAS =				38;	//	A canvas object (concrete)
 
 		enum class ECategory
 			{

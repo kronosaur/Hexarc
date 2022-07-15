@@ -20,6 +20,7 @@ DECLARE_CONST_STRING(TYPENAME_ARRAY_INT_IP,				"ArrayOfIntIP");
 DECLARE_CONST_STRING(TYPENAME_ARRAY_STRING,				"ArrayOfString");
 DECLARE_CONST_STRING(TYPENAME_BINARY,					"Binary");
 DECLARE_CONST_STRING(TYPENAME_BOOL,						"Bool");
+DECLARE_CONST_STRING(TYPENAME_CANVAS,					"Canvas");
 DECLARE_CONST_STRING(TYPENAME_DATATYPE,					"Datatype");
 DECLARE_CONST_STRING(TYPENAME_DATE_TIME,				"DateTime");
 DECLARE_CONST_STRING(TYPENAME_FLOAT_64,					"Float64");
@@ -513,6 +514,15 @@ void CAEONTypeSystem::InitCoreTypes ()
 			GetCoreType(IDatatype::FLOAT_64),
 			1,
 			2
+			})
+		);
+
+	AddCoreType(new CDatatypeSimple(
+		{
+			MakeFullyQualifiedName(NULL_STR, TYPENAME_CANVAS), 
+			IDatatype::CANVAS,
+			{  },
+			false
 			})
 		);
 	}

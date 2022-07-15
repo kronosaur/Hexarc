@@ -2693,7 +2693,7 @@ bool CHexeProcess::ExecuteObjectMemberItem (CDatum dObject, const CString &sFiel
 
 	{
 	const IDatatype &Type = dObject.GetDatatype();
-	if (!Type.IsAny())
+	if (Type.GetMemberCount() > 0)
 		{
 		auto iMemberType = Type.HasMember(sField);
 		switch (iMemberType)
@@ -3304,7 +3304,7 @@ bool CHexeProcess::ExecutePushObjectMethod (CDatum &retResult)
 		case CDatum::typeObject:
 			{
 			const IDatatype &Type = dObject.GetDatatype();
-			if (!Type.IsAny())
+			if (Type.GetMemberCount() > 0)
 				{
 				auto iMemberType = Type.HasMember(sField);
 				switch (iMemberType)
