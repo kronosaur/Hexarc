@@ -27,7 +27,7 @@ bool CPNG::Load (IMemoryBlock &Data, CRGBA32Image &Image, CString *retsError)
 	//	Copy the buffer to the new image now that we have the bits and the size.
 	//	We also need to flip from RGBA to BGRA
 
-	Image.Create(dwWidth, dwHeight);
+	Image.Create(dwWidth, dwHeight, CRGBA32Image::alpha8);
 	CRGBA32 *pDestRow = Image.GetPixelPos(0, 0);
 	CRGBA32 *pDestRowEnd = pDestRow + (dwWidth * dwHeight);
 

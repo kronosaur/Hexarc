@@ -19,6 +19,7 @@ DECLARE_CONST_STRING(TYPENAME_ARRAY_INT_64,				"ArrayOfInt64");
 DECLARE_CONST_STRING(TYPENAME_ARRAY_INT_IP,				"ArrayOfIntIP");
 DECLARE_CONST_STRING(TYPENAME_ARRAY_STRING,				"ArrayOfString");
 DECLARE_CONST_STRING(TYPENAME_BINARY,					"Binary");
+DECLARE_CONST_STRING(TYPENAME_BITMAP_RGBA8,				"BitmapOfRGBA8");
 DECLARE_CONST_STRING(TYPENAME_BOOL,						"Bool");
 DECLARE_CONST_STRING(TYPENAME_CANVAS,					"Canvas");
 DECLARE_CONST_STRING(TYPENAME_DATATYPE,					"Datatype");
@@ -517,10 +518,21 @@ void CAEONTypeSystem::InitCoreTypes ()
 			})
 		);
 
+	//	Canvas and Bitmaps
+
 	AddCoreType(new CDatatypeSimple(
 		{
 			MakeFullyQualifiedName(NULL_STR, TYPENAME_CANVAS), 
 			IDatatype::CANVAS,
+			{  },
+			false
+			})
+		);
+
+	AddCoreType(new CDatatypeSimple(
+		{
+			MakeFullyQualifiedName(NULL_STR, TYPENAME_BITMAP_RGBA8), 
+			IDatatype::BITMAP_RGBA8,
 			{  },
 			false
 			})

@@ -55,6 +55,7 @@ class IDatatype
 		static constexpr DWORD MATRIX_4X4_F64 =		37;	//	LATER: A 4x4 matrix
 
 		static constexpr DWORD CANVAS =				38;	//	A canvas object (concrete)
+		static constexpr DWORD BITMAP_RGBA8 =		39;	//	A 32-bit per pixel bitmap (concrete)
 
 		enum class ECategory
 			{
