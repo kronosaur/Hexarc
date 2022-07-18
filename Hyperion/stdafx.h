@@ -12,3 +12,4 @@
 
 #include "HexeMarkup.h"
 #include "HyperionServiceImpl.h"
+#include "LuminousAEON.h"

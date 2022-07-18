@@ -276,6 +276,9 @@
     <ProjectReference Include="..\Hexe\Hexe.vcxproj">
       <Project>{3db942d0-788c-4320-b293-c155b0f32a2c}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\LuminousCore\LuminousCore.vcxproj">
+      <Project>{c2328e27-5f58-49ac-967c-b4b05d7a5947}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

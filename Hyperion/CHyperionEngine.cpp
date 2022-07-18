@@ -573,6 +573,10 @@ void CHyperionEngine::OnBoot (void)
 //	Boot up the engine
 
 	{
+	//	Need to register Luminous objects so that we can serve them.
+
+	CAEONLuminous::Boot();
+
 	//	Register our command port
 
 	AddPort(ADDRESS_HYPERION_COMMAND);

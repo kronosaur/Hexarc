@@ -302,6 +302,9 @@
     <ProjectReference Include="..\Hyperion\Hyperion.vcxproj">
       <Project>{178d2991-4f0b-42af-8c65-d2aba14725f4}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\LuminousCore\LuminousCore.vcxproj">
+      <Project>{c2328e27-5f58-49ac-967c-b4b05d7a5947}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\OpenSSL\OpenSSL.vcxproj">
       <Project>{dbb0e39d-c26d-401c-abbe-26f888ac1694}</Project>
     </ProjectReference>

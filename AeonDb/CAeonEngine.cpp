@@ -1561,6 +1561,10 @@ void CAeonEngine::OnBoot (void)
 //	Boot the engine
 
 	{
+	//	Register, in case we need to store images.
+
+	CAEONLuminous::Boot();
+
 	//	Compute the maximum amount of memory that we should use
 
 	SSystemMemoryInfo Memory;
