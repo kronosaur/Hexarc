@@ -16,6 +16,8 @@ class CAEONLuminousBitmap : public TExternalDatum<CAEONLuminousBitmap>, public I
 
 		CAEONLuminousBitmap () { }
 
+		static CDatum Create (const CRGBA32Image& Src);
+		static CDatum Create (CRGBA32Image&& Src);
 		static CDatum Create (int cxWidth, int cyHeight);
 		static CDatum Create (int cxWidth, int cyHeight, CRGBA32 rgbBackground);
 		static const CString &StaticGetTypename (void);

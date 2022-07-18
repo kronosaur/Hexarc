@@ -277,6 +277,34 @@ IComplexDatum *CAEONLuminousBitmap::Clone (CDatum::EClone iMode) const
 	return pClone;
 	}
 
+CDatum CAEONLuminousBitmap::Create (const CRGBA32Image& Src)
+
+//	Create
+//
+//	Create from an image.
+
+	{
+	auto pBitmap = new CAEONLuminousBitmap;
+	pBitmap->m_Image = Src;
+	pBitmap->m_rgbBackground = CRGBA32(0, 0, 0);
+
+	return CDatum(pBitmap);
+	}
+
+CDatum CAEONLuminousBitmap::Create (CRGBA32Image&& Src)
+
+//	Create
+//
+//	Create from an image via move.
+
+	{
+	auto pBitmap = new CAEONLuminousBitmap;
+	pBitmap->m_Image = std::move(Src);
+	pBitmap->m_rgbBackground = CRGBA32(0, 0, 0);
+
+	return CDatum(pBitmap);
+	}
+
 CDatum CAEONLuminousBitmap::Create (int cxWidth, int cyHeight)
 
 //	Create
