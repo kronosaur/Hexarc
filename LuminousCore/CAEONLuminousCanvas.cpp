@@ -371,16 +371,23 @@ CLuminousColor CAEONLuminousCanvas::AsColor (CDatum dValue)
 //	Decode from datum.
 
 	{
-	const CString& sType = dValue.GetElement(0);
-	if (sType.IsEmpty())
-		return CLuminousColor();
-	else if (strEquals(sType, TYPE_SOLID))
+	if (dValue.GetBasicType() == CDatum::typeString)
 		{
-		CRGBA32 rgbColor = CRGBA32((DWORD)dValue.GetElement(1));
-		return CLuminousColor(rgbColor);
+		return CLuminousColor(CRGBA32::Parse(dValue));
 		}
 	else
-		return CLuminousColor();
+		{
+		const CString& sType = dValue.GetElement(0);
+		if (sType.IsEmpty())
+			return CLuminousColor();
+		else if (strEquals(sType, TYPE_SOLID))
+			{
+			CRGBA32 rgbColor = CRGBA32((DWORD)dValue.GetElement(1));
+			return CLuminousColor(rgbColor);
+			}
+		else
+			return CLuminousColor();
+		}
 	}
 
 CLuminousFillStyle CAEONLuminousCanvas::AsFillStyle (CDatum dValue)
@@ -504,12 +511,7 @@ CDatum CAEONLuminousCanvas::AsDatum (const CLuminousColor& Color)
 			return CDatum();
 
 		case CLuminousColor::EType::Solid:
-			{
-			CDatum dResult(CDatum::typeArray);
-			dResult.Append(TYPE_SOLID);
-			dResult.Append(Color.GetSolidColor().AsDWORD());
-			return dResult;
-			}
+			return CDatum(Color.GetSolidColor().AsHTMLColor());
 
 		default:
 			throw CException(errFail);
