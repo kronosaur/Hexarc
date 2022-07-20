@@ -77,8 +77,7 @@ void CHTMLCanvasRemote::AccumulateHTMLCanvasCommands (const CLuminousLineStyle& 
 
 	if (Style.GetLineWidth() != PrevStyle.GetLineWidth())
 		{
-		//	LATER
-		throw CException(errFail);
+		dResult.Append(CmdLineWidth(Style.GetLineWidth()));
 		}
 
 	if (Style.GetMiterLimit() != PrevStyle.GetMiterLimit())
@@ -254,6 +253,15 @@ CDatum CHTMLCanvasRemote::CmdLineTo (double x, double y)
 	//	Encode in 1/10th of a pixel
 	dResult.Append((int)mathRound(x * 10.0));
 	dResult.Append((int)mathRound(y * 10.0));
+
+	return dResult;
+	}
+
+CDatum CHTMLCanvasRemote::CmdLineWidth (double rWidth)
+	{
+	CDatum dResult(CDatum::typeArray);
+	dResult.Append((int)ECommand::lineWidth);
+	dResult.Append(rWidth);
 
 	return dResult;
 	}

@@ -164,6 +164,7 @@ class CLuminousLineStyle
 		double GetMiterLimit () const { return m_rMiterLimit; }
 		bool IsEmpty () const { return m_Color.IsEmpty(); }
 		void SetColor (const CLuminousColor& Color) { m_Color = Color; }
+		void SetLineWidth (double rWidth) { m_rLineWidth = Max(0.0, rWidth); }
 
 		static const CLuminousLineStyle Null;
 
@@ -340,7 +341,9 @@ class CLuminousCanvasCtx
 	{
 	public:
 
+		const CLuminousFillStyle& Fill () const { return m_FillStyle; }
 		CLuminousFillStyle& Fill () { return m_FillStyle; }
+		const CLuminousLineStyle& Line () const { return m_LineStyle; }
 		CLuminousLineStyle& Line () { return m_LineStyle; }
 		const CLuminousPath2D& Path () const { return m_Path; }
 		CLuminousPath2D& Path () { return m_Path; }

@@ -93,6 +93,7 @@ class CHTMLCanvasRemote
 		static CDatum CmdFillRect (double x, double y, double cxWidth, double cyHeight);
 		static CDatum CmdFillStyle (const CString &sStyle);
 		static CDatum CmdLineTo (double x, double y);
+		static CDatum CmdLineWidth (double rWidth);
 		static CDatum CmdMoveTo (double x, double y);
 		static CDatum CmdStroke ();
 		static CDatum CmdStrokeStyle (const CString &sStyle);
