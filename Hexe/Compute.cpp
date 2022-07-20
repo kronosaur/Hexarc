@@ -3302,6 +3302,7 @@ bool CHexeProcess::ExecutePushObjectMethod (CDatum &retResult)
 			}
 
 		case CDatum::typeObject:
+		case CDatum::typeImage32:
 			{
 			const IDatatype &Type = dObject.GetDatatype();
 			if (Type.GetMemberCount() > 0)
