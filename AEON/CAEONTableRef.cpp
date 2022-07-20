@@ -328,7 +328,7 @@ bool CAEONTableRef::IsSameSchema (CDatum dSchema) const
 		IDatatype::SMemberDesc Member = Schema.GetMember(i);
 
 		CDatum dTestType;
-		if (TestSchema.HasMember(Member.sName, &dTestType) != IDatatype::EMemberType::InstanceVar)
+		if (!CAEONTable::IsValidMemberType(TestSchema.HasMember(Member.sName, &dTestType)))
 			return false;
 
 		if (!Member.dType.IsEqual(dTestType))

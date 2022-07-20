@@ -7,6 +7,7 @@
 
 DECLARE_CONST_STRING(FIELD_DATATYPE,					"datatype");
 DECLARE_CONST_STRING(FIELD_DESCRIPTION,					"description");
+DECLARE_CONST_STRING(FIELD_KEY_COLUMN,					"keyColumn");
 DECLARE_CONST_STRING(FIELD_LABEL,						"label");
 DECLARE_CONST_STRING(FIELD_NAME,						"name");
 
@@ -23,7 +24,12 @@ bool CDatatypeSchema::OnAddMember (const CString &sName, EMemberType iType, CDat
 	if (dType.GetBasicType() != CDatum::typeDatatype)
 		throw CException(errFail);
 
-	if (iType != EMemberType::InstanceVar)
+	bool bKey = false;
+	if (iType == EMemberType::InstanceVar)
+		{ }
+	else if (iType == EMemberType::InstanceKeyVar)
+		bKey = true;
+	else
 		throw CException(errFail);
 
 	if (sName.IsEmpty())
@@ -53,6 +59,7 @@ bool CDatatypeSchema::OnAddMember (const CString &sName, EMemberType iType, CDat
 	pEntry->iOrdinal = iOrdinal;
 	pEntry->dType = dType;
 	pEntry->sName = sName;
+	pEntry->bKey = bKey;
 
 	return true;
 	}
@@ -70,6 +77,10 @@ bool CDatatypeSchema::OnDeserialize (CDatum::EFormat iFormat, IByteStream &Strea
 
 	for (int i = 0; i < m_Columns.GetCount(); i++)
 		{
+		DWORD dwFlags;
+		Stream.Read(&dwFlags, sizeof(DWORD));
+		m_Columns[i].bKey = ((dwFlags & 0x00000001) ? true : false);
+
 		m_Columns[i].sName = CString::Deserialize(Stream);
 		Stream.Read(&m_Columns[i].iOrdinal, sizeof(DWORD));
 
@@ -108,6 +119,9 @@ bool CDatatypeSchema::OnEquals (const IDatatype &Src) const
 
 		if ((const IDatatype &)m_Columns[i].dType != (const IDatatype &)Other.m_Columns[i].dType)
 			return false;
+
+		if (m_Columns[i].bKey != Other.m_Columns[i].bKey)
+			return false;
 		}
 
 	return true;
@@ -137,6 +151,7 @@ CDatum CDatatypeSchema::OnGetMembersAsTable () const
 		dRow.SetElement(FIELD_DATATYPE, m_Columns[i].dType);
 		dRow.SetElement(FIELD_LABEL, m_Columns[i].sName);
 		dRow.SetElement(FIELD_DESCRIPTION, CDatum());
+		dRow.SetElement(FIELD_KEY_COLUMN, m_Columns[i].bKey);
 
 		dResult.Append(dRow);
 		}
@@ -158,6 +173,24 @@ int CDatatypeSchema::OnFindMember (const CString &sName) const
 	return *pIndex;
 	}
 
+IDatatype::SMemberDesc CDatatypeSchema::OnGetMember (int iIndex) const
+
+//	OnGetMember
+//
+//	Returns the member by index.
+
+	{
+	if (iIndex < 0 || iIndex >= m_Columns.GetCount())
+		throw CException(errFail);
+	
+	return SMemberDesc({ 
+			(m_Columns[iIndex].bKey ? EMemberType::InstanceKeyVar : EMemberType::InstanceVar),
+			m_Columns[iIndex].sName,
+			m_Columns[iIndex].dType
+		});
+	}
+
+
 IDatatype::EMemberType CDatatypeSchema::OnHasMember (const CString &sName, CDatum *retdType) const
 
 //	HasMember
@@ -174,7 +207,7 @@ IDatatype::EMemberType CDatatypeSchema::OnHasMember (const CString &sName, CDatu
 	if (retdType)
 		*retdType = m_Columns[iIndex].dType;
 
-	return EMemberType::InstanceVar;
+	return (m_Columns[iIndex].bKey ? EMemberType::InstanceKeyVar : EMemberType::InstanceVar);
 	}
 
 void CDatatypeSchema::OnMark ()
@@ -201,6 +234,10 @@ void CDatatypeSchema::OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream)
 
 	for (int i = 0; i < m_Columns.GetCount(); i++)
 		{
+		DWORD dwFlags = 0;
+		dwFlags |= (m_Columns[i].bKey ? 0x00000001 : 0);
+		Stream.Write(&dwFlags, sizeof(DWORD));
+
 		m_Columns[i].sName.Serialize(Stream);
 
 		Stream.Write(&m_Columns[i].iOrdinal, sizeof(DWORD));

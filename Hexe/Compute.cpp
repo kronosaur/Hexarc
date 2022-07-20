@@ -2714,6 +2714,7 @@ bool CHexeProcess::ExecuteObjectMemberItem (CDatum dObject, const CString &sFiel
 				break;
 				}
 
+			case IDatatype::EMemberType::InstanceKeyVar:
 			case IDatatype::EMemberType::InstanceVar:
 				m_Stack.Push(dObject.GetElement(sField));
 				break;

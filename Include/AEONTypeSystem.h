@@ -88,6 +88,7 @@ class IDatatype
 			None,
 
 			ArrayElement,
+			InstanceKeyVar,
 			InstanceMethod,
 			InstanceVar,
 			StaticMethod,

@@ -823,25 +823,11 @@ bool CAEONTable::IsSameSchema (CDatum dSchema) const
 	{
 	const IDatatype &Schema = m_dSchema;
 	const IDatatype &TestSchema = dSchema;
+
 	if (TestSchema.GetClass() != IDatatype::ECategory::Schema)
 		return false;
 
-	if (TestSchema.GetMemberCount() != Schema.GetMemberCount())
-		return false;
-
-	for (int i = 0; i < Schema.GetMemberCount(); i++)
-		{
-		IDatatype::SMemberDesc Member = Schema.GetMember(i);
-
-		CDatum dTestType;
-		if (TestSchema.HasMember(Member.sName, &dTestType) != IDatatype::EMemberType::InstanceVar)
-			return false;
-
-		if (!Member.dType.IsEqual(dTestType))
-			return false;
-		}
-
-	return true;
+	return Schema == TestSchema;
 	}
 
 size_t CAEONTable::OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const
@@ -1128,7 +1114,7 @@ void CAEONTable::SetSchema (CDatum dSchema)
 		{
 		auto ColumnDesc = Schema.GetMember(i);
 
-		if (ColumnDesc.iType != IDatatype::EMemberType::InstanceVar
+		if (!IsValidMemberType(ColumnDesc.iType)
 				|| ColumnDesc.dType.GetBasicType() != CDatum::typeDatatype
 				|| ColumnDesc.sName.IsEmpty())
 			throw CException(errFail);

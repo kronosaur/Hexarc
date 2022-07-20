@@ -260,6 +260,8 @@ class CDatatypeSchema : public IDatatype
 			int iOrdinal = 0;
 			CString sName;
 			CDatum dType;
+
+			bool bKey = false;
 			};
 
 		//	IDatatype virtuals
@@ -271,7 +273,7 @@ class CDatatypeSchema : public IDatatype
 		virtual ECategory OnGetClass () const override { return IDatatype::ECategory::Schema; }
 		virtual DWORD OnGetCoreType () const override { return m_dwCoreType; }
 		virtual EImplementation OnGetImplementation () const { return IDatatype::EImplementation::Schema; }
-		virtual SMemberDesc OnGetMember (int iIndex) const { if (iIndex < 0 || iIndex >= m_Columns.GetCount()) throw CException(errFail); return SMemberDesc({ EMemberType::InstanceVar, m_Columns[iIndex].sName, m_Columns[iIndex].dType }); }
+		virtual SMemberDesc OnGetMember (int iIndex) const;
 		virtual int OnGetMemberCount () const { return m_Columns.GetCount(); }
 		virtual CDatum OnGetMembersAsTable () const override;
 		virtual EMemberType OnHasMember (const CString &sName, CDatum *retdType = NULL) const override;
