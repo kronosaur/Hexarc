@@ -834,6 +834,7 @@ bool urlParseQuery (const CString &sURL, CString *retsPath, CDatum *retdQuery);
 //	Some implementation details
 
 #include "AEONAllocator.h"
+#include "AEONQuery.h"
 #include "AEONVector.h"
 
 inline CDatum CDatum::GetElementOrDefault (const CString &sKey, CDatum dDefault) const
