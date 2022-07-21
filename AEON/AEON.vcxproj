@@ -234,6 +234,7 @@
     <ClInclude Include="..\Include\AEONUtil.h" />
     <ClInclude Include="..\Include\AEONVector.h" />
     <ClInclude Include="AEONImpl.h" />
+    <ClInclude Include="AEONTable.h" />
     <ClInclude Include="DatatypeImpl.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="TAEONVector.h" />
