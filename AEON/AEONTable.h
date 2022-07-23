@@ -5,6 +5,27 @@
 
 #pragma once
 
+class CAEONTableIndex
+	{
+	public:
+
+		void Add (CDatum dTable, int iRow);
+		int Find (CDatum dTable, CDatum dValue) const;
+		void Init (CDatum dTable, const TArray<int>& Cols);
+		void Remove (CDatum dTable, int iRow);
+
+		static const CAEONTableIndex Null;
+
+	private:
+
+		CString AsIndexKeyFromRow (CDatum dTable, CDatum dValue) const;
+		static CString AsIndexKeyFromValue (CDatum dValue);
+		CString GetIndexKey (const IAEONTable& Table, int iRow) const;
+
+		TArray<int> m_Cols;
+		TSortMap<CString, int> m_Index;
+	};
+
 class CAEONTable : public IComplexDatum, public IAEONTable
 	{
 	public:
@@ -20,6 +41,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual EResult DeleteAllRows () override;
 		virtual EResult DeleteRow (int iRow) override;
 		virtual bool FindCol (const CString &sName, int *retiCol = NULL) const override;
+		virtual bool FindRowByID (CDatum dValue, int *retiRow = NULL) const override;
 		virtual CDatum GetCol (int iIndex) const override { return ((iIndex >= 0 && iIndex < m_Cols.GetCount()) ? m_Cols[iIndex] : CDatum()); }
 		virtual int GetColCount () const override;
 		virtual CString GetColName (int iCol) const override;
@@ -79,6 +101,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 
 		static CDatum CalcColumnDatatype (CDatum dValue);
 		void CloneContents ();
+		const CAEONTableIndex& GetIndex () const;
 		void OnModify ();
 		void SetSchema (CDatum dSchema);
 
@@ -90,10 +113,11 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 
 		CDatum m_dSchema;
 
-
-
 		SequenceNumber m_Seq = 0;
 		bool m_bCopyOnWrite = false;
+		bool m_bHasIndex = false;
+
+		mutable TUniquePtr<CAEONTableIndex> m_pPrimaryIndex;
 
 		static TDatumPropertyHandler<CAEONTable> m_Properties;
 

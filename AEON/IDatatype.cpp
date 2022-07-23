@@ -78,6 +78,24 @@ TUniquePtr<IDatatype> IDatatype::Deserialize (CDatum::EFormat iFormat, IByteStre
 	return pDatatype;
 	}
 
+bool IDatatype::GetKeyMembers (TArray<int>& retKeys) const
+
+//	GetKeyMembers
+//
+//	If we have key columns, we return TRUE and the indices of the key columns.
+
+	{
+	retKeys.DeleteAll();
+
+	for (int i = 0; i < GetMemberCount(); i++)
+		{
+		if (GetMember(i).iType == EMemberType::InstanceKeyVar)
+			retKeys.Insert(i);
+		}
+
+	return (retKeys.GetCount() > 0);
+	}
+
 CString IDatatype::GetName () const
 	{
 	return CAEONTypeSystem::ParseNameFromFullyQualifiedName(GetFullyQualifiedName());

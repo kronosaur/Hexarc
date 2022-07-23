@@ -33,6 +33,7 @@ class IAEONTable
 			NotATable,
 			NotImplemented,
 			NotMutable,
+			NotFound,
 			};
 
 		struct SSubset
@@ -51,6 +52,7 @@ class IAEONTable
 		virtual EResult DeleteRow (int iRow) { return EResult::NotImplemented; }
 		virtual bool FindCol (const CString &sName, int *retiCol = NULL) const { return false; }
 		bool FindRow (int iCol, CDatum dValue, int *retiRow = NULL) const;
+		virtual bool FindRowByID (CDatum dValue, int *retiRow = NULL) const { return false; }
 		virtual CDatum GetCol (int iIndex) const { return CDatum(); }
 		virtual int GetColCount () const { return 0; }
 		virtual CString GetColName (int iCol) const { return NULL_STR; }

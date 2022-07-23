@@ -124,6 +124,7 @@ class IDatatype
 		DWORD GetCoreType () const { return OnGetCoreType(); }
 		const CString &GetFullyQualifiedName () const { return m_sFullyQualifiedName; }
 		EImplementation GetImplementation () const { return OnGetImplementation(); }
+		bool GetKeyMembers (TArray<int>& retKeys) const;
 		SMemberDesc GetMember (int iIndex) const { return OnGetMember(iIndex); }
 		int GetMemberCount () const { return OnGetMemberCount(); }
 		CDatum GetMembersAsTable () const { return OnGetMembersAsTable(); }
