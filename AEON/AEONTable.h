@@ -61,6 +61,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual CString AsString (void) const override;
 		virtual size_t CalcMemorySize (void) const override;
 		virtual IComplexDatum *Clone (CDatum::EClone iMode) const override;
+		virtual void DeleteElement (int iIndex) override { DeleteRow(iIndex); }
 		virtual bool Find (CDatum dValue, int *retiIndex = NULL) const override { throw CException(errFail); }
 		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeTable; }
 		virtual int GetCount (void) const override { return m_iRows; }
