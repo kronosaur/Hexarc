@@ -279,12 +279,13 @@ class CAEONVector2D : public TExternalDatum<CAEONVector2D>
 		CAEONVector2D () { }
 		CAEONVector2D (const CVector2D &vVector);
 
-		inline const CVector2D &GetVector (void) const { return m_vVector; }
+		const CVector2D &GetVector (void) const { return m_vVector; }
 
 		static const CString &StaticGetTypename (void);
 
 		//	IComplexDatum
 
+		virtual const CVector2D& CastCVector2D () const override { return m_vVector; }
 		virtual CDatum::Types GetBasicType () const override { return CDatum::typeVector2D; }
 		virtual int GetCount (void) const override { return 2; }
 		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::VECTOR_2D_F64); }
