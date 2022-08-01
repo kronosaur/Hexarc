@@ -8,6 +8,8 @@
 
 DECLARE_CONST_STRING(TYPENAME_LUMINOUS_BITMAP,		"luminousBitmap");
 
+DECLARE_CONST_STRING(ERR_UNABLE_TO_CREATE_IMAGE,	"Unable to create image.");
+
 TDatumPropertyHandler<CAEONLuminousBitmap> CAEONLuminousBitmap::m_Properties = {
 	{
 		"height",
@@ -158,6 +160,36 @@ TDatumMethodHandler<CAEONLuminousBitmap> CAEONLuminousBitmap::m_Methods = {
 			CImageDraw::Rectangle(Obj.m_Image, (int)x, (int)y, (int)cx, (int)cy, Obj.m_DrawCtx.Fill().GetColor().GetSolidColor());
 
 			retdResult = CDatum(true);
+			return true;
+			},
+		},
+	{
+		"getSlice",
+		"*",
+		".getSlice(x, y, width, height) -> image",
+		0,
+		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+			{
+			int x = (int)dLocalEnv.GetElement(1);
+			int y = (int)dLocalEnv.GetElement(2);
+			int cx = Min((int)dLocalEnv.GetElement(3), Obj.m_Image.GetWidth() - x);
+			int cy = Min((int)dLocalEnv.GetElement(4), Obj.m_Image.GetHeight() - y);
+
+			if (cx <= 0 || cy <= 0)
+				{
+				retdResult = CDatum();
+				return true;
+				}
+
+			CRGBA32Image Result;
+			if (!Result.Create(cx, cy, Obj.m_Image.GetAlphaType()))
+				{
+				retdResult = ERR_UNABLE_TO_CREATE_IMAGE;
+				return false;
+				}
+
+			CImageDraw::Copy(Result, 0, 0, Obj.m_Image, x, y, cx, cy);
+			retdResult = CAEONLuminousBitmap::Create(std::move(Result));
 			return true;
 			},
 		},
