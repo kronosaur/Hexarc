@@ -60,6 +60,17 @@ void CImageDraw::Copy (CRGBA32Image &Dest, int xDest, int yDest, const CRGBA32Im
 	Algorithm.Copy(Dest, xDest, yDest, Src, xSrc, ySrc, cxSrc, cySrc);
 	}
 
+void CImageDraw::CopyScaled (CRGBA32Image &Dest, int xDest, int yDest, int cxDest, int cyDest, const CRGBA32Image &Src, int xSrc, int ySrc, int cxSrc, int cySrc)
+
+//	CopyScaled
+//
+//	Copy pixels from one image to another
+
+	{
+	TSolidImageBlt<CBlendCopy> Algorithm;
+	Algorithm.CopyScaled(Dest, xDest, yDest, cxDest, cyDest, Src, xSrc, ySrc, cxSrc, cySrc);
+	}
+
 void CImageDraw::Rectangle (CRGBA32Image &Dest, int xDest, int yDest, int cxDest, int cyDest, CRGBA32 rgbColor, EBlendModes iBlend)
 
 //	Rectangle

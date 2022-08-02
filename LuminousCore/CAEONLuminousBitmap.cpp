@@ -164,6 +164,34 @@ TDatumMethodHandler<CAEONLuminousBitmap> CAEONLuminousBitmap::m_Methods = {
 			},
 		},
 	{
+		"getScaled",
+		"*",
+		".getScaled(width, height) -> image",
+		0,
+		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+			{
+			int cx = (int)dLocalEnv.GetElement(1);
+			int cy = (int)dLocalEnv.GetElement(2);
+
+			if (cx <= 0 || cy <= 0)
+				{
+				retdResult = CDatum();
+				return true;
+				}
+
+			CRGBA32Image Result;
+			if (!Result.Create(cx, cy, Obj.m_Image.GetAlphaType(), CRGBA32(0, 0, 0, 0)))
+				{
+				retdResult = ERR_UNABLE_TO_CREATE_IMAGE;
+				return false;
+				}
+
+			CImageDraw::CopyScaled(Result, 0, 0, cx, cy, Obj.m_Image);
+			retdResult = CAEONLuminousBitmap::Create(std::move(Result));
+			return true;
+			},
+		},
+	{
 		"getSlice",
 		"*",
 		".getSlice(x, y, width, height) -> image",

@@ -240,6 +240,56 @@ template <class PAINTER, class BLENDER> class TImageBlt
 				}
 			}
 
+		void CopyScaled (CRGBA32Image &Dest, int xDest, int yDest, int cxDest, int cyDest, const CRGBA32Image &Src, int xSrc, int ySrc, int cxSrc, int cySrc)
+			{
+			if (cxSrc == -1) cxSrc = Src.GetWidth();
+			if (cySrc == -1) cySrc = Src.GetHeight();
+
+			if (cxDest <= 0 || cyDest <= 0 || cxSrc <= 0 || cySrc <= 0)
+				return;
+
+			//	Compute the increment on the source to cover the entire destination
+
+			Metric xSrcInc = (Metric)cxSrc / (Metric)cxDest;
+			Metric ySrcInc = (Metric)cySrc / (Metric)cyDest;
+
+			//	Make sure we're in bounds
+
+			Metric xSrcStart = (Metric)xSrc;
+			Metric ySrcStart = (Metric)ySrc;
+			if (!Dest.AdjustScaledCoords(&xSrcStart, &ySrcStart, Src.GetWidth(), Src.GetHeight(), 
+					xSrcInc, ySrcInc,
+					&xDest, &yDest,
+					&cxDest, &cyDest))
+				return;
+
+			//	Do the blt
+
+			CRGBA32 *pDestRow = Dest.GetPixelPos(xDest, yDest);
+			CRGBA32 *pDestRowEnd = Dest.GetPixelPos(xDest, yDest + cyDest);
+
+			Metric y = ySrcStart;
+			while (pDestRow < pDestRowEnd)
+				{
+				CRGBA32 *pDestPos = pDestRow;
+				CRGBA32 *pDestPosEnd = pDestPos + cxDest;
+
+				CRGBA32 *pSrcRow = Src.GetPixelPos((int)xSrcStart, (int)y);
+				Metric xOffset = 0.0;
+
+				while (pDestPos < pDestPosEnd)
+					{
+					*pDestPos = FILTER(*(pSrcRow + (int)xOffset), pDestPos);
+
+					pDestPos++;
+					xOffset += xSrcInc;
+					}
+
+				y += ySrcInc;
+				pDestRow = Dest.NextRow(pDestRow);
+				}
+			}
+
 	private:
 
 		static bool AdjustCoords (const CRGBA32Image &Dest, int &xDest, int &yDest, const CRGBA32Image &Src, int &xSrc, int &ySrc, int &cxSrc, int &cySrc)
