@@ -44,6 +44,19 @@ DECLARE_CONST_STRING(ERR_RESOURCE_NOT_FOUND,		"Unable to find canvas resource: %
 
 TDatumPropertyHandler<CAEONLuminousCanvas> CAEONLuminousCanvas::m_Properties = {
 	{
+		"fillStyle",
+		"The fill style for future shapes.",
+		[](const CAEONLuminousCanvas &Obj, const CString &sProperty)
+			{
+			return CDatum(CAEONLuminousCanvas::AsDatum(Obj.m_DrawCtx.Fill().GetColor()));
+			},
+		[](CAEONLuminousCanvas &Obj, const CString &sProperty, CDatum dValue, CString *retsError)
+			{
+			Obj.m_DrawCtx.Fill().SetColor(CLuminousColor(CRGBA32::Parse(dValue.AsString())));
+			return true;
+			},
+		},
+	{
 		"length",
 		"Returns the number of rows in the table.",
 		[](const CAEONLuminousCanvas &Obj, const CString &sProperty)
@@ -51,6 +64,32 @@ TDatumPropertyHandler<CAEONLuminousCanvas> CAEONLuminousCanvas::m_Properties = {
 			return CDatum(1);
 			},
 		NULL,
+		},
+	{
+		"lineStyle",
+		"The line style for future shapes.",
+		[](const CAEONLuminousCanvas &Obj, const CString &sProperty)
+			{
+			return CDatum(CAEONLuminousCanvas::AsDatum(Obj.m_DrawCtx.Line().GetColor()));
+			},
+		[](CAEONLuminousCanvas &Obj, const CString &sProperty, CDatum dValue, CString *retsError)
+			{
+			Obj.m_DrawCtx.Line().SetColor(CLuminousColor(CRGBA32::Parse(dValue.AsString())));
+			return true;
+			},
+		},
+	{
+		"lineWidth",
+		"The line width for future shapes.",
+		[](const CAEONLuminousCanvas &Obj, const CString &sProperty)
+			{
+			return CDatum(Obj.m_DrawCtx.Line().GetLineWidth());
+			},
+		[](CAEONLuminousCanvas &Obj, const CString &sProperty, CDatum dValue, CString *retsError)
+			{
+			Obj.m_DrawCtx.Line().SetLineWidth(dValue);
+			return true;
+			},
 		},
 	};
 
@@ -323,7 +362,7 @@ TDatumMethodHandler<CAEONLuminousCanvas> CAEONLuminousCanvas::m_Methods = {
 	{
 		"setFillStyle",
 		"*",
-		".setFillStyle(style) -> true/null",
+		"DEPRECATED: Use .fillStyle property instead.",
 		0,
 		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
 			{
@@ -338,7 +377,7 @@ TDatumMethodHandler<CAEONLuminousCanvas> CAEONLuminousCanvas::m_Methods = {
 	{
 		"setLineStyle",
 		"*",
-		".setLineStyle(style) -> true/null",
+		"DEPRECATED: Use .lineStyle property instead.",
 		0,
 		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
 			{
