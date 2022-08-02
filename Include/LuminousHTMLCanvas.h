@@ -22,6 +22,7 @@ class CLuminousCanvasResources
 		SequenceNumber GetNamedResourceSeq (int iIndex) const { if (iIndex >= 0 && iIndex < m_NamedResources.GetCount()) return m_NamedResources[iIndex].Seq; else throw CException(errFail); }
 		CDatum GetResource (const ILuminousGraphic& Graphic) const;
 		void Mark ();
+		void SetSeq (SequenceNumber Seq);
 
 	private:
 

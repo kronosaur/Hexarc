@@ -70,3 +70,14 @@ void CLuminousCanvasResources::Mark ()
 	for (int i = 0; i < m_NamedResources.GetCount(); i++)
 		m_NamedResources[i].dResource.Mark();
 	}
+
+void CLuminousCanvasResources::SetSeq (SequenceNumber Seq)
+
+//	SetSeq
+//
+//	Sets sequence number.
+
+	{
+	for (int i = 0; i < m_NamedResources.GetCount(); i++)
+		m_NamedResources[i].Seq = Seq;
+	}

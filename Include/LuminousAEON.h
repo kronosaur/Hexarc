@@ -99,7 +99,7 @@ class CAEONLuminousCanvas : public TExternalDatum<CAEONLuminousCanvas>, public I
 		virtual bool InsertGraphic (CDatum dDesc) override;
 		virtual CDatum RenderAsHTMLCanvasCommands (SequenceNumber Seq = 0) const override;
 		virtual void SetGraphicSeq (int iIndex, SequenceNumber Seq) override;
-		virtual void SetGraphicSeq (SequenceNumber Seq) override { m_Model.SetSeq(Seq); }
+		virtual void SetGraphicSeq (SequenceNumber Seq) override { m_Model.SetSeq(Seq); m_Resources.SetSeq(Seq); }
 		virtual void SetSeq (SequenceNumber Seq) override { m_Seq = Seq; }
 
 		virtual void* raw_GetGraphicByID (DWORD dwID) const override;
