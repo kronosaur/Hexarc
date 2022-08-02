@@ -77,6 +77,7 @@ class CAEONLuminousCanvas : public TExternalDatum<CAEONLuminousCanvas>, public I
 		static CDatum GenerateBeginUpdate (SequenceNumber Seq = 0);
 		static CDatum GenerateClearRectDesc (const CVector2D& vUL, const CVector2D& vLR);
 		static CDatum GenerateImageDesc (const CVector2D& vPos, CDatum dImage);
+		static CDatum GenerateSetResourceDesc (const CString& sResourceID, CDatum dImage);
 		static CDatum GenerateShapeDesc (const CLuminousCanvasModel::SShapeOptions& Options);
 		static const CString &StaticGetTypename (void);
 

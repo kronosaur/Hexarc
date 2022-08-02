@@ -19,6 +19,7 @@ DECLARE_CONST_STRING(FIELD_MITER_LIMIT,				"miterLimit");
 DECLARE_CONST_STRING(FIELD_OFFSET_XY,				"offset");
 DECLARE_CONST_STRING(FIELD_PATH,					"path");
 DECLARE_CONST_STRING(FIELD_POS,						"pos");
+DECLARE_CONST_STRING(FIELD_RESOURCE_ID,				"resourceID");
 DECLARE_CONST_STRING(FIELD_SEQ,						"seq");
 DECLARE_CONST_STRING(FIELD_SHADOW_STYLE,			"shadowStyle");
 DECLARE_CONST_STRING(FIELD_TYPE,					"type");
@@ -33,6 +34,7 @@ DECLARE_CONST_STRING(TYPE_IMAGE,					"image");
 DECLARE_CONST_STRING(TYPE_LINE_TO,					"lineTo");
 DECLARE_CONST_STRING(TYPE_MOVE_TO,					"moveTo");
 DECLARE_CONST_STRING(TYPE_RECT,						"rect");
+DECLARE_CONST_STRING(TYPE_SET_RESOURCE,				"setResource");
 DECLARE_CONST_STRING(TYPE_SHAPE,					"shape");
 DECLARE_CONST_STRING(TYPE_SOLID,					"solid");
 
@@ -829,6 +831,21 @@ CDatum CAEONLuminousCanvas::GenerateImageDesc (const CVector2D& vPos, CDatum dIm
 	return dResult;
 	}
 
+CDatum CAEONLuminousCanvas::GenerateSetResourceDesc (const CString& sResourceID, CDatum dImage)
+
+//	GenerateSetResourceDesc
+//
+//	Generates a set resource descriptor.
+
+	{
+	CDatum dResult(CDatum::typeStruct);
+	dResult.SetElement(FIELD_TYPE, TYPE_SET_RESOURCE);
+	dResult.SetElement(FIELD_RESOURCE_ID, sResourceID);
+	dResult.SetElement(FIELD_IMAGE, dImage);
+
+	return dResult;
+	}
+
 CDatum CAEONLuminousCanvas::GenerateShapeDesc (const CLuminousCanvasModel::SShapeOptions& Options)
 
 //	GenerateShapeDesc
@@ -878,11 +895,31 @@ bool CAEONLuminousCanvas::InsertGraphic (CDatum dDesc)
 		CVector2D vPos = dDesc.GetElement(FIELD_UL);
 		CDatum dImage = dDesc.GetElement(FIELD_IMAGE);
 
-		auto& Graphic = m_Model.InsertGraphic(CLuminousCanvasModel::CreateImage(dImage));
-		Graphic.SetPos(vPos);
-		Graphic.SetSeq(Seq);
+		if (!((const CRGBA32Image&)dImage).IsEmpty())
+			{
+			auto& Graphic = m_Model.InsertGraphic(CLuminousCanvasModel::CreateImage(dImage));
+			Graphic.SetPos(vPos);
+			Graphic.SetSeq(Seq);
 
-		m_Resources.AddResource(Graphic, dImage);
+			m_Resources.AddResource(Graphic, dImage);
+			}
+		else
+			{
+			const CString& sResourceID = dImage;
+			if (m_Resources.FindNamedResource(sResourceID) == -1)
+				return false;
+
+			auto& Graphic = m_Model.InsertGraphic(CLuminousCanvasModel::CreateResource(sResourceID));
+			Graphic.SetPos(vPos);
+			Graphic.SetSeq(Seq);
+			}
+		}
+	else if (strEquals(sType, TYPE_SET_RESOURCE))
+		{
+		const CString& sResourceID = dDesc.GetElement(FIELD_RESOURCE_ID);
+		CDatum dImage = dDesc.GetElement(FIELD_IMAGE);
+
+		m_Resources.AddNamedResource(sResourceID, dImage, Seq);
 		}
 	else if (strEquals(sType, TYPE_SHAPE))
 		{
