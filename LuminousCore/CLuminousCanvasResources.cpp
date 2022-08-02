@@ -6,6 +6,18 @@
 #include "pch.h"
 #include "LuminousHTMLCanvas.h"
 
+void CLuminousCanvasResources::AddNamedResource (const CString& sName, CDatum dResource, SequenceNumber Seq)
+
+//	AddNamedResource
+//
+//	Adds a named resource.
+
+	{
+	auto pEntry = m_NamedResources.SetAt(sName);
+	pEntry->dResource = dResource;
+	pEntry->Seq = Seq;
+	}
+
 void CLuminousCanvasResources::AddResource (const ILuminousGraphic& Graphic, CDatum dResource)
 
 //	AddResource
@@ -15,6 +27,20 @@ void CLuminousCanvasResources::AddResource (const ILuminousGraphic& Graphic, CDa
 	{
 	auto pEntry = m_Table.SetAt(Graphic.GetID());
 	*pEntry = dResource;
+	}
+
+int CLuminousCanvasResources::FindNamedResource (const CString& sName) const
+
+//	FindNamedResource
+//
+//	Looks for the named resource. Returns -1 if not found.
+
+	{
+	int iPos;
+	if (!m_NamedResources.FindPos(sName, &iPos))
+		return -1;
+
+	return iPos;
 	}
 
 CDatum CLuminousCanvasResources::GetResource (const ILuminousGraphic& Graphic) const
@@ -40,4 +66,7 @@ void CLuminousCanvasResources::Mark ()
 	{
 	for (int i = 0; i < m_Table.GetCount(); i++)
 		m_Table[i].Mark();
+
+	for (int i = 0; i < m_NamedResources.GetCount(); i++)
+		m_NamedResources[i].dResource.Mark();
 	}

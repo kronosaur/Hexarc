@@ -304,6 +304,7 @@ class ILuminousGraphic : public ILuminousElement
 			BeginUpdate,					//	Marker to indicate start of frame
 			ClearRect,						//	Clear a rect on the canvas
 			Image,							//	Draw an image
+			Resource,						//	Draw a resource
 			Shape,							//	A path filled or stroked (or both).
 			};
 
@@ -314,6 +315,7 @@ class ILuminousGraphic : public ILuminousElement
 		const CRGBA32Image& GetImage () const { return OnGetImage(); }
 		const CLuminousLineStyle& GetLineStyle () const { return OnGetLineStyle(); }
 		const CVector2D& GetPos () const { return m_vPos; }
+		const CString& GetResource () const { return OnGetResource(); }
 		double GetRotation () const { return m_rRotation; }
 		const CVector2D& GetScale () const { return m_vScale; }
 		const CLuminousShadowStyle& GetShadowStyle () const { return OnGetShadowStyle(); }
@@ -328,6 +330,7 @@ class ILuminousGraphic : public ILuminousElement
 		virtual const CLuminousFillStyle& OnGetFillStyle () const { return CLuminousFillStyle::Null; }
 		virtual const CRGBA32Image& OnGetImage () const { return CRGBA32Image::Null(); }
 		virtual const CLuminousLineStyle& OnGetLineStyle () const { return CLuminousLineStyle::Null; }
+		virtual const CString& OnGetResource () const { return NULL_STR; }
 		virtual const CLuminousShadowStyle& OnGetShadowStyle () const { return CLuminousShadowStyle::Null; }
 		virtual const CLuminousPath2D& OnGetShapePath () const { return CLuminousPath2D::Null; }
 		virtual EType OnGetType () const { return EType::None; }
@@ -372,6 +375,7 @@ class CLuminousCanvasModel
 		static TUniquePtr<ILuminousGraphic> CreateBeginUpdate (const CString& sName = NULL_STR);
 		static TUniquePtr<ILuminousGraphic> CreateClearRect (const CVector2D& vUL, const CVector2D& vLR, const CString& sName = NULL_STR);
 		static TUniquePtr<ILuminousGraphic> CreateImage (const CRGBA32Image& ImageRef, const CString& sName = NULL_STR);
+		static TUniquePtr<ILuminousGraphic> CreateResource (const CString& sResourceID, const CString& sName = NULL_STR);
 		static TUniquePtr<ILuminousGraphic> CreateShape (const SShapeOptions& Options, const CString& sName = NULL_STR);
 
 		void DeleteAll ();

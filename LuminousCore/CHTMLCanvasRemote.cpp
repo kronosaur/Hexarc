@@ -214,6 +214,18 @@ CDatum CHTMLCanvasRemote::CmdDrawImage (CDatum dImage, double x, double y)
 	return dResult;
 	}
 
+CDatum CHTMLCanvasRemote::CmdDrawResource (const CString& sResourceID, double x, double y)
+	{
+	CDatum dResult(CDatum::typeArray);
+	dResult.Append((int)ECommand::drawResource);
+	dResult.Append(sResourceID);
+	dResult.Append(x);
+	dResult.Append(y);
+
+	return dResult;
+	}
+
+
 CDatum CHTMLCanvasRemote::CmdFill ()
 	{
 	return CDatum((int)ECommand::fill);
@@ -272,6 +284,16 @@ CDatum CHTMLCanvasRemote::CmdMoveTo (double x, double y)
 	dResult.Append((int)ECommand::moveTo);
 	dResult.Append((int)mathRound(x * 10.0));
 	dResult.Append((int)mathRound(y * 10.0));
+
+	return dResult;
+	}
+
+CDatum CHTMLCanvasRemote::CmdSetResource (const CString& sName, CDatum dResource, SequenceNumber Seq)
+	{
+	CDatum dResult(CDatum::typeArray);
+	dResult.Append((int)ECommand::setResource);
+	dResult.Append(sName);
+	dResult.Append(dResource);
 
 	return dResult;
 	}
@@ -347,6 +369,19 @@ CDatum CHTMLCanvasRemote::RenderAsHTMLCanvasCommands (const CLuminousCanvasModel
 	{
 	CDatum dResult(CDatum::typeArray);
 
+	//	Output shared resources
+
+	for (int i = 0; i < Resources.GetNamedResourceCount(); i++)
+		{
+		SequenceNumber ResSeq = Resources.GetNamedResourceSeq(i);
+		if (ResSeq <= Seq)
+			continue;
+
+		dResult.Append(CmdSetResource(Resources.GetNamedResourceName(i), Resources.GetNamedResource(i), ResSeq));
+		}
+
+	//	Output commands
+
 	CLuminousPath2D CurPath;
 	CLuminousFillStyle CurFillStyle;
 	CLuminousLineStyle CurLineStyle;
@@ -384,6 +419,16 @@ CDatum CHTMLCanvasRemote::RenderAsHTMLCanvasCommands (const CLuminousCanvasModel
 					CDatum dImage = Resources.GetResource(Graphic);
 
 					dResult.Append(CmdDrawImage(dImage, vPos.X(), vPos.Y()));
+					}
+				break;
+
+			case ILuminousGraphic::EType::Resource:
+				if (Graphic.GetSeq() > Seq)
+					{
+					auto& vPos = Graphic.GetPos();
+					const CString& sResourceID = Graphic.GetResource();
+
+					dResult.Append(CmdDrawResource(sResourceID, vPos.X(), vPos.Y()));
 					}
 				break;
 
@@ -440,7 +485,6 @@ CDatum CHTMLCanvasRemote::RenderAsHTMLCanvasCommands (const CLuminousCanvasModel
 			default:
 				throw CException(errFail);
 			}
-
 		}
 
 	return dResult;

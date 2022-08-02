@@ -39,6 +39,8 @@ DECLARE_CONST_STRING(TYPE_SOLID,					"solid");
 DECLARE_CONST_STRING(TYPENAME_LUMINOUS_CANVAS,		"luminousCanvas");
 
 DECLARE_CONST_STRING(ERR_INVALID_SPRITE_DESC,		"Invalid sprite descriptor.");
+DECLARE_CONST_STRING(ERR_INVALID_RESOURCE_NAME,		"Invalid resource name.");
+DECLARE_CONST_STRING(ERR_RESOURCE_NOT_FOUND,		"Unable to find canvas resource: %s.");
 
 TDatumPropertyHandler<CAEONLuminousCanvas> CAEONLuminousCanvas::m_Properties = {
 	{
@@ -181,13 +183,31 @@ TDatumMethodHandler<CAEONLuminousCanvas> CAEONLuminousCanvas::m_Methods = {
 
 			Obj.OnModify();
 
-			auto& Graphic = Obj.m_Model.InsertGraphic(CLuminousCanvasModel::CreateImage(dImage));
-			Graphic.SetPos(CVector2D(x, y));
+			if (!((const CRGBA32Image&)dImage).IsEmpty())
+				{
+				auto& Graphic = Obj.m_Model.InsertGraphic(CLuminousCanvasModel::CreateImage(dImage));
+				Graphic.SetPos(CVector2D(x, y));
 
-			Obj.m_Resources.AddResource(Graphic, dImage);
+				Obj.m_Resources.AddResource(Graphic, dImage);
 
-			retdResult = CDatum(true);
-			return true;
+				retdResult = CDatum(true);
+				return true;
+				}
+			else
+				{
+				const CString& sResourceID = dImage;
+				if (Obj.m_Resources.FindNamedResource(sResourceID) == -1)
+					{
+					retdResult = strPattern(ERR_RESOURCE_NOT_FOUND, sResourceID);
+					return false;
+					}
+
+				auto& Graphic = Obj.m_Model.InsertGraphic(CLuminousCanvasModel::CreateResource(sResourceID));
+				Graphic.SetPos(CVector2D(x, y));
+
+				retdResult = CDatum(true);
+				return true;
+				}
 			},
 		},
 	{
@@ -325,6 +345,28 @@ TDatumMethodHandler<CAEONLuminousCanvas> CAEONLuminousCanvas::m_Methods = {
 			CDatum dStyle = dLocalEnv.GetElement(1);
 
 			Obj.m_DrawCtx.Line().SetColor(CLuminousColor(CRGBA32::Parse(dStyle.AsString())));
+
+			retdResult = CDatum(true);
+			return true;
+			},
+		},
+	{
+		"setResource",
+		"*",
+		".setResource(name, image) -> true/null",
+		0,
+		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+			{
+			const CString& sName = dLocalEnv.GetElement(1);
+			CDatum dResource = dLocalEnv.GetElement(2);
+
+			if (sName.IsEmpty())
+				{
+				retdResult = ERR_INVALID_RESOURCE_NAME;
+				return false;
+				}
+
+			Obj.m_Resources.AddNamedResource(sName, dResource);
 
 			retdResult = CDatum(true);
 			return true;

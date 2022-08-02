@@ -36,6 +36,17 @@ TUniquePtr<ILuminousGraphic> CLuminousCanvasModel::CreateImage (const CRGBA32Ima
 	return TUniquePtr<ILuminousGraphic>(new CImageGraphic(0, sName, ImageRef));
 	}
 
+TUniquePtr<ILuminousGraphic> CLuminousCanvasModel::CreateResource (const CString& sResourceID, const CString& sName)
+
+//	CreateResource
+//
+//	Creates an resource shape. Callers must guarantee that the image reference is
+//	valid for the lifetime of the canvas model.
+
+	{
+	return TUniquePtr<ILuminousGraphic>(new CResourceGraphic(0, sName, sResourceID));
+	}
+
 TUniquePtr<ILuminousGraphic> CLuminousCanvasModel::CreateShape (const SShapeOptions& Options, const CString& sName)
 
 //	CreateShape

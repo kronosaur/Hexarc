@@ -55,6 +55,22 @@ class CMetaCommandGraphic : public ILuminousGraphic
 		EType m_iType = EType::None;
 	};
 
+class CResourceGraphic : public ILuminousGraphic
+	{
+	public:
+
+		CResourceGraphic (DWORD dwID, const CString& sName, const CString& sResourceID) : ILuminousGraphic(dwID, sName),
+				m_sResourceID(sResourceID)
+			{ }
+
+	private:
+
+		virtual const CString& OnGetResource () const { return m_sResourceID; }
+		virtual EType OnGetType () const { return EType::Resource; }
+
+		CString m_sResourceID;
+	};
+
 class CShapeGraphic : public ILuminousGraphic
 	{
 	public:

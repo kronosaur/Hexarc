@@ -13,13 +13,26 @@ class CLuminousCanvasResources
 	{
 	public:
 
+		void AddNamedResource (const CString& sName, CDatum dResource, SequenceNumber Seq = 1);
 		void AddResource (const ILuminousGraphic& Graphic, CDatum dResource);
+		int FindNamedResource (const CString& sName) const;
+		CDatum GetNamedResource (int iIndex) const { if (iIndex >= 0 && iIndex < m_NamedResources.GetCount()) return m_NamedResources[iIndex].dResource; else throw CException(errFail); }
+		int GetNamedResourceCount () const { return m_NamedResources.GetCount(); }
+		const CString& GetNamedResourceName (int iIndex) const { if (iIndex >= 0 && iIndex < m_NamedResources.GetCount()) return m_NamedResources.GetKey(iIndex); else throw CException(errFail); }
+		SequenceNumber GetNamedResourceSeq (int iIndex) const { if (iIndex >= 0 && iIndex < m_NamedResources.GetCount()) return m_NamedResources[iIndex].Seq; else throw CException(errFail); }
 		CDatum GetResource (const ILuminousGraphic& Graphic) const;
 		void Mark ();
 
 	private:
 
+		struct SNamedEntry
+			{
+			CDatum dResource;
+			SequenceNumber Seq = 0;
+			};
+
 		TSortMap<DWORD, CDatum> m_Table;
+		TSortMap<CString, SNamedEntry> m_NamedResources;
 	};
 
 class CHTMLCanvasRemote
@@ -76,6 +89,8 @@ class CHTMLCanvasRemote
 			//	Image Drawing
 
 			drawImage =				600,
+			setResource =			601,
+			drawResource =			602,
 
 			//	Internals
 
@@ -89,12 +104,14 @@ class CHTMLCanvasRemote
 		static CDatum CmdClearRect (double x, double y, double cxWidth, double cyHeight);
 		static CDatum CmdClosePath ();
 		static CDatum CmdDrawImage (CDatum dImage, double x, double y);
+		static CDatum CmdDrawResource (const CString& sResourceID, double x, double y);
 		static CDatum CmdFill ();
 		static CDatum CmdFillRect (double x, double y, double cxWidth, double cyHeight);
 		static CDatum CmdFillStyle (const CString &sStyle);
 		static CDatum CmdLineTo (double x, double y);
 		static CDatum CmdLineWidth (double rWidth);
 		static CDatum CmdMoveTo (double x, double y);
+		static CDatum CmdSetResource (const CString& sName, CDatum dResource, SequenceNumber Seq);
 		static CDatum CmdStroke ();
 		static CDatum CmdStrokeStyle (const CString &sStyle);
 
