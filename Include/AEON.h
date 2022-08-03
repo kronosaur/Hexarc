@@ -605,7 +605,7 @@ class CComplexStruct : public IComplexDatum
 		void DeleteElement (const CString &sKey) { OnCopyOnWrite(); m_Map.DeleteAt(sKey); }
 
 		//	IComplexDatum
-		virtual void Append (CDatum dDatum) override { OnCopyOnWrite(); AppendStruct(dDatum); }
+		virtual void Append (CDatum dDatum) override { AppendStruct(dDatum); }
 		virtual CString AsString () const override;
 		virtual size_t CalcMemorySize () const override;
 		virtual IComplexDatum *Clone (CDatum::EClone iMode) const override;
