@@ -369,6 +369,24 @@ CDatum CHTMLCanvasRemote::RenderAsHTMLCanvasCommands (const CLuminousCanvasModel
 	{
 	CDatum dResult(CDatum::typeArray);
 
+	int iStart = 0;
+
+	//	If the first entry is a BeginUpdate, then we need to emit it first
+	//	(because the client relies on it to figure out whether to replace or
+	//	append the command stream).
+
+	if (Model.GetRenderCount() > 0)
+		{
+		auto &Graphic = Model.GetRenderGraphic(0);
+		if (Graphic.GetType() == ILuminousGraphic::EType::BeginUpdate)
+			{
+			if (Graphic.GetSeq() > Seq)
+				dResult.Append(CmdBeginUpdate());
+
+			iStart = 1;
+			}
+		}
+
 	//	Output shared resources
 
 	for (int i = 0; i < Resources.GetNamedResourceCount(); i++)
@@ -387,7 +405,7 @@ CDatum CHTMLCanvasRemote::RenderAsHTMLCanvasCommands (const CLuminousCanvasModel
 	CLuminousLineStyle CurLineStyle;
 	CLuminousShadowStyle CurShadowStyle;
 
-	for (int i = 0; i < Model.GetRenderCount(); i++)
+	for (int i = iStart; i < Model.GetRenderCount(); i++)
 		{
 		auto &Graphic = Model.GetRenderGraphic(i);
 
