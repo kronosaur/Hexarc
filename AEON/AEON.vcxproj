@@ -187,6 +187,7 @@
     <ClCompile Include="AEONScript.cpp" />
     <ClCompile Include="CAEONFactoryList.cpp" />
     <ClCompile Include="CAEONPolygon2D.cpp" />
+    <ClCompile Include="CAEONQuery.cpp" />
     <ClCompile Include="CAEONStore.cpp" />
     <ClCompile Include="CAEONTable.cpp" />
     <ClCompile Include="CAEONTableIndex.cpp" />

@@ -62,6 +62,7 @@ class IAEONTable
 		virtual SequenceNumber GetSeq () const { return 0; }
 		virtual EResult InsertColumn (const CString& sName, CDatum dType, CDatum dValues = CDatum(), int iPos = -1, int *retiCol = NULL) { return EResult::NotImplemented; }
 		virtual bool IsSameSchema (CDatum dSchema) const { return false; }
+		virtual CDatum Query (const CAEONQuery& Expr) const { return CDatum(); }
 		virtual bool SetFieldValue (int iRow, int iCol, CDatum dValue) { return false; }
 		virtual void SetSeq (SequenceNumber Seq) { }
 		virtual EResult SetRow (int iRow, CDatum dRow) { return EResult::NotImplemented; }

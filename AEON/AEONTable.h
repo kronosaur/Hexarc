@@ -51,6 +51,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual SequenceNumber GetSeq () const override { return m_Seq; }
 		virtual EResult InsertColumn (const CString& sName, CDatum dType, CDatum dValues = CDatum(), int iPos = -1, int *retiCol = NULL) override;
 		virtual bool IsSameSchema (CDatum dSchema) const override;
+		virtual CDatum Query (const CAEONQuery& Expr) const override;
 		virtual bool SetFieldValue (int iRow, int iCol, CDatum dValue) override;
 		virtual void SetSeq (SequenceNumber Seq) override { m_Seq = Seq; }
 		virtual EResult SetRow (int iRow, CDatum dRow) override;
@@ -200,3 +201,62 @@ class CAEONTableRef : public IComplexDatum, public IAEONTable
 		friend class CAEONScriptParser;
 	};
 
+class CAEONTableProcessor
+	{
+	public:
+		CAEONTableProcessor (CDatum dSchema, const CAEONQuery& Expr);
+
+		CDatum Eval (const IAEONTable& Table) const;
+		bool Eval (const IAEONTable& Table, int iRow) const;
+
+	private:
+
+		enum class EOp
+			{
+			None,
+
+			EqualTo,
+			GreaterThan,
+			GreaterThanOrEqualTo,
+			In,
+			LessThan,
+			LessThanOrEqualTo,
+
+			And,
+			Or,
+			};
+
+		enum class EParamType
+			{
+			None,
+
+			True,
+			False,
+			Literal,						//	dValue is value.
+			Field,							//	iValue is field index.
+			Op,								//	iValue is index in m_Code.
+			};
+
+		struct SParam
+			{
+			EParamType iType = EParamType::None;
+			CDatum dValue;
+			int iValue = 0;
+			};
+
+		struct SEntry
+			{
+			EOp iOp = EOp::None;
+
+			SParam Left;
+			SParam Right;
+			};
+
+		void Compile (CDatum dSchema, const CAEONQuery& Expr);
+
+		CDatum m_dSchema;
+		const CAEONQuery& m_Expr;
+
+		TArray<SEntry> m_Code;
+		int m_iStart = -1;
+	};

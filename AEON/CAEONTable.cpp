@@ -1009,6 +1009,17 @@ void CAEONTable::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) 
 	pStruct->SetElement(FIELD_COLUMNS, dCols);
 	}
 
+CDatum CAEONTable::Query (const CAEONQuery& Expr) const
+
+//	Query
+//
+//	Returns the set of rows that matches the given query.
+
+	{
+	//	LATER
+	return CDatum();
+	}
+
 void CAEONTable::ResolveDatatypes (const CAEONTypeSystem &TypeSystem)
 
 //	ResovleDatatypes

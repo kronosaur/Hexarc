@@ -18,6 +18,7 @@
 //#define DEBUG_BLOB_PERF
 #endif
 
+class CAEONQuery;
 class CAEONTypeSystem;
 class CComplexStruct;
 class CNumberValue;
@@ -115,6 +116,7 @@ class CDatum
 			typeTimeSpan =		17,	
 			typeNaN =			18,
 			typeVector2D =		19,
+			typeQuery =			20,
 
 			typeCustom =		100,
 			};
@@ -276,6 +278,7 @@ class CDatum
 		const IAEONCanvas *GetCanvasInterface () const { return const_cast<CDatum *>(this)->GetCanvasInterface(); }
 		CRGBA32Image *GetImageInterface ();
 		CRGBA32Image &GetImageInterfaceOrThrow () { auto pValue = GetImageInterface(); if (!pValue) throw CException(errFail); else return *pValue; }
+		const CAEONQuery* GetQueryInterface () const;
 		IAEONTable *GetTableInterface ();
 		const IAEONTable *GetTableInterface () const { return const_cast<CDatum *>(this)->GetTableInterface(); }
 
@@ -393,6 +396,7 @@ class IComplexDatum
 		virtual CString GetKey (int iIndex) const { return NULL_STR; }
 		virtual CDatum GetMethod (const CString &sMethod) const { return CDatum(); }
 		virtual CDatum::Types GetNumberType (int *retiValue) { return CDatum::typeNaN; }
+		virtual const CAEONQuery* GetQueryInterface () const { return NULL; }
 		virtual IAEONTable *GetTableInterface () { return NULL; }
 		virtual const CString &GetTypename () const = 0;
 		virtual void GrowToFit (int iCount) { }
