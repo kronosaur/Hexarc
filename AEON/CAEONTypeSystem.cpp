@@ -7,6 +7,7 @@
 
 DECLARE_CONST_STRING(FIELD_DATATYPE,					"datatype");
 DECLARE_CONST_STRING(FIELD_DESCRIPTION,					"description");
+DECLARE_CONST_STRING(FIELD_KEY_COLUMN,					"keyColumn");
 DECLARE_CONST_STRING(FIELD_LABEL,						"label");
 DECLARE_CONST_STRING(FIELD_NAME,						"name");
 
@@ -171,10 +172,11 @@ IDatatype *CAEONTypeSystem::CreateSchemaTable ()
 
 	IDatatype *pNewType = new CDatatypeSchema(CDatatypeSchema::SCreate({ sFullyQualifiedName, { CAEONTypeSystem::GetCoreType(IDatatype::TABLE) }, IDatatype::SCHEMA_TABLE }));
 
-	pNewType->AddMember(FIELD_NAME, IDatatype::EMemberType::InstanceVar, GetCoreType(IDatatype::STRING));
+	pNewType->AddMember(FIELD_NAME, IDatatype::EMemberType::InstanceKeyVar, GetCoreType(IDatatype::STRING));
 	pNewType->AddMember(FIELD_DATATYPE, IDatatype::EMemberType::InstanceVar, GetCoreType(IDatatype::DATATYPE));
 	pNewType->AddMember(FIELD_LABEL, IDatatype::EMemberType::InstanceVar, GetCoreType(IDatatype::STRING));
 	pNewType->AddMember(FIELD_DESCRIPTION, IDatatype::EMemberType::InstanceVar, GetCoreType(IDatatype::STRING));
+	pNewType->AddMember(FIELD_KEY_COLUMN, IDatatype::EMemberType::InstanceVar, GetCoreType(IDatatype::BOOL));
 
 	return pNewType;
 	}
