@@ -51,6 +51,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual bool FindCol (const CString &sName, int *retiCol = NULL) const override;
 		virtual bool FindRowByID (CDatum dValue, int *retiRow = NULL) const override;
 		virtual CDatum GetCol (int iIndex) const override { return ((iIndex >= 0 && iIndex < m_Cols.GetCount()) ? m_Cols[iIndex] : CDatum()); }
+		virtual CDatum GetCol (CAEONTypeSystem& TypeSystem, CDatum dColName) const override;
 		virtual int GetColCount () const override;
 		virtual CString GetColName (int iCol) const override;
 		virtual CDatum GetDataSlice (int iFirstRow, int iRowCount) const override;
@@ -151,6 +152,7 @@ class CAEONTableRef : public IComplexDatum, public IAEONTable
 		virtual EResult DeleteAllRows () override { return EResult::NotMutable; }
 		virtual bool FindCol (const CString& sName, int *retiCol = NULL) const override;
 		virtual CDatum GetCol (int iIndex) const override { return GetColRef(iIndex); }
+		virtual CDatum GetCol (CAEONTypeSystem& TypeSystem, CDatum dColName) const override;
 		virtual int GetColCount () const override { return m_Cols.GetCount(); }
 		virtual CString GetColName (int iCol) const override;
 		virtual CDatum GetDataSlice (int iFirstRow, int iRowCount) const override;

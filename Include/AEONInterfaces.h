@@ -54,6 +54,7 @@ class IAEONTable
 		bool FindRow (int iCol, CDatum dValue, int *retiRow = NULL) const;
 		virtual bool FindRowByID (CDatum dValue, int *retiRow = NULL) const { return false; }
 		virtual CDatum GetCol (int iIndex) const { return CDatum(); }
+		virtual CDatum GetCol (CAEONTypeSystem& TypeSystem, CDatum dColName) const { return CDatum(); }
 		virtual int GetColCount () const { return 0; }
 		virtual CString GetColName (int iCol) const { return NULL_STR; }
 		virtual CDatum GetDataSlice (int iFirstRow, int iRowCount) const { return CDatum(); }

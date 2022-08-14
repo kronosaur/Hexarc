@@ -620,6 +620,67 @@ bool CAEONTable::FindRowByID (CDatum dValue, int *retiRow) const
 	return true;
 	}
 
+CDatum CAEONTable::GetCol (CAEONTypeSystem& TypeSystem, CDatum dColName) const
+
+//	GetCol
+//
+//	Returns a column. dColName can be either a column name or an array of
+//	column names.
+
+	{
+	int iIndex;
+
+	if (dColName.IsNil())
+		return CDatum();
+	else if (dColName.IsNumberInt32(&iIndex))
+		{
+		if (iIndex >= 0 && iIndex < m_Cols.GetCount())
+			return m_Cols[iIndex];
+		else
+			return CDatum();
+		}
+	else if (dColName.IsContainer())
+		{
+		IAEONTable::SSubset Subset;
+		Subset.bAllRows = true;
+
+		if (dColName.GetCount() == 0)
+			{ }
+		else if (dColName.GetElement(0).IsNumberInt32())
+			{
+			for (int i = 0; i < dColName.GetCount(); i++)
+				{
+				int iCol = dColName.GetElement(i);
+				if (iCol >= 0 && iCol < m_Cols.GetCount() && !Subset.Cols.Find(iCol))
+					Subset.Cols.Insert(iCol);
+				}
+			}
+		else
+			{
+			for (int i = 0; i < dColName.GetCount(); i++)
+				{
+				int iCol;
+				if (FindCol(dColName.GetElement(i).AsString(), &iCol)
+						&& !Subset.Cols.Find(iCol))
+					Subset.Cols.Insert(iCol);
+				}
+			}
+
+		//	Create the subset
+
+		CDatum dResult;
+
+		if (!IAEONTable::CreateRef(TypeSystem, CDatum::raw_AsComplex(this), std::move(Subset), dResult))
+			return CDatum();
+
+		return dResult;
+		}
+	else if (FindCol(dColName.AsString(), &iIndex))
+		return m_Cols[iIndex];
+	else
+		return CDatum();
+	}
+
 int CAEONTable::GetColCount () const
 
 //	GetColCount
