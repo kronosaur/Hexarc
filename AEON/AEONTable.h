@@ -9,8 +9,16 @@ class CAEONTableIndex
 	{
 	public:
 
+		enum class EFindResult
+			{
+			Added,
+			Found,
+			};
+
 		void Add (CDatum dTable, int iRow);
 		int Find (CDatum dTable, CDatum dValue) const;
+		EFindResult FindOrAdd (CDatum dTable, CDatum dKey, int iNewRow, int *retiRow = NULL);
+		CDatum GetValueFromKey (CDatum dTable, CDatum dKey, const CString& sCol) const;
 		void Init (CDatum dTable, const TArray<int>& Cols);
 		void Remove (CDatum dTable, int iRow);
 
@@ -49,12 +57,14 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual CDatum GetFieldValue (int iRow, int iCol) const override;
 		virtual int GetRowCount () const override;
 		virtual SequenceNumber GetSeq () const override { return m_Seq; }
+		virtual bool HasKeys () const override { return m_bHasIndex; }
 		virtual EResult InsertColumn (const CString& sName, CDatum dType, CDatum dValues = CDatum(), int iPos = -1, int *retiCol = NULL) override;
 		virtual bool IsSameSchema (CDatum dSchema) const override;
 		virtual CDatum Query (const CAEONQuery& Expr) const override;
 		virtual bool SetFieldValue (int iRow, int iCol, CDatum dValue) override;
-		virtual void SetSeq (SequenceNumber Seq) override { m_Seq = Seq; }
 		virtual EResult SetRow (int iRow, CDatum dRow) override;
+		virtual EResult SetRowByID (CDatum dKey, CDatum dRow, int *retiRow = NULL) override;
+		virtual void SetSeq (SequenceNumber Seq) override { m_Seq = Seq; }
 
 		//	IComplexDatum
 

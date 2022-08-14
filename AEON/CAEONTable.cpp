@@ -1183,6 +1183,86 @@ IAEONTable::EResult CAEONTable::SetRow (int iRow, CDatum dRow)
 	return EResult::OK;
 	}
 
+IAEONTable::EResult CAEONTable::SetRowByID (CDatum dKey, CDatum dRow, int *retiRow)
+
+//	SetRowByID
+//
+//	Sets the row by key.
+
+	{
+	OnModify();
+
+	GetIndex();
+	if (!m_pPrimaryIndex)
+		return IAEONTable::EResult::NotImplemented;
+
+	int iRow;
+	auto iResult = m_pPrimaryIndex->FindOrAdd(CDatum::raw_AsComplex(this), dKey, GetRowCount(), &iRow);
+
+	if (iResult == CAEONTableIndex::EFindResult::Added)
+		AppendEmptyRow();
+
+	//	Loop over all columns and set them appropriately.
+
+	const IDatatype &Schema = m_dSchema;
+	for (int i = 0; i < Schema.GetMemberCount(); i++)
+		{
+		auto ColumnDesc = Schema.GetMember(i);
+
+		CDatum dValue;
+
+		//	If this is a key column, then the value comes from the dKey param.
+
+		if (ColumnDesc.iType == IDatatype::EMemberType::InstanceKeyVar)
+			{
+			//	If we're not adding a new row, then we can skip this because the
+			//	key is already set.
+
+			if (iResult != CAEONTableIndex::EFindResult::Added)
+				continue;
+
+			//	Get the value from the key.
+
+			dValue = m_pPrimaryIndex->GetValueFromKey(CDatum::raw_AsComplex(this), dKey, ColumnDesc.sName);
+			}
+		else
+			{
+			//	Look for the value in the row. We do this manually because we
+			//	need to distinguish between a missing value and a null value.
+
+			bool bFound = false;
+			for (int iEntry = 0; iEntry < dRow.GetCount(); iEntry++)
+				{
+				if (strEqualsNoCase(dRow.GetKey(iEntry), ColumnDesc.sName))
+					{
+					dValue = dRow.GetElement(iEntry);
+					bFound = true;
+					break;
+					}
+				}
+
+			if (!bFound)
+				continue;
+			}
+
+		//	Make sure we're not trying to add ourselves.
+
+		TArray<IComplexDatum *> Checked1;
+		TArray<IComplexDatum *> Checked2;
+		if (dValue.Contains(CDatum::raw_AsComplex(this), Checked1) || dValue.Contains(m_Cols[i], Checked2))
+			dValue = CDatum();
+
+		//	Add it
+
+		m_Cols[i].SetElement(iRow, dValue);
+		}
+
+	if (retiRow)
+		*retiRow = iRow;
+
+	return IAEONTable::EResult::OK;
+	}
+
 void CAEONTable::SetSchema (CDatum dSchema)
 
 //	SetSchema

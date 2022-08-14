@@ -60,12 +60,14 @@ class IAEONTable
 		virtual CDatum GetFieldValue (int iRow, int iCol) const { return CDatum(); }
 		virtual int GetRowCount () const { return 0; }
 		virtual SequenceNumber GetSeq () const { return 0; }
+		virtual bool HasKeys () const { return false; }
 		virtual EResult InsertColumn (const CString& sName, CDatum dType, CDatum dValues = CDatum(), int iPos = -1, int *retiCol = NULL) { return EResult::NotImplemented; }
 		virtual bool IsSameSchema (CDatum dSchema) const { return false; }
 		virtual CDatum Query (const CAEONQuery& Expr) const { return CDatum(); }
 		virtual bool SetFieldValue (int iRow, int iCol, CDatum dValue) { return false; }
-		virtual void SetSeq (SequenceNumber Seq) { }
 		virtual EResult SetRow (int iRow, CDatum dRow) { return EResult::NotImplemented; }
+		virtual EResult SetRowByID (CDatum dKey, CDatum dRow, int *retiRow = NULL) { return EResult::NotImplemented; }
+		virtual void SetSeq (SequenceNumber Seq) { }
 
 		static CDatum CreateColumn (CDatum dType);
 		static bool CreateRef (CAEONTypeSystem& TypeSystem, CDatum dTable, SSubset&& Subset, CDatum& retdValue);

@@ -105,6 +105,35 @@ int CAEONTableIndex::Find (CDatum dTable, CDatum dValue) const
 	return *pRow;
 	}
 
+CAEONTableIndex::EFindResult CAEONTableIndex::FindOrAdd (CDatum dTable, CDatum dKey, int iNewRow, int *retiRow)
+
+//	FindOrAdd
+//
+//	Looks for the given key. If it exists, we return ::Found and retiRow is
+//	initialized with the row index. Otherwise, we try to add a new entry using
+//	iNewRow and return ::Added.
+
+	{
+	EFindResult iResult;
+
+	bool bAdded;
+	int* pRow = m_Index.SetAt(AsIndexKeyFromRow(dTable, dKey), &bAdded);
+	if (bAdded)
+		{
+		*pRow = iNewRow;
+		iResult = EFindResult::Added;
+		}
+	else
+		{
+		iResult = EFindResult::Found;
+		}
+
+	if (retiRow)
+		*retiRow = *pRow;
+
+	return iResult;
+	}
+
 CString CAEONTableIndex::GetIndexKey (const IAEONTable& Table, int iRow) const
 
 //	GetIndexKey
@@ -128,6 +157,41 @@ CString CAEONTableIndex::GetIndexKey (const IAEONTable& Table, int iRow) const
 		}
 	else
 		return NULL_STR;
+	}
+
+CDatum CAEONTableIndex::GetValueFromKey (CDatum dTable, CDatum dKey, const CString& sCol) const
+
+//	GetValueFromKey
+//
+//	Returns the column value from a key.
+
+	{
+	if (m_Cols.GetCount() == 1)
+		{
+		return dKey;
+		}
+	else if (m_Cols.GetCount() > 1)
+		{
+		if (dKey.IsArray())
+			{
+			const IDatatype& Schema = dTable.GetDatatype();
+			int iCol = Schema.FindMember(sCol);
+			if (iCol == -1)
+				return CDatum();
+
+			int iPos;
+			if (!m_Cols.Find(iCol, &iPos))
+				return CDatum();
+
+			return dKey.GetElement(iPos);
+			}
+		else
+			{
+			return dKey.GetElement(sCol);
+			}
+		}
+	else
+		return CDatum();
 	}
 
 void CAEONTableIndex::Init (CDatum dTable, const TArray<int>& Cols)
