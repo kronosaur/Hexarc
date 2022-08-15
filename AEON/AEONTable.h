@@ -15,6 +15,15 @@ class CAEONTableIndex
 			Found,
 			};
 
+		enum class EType
+			{
+			None,							//	No index
+
+			SingleInt32,					//	Single column, Int32 index
+			Single,							//	Single column index
+			Multiple,						//	Multiple column index
+			};
+
 		void Add (CDatum dTable, int iRow);
 		int Find (CDatum dTable, CDatum dValue) const;
 		EFindResult FindOrAdd (CDatum dTable, CDatum dKey, int iNewRow, int *retiRow = NULL);
@@ -58,7 +67,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual CDatum GetFieldValue (int iRow, int iCol) const override;
 		virtual int GetRowCount () const override;
 		virtual SequenceNumber GetSeq () const override { return m_Seq; }
-		virtual bool HasKeys () const override { return m_bHasIndex; }
+		virtual bool HasKeys () const override { return m_iKeyType != CAEONTableIndex::EType::None; }
 		virtual EResult InsertColumn (const CString& sName, CDatum dType, CDatum dValues = CDatum(), int iPos = -1, int *retiCol = NULL) override;
 		virtual bool IsSameSchema (CDatum dSchema) const override;
 		virtual CDatum Query (const CAEONQuery& Expr) const override;
@@ -115,8 +124,10 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		static CDatum CalcColumnDatatype (CDatum dValue);
 		void CloneContents ();
 		const CAEONTableIndex& GetIndex () const;
+		CDatum GetElementAt_Indexed (CDatum dKey) const;
 		void OnModify ();
 		void SetSchema (CDatum dSchema);
+		void SetElementAt_Indexed (CDatum dKey, CDatum dRow);
 
 		int m_iRows = 0;
 		TArray<CDatum> m_Cols;
@@ -128,9 +139,9 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 
 		SequenceNumber m_Seq = 0;
 		bool m_bCopyOnWrite = false;
-		bool m_bHasIndex = false;
 
-		mutable TUniquePtr<CAEONTableIndex> m_pPrimaryIndex;
+		CAEONTableIndex::EType m_iKeyType = CAEONTableIndex::EType::None;
+		mutable TUniquePtr<CAEONTableIndex> m_pKeyIndex;
 
 		static TDatumPropertyHandler<CAEONTable> m_Properties;
 

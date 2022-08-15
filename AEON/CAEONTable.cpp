@@ -141,8 +141,8 @@ IAEONTable::EResult CAEONTable::AppendRow (CDatum dRow)
 
 	//	If we have an index, then update it.
 
-	if (m_pPrimaryIndex)
-		m_pPrimaryIndex->Add(CDatum::raw_AsComplex(this), m_iRows - 1);
+	if (m_pKeyIndex)
+		m_pKeyIndex->Add(CDatum::raw_AsComplex(this), m_iRows - 1);
 
 	//	Done
 
@@ -175,8 +175,8 @@ IAEONTable::EResult CAEONTable::AppendSlice (CDatum dSlice)
 			i++;
 			}
 
-		if (m_pPrimaryIndex)
-			m_pPrimaryIndex->Add(CDatum::raw_AsComplex(this), m_iRows + iRow);
+		if (m_pKeyIndex)
+			m_pKeyIndex->Add(CDatum::raw_AsComplex(this), m_iRows + iRow);
 		}
 
 	m_iRows += iRows;
@@ -567,8 +567,8 @@ IAEONTable::EResult CAEONTable::DeleteRow (int iRow)
 
 	OnModify();
 
-	if (m_pPrimaryIndex)
-		m_pPrimaryIndex->Remove(CDatum::raw_AsComplex(this), iRow);
+	if (m_pKeyIndex)
+		m_pKeyIndex->Remove(CDatum::raw_AsComplex(this), iRow);
 
 	for (int i = 0; i < m_Cols.GetCount(); i++)
 		m_Cols[i].DeleteElement(iRow);
@@ -763,7 +763,9 @@ CDatum CAEONTable::GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) con
 	{
 	int iIndex;
 
-	if (dIndex.IsNil())
+	if (m_iKeyType != CAEONTableIndex::EType::None)
+		return GetElementAt_Indexed(dIndex);
+	else if (dIndex.IsNil())
 		return CDatum();
 	else if (dIndex.IsNumberInt32(&iIndex))
 		return GetElement(iIndex);
@@ -811,6 +813,41 @@ CDatum CAEONTable::GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) con
 		return CDatum();
 	}
 
+CDatum CAEONTable::GetElementAt_Indexed (CDatum dKey) const
+
+//	GetElementAt_Indexed
+//
+//	Indexed tables (tables with one or more key columns) use a different method
+//	for subscript indexing.
+
+	{
+	int iIndex;
+
+	if (m_iKeyType == CAEONTableIndex::EType::None)
+		{
+		return CDatum();
+		}
+
+	else if (m_iKeyType == CAEONTableIndex::EType::SingleInt32
+			&& dKey.IsNumberInt32(&iIndex))
+		{
+		return GetElement(iIndex);
+		}
+	else
+		{
+		if (dKey.IsNil())
+			return CDatum();
+		else if (dKey.IsNumberInt32(&iIndex))
+			return GetElement(iIndex);
+
+		int iRow;
+		if (!FindRowByID(dKey, &iRow))
+			return CDatum();
+
+		return GetElement(iRow);
+		}
+	}
+
 CDatum CAEONTable::GetFieldValue (int iRow, int iCol) const
 
 //	GetFieldValue
@@ -836,12 +873,12 @@ const CAEONTableIndex& CAEONTable::GetIndex () const
 	{
 	//	If we already have an index, then return it (we assume it is updated).
 
-	if (m_pPrimaryIndex)
-		return *m_pPrimaryIndex;
+	if (m_pKeyIndex)
+		return *m_pKeyIndex;
 
 	//	If we don't have primary key columns, then we don't have an index.
 
-	if (!m_bHasIndex)
+	if (m_iKeyType == CAEONTableIndex::EType::None)
 		return CAEONTableIndex::Null;
 
 	//	Get the primary keys and create the index.
@@ -851,10 +888,10 @@ const CAEONTableIndex& CAEONTable::GetIndex () const
 	if (!Schema.GetKeyMembers(PrimaryKeys))
 		return CAEONTableIndex::Null;
 
-	m_pPrimaryIndex.Set(new CAEONTableIndex);
-	m_pPrimaryIndex->Init(CDatum::raw_AsComplex(this), PrimaryKeys);
+	m_pKeyIndex.Set(new CAEONTableIndex);
+	m_pKeyIndex->Init(CDatum::raw_AsComplex(this), PrimaryKeys);
 
-	return *m_pPrimaryIndex;
+	return *m_pKeyIndex;
 	}
 
 int CAEONTable::GetRowCount () const
@@ -1111,8 +1148,8 @@ void CAEONTable::SetElement (int iIndex, CDatum dDatum)
 
 	OnModify();
 
-	if (m_pPrimaryIndex)
-		m_pPrimaryIndex->Remove(CDatum::raw_AsComplex(this), iIndex);
+	if (m_pKeyIndex)
+		m_pKeyIndex->Remove(CDatum::raw_AsComplex(this), iIndex);
 
 	const IDatatype &Schema = m_dSchema;
 	for (int i = 0; i < Schema.GetMemberCount(); i++)
@@ -1123,8 +1160,8 @@ void CAEONTable::SetElement (int iIndex, CDatum dDatum)
 		m_Cols[i].SetElement(iIndex, dValue);
 		}
 
-	if (m_pPrimaryIndex)
-		m_pPrimaryIndex->Add(CDatum::raw_AsComplex(this), iIndex);
+	if (m_pKeyIndex)
+		m_pKeyIndex->Add(CDatum::raw_AsComplex(this), iIndex);
 	}
 
 void CAEONTable::SetElementAt (CDatum dIndex, CDatum dDatum)
@@ -1138,7 +1175,9 @@ void CAEONTable::SetElementAt (CDatum dIndex, CDatum dDatum)
 
 	OnModify();
 
-	if (dIndex.IsNil())
+	if (m_iKeyType != CAEONTableIndex::EType::None)
+		SetElementAt_Indexed(dIndex, dDatum);
+	else if (dIndex.IsNil())
 		{ }
 	else if (dIndex.IsNumberInt32(&iIndex))
 		SetElement(iIndex, dDatum);
@@ -1176,8 +1215,31 @@ void CAEONTable::SetElementAt (CDatum dIndex, CDatum dDatum)
 			m_iRows += iExtraRows;
 			}
 
-		if (m_pPrimaryIndex)
-			m_pPrimaryIndex = NULL;
+		if (m_pKeyIndex)
+			m_pKeyIndex = NULL;
+		}
+	}
+
+void CAEONTable::SetElementAt_Indexed (CDatum dKey, CDatum dRow)
+
+//	SetElementAt_Indexed
+//
+//	Set an element at the given indexed position.
+
+	{
+	int iIndex;
+
+	if (m_iKeyType == CAEONTableIndex::EType::None)
+		{ } 
+
+	else if (m_iKeyType == CAEONTableIndex::EType::SingleInt32
+			&& dKey.IsNumberInt32(&iIndex))
+		{
+		SetElement(iIndex, dRow);
+		}
+	else
+		{
+		SetRowByID(dKey, dRow);
 		}
 	}
 
@@ -1201,8 +1263,8 @@ bool CAEONTable::SetFieldValue (int iRow, int iCol, CDatum dValue)
 	//	Probably most efficient to just delete the index, because we don't know
 	//	how many fields are getting set.
 
-	if (m_pPrimaryIndex)
-		m_pPrimaryIndex = NULL;
+	if (m_pKeyIndex)
+		m_pKeyIndex = NULL;
 
 	return true;
 	}
@@ -1216,8 +1278,8 @@ IAEONTable::EResult CAEONTable::SetRow (int iRow, CDatum dRow)
 	{
 	OnModify();
 
-	if (m_pPrimaryIndex)
-		m_pPrimaryIndex->Remove(CDatum::raw_AsComplex(this), iRow);
+	if (m_pKeyIndex)
+		m_pKeyIndex->Remove(CDatum::raw_AsComplex(this), iRow);
 
 	const IDatatype &Schema = m_dSchema;
 	for (int i = 0; i < Schema.GetMemberCount(); i++)
@@ -1238,8 +1300,8 @@ IAEONTable::EResult CAEONTable::SetRow (int iRow, CDatum dRow)
 		m_Cols[i].SetElement(iRow, dValue);
 		}
 
-	if (m_pPrimaryIndex)
-		m_pPrimaryIndex->Add(CDatum::raw_AsComplex(this), iRow);
+	if (m_pKeyIndex)
+		m_pKeyIndex->Add(CDatum::raw_AsComplex(this), iRow);
 
 	return EResult::OK;
 	}
@@ -1251,14 +1313,17 @@ IAEONTable::EResult CAEONTable::SetRowByID (CDatum dKey, CDatum dRow, int *retiR
 //	Sets the row by key.
 
 	{
+	if (m_iKeyType == CAEONTableIndex::EType::None)
+		return IAEONTable::EResult::NotImplemented;
+
 	OnModify();
 
 	GetIndex();
-	if (!m_pPrimaryIndex)
+	if (!m_pKeyIndex)
 		return IAEONTable::EResult::NotImplemented;
 
 	int iRow;
-	auto iResult = m_pPrimaryIndex->FindOrAdd(CDatum::raw_AsComplex(this), dKey, GetRowCount(), &iRow);
+	auto iResult = m_pKeyIndex->FindOrAdd(CDatum::raw_AsComplex(this), dKey, GetRowCount(), &iRow);
 
 	if (iResult == CAEONTableIndex::EFindResult::Added)
 		AppendEmptyRow();
@@ -1284,7 +1349,7 @@ IAEONTable::EResult CAEONTable::SetRowByID (CDatum dKey, CDatum dRow, int *retiR
 
 			//	Get the value from the key.
 
-			dValue = m_pPrimaryIndex->GetValueFromKey(CDatum::raw_AsComplex(this), dKey, ColumnDesc.sName);
+			dValue = m_pKeyIndex->GetValueFromKey(CDatum::raw_AsComplex(this), dKey, ColumnDesc.sName);
 			}
 		else
 			{
@@ -1345,8 +1410,10 @@ void CAEONTable::SetSchema (CDatum dSchema)
 	m_dSchema = dSchema;
 	m_Cols.DeleteAll();
 	m_Cols.InsertEmpty(Schema.GetMemberCount());
-	m_bHasIndex = false;
-	m_pPrimaryIndex = NULL;
+	m_pKeyIndex = NULL;
+
+	int iKeyCount = 0;
+	bool bInt32Key = false;
 
 	//	Set the columns (OK if no members)
 
@@ -1360,10 +1427,28 @@ void CAEONTable::SetSchema (CDatum dSchema)
 			throw CException(errFail);
 
 		if (ColumnDesc.iType == IDatatype::EMemberType::InstanceKeyVar)
-			m_bHasIndex = true;
+			{
+			iKeyCount++;
+			if (((const IDatatype&)ColumnDesc.dType).GetCoreType() == IDatatype::INT_32)
+				bInt32Key = true;
+			}
 
 		//	Create columns based on the datatype
 
 		m_Cols[i] = CreateColumn(ColumnDesc.dType);
 		}
+
+	//	Initialize the index type.
+
+	if (iKeyCount == 0)
+		m_iKeyType = CAEONTableIndex::EType::None;
+	else if (iKeyCount == 1)
+		{
+		if (bInt32Key)
+			m_iKeyType = CAEONTableIndex::EType::SingleInt32;
+		else
+			m_iKeyType = CAEONTableIndex::EType::Single;
+		}
+	else
+		m_iKeyType = CAEONTableIndex::EType::Multiple;
 	}
