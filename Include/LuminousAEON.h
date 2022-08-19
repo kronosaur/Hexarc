@@ -67,7 +67,7 @@ class CAEONLuminousCanvas : public TExternalDatum<CAEONLuminousCanvas>, public I
 		static CDatum AsDatum (const CLuminousLineStyle& Style);
 		static CDatum AsDatum (const CLuminousShadowStyle& Style);
 
-		static CLuminousColor AsColor (CDatum dValue);
+		static CLuminousColor AsColor (CDatum dValue, const CLuminousColor& Default = CLuminousColor());
 		static CLuminousFillStyle AsFillStyle (CDatum dValue);
 		static CLuminousLineStyle AsLineStyle (CDatum dValue);
 		static CLuminousPath2D AsPath2D (CDatum dValue);

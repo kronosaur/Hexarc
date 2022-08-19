@@ -176,13 +176,15 @@ bool CRGBA32::InitTables (void)
 	return true;
 	}
 
-CRGBA32 CRGBA32::Parse (const CString &sValue)
+CRGBA32 CRGBA32::Parse (const CString &sValue, bool *retbFail)
 
 //	Parse
 //
 //	Parse from a string. We support the following formats:
 //
 //	#rrggbb
+//	rgb(r, g, b)
+//	rgb(r, g, b, a)
 
 	{
 	const char *pPos = sValue.GetParsePointer();
@@ -193,24 +195,35 @@ CRGBA32 CRGBA32::Parse (const CString &sValue)
 		pPos++;
 
 		DWORD dwHex = strParseIntOfBase(pPos, 16, 0);
+		if (retbFail) *retbFail = false;
+
 		return CRGBA32((dwHex >> 16) & 0xff, (dwHex >> 8) & 0xff, dwHex & 0xff);
 		}
 	else if (*pPos == 'r' || *pPos == 'R')
 		{
 		pPos++;
 		if (*pPos != 'g' && *pPos != 'G')
+			{
+			if (retbFail) *retbFail = true;
 			return CRGBA32(0, 0, 0);
+			}
 
 		pPos++;
 		if (*pPos != 'b' && *pPos != 'B')
+			{
+			if (retbFail) *retbFail = true;
 			return CRGBA32(0, 0, 0);
+			}
 
 		bool bHasAlpha = (*pPos == 'a' || *pPos == 'A');
 		if (bHasAlpha)
 			pPos++;
 
 		if (*pPos != '(')
+			{
+			if (retbFail) *retbFail = true;
 			return CRGBA32(0, 0, 0);
+			}
 
 		pPos++;
 		int iRed = strParseInt(pPos, 0, &pPos);
@@ -224,6 +237,8 @@ CRGBA32 CRGBA32::Parse (const CString &sValue)
 			pPos++;
 
 		int iBlue = strParseInt(pPos, 0, &pPos);
+
+		if (retbFail) *retbFail = false;
 
 		if (bHasAlpha)
 			{
@@ -239,5 +254,8 @@ CRGBA32 CRGBA32::Parse (const CString &sValue)
 			return CRGBA32(iRed, iGreen, iBlue);
 		}
 	else
+		{
+		if (retbFail) *retbFail = true;
 		return CRGBA32(0, 0, 0);
+		}
 	}

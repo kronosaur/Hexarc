@@ -447,29 +447,53 @@ TDatumMethodHandler<CAEONLuminousCanvas> CAEONLuminousCanvas::m_Methods = {
 
 const CString &CAEONLuminousCanvas::StaticGetTypename (void) { return TYPENAME_LUMINOUS_CANVAS; }
 
-CLuminousColor CAEONLuminousCanvas::AsColor (CDatum dValue)
+CLuminousColor CAEONLuminousCanvas::AsColor (CDatum dValue, const CLuminousColor& Default)
 
 //	AsColor
 //
 //	Decode from datum.
 
 	{
-	if (dValue.GetBasicType() == CDatum::typeString)
+	if (dValue.IsNil())
+		return Default;
+	else if (dValue.GetBasicType() == CDatum::typeString)
 		{
-		return CLuminousColor(CRGBA32::Parse(dValue));
+		const CString& sValue = dValue;
+
+		//	A leading dot means a theme color.
+
+		if (*sValue.GetParsePointer() == '.')
+			{
+			return CLuminousColor::ParseThemeColor(strSubString(sValue, 1), Default);
+			}
+
+		//	Otherwise, either a CSS color or a theme color.
+
+		else
+			{
+			bool bFail;
+			CRGBA32 rgbColor = CRGBA32::Parse(sValue, &bFail);
+			if (!bFail)
+				return CLuminousColor(rgbColor);
+
+			//	Otherwise, we expect a theme color.
+
+			else
+				return CLuminousColor::ParseThemeColor(sValue, Default);
+			}
 		}
 	else
 		{
 		const CString& sType = dValue.GetElement(0);
 		if (sType.IsEmpty())
-			return CLuminousColor();
+			return Default;
 		else if (strEquals(sType, TYPE_SOLID))
 			{
 			CRGBA32 rgbColor = CRGBA32((DWORD)dValue.GetElement(1));
 			return CLuminousColor(rgbColor);
 			}
 		else
-			return CLuminousColor();
+			return Default;
 		}
 	}
 
@@ -595,6 +619,10 @@ CDatum CAEONLuminousCanvas::AsDatum (const CLuminousColor& Color)
 
 		case CLuminousColor::EType::Solid:
 			return CDatum(Color.GetSolidColor().AsHTMLColor());
+
+		case CLuminousColor::EType::Theme:
+			//	Add a leading dot so we can distinguish on the client.
+			return CDatum(strPattern(".%s", Color.GetThemeColorID()));
 
 		default:
 			throw CException(errFail);

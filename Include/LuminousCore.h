@@ -67,9 +67,54 @@ class CLuminousColor
 
 			Clear,
 			Solid,
+			Theme,
 			LinearGradient,
 			RadialGradient,
 			ImagePattern,
+			};
+
+		enum class ETheme
+			{
+			None,
+
+			Primary,
+			Secondary,
+
+			AlertError,
+			AlertWarning,
+			AlertCaution,
+			AlertSuccess,
+
+			Red,
+			Orange,
+			Yellow,
+			Lime,
+			Green,
+			Aqua,
+			Cerulean,
+			Blue,
+			Purple,
+
+			Neutral_Paper,
+			Neutral_10,
+			Neutral_20,
+			Neutral_30,
+			Neutral_40,
+			Neutral_50,
+			Neutral_60,
+			Neutral_70,
+			Neutral_80,
+			Neutral_90,
+			Neutral_Ink
+			};
+
+		enum class EVariant
+			{
+			Normal,
+
+			Faded,
+			Paper,
+			Ink
 			};
 
 		CLuminousColor () {}
@@ -81,19 +126,32 @@ class CLuminousColor
 				m_rgbColor(rgbColor)
 			{ }
 
+		CLuminousColor (ETheme iColor, EVariant iVariant = EVariant::Normal) :
+				m_iType(EType::Theme),
+				m_iThemeColor(iColor),
+				m_iThemeColorVariant(iVariant)
+			{ }
+
 		bool operator== (const CLuminousColor &Src) const;
 		bool operator!= (const CLuminousColor &Src) const { return !(*this == Src); }
 
+		ETheme GetThemeColor (EVariant& retiVariant) const;
+		CString GetThemeColorID () const;
 		const CRGBA32& GetSolidColor () const { return m_rgbColor; }
 		EType GetType () const { return m_iType; }
 		bool IsEmpty () const { return m_iType == EType::None; }
 
 		static const CLuminousColor Null;
+		static CLuminousColor ParseThemeColor (const CString& sValue, const CLuminousColor& Default = CLuminousColor());
 
 	private:
 
+		static CString ComposeThemeColorID (const CString& sThemeColor, EVariant iVariant);
+
 		EType m_iType = EType::None;
 		CRGBA32 m_rgbColor = CRGBA32(0, 0, 0);
+		ETheme m_iThemeColor = ETheme::None;
+		EVariant m_iThemeColorVariant = EVariant::Normal;
 	};
 
 class CLuminousFillStyle

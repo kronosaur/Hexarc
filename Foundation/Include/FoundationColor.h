@@ -65,7 +65,7 @@ class CRGBA32
 		static CRGBA32 FromReal (double rRed, double rGreen, double rBlue, BYTE byAlpha = 0xff)
 			{ return CRGBA32((BYTE)(rRed * 255.0), (BYTE)(rGreen * 255.0), (BYTE)(rBlue * 255.0), byAlpha); }
 		static CRGBA32 Null (void) { return CRGBA32(0, true); }
-		static CRGBA32 Parse (const CString &sValue);
+		static CRGBA32 Parse (const CString &sValue, bool *retbFail = NULL);
 
 		//  Expects solid pixels, and always returns solid pixels
 
