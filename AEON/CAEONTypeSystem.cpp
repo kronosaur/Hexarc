@@ -121,7 +121,11 @@ CDatum CAEONTypeSystem::CreateAnonymousSchema (const TArray<IDatatype::SMemberDe
 
 	for (int i = 0; i < Columns.GetCount(); i++)
 		{
-		if (!pNewType->AddMember(Columns[i].sName, IDatatype::EMemberType::InstanceVar, Columns[i].dType))
+		if (Columns[i].iType != IDatatype::EMemberType::InstanceKeyVar
+				&& Columns[i].iType != IDatatype::EMemberType::InstanceVar)
+			throw CException(errFail);
+
+		if (!pNewType->AddMember(Columns[i].sName, Columns[i].iType, Columns[i].dType))
 			return CDatum();
 		}
 

@@ -112,8 +112,11 @@ class IArchonProcessCtx
 		virtual CMnemosynthDb &GetMnemosynth (void) = 0;
 			//	Returns Mnemosynth
 
-		virtual const CString &GetModuleName (void) = 0;
+		virtual const CString &GetModuleName (void) const = 0;
 			//	Returns the module name
+
+		virtual const SFileVersionInfo& GetModuleVersion (void) const = 0;
+			//	Returns the module version info
 
 		virtual CMessageTransporter &GetTransporter (void) = 0;
 			//	Returns the Transporter
@@ -322,7 +325,8 @@ class CArchonProcess : public IArchonProcessCtx
 		virtual CString GenerateMachineAddress (const CString &sMachineName, const CString &sAddress) override { return m_Transporter.GenerateMachineAddress(sMachineName, sAddress); }
 		virtual const CString &GetMachineName (void) const override { return m_sMachineName; }
 		virtual CMnemosynthDb &GetMnemosynth (void) override { return m_MnemosynthDb; }
-		virtual const CString &GetModuleName (void) override { return m_sName; }
+		virtual const CString &GetModuleName (void) const override { return m_sName; }
+		virtual const SFileVersionInfo& GetModuleVersion (void) const override { return m_Version; }
 		virtual CMessageTransporter &GetTransporter (void) override { return m_Transporter; }
 		virtual void InitiateShutdown (void) override { SignalShutdown(); }
 		virtual bool IsCentralModule (void) override { return m_bCentralModule; }

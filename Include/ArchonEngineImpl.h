@@ -154,7 +154,8 @@ class CSimpleEngine : public IArchonEngine, public IArchonMessagePort, protected
 		virtual CString GenerateMachineAddress (const CString &sMachineName, const CString &sAddress) override { return m_pProcess->GenerateMachineAddress(sMachineName, sAddress); }
 		virtual const CString &GetMachineName (void) const override { return m_pProcess->GetMachineName(); }
 		virtual CMnemosynthDb &GetMnemosynth (void) override { return m_pProcess->GetMnemosynth(); }
-		virtual const CString &GetModuleName (void) override { return m_pProcess->GetModuleName(); }
+		virtual const CString &GetModuleName (void) const override { return m_pProcess->GetModuleName(); }
+		virtual const SFileVersionInfo& GetModuleVersion (void) const override { return m_pProcess->GetModuleVersion(); }
 		virtual CMessageTransporter &GetTransporter (void) override { return m_pProcess->GetTransporter(); }
 		virtual void InitiateShutdown (void) override { m_pProcess->InitiateShutdown(); }
 		virtual bool IsCentralModule (void) override { return m_pProcess->IsCentralModule(); }
