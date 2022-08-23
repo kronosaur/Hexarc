@@ -1581,6 +1581,7 @@ void CExarchEngine::MsgOnModuleStart (const SArchonMessage &Msg, const CHexeSecu
 	{
 	CSmartLock Lock(m_cs);
 	const CString &sModuleName(Msg.dPayload.GetElement(0));
+	CDatum dModuleData = Msg.dPayload.GetElement(2);
 
 	//	Make sure this module is in the list; if not, then we don't need to do
 	//	anything (this could happen in a race-condition adding and removing the
@@ -1605,12 +1606,13 @@ void CExarchEngine::MsgOnModuleStart (const SArchonMessage &Msg, const CHexeSecu
 	pStruct->SetElement(FIELD_STATUS, MNEMO_STATUS_RUNNING);
 	pStruct->SetElement(FIELD_FILESPEC, ModuleData.sFilespec);
 	pStruct->SetElement(FIELD_VERSION, ModuleData.sVersion);
+	pStruct->Append(dModuleData);
 	MnemosynthWrite(MNEMO_ARC_MODULES, 
 			sFullName, 
 			CDatum(pStruct));
 
 	bool bAllDone;
-	m_MecharcologyDb.OnModuleStart(Msg.dPayload.GetElement(0), (DWORD)(int)Msg.dPayload.GetElement(1), &bAllDone);
+	m_MecharcologyDb.OnModuleStart(sModuleName, (DWORD)(int)Msg.dPayload.GetElement(1), &bAllDone);
 
 	//	If all modules have started, then we ask our Mnemosynth to wait for
 	//	all modules to reach a given watermark (based on what each module told us

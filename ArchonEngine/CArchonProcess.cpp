@@ -8,58 +8,60 @@
 const DWORD MAX_GARBAGE_COLLECT_WAIT =					15 * 60 * 1000;		//	Garbage must be collected at least every 15 minutes
 const DWORDLONG MAX_GARBAGE_COLLECT_MEMORY =			1024 * 1024 * 1024;	//	If we reach 1 GB of private working set, then collect garbage
 
-DECLARE_CONST_STRING(ADDRESS_AEON_COMMAND,				"Aeon.command")
-DECLARE_CONST_STRING(PORT_ARC_LOG,						"Arc.log")
-DECLARE_CONST_STRING(ADDR_NULL,							"Arc.null")
-DECLARE_CONST_STRING(ADDRESS_EXARCH_LOG,				"Exarch.log@~/CentralModule")
-DECLARE_CONST_STRING(ADDR_EXARCH_COMMAND,				"Exarch.command@~/CentralModule")
-DECLARE_CONST_STRING(ADDRESS_HYPERION_COMMAND,			"Hyperion.command")
+DECLARE_CONST_STRING(ADDRESS_AEON_COMMAND,				"Aeon.command");
+DECLARE_CONST_STRING(PORT_ARC_LOG,						"Arc.log");
+DECLARE_CONST_STRING(ADDR_NULL,							"Arc.null");
+DECLARE_CONST_STRING(ADDRESS_EXARCH_LOG,				"Exarch.log@~/CentralModule");
+DECLARE_CONST_STRING(ADDR_EXARCH_COMMAND,				"Exarch.command@~/CentralModule");
+DECLARE_CONST_STRING(ADDRESS_HYPERION_COMMAND,			"Hyperion.command");
 
-DECLARE_CONST_STRING(STR_CENTRAL_MODULE,				"CentralModule")
-DECLARE_CONST_STRING(STR_ARCOLOGY_PRIME_SEMAPHORE,		"ArcologyPrimeRunning")
-DECLARE_CONST_STRING(STR_CENTRAL_MODULE_SEMAPHORE,		"CentralModuleRunning")
+DECLARE_CONST_STRING(FIELD_ON_ARCOLOGY_PRIME,			"onArcologyPrime");
 
-DECLARE_CONST_STRING(MSG_ARC_HOUSEKEEPING,				"Arc.housekeeping")
-DECLARE_CONST_STRING(MSG_ERROR_PREFIX,					"Error.")
-DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply")
-DECLARE_CONST_STRING(MSG_EXARCH_ON_MODULE_START,		"Exarch.onModuleStart")
-DECLARE_CONST_STRING(MSG_EXARCH_REPORT_DISK_ERROR,		"Exarch.reportDiskError")
-DECLARE_CONST_STRING(MSG_HYPERION_SERVICE_MSG,			"Hyperion.serviceMsg")
-DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error")
-DECLARE_CONST_STRING(MSG_LOG_INFO,						"Log.info")
-DECLARE_CONST_STRING(MSG_TRANSPACE_DOWNLOAD,			"Transpace.download")
+DECLARE_CONST_STRING(STR_CENTRAL_MODULE,				"CentralModule");
+DECLARE_CONST_STRING(STR_ARCOLOGY_PRIME_SEMAPHORE,		"ArcologyPrimeRunning");
+DECLARE_CONST_STRING(STR_CENTRAL_MODULE_SEMAPHORE,		"CentralModuleRunning");
 
-DECLARE_CONST_STRING(STR_NOTIFY_SUFFIX,					".notify")
-DECLARE_CONST_STRING(STR_DEFAULT_ARCOLOGY,				"TransArc")
+DECLARE_CONST_STRING(MSG_ARC_HOUSEKEEPING,				"Arc.housekeeping");
+DECLARE_CONST_STRING(MSG_ERROR_PREFIX,					"Error.");
+DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply");
+DECLARE_CONST_STRING(MSG_EXARCH_ON_MODULE_START,		"Exarch.onModuleStart");
+DECLARE_CONST_STRING(MSG_EXARCH_REPORT_DISK_ERROR,		"Exarch.reportDiskError");
+DECLARE_CONST_STRING(MSG_HYPERION_SERVICE_MSG,			"Hyperion.serviceMsg");
+DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error");
+DECLARE_CONST_STRING(MSG_LOG_INFO,						"Log.info");
+DECLARE_CONST_STRING(MSG_TRANSPACE_DOWNLOAD,			"Transpace.download");
 
-DECLARE_CONST_STRING(STR_ARCHON_BOOT,					"-")
-DECLARE_CONST_STRING(STR_ARCOLOGY_PRIME,				"ArcologyPrime")
-DECLARE_CONST_STRING(STR_BOOT_COMPLETE,					"Module started.")
-DECLARE_CONST_STRING(STR_CENTRAL_MODULE_STARTED,		"CentralModule started.")
-DECLARE_CONST_STRING(STR_GARBAGE_COLLECTION,			"Garbage collection: %d.%02d seconds (Sweep: %d.%02d seconds).")
-DECLARE_CONST_STRING(STR_ENGINE_PAUSE_TIME,				"Garbage collection: %s took %d.%02d seconds to pause.")
-DECLARE_CONST_STRING(STR_MARKING_MNEMOSYNTH,			"Marking MnemosynthDb.")
-DECLARE_CONST_STRING(STR_MARKING_EVENT_THREAD,			"Marking EventThread.")
-DECLARE_CONST_STRING(STR_MARKING_IMPORT_THREAD,			"Marking ImportThread.")
-DECLARE_CONST_STRING(STR_MARK_AND_SWEEP,				"In CDatum::MarkAndSweep.")
+DECLARE_CONST_STRING(STR_NOTIFY_SUFFIX,					".notify");
+DECLARE_CONST_STRING(STR_DEFAULT_ARCOLOGY,				"TransArc");
 
-DECLARE_CONST_STRING(ERR_CANT_BIND,						"Unable to bind to address: %s.")
-DECLARE_CONST_STRING(ERR_UNABLE_TO_BOOT_WINSOCK,		"Unable to boot WinSock.")
-DECLARE_CONST_STRING(ERR_NOT_CENTRAL_MODULE,			"Unable to obtain CentralModule semphore.")
-DECLARE_CONST_STRING(ERR_UNABLE_TO_GET_VERSION,			"Unable to obtain module version information.")
-DECLARE_CONST_STRING(ERR_CANT_GET_MEMORY_INFO,			"Unable to obtain process memory info.")
-DECLARE_CONST_STRING(ERR_UNABLE_TO_OPEN_MNEMOSYNTH,		"Unable to open Mnemosynth Db.")
-DECLARE_CONST_STRING(ERR_UNABLE_TO_SEND_TO_EXARCH,		"Unable to send message to Exarch.")
-DECLARE_CONST_STRING(ERR_CRASH_WHILE_BOOTING,			"Unhandled exception in CArchonProcess::Boot.")
-DECLARE_CONST_STRING(ERR_DISK,							"Hard drive error: %s.")
-DECLARE_CONST_STRING(ERR_BAD_TRANSPACE_ADDRESS,			"Invalid Transpace address: %s.")
-DECLARE_CONST_STRING(ERR_CANT_SEND_TO,					"Cannot send message to address: %s.")
-DECLARE_CONST_STRING(ERR_MEMORY_WARNING,				"WARNING: Process exceeding safe memory limits.")
-DECLARE_CONST_STRING(ERR_NO_MACHINE_NAME,				"No machine name provided at processes launch.")
-DECLARE_CONST_STRING(ERR_NOT_IN_CONSOLE_MODE,			"Not in console mode.")
-DECLARE_CONST_STRING(ERR_CRASH_IN_CONSOLE_COMMAND,		"Crash processing console command.")
-DECLARE_CONST_STRING(ERR_CRASH_IN_SEND_GLOBAL_MESSAGE,	"CRASH: In SendGlobalMessage.")
-DECLARE_CONST_STRING(ERR_CRASH_IN_COLLECT_GARBAGE,		"CRASH: In CollectGarbage.")
+DECLARE_CONST_STRING(STR_ARCHON_BOOT,					"-");
+DECLARE_CONST_STRING(STR_ARCOLOGY_PRIME,				"ArcologyPrime");
+DECLARE_CONST_STRING(STR_BOOT_COMPLETE,					"Module started.");
+DECLARE_CONST_STRING(STR_CENTRAL_MODULE_STARTED,		"CentralModule started.");
+DECLARE_CONST_STRING(STR_GARBAGE_COLLECTION,			"Garbage collection: %d.%02d seconds (Sweep: %d.%02d seconds).");
+DECLARE_CONST_STRING(STR_ENGINE_PAUSE_TIME,				"Garbage collection: %s took %d.%02d seconds to pause.");
+DECLARE_CONST_STRING(STR_MARKING_MNEMOSYNTH,			"Marking MnemosynthDb.");
+DECLARE_CONST_STRING(STR_MARKING_EVENT_THREAD,			"Marking EventThread.");
+DECLARE_CONST_STRING(STR_MARKING_IMPORT_THREAD,			"Marking ImportThread.");
+DECLARE_CONST_STRING(STR_MARK_AND_SWEEP,				"In CDatum::MarkAndSweep.");
+
+DECLARE_CONST_STRING(ERR_CANT_BIND,						"Unable to bind to address: %s.");
+DECLARE_CONST_STRING(ERR_UNABLE_TO_BOOT_WINSOCK,		"Unable to boot WinSock.");
+DECLARE_CONST_STRING(ERR_NOT_CENTRAL_MODULE,			"Unable to obtain CentralModule semphore.");
+DECLARE_CONST_STRING(ERR_UNABLE_TO_GET_VERSION,			"Unable to obtain module version information.");
+DECLARE_CONST_STRING(ERR_CANT_GET_MEMORY_INFO,			"Unable to obtain process memory info.");
+DECLARE_CONST_STRING(ERR_UNABLE_TO_OPEN_MNEMOSYNTH,		"Unable to open Mnemosynth Db.");
+DECLARE_CONST_STRING(ERR_UNABLE_TO_SEND_TO_EXARCH,		"Unable to send message to Exarch.");
+DECLARE_CONST_STRING(ERR_CRASH_WHILE_BOOTING,			"Unhandled exception in CArchonProcess::Boot.");
+DECLARE_CONST_STRING(ERR_DISK,							"Hard drive error: %s.");
+DECLARE_CONST_STRING(ERR_BAD_TRANSPACE_ADDRESS,			"Invalid Transpace address: %s.");
+DECLARE_CONST_STRING(ERR_CANT_SEND_TO,					"Cannot send message to address: %s.");
+DECLARE_CONST_STRING(ERR_MEMORY_WARNING,				"WARNING: Process exceeding safe memory limits.");
+DECLARE_CONST_STRING(ERR_NO_MACHINE_NAME,				"No machine name provided at processes launch.");
+DECLARE_CONST_STRING(ERR_NOT_IN_CONSOLE_MODE,			"Not in console mode.");
+DECLARE_CONST_STRING(ERR_CRASH_IN_CONSOLE_COMMAND,		"Crash processing console command.");
+DECLARE_CONST_STRING(ERR_CRASH_IN_SEND_GLOBAL_MESSAGE,	"CRASH: In SendGlobalMessage.");
+DECLARE_CONST_STRING(ERR_CRASH_IN_COLLECT_GARBAGE,		"CRASH: In CollectGarbage.");
 
 CArchonProcess::CArchonProcess (void) :
 		m_EventThread(m_RunEvent, m_PauseEvent, m_QuitEvent)
@@ -108,6 +110,7 @@ bool CArchonProcess::Boot (const SProcessDesc &Config)
 		//	Set some options
 
 		m_bArcologyPrime = ((Config.dwFlags & PROCESS_FLAG_ARCOLOGY_PRIME) != 0);
+		m_bOnArcologyPrime = ((Config.dwFlags & PROCESS_FLAG_ON_ARCOLOGY_PRIME) != 0);
 		m_bCentralModule = ((Config.dwFlags & PROCESS_FLAG_CENTRAL_MODULE) != 0);
 		m_bConsoleMode = ((Config.dwFlags & PROCESS_FLAG_CONSOLE_MODE) != 0);
 		m_bDebugger = ((Config.dwFlags & PROCESS_FLAG_DEBUG) != 0);
@@ -494,7 +497,7 @@ void CArchonProcess::OnMnemosynthDbModified (CDatum dLocalUpdates)
 	{
 	}
 
-bool CArchonProcess::OnModuleStart (void)
+bool CArchonProcess::OnModuleStart (CDatum dModuleData)
 
 //	OnModuleStart
 //
@@ -524,6 +527,7 @@ bool CArchonProcess::OnModuleStart (void)
 		CComplexArray *pArray = new CComplexArray;
 		pArray->Insert(m_sName);
 		pArray->Insert(dwSeq);
+		pArray->Insert(dModuleData);
 
 		if (!SendMessageCommand(ADDR_EXARCH_COMMAND, MSG_EXARCH_ON_MODULE_START, NULL_STR, 0, CDatum(pArray)))
 			{
@@ -563,6 +567,12 @@ void CArchonProcess::Run (void)
 
 	m_ImportThread.Start();
 
+	//	Compose some data for the Mnemosynth entry.
+
+	CDatum dModuleData(CDatum::typeStruct);
+	if (IsOnArcologyPrime())
+		dModuleData.SetElement(FIELD_ON_ARCOLOGY_PRIME, true);
+
 	//	Start all engines. At this point we have multiple threads
 	//	potentially calling on the IArchonProcessCtx interface
 	//
@@ -570,11 +580,14 @@ void CArchonProcess::Run (void)
 	//	LATER: Catch errors.
 
 	for (i = 0; i < m_Engines.GetCount(); i++)
+		{
 		m_Engines[i].pEngine->StartRunning(m_RunEvent, m_PauseEvent, m_QuitEvent);
+		m_Engines[i].pEngine->AccumulateModuleData(dModuleData);
+		}
 
 	//	Do stuff now that the module has started
 
-	OnModuleStart();
+	OnModuleStart(dModuleData);
 
 	//	At this point it is safe to call the logging system
 

@@ -58,6 +58,7 @@ class CMecharcologyDb
 		int GetMachineCount (void) const { return m_Machines.GetCount(); }
 		bool GetStatus (CDatum *retStatus);
 		bool HasArcologyKey (void) const;
+		bool IsArcologyPrime () const { return m_iArcologyPrime == -1; }
 		bool IsArcologyPrime (const CString &sName) const;
 		bool JoinArcology (const CString &sPrimeName, const CIPInteger &PrimeKey, CString *retsError);
 		bool LeaveArcology (CString *retsError);

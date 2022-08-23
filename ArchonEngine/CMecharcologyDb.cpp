@@ -943,13 +943,19 @@ bool CMecharcologyDb::LoadModule (const CString &sFilespec, bool bDebug, CString
 	else
 		pModule->sVersion = STR_UNKNOWN_VERSION;
 
+	//	Command line options
+
+	CString sOptions;
+	if (bDebug)
+		sOptions += CString(" /debug");
+
+	if (IsArcologyPrime())
+		sOptions += CString(" /onArcologyPrime");
+
 	//	Generate the command line
 
 	CString sCmdLine;
-	if (bDebug)
-		sCmdLine = strPattern("%s /machine:%s /debug", sModuleFilespec, m_MachineDesc.sName);
-	else
-		sCmdLine = strPattern("%s /machine:%s", sModuleFilespec, m_MachineDesc.sName);
+	sCmdLine = strPattern("%s /machine:%s %s", sModuleFilespec, m_MachineDesc.sName, sOptions);
 
 	//	Create the process
 

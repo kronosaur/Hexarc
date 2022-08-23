@@ -95,6 +95,7 @@ class CSimpleEngine : public IArchonEngine, public IArchonMessagePort, protected
 		virtual bool SendMessage (const SArchonMessage &Msg) override { return m_Queue.Enqueue(Msg); }
 
 		//	IArchonEngine
+		virtual void AccumulateModuleData (CDatum dData) const override { return OnAccumulateModuleData(dData); }
 		virtual void Boot (IArchonProcessCtx *pProcess, DWORD dwID) override;
 		virtual const CString &GetName (void) override { return m_sName; }
 		virtual bool IsIdle (void) override;
@@ -159,6 +160,7 @@ class CSimpleEngine : public IArchonEngine, public IArchonMessagePort, protected
 		virtual CMessageTransporter &GetTransporter (void) override { return m_pProcess->GetTransporter(); }
 		virtual void InitiateShutdown (void) override { m_pProcess->InitiateShutdown(); }
 		virtual bool IsCentralModule (void) override { return m_pProcess->IsCentralModule(); }
+		virtual bool IsOnArcologyPrime () const override { return m_pProcess->IsOnArcologyPrime(); }
 		virtual void Log (const CString &sMsg, const CString &sText) override { m_pProcess->Log(sMsg, sText); }
 		virtual void LogBlackBox (const CString &sText) override { m_pProcess->LogBlackBox(sText); }
 		virtual CDatum MnemosynthRead (const CString &sCollection, const CString &sKey, SWatermark *retWatermark = NULL) const override { return m_pProcess->MnemosynthRead(sCollection, sKey, retWatermark); }
@@ -184,6 +186,7 @@ class CSimpleEngine : public IArchonEngine, public IArchonMessagePort, protected
 		bool ProcessMessageDefault (const SArchonMessage &Msg);
 
 		//	Overridden by descendants
+		virtual void OnAccumulateModuleData (CDatum dData) const { }
 		virtual void OnBoot (void) { }
 		virtual void OnMark (void) { }
 		virtual void OnProcessMessages (CArchonMessageList &List) { }

@@ -127,6 +127,10 @@ class IArchonProcessCtx
 		virtual bool IsCentralModule (void) = 0;
 			//	Returns TRUE if we are central module
 
+		virtual bool IsOnArcologyPrime () const = 0;
+			//	Returns TRUE if this module is on Arcology Prime.
+			//	See: PROCESS_FLAG_ON_ARCOLOGY_PRIME
+
 		virtual void Log (const CString &sMsg, const CString &sText) = 0;
 			//	Log a message
 
@@ -181,6 +185,12 @@ class IArchonEngine
 	{
 	public:
 		virtual ~IArchonEngine (void) { }
+
+		virtual void AccumulateModuleData (CDatum dData) const
+			{
+			//	The engine should set any fields on dData that should be 
+			//	published in the Mnemosynth entry for this module.
+			}
 
 		virtual void Boot (IArchonProcessCtx *pProcess, DWORD dwID)
 			{
@@ -290,6 +300,7 @@ const DWORD PROCESS_FLAG_DEBUG =			0x00000002;
 const DWORD PROCESS_FLAG_ARCOLOGY_PRIME =	0x00000004;
 const DWORD PROCESS_FLAG_CONSOLE_OUTPUT =	0x00000008;
 const DWORD PROCESS_FLAG_CONSOLE_MODE =		0x00000010;
+const DWORD PROCESS_FLAG_ON_ARCOLOGY_PRIME =0x00000020;
 
 //	Archon Implementations
 
@@ -330,6 +341,7 @@ class CArchonProcess : public IArchonProcessCtx
 		virtual CMessageTransporter &GetTransporter (void) override { return m_Transporter; }
 		virtual void InitiateShutdown (void) override { SignalShutdown(); }
 		virtual bool IsCentralModule (void) override { return m_bCentralModule; }
+		virtual bool IsOnArcologyPrime () const override { return m_bOnArcologyPrime; }
 		virtual void Log (const CString &sMsg, const CString &sText) override;
 		virtual void LogBlackBox (const CString &sText) override;
 		virtual CDatum MnemosynthRead (const CString &sCollection, const CString &sKey, SWatermark *retWatermark = NULL) const override { return m_MnemosynthDb.Read(sCollection, sKey); }
@@ -361,7 +373,7 @@ class CArchonProcess : public IArchonProcessCtx
 
 		void CollectGarbage (void);
 		void CriticalError (const CString &sError);
-		bool OnModuleStart (void);
+		bool OnModuleStart (CDatum dModuleData);
 		void Shutdown (void);
 		bool TransformAddress (const CString &sAddress, const CString &sMsg, CDatum dPayload, CString *retsDestMsgAddress, CString *retsDestMsg, CDatum *retdPayload, CString *retsError);
 
@@ -375,6 +387,7 @@ class CArchonProcess : public IArchonProcessCtx
 		CManualEvent m_QuitSignalEvent;			//	When set, our parent wants us to quit
 
 		bool m_bArcologyPrime = false;			//	TRUE if we are central module on Arcology Prime
+		bool m_bOnArcologyPrime = false;		//	TRUE if we are modile on Arcology Prime
 		bool m_bCentralModule = false;			//	TRUE if we are the machine's central module
 		bool m_bConsoleMode = false;			//	TRUE if we are running in console mode (isolated)
 		bool m_bDebugger = false;				//	TRUE if we should launch debugger on load
