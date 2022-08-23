@@ -159,6 +159,35 @@ CString CAEONTableIndex::GetIndexKey (const IAEONTable& Table, int iRow) const
 		return NULL_STR;
 	}
 
+CDatum CAEONTableIndex::GetKeyFromRow (CDatum dTable, CDatum dRow) const
+
+//	GetKeyFromRow
+//
+//	Returns the key from the given row.
+
+	{
+	CDatum dSchema = dTable.GetDatatype();
+	const IDatatype& Schema = dSchema;
+
+	if (m_Cols.GetCount() == 1)
+		{
+		auto ColDesc = Schema.GetMember(m_Cols[0]);
+		return dRow.GetElement(ColDesc.sName);
+		}
+	else if (m_Cols.GetCount() > 1)
+		{
+		CDatum dResult(CDatum::typeArray);
+		for (int i = 0; i < m_Cols.GetCount(); i++)
+			{
+			auto ColDesc = Schema.GetMember(m_Cols[i]);
+			dResult.Append(dRow.GetElement(ColDesc.sName));
+			}
+		return dResult;
+		}
+	else
+		return CDatum();
+	}
+
 CDatum CAEONTableIndex::GetValueFromKey (CDatum dTable, CDatum dKey, const CString& sCol) const
 
 //	GetValueFromKey

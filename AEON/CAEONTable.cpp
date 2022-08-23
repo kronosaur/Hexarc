@@ -116,37 +116,51 @@ IAEONTable::EResult CAEONTable::AppendRow (CDatum dRow)
 //	Appends a row.
 
 	{
-	OnModify();
-
-	const IDatatype &Schema = m_dSchema;
-	for (int i = 0; i < Schema.GetMemberCount(); i++)
+	if (m_iKeyType == CAEONTableIndex::EType::None)
 		{
-		auto ColumnDesc = Schema.GetMember(i);
+		OnModify();
 
-		CDatum dValue = dRow.GetElement(ColumnDesc.sName);
+		const IDatatype &Schema = m_dSchema;
+		for (int i = 0; i < Schema.GetMemberCount(); i++)
+			{
+			auto ColumnDesc = Schema.GetMember(i);
 
-		//	Make sure we're not trying to add ourselves.
+			CDatum dValue = dRow.GetElement(ColumnDesc.sName);
 
-		TArray<IComplexDatum *> Checked1;
-		TArray<IComplexDatum *> Checked2;
-		if (dValue.Contains(CDatum::raw_AsComplex(this), Checked1) || dValue.Contains(m_Cols[i], Checked2))
-			dValue = CDatum();
+			//	Make sure we're not trying to add ourselves.
 
-		//	Add it
+			TArray<IComplexDatum *> Checked1;
+			TArray<IComplexDatum *> Checked2;
+			if (dValue.Contains(CDatum::raw_AsComplex(this), Checked1) || dValue.Contains(m_Cols[i], Checked2))
+				dValue = CDatum();
 
-		m_Cols[i].Append(dValue);
+			//	Add it
+
+			m_Cols[i].Append(dValue);
+			}
+
+		m_iRows++;
+
+		//	If we have an index, then update it.
+
+		if (m_pKeyIndex)
+			m_pKeyIndex->Add(CDatum::raw_AsComplex(this), m_iRows - 1);
+
+		//	Done
+
+		return EResult::OK;
 		}
+	else
+		{
+		OnModify();
 
-	m_iRows++;
+		GetIndex();
+		if (!m_pKeyIndex)
+			return IAEONTable::EResult::NotImplemented;
 
-	//	If we have an index, then update it.
-
-	if (m_pKeyIndex)
-		m_pKeyIndex->Add(CDatum::raw_AsComplex(this), m_iRows - 1);
-
-	//	Done
-
-	return EResult::OK;
+		CDatum dKey = m_pKeyIndex->GetKeyFromRow(CDatum::raw_AsComplex(this), dRow);
+		return SetRowByID(dKey, dRow);
+		}
 	}
 
 IAEONTable::EResult CAEONTable::AppendSlice (CDatum dSlice)

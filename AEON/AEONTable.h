@@ -27,6 +27,7 @@ class CAEONTableIndex
 		void Add (CDatum dTable, int iRow);
 		int Find (CDatum dTable, CDatum dValue) const;
 		EFindResult FindOrAdd (CDatum dTable, CDatum dKey, int iNewRow, int *retiRow = NULL);
+		CDatum GetKeyFromRow (CDatum dTable, CDatum dRow) const;
 		CDatum GetValueFromKey (CDatum dTable, CDatum dKey, const CString& sCol) const;
 		void Init (CDatum dTable, const TArray<int>& Cols);
 		void Remove (CDatum dTable, int iRow);
