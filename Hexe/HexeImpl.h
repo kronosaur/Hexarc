@@ -251,11 +251,11 @@ class CHexeLocalEnvironment : public TExternalDatum<CHexeLocalEnvironment>
 		void IncArgumentValue (int iIndex, int iInc);
 		void ResetNextArg (void) { m_iNextArg = 0; }
 		void SetArgumentKey (int iLevel, int iIndex, const CString &sKey);
-		void SetArgumentValue (int iIndex, CDatum dValue) { m_pArray[iIndex].dValue = dValue; }
+		void SetArgumentValue (int iIndex, CDatum dValue) { ASSERT(iIndex < GetAllocSize()); m_pArray[iIndex].dValue = dValue; }
 		void SetArgumentValue (int iLevel, int iIndex, CDatum dValue);
-		void SetElement (int iIndex, CDatum dValue) { m_pArray[iIndex].dValue = dValue; }
+		void SetElement (int iIndex, CDatum dValue) { ASSERT(iIndex < GetAllocSize()); m_pArray[iIndex].dValue = dValue; }
 		void SetNextArg (int iValue) { GrowArray(iValue); m_iNextArg = iValue; }
-		void SetNextArgKey (const CString &sKey) { SetArgumentKey(0, m_iNextArg++, sKey); }
+		void SetNextArgKey (const CString &sKey) { SetArgumentKey(0, m_iNextArg, sKey); m_iNextArg++; }
 		void SetParentEnv (CDatum dParentEnv) { m_dParentEnv = dParentEnv; }
 
 		//	IComplexDatum
@@ -286,6 +286,7 @@ class CHexeLocalEnvironment : public TExternalDatum<CHexeLocalEnvironment>
 			CDatum dValue;
 			};
 
+		int GetAllocSize () const { return Max(DEFAULT_SIZE, m_DynamicArray.GetCount()); }
 		int GetArgumentCount () const { return m_iNextArg; }
 		void GrowArray (int iNewCount);
 

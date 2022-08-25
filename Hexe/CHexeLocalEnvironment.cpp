@@ -38,6 +38,8 @@ bool CHexeLocalEnvironment::Contains (CDatum dValue, TArray<IComplexDatum *> &re
 //	Returns TRUE if we contain the given value.
 
 	{
+	ASSERT(GetArgumentCount() <= GetAllocSize());
+
 	for (int i = 0; i < GetArgumentCount(); i++)
 		if (m_pArray[i].dValue.Contains(dValue, retChecked))
 			return true;
@@ -52,6 +54,8 @@ bool CHexeLocalEnvironment::FindArgument (const CString &sArg, int *retiLevel, i
 //	Finds the given argument in the closes environment
 
 	{
+	ASSERT(GetArgumentCount() <= GetAllocSize());
+
 	//	See if it is in our environment
 
 	for (int i = 0; i < GetArgumentCount(); i++)
@@ -83,10 +87,13 @@ CDatum CHexeLocalEnvironment::GetArgument (int iLevel, int iIndex)
 //	Gets the argument
 
 	{
+
 	//	Is the argument at our level?
 
 	if (iLevel == 0)
 		{
+		ASSERT(iIndex < GetAllocSize());
+
 		return m_pArray[iIndex].dValue;
 		}
 
@@ -109,6 +116,8 @@ CDatum CHexeLocalEnvironment::GetElement (const CString &sKey) const
 //	Returns the element
 
 	{
+	ASSERT(GetArgumentCount() <= GetAllocSize());
+
 	for (int i = 0; i < GetArgumentCount(); i++)
 		if (strEquals(sKey, m_pArray[i].sArg))
 			return m_pArray[i].dValue;
@@ -137,7 +146,7 @@ void CHexeLocalEnvironment::GrowArray (int iNewCount)
 
 		if (iCurCount == 0 && GetArgumentCount() > 0)
 			{
-			for (int i = 0; i < GetArgumentCount(); i++)
+			for (int i = 0; i < DEFAULT_SIZE; i++)
 				m_pArray[i] = m_BaseArray[i];
 			}
 		}
@@ -150,6 +159,8 @@ void CHexeLocalEnvironment::IncArgumentValue(int iIndex, int iInc)
 //	Increment the given variable,
 
 	{
+	ASSERT(iIndex < GetAllocSize());
+
 	m_pArray[iIndex].dValue = CHexeProcess::ExecuteIncrement(m_pArray[iIndex].dValue, iInc);
 	}
 
@@ -233,7 +244,7 @@ void CHexeLocalEnvironment::OnMarked (void)
 //	Marks data in use
 
 	{
-	for (int i = 0; i < GetArgumentCount(); i++)
+	for (int i = 0; i < Min(GetArgumentCount(), GetAllocSize()); i++)
 		m_pArray[i].dValue.Mark();
 
 	m_dParentEnv.Mark();
@@ -246,6 +257,8 @@ void CHexeLocalEnvironment::OnSerialize (CDatum::EFormat iFormat, CComplexStruct
 //	Serialize all elements for obects that are serialized as structures.
 
 	{
+	ASSERT(GetArgumentCount() <= GetAllocSize());
+
 	CDatum dValues(CDatum::typeArray);
 	dValues.GrowToFit(2 * GetArgumentCount());
 	for (int i = 0; i < GetArgumentCount(); i++)
@@ -276,6 +289,8 @@ void CHexeLocalEnvironment::SetArgumentKey (int iLevel, int iIndex, const CStrin
 			m_iNextArg = iIndex + 1;
 			}
 
+		ASSERT(iIndex < GetAllocSize());
+
 		m_pArray[iIndex].sArg = sKey;
 		}
 	else
@@ -303,6 +318,8 @@ void CHexeLocalEnvironment::SetArgumentValue (int iLevel, int iIndex, CDatum dVa
 			m_iNextArg = iIndex + 1;
 			}
 
+		ASSERT(iIndex < GetAllocSize());
+
 		m_pArray[iIndex].dValue = dValue;
 		}
 	else
@@ -322,6 +339,8 @@ void CHexeLocalEnvironment::SetElement (const CString &sKey, CDatum dValue)
 //	Sets the element
 
 	{
+	ASSERT(GetArgumentCount() <= GetAllocSize());
+
 	for (int i = 0; i < GetArgumentCount(); i++)
 		if (strEquals(sKey, m_pArray[i].sArg))
 			{
