@@ -2,6 +2,7 @@
 //
 
 #include "stdafx.h"
+#include "LuminousAEON.h"
 
 DECLARE_CONST_STRING(CMDLINE_ARCOLOGY,					"arcology")
 DECLARE_CONST_STRING(CMDLINE_CONFIG,					"config")
@@ -54,6 +55,10 @@ void CArcologyService::OnStart (const TArray<CString> &Params)
 
 	::SetConsoleOutputCP(65001);
 #endif
+
+	//	Need to register Luminous objects so that we can serve them.
+
+	CAEONLuminous::Boot();
 
 	//	Get options from the command line
 
