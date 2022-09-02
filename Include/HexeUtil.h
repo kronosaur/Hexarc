@@ -41,6 +41,43 @@ class TDatumMethodHandler
 				}
 			}
 
+		void AccumulateDocumentation (CDatum dTable, const CString& sLibrary, const CString& sComponent) const
+			{
+			DECLARE_CONST_STRING(FIELD_COMPONENT,					"component");
+			DECLARE_CONST_STRING(FIELD_LIBRARY,						"library");
+			DECLARE_CONST_STRING(FIELD_TEXT,						"text");
+			DECLARE_CONST_STRING(FIELD_TITLE,						"title");
+			DECLARE_CONST_STRING(FIELD_TYPE,						"type");
+			DECLARE_CONST_STRING(FIELD_USAGE,						"usage");
+
+			DECLARE_CONST_STRING(TYPE_METHOD,						"method");
+
+			IAEONTable *pTable = dTable.GetTableInterface();
+			if (!pTable)
+				return;
+
+			const IDatatype& Schema = dTable.GetDatatype();
+			const int LIBRARY_INDEX = Schema.FindMember(FIELD_LIBRARY);
+			const int COMPONENT_INDEX = Schema.FindMember(FIELD_COMPONENT);
+			const int TITLE_INDEX = Schema.FindMember(FIELD_TITLE);
+			const int TYPE_INDEX = Schema.FindMember(FIELD_TYPE);
+			const int USAGE_INDEX = Schema.FindMember(FIELD_USAGE);
+			const int TEXT_INDEX = Schema.FindMember(FIELD_TEXT);
+
+			int iStart = pTable->GetRowCount();
+			pTable->AppendEmptyRow(m_Methods.GetCount());
+			for (int i = 0; i < m_Methods.GetCount(); i++)
+				{
+				auto& Entry = m_Methods[i];
+
+				if (LIBRARY_INDEX != -1)	pTable->SetFieldValue(iStart + i, LIBRARY_INDEX, sLibrary);
+				if (COMPONENT_INDEX != -1)	pTable->SetFieldValue(iStart + i, COMPONENT_INDEX, sComponent);
+				if (TITLE_INDEX != -1)		pTable->SetFieldValue(iStart + i, TITLE_INDEX, Entry.sName);
+				if (TYPE_INDEX != -1)		pTable->SetFieldValue(iStart + i, TYPE_INDEX, TYPE_METHOD);
+				if (TEXT_INDEX != -1)		pTable->SetFieldValue(iStart + i, TEXT_INDEX, CString(Entry.Def.pHelp));
+				}
+			}
+
 		CDatum GetMethod (const CString &sMethod)
 			{
 			auto *pEntry = m_Table.GetAt(sMethod);
