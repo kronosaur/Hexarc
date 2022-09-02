@@ -188,6 +188,40 @@ CDatum CAEONTableIndex::GetKeyFromRow (CDatum dTable, CDatum dRow) const
 		return CDatum();
 	}
 
+CDatum CAEONTableIndex::GetKeyFromRow (CDatum dTable, int iRow) const
+
+//	GetKeyFromRow
+//
+//	Returns the key from the given row.
+
+	{
+	const IAEONTable *pTable = dTable.GetTableInterface();
+	if (!pTable)
+		return CDatum();
+
+	if (iRow < 0 || iRow >= pTable->GetRowCount())
+		return CDatum();
+
+	CDatum dSchema = dTable.GetDatatype();
+	const IDatatype& Schema = dSchema;
+
+	if (m_Cols.GetCount() == 1)
+		{
+		return pTable->GetFieldValue(iRow, m_Cols[0]);
+		}
+	else if (m_Cols.GetCount() > 1)
+		{
+		CDatum dResult(CDatum::typeArray);
+		for (int i = 0; i < m_Cols.GetCount(); i++)
+			{
+			dResult.Append(pTable->GetFieldValue(iRow, m_Cols[i]));
+			}
+		return dResult;
+		}
+	else
+		return CDatum();
+	}
+
 CDatum CAEONTableIndex::GetValueFromKey (CDatum dTable, CDatum dKey, const CString& sCol) const
 
 //	GetValueFromKey

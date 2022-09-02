@@ -918,6 +918,28 @@ int CAEONTable::GetRowCount () const
 	return m_iRows;
 	}
 
+CDatum CAEONTable::GetRowID (int iRow) const
+
+//	GetRowID
+//
+//	Returns the ID for the given row. (Or null if not found). For tables with
+//	a primary key, we return the key. For other tables we return the row index.
+
+	{
+	if (iRow < 0 || iRow >= GetRowCount())
+		return CDatum();
+
+	if (HasKeys())
+		{
+		auto& Index = GetIndex();
+		return Index.GetKeyFromRow(CDatum::raw_AsComplex(this), iRow);
+		}
+	else
+		{
+		return CDatum(iRow);
+		}
+	}
+
 const CString &CAEONTable::GetTypename (void) const
 
 //	GetTypename

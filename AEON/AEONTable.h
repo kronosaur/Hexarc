@@ -28,6 +28,7 @@ class CAEONTableIndex
 		int Find (CDatum dTable, CDatum dValue) const;
 		EFindResult FindOrAdd (CDatum dTable, CDatum dKey, int iNewRow, int *retiRow = NULL);
 		CDatum GetKeyFromRow (CDatum dTable, CDatum dRow) const;
+		CDatum GetKeyFromRow (CDatum dTable, int iRow) const;
 		CDatum GetValueFromKey (CDatum dTable, CDatum dKey, const CString& sCol) const;
 		void Init (CDatum dTable, const TArray<int>& Cols);
 		void Remove (CDatum dTable, int iRow);
@@ -67,6 +68,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual CDatum GetDataSlice (int iFirstRow, int iRowCount) const override;
 		virtual CDatum GetFieldValue (int iRow, int iCol) const override;
 		virtual int GetRowCount () const override;
+		virtual CDatum GetRowID (int iRow) const override;
 		virtual SequenceNumber GetSeq () const override { return m_Seq; }
 		virtual bool HasKeys () const override { return m_iKeyType != CAEONTableIndex::EType::None; }
 		virtual EResult InsertColumn (const CString& sName, CDatum dType, CDatum dValues = CDatum(), int iPos = -1, int *retiCol = NULL) override;

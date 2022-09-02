@@ -60,6 +60,7 @@ class IAEONTable
 		virtual CDatum GetDataSlice (int iFirstRow, int iRowCount) const { return CDatum(); }
 		virtual CDatum GetFieldValue (int iRow, int iCol) const { return CDatum(); }
 		virtual int GetRowCount () const { return 0; }
+		virtual CDatum GetRowID (int iRow) const { return CDatum(); }
 		virtual SequenceNumber GetSeq () const { return 0; }
 		virtual bool HasKeys () const { return false; }
 		virtual EResult InsertColumn (const CString& sName, CDatum dType, CDatum dValues = CDatum(), int iPos = -1, int *retiCol = NULL) { return EResult::NotImplemented; }
