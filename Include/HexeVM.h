@@ -127,6 +127,8 @@ enum EOpCodes
 
 	opCompareForEach =		0x66000000,
 	opSetForEachItem =		0x67000000,
+	opExitEnvAndJumpIfNil =	0x68000000,
+	opInc =					0x69000000,
 
 	opHalt =				0xff000000,
 

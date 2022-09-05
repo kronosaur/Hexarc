@@ -251,6 +251,16 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 					m_pIP++;
 				break;
 
+			case opExitEnvAndJumpIfNil:
+				if (m_Stack.Pop().IsNil())
+					{
+					m_LocalEnvStack.Restore(&m_dCurGlobalEnv, &m_pCurGlobalEnv, &m_dLocalEnv, &m_pLocalEnv);
+					m_pIP += CHexeCode::GetOperandInt(*m_pIP);
+					}
+				else
+					m_pIP++;
+				break;
+
 			case opJumpIfNotNilNoPop:
 				if (!m_Stack.Get().IsNil())
 					m_pIP += CHexeCode::GetOperandInt(*m_pIP);
@@ -329,8 +339,6 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 
 			case opIncStep:
 				{
-				DWORD dwOperand = GetOperand(*m_pIP);
-
 				//	Pop the step
 
 				CDatum dStep = m_Stack.Pop();
@@ -347,9 +355,9 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 
 				I.Add(dStep);
 
-				//	Set the value
+				//	Push the result
 
-				m_pLocalEnv->SetArgumentValue((dwOperand >> 8), (dwOperand & 0xff), I.GetDatum());
+				m_Stack.Push(I.GetDatum());
 
 				m_pIP++;
 				break;
@@ -1190,6 +1198,15 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				CDatum dValue = m_Stack.Pop();
 				CDatum dResult = ExecuteOpDivide(pEnv->GetArgument(iIndex), dValue);
 				pEnv->SetArgumentValue(iIndex, dResult);
+				m_Stack.Push(dResult);
+
+				m_pIP++;
+				break;
+				}
+
+			case opInc:
+				{
+				CDatum dResult = CHexeProcess::ExecuteIncrement(m_Stack.Pop(), CHexeCode::GetOperandInt(*m_pIP));
 				m_Stack.Push(dResult);
 
 				m_pIP++;

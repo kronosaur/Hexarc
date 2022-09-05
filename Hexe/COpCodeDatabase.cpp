@@ -19,8 +19,10 @@ DECLARE_CONST_STRING(OP_DIVIDE2,						"divide2")
 DECLARE_CONST_STRING(OP_ENTER_ENV,						"enterEnv")
 DECLARE_CONST_STRING(OP_ERROR,							"error")
 DECLARE_CONST_STRING(OP_EXIT_ENV,						"exitEnv")
+DECLARE_CONST_STRING(OP_EXIT_ENV_AND_JUMP_IF_NIL,		"exitEnvAndJumpIfNil")
 DECLARE_CONST_STRING(OP_HALT,							"halt")
 DECLARE_CONST_STRING(OP_HEXARC_MSG,						"hexarcMsg")
+DECLARE_CONST_STRING(OP_INC,							"inc")
 DECLARE_CONST_STRING(OP_INC_LOCAL_L0,					"incLocalL0")
 DECLARE_CONST_STRING(OP_INC_LOCAL_INT,					"incLocalInt")
 DECLARE_CONST_STRING(OP_IS_EQUAL,						"isEqual")
@@ -104,6 +106,7 @@ static SOpCodeInfo OPCODE_INFO[] =
 	SOpCodeInfo(opHexarcMsg,		OP_HEXARC_MSG,			operandNone ),
 	SOpCodeInfo(opMakeBlockEnv,		OP_MAKE_BLOCK_ENV,		operandNone ),
 	SOpCodeInfo(opMakeLocalEnv,		OP_MAKE_LOCAL_ENV,		operandIntShort ),
+	SOpCodeInfo(opExitEnvAndJumpIfNil,	OP_EXIT_ENV_AND_JUMP_IF_NIL,	operandIntShort ),
 
 	//	Function calls
 	SOpCodeInfo(opMakeFunc,			OP_MAKE_FUNC,			operandCodeOffset ),
@@ -166,6 +169,7 @@ static SOpCodeInfo OPCODE_INFO[] =
 	SOpCodeInfo(opMultiply2,		OP_MULTIPLY2,			operandNone ),
 	SOpCodeInfo(opSubtract,			OP_SUBTRACT,			operandIntShort ),
 	SOpCodeInfo(opSubtract2,		OP_SUBTRACT2,			operandNone ),
+	SOpCodeInfo(opInc,				OP_INC,					operandIntShort ),
 
 	//	For Each
 
