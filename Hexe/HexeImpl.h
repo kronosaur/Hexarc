@@ -140,6 +140,7 @@ class CHexeFunction : public TExternalDatum<CHexeFunction>
 		virtual bool Contains (CDatum dValue, TArray<IComplexDatum *> &retChecked) const override;
 		virtual CDatum::ECallType GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) const override;
 		virtual int GetCount (void) const override;
+		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::FUNCTION); }
 		virtual CDatum GetElement (int iIndex) const override;
 		virtual CDatum GetElement (const CString &sKey) const override;
 		virtual CString GetKey (int iIndex) const override;
@@ -178,6 +179,7 @@ class CHexeLibraryFunction : public TExternalDatum<CHexeLibraryFunction>
 
 		virtual bool CanInvoke (void) const override { return true; }
 		virtual CDatum::ECallType GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) const override { return CDatum::ECallType::Library; }
+		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::FUNCTION); }
 		virtual CDatum::InvokeResult Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, DWORD dwExecutionRights, CDatum *retdResult) override;
 		virtual CDatum::InvokeResult InvokeContinues (IInvokeCtx *pCtx, CDatum dContext, CDatum dResult, CDatum *retdResult) override;
 
