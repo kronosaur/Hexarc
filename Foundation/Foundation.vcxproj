@@ -249,6 +249,7 @@
     <ClCompile Include="CDBValueDateTime.cpp" />
     <ClCompile Include="CDBValueFormatted.cpp" />
     <ClCompile Include="CDBValueStruct.cpp" />
+    <ClCompile Include="CEmailAddress.cpp" />
     <ClCompile Include="CEntityResolverList.cpp" />
     <ClCompile Include="CExternalEntityTable.cpp" />
     <ClCompile Include="CFile.cpp" />

@@ -411,6 +411,9 @@
     <ClCompile Include="CZipFile.cpp">
       <Filter>Source Files\Compression</Filter>
     </ClCompile>
+    <ClCompile Include="CEmailAddress.cpp">
+      <Filter>Source Files\NetworkIO</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">

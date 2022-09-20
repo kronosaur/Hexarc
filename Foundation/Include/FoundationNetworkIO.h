@@ -464,6 +464,35 @@ class CRawMediaType : public IMediaType
 		EContentEncodingTypes m_iEncoding;
 	};
 
+//	Email ----------------------------------------------------------------------
+
+class CEmailAddress
+	{
+	public:
+
+		CEmailAddress () { }
+		explicit CEmailAddress (const CString& sAddr) { Parse(sAddr, this); }
+
+		explicit operator bool () const { return IsValid(); }
+
+		CString AsString () const;
+		const CString& GetDisplayName () const { return m_sDisplayName; }
+		const CString& GetDomain () const { return m_sDomain; }
+		const CString& GetLocalPart () const { return m_sLocalPart; }
+		bool IsValid () const { return !m_sDomain.IsEmpty(); }
+
+		static bool Parse (const CString& sAddr, CEmailAddress* retAddr = NULL);
+		static bool ValidateDomain (const CString& sDomain);
+
+	private:
+
+		static constexpr int MAX_LOCAL_PART_CHARS = 64;
+
+		CString m_sDisplayName;
+		CString m_sLocalPart;
+		CString m_sDomain;
+	};
+
 //	Utilities ------------------------------------------------------------------
 
 void htmlWriteAttributeValue (const CString &sText, IByteStream &Output);
