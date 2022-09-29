@@ -316,13 +316,19 @@ class CSSLAsyncEngine
 			};
 
 		CSSLAsyncEngine (CSSLCtx *pSSLCtx = NULL);
+		CSSLAsyncEngine (const CSSLAsyncEngine& Src) = delete;
+		CSSLAsyncEngine (CSSLAsyncEngine&& Src) noexcept = delete;
 		~CSSLAsyncEngine (void);
+
+		CSSLAsyncEngine &operator= (const CSSLAsyncEngine &Src) = delete;
+		CSSLAsyncEngine &operator= (CSSLAsyncEngine &&Src) = delete;
 
 		void Accept (void);
 		void Connect (void);
 		inline const IMemoryBlock &GetBuffer (void) const { return m_Buffer; }
 		int GetInternalState (void) const { return (int)m_iState; }
 		void Send (IMemoryBlock &Data);
+		void SetDebugLog (bool bValue = true) { m_bDebugLog = bValue; }
 		void SetHostname (const CString &sHostname) { m_sHostname = sHostname; }
 		void Receive (void);
 
@@ -346,15 +352,22 @@ class CSSLAsyncEngine
 			stateReady,
 			};
 
+#ifdef DEBUG
+		void DebugLog (const CString& sLine) const;
+#else
+		void DebugLog (const CString& sLine) const { }
+#endif
 		bool Init (bool bAsServer, CString *retsError);
 
 		CString m_sHostname;
-		EStates m_iState;
-		CSSLCtx *m_pSSLCtx;					//	SSL_CTX object
-		OpenSSL_SSLPtr m_pSSL;				//	SSL session object
-		OpenSSL_BIOPtr m_pInput;			//	SSL reads from this object
-		OpenSSL_BIOPtr m_pOutput;			//	SSL writes to this object
+		EStates m_iState = stateNone;
+		CSSLCtx *m_pSSLCtx = NULL;			//	SSL_CTX object
+		OpenSSL_SSLPtr m_pSSL = NULL;		//	SSL session object
+		OpenSSL_BIOPtr m_pInput = NULL;		//	SSL reads from this object
+		OpenSSL_BIOPtr m_pOutput = NULL;	//	SSL writes to this object
 		CString m_sError;
+		bool m_bDebugLog = false;
+		bool m_bReadRetried = false;
 
 		CBuffer m_Buffer;
 	};

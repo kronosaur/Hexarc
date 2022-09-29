@@ -5,25 +5,23 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(FIELD_AU_PREFIX,					"Au=")
-DECLARE_CONST_STRING(FIELD_ENC_PREFIX,					"Enc=")
-DECLARE_CONST_STRING(FIELD_KX_PREFIX,					"Kx=")
-DECLARE_CONST_STRING(FIELD_MAC_PREFIX,					"Mac=")
+DECLARE_CONST_STRING(FIELD_AU_PREFIX,					"Au=");
+DECLARE_CONST_STRING(FIELD_ENC_PREFIX,					"Enc=");
+DECLARE_CONST_STRING(FIELD_KX_PREFIX,					"Kx=");
+DECLARE_CONST_STRING(FIELD_MAC_PREFIX,					"Mac=");
 
-DECLARE_CONST_STRING(ERR_CONNECT_INVALID_STATE,			"Connect: Invalid state.")
-DECLARE_CONST_STRING(ERR_PROCESS_INVALID_STATE,			"Process: Invalid state.")
-DECLARE_CONST_STRING(ERR_OUT_OF_MEMORY,					"SSL: Out of memory.")
-DECLARE_CONST_STRING(ERR_CONNECT_FAILED,				"SSL: Connect failed.")
-DECLARE_CONST_STRING(ERR_ACCEPT_FAILED,					"SSL: Accept failed error = %d.")
+DECLARE_CONST_STRING(ERR_CONNECT_INVALID_STATE,			"Connect: Invalid state.");
+DECLARE_CONST_STRING(ERR_PROCESS_INVALID_STATE,			"Process: Invalid state.");
+DECLARE_CONST_STRING(ERR_OUT_OF_MEMORY,					"SSL: Out of memory.");
+DECLARE_CONST_STRING(ERR_CONNECT_FAILED,				"SSL: Connect failed: %x.");
+DECLARE_CONST_STRING(ERR_READ_FAILED,					"SSL: Read failed: %x.");
+DECLARE_CONST_STRING(ERR_WRITE_FAILED,					"SSL: Write failed: %x.");
+DECLARE_CONST_STRING(ERR_ACCEPT_FAILED,					"SSL: Accept failed error = %d.");
 
 const int BUFFER_SIZE =									16 * 1024;
 
 CSSLAsyncEngine::CSSLAsyncEngine (CSSLCtx *pSSLCtx) :
-		m_iState(stateNone),
 		m_pSSLCtx(pSSLCtx),
-		m_pSSL(NULL),
-		m_pInput(NULL),
-		m_pOutput(NULL),
 		m_Buffer(BUFFER_SIZE)
 
 //	CSSLAsyncEngine constructor
@@ -53,10 +51,14 @@ void CSSLAsyncEngine::Accept (void)
 	switch (m_iState)
 		{
 		case stateNone:
+			DebugLog("SSL State = stateAccepting");
+
 			m_iState = stateAccepting;
 			break;
 
 		default:
+			DebugLog("SSL State = stateError");
+
 			m_iState = stateError;
 			m_sError = ERR_CONNECT_INVALID_STATE;
 			break;
@@ -73,15 +75,32 @@ void CSSLAsyncEngine::Connect (void)
 	switch (m_iState)
 		{
 		case stateNone:
+			DebugLog("SSL State = stateConnecting");
+
 			m_iState = stateConnecting;
 			break;
 
 		default:
+			DebugLog("SSL State = stateError");
+
 			m_iState = stateError;
 			m_sError = ERR_CONNECT_INVALID_STATE;
 			break;
 		}
 	}
+
+#ifdef DEBUG
+void CSSLAsyncEngine::DebugLog (const CString& sLine) const
+
+//	DebugLog
+//
+//	Output log.
+
+	{
+	if (m_bDebugLog)
+		printf("%s\n", (LPSTR)sLine);
+	}
+#endif
 
 bool CSSLAsyncEngine::GetConnectionStatus (SConnectionStatus *retStatus) const
 
@@ -202,6 +221,8 @@ CSSLAsyncEngine::EResults CSSLAsyncEngine::Process (CString *retsError)
 		switch (m_iState)
 			{
 			case stateNone:
+				DebugLog("SSL State = stateConnecting");
+
 				m_iState = stateConnecting;
 				continue;
 
@@ -217,6 +238,8 @@ CSSLAsyncEngine::EResults CSSLAsyncEngine::Process (CString *retsError)
 				int err = SSL_accept(COpenSSL::AsSSL(m_pSSL));
 				if (err > 0)
 					{
+					DebugLog("SSL State = stateReady");
+
 					m_iState = stateReady;
 					return resReady;
 					}
@@ -258,6 +281,8 @@ CSSLAsyncEngine::EResults CSSLAsyncEngine::Process (CString *retsError)
 				int err = SSL_connect(COpenSSL::AsSSL(m_pSSL));
 				if (err > 0)
 					{
+					DebugLog("SSL State = stateReady");
+
 					m_iState = stateReady;
 					return resReady;
 					}
@@ -273,7 +298,7 @@ CSSLAsyncEngine::EResults CSSLAsyncEngine::Process (CString *retsError)
 						return resSendData;
 					else
 						{
-						if (retsError) *retsError = ERR_CONNECT_FAILED;
+						if (retsError) *retsError = strPattern(ERR_CONNECT_FAILED, iError);
 						return resError;
 						}
 					}
@@ -283,8 +308,12 @@ CSSLAsyncEngine::EResults CSSLAsyncEngine::Process (CString *retsError)
 				{
 				m_Buffer.SetLength(BUFFER_SIZE);
 				int iBytesRead = SSL_read(COpenSSL::AsSSL(m_pSSL), m_Buffer.GetPointer(), m_Buffer.GetLength());
+
+				DebugLog(strPattern("SSL_read: %d bytes (buffer size=%d)", iBytesRead, m_Buffer.GetLength()));
+
 				if (iBytesRead > 0)
 					{
+					m_bReadRetried = false;
 					m_Buffer.SetLength(iBytesRead);
 					return resReady;
 					}
@@ -294,14 +323,64 @@ CSSLAsyncEngine::EResults CSSLAsyncEngine::Process (CString *retsError)
 				else
 					{
 					int iError = SSL_get_error(COpenSSL::AsSSL(m_pSSL), iBytesRead);
-					if (iError == SSL_ERROR_WANT_READ)
-						return resReceiveData;
-					else if (iError == SSL_ERROR_WANT_WRITE)
-						return resSendData;
-					else
+					switch (iError)
 						{
-						if (retsError) *retsError = ERR_CONNECT_FAILED;
-						return resError;
+						case SSL_ERROR_WANT_READ:
+							{
+							m_bReadRetried = false;
+							DebugLog("SSL wants to read");
+							return resReceiveData;
+							}
+
+						case SSL_ERROR_WANT_WRITE:
+							{
+							m_bReadRetried = false;
+							DebugLog("SSL wants to write");
+							return resSendData;
+							}
+
+						case SSL_ERROR_SSL:
+							{
+							//	LATER: Under certain conditions, we get this 
+							//	error. Empirically, the error goes away if we
+							//	read more data from the socket and pass it to 
+							//	the SSL engine. It's almost as if SSL_read
+							//	has a bug in which it returns this error instead
+							//	of SSL_ERROR_WANT_READ.
+							//
+							//	It's also possible/likely that we're not calling
+							//	SSL correctly and are missing some signal that 
+							//	we should read more. But for now this is the 
+							//	best fix I have.
+
+							if (!m_bReadRetried)
+								{
+								DebugLog("SSL_ERROR_SSL, reading more...\n");
+								m_bReadRetried = true;
+								return resReceiveData;
+								}
+							else
+								{
+								CStringBuffer Buffer;
+
+								int iMoreError;
+								while (iMoreError = ERR_get_error())
+									{
+									if (Buffer.GetLength() > 0)
+										Buffer.Write("\n");
+
+									CString sError(ERR_reason_error_string(iMoreError));
+									Buffer.Write(sError);
+									}
+
+								if (retsError) *retsError = CString(std::move(Buffer));
+								return resError;
+								}
+							}
+
+						default:
+							if (retsError) *retsError = strPattern(ERR_READ_FAILED, iError);
+							return resError;
 						}
 					}
 				}
@@ -309,6 +388,9 @@ CSSLAsyncEngine::EResults CSSLAsyncEngine::Process (CString *retsError)
 			case stateWriting:
 				{
 				int iBytesWritten = SSL_write(COpenSSL::AsSSL(m_pSSL), m_Buffer.GetPointer(), m_Buffer.GetLength());
+
+				DebugLog(strPattern("SSL_write: %d bytes (wrote %d)\n", m_Buffer.GetLength(), iBytesWritten));
+			
 				if (iBytesWritten > 0)
 					return resReady;
 
@@ -318,12 +400,18 @@ CSSLAsyncEngine::EResults CSSLAsyncEngine::Process (CString *retsError)
 					{
 					int iError = SSL_get_error(COpenSSL::AsSSL(m_pSSL), iBytesWritten);
 					if (iError == SSL_ERROR_WANT_READ)
+						{
+						DebugLog("SSL wants to read");
 						return resReceiveData;
+						}
 					else if (iError == SSL_ERROR_WANT_WRITE)
+						{
+						DebugLog("SSL wants to write\n");
 						return resSendData;
+						}
 					else
 						{
-						if (retsError) *retsError = ERR_CONNECT_FAILED;
+						if (retsError) *retsError = strPattern(ERR_WRITE_FAILED, iError);
 						return resError;
 						}
 					}
@@ -338,6 +426,8 @@ CSSLAsyncEngine::EResults CSSLAsyncEngine::Process (CString *retsError)
 				return resError;
 
 			default:
+				DebugLog("SSL State = stateError");
+
 				m_iState = stateError;
 				m_sError = ERR_PROCESS_INVALID_STATE;
 				if (retsError)
@@ -364,7 +454,12 @@ void CSSLAsyncEngine::ProcessReceiveData (IMemoryBlock &Data)
 //	Gives raw data to the engine for processing.
 
 	{
-	BIO_write(COpenSSL::AsBIO(m_pInput), Data.GetPointer(), Data.GetLength());
+	int iResult = BIO_write(COpenSSL::AsBIO(m_pInput), Data.GetPointer(), Data.GetLength());
+
+	if (iResult <= 0)
+		DebugLog("BIO_write error");
+	else if (iResult < Data.GetLength())
+		DebugLog("BIO_write did not write enough");
 	}
 
 void CSSLAsyncEngine::ProcessSendData (IByteStream &Data)
@@ -377,6 +472,8 @@ void CSSLAsyncEngine::ProcessSendData (IByteStream &Data)
 	void *pData;
 	int iLength = BIO_get_mem_data(COpenSSL::AsBIO(m_pOutput), &pData);
 	Data.Write(pData, iLength);
+
+	DebugLog(strPattern("Data Length: %d\n", iLength));
 
 	BIO_reset(COpenSSL::AsBIO(m_pOutput));
 	}

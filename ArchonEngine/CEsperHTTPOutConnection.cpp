@@ -87,6 +87,9 @@ bool CEsperHTTPOutConnection::BeginHTTPRequest (const SArchonMessage &Msg, const
 
 	if (m_iState == stateDisconnectedBusy)
 		{
+#ifdef DEBUG_SSL_IO
+		printf("BeginHTTPRequest: Need to connect\n");
+#endif
 		//	Get some options
 
 		m_bSSL = strEquals(Request.sProtocol, PROTOCOL_HTTPS);
@@ -103,6 +106,9 @@ bool CEsperHTTPOutConnection::BeginHTTPRequest (const SArchonMessage &Msg, const
 
 	else if (m_iState == stateConnectedBusy)
 		{
+#ifdef DEBUG_SSL_IO
+		printf("[%x:%x] BeginHTTPRequest: Already connected\n", ((GetID() & 0x00ffffff) + 1), (DWORD)GetSocket());
+#endif
 		OpSendRequest();
 		}
 
@@ -172,6 +178,9 @@ void CEsperHTTPOutConnection::OnSocketOperationComplete (EOperations iOp, DWORD 
 				//	Set the hostname so that we can support SNI
 
 				m_pSSL->SetHostname(m_sAddress);
+#ifdef DEBUG_SSL_IO
+				m_pSSL->SetDebugLog();
+#endif
 
 				//	Start handshake
 
@@ -211,6 +220,9 @@ void CEsperHTTPOutConnection::OnSocketOperationComplete (EOperations iOp, DWORD 
 
 		case stateWaitToReceiveSSLData:
 			{
+#ifdef DEBUG_SSL_IO
+			printf("Received %d bytes\n", GetBuffer()->GetLength());
+#endif
 			m_pSSL->ProcessReceiveData(*GetBuffer());
 			OpProcessSSL();
 			break;
@@ -233,6 +245,9 @@ void CEsperHTTPOutConnection::OnSocketOperationComplete (EOperations iOp, DWORD 
 			OnSSLOperationComplete();
 			break;
 			}
+
+		default:
+			throw CException(errFail);
 		}
 	}
 
@@ -297,6 +312,9 @@ void CEsperHTTPOutConnection::OnSSLOperationComplete (void)
 			break;
 
 		default:
+#ifdef DEBUG_SSL_IO
+			printf("SSLOpComplete: Unhandled\n");
+#endif
 #ifdef DEBUG_SOCKET_OPS
 			m_Manager.LogTrace(strPattern("[%x] Unhandled state.", CEsperInterface::ConnectionToFriendlyID(GetID())));
 #endif
@@ -405,7 +423,12 @@ bool CEsperHTTPOutConnection::OpProcessReceivedData (const IMemoryBlock &Buffer)
 
 	m_HTTPMessage.InitFromPartialBuffer(Buffer);
 	if (m_HTTPMessage.IsMessageComplete())
+		{
+#ifdef DEBUG_SSL_IO
+		printf("OpProcessReceivedData: Message complete\n");
+#endif
 		return OpMessageComplete();
+		}
 
 	//	Otherwise, we need to continue reading
 
@@ -452,6 +475,9 @@ bool CEsperHTTPOutConnection::OpProcessSSL (void)
 			}
 
 		case CSSLAsyncEngine::resError:
+#ifdef DEBUG_SSL_IO
+			printf("OpProcessSSL: Error: %s\n", (LPSTR)sError);
+#endif
 			m_iState = stateConnected;
 
 #ifdef DEBUG_SOCKET_OPS
@@ -475,6 +501,13 @@ bool CEsperHTTPOutConnection::OpRead (EStates iNewState)
 	{
 	CString sError;
 
+#ifdef DEBUG_SSL_IO
+	if (m_pSSL && m_pSSL->ProcessHasDataToSend())
+		printf("SSL has data to send!\n");
+
+	printf("[%x:%x] BeginRead\n", ((GetID() & 0x00ffffff) + 1), (DWORD)GetSocket());
+#endif
+
 	m_iState = iNewState;
 	if (!IIOCPEntry::BeginRead(&sError))
 		return OpTransmissionFailed();
@@ -493,6 +526,9 @@ bool CEsperHTTPOutConnection::OpReceiveResponse (void)
 
 	if (m_pSSL)
 		{
+#ifdef DEBUG_SSL_IO
+		printf("m_pSSL->Receive()\n");
+#endif
 		m_pSSL->Receive();
 		m_iSSLSavedState = stateWaitForResponse;
 		return OpProcessSSL();
@@ -526,6 +562,9 @@ bool CEsperHTTPOutConnection::OpSendRequest (void)
 
 	if (m_pSSL)
 		{
+#ifdef DEBUG_SSL_IO
+		printf("m_pSSL->Send()\n");
+#endif
 		m_pSSL->Send(RequestBuffer);
 		m_iSSLSavedState = stateWaitForRequestAck;
 		return OpProcessSSL();
@@ -583,6 +622,10 @@ bool CEsperHTTPOutConnection::OpWrite (const CString &sData, EStates iNewState)
 
 	{
 	CString sError;
+
+#ifdef DEBUG_SSL_IO
+	printf("[%x:%x] OpWrite %d\n", ((GetID() & 0x00ffffff) + 1), (DWORD)GetSocket(), sData.GetLength());
+#endif
 
 	m_iState = iNewState;
 	if (!IIOCPEntry::BeginWrite(sData, &sError))

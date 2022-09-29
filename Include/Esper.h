@@ -10,6 +10,7 @@
 #ifdef DEBUG
 //#define DEBUG_ESPER
 //#define DEBUG_SOCKET_OPS
+//#define DEBUG_SSL_IO
 //#define DEBUG_AMP1
 #endif
 
