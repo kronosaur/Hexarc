@@ -23,11 +23,13 @@ DECLARE_CONST_STRING(PI_FILE,							"file")
 DECLARE_CONST_STRING(PI_HEADER,							"header")
 DECLARE_CONST_STRING(PI_IF,								"if")
 DECLARE_CONST_STRING(PI_REDIRECT,						"redirect")
+DECLARE_CONST_STRING(PI_REDIRECT_TEMP,					"redirectTemp")
 DECLARE_CONST_STRING(PI_RESPONSE,						"response")
 DECLARE_CONST_STRING(PI_XML,							"xml")
 
 DECLARE_CONST_STRING(STR_OK,							"OK")
 DECLARE_CONST_STRING(STR_MOVED_PERMANENTLY,				"Moved Permanently")
+DECLARE_CONST_STRING(STR_TEMPORARY_REDIRECT,			"Temporary Redirect")
 
 DECLARE_CONST_STRING(ERR_PROCESSING_HEADER,				"ERROR processing header directive: %s.")
 DECLARE_CONST_STRING(ERR_NO_HEADER_FIELD,				"ERROR: Unable to parse header field: %s.")
@@ -377,6 +379,12 @@ bool CHexeMarkupEvaluator::ProcessDirective (SHTTPRequestCtx &Ctx, const CString
 			return false;
 		}
 
+	else if (strEquals(sDirective, PI_REDIRECT_TEMP))
+		{
+		if (!ProcessEval(Ctx, tagRedirectTemp, sValue))
+			return false;
+		}
+
 	else if (strEquals(sDirective, PI_RESPONSE))
 		{
 		if (!ProcessEval(Ctx, tagResponse, sValue))
@@ -584,6 +592,7 @@ bool CHexeMarkupEvaluator::ProcessResult (SHTTPRequestCtx &Ctx, CHexeProcess::ER
 			break;
 
 		case tagRedirect:
+		case tagRedirectTemp:
 			//	If this is an error, then we return with 404
 
 			if (iRun == CHexeProcess::ERun::Error)
@@ -597,8 +606,16 @@ bool CHexeMarkupEvaluator::ProcessResult (SHTTPRequestCtx &Ctx, CHexeProcess::ER
 
 			else if (!dResult.IsNil())
 				{
-				m_dwResponseCode = http_MOVED_PERMANENTLY;
-				m_sResponseMsg = STR_MOVED_PERMANENTLY;
+				if (m_iProcessing == tagRedirect)
+					{
+					m_dwResponseCode = http_MOVED_PERMANENTLY;
+					m_sResponseMsg = STR_MOVED_PERMANENTLY;
+					}
+				else
+					{
+					m_dwResponseCode = http_TEMPORARY_REDIRECT;
+					m_sResponseMsg = STR_TEMPORARY_REDIRECT;
+					}
 
 				AddHeader(HEADER_LOCATION, dResult);
 				}

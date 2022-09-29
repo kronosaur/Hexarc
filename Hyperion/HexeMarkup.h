@@ -91,6 +91,7 @@ class CHexeMarkupEvaluator
 			tagFile,
 			tagHeader,
 			tagRedirect,
+			tagRedirectTemp,
 			tagResponse,
 			};
 
