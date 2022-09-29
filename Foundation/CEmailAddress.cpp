@@ -20,6 +20,19 @@ CString CEmailAddress::AsString () const
 		return strPattern("%s <%s@%s>", m_sDisplayName, m_sLocalPart, m_sDomain);
 	}
 
+CString CEmailAddress::GetAddressOnly () const
+
+//	GetAddressOnly
+//
+//	Returns the address only (no display name).
+
+	{
+	if (!IsValid())
+		return NULL_STR;
+	else
+		return strPattern("%s@%s", m_sLocalPart, m_sDomain);
+	}
+
 bool CEmailAddress::Parse (const CString& sAddr, CEmailAddress* retAddr)
 
 //	Parse

@@ -476,6 +476,7 @@ class CEmailAddress
 		explicit operator bool () const { return IsValid(); }
 
 		CString AsString () const;
+		CString GetAddressOnly () const;
 		const CString& GetDisplayName () const { return m_sDisplayName; }
 		const CString& GetDomain () const { return m_sDomain; }
 		const CString& GetLocalPart () const { return m_sLocalPart; }
