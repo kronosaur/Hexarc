@@ -536,6 +536,14 @@ bool CHexeMarkupEvaluator::ProcessResult (SHTTPRequestCtx &Ctx, CHexeProcess::ER
 		return false;
 		}
 
+	//	If this is an error, then we just write the error.
+
+	else if (iRun == CHexeProcess::ERun::Error)
+		{
+		m_Output.Write(strPattern("ERROR: %s", dResult.AsString()));
+		return true;
+		}
+
 	//	Otherwise, process the result based on the directive that we're
 	//	evaluating.
 
