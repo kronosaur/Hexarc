@@ -81,6 +81,7 @@
 
 DECLARE_CONST_STRING(STR_NAN,							"nan")
 DECLARE_CONST_STRING(STR_NIL,							"nil")
+DECLARE_CONST_STRING(STR_NULL,							"null")
 DECLARE_CONST_STRING(STR_TRUE,							"true")
 
 DECLARE_CONST_STRING(TYPENAME_BINARY,					"binary")
@@ -639,6 +640,8 @@ CAEONScriptParser::ETokens CAEONScriptParser::ParseLiteral (CDatum *retDatum)
 
 	CString sLiteral(Stream.GetPointer(), Stream.GetLength());
 	if (strEquals(strToLower(sLiteral), STR_NIL))
+		*retDatum = CDatum();
+	else if (strEquals(strToLower(sLiteral), STR_NULL))
 		*retDatum = CDatum();
 	else if (strEquals(strToLower(sLiteral), STR_NAN))
 		*retDatum = CDatum::CreateNaN();
