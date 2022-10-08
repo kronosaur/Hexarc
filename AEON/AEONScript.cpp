@@ -313,6 +313,25 @@ bool CAEONScriptParser::HasSpecialChars (const CString &sString)
 		pPos++;
 		}
 
+	//	If the string is null, nil, nan, or true, then we need to quote it, 
+	//	otherwise we will interpret it as an identifier.
+
+	const char *pFirst = sString.GetParsePointer();
+	if (*pFirst == 'n' || *pFirst == 'N')
+		{
+		if (strEqualsNoCase(sString, STR_NAN))
+			return true;
+		else if (strEqualsNoCase(sString, STR_NIL))
+			return true;
+		else if (strEqualsNoCase(sString, STR_NULL))
+			return true;
+		}
+	else if (*pFirst == 't' || *pFirst == 'T')
+		{
+		if (strEqualsNoCase(sString, STR_TRUE))
+			return true;
+		}
+
 	return false;
 	}
 
