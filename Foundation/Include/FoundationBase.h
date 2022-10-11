@@ -12,7 +12,6 @@
 //	Undefine some definitions used by Windows
 
 #undef AddPort
-#undef DeleteFile
 #undef DeleteForm
 #undef InitiateShutdown
 #undef LoadLibrary
