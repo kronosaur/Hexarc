@@ -19,6 +19,7 @@
 #include "Hexe.h"
 
 #ifdef DEBUG
+//#define DEBUG_GARBAGE_COLLECTION
 //#define DEBUG_MNEMOSYNTH
 //#define DEBUG_MODULE_RESTART
 //#define DEBUG_STARTUP
@@ -244,6 +245,11 @@ class IArchonEngine
 			//	respond to the PauseEvent.
 			}
 
+		virtual void SignalResume (void)
+			{
+			//	The process wants the engine to continue after a pause.
+			}
+
 		virtual void StartRunning (CManualEvent &RunEvent, CManualEvent &PauseEvent, CManualEvent &QuitEvent)
 			{
 			//	This signals to the engine that all engines in the process
@@ -356,6 +362,10 @@ class CArchonProcess : public IArchonProcessCtx
 		virtual void TranspaceDownload (const CString &sAddress, const CString &sReplyAddr, DWORD dwTicket, CDatum dDownloadDesc, const CHexeSecurityCtx *pSecurityCtx) override;
 
 	private:
+
+		static constexpr DWORD GC_IDLE_SPIN_TIME = 3000;
+		static constexpr DWORD GC_IDLE_WAIT = 100;
+
 		enum States
 			{
 			stateNone,
@@ -373,6 +383,7 @@ class CArchonProcess : public IArchonProcessCtx
 
 		void CollectGarbage (void);
 		void CriticalError (const CString &sError);
+		bool IsIdle () const;
 		bool OnModuleStart (CDatum dModuleData);
 		void Shutdown (void);
 		bool TransformAddress (const CString &sAddress, const CString &sMsg, CDatum dPayload, CString *retsDestMsgAddress, CString *retsDestMsg, CDatum *retdPayload, CString *retsError);

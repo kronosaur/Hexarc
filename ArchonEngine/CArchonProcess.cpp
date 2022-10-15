@@ -295,21 +295,14 @@ void CArchonProcess::CollectGarbage (void)
 
 		if (dwTimeSinceLastCollection < MAX_GARBAGE_COLLECT_WAIT)
 			{
-			//	Check to see if engines are idle
-
-			bool bEnginesIdle = true;
-			for (i = 0; i < m_Engines.GetCount(); i++)
-				if (!m_Engines[i].pEngine->IsIdle())
-					{
-					bEnginesIdle = false;
-					break;
-					}
-
 			//	If the engines are busy, then check to see if we have enough
 			//	memory to wait some more.
 
-			if (!bEnginesIdle)
+			if (!IsIdle())
 				{
+#ifdef DEBUG_GARBAGE_COLLECTION
+				printf("Not idle\n");
+#endif
 				CProcess CurrentProc;
 				CurrentProc.CreateCurrentProcess();
 				CProcess::SMemoryInfo MemoryInfo;
@@ -322,19 +315,54 @@ void CArchonProcess::CollectGarbage (void)
 				//	If we have enough memory, then wait to collect garbage
 
 				if (MemoryInfo.dwCurrentAlloc < MAX_GARBAGE_COLLECT_MEMORY)
-					return;
+					{
+					bool bIdle = false;
 
-				//	Warning that we're running out of memory
+					//	Spin a bit to see if we become idle.
 
-				LogBlackBox(ERR_MEMORY_WARNING);
+					DWORDLONG dwEndTime = ::sysGetTickCount64() + GC_IDLE_SPIN_TIME;
+					while (::sysGetTickCount64() < dwEndTime)
+						{
+#ifdef DEBUG_GARBAGE_COLLECTION
+						printf("Waiting for idle state\n");
+#endif
+
+						::Sleep(GC_IDLE_WAIT);
+						if (IsIdle())
+							{
+							bIdle = true;
+							break;
+							}
+						}
+
+					//	If we're still not idle, then just return and wait for
+					//	the next time.
+
+					if (!bIdle)
+						{
+#ifdef DEBUG_GARBAGE_COLLECTION
+						printf("Abandon wait for idle\n");
+#endif
+						return;
+						}
+					}
+				else
+					{
+#ifdef DEBUG_GARBAGE_COLLECTION
+					printf("Low on memory\n");
+#endif
+					//	Warning that we're running out of memory
+
+					LogBlackBox(ERR_MEMORY_WARNING);
+					}
 				}
 			}
 
 		//	Collect
 
-	#ifdef DEBUG_GARBAGE_COLLECTION
+#ifdef DEBUG_GARBAGE_COLLECTION
 		printf("[%s] Collecting garbage.\n", (LPSTR)m_sName);
-	#endif
+#endif
 
 		m_dwLastGarbageCollect = dwStart;
 
@@ -397,6 +425,11 @@ void CArchonProcess::CollectGarbage (void)
 		DWORD dwSweepTime = sysGetTickCount() - dwSweepStart;
 
 		sTask = NULL_STR;
+
+		//	Send an explicit signal.
+
+		for (int i = 0; i < m_Engines.GetCount(); i++)
+			m_Engines[i].pEngine->SignalResume();
 
 		//	Now we start all engines up again
 
@@ -486,6 +519,21 @@ void CArchonProcess::CriticalError (const CString &sError)
 		LogBlackBox(sError);
 	else
 		Log(MSG_LOG_ERROR, sError);
+	}
+
+bool CArchonProcess::IsIdle () const
+
+//	IsIdle
+//
+//	Return TRUE if all engines are idle. This is only a heuristic to see if we
+//	can collect garbage right now.
+
+	{
+	for (int i = 0; i < m_Engines.GetCount(); i++)
+		if (!m_Engines[i].pEngine->IsIdle())
+			return false;
+
+	return true;
 	}
 
 void CArchonProcess::OnMnemosynthDbModified (CDatum dLocalUpdates)

@@ -1916,6 +1916,13 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				if (m_pComputeProgress->OnAbortCheck())
 					return RuntimeError(ERR_EXECUTION_TOOK_TOO_LONG, *retResult);
 				}
+
+			CSmartLock Lock(m_cs);
+			if (m_bSignalPause)
+				{
+				m_bSignalPause = false;
+				return ERun::StopCheck;
+				}
 			}
 		}
 
@@ -3563,3 +3570,13 @@ CHexeProcess::ERun CHexeProcess::RuntimeError (const CString &sError, CDatum &re
 	return ERun::Error;
 	}
 
+void CHexeProcess::SignalPause (bool bPause)
+
+//	SignalPause
+//
+//	This can be called to exit compute.
+
+	{
+	CSmartLock Lock(m_cs);
+	m_bSignalPause = bPause;
+	}

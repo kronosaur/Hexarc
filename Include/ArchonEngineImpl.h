@@ -100,6 +100,8 @@ class CSimpleEngine : public IArchonEngine, public IArchonMessagePort, protected
 		virtual const CString &GetName (void) override { return m_sName; }
 		virtual bool IsIdle (void) override;
 		virtual void Mark (void) override { m_Queue.Mark(); m_TimedQueue.Mark(); OnMark(); }
+		virtual void SignalPause (void) override { OnSignalPause(); }
+		virtual void SignalResume (void) override { OnSignalResume(); }
 		virtual void SignalShutdown (void) override { OnStopRunning(); }
 		virtual void StartRunning (CManualEvent &RunEvent, CManualEvent &PauseEvent, CManualEvent &QuitEvent) override;
 		virtual void WaitForShutdown (void) override;
@@ -188,9 +190,12 @@ class CSimpleEngine : public IArchonEngine, public IArchonMessagePort, protected
 		//	Overridden by descendants
 		virtual void OnAccumulateModuleData (CDatum dData) const { }
 		virtual void OnBoot (void) { }
+		virtual bool OnIsIdle (void) const { return true; }
 		virtual void OnMark (void) { }
 		virtual void OnProcessMessages (CArchonMessageList &List) { }
 		virtual void OnProcessReply (const SArchonMessage &Msg) { }
+		virtual void OnSignalPause (void) { }
+		virtual void OnSignalResume (void) { }
 		virtual void OnStartRunning (void) { }
 		virtual void OnStopRunning (void) { }
 		virtual void OnWaitForPause (void) { }

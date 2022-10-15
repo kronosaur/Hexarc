@@ -189,17 +189,18 @@ bool CSimpleEngine::IsIdle (void)
 //	Returns TRUE if all threads are idle. FALSE otherwise.
 
 	{
-	int i;
-
 	try
 		{
-		for (i = 0; i < m_Threads.GetCount(); i++)
+		for (int i = 0; i < m_Threads.GetCount(); i++)
 			{
 			SThreadStatus Status;
 			GetThreadStatus(i, &Status);
 			if (Status.iState != processingWaiting)
 				return false;
 			}
+
+		if (!OnIsIdle())
+			return false;
 		}
 	catch (...)
 		{

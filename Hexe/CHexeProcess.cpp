@@ -508,6 +508,37 @@ CHexeProcess::ERun CHexeProcess::RunContinues (CDatum dAsyncResult, CDatum *retR
 	return iRun;
 	}
 
+CHexeProcess::ERun CHexeProcess::RunContinuesFromStopCheck (CDatum& retResult)
+
+//	RunContinuesFromStopCheck
+//
+//	Continue running after an interruption
+
+	{
+	//	Progress
+
+	if (m_pComputeProgress)
+		m_pComputeProgress->OnStart();
+
+	//	Continue execution
+
+	ERun iRun;
+	try
+		{
+		iRun = Execute(&retResult);
+		}
+	catch (...)
+		{
+		retResult = strPattern(ERR_COMPUTE_CRASH);
+		return ERun::Error;
+		}
+
+	if (m_pComputeProgress)
+		m_pComputeProgress->OnStop();
+
+	return iRun;
+	}
+
 CHexeProcess::ERun CHexeProcess::RunEventHandler (CDatum dFunc, const TArray<CDatum> &Args, CDatum &retResult)
 
 //	RunEventHandler

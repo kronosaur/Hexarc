@@ -308,6 +308,7 @@ class CHexeProcess : public IInvokeCtx
 		ERun Run (CDatum dExpression, CDatum *retResult);
 		ERun Run (CDatum dFunc, CDatum dCallExpression, const TArray<CDatum> *pInitialStack, CDatum *retResult);
 		ERun RunContinues (CDatum dAsyncResult, CDatum *retResult);
+		ERun RunContinuesFromStopCheck (CDatum& retResult);
 		ERun RunEventHandler (CDatum dFunc, const TArray<CDatum> &Args, CDatum &retResult);
 		CDatum Serialize () const;
 		void SetComputeProgress (IHexeComputeProgress &Progress) { m_pComputeProgress = &Progress; }
@@ -316,6 +317,7 @@ class CHexeProcess : public IInvokeCtx
 		void SetOptionAddConcatenatesStrings (bool bValue = true) { m_bAddConcatenatesStrings = bValue; }
 		void SetSecurityCtx (const CHexeSecurityCtx &Ctx);
 		void SetTypeSystem (const CAEONTypeSystem &Types) { m_Types = Types; }
+		void SignalPause (bool bPause = true);
 
 		//	Execution helpers
 		static CDatum ExecuteBinaryOp (EOpCodes iOp, CDatum dLeft, CDatum dRight);
@@ -413,6 +415,9 @@ class CHexeProcess : public IInvokeCtx
 		DWORDLONG m_dwComputes = 0;					//	Total instructions processed so far.
 		DWORDLONG m_dwLibraryTime = 0;				//	Total milliseconds spent executing
 													//		native library functions.
+
+		CCriticalSection m_cs;
+		bool m_bSignalPause = false;
 
 		static SHexarcMsgInfo m_HexarcMsgInfo[];
 		static int m_iHexarcMsgInfoCount;
