@@ -12,6 +12,7 @@ DECLARE_CONST_STRING(CACHE_NO_CACHE,					"no-cache")
 DECLARE_CONST_STRING(FIELD_DATA,						"data")
 DECLARE_CONST_STRING(FIELD_FILE_DESC,					"fileDesc")
 DECLARE_CONST_STRING(FIELD_FILE_PATH,					"filePath")
+DECLARE_CONST_STRING(FIELD_HEADERS,						"headers")
 DECLARE_CONST_STRING(FIELD_OUTPUT,						"output")
 DECLARE_CONST_STRING(FIELD_TYPE,						"type")
 
@@ -134,6 +135,20 @@ bool CHexeCodeRPCService::ComposeResponse (SHTTPRequestCtx &Ctx, CHexeProcess::E
 			Ctx.iStatus = pstatFileDataReady;
 			Ctx.dFileDesc = dResult.GetElement(FIELD_FILE_DESC);
 			Ctx.dFileData = dResult.GetElement(FIELD_DATA);
+
+			CDatum dHeaders = dResult.GetElement(FIELD_HEADERS);
+			if (!dHeaders.IsNil())
+				{
+				for (int i = 0; i < dHeaders.GetCount(); i++)
+					{
+					CString sField = dHeaders.GetKey(i);
+					CString sValue = dHeaders.GetElement(i);
+					if (sField.IsEmpty() || sValue.IsEmpty())
+						continue;
+
+					Ctx.AdditionalHeaders.Insert(CHTTPMessage::SHeader({ sField, sValue }));
+					}
+				}
 
 			//	Return because the caller will set up the response.
 

@@ -31,6 +31,7 @@ DECLARE_CONST_STRING(FIELD_REQUEST_TIME,				"requestTime");
 DECLARE_CONST_STRING(FIELD_SIZE,						"size");
 DECLARE_CONST_STRING(FIELD_SOCKET,						"socket");
 DECLARE_CONST_STRING(FIELD_STATE,						"state");
+DECLARE_CONST_STRING(FIELD_TYPE,						"type");
 DECLARE_CONST_STRING(FIELD_UNMODIFIED,					"unmodified");
 DECLARE_CONST_STRING(FIELD_HTTP_URL,					"url");
 
@@ -827,6 +828,8 @@ bool CHTTPSession::ProcessFileResult (SHTTPRequestCtx &Ctx, CDatum dFileDesc, CD
 			//	(and let the client try to figure it out).
 
 			CString sMediaType = IMediaType::MediaTypeFromExtension(sExtension);
+			if (sMediaType.IsEmpty())
+				sMediaType = dFileDesc.GetElement(FIELD_TYPE);
 
 			IMediaTypePtr pBody = IMediaTypePtr(new CRawMediaType);
 			pBody->DecodeFromBuffer(sMediaType, CStringBuffer(dFileData));
