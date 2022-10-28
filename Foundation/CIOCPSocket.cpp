@@ -22,6 +22,10 @@ CIOCPSocket::CIOCPSocket (SOCKET hSocket) : IIOCPEntry(IOCP_SOCKET_OP),
 	{
 	if (hSocket == INVALID_SOCKET)
 		throw CException(errFail);
+
+#ifdef DEBUG_SOCKET
+	printf("[%x:%x] Opened socket\n", ((GetID() & 0x00ffffff) + 1), (DWORD)m_hSocket);
+#endif
 	}
 
 CIOCPSocket::CIOCPSocket (const CString &sAddress, DWORD dwPort) : IIOCPEntry(IOCP_SOCKET_OP),
@@ -43,9 +47,14 @@ CIOCPSocket::CIOCPSocket (const CString &sAddress, DWORD dwPort) : IIOCPEntry(IO
 		CSocket NewSocket;
 		if (NewSocket.Create(pAI->ai_family, CSocket::EType::TCP))
 			m_hSocket = NewSocket.Handoff();
+
+#ifdef DEBUG_SOCKET
+		printf("[%x:%x] Opened socket to %s\n", ((GetID() & 0x00ffffff) + 1), (DWORD)m_hSocket, (LPSTR)sAddress);
+#endif
 		}
 	else
 		m_hSocket = INVALID_SOCKET;
+
 	}
 
 CIOCPSocket::~CIOCPSocket (void)
@@ -58,7 +67,7 @@ CIOCPSocket::~CIOCPSocket (void)
 		shutdown(m_hSocket, SD_BOTH);
 		CSocket::CloseHandoffSocket(m_hSocket);
 
-#ifdef DEBUG
+#ifdef DEBUG_SOCKET
 		printf("[%x:%x] Closed socket\n", ((GetID() & 0x00ffffff) + 1), (DWORD)m_hSocket);
 #endif
 		}
@@ -113,13 +122,14 @@ bool CIOCPSocket::CreateConnection (const CString &sAddress, DWORD dwPort, OVERL
 
 	//	Connect
 
+	DWORD dwIgnored;
 	DWORD lasterror = 0;
 	if (!pfnConnectEx(m_hSocket,
 			pAI->ai_addr,
 			(int)pAI->ai_addrlen,
 			NULL,
 			0,
-			NULL,
+			&dwIgnored,
 			&Overlapped))
 		lasterror = ::WSAGetLastError();
 

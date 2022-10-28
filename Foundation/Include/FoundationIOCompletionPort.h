@@ -21,13 +21,8 @@ class IIOCPEntry
 			};
 
 		IIOCPEntry (const CString &sType) : 
-				m_dwID(0),
-				m_sType(sType),
-				m_iCurrentOp(opNone),
-				m_dwOpStartTime(0),
-				m_bDeleteOnCompletion(false)
-			{
-			}
+				m_sType(sType)
+			{ }
 
 		bool BeginConnection (const CString &sAddress, DWORD dwPort, CString *retsError);
 		bool BeginRead (CString *retsError);
@@ -62,13 +57,13 @@ class IIOCPEntry
 		virtual void OnProcess (void) { }
 
 	private:
-		DWORD m_dwID;
+		DWORD m_dwID = 0;
 		CString m_sType;
-		OVERLAPPED m_Overlapped;
-		DWORDLONG m_dwOpStartTime;			//	Tick when we started current operation
+		OVERLAPPED m_Overlapped = { 0 };
+		DWORDLONG m_dwOpStartTime = 0;			//	Tick when we started current operation
 
-		EOperations m_iCurrentOp;
-		bool m_bDeleteOnCompletion;			//	Delete when we complete operation
+		EOperations m_iCurrentOp = opNone;
+		bool m_bDeleteOnCompletion = false;		//	Delete when we complete operation
 	};
 
 class CIOCPSocket : public IIOCPEntry
@@ -109,7 +104,7 @@ class CIOCPSocket : public IIOCPEntry
 		void SetReadBufferLen ();
 		void SetWriteBuffer (const CString &sData);
 
-		SOCKET m_hSocket;
+		SOCKET m_hSocket = INVALID_SOCKET;
 		CWSAddrInfo m_AI;
 		CBuffer m_Buffer;
 	};
