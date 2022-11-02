@@ -2042,13 +2042,25 @@ int CHexeProcess::ExecuteCompare (CDatum dValue1, CDatum dValue2)
 				return KeyCompare((const CIPInteger &)dValue1, (const CIPInteger &)dValue2);
 
 			case CDatum::typeString:
-				return KeyCompare(strToLower(dValue1), strToLower(dValue2));
+				return KeyCompareNoCase(dValue1, dValue2);
 
 			case CDatum::typeDateTime:
 				return KeyCompare((const CDateTime &)dValue1,  (const CDateTime &)dValue2);
 
 			case CDatum::typeTimeSpan:
 				return KeyCompare((const CDateTime &)dValue1,  (const CDateTime &)dValue2);
+
+			case CDatum::typeEnum:
+				{
+				//	If both the symbol and the ordinal of the enum are equal, 
+				//	then we return as equal.
+
+				int iSymbolCompare = KeyCompareNoCase(dValue1.AsString(), dValue2.AsString());
+				if (iSymbolCompare == 0)
+					return KeyCompare((int)dValue1, (int)dValue2);
+				else
+					return iSymbolCompare;
+				}
 
 			case CDatum::typeArray:
 				{
@@ -2068,7 +2080,7 @@ int CHexeProcess::ExecuteCompare (CDatum dValue1, CDatum dValue2)
 				int iCount = Min(dValue1.GetCount(), dValue2.GetCount());
 				for (i = 0; i < iCount; i++)
 					{
-					int iCompare = KeyCompare(strToLower(dValue1.GetKey(i)), strToLower(dValue2.GetKey(i)));
+					int iCompare = KeyCompareNoCase(dValue1.GetKey(i), dValue2.GetKey(i));
 					if (iCompare != 0)
 						return iCompare;
 
@@ -2375,13 +2387,20 @@ bool CHexeProcess::ExecuteIsEquivalent (CDatum dValue1, CDatum dValue2)
 				return ((const CIPInteger &)dValue1) == ((const CIPInteger &)dValue2);
 
 			case CDatum::typeString:
-				return strEquals(strToLower(dValue1), strToLower(dValue2));
+				return strEqualsNoCase(dValue1, dValue2);
 
 			case CDatum::typeDateTime:
 				return ((const CDateTime &)dValue1) == ((const CDateTime &)dValue2);
 
 			case CDatum::typeTimeSpan:
 				return ((const CTimeSpan &)dValue1) == ((const CTimeSpan &)dValue2);
+
+			case CDatum::typeEnum:
+				//	If both the symbol and the ordinal of the enum are equal, 
+				//	then we return as equivalent (even if the datatypes don't match)
+
+				return ((int)dValue1 == (int)dValue2
+						&& strEqualsNoCase(dValue1.AsString(), dValue2.AsString()));
 
 			case CDatum::typeArray:
 				{
@@ -2401,7 +2420,7 @@ bool CHexeProcess::ExecuteIsEquivalent (CDatum dValue1, CDatum dValue2)
 					return false;
 
 				for (i = 0; i < dValue1.GetCount(); i++)
-					if (!strEquals(strToLower(dValue1.GetKey(i)), strToLower(dValue2.GetKey(i)))
+					if (!strEqualsNoCase(dValue1.GetKey(i), dValue2.GetKey(i))
 							|| !ExecuteIsEquivalent(dValue1.GetElement(i), dValue2.GetElement(i)))
 						return false;
 
@@ -2532,6 +2551,13 @@ bool CHexeProcess::ExecuteIsIdentical (CDatum dValue1, CDatum dValue2)
 			case CDatum::typeTimeSpan:
 				return ((const CTimeSpan &)dValue1) == ((const CTimeSpan &)dValue2);
 
+			case CDatum::typeEnum:
+				//	For it to be identical, we need both values to be the same
+				//	ordinal and datatype.
+
+				return ((const IDatatype&)(dValue1.GetDatatype()) == (const IDatatype&)(dValue2.GetDatatype()))
+						&& ((int)dValue1 == (int)dValue2);
+
 			case CDatum::typeArray:
 				{
 				if (dValue1.GetCount() != dValue2.GetCount())
@@ -2550,7 +2576,7 @@ bool CHexeProcess::ExecuteIsIdentical (CDatum dValue1, CDatum dValue2)
 					return false;
 
 				for (int i = 0; i < dValue1.GetCount(); i++)
-					if (!strEquals(strToLower(dValue1.GetKey(i)), strToLower(dValue2.GetKey(i)))
+					if (!strEqualsNoCase(dValue1.GetKey(i), dValue2.GetKey(i))
 							|| !ExecuteIsIdentical(dValue1.GetElement(i), dValue2.GetElement(i)))
 						return false;
 
@@ -2725,7 +2751,7 @@ bool CHexeProcess::ExecuteObjectMemberItem (CDatum dObject, const CString &sFiel
 			case IDatatype::EMemberType::InstanceMethod:
 			case IDatatype::EMemberType::StaticMethod:
 				{
-				CString sFunctionName = strPattern("%s$%s", Type.GetFullyQualifiedName(), sField);
+				CString sFunctionName = CAEONTypes::MakeFullyQualifiedName(Type.GetFullyQualifiedName(), sField);
 
 				CDatum dValue;
 				if (!m_pCurGlobalEnv->Find(sFunctionName, &dValue))
@@ -3338,7 +3364,7 @@ bool CHexeProcess::ExecutePushObjectMethod (CDatum &retResult)
 					case IDatatype::EMemberType::InstanceMethod:
 					case IDatatype::EMemberType::StaticMethod:
 						{
-						CString sFunctionName = strPattern("%s$%s", Type.GetFullyQualifiedName(), sField);
+						CString sFunctionName = CAEONTypes::MakeFullyQualifiedName(Type.GetFullyQualifiedName(), sField);
 
 						CDatum dValue;
 						if (!m_pCurGlobalEnv->Find(sFunctionName, &dValue))

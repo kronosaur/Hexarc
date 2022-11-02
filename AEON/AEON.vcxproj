@@ -193,6 +193,7 @@
     <ClCompile Include="CAEONTableIndex.cpp" />
     <ClCompile Include="CAEONTableRef.cpp" />
     <ClCompile Include="CAEONTimeSpan.cpp" />
+    <ClCompile Include="CAEONTypes.cpp" />
     <ClCompile Include="CAEONTypeSystem.cpp" />
     <ClCompile Include="CAEONVector.cpp" />
     <ClCompile Include="CAEONVector2D.cpp" />
@@ -206,6 +207,7 @@
     <ClCompile Include="CComplexStruct.cpp" />
     <ClCompile Include="CDatatypeArray.cpp" />
     <ClCompile Include="CDatatypeClass.cpp" />
+    <ClCompile Include="CDatatypeEnum.cpp" />
     <ClCompile Include="CDatatypeList.cpp" />
     <ClCompile Include="CDatatypeMatrix.cpp" />
     <ClCompile Include="CDatatypeNumber.cpp" />

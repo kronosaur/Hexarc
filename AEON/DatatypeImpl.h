@@ -192,6 +192,48 @@ class CDatatypeClass : public IDatatype
 		CDatatypeList m_Implements;
 	};
 
+class CDatatypeEnum : public IDatatype
+	{
+	public:
+		struct SCreate
+			{
+			CString sFullyQualifiedName;
+			};
+
+		CDatatypeEnum (const SCreate &Create) : IDatatype(Create.sFullyQualifiedName)
+			{ }
+
+		explicit CDatatypeEnum (const CString &sFullyQualifiedName) : IDatatype(sFullyQualifiedName)
+			{ }
+
+	private:
+
+		struct SEntry
+			{
+			int iOrdinal = 0;
+			CString sName;
+			};
+
+		//	IDatatype virtuals
+
+		virtual bool OnAddMember (const CString &sName, EMemberType iType, CDatum dType, CString *retsError = NULL) override;
+		virtual bool OnDeserialize (CDatum::EFormat iFormat, IByteStream &Stream) override;
+		virtual bool OnEquals (const IDatatype &Src) const override;
+		virtual int OnFindMember (const CString &sName) const override;
+		virtual int OnFindMemberByOrdinal (int iOrdinal) const override;
+		virtual ECategory OnGetClass () const override { return IDatatype::ECategory::Enum; }
+		virtual EImplementation OnGetImplementation () const { return IDatatype::EImplementation::Enum; }
+		virtual SMemberDesc OnGetMember (int iIndex) const;
+		virtual int OnGetMemberCount () const { return m_Entries.GetCount(); }
+		virtual CDatum OnGetMembersAsTable () const override;
+		virtual EMemberType OnHasMember (const CString &sName, CDatum *retdType = NULL) const override;
+		virtual bool OnIsA (const IDatatype &Type) const override { return (Type == *this || Type.IsAny() || Type.GetCoreType() == IDatatype::ENUM); }
+		virtual void OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
+
+		TArray<SEntry> m_Entries;
+		TSortMap<CString, int> m_EntriesByName;
+	};
+
 class CDatatypeMatrix : public IDatatype
 	{
 	public:
@@ -333,6 +375,7 @@ class CComplexDatatype : public IComplexDatum
 		static constexpr int IMPL_NUMBER_ID =			4;
 		static constexpr int IMPL_SCHEMA_ID =			5;
 		static constexpr int IMPL_SIMPLE_ID =			6;
+		static constexpr int IMPL_ENUM_ID =				7;
 
 		//	IComplexDatum
 

@@ -320,15 +320,13 @@ class CArcOutline
 
 		struct SCircle
 			{
-			SCircle (void) :
-					bDelete(false)
-				{ }
+			SCircle (void) { }
 
 			CVector2D vCenter;
-			double rRadius;
+			double rRadius = 0.0;
 
 			TArray<SArc> Arcs;
-			bool bDelete;
+			bool bDelete = false;
 			};
 
 		struct SArcEntry

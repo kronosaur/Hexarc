@@ -9,6 +9,9 @@ class IDatatype
 	{
 	public:
 
+		//	NOTE: These numbers may be serialized and should never be changed
+		//	(always add entries at the end).
+
 		static constexpr DWORD UNKNOWN =			0;
 
 		static constexpr DWORD ANY =				1;	//	Any type (a CDatum)
@@ -57,6 +60,11 @@ class IDatatype
 		static constexpr DWORD CANVAS =				38;	//	A canvas object (concrete)
 		static constexpr DWORD BITMAP_RGBA8 =		39;	//	A 32-bit per pixel bitmap (concrete)
 
+		static constexpr DWORD ENUM =				40;	//	Any enum type
+		static constexpr DWORD MEMBER_TABLE =		41;	//	A table describing type members
+
+		static constexpr DWORD MAX_CORE_TYPE =		41;
+
 		enum class ECategory
 			{
 			Unknown,
@@ -68,6 +76,7 @@ class IDatatype
 			Function,						//	A function type
 			Matrix,							//	An m x n matrix
 			Schema,							//	A table definition
+			Enum,							//	An enumeration type
 			};
 
 		enum class EImplementation
@@ -77,6 +86,7 @@ class IDatatype
 			Any,
 			Array,
 			Class,
+			Enum,
 			Matrix,
 			Number,
 			Schema,
@@ -88,6 +98,7 @@ class IDatatype
 			None,
 
 			ArrayElement,
+			EnumValue,
 			InstanceKeyVar,
 			InstanceMethod,
 			InstanceVar,
@@ -100,6 +111,7 @@ class IDatatype
 			EMemberType iType = EMemberType::None;
 			CString sName;
 			CDatum dType;
+			int iOrdinal = 0;
 			};
 
 		IDatatype (const CString &sFullyQualifiedName) :
@@ -120,6 +132,7 @@ class IDatatype
 		bool AddMember (const CString &sName, EMemberType iType, CDatum dType, CString *retsError = NULL) { return OnAddMember(sName, iType, dType, retsError); }
 		static TUniquePtr<IDatatype> Deserialize (CDatum::EFormat iFormat, IByteStream &Stream);
 		int FindMember (const CString &sName) const { return OnFindMember(sName); }
+		int FindMemberByOrdinal (int iOrdinal) const { return OnFindMemberByOrdinal(iOrdinal); }
 		ECategory GetClass () const { return OnGetClass(); }
 		DWORD GetCoreType () const { return OnGetCoreType(); }
 		const CString &GetFullyQualifiedName () const { return m_sFullyQualifiedName; }
@@ -145,6 +158,7 @@ class IDatatype
 		virtual bool OnDeserialize (CDatum::EFormat iFormat, IByteStream &Stream) = 0;
 		virtual bool OnEquals (const IDatatype &Src) const = 0;
 		virtual int OnFindMember (const CString &sName) const { return -1; }
+		virtual int OnFindMemberByOrdinal (int iOrdinal) const { if (iOrdinal >= 0 && iOrdinal < GetMemberCount()) return iOrdinal; else return - 1; }
 		virtual EMemberType OnHasMember (const CString &sName, CDatum *retdType = NULL) const { return EMemberType::None; }
 		virtual ECategory OnGetClass () const = 0;
 		virtual DWORD OnGetCoreType () const { return UNKNOWN; }
@@ -185,6 +199,7 @@ class CAEONTypeSystem
 		CDatum AddAnonymousSchema (const TArray<IDatatype::SMemberDesc> &Columns);
 		bool AddType (CDatum dType);
 		static CDatum CreateDatatypeClass (const CString &sFullyQualifiedName, const CDatatypeList &Implements, IDatatype **retpNewType = NULL);
+		static CDatum CreateDatatypeEnum (const CString &sFullyQualifiedName, const TArray<IDatatype::SMemberDesc>& Values, IDatatype **retpNewType = NULL, CString* retsError = NULL);
 		static CDatum CreateDatatypeSchema (const CString &sFullyQualifiedName, const CDatatypeList &Implements, IDatatype **retpNewType = NULL);
 		static CDatum CreateDatatypeSchema (const CString &sFullyQualifiedName, IDatatype **retpNewType = NULL)
 			{ return CreateDatatypeSchema(sFullyQualifiedName, { CAEONTypeSystem::GetCoreType(IDatatype::TABLE) }, retpNewType); }
@@ -197,16 +212,17 @@ class CAEONTypeSystem
 		static CString MakeFullyQualifiedName (const CString &sFullyQualifiedScope, const CString &sName);
 		void Mark ();
 		static void MarkCoreTypes ();
-		static CString ParseNameFromFullyQualifiedName (const CString &sValue);
 		CDatum ResolveType (CDatum dType) const;
 		CDatum Serialize () const;
 
 		static CDatum CreateAnonymousSchema (const TArray<IDatatype::SMemberDesc> &Columns);
 		static CAEONTypeSystem &Null () { return m_Null; }
 
+		static IDatatype *CreateMemberTable ();
+		static IDatatype *CreateSchemaTable ();
+
 	private:
 		static void AddCoreType (IDatatype *pNewDatatype);
-		static IDatatype *CreateSchemaTable ();
 		static void InitCoreTypes ();
 
 		TSortMap<CString, CDatum> m_Types;
@@ -216,3 +232,33 @@ class CAEONTypeSystem
 		static CAEONTypeSystem m_Null;
 	};
 
+class CAEONTypes
+	{
+	public:
+
+		static DWORD Add (CDatum dType);
+		static CDatum CreateArray (const CString& sFullyQualifiedName, CDatum dElementType, DWORD dwCoreType = IDatatype::UNKNOWN);
+		static CDatum CreateMatrix (const CString& sFullyQualifiedName, CDatum dElementType, int iRows, int iCols, DWORD dwCoreType = IDatatype::UNKNOWN);
+		static CDatum CreateNumber (const CString& sFullyQualifiedName, const CDatatypeList& Implements, int iBits, bool bFloat, bool bUnsigned, DWORD dwCoreType = IDatatype::UNKNOWN);
+		static CDatum CreateSimple (const CString& sFullyQualifiedName, const CDatatypeList& Implements, bool bAbstract = false, DWORD dwCoreType = IDatatype::UNKNOWN);
+		static CDatum Get (DWORD dwID);
+		static int GetCount () { CSmartLock Lock(m_cs); return m_Types.GetCount(); }
+		static CString MakeAnonymousName (const CString& sFullyQualifiedScope, const CString& sName);
+		static CString MakeFullyQualifiedName (const CString &sFullyQualifiedScope, const CString &sName);
+		static void MarkAndSweep ();
+		static CString ParseNameFromFullyQualifiedName (const CString &sValue);
+
+	private:
+
+		static CDatum CreateAny ();
+		static CDatum CreateMemberTable ();
+		static CDatum CreateSchemaTable ();
+		static void InitCoreTypes ();
+		static void SetCoreType (DWORD dwCoreType, CDatum dType);
+
+		static CCriticalSection m_cs;
+		static TArray<CDatum> m_Types;
+		static TArray<int> m_FreeTypes;
+		static bool m_bInitDone;
+		static DWORD m_dwNextAnonymousID;
+	};

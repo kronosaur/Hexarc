@@ -6,6 +6,7 @@
 #include "stdafx.h"
 
 DECLARE_CONST_STRING(TYPENAME_DOUBLE,					"double");
+DECLARE_CONST_STRING(TYPENAME_ENUM,						"enum");
 DECLARE_CONST_STRING(TYPENAME_INT32,					"integer32");
 DECLARE_CONST_STRING(TYPENAME_NIL,						"nil");
 DECLARE_CONST_STRING(TYPENAME_STRING,					"string");
@@ -375,6 +376,7 @@ CDatum::operator int () const
 					}
 
 				case AEON_NUMBER_INTEGER:
+				case AEON_NUMBER_ENUM:
 					return (int)HIDWORD(m_dwData);
 
 				case AEON_NUMBER_DOUBLE:
@@ -424,6 +426,7 @@ CDatum::operator DWORD () const
 					}
 
 				case AEON_NUMBER_INTEGER:
+				case AEON_NUMBER_ENUM:
 					return HIDWORD(m_dwData);
 
 				case AEON_NUMBER_DOUBLE:
@@ -473,6 +476,7 @@ CDatum::operator DWORDLONG () const
 					}
 
 				case AEON_NUMBER_INTEGER:
+				case AEON_NUMBER_ENUM:
 					return (DWORDLONG)HIDWORD(m_dwData);
 
 				case AEON_NUMBER_DOUBLE:
@@ -521,6 +525,7 @@ CDatum::operator double () const
 					}
 
 				case AEON_NUMBER_INTEGER:
+				case AEON_NUMBER_ENUM:
 					return (double)(int)HIDWORD(m_dwData);
 
 				case AEON_NUMBER_DOUBLE:
@@ -652,6 +657,7 @@ CDatum::operator const CString & () const
 
 				case AEON_NUMBER_INTEGER:
 				case AEON_NUMBER_DOUBLE:
+				case AEON_NUMBER_ENUM:
 					return NULL_STR;
 
 				default:
@@ -745,6 +751,7 @@ int CDatum::AsArrayIndex () const
 					}
 
 				case AEON_NUMBER_INTEGER:
+				case AEON_NUMBER_ENUM:
 					return (int)HIDWORD(m_dwData);
 
 				case AEON_NUMBER_DOUBLE:
@@ -846,6 +853,7 @@ CIPInteger CDatum::AsIPInteger () const
 					}
 
 				case AEON_NUMBER_INTEGER:
+				case AEON_NUMBER_ENUM:
 					return CIPInteger((int)HIDWORD(m_dwData));
 
 				case AEON_NUMBER_DOUBLE:
@@ -952,6 +960,20 @@ CString CDatum::AsString (void) const
 				case AEON_NUMBER_INTEGER:
 					return strFromInt((int)HIDWORD(m_dwData));
 
+				case AEON_NUMBER_ENUM:
+					{
+					int iValue = (int)HIDWORD(m_dwData);
+					DWORD dwDatatypeID = GetNumberIndex();
+					CDatum dType = CAEONTypes::Get(dwDatatypeID);
+					const IDatatype& Datatype = dType;
+					int iIndex = Datatype.FindMemberByOrdinal(iValue);
+
+					if (iIndex == -1)
+						return NULL_STR;
+					else
+						return Datatype.GetMember(iIndex).sName;
+					}
+
 				case AEON_NUMBER_DOUBLE:
 					return strFromDouble(CAEONStore::GetDouble(GetNumberIndex()));
 
@@ -1009,6 +1031,7 @@ size_t CDatum::CalcMemorySize (void) const
 					break;
 
 				case AEON_NUMBER_INTEGER:
+				case AEON_NUMBER_ENUM:
 					break;
 
 				case AEON_NUMBER_DOUBLE:
@@ -1262,6 +1285,29 @@ bool CDatum::CreateBinaryFromHandoff (CStringBuffer &Buffer, CDatum *retDatum)
 	pBinary->TakeHandoff(Buffer);
 	*retDatum = CDatum(pBinary);
 	return true;
+	}
+
+CDatum CDatum::CreateEnum (int iValue, DWORD dwTypeID)
+
+//	CreateEnum
+//
+//	Creates an enum value datum.
+
+	{
+	CDatum dResult;
+	dResult.m_dwData = MAKEDWORDLONG((dwTypeID << 4) | (DWORD)AEON_NUMBER_ENUM, (DWORD)iValue);
+	return dResult;
+	}
+
+CDatum CDatum::CreateEnum (int iValue, CDatum dType)
+
+//	CreateEnum
+//
+//	Creates an enum value datum.
+
+	{
+	DWORD dwTypeID = CAEONTypes::Add(dType);
+	return CreateEnum(iValue, dwTypeID);
 	}
 
 bool CDatum::CreateFromAttributeList (const CAttributeList &Attribs, CDatum *retdDatum)
@@ -1627,6 +1673,27 @@ int CDatum::DefaultCompare (void *pCtx, const CDatum &dKey1, const CDatum &dKey2
 
 			case CDatum::typeTimeSpan:
 				return ((const CTimeSpan &)dKey1).Compare((const CTimeSpan &)dKey2);
+
+			case CDatum::typeEnum:
+				{
+				DWORD dwType1 = dKey1.GetNumberIndex();
+				DWORD dwType2 = dKey2.GetNumberIndex();
+				if (dwType1 > dwType2)
+					return 1;
+				else if (dwType1 < dwType2)
+					return -1;
+				else
+					{
+					int iValue1 = (int)dKey1;
+					int iValue2 = (int)dKey2;
+					if (iValue1 > iValue2)
+						return 1;
+					else if (iValue1 < iValue2)
+						return -1;
+					else
+						return 0;
+					}
+				}
 
 			case CDatum::typeArray:
 				if (dKey1.GetCount() > dKey2.GetCount())
@@ -2000,6 +2067,9 @@ CDatum::Types CDatum::GetBasicType (void) const
 				case AEON_NUMBER_DOUBLE:
 					return typeDouble;
 
+				case AEON_NUMBER_ENUM:
+					return typeEnum;
+
 				default:
 					ASSERT(false);
 					return typeUnknown;
@@ -2069,6 +2139,9 @@ CDatum CDatum::GetDatatype () const
 
 				case AEON_NUMBER_DOUBLE:
 					return CAEONTypeSystem::GetCoreType(IDatatype::FLOAT_64);
+
+				case AEON_NUMBER_ENUM:
+					return CAEONTypes::Get(GetNumberIndex());
 
 				default:
 					throw CException(errFail);
@@ -2499,6 +2572,7 @@ CDatum::Types CDatum::GetNumberType (int *retiValue, CDatum *retdConverted) cons
 					}
 
 				case AEON_NUMBER_INTEGER:
+				case AEON_NUMBER_ENUM:
 					if (retiValue)
 						*retiValue = (int)HIDWORD(m_dwData);
 					return typeInteger32;
@@ -2724,6 +2798,9 @@ const CString &CDatum::GetTypename (void) const
 				case AEON_NUMBER_DOUBLE:
 					return TYPENAME_DOUBLE;
 
+				case AEON_NUMBER_ENUM:
+					return TYPENAME_ENUM;
+
 				default:
 					ASSERT(false);
 					return NULL_STR;
@@ -2858,6 +2935,19 @@ bool CDatum::IsEqual (CDatum dValue) const
 
 		case typeTimeSpan:
 			return (dValue.GetBasicType() == typeTimeSpan && ((const CTimeSpan &)*this == (const CTimeSpan &)dValue));
+
+		case typeEnum:
+			{
+			if (dValue.GetBasicType() != typeEnum)
+				return false;
+
+			DWORD dwType1 = GetNumberIndex();
+			DWORD dwType2 = dValue.GetNumberIndex();
+			if (dwType1 != dwType2)
+				return false;
+
+			return ((int)*this == (int)dValue);
+			}
 
 		case typeDatatype:
 			return (dValue.GetBasicType() == typeDatatype && strEquals(((const IDatatype &)*this).GetFullyQualifiedName(), ((const IDatatype &)dValue).GetFullyQualifiedName()));
@@ -3036,6 +3126,7 @@ void CDatum::MarkAndSweep (void)
 
 	{
 	CAEONTypeSystem::MarkCoreTypes();
+	CAEONTypes::MarkAndSweep();
 	CAEONStore::Sweep();
 	}
 

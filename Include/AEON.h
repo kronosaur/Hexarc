@@ -32,23 +32,24 @@ class IInvokeCtx;
 
 //	Data encoding constants
 
-const DWORD_PTR AEON_TYPE_STRING =			0x00;
-const DWORD_PTR AEON_TYPE_NUMBER =			0x01;
-const DWORD_PTR AEON_TYPE_VOID =			0x02;
-const DWORD_PTR AEON_TYPE_COMPLEX =			0x03;
+constexpr DWORD_PTR AEON_TYPE_STRING =			0x00;
+constexpr DWORD_PTR AEON_TYPE_NUMBER =			0x01;
+constexpr DWORD_PTR AEON_TYPE_VOID =			0x02;
+constexpr DWORD_PTR AEON_TYPE_COMPLEX =			0x03;
 
-const DWORD_PTR AEON_TYPE_MASK =			0x00000003;
-const DWORD_PTR AEON_POINTER_MASK =			~AEON_TYPE_MASK;
-const DWORD_PTR AEON_MARK_MASK =			0x00000001;
+constexpr DWORD_PTR AEON_TYPE_MASK =			0x00000003;
+constexpr DWORD_PTR AEON_POINTER_MASK =			~AEON_TYPE_MASK;
+constexpr DWORD_PTR AEON_MARK_MASK =			0x00000001;
 
-const DWORD_PTR AEON_NUMBER_TYPE_MASK =		0x0000000F;
-const DWORD_PTR AEON_NUMBER_CONSTANT =		0x01;
-const DWORD_PTR AEON_NUMBER_INTEGER =		0x05;
-const DWORD_PTR AEON_NUMBER_DOUBLE =		0x0D;
-const DWORD_PTR AEON_NUMBER_MASK =			0xFFFFFFF0;
+constexpr DWORD_PTR AEON_NUMBER_TYPE_MASK =		0x0000000F;
+constexpr DWORD_PTR AEON_NUMBER_CONSTANT =		0x01;
+constexpr DWORD_PTR AEON_NUMBER_INTEGER =		0x05;
+constexpr DWORD_PTR AEON_NUMBER_ENUM =			0x09;
+constexpr DWORD_PTR AEON_NUMBER_DOUBLE =		0x0D;
+constexpr DWORD_PTR AEON_NUMBER_MASK =			0xFFFFFFF0;
 
-const DWORD_PTR AEON_MIN_28BIT =			0xF8000000;
-const DWORD_PTR AEON_MAX_28BIT =			0x07FFFFFF;
+constexpr DWORD_PTR AEON_MIN_28BIT =			0xF8000000;
+constexpr DWORD_PTR AEON_MAX_28BIT =			0x07FFFFFF;
 
 typedef void (*MARKPROC)(void);
 
@@ -68,16 +69,17 @@ typedef void (*MARKPROC)(void);
 //
 //	Constants:	                                        [ const ID        ] 0000 0000 0000 0001
 //	Nil:		                                        0000 0110 0110 0110 0000 0000 0000 0001		//	0x06660001
+//	NaN												    0001 0010 0000 0010 0000 0000 0000 0001		//	0x12020001
 //	True:		                                        1010 1010 1010 1010 0000 0000 0000 0001		//	0xAAAA0001
 //	Free:		                                        1111 1110 1110 1110 0000 0000 0000 0001		//	0xFEEE0001
-//
-//	Symbols:	                                        [ 27-bit ID                     ]1 0001
+// 
+//	Symbols:	[ 32-bit ID                           ] 0000 0000 0000 0000 0000 0000 0001 0001		//	Not Yet Implemented
 //
 //	Integer:	[ 32-bit integer                      ] 0000 0000 0000 0000 0000 0000 0000 0101
-//	Unused:	                                                                               1001
+//	Enum:	    [ 32-bit integer                      ] [ 28-bit Datatype ID             ] 1001
 //	Double:		                                        [ Index to double                ] 1101
 //
-//	Void:		[ Pointer to void (external)                                                ]10
+//	Unused:		[                                                                           ]10
 //	Complex:	[ Pointer to complex obj                                                    ]11
 //
 //	When we point to a string, we point to an allocated
@@ -117,6 +119,7 @@ class CDatum
 			typeNaN =			18,
 			typeVector2D =		19,
 			typeQuery =			20,
+			typeEnum =			21,
 
 			typeCustom =		100,
 			};
@@ -191,6 +194,8 @@ class CDatum
 		static CDatum CreateAsType (CDatum dType, CDatum dValue = CDatum());
 		static bool CreateBinary (IByteStream &Stream, int iSize, CDatum *retDatum);
 		static bool CreateBinaryFromHandoff (CStringBuffer &Buffer, CDatum *retDatum);
+		static CDatum CreateEnum (int iValue, DWORD dwTypeID);
+		static CDatum CreateEnum (int iValue, CDatum dType);
 		static bool CreateFromAttributeList (const CAttributeList &Attribs, CDatum *retdDatum);
 		static bool CreateFromFile (const CString &sFilespec, EFormat iFormat, CDatum *retdDatum, CString *retsError);
 		static bool CreateFromStringValue (const CString &sValue, CDatum *retdDatum);
@@ -329,10 +334,11 @@ class CDatum
 		static bool DeserializeJSON (IByteStream &Stream, CDatum *retDatum);
 		static bool DeserializeTextUTF8 (IByteStream &Stream, CDatum *retDatum);
 		static bool DetectFileFormat (const CString &sFilespec, IMemoryBlock &Data, EFormat *retiFormat, CString *retsError);
-		DWORD GetNumberIndex () const { return (DWORD)(m_dwData >> 4); }
+		DWORD GetNumberIndex () const { return ((DWORD)m_dwData) >> 4; }
 		double raw_GetDouble () const;
 		const CString &raw_GetString () const { ASSERT(AEON_TYPE_STRING == 0x00); return *(CString *)&m_dwData; }
 		void SerializeAEONScript (EFormat iFormat, IByteStream &Stream) const;
+		void SerializeEnum (EFormat iFormat, IByteStream &Stream) const;
 		void SerializeJSON (IByteStream &Stream) const;
 
 		template<class FUNC> CDatum MathArrayOp () const;

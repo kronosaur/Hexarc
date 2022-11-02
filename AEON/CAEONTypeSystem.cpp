@@ -10,6 +10,7 @@ DECLARE_CONST_STRING(FIELD_DESCRIPTION,					"description");
 DECLARE_CONST_STRING(FIELD_KEY_COLUMN,					"keyColumn");
 DECLARE_CONST_STRING(FIELD_LABEL,						"label");
 DECLARE_CONST_STRING(FIELD_NAME,						"name");
+DECLARE_CONST_STRING(FIELD_ORDINAL,						"ordinal");
 
 DECLARE_CONST_STRING(TYPENAME_ANY,						"Any");
 DECLARE_CONST_STRING(TYPENAME_ARRAY,					"Array");
@@ -25,12 +26,14 @@ DECLARE_CONST_STRING(TYPENAME_BOOL,						"Bool");
 DECLARE_CONST_STRING(TYPENAME_CANVAS,					"Canvas");
 DECLARE_CONST_STRING(TYPENAME_DATATYPE,					"Datatype");
 DECLARE_CONST_STRING(TYPENAME_DATE_TIME,				"DateTime");
+DECLARE_CONST_STRING(TYPENAME_ENUM,						"Enum");
 DECLARE_CONST_STRING(TYPENAME_FLOAT_64,					"Float64");
 DECLARE_CONST_STRING(TYPENAME_FUNCTION,					"FunctionType");
 DECLARE_CONST_STRING(TYPENAME_INT_32,					"Int32");
 DECLARE_CONST_STRING(TYPENAME_INT_64,					"Int64");
 DECLARE_CONST_STRING(TYPENAME_INT_IP,					"IntIP");
 DECLARE_CONST_STRING(TYPENAME_INTEGER,					"Integer");
+DECLARE_CONST_STRING(TYPENAME_MEMBER_TABLE,				"MemberTable");
 DECLARE_CONST_STRING(TYPENAME_NULL,						"NullType");
 DECLARE_CONST_STRING(TYPENAME_NUMBER,					"Number");
 DECLARE_CONST_STRING(TYPENAME_OBJECT,					"Object");
@@ -104,7 +107,7 @@ bool CAEONTypeSystem::AddType (CDatum dType)
 		return false;
 
 	const IDatatype &Datatype = dType;
-	m_Types.SetAt(Datatype.GetFullyQualifiedName(), dType);
+	m_Types.SetAt(strToLower(Datatype.GetFullyQualifiedName()), dType);
 	return true;
 	}
 
@@ -149,6 +152,28 @@ CDatum CAEONTypeSystem::CreateDatatypeClass (const CString &sFullyQualifiedName,
 	return dNewType;
 	}
 
+CDatum CAEONTypeSystem::CreateDatatypeEnum (const CString& sFullyQualifiedName, const TArray<IDatatype::SMemberDesc>& Values, IDatatype** retpNewType, CString* retsError)
+
+//	CreateDatatypeEnum
+//
+//	Creates an enum.
+
+	{
+	IDatatype* pNewType = new CDatatypeEnum(CDatatypeEnum::SCreate({ sFullyQualifiedName }));
+	CDatum dType(new CComplexDatatype(pNewType));
+
+	for (int i = 0; i < Values.GetCount(); i++)
+		{
+		if (!pNewType->AddMember(Values[i].sName, IDatatype::EMemberType::EnumValue, CDatum(), retsError))
+			return CDatum();
+		}
+
+	if (retpNewType)
+		*retpNewType = pNewType;
+
+	return dType;
+	}
+
 CDatum CAEONTypeSystem::CreateDatatypeSchema (const CString &sFullyQualifiedName, const CDatatypeList &Implements, IDatatype **retpNewType)
 
 //	CreateDatatypeSchema
@@ -163,6 +188,27 @@ CDatum CAEONTypeSystem::CreateDatatypeSchema (const CString &sFullyQualifiedName
 		*retpNewType = pNewType;
 
 	return dNewType;
+	}
+
+IDatatype *CAEONTypeSystem::CreateMemberTable ()
+
+//	CreateMemberTable
+//
+//	Creates a datatype representing the table used to define types
+
+	{
+	CString sFullyQualifiedName = CAEONTypeSystem::MakeFullyQualifiedName(NULL_STR, TYPENAME_MEMBER_TABLE);
+
+	IDatatype *pNewType = new CDatatypeSchema(CDatatypeSchema::SCreate({ sFullyQualifiedName, { CAEONTypeSystem::GetCoreType(IDatatype::TABLE) }, IDatatype::MEMBER_TABLE }));
+
+	pNewType->AddMember(FIELD_NAME, IDatatype::EMemberType::InstanceKeyVar, GetCoreType(IDatatype::STRING));
+	pNewType->AddMember(FIELD_DATATYPE, IDatatype::EMemberType::InstanceVar, GetCoreType(IDatatype::DATATYPE));
+	pNewType->AddMember(FIELD_LABEL, IDatatype::EMemberType::InstanceVar, GetCoreType(IDatatype::STRING));
+	pNewType->AddMember(FIELD_DESCRIPTION, IDatatype::EMemberType::InstanceVar, GetCoreType(IDatatype::STRING));
+	pNewType->AddMember(FIELD_KEY_COLUMN, IDatatype::EMemberType::InstanceVar, GetCoreType(IDatatype::BOOL));
+	pNewType->AddMember(FIELD_ORDINAL, IDatatype::EMemberType::InstanceKeyVar, GetCoreType(IDatatype::INT_32));
+
+	return pNewType;
 	}
 
 IDatatype *CAEONTypeSystem::CreateSchemaTable ()
@@ -192,7 +238,7 @@ CDatum CAEONTypeSystem::FindType (const CString &sFullyQualifiedName, const IDat
 //	Looks for the datatype by name. Returns NULL if not found.
 
 	{
-	auto pEntry = m_Types.GetAt(sFullyQualifiedName);
+	auto pEntry = m_Types.GetAt(strToLower(sFullyQualifiedName));
 	if (!pEntry)
 		{
 		if (retpDatatype)
@@ -513,6 +559,7 @@ void CAEONTypeSystem::InitCoreTypes ()
 		);
 
 	AddCoreType(CreateSchemaTable());
+	AddCoreType(CreateMemberTable());
 
 	AddCoreType(new CDatatypeMatrix(
 		{
@@ -543,6 +590,17 @@ void CAEONTypeSystem::InitCoreTypes ()
 			false
 			})
 		);
+
+	//	Enum
+
+	AddCoreType(new CDatatypeSimple(
+		{
+			MakeFullyQualifiedName(NULL_STR, TYPENAME_ENUM), 
+			IDatatype::ENUM,
+			{  },
+			false
+			})
+		);
 	}
 
 bool CAEONTypeSystem::InitFrom (CDatum dSerialized, CString *retsError)
@@ -563,7 +621,7 @@ CString CAEONTypeSystem::MakeFullyQualifiedName (const CString &sFullyQualifiedS
 //	global scope.
 
 	{
-	return strPattern("%s$%s", sFullyQualifiedScope, sName);
+	return CAEONTypes::MakeFullyQualifiedName(sFullyQualifiedScope, sName);
 	}
 
 void CAEONTypeSystem::Mark ()
@@ -586,28 +644,6 @@ void CAEONTypeSystem::MarkCoreTypes ()
 	{
 	for (int i = 0; i < m_CoreTypes.GetCount(); i++)
 		m_CoreTypes[i].Mark();
-	}
-
-CString CAEONTypeSystem::ParseNameFromFullyQualifiedName (const CString &sValue)
-
-//	ParseNameFromFullyQualifiedName
-//
-//	A fully-qualified name has the form [$SCOPE]$NAME. In some cases $SCOPE is null
-//	(because its a global scope). Also, sometimes SCOPE is itself a fully-
-//	qualified name.
-
-	{
-	//	Find the last '$' sign.
-
-	const char *pPos = sValue.GetParsePointer();
-	const char *pEnd = pPos + sValue.GetLength();
-	while (pEnd > pPos && *pEnd != '$')
-		pEnd--;
-
-	if (*pEnd == '$')
-		return CString(pEnd + 1);
-	else
-		return NULL_STR;
 	}
 
 CDatum CAEONTypeSystem::ResolveType (CDatum dType) const

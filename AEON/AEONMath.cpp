@@ -43,6 +43,7 @@ CDatum CDatum::MathAbs () const
 					}
 
 				case AEON_NUMBER_INTEGER:
+				case AEON_NUMBER_ENUM:
 					return CDatum(abs((int)HIDWORD(m_dwData)));
 
 				case AEON_NUMBER_DOUBLE:
@@ -87,6 +88,7 @@ template<class FUNC> CDatum CDatum::MathArrayOp () const
 					}
 
 				case AEON_NUMBER_INTEGER:
+				case AEON_NUMBER_ENUM:
 				case AEON_NUMBER_DOUBLE:
 					return *this;
 

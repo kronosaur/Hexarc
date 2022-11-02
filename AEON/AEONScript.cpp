@@ -87,6 +87,7 @@ DECLARE_CONST_STRING(STR_TRUE,							"true")
 DECLARE_CONST_STRING(TYPENAME_BINARY,					"binary")
 DECLARE_CONST_STRING(TYPENAME_BINARY_FILE,				"binaryFile")
 DECLARE_CONST_STRING(TYPENAME_DATATYPE,					"datatype")
+DECLARE_CONST_STRING(TYPENAME_ENUM,						"enum")
 DECLARE_CONST_STRING(TYPENAME_IMAGE32,					"image32")
 DECLARE_CONST_STRING(TYPENAME_IP_INTEGER,				"ipInteger")
 DECLARE_CONST_STRING(TYPENAME_TABLE,					"table");
@@ -148,6 +149,10 @@ size_t CDatum::CalcSerializeSizeAEONScript (EFormat iFormat) const
 
 				case AEON_NUMBER_INTEGER:
 					TotalSize = 6;
+					break;
+
+				case AEON_NUMBER_ENUM:
+					TotalSize = 100;
 					break;
 
 				case AEON_NUMBER_DOUBLE:
@@ -247,6 +252,10 @@ void CDatum::SerializeAEONScript (EFormat iFormat, IByteStream &Stream) const
 					break;
 					}
 
+				case AEON_NUMBER_ENUM:
+					SerializeEnum(iFormat, Stream);
+					break;
+
 				case AEON_NUMBER_DOUBLE:
 					{
 					CString sNumber = strFromDouble(raw_GetDouble());
@@ -262,6 +271,58 @@ void CDatum::SerializeAEONScript (EFormat iFormat, IByteStream &Stream) const
 		case AEON_TYPE_COMPLEX:
 			raw_GetComplex()->Serialize(iFormat, Stream);
 			break;
+
+		default:
+			ASSERT(false);
+		}
+	}
+
+void CDatum::SerializeEnum (EFormat iFormat, IByteStream &Stream) const
+	{
+	switch (iFormat)
+		{
+		case CDatum::EFormat::AEONScript:
+		case CDatum::EFormat::AEONLocal:
+			{
+			Stream.Write("[", 1);
+			Stream.Write(TYPENAME_ENUM);
+			Stream.Write(":", 1);
+
+			CString sInt = strFromInt((int)HIDWORD(m_dwData));
+			Stream.Write(sInt);
+			Stream.Write(" ", 1);
+
+			DWORD dwDatatypeID = GetNumberIndex();
+			CDatum dType = CAEONTypes::Get(dwDatatypeID);
+
+			dType.Serialize(iFormat, Stream);
+			Stream.Write("]", 1);
+			break;
+			}
+
+		case CDatum::EFormat::JSON:
+			{
+			Stream.Write("[", 1);
+			int iValue = (int)HIDWORD(m_dwData);
+			CString sInt = strFromInt(iValue);
+			Stream.Write(sInt);
+			Stream.Write(",", 1);
+
+			DWORD dwDatatypeID = GetNumberIndex();
+			CDatum dType = CAEONTypes::Get(dwDatatypeID);
+			const IDatatype& Datatype = dType;
+			int iIndex = Datatype.FindMemberByOrdinal(iValue);
+
+			Stream.Write("\"", 1);
+			if (iIndex == -1)
+				Stream.Write(STR_NULL);
+			else
+				Stream.Write(Datatype.GetMember(iIndex).sName);
+			Stream.Write("\"", 1);
+
+			Stream.Write("]", 1);
+			break;
+			}
 
 		default:
 			ASSERT(false);
@@ -579,6 +640,25 @@ CAEONScriptParser::ETokens CAEONScriptParser::ParseExternal (CDatum *retDatum)
 		pDatum = new CAEONTimeSpan;
 	else if (strEquals(dTypename, TYPENAME_VECTOR_2D))
 		pDatum = new CAEONVector2D;
+	else if (strEquals(dTypename, TYPENAME_ENUM))
+		{
+		CDatum dInt;
+		if (ParseToken(&dInt) != tkDatum)
+			return tkError;
+
+		CDatum dType;
+		if (ParseToken(&dType) != tkDatum || dType.GetBasicType() != CDatum::typeDatatype)
+			return tkError;
+
+		*retDatum = CDatum::CreateEnum((int)dInt, dType);
+
+		//	Parse the closing bracket
+
+		if (ParseToken(retDatum) != tkCloseBracket)
+			return tkError;
+
+		return tkDatum;
+		}
 	else
 		{
 		IComplexFactory *pFactory;

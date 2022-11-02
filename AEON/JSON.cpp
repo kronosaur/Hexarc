@@ -115,6 +115,10 @@ void CDatum::SerializeJSON (IByteStream &Stream) const
 					break;
 					}
 
+				case AEON_NUMBER_ENUM:
+					SerializeEnum(EFormat::JSON, Stream);
+					break;
+
 				default:
 					ASSERT(false);
 				}

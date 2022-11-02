@@ -126,6 +126,12 @@
     <ClCompile Include="CAEONQuery.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CDatatypeEnum.cpp">
+      <Filter>Source Files\Type System</Filter>
+    </ClCompile>
+    <ClCompile Include="CAEONTypes.cpp">
+      <Filter>Source Files\Type System</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Include\AEON.h">

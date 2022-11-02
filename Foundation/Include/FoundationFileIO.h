@@ -170,7 +170,7 @@ class CFileMultiplexer : public IByteStream
 class CModuleResource : public CMemoryBlockImpl
 	{
 	public:
-		CModuleResource (void) : m_hRes(NULL) { }
+		CModuleResource (void) { }
 		virtual ~CModuleResource (void) { Close(); }
 
 		void Close (void);
@@ -182,8 +182,8 @@ class CModuleResource : public CMemoryBlockImpl
 		virtual void SetLength (int iLength) { }
 
 	private:
-		HGLOBAL m_hRes;
-		int m_iLength;
+		HGLOBAL m_hRes = NULL;
+		int m_iLength = 0;
 	};
 
 //	SFileVersionInfo -----------------------------------------------------------

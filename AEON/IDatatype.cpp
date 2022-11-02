@@ -56,6 +56,10 @@ TUniquePtr<IDatatype> IDatatype::Deserialize (CDatum::EFormat iFormat, IByteStre
 			pDatatype.Set(new CDatatypeClass(sFullyQualifiedName));
 			break;
 
+		case EImplementation::Enum:
+			pDatatype.Set(new CDatatypeEnum(sFullyQualifiedName));
+			break;
+
 		case EImplementation::Number:
 			pDatatype.Set(new CDatatypeNumber(sFullyQualifiedName));
 			break;
@@ -98,7 +102,7 @@ bool IDatatype::GetKeyMembers (TArray<int>& retKeys) const
 
 CString IDatatype::GetName () const
 	{
-	return CAEONTypeSystem::ParseNameFromFullyQualifiedName(GetFullyQualifiedName());
+	return CAEONTypes::ParseNameFromFullyQualifiedName(GetFullyQualifiedName());
 	}
 
 bool IDatatype::IsACoreType (DWORD dwType) const
