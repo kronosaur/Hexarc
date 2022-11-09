@@ -1,6 +1,6 @@
 //	CAEONTable.cpp
 //
-//	CAEONTable classes
+//	CAEONTable class
 //	Copyright (c) 2021 Kronosaur Productions, LLC. All Rights Reserved.
 
 #include "stdafx.h"

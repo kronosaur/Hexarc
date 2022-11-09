@@ -40,6 +40,7 @@ DECLARE_CONST_STRING(TYPENAME_SIGNED,					"Signed");
 DECLARE_CONST_STRING(TYPENAME_STRING,					"String");
 DECLARE_CONST_STRING(TYPENAME_STRUCT,					"Struct");
 DECLARE_CONST_STRING(TYPENAME_TABLE,					"Table");
+DECLARE_CONST_STRING(TYPENAME_TEXT_LINES,				"TextLines");
 DECLARE_CONST_STRING(TYPENAME_TIME_SPAN,				"TimeSpan");
 DECLARE_CONST_STRING(TYPENAME_UINT_32,					"UInt32");
 DECLARE_CONST_STRING(TYPENAME_UINT_64,					"UInt64");
@@ -266,6 +267,7 @@ void CAEONTypes::InitCoreTypes ()
 	SetCoreType(IDatatype::BITMAP_RGBA8, CreateSimple(MakeFullyQualifiedName(NULL_STR, TYPENAME_BITMAP_RGBA8), { }, false, IDatatype::BITMAP_RGBA8));
 	SetCoreType(IDatatype::ENUM, CreateSimple(MakeFullyQualifiedName(NULL_STR, TYPENAME_ENUM), { }, true, IDatatype::ENUM));
 	SetCoreType(IDatatype::MEMBER_TABLE, CreateMemberTable());
+	SetCoreType(IDatatype::TEXT_LINES, CreateSimple(MakeFullyQualifiedName(NULL_STR, TYPENAME_TEXT_LINES), { }, false, IDatatype::TEXT_LINES));
 
 #ifdef DEBUG
 	if (!m_Types[IDatatype::UNKNOWN].IsIdenticalToNil())

@@ -88,10 +88,13 @@ DECLARE_CONST_STRING(TYPENAME_BINARY,					"binary")
 DECLARE_CONST_STRING(TYPENAME_BINARY_FILE,				"binaryFile")
 DECLARE_CONST_STRING(TYPENAME_DATATYPE,					"datatype")
 DECLARE_CONST_STRING(TYPENAME_ENUM,						"enum")
+DECLARE_CONST_STRING(TYPENAME_ERROR,					"error")
+DECLARE_CONST_STRING(TYPENAME_HEXE_ERROR,				"hexeError")
 DECLARE_CONST_STRING(TYPENAME_IMAGE32,					"image32")
 DECLARE_CONST_STRING(TYPENAME_IP_INTEGER,				"ipInteger")
 DECLARE_CONST_STRING(TYPENAME_TABLE,					"table");
 DECLARE_CONST_STRING(TYPENAME_TABLE_REF,				"tableRef");
+DECLARE_CONST_STRING(TYPENAME_TEXT_LINES,				"textLines");
 DECLARE_CONST_STRING(TYPENAME_TIME_SPAN,				"timeSpan")
 DECLARE_CONST_STRING(TYPENAME_VECTOR_2D,				"vector2D")
 
@@ -631,11 +634,16 @@ CAEONScriptParser::ETokens CAEONScriptParser::ParseExternal (CDatum *retDatum)
 		pDatum = new CComplexBinaryFile;
 	else if (strEquals(dTypename, TYPENAME_DATATYPE))
 		pDatum = new CComplexDatatype(NULL);
+	else if (strEquals(dTypename, TYPENAME_ERROR)
+			|| strEquals(dTypename, TYPENAME_HEXE_ERROR))
+		pDatum = new CAEONError;
 	else if (strEquals(dTypename, TYPENAME_IMAGE32))
 		pDatum = new CComplexImage32;
 	else if (strEquals(dTypename, TYPENAME_TABLE)
 			|| strEquals(dTypename, TYPENAME_TABLE_REF))
 		pDatum = new CAEONTable;
+	else if (strEquals(dTypename, TYPENAME_TEXT_LINES))
+		pDatum = new CAEONLines;
 	else if (strEquals(dTypename, TYPENAME_TIME_SPAN))
 		pDatum = new CAEONTimeSpan;
 	else if (strEquals(dTypename, TYPENAME_VECTOR_2D))

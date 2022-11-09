@@ -50,7 +50,7 @@ bool CLambdaParseExtension::ParseAEONArray (CCharStream &Stream, CDatum *retDatu
 	CDatum dExpression;
 	if (!ParseHexeLispDef(&Stream, &dExpression, &sError))
 		{
-		CHexeError::Create(NULL_STR, sError, retDatum);
+		*retDatum = CDatum::CreateError(sError);
 		return true;
 		}
 
@@ -68,11 +68,11 @@ bool CLambdaParseExtension::ParseAEONArray (CCharStream &Stream, CDatum *retDatu
 
 		case CHexeProcess::ERun::AsyncRequest:
 		case CHexeProcess::ERun::InputRequest:
-			CHexeError::Create(NULL_STR, ERR_NO_ASYNC_CALLS, retDatum);
+			*retDatum = CDatum::CreateError(ERR_NO_ASYNC_CALLS);
 			return true;
 
 		default:
-			CHexeError::Create(NULL_STR, strPattern(ERR_UNKNOWN_RUN_RESULT, iRun), retDatum);
+			*retDatum = CDatum::CreateError(strPattern(ERR_UNKNOWN_RUN_RESULT, iRun));
 			return true;
 		}
 	}

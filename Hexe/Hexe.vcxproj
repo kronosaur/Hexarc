@@ -188,7 +188,6 @@
     <ClCompile Include="CHexeCodeIntermediate.cpp" />
     <ClCompile Include="CHexeConsole.cpp" />
     <ClCompile Include="CHexeDocument.cpp" />
-    <ClCompile Include="CHexeError.cpp" />
     <ClCompile Include="CHexeFunction.cpp" />
     <ClCompile Include="CHexeGlobalEnvironment.cpp" />
     <ClCompile Include="CHexeLibrarian.cpp" />
@@ -221,7 +220,6 @@
   <ItemGroup>
     <ClInclude Include="..\Include\Hexe.h" />
     <ClInclude Include="..\Include\HexeConsole.h" />
-    <ClInclude Include="..\Include\HexeUtil.h" />
     <ClInclude Include="..\Include\HexeVM.h" />
     <ClInclude Include="HexeImpl.h" />
     <ClInclude Include="..\Include\HexeProcessImpl.h" />

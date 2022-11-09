@@ -246,6 +246,18 @@ template <class VALUE> class TArray : public CArrayBase
 				}
 			}
 
+		void Insert (TArray<VALUE>&& Array, int iIndex = -1)
+			{
+			if (Array.GetCount() > 0)
+				{
+				int iPos = (IsValidInsertIndex(iIndex) ? iIndex : GetCount());
+				InsertEmpty(Array.GetCount(), iIndex);
+
+				for (int i = 0; i < Array.GetCount(); i++)
+					GetAt(iPos + i) = std::move(Array[i]);
+				}
+			}
+
 		VALUE *Insert (void)
 			{
 			int iOffset = GetCount() * sizeof(VALUE);
@@ -267,7 +279,7 @@ template <class VALUE> class TArray : public CArrayBase
 			return new(GetBytes() + iOffset) VALUE;
 			}
 
-		void InsertEmpty (int iCount = 1, int iIndex = -1)
+		int InsertEmpty (int iCount = 1, int iIndex = -1)
 			{
 			int iOffset;
 			if (!IsValidInsertIndex(iIndex)) iIndex = GetCount();
@@ -278,6 +290,8 @@ template <class VALUE> class TArray : public CArrayBase
 				{
 				VALUE *pElement = new(GetBytes() + iOffset + (i * sizeof(VALUE))) VALUE;
 				}
+
+			return iIndex;
 			}
 
 		void InsertHandoff (VALUE &Value, int iIndex = -1)

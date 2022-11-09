@@ -75,7 +75,7 @@ bool CSortFunctionProcessor::Process (CDatum dSelf, CDatum *retResult)
 		m_iSort = DescendingSort;
 	else
 		{
-		CHexeError::Create(NULL_STR, strPattern(ERR_INVALID_OPTION, dSort.AsString()), retResult);
+		*retResult = CDatum::CreateError(strPattern(ERR_INVALID_OPTION, dSort.AsString()));
 		return false;
 		}
 

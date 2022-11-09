@@ -59,11 +59,11 @@ class IDatatype
 
 		static constexpr DWORD CANVAS =				38;	//	A canvas object (concrete)
 		static constexpr DWORD BITMAP_RGBA8 =		39;	//	A 32-bit per pixel bitmap (concrete)
-
 		static constexpr DWORD ENUM =				40;	//	Any enum type
 		static constexpr DWORD MEMBER_TABLE =		41;	//	A table describing type members
+		static constexpr DWORD TEXT_LINES =			42;	//	CAEONLines datastructure
 
-		static constexpr DWORD MAX_CORE_TYPE =		41;
+		static constexpr DWORD MAX_CORE_TYPE =		42;
 
 		enum class ECategory
 			{

@@ -132,6 +132,18 @@
     <ClCompile Include="CAEONTypes.cpp">
       <Filter>Source Files\Type System</Filter>
     </ClCompile>
+    <ClCompile Include="CAEONLibraryFunction.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CAEONError.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CAEONLines.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CAEONTextLinesDiff.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Include\AEON.h">
@@ -168,6 +180,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="AEONTable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AEONLines.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

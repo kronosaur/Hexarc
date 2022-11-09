@@ -1,41 +1,24 @@
-//	CHexeLibraryFunction.cpp
+//	CAEONLibraryFunction.cpp
 //
-//	CHexeLibraryFunction class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	CAEONLibraryFunction class
+//	Copyright (c) 2022 Kronosaur Productions, LLC. All Rights Reserved.
 
 #include "stdafx.h"
 
 DECLARE_CONST_STRING(FIELD_TYPE,						"type")
 
-DECLARE_CONST_STRING(TYPE_HEXARC_MSG,					"hexarcMsg")
-DECLARE_CONST_STRING(TYPE_INPUT_REQUEST,				"inputRequest")
+DECLARE_CONST_STRING(TYPE_HEXARC_MSG,					"hexarcMsg");
+DECLARE_CONST_STRING(TYPE_INPUT_REQUEST,				"inputRequest");
+
+DECLARE_CONST_STRING(TYPENAME_LIBRARY_FUNCTION,			"libraryFunction");
 
 DECLARE_CONST_STRING(ERR_CRASH,							"Crash in primitive %s.")
 DECLARE_CONST_STRING(ERR_NOT_ALLOWED,					"You are not authorized to call %s.")
-DECLARE_CONST_STRING(ERR_UNKNOWN_TYPE,					"Unknown invoke result type: %s.")
+DECLARE_CONST_STRING(ERR_UNKNOWN_TYPE,					"Unknown invoke result type: %s.");
 
-DECLARE_CONST_STRING(TYPENAME_HEXE_LIBRARY_FUNCTION,	"hexeLibraryFunction")
-const CString &CHexeLibraryFunction::StaticGetTypename (void) { return TYPENAME_HEXE_LIBRARY_FUNCTION; }
+const CString &CAEONLibraryFunction::GetTypename (void) const { return TYPENAME_LIBRARY_FUNCTION; }
 
-void CHexeLibraryFunction::Create (const SLibraryFuncDef &Def, CDatum *retdFunc)
-
-//	Create
-//
-//	Creates a new library function
-
-	{
-	CHexeLibraryFunction *pFunc = new CHexeLibraryFunction;
-	pFunc->m_sName = Def.sName;
-	pFunc->m_pfFunc = Def.pfFunc;
-	pFunc->m_dwData = Def.dwData;
-	pFunc->m_sArgList = Def.sArgList;
-	pFunc->m_sHelpLine = Def.sHelpLine;
-	pFunc->m_dwExecutionRights = Def.dwExecutionRights;
-
-	*retdFunc = CDatum(pFunc);
-	}
-
-CDatum::InvokeResult CHexeLibraryFunction::HandleSpecialResult (CDatum *retdResult)
+CDatum::InvokeResult CAEONLibraryFunction::HandleSpecialResult (CDatum *retdResult)
 
 //	HandleResult
 //
@@ -82,7 +65,7 @@ CDatum::InvokeResult CHexeLibraryFunction::HandleSpecialResult (CDatum *retdResu
 		return CDatum::InvokeResult::error;
 	}
 
-CDatum::InvokeResult CHexeLibraryFunction::Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, DWORD dwExecutionRights, CDatum *retdResult)
+CDatum::InvokeResult CAEONLibraryFunction::Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, DWORD dwExecutionRights, CDatum *retdResult)
 
 //	Invoke
 //
@@ -101,7 +84,7 @@ CDatum::InvokeResult CHexeLibraryFunction::Invoke (IInvokeCtx *pCtx, CDatum dLoc
 
 	try
 		{
-		if (!m_pfFunc(pCtx, m_dwData, dLocalEnv, CDatum(), retdResult))
+		if (!m_fnInvoke(*pCtx, m_dwData, dLocalEnv, CDatum(), *retdResult))
 			return HandleSpecialResult(retdResult);
 
 		return CDatum::InvokeResult::ok;
@@ -113,7 +96,7 @@ CDatum::InvokeResult CHexeLibraryFunction::Invoke (IInvokeCtx *pCtx, CDatum dLoc
 		}
 	}
 
-CDatum::InvokeResult CHexeLibraryFunction::InvokeContinues (IInvokeCtx *pCtx, CDatum dContext, CDatum dResult, CDatum *retdResult)
+CDatum::InvokeResult CAEONLibraryFunction::InvokeContinues (IInvokeCtx *pCtx, CDatum dContext, CDatum dResult, CDatum *retdResult)
 
 //	InvokeContinues
 //
@@ -122,7 +105,7 @@ CDatum::InvokeResult CHexeLibraryFunction::InvokeContinues (IInvokeCtx *pCtx, CD
 	{
 	try
 		{
-		if (!m_pfFunc(pCtx, m_dwData, dResult, dContext, retdResult))
+		if (!m_fnInvoke(*pCtx, m_dwData, dResult, dContext, *retdResult))
 			return HandleSpecialResult(retdResult);
 
 		return CDatum::InvokeResult::ok;
@@ -134,7 +117,7 @@ CDatum::InvokeResult CHexeLibraryFunction::InvokeContinues (IInvokeCtx *pCtx, CD
 		}
 	}
 
-void CHexeLibraryFunction::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const
+void CAEONLibraryFunction::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const
 
 //	Serialize
 //

@@ -126,6 +126,96 @@ class CComplexInteger : public IComplexDatum
 		CIPInteger m_Value;
 	};
 
+class CAEONError : public IComplexDatum
+	{
+	public:
+		CAEONError () { }
+
+		static CDatum Create (const CString &sErrorCode, const CString &sErrorDesc) { return CDatum(new CAEONError(sErrorCode, sErrorDesc)); }
+
+		//	IComplexDatum
+
+		virtual CString AsString (void) const override { return m_sDescription; }
+		virtual size_t CalcMemorySize () const override { return sizeof(CAEONError); }
+		virtual const CString &CastCString (void) const override { return m_sDescription; }
+		virtual CDatum::Types GetBasicType () const override { return CDatum::typeError; }
+		virtual int GetCount () const override { return 1; }
+		virtual CDatum GetElement (IInvokeCtx *pCtx, int iIndex) const override { return GetElement(iIndex); }
+		virtual CDatum GetElement (int iIndex) const override { return CDatum(); }
+		virtual CDatum GetElement (IInvokeCtx *pCtx, const CString &sKey) const override { return GetElement(sKey); }
+		virtual CDatum GetElement (const CString &sKey) const override { return CDatum(); }
+		virtual CString GetKey (int iIndex) const override { return NULL_STR; }
+		virtual const CString &GetTypename () const override;
+		virtual bool IsArray () const override { return false; }
+		virtual bool IsError (void) const override { return true; }
+		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
+
+	protected:
+
+		//	IComplexDatum
+
+		virtual bool OnDeserialize (CDatum::EFormat iFormat, const CString &sTypename, IByteStream &Stream) override;
+		virtual void OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
+
+	private:
+
+		CAEONError (const CString& sErrorCode, const CString& sErrorDesc) :
+				m_sError(sErrorCode),
+				m_sDescription(sErrorDesc)
+			{ }
+
+		CString m_sError;
+		CString m_sDescription;
+	};
+
+class CAEONLibraryFunction : public IComplexDatum
+	{
+	public:
+
+		static CDatum Create (const SAEONLibraryFunctionCreate& Def) { return CDatum(new CAEONLibraryFunction(Def)); }
+
+		//	IComplexDatum
+
+		virtual CString AsString () const override { return strPattern("[%s]", GetTypename()); }
+		virtual bool CanInvoke (void) const override { return true; }
+		virtual size_t CalcMemorySize () const override { return sizeof(CAEONLibraryFunction); }
+		virtual CDatum::Types GetBasicType () const override { return CDatum::typeLibraryFunc; }
+		virtual CDatum::ECallType GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) const override { return CDatum::ECallType::Library; }
+		virtual int GetCount () const override { return 1; }
+		virtual CDatum GetDatatype () const override { return m_dType; }
+		virtual CDatum GetElement (IInvokeCtx *pCtx, int iIndex) const override { return GetElement(iIndex); }
+		virtual CDatum GetElement (int iIndex) const override { return CDatum(); }
+		virtual CDatum GetElement (IInvokeCtx *pCtx, const CString &sKey) const override { return GetElement(sKey); }
+		virtual CDatum GetElement (const CString &sKey) const override { return CDatum(); }
+		virtual CString GetKey (int iIndex) const override { return NULL_STR; }
+		virtual const CString &GetTypename (void) const override;
+		virtual CDatum::InvokeResult Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, DWORD dwExecutionRights, CDatum *retdResult) override;
+		virtual CDatum::InvokeResult InvokeContinues (IInvokeCtx *pCtx, CDatum dContext, CDatum dResult, CDatum *retdResult) override;
+		virtual bool IsArray () const override { return false; }
+
+		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const { return (size_t)m_sName.GetLength() + 2; }
+		virtual void OnMarked (void) override { m_dType.Mark(); }
+		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
+
+	private:
+
+		CAEONLibraryFunction (const SAEONLibraryFunctionCreate& Def) :
+				m_sName(Def.sName),
+				m_fnInvoke(Def.fnInvoke),
+				m_dwData(Def.dwData),
+				m_dType(Def.dType),
+				m_dwExecutionRights(Def.dwExecutionRights)
+			{ }
+
+		static CDatum::InvokeResult HandleSpecialResult (CDatum *retdResult);
+
+		CString m_sName;
+		std::function<bool(IInvokeCtx&, DWORD, CDatum, CDatum, CDatum&)> m_fnInvoke;
+		DWORD m_dwData = 0;
+		CDatum m_dType;
+		DWORD m_dwExecutionRights = 0;
+	};
+
 class CAEONObject : public CComplexStruct
 	{
 	public:
@@ -140,6 +230,7 @@ class CAEONObject : public CComplexStruct
 		virtual IComplexDatum *Clone (CDatum::EClone iMode) const override { return new CAEONObject(m_dType, m_Map); }
 		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeObject; }
 		virtual CDatum GetDatatype () const override { return m_dType; }
+		virtual void OnMarked (void) override { m_dType.Mark(); }
 
 	private:
 		CDatum m_dType;

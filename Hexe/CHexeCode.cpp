@@ -176,7 +176,7 @@ CDatum CHexeCode::CreateDatum (int iID) const
 		CStringBuffer Data(sData);
 		CDatum dDatum;
 		if (!CDatum::Deserialize(CDatum::EFormat::AEONScript, Data, &dDatum))
-			CHexeError::Create(NULL_STR, strPattern(ERR_INVALID_LITERAL, sData), &dDatum);
+			return CDatum::CreateError(strPattern(ERR_INVALID_LITERAL, sData));
 
 		//	Done
 
@@ -320,7 +320,7 @@ CDatum CHexeCode::GetDatum (int iOffset) const
 	CStringBuffer Data(sData);
 	CDatum dDatum;
 	if (!CDatum::Deserialize(CDatum::EFormat::AEONScript, Data, &dDatum))
-		CHexeError::Create(NULL_STR, strPattern(ERR_INVALID_LITERAL, sData), &dDatum);
+		return CDatum::CreateError(strPattern(ERR_INVALID_LITERAL, sData));
 
 	//	Done
 

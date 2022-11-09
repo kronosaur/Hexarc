@@ -320,8 +320,16 @@ CString &CString::operator+= (const CString &sStr)
 //	CString operator +=
 
 	{
+	return (*this) += CBuffer(sStr.GetPointer(), sStr.GetLength(), false);
+	}
+
+CString &CString::operator+= (const IMemoryBlock& Value)
+
+//	CString operator +=
+
+	{
 	int iStrLen1 = GetLength();
-	int iStrLen2 = sStr.GetLength();
+	int iStrLen2 = Value.GetLength();
 
 	//	Edge conditions
 
@@ -330,9 +338,7 @@ CString &CString::operator+= (const CString &sStr)
 		return *this;
 	else if (iStrLen1 == 0)
 		{
-		LPSTR pString = sStr.CopyBuffer();
-		CleanUp();
-		m_pString = pString;
+		*this = CString(Value.GetPointer(), Value.GetLength());
 		return *this;
 		}
 
@@ -347,7 +353,7 @@ CString &CString::operator+= (const CString &sStr)
 
 	//	Copy the string being appended
 
-	utlMemCopy(sStr.m_pString, pBuffer + sizeof(int) + iStrLen1, iStrLen2);
+	utlMemCopy(Value.GetPointer(), pBuffer + sizeof(int) + iStrLen1, iStrLen2);
 	
 	//	Clean up
 

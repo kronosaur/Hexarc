@@ -1887,7 +1887,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 
 				CDatum dErrorDesc = (iCount > 1 ? m_Stack.Pop() : CDatum());
 				CDatum dErrorCode = (iCount > 0 ? m_Stack.Pop() : CDatum());
-				CHexeError::Create(dErrorCode.AsString(), dErrorDesc.AsString(), retResult);
+				*retResult = CDatum::CreateError(dErrorDesc.AsString(), dErrorCode.AsString());
 				return ERun::Error;
 				}
 
@@ -1972,11 +1972,7 @@ CDatum CHexeProcess::ExecuteBinaryOp (EOpCodes iOp, CDatum dLeft, CDatum dRight)
 			{
 			CNumberValue Result(dLeft);
 			if (!Result.Mod(dRight))
-				{
-				CDatum dError;
-				CHexeError::Create(NULL_STR, ERR_DIVISION_BY_ZERO, &dError);
-				return dError;
-				}
+				return CDatum::CreateError(ERR_DIVISION_BY_ZERO);
 
 			return Result.GetDatum();
 			}
@@ -1995,11 +1991,7 @@ CDatum CHexeProcess::ExecuteBinaryOp (EOpCodes iOp, CDatum dLeft, CDatum dRight)
 			return ExecuteOpSubtract(dLeft, dRight);
 
 		default:
-			{
-			CDatum dError;
-			CHexeError::Create(NULL_STR, ERR_UNSUPPORTED_OP, &dError);
-			return dError;
-			}
+			return CDatum::CreateError(ERR_UNSUPPORTED_OP);
 		}
 	}
 
@@ -2197,7 +2189,7 @@ CHexeProcess::ERun CHexeProcess::ExecuteHandleInvokeResult (CDatum::InvokeResult
 
 		case CDatum::InvokeResult::error:
 			if (dInvokeResult.IsNil())
-				CHexeError::Create(NULL_STR, strPattern(ERR_NOT_A_FUNCTION, dExpression.AsString()), retResult);
+				*retResult = CDatum::CreateError(strPattern(ERR_NOT_A_FUNCTION, dExpression.AsString()));
 			else
 				*retResult = dInvokeResult;
 			return ERun::Error;
@@ -2488,7 +2480,7 @@ bool CHexeProcess::ExecuteIsEquivalent (CDatum dValue1, CDatum dValue2)
 				return (const CVector2D&)dValue2 == CVector2D::Null;
 
 			default:
-				return false;
+				return dValue2.IsNil();
 			}
 		}
 
@@ -3319,7 +3311,7 @@ bool CHexeProcess::ExecutePushObjectMethod (CDatum &retResult)
 			CDatum dValue;
 			if (!m_pCurGlobalEnv->Find(sFunctionName, &dValue))
 				{
-				CHexeError::Create(NULL_STR, strPattern(ERR_UNBOUND_VARIABLE, sFunctionName), &retResult);
+				retResult = CDatum::CreateError(strPattern(ERR_UNBOUND_VARIABLE, sFunctionName));
 				return false;
 				}
 
@@ -3340,7 +3332,7 @@ bool CHexeProcess::ExecutePushObjectMethod (CDatum &retResult)
 			CDatum dValue;
 			if (!m_pCurGlobalEnv->Find(sFunctionName, &dValue))
 				{
-				CHexeError::Create(NULL_STR, strPattern(ERR_UNBOUND_VARIABLE, sFunctionName), &retResult);
+				retResult = CDatum::CreateError(strPattern(ERR_UNBOUND_VARIABLE, sFunctionName));
 				return false;
 				}
 
@@ -3369,7 +3361,7 @@ bool CHexeProcess::ExecutePushObjectMethod (CDatum &retResult)
 						CDatum dValue;
 						if (!m_pCurGlobalEnv->Find(sFunctionName, &dValue))
 							{
-							CHexeError::Create(NULL_STR, strPattern(ERR_UNBOUND_VARIABLE, sFunctionName), &retResult);
+							retResult = CDatum::CreateError(strPattern(ERR_UNBOUND_VARIABLE, sFunctionName));
 							return false;
 							}
 
@@ -3382,7 +3374,7 @@ bool CHexeProcess::ExecutePushObjectMethod (CDatum &retResult)
 						}
 
 					default:
-						CHexeError::Create(NULL_STR, strPattern(ERR_MEMBER_FUNCTION_NOT_FOUND, sField), &retResult);
+						retResult = CDatum::CreateError(strPattern(ERR_MEMBER_FUNCTION_NOT_FOUND, sField));
 						return false;
 					}
 				}
@@ -3391,7 +3383,7 @@ bool CHexeProcess::ExecutePushObjectMethod (CDatum &retResult)
 				CDatum dMember = dObject.GetMethod(sField);
 				if (dMember.IsNil() || dMember.GetCallInfo() == CDatum::ECallType::None)
 					{
-					CHexeError::Create(NULL_STR, strPattern(ERR_MEMBER_FUNCTION_NOT_FOUND, sField), &retResult);
+					retResult = CDatum::CreateError(strPattern(ERR_MEMBER_FUNCTION_NOT_FOUND, sField));
 					return false;
 					}
 
@@ -3412,7 +3404,7 @@ bool CHexeProcess::ExecutePushObjectMethod (CDatum &retResult)
 			CDatum dMember = dObject.GetElement(sField);
 			if (dMember.IsNil() || dMember.GetCallInfo() == CDatum::ECallType::None)
 				{
-				CHexeError::Create(NULL_STR, strPattern(ERR_MEMBER_FUNCTION_NOT_FOUND, sField), &retResult);
+				retResult = CDatum::CreateError(strPattern(ERR_MEMBER_FUNCTION_NOT_FOUND, sField));
 				return false;
 				}
 
@@ -3447,12 +3439,12 @@ bool CHexeProcess::ExecuteSetAt (CDatum dOriginal, CDatum dKey, CDatum dValue, C
 		iKey = (int)dKey;
 		if (iKey < 0)
 			{
-			CHexeError::Create(NULL_STR, strPattern(ERR_INVALID_KEY, dKey.AsString()), retdResult);
+			*retdResult = CDatum::CreateError(strPattern(ERR_INVALID_KEY, dKey.AsString()));
 			return false;
 			}
 		else if (iKey > MAX_ARRAY_SIZE)
 			{
-			CHexeError::Create(NULL_STR, ERR_OUT_OF_MEMORY, retdResult);
+			*retdResult = CDatum::CreateError(ERR_OUT_OF_MEMORY);
 			return false;
 			}
 		}
@@ -3461,7 +3453,7 @@ bool CHexeProcess::ExecuteSetAt (CDatum dOriginal, CDatum dKey, CDatum dValue, C
 		sKey = dKey.AsString();
 		if (sKey.IsEmpty())
 			{
-			CHexeError::Create(NULL_STR, strPattern(ERR_INVALID_KEY, dKey.AsString()), retdResult);
+			*retdResult = CDatum::CreateError(strPattern(ERR_INVALID_KEY, dKey.AsString()));
 			return false;
 			}
 		}
@@ -3496,7 +3488,7 @@ bool CHexeProcess::ExecuteSetAt (CDatum dOriginal, CDatum dKey, CDatum dValue, C
 			{
 			if (!bKeyIsInteger)
 				{
-				CHexeError::Create(NULL_STR, strPattern(ERR_INVALID_KEY, dKey.AsString()), retdResult);
+				*retdResult = CDatum::CreateError(strPattern(ERR_INVALID_KEY, dKey.AsString()));
 				return false;
 				}
 
@@ -3530,7 +3522,7 @@ bool CHexeProcess::ExecuteSetAt (CDatum dOriginal, CDatum dKey, CDatum dValue, C
 			}
 
 		default:
-			CHexeError::Create(NULL_STR, ERR_NOT_ARRAY_OR_STRUCT, retdResult);
+			*retdResult = CDatum::CreateError(ERR_NOT_ARRAY_OR_STRUCT);
 			return false;
 		}
 	}
@@ -3577,11 +3569,7 @@ CDatum CHexeProcess::ExecuteUnaryOp (EOpCodes iOp, CDatum dValue)
 			}
 
 		default:
-			{
-			CDatum dError;
-			CHexeError::Create(NULL_STR, ERR_UNSUPPORTED_OP, &dError);
-			return dError;
-			}
+			return CDatum::CreateError(ERR_UNSUPPORTED_OP);
 		}
 	}
 
@@ -3592,7 +3580,7 @@ CHexeProcess::ERun CHexeProcess::RuntimeError (const CString &sError, CDatum &re
 //	Helper for returning an error from the compute engine.
 
 	{
-	CHexeError::Create(NULL_STR, sError, &retdResult);
+	retdResult = CDatum::CreateError(sError);
 	return ERun::Error;
 	}
 

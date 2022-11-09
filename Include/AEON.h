@@ -25,10 +25,12 @@ class CNumberValue;
 class IAEONCanvas;
 class IAEONParseExtension;
 class IAEONTable;
+class IAEONTextLines;
 class IComplexDatum;
 class IComplexFactory;
 class IDatatype;
 class IInvokeCtx;
+struct SAEONLibraryFunctionCreate;
 
 //	Data encoding constants
 
@@ -120,6 +122,9 @@ class CDatum
 			typeVector2D =		19,
 			typeQuery =			20,
 			typeEnum =			21,
+			typeLibraryFunc =	22,
+			typeError =			23,
+			typeTextLines =		24,
 
 			typeCustom =		100,
 			};
@@ -196,17 +201,20 @@ class CDatum
 		static bool CreateBinaryFromHandoff (CStringBuffer &Buffer, CDatum *retDatum);
 		static CDatum CreateEnum (int iValue, DWORD dwTypeID);
 		static CDatum CreateEnum (int iValue, CDatum dType);
+		static CDatum CreateError (const CString& sErrorDesc, const CString& sErrorCode = NULL_STR);
 		static bool CreateFromAttributeList (const CAttributeList &Attribs, CDatum *retdDatum);
 		static bool CreateFromFile (const CString &sFilespec, EFormat iFormat, CDatum *retdDatum, CString *retsError);
 		static bool CreateFromStringValue (const CString &sValue, CDatum *retdDatum);
 		static bool CreateIPInteger (const CIPInteger &Value, CDatum *retdDatum);
 		static bool CreateIPIntegerFromHandoff (CIPInteger &Value, CDatum *retdDatum);
+		static CDatum CreateLibraryFunction (const SAEONLibraryFunctionCreate& Create);
 		static CDatum CreateNaN ();
 		static CDatum CreateObject (CDatum dType, CDatum dValue = CDatum());
 		static bool CreateStringFromHandoff (CString &sString, CDatum *retDatum);
 		static bool CreateStringFromHandoff (CStringBuffer &String, CDatum *retDatum);
 		static CDatum CreateTable (CDatum dType, CDatum dValue = CDatum());
 		static bool CreateTableFromDesc (CAEONTypeSystem &TypeSystem, CDatum dDesc, CDatum &retdDatum);
+		static CDatum CreateTextLines (CDatum dValue = CDatum());
 		static bool Deserialize (EFormat iFormat, IByteStream &Stream, IAEONParseExtension *pExtension, CDatum *retDatum);
 		static bool Deserialize (EFormat iFormat, IByteStream &Stream, CDatum *retDatum) { return Deserialize(iFormat, Stream, NULL, retDatum); }
 		static Types GetStringValueType (const CString &sValue);
@@ -286,6 +294,8 @@ class CDatum
 		const CAEONQuery* GetQueryInterface () const;
 		IAEONTable *GetTableInterface ();
 		const IAEONTable *GetTableInterface () const { return const_cast<CDatum *>(this)->GetTableInterface(); }
+		IAEONTextLines* GetTextLinesInterface ();
+		const IAEONTextLines* GetTextLinesInterface () const { return const_cast<CDatum *>(this)->GetTextLinesInterface(); }
 
 		static int Compare (CDatum dValue1, CDatum dValue2) { return DefaultCompare(NULL, dValue1, dValue2); }
 
@@ -348,6 +358,15 @@ class CDatum
 
 inline int KeyCompare (const CDatum &dKey1, const CDatum &dKey2) { return CDatum::Compare(dKey1, dKey2); }
 
+struct SAEONLibraryFunctionCreate
+	{
+	CString sName;
+	std::function<bool(IInvokeCtx&, DWORD, CDatum, CDatum, CDatum&)> fnInvoke;
+	DWORD dwData = 0;
+	DWORD dwExecutionRights = 0;
+	CDatum dType;
+	};
+
 #include "AEONTypeSystem.h"
 #include "AEONInterfaces.h"
 #include "AEONUtil.h"
@@ -404,6 +423,7 @@ class IComplexDatum
 		virtual CDatum::Types GetNumberType (int *retiValue) { return CDatum::typeNaN; }
 		virtual const CAEONQuery* GetQueryInterface () const { return NULL; }
 		virtual IAEONTable *GetTableInterface () { return NULL; }
+		virtual IAEONTextLines *GetTextLinesInterface () { return NULL; }
 		virtual const CString &GetTypename () const = 0;
 		virtual void GrowToFit (int iCount) { }
 		virtual CDatum::InvokeResult Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, DWORD dwExecutionRights, CDatum *retdResult) { *retdResult = CDatum(); return CDatum::InvokeResult::ok; }

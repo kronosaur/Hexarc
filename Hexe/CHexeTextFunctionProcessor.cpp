@@ -87,7 +87,7 @@ bool CHexeTextFunctionProcessor::Process (CDatum dSelf, CDatum *retResult)
 		CString sError;
 		if (!CHexeTextMarkup::EscapeHTML(Input, m_dParams, Output, &sError))
 			{
-			CHexeError::Create(NULL_STR, sError, retResult);
+			*retResult = CDatum::CreateError(sError);
 			return false;
 			}
 
@@ -96,7 +96,7 @@ bool CHexeTextFunctionProcessor::Process (CDatum dSelf, CDatum *retResult)
 		}
 	else
 		{
-		CHexeError::Create(NULL_STR, strPattern(ERR_UNKNOWN_FORMAT, m_sFormat), retResult);
+		*retResult = CDatum::CreateError(strPattern(ERR_UNKNOWN_FORMAT, m_sFormat));
 		return false;
 		}
 
@@ -230,7 +230,7 @@ bool CHexeTextFunctionProcessor::ProcessHexeText (CDatum *retResult)
 	Processor.SetValues(m_Results);
 	if (!Processor.ConvertToHTML(Input, Output, &sError))
 		{
-		CHexeError::Create(NULL_STR, sError, retResult);
+		*retResult = CDatum::CreateError(sError);
 		return false;
 		}
 

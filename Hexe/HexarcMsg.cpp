@@ -363,7 +363,7 @@ bool CHexeProcess::SendHexarcMessage (const CString &sMsg, CDatum dPayload, CDat
 
 	if (!(Ctx.GetExecutionRights() & CHexeSecurityCtx::EXEC_RIGHT_INVOKE))
 		{
-		CHexeError::Create(MSG_ERROR_NOT_ALLOWED, ERR_CANNOT_INVOKE, retdResult);
+		*retdResult = CDatum::CreateError(ERR_CANNOT_INVOKE, MSG_ERROR_NOT_ALLOWED);
 		return false;
 		}
 
@@ -437,7 +437,7 @@ bool CHexeProcess::SendHexarcMessage (const CHexeSecurityCtx &SecurityCtx, const
 
 	//	Else, this is not a valid message
 		
-	CHexeError::Create(MSG_ERROR_UNKNOWN, strPattern(ERR_UNKNOWN_MSG, sMsg), retdResult);
+	*retdResult = CDatum::CreateError(strPattern(ERR_UNKNOWN_MSG, sMsg), MSG_ERROR_UNKNOWN);
 	return false;
 	}
 
@@ -450,7 +450,7 @@ bool CHexeProcess::ValidateHexarcMessage (const CString &sMsg, CDatum dPayload, 
 	{
 	if (!FindHexarcMessage(sMsg, retsAddr))
 		{
-		CHexeError::Create(MSG_ERROR_UNKNOWN, strPattern(ERR_UNKNOWN_MSG, sMsg), retdResult);
+		*retdResult = CDatum::CreateError(strPattern(ERR_UNKNOWN_MSG, sMsg), MSG_ERROR_UNKNOWN);
 		return false;
 		}
 

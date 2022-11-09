@@ -555,7 +555,7 @@ CHexeProcess::ERun CHexeProcess::RunEventHandler (CDatum dFunc, const TArray<CDa
 	DWORD *pNewIP;
 	if (dFunc.GetCallInfo(&dNewCodeBank, &pNewIP) != CDatum::ECallType::Call)
 		{
-		CHexeError::Create(NULL_STR, ERR_INVALID_EVENT_HANDLER, &retResult);
+		retResult = CDatum::CreateError(ERR_INVALID_EVENT_HANDLER);
 		return ERun::Error;
 		}
 

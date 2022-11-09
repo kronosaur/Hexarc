@@ -199,7 +199,6 @@ bool CHexe::Boot (void)
 		//	Register some AEON datatypes
 
 		CHexeCode::RegisterFactory();
-		CHexeError::RegisterFactory();
 		CHexeFunction::RegisterFactory();
 		CHexeLocalEnvironment::RegisterFactory();
 		CHexeGlobalEnvironment::RegisterFactory();

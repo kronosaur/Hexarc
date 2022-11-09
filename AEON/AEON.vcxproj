@@ -185,13 +185,17 @@
   <ItemGroup>
     <ClCompile Include="AEONMath.cpp" />
     <ClCompile Include="AEONScript.cpp" />
+    <ClCompile Include="CAEONError.cpp" />
     <ClCompile Include="CAEONFactoryList.cpp" />
+    <ClCompile Include="CAEONLibraryFunction.cpp" />
+    <ClCompile Include="CAEONLines.cpp" />
     <ClCompile Include="CAEONPolygon2D.cpp" />
     <ClCompile Include="CAEONQuery.cpp" />
     <ClCompile Include="CAEONStore.cpp" />
     <ClCompile Include="CAEONTable.cpp" />
     <ClCompile Include="CAEONTableIndex.cpp" />
     <ClCompile Include="CAEONTableRef.cpp" />
+    <ClCompile Include="CAEONTextLinesDiff.cpp" />
     <ClCompile Include="CAEONTimeSpan.cpp" />
     <ClCompile Include="CAEONTypes.cpp" />
     <ClCompile Include="CAEONTypeSystem.cpp" />
@@ -238,6 +242,7 @@
     <ClInclude Include="..\Include\AEONUtil.h" />
     <ClInclude Include="..\Include\AEONVector.h" />
     <ClInclude Include="AEONImpl.h" />
+    <ClInclude Include="AEONLines.h" />
     <ClInclude Include="AEONTable.h" />
     <ClInclude Include="DatatypeImpl.h" />
     <ClInclude Include="stdafx.h" />

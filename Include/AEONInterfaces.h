@@ -78,3 +78,41 @@ class IAEONTable
 		static bool InsertColumnToSchema (CDatum dSchema, const CString& sName, CDatum dType, int iPos, CDatum& retdSchema, int* retiCol = NULL);
 	};
 
+class CAEONTextLinesDiff
+	{
+	public:
+
+		enum class EType
+			{
+			None,
+
+			Delete,
+			Insert,
+			Same,
+			};
+
+		struct SEntry
+			{
+			EType iType;
+			CDatum dParam;
+			};
+
+		CAEONTextLinesDiff (CDatum dDiff);
+
+		int GetCount () const { return m_Diff.GetCount(); }
+		const SEntry& GetOp (int iIndex) const { return m_Diff[iIndex]; }
+		void Mark ();
+
+	private:
+
+		TArray<SEntry> m_Diff;
+	};
+
+class IAEONTextLines
+	{
+	public:
+
+		virtual void ApplyDiff (const CAEONTextLinesDiff& Diff) { throw CException(errFail); }
+		virtual SequenceNumber GetSeq () const { return 0; }
+		virtual void SetSeq (SequenceNumber Seq) { throw CException(errFail); }
+	};

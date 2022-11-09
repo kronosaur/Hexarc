@@ -13,6 +13,7 @@
 
 class CString16;
 class CStringBuffer;
+class IMemoryBlock;
 struct SStringValidate;
 
 //	Small a with acute: á
@@ -60,6 +61,7 @@ class CString
 		CString &operator= (const CString &sStr);
 		CString &operator= (CString &&Src) noexcept { TakeHandoff(Src); return *this; }
 		CString &operator+= (const CString &sStr);
+		CString &operator+= (const IMemoryBlock& Value);
 		CString operator + (const CString &sStr) const;
 
 		int Find (char chChar, int iStartAt = 0) const;

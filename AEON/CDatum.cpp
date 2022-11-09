@@ -1310,6 +1310,16 @@ CDatum CDatum::CreateEnum (int iValue, CDatum dType)
 	return CreateEnum(iValue, dwTypeID);
 	}
 
+CDatum CDatum::CreateError (const CString& sErrorDesc, const CString& sErrorCode)
+
+//	CreateError
+//
+//	Creates an error value.
+
+	{
+	return CAEONError::Create(sErrorCode, sErrorDesc);
+	}
+
 bool CDatum::CreateFromAttributeList (const CAttributeList &Attribs, CDatum *retdDatum)
 
 //	CreateFromAttributeList
@@ -1449,6 +1459,16 @@ bool CDatum::CreateIPIntegerFromHandoff (CIPInteger &Value, CDatum *retdDatum)
 
 	*retdDatum = CDatum(pIPInt);
 	return true;
+	}
+
+CDatum CDatum::CreateLibraryFunction (const SAEONLibraryFunctionCreate& Create)
+
+//	CreateLibraryFunction
+//
+//	Creates a library function.
+
+	{
+	return CAEONLibraryFunction::Create(Create);
 	}
 
 CDatum CDatum::CreateNaN ()
@@ -1600,6 +1620,16 @@ bool CDatum::CreateTableFromDesc (CAEONTypeSystem &TypeSystem, CDatum dDesc, CDa
 			retdDatum = ERR_INVALID_TABLE_DESC;
 			return false;
 		}
+	}
+
+CDatum CDatum::CreateTextLines (CDatum dValue)
+
+//	CreateTextLines
+//
+//	Creates a textLines datum.
+
+	{
+	return CAEONLines::Create(dValue);
 	}
 
 int CDatum::DefaultCompare (void *pCtx, const CDatum &dKey1, const CDatum &dKey2)
@@ -2217,6 +2247,23 @@ IAEONTable *CDatum::GetTableInterface ()
 		{
 		case AEON_TYPE_COMPLEX:
 			return raw_GetComplex()->GetTableInterface();
+
+		default:
+			return NULL;
+		}
+	}
+
+IAEONTextLines* CDatum::GetTextLinesInterface ()
+
+//	GetTextLinesInterface
+//
+//	Returns a text lines interface (or NULL).
+
+	{
+	switch (m_dwData & AEON_TYPE_MASK)
+		{
+		case AEON_TYPE_COMPLEX:
+			return raw_GetComplex()->GetTextLinesInterface();
 
 		default:
 			return NULL;

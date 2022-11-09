@@ -144,26 +144,11 @@ extern CHexeLibrarian g_HexeLibrarian;
 
 //	CHexeError -----------------------------------------------------------------
 
-class CHexeError : public TExternalDatum<CHexeError>
+class CHexeError
 	{
 	public:
-		static void Create (const CString &sErrorCode, const CString &sErrorDesc, CDatum *retdDatum);
-		static const CString &StaticGetTypename (void);
-
-		//	IComplexDatum
-		virtual CString AsString (void) const override { return m_sDescription; }
-		virtual const CString &CastCString (void) const override { return m_sDescription; }
-		virtual bool IsError (void) const override { return true; }
-		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
-
-	protected:
-		//	IComplexDatum
-		virtual bool OnDeserialize (CDatum::EFormat iFormat, const CString &sTypename, IByteStream &Stream) override;
-		virtual void OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
-
-	private:
-		CString m_sError;
-		CString m_sDescription;
+		static void Create (const CString &sErrorCode, const CString &sErrorDesc, CDatum *retdDatum)
+			{ *retdDatum = CDatum::CreateError(sErrorCode, sErrorDesc); }
 	};
 
 //	CHexeProcess ---------------------------------------------------------------
@@ -460,4 +445,3 @@ bool HexeGetPolygon2DArg (CDatum dArg, const CPolygon2D **retpPolygon, CPolygon2
 bool HexeGetVector2DArg (CDatum dArgList, int *ioArg, CVector2D *retVector, CDatum *retdResult);
 
 #include "HexeConsole.h"
-#include "HexeUtil.h"
