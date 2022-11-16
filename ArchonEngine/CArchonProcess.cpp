@@ -62,6 +62,7 @@ DECLARE_CONST_STRING(ERR_NOT_IN_CONSOLE_MODE,			"Not in console mode.");
 DECLARE_CONST_STRING(ERR_CRASH_IN_CONSOLE_COMMAND,		"Crash processing console command.");
 DECLARE_CONST_STRING(ERR_CRASH_IN_SEND_GLOBAL_MESSAGE,	"CRASH: In SendGlobalMessage.");
 DECLARE_CONST_STRING(ERR_CRASH_IN_COLLECT_GARBAGE,		"CRASH: In CollectGarbage.");
+DECLARE_CONST_STRING(ERR_CRASH_IN_RUN,					"CRASH: In CArchonProcess::Run.");
 
 CArchonProcess::CArchonProcess (void) :
 		m_EventThread(m_RunEvent, m_PauseEvent, m_QuitEvent)
@@ -658,19 +659,26 @@ void CArchonProcess::Run (void)
 
 	while (true)
 		{
-		int iEvent = Wait.WaitForAny(15000);
-		if (iEvent == QUIT_SIGNAL)
-			break;
-		else if (iEvent == OS_WAIT_TIMEOUT)
+		try 
 			{
-			if (m_bConsoleMode)
-				Console.OnStartHousekeeping();
+			int iEvent = Wait.WaitForAny(15000);
+			if (iEvent == QUIT_SIGNAL)
+				break;
+			else if (iEvent == OS_WAIT_TIMEOUT)
+				{
+				if (m_bConsoleMode)
+					Console.OnStartHousekeeping();
 
-			CollectGarbage();
-			SendGlobalMessage(MSG_ARC_HOUSEKEEPING);
+				CollectGarbage();
+				SendGlobalMessage(MSG_ARC_HOUSEKEEPING);
 
-			if (m_bConsoleMode)
-				Console.OnEndHousekeeping();
+				if (m_bConsoleMode)
+					Console.OnEndHousekeeping();
+				}
+			}
+		catch (...)
+			{
+			Log(MSG_LOG_ERROR, ERR_CRASH_IN_RUN);
 			}
 		}
 

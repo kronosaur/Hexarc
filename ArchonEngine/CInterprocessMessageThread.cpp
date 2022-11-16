@@ -64,15 +64,16 @@ void CInterprocessMessageThread::Run (void)
 //	Run thread
 
 	{
-	try
+	static constexpr int MAX_CRASH_COUNT = 10;
+	int iCrashCount = 0;
+
+	m_PausedEvent.Reset();
+
+	//	Keep looping until we're asked to quit
+
+	while (true)
 		{
-		int i;
-
-		m_PausedEvent.Reset();
-
-		//	Keep looping until we're asked to quit
-
-		while (true)
+		try
 			{
 			CWaitArray Wait;
 
@@ -98,13 +99,15 @@ void CInterprocessMessageThread::Run (void)
 					return;
 				else
 					m_PausedEvent.Reset();
+
+				iCrashCount = 0;
 				}
 			else if (iEvent == WORK_EVENT)
 				{
 				TArray<CString> List;
 				if (m_Queue.Dequeue(m_iProcessingChunk, &List))
 					{
-					for (i = 0; i < List.GetCount(); i++)
+					for (int i = 0; i < List.GetCount(); i++)
 						{
 						CArchonTimer Timer;
 
@@ -125,10 +128,12 @@ void CInterprocessMessageThread::Run (void)
 					}
 				}
 			}
-		}
-	catch (...)
-		{
-		m_pProcess->LogBlackBox(CString("CRASH: Interprocess Message Thread."));
-		throw;
+		catch (...)
+			{
+			if (++iCrashCount > MAX_CRASH_COUNT)
+				throw;
+
+			m_pProcess->Log(MSG_LOG_ERROR, CString("CRASH: Interprocess Message Thread."));
+			}
 		}
 	}

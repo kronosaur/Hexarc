@@ -528,11 +528,14 @@ void CSimpleProcessingThread::Run (void)
 //	Processing thread
 
 	{
-	try
-		{
-		//	Keep looping until we're asked to quit
+	static constexpr int MAX_CRASH_COUNT = 10;
+	int iCrashCount = 0;
 
-		while (true)
+	//	Keep looping until we're asked to quit
+
+	while (true)
+		{
+		try
 			{
 			SetState(processingWaiting);
 
@@ -568,6 +571,8 @@ void CSimpleProcessingThread::Run (void)
 					}
 				else
 					m_PausedEvent.Reset();
+
+				iCrashCount = 0;
 				}
 			else if (iEvent == WORK_EVENT)
 				{
@@ -588,11 +593,13 @@ void CSimpleProcessingThread::Run (void)
 				m_pEngine->ProcessEvent(Wait.GetData(iEvent));
 				}
 			}
-		}
-	catch (...)
-		{
-		m_pEngine->GetProcessCtx()->LogBlackBox(strPattern("CRASH: CSimpleEngine: %s.", m_pEngine->GetName()));
-		throw;
+		catch (...)
+			{
+			if (++iCrashCount > MAX_CRASH_COUNT)
+				throw;
+
+			m_pEngine->GetProcessCtx()->Log(MSG_LOG_ERROR, strPattern("CRASH: CSimpleProcessingThread: %s.", m_pEngine->GetName()));
+			}
 		}
 	}
 
@@ -614,11 +621,14 @@ void CSimpleEventThread::Run (void)
 //	Processing thread
 
 	{
-	try
-		{
-		//	Keep looping until we're asked to quit
+	static constexpr int MAX_CRASH_COUNT = 10;
+	int iCrashCount = 0;
 
-		while (true)
+	//	Keep looping until we're asked to quit
+
+	while (true)
+		{
+		try
 			{
 			//	Wait for the quit event and the work event
 
@@ -647,6 +657,8 @@ void CSimpleEventThread::Run (void)
 					return;
 				else
 					m_PausedEvent.Reset();
+
+				iCrashCount = 0;
 				}
 			else if (iEvent == NEW_MESSAGES_EVENT)
 				;
@@ -655,11 +667,13 @@ void CSimpleEventThread::Run (void)
 				m_pEngine->ProcessTimedMessages();
 				}
 			}
-		}
-	catch (...)
-		{
-		m_pEngine->GetProcessCtx()->LogBlackBox(strPattern("CRASH: CSimpleEventThread: %s.", m_pEngine->GetName()));
-		throw;
+		catch (...)
+			{
+			if (++iCrashCount > MAX_CRASH_COUNT)
+				throw;
+
+			m_pEngine->GetProcessCtx()->Log(MSG_LOG_ERROR, strPattern("CRASH: CSimpleEventThread: %s.", m_pEngine->GetName()));
+			}
 		}
 	}
 
