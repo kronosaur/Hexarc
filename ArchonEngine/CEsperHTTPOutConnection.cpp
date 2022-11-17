@@ -478,13 +478,23 @@ bool CEsperHTTPOutConnection::OpProcessSSL (void)
 #ifdef DEBUG_SSL_IO
 			printf("OpProcessSSL: Error: %s\n", (LPSTR)sError);
 #endif
-			m_iState = stateConnected;
 
+			//	If we failed, try to reconnect.
+
+			if (m_bReconnect)
+				return OpConnect(true);
+
+			//	Otherwise, return an error and disconnect
+
+			else
+				{
 #ifdef DEBUG_SOCKET_OPS
-			m_Manager.LogTrace(strPattern("[%x] SSL error: %s", CEsperInterface::ConnectionToFriendlyID(CDatum(GetID())), sError));
+				m_Manager.LogTrace(strPattern("[%x] SSL error: %s", CEsperInterface::ConnectionToFriendlyID(CDatum(GetID())), sError));
 #endif
-			m_Manager.SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, ERR_LOST_CONNECTION, m_Msg);
-			return false;
+				m_Manager.SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, ERR_LOST_CONNECTION, m_Msg);
+				m_Manager.DeleteConnection(CDatum(GetID()));
+				return false;
+				}
 
 		default:
 			ASSERT(false);
