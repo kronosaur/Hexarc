@@ -10,6 +10,7 @@
 #pragma once
 
 constexpr int SECONDS_PER_DAY =					(60 * 60 * 24);
+constexpr int SECONDS_PER_HOUR =				(60 * 60);
 
 class CDateTime
 	{
