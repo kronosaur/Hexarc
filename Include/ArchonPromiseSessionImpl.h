@@ -280,6 +280,22 @@ template <class CTX = SDefaultSessionCtx> class TPromiseSession : public ISessio
 						return HandleReply(iNextResult, NextReply);
 						}
 
+				//	Repeat
+
+				case EPromiseResult::Repeat:
+					if (!m_pCurrent || !m_pCurrent->fnStart)
+						{
+						SendMessageReply(Reply.sMsg, Reply.dPayload);
+						return false;
+						}
+					else
+						{
+						SArchonMessage NextReply;
+						auto iNextResult = m_pCurrent->fnStart(*this, m_Ctx, Reply, NextReply);
+
+						return HandleReply(iNextResult, NextReply);
+						}
+
 				//	Wait for reply
 
 				case EPromiseResult::WaitForResponse:

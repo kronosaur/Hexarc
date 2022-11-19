@@ -16,6 +16,7 @@ class CArchonProcess;
 enum class EPromiseResult
 	{
 	OK,						//	Pass reply to next promise or return to client
+	Repeat,					//	Repeat the current state
 	WaitForResponse,		//	Wait for message reply and call at fnProcess when done.
 	EndSession,				//	End the session.
 	Error,					//	Return error to client
