@@ -7,7 +7,10 @@
 
 DECLARE_CONST_STRING(ADDR_NULL,							"Arc.null")
 
-CEventProcessingThread::CEventProcessingThread (CManualEvent &RunEvent, CManualEvent &PauseEvent, CManualEvent &QuitEvent) :
+DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error")
+
+CEventProcessingThread::CEventProcessingThread (IArchonProcessCtx& ProcessCtx, CManualEvent &RunEvent, CManualEvent &PauseEvent, CManualEvent &QuitEvent) :
+		m_ProcessCtx(ProcessCtx),
 		m_pRunEvent(&RunEvent),
 		m_pPauseEvent(&PauseEvent),
 		m_pQuitEvent(&QuitEvent)
@@ -49,22 +52,23 @@ void CEventProcessingThread::Run (void)
 //	Thread runs
 
 	{
-	try
+	static constexpr int MAX_CRASH_COUNT = 10;
+	int iCrashCount = 0;
+
+	m_PausedEvent.Reset();
+
+	//	Keep looping until we're asked to quit
+
+	while (true)
 		{
-		int i;
-
-		m_PausedEvent.Reset();
-
-		//	Keep looping until we're asked to quit
-
-		while (true)
+		try
 			{
 			int iMaxEvents = Min(m_Events.GetCount(), MAXIMUM_WAIT_OBJECTS - 3);
 
 			//	Wait for the events
 
 			CWaitArray Wait;
-			for (i = 0; i < iMaxEvents; i++)
+			for (int i = 0; i < iMaxEvents; i++)
 				Wait.Insert(*m_Events[i].pObj);
 
 			//	Wait for the quit event and the work event
@@ -90,10 +94,11 @@ void CEventProcessingThread::Run (void)
 				int RUN_EVENT = Wait.Insert(*m_pRunEvent);
 
 				int iEvent = Wait.WaitForAny();
-				if (iEvent == STOP_EVENT)
+				if (iEvent == QUIT_EVENT)
 					return;
-				else
-					m_PausedEvent.Reset();
+
+				m_PausedEvent.Reset();
+				iCrashCount = 0;
 				}
 			else if (iEvent == REFRESH_EVENT)
 				{
@@ -101,7 +106,7 @@ void CEventProcessingThread::Run (void)
 
 				//	Move all the events from the new list to the working list
 
-				for (i = 0; i < m_NewEvents.GetCount(); i++)
+				for (int i = 0; i < m_NewEvents.GetCount(); i++)
 					m_Events.Insert(m_NewEvents[i]);
 
 				m_NewEvents.DeleteAll();
@@ -112,6 +117,9 @@ void CEventProcessingThread::Run (void)
 
 			else
 				{
+				//	NOTE: We don't have to lock here because the only place that
+				//	touches m_Events is this thread.
+
 				SEvent *pEvent = &m_Events[iEvent];
 
 				SArchonMessage Msg;
@@ -131,9 +139,12 @@ void CEventProcessingThread::Run (void)
 				m_Events.Delete(iEvent);
 				}
 			}
-		}
-	catch (...)
-		{
+		catch (...)
+			{
+			if (++iCrashCount > MAX_CRASH_COUNT)
+				throw;
 
+			m_ProcessCtx.Log(MSG_LOG_ERROR, CString("CRASH: In CEventProcessingThread."));
+			}
 		}
 	}

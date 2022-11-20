@@ -65,7 +65,7 @@ DECLARE_CONST_STRING(ERR_CRASH_IN_COLLECT_GARBAGE,		"CRASH: In CollectGarbage.")
 DECLARE_CONST_STRING(ERR_CRASH_IN_RUN,					"CRASH: In CArchonProcess::Run.");
 
 CArchonProcess::CArchonProcess (void) :
-		m_EventThread(m_RunEvent, m_PauseEvent, m_QuitEvent)
+		m_EventThread(*this, m_RunEvent, m_PauseEvent, m_QuitEvent)
 
 //	CArchonProcess constructor
 

@@ -95,7 +95,7 @@ void CInterprocessMessageThread::Run (void)
 				int RUN_EVENT = Wait.Insert(*m_pRunEvent);
 
 				int iEvent = Wait.WaitForAny();
-				if (iEvent == STOP_EVENT)
+				if (iEvent == QUIT_EVENT)
 					return;
 				else
 					m_PausedEvent.Reset();

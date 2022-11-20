@@ -493,7 +493,7 @@ class CConsoleThread : public TThread<CConsoleThread>
 class CEventProcessingThread : public TThread<CEventProcessingThread>
 	{
 	public:
-		CEventProcessingThread (CManualEvent &RunEvent, CManualEvent &PauseEvent, CManualEvent &QuitEvent);
+		CEventProcessingThread (IArchonProcessCtx& ProcessCtx, CManualEvent &RunEvent, CManualEvent &PauseEvent, CManualEvent &QuitEvent);
 
 		void AddEvent (const CString &sName, COSObject &Event, IArchonMessagePort *pPort, const CString &sMsg, DWORD dwTicket);
 		void Mark (void) { }
@@ -513,6 +513,7 @@ class CEventProcessingThread : public TThread<CEventProcessingThread>
 			};
 
 		CCriticalSection m_cs;
+		IArchonProcessCtx& m_ProcessCtx;
 		TArray<SEvent> m_Events;
 		TArray<SEvent> m_NewEvents;
 

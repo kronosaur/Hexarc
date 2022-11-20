@@ -564,7 +564,7 @@ void CSimpleProcessingThread::Run (void)
 				int RUN_EVENT = Wait.Insert(m_pEngine->GetRunEvent());
 
 				int iEvent = Wait.WaitForAny();
-				if (iEvent == STOP_EVENT)
+				if (iEvent == QUIT_EVENT)
 					{
 					SetState(processingExit);
 					return;
@@ -653,7 +653,7 @@ void CSimpleEventThread::Run (void)
 				int RUN_EVENT = Wait.Insert(m_pEngine->GetRunEvent());
 
 				int iEvent = Wait.WaitForAny();
-				if (iEvent == STOP_EVENT)
+				if (iEvent == QUIT_EVENT)
 					return;
 				else
 					m_PausedEvent.Reset();
