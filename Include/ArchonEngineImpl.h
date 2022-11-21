@@ -303,7 +303,7 @@ class CSessionManager
 		void GetSessions (TArray<ISessionHandler *> *retSessions);
 		DWORD Insert (ISessionHandler *pHandler);
 		bool IsCustomTicket (DWORD dwTicket) const { return m_Sessions.IsCustomID(dwTicket); }
-		DWORD MakeCustomTicket (void) { return m_Sessions.MakeCustomID(); }
+		DWORD MakeCustomTicket (void) { CSmartLock Lock(m_cs); return m_Sessions.MakeCustomID(); }
 		void Mark (void);
 		void ProcessMessage (CSimpleEngine *pEngine, const SArchonMessage &Msg);
 
