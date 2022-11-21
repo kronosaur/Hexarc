@@ -37,14 +37,14 @@ class CNamedPipe
 
 		HANDLE m_hRead = INVALID_HANDLE_VALUE;
 		CManualEvent m_ReadEvent;
-		OVERLAPPED m_OverlappedRead;
+		OVERLAPPED m_OverlappedRead = { 0 };
 		CBuffer m_ReadBuffer;
 		bool m_bAsyncRead = false;
 		bool m_bWaitingForRead = false;
 
 		HANDLE m_hWrite = INVALID_HANDLE_VALUE;
 		CManualEvent m_WriteEvent;
-		OVERLAPPED m_OverlappedWrite;
+		OVERLAPPED m_OverlappedWrite = { 0 };
 		bool m_bAsyncWrite = false;
 		bool m_bWaitingForWrite = false;
 

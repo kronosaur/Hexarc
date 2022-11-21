@@ -134,7 +134,7 @@ template <class CLASS> class TThread : public COSObject
 			return 0;
 			}
 
-		DWORD m_dwThreadID;
+		DWORD m_dwThreadID = 0;
 	};
 
 //	Synchronization classes
@@ -232,7 +232,7 @@ class CSemaphore : public COSObject
 		void Unlock () const { Decrement(); }
 
 	private:
-		int m_iMaxCount;
+		int m_iMaxCount = 0;
 	};
 
 class CReaderWriterSemaphore : private CSemaphore
