@@ -148,29 +148,36 @@ CMessagePort *CMessageTransporter::Bind (const CString &sAddress)
 	{
 	CSmartLock Lock(m_cs);
 
-	//	See if we already have this port. If not, we need to add it.
+	//	If we don't have this port, we create an empty one. It is always safe
+	//	to have an empty port because we try to Bind again at SendMessage time.
 
-	CMessagePort *pPort;
+	CMessagePort *pPort = NULL;
 	if (!m_Ports.Find(sAddress, &pPort))
 		{
-		//	Get the raw port
-
-		bool bFree;
-		IArchonMessagePort *pRawPort = BindRaw(sAddress, &bFree);
-
-		//	If we could not bind, then we fail.
-
-		if (pRawPort == NULL)
-			return NULL;
-
-		//	Otherwise, add our new port
-
 		pPort = new CMessagePort(*this, sAddress);
-		pPort->SetPort(pRawPort, bFree);
-
 		m_Ports.Insert(sAddress, pPort);
 		}
 
+	//	See if the port is valid. If so, then we can return it.
+
+	IArchonMessagePort *pRawPort = pPort->GetPort();
+	if (pRawPort 
+			&& pRawPort->IsValidForMnemosynthSequence(m_pProcess->GetMnemosynth().GetDbSeq()))
+		return pPort;
+
+	//	Otherwise we need to create a new port.
+
+	bool bFree;
+	pRawPort = BindRaw(sAddress, &bFree);
+
+	//	If we could not bind, then we fail.
+
+	if (pRawPort == NULL)
+		return NULL;
+
+	//	Otherwise, add our new port
+
+	pPort->SetPort(pRawPort);
 	return pPort;
 	}
 
@@ -501,6 +508,12 @@ IArchonMessagePort *CMessageTransporter::CreateVirtualPortBinding (const CString
 	//	Allocate a new splitter, which will hold all the ports
 
 	CMessagePortSplitter *pSplitter = new CMessagePortSplitter;
+
+	//	Remember the sequence number of the Mnemosynth database at the time that
+	//	we create this port. If the database changes, we need to invalidate this
+	//	port.
+
+	pSplitter->SetSeq(m_pProcess->GetMnemosynth().GetDbSeq());
 
 	//	Cache our local module and machine
 

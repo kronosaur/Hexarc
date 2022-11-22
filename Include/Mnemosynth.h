@@ -73,6 +73,7 @@ class CMnemosynthDb
 		void Delete (const CString &sCollection, const CString &sKey);
 		void GenerateDelta (TArray<SMnemosynthUpdate> *retUpdates, CDatum *retdLocalUpdates);
 		void GenerateEndpointList (CDatum *retdList);
+		SequenceNumber GetDbSeq () const { return m_Seq; }
 		DWORD GetEndpointID (const CString &sEndpoint);
 		const CString &GetEndpointName (DWORD dwEndpointID);
 		inline CManualEvent &GetModifiedEvent (void) { return m_ModifiedEvent; }
@@ -138,6 +139,7 @@ class CMnemosynthDb
 
 		TSortMap<CString, SCollection> m_Collections;	//	Collections
 
+		SequenceNumber m_Seq = 1;				//	Db sequence number
 		CManualEvent m_ModifiedEvent;			//	Signalled when db is modified
 	};
 

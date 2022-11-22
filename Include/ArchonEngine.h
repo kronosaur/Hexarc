@@ -68,6 +68,7 @@ class IArchonMessagePort
 
 		virtual CDatum GetPortStatus (void) const { return CDatum(); }
 		virtual bool IsValid (void) const { return true; }
+		virtual bool IsValidForMnemosynthSequence (SequenceNumber Seq) const { return true; }
 		virtual bool SendMessage (const SArchonMessage &Msg) { return false; }
 	};
 

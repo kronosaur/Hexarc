@@ -242,14 +242,17 @@ class CMessagePortSplitter : public IArchonMessagePort
 	{
 	public:
 		void AddPort (CMessagePort *pPort);
+		void SetSeq (SequenceNumber Seq) { m_Seq = Seq; }
 
 		//	IArchonMessagePort
 		virtual CDatum GetPortStatus (void) const override;
 		virtual bool IsValid (void) const override { return (m_Ports.GetCount() > 0); }
+		virtual bool IsValidForMnemosynthSequence (SequenceNumber Seq) const { return (m_Seq == 0 || m_Seq == Seq); }
 		virtual bool SendMessage (const SArchonMessage &Msg) override;
 
 	private:
 		TArray<CMessagePort *> m_Ports;
+		SequenceNumber m_Seq = 0;
 	};
 
 class CProxyPort : public IArchonMessagePort

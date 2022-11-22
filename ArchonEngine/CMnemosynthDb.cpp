@@ -53,6 +53,7 @@ void CMnemosynthDb::Boot (IArchonProcessCtx *pProcess)
 	m_pProcess = pProcess;
 	m_ModifiedEvent.Create();
 	m_dwNextID = 0;
+	m_Seq = 1;
 
 	//	Initialize our endpoint
 
@@ -821,6 +822,7 @@ void CMnemosynthDb::IncorporateDelta (CDatum dPayload)
 	//	Done
 
 	pEndpoint->dwSeqRecv = dwMaxSeq;
+	m_Seq++;
 	}
 
 void CMnemosynthDb::Mark (void)
@@ -1065,5 +1067,6 @@ void CMnemosynthDb::Write (const CString &sCollection, const CString &sKey, CDat
 
 	//	Modified
 
+	m_Seq++;
 	m_ModifiedEvent.Set();
 	}
