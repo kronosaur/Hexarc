@@ -881,6 +881,7 @@ class CAeonEngine : public TSimpleEngine<CAeonEngine>
 		void MsgOnMachineStart (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgOnMnemosynthModified (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgRecoverTableTest (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
+		void MsgStatus (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgTranspaceDownload (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgWaitForView (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgWaitForVolume (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);

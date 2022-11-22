@@ -53,10 +53,13 @@ DECLARE_CONST_STRING(FIELD_PARTIAL_MAX_SIZE,			"partialMaxSize")
 DECLARE_CONST_STRING(FIELD_PARTIAL_POS,					"partialPos")
 DECLARE_CONST_STRING(FIELD_PRIMARY_KEY,					"primaryKey");
 DECLARE_CONST_STRING(FIELD_PRIMARY_VOLUME,				"primaryVolume")
+DECLARE_CONST_STRING(FIELD_STATUS,						"status")
 DECLARE_CONST_STRING(FIELD_STORAGE_PATH,				"storagePath")
 DECLARE_CONST_STRING(FIELD_X,							"x")
 DECLARE_CONST_STRING(FIELD_Y,							"y")
 DECLARE_CONST_STRING(FIELD_Z,							"z")
+
+DECLARE_CONST_STRING(STATUS_RUNNING,					"running")
 
 DECLARE_CONST_STRING(STR_AEON_FOLDER,					"AeonDB")
 DECLARE_CONST_STRING(STR_TABLE_DESC_FILENAME,			"Tables.ars")
@@ -85,6 +88,7 @@ DECLARE_CONST_STRING(ERR_UNABLE_TO_FLUSH,				"Unable to save all tables to disk.
 DECLARE_CONST_STRING(ERR_INVALID_GET_ROWS_OPTION,		"Invalid %s option: %s.")
 DECLARE_CONST_STRING(ERR_INVALID_FILE_PATH,				"Invalid filePath: %s.")
 DECLARE_CONST_STRING(ERR_FILE_NOT_FOUND,				"File not found: %s.")
+DECLARE_CONST_STRING(ERR_NOT_STARTED,					"AeonDb has not yet started.")
 
 //	Message Table --------------------------------------------------------------
 
@@ -108,6 +112,7 @@ DECLARE_CONST_STRING(MSG_AEON_INSERT,					"Aeon.insert")
 DECLARE_CONST_STRING(MSG_AEON_INSERT_NEW,				"Aeon.insertNew")
 DECLARE_CONST_STRING(MSG_AEON_MUTATE,					"Aeon.mutate")
 DECLARE_CONST_STRING(MSG_AEON_RECOVER_TABLE_TEST,		"Aeon.recoverTableTest")
+DECLARE_CONST_STRING(MSG_AEON_STATUS,					"Aeon.status")
 DECLARE_CONST_STRING(MSG_AEON_WAIT_FOR_VIEW,			"Aeon.waitForView")
 DECLARE_CONST_STRING(MSG_AEON_WAIT_FOR_VOLUME,			"Aeon.waitForVolume")
 DECLARE_CONST_STRING(MSG_ARC_HOUSEKEEPING,				"Arc.housekeeping")
@@ -177,11 +182,14 @@ CAeonEngine::SMessageHandler CAeonEngine::m_MsgHandlerList[] =
 		//	Aeon.recoverTableTest {tableName}
 		{	MSG_AEON_RECOVER_TABLE_TEST,		&CAeonEngine::MsgRecoverTableTest },
 
+		//	Aeon.recoverTableTest {tableName}
+		{	MSG_AEON_RECOVER_TABLE_TEST,		&CAeonEngine::MsgRecoverTableTest },
+
 		//	Aeon.waitForView {tableAndView}
 		{	MSG_AEON_WAIT_FOR_VIEW,				&CAeonEngine::MsgWaitForView },
 
-		//	Aeon.waitForVolume {volume}
-		{	MSG_AEON_WAIT_FOR_VOLUME,			&CAeonEngine::MsgWaitForVolume },
+		//	Aeon.status
+		{	MSG_AEON_STATUS,					&CAeonEngine::MsgStatus },
 
 		//	Arc.housekeeping
 		{	MSG_ARC_HOUSEKEEPING,				&CAeonEngine::MsgHousekeeping },
@@ -1464,6 +1472,30 @@ void CAeonEngine::MsgOnMnemosynthModified (const SArchonMessage &Msg, const CHex
 			//	LATER: See if there are any existing tables in the new volume.
 			}
 		}
+	}
+
+void CAeonEngine::MsgStatus (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)
+
+//	MsgStatus
+//
+//	Aeon.status
+//
+//	Returns the status as a struct. If Aeon is not in a valid state (i.e., able
+//	to take requests) then it returns an error.
+
+	{
+	CSmartLock Lock(m_cs);
+
+	if (!m_bMachineStarted)
+		{
+		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, ERR_NOT_STARTED, Msg);
+		return;
+		}
+
+	CDatum dStatus(CDatum::typeStruct);
+	dStatus.SetElement(FIELD_STATUS, STATUS_RUNNING);
+
+	SendMessageReply(MSG_REPLY_DATA, dStatus, Msg);
 	}
 
 void CAeonEngine::MsgTranspaceDownload (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)
