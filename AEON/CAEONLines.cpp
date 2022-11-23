@@ -251,7 +251,7 @@ bool CAEONLines::OnDeserialize (CDatum::EFormat iFormat, const CString &sTypenam
 	m_Lines.DeleteAll();
 	m_Lines.InsertEmpty(iCount);
 	for (int i = 0; i < iCount; i++)
-		m_Lines[i].Deserialize(Stream);
+		m_Lines[i] = CString::Deserialize(Stream);
 
 	return true;
 	}
