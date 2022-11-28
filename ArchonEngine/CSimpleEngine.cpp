@@ -34,6 +34,7 @@ DECLARE_CONST_STRING(ERR_INTERNAL_SERVER_ERROR,			"Internal server error.");
 DECLARE_CONST_STRING(ERR_MSG_TIMING,					"%s: %s took %d ms to process.");
 DECLARE_CONST_STRING(ERR_NOT_ADMIN,						"Service does not have Arc.admin right.");
 DECLARE_CONST_STRING(ERR_NOT_IN_SANDBOX,				"Service %s is not authorized to perform that operation.");
+DECLARE_CONST_STRING(ERR_INVALID_MSG,					"%s: Unhandled message: %s.")
 
 CSimpleEngine::CSimpleEngine (const CString &sName, int iInitialThreads) : 
 		m_sName(sName),
@@ -291,6 +292,19 @@ bool CSimpleEngine::ProcessMessageDefault (const SArchonMessage &Msg)
 		}
 	else
 		return false;
+	}
+
+bool CSimpleEngine::ProcessUnhandledMessage (const SArchonMessage& Msg)
+
+//	ProcessUnhandledMessage
+//
+//	This is an unknown message.
+
+	{
+	CString sError = strPattern(ERR_INVALID_MSG, GetName(), Msg.sMsg);
+	SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, sError, Msg);
+	GetProcessCtx()->Log(MSG_LOG_ERROR, sError);
+	return true;
 	}
 
 CDatum CSimpleEngine::MessageToHexeResult (const SArchonMessage &Msg)

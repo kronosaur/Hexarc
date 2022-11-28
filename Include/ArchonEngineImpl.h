@@ -133,6 +133,7 @@ class CSimpleEngine : public IArchonEngine, public IArchonMessagePort, protected
 		//	Helpers
 		static bool IsError (const SArchonMessage &Msg);
 		static CDatum MessageToHexeResult (const SArchonMessage &Msg);
+		bool ProcessUnhandledMessage (const SArchonMessage& Msg);
 		static EPromiseResult ReturnEndSession (const CString &sMsg, CDatum dPayload, SArchonMessage &retReply) { retReply.sMsg = sMsg; retReply.dPayload = dPayload; return EPromiseResult::EndSession; }
 		static EPromiseResult ReturnError (const CString &sMsg, CDatum dError, SArchonMessage &retReply) { retReply.sMsg = sMsg; retReply.dPayload = dError; return EPromiseResult::Error; }
 		void SendMessageNotify (const CString &sAddress, const CString &sMsg, CDatum dPayload) { m_pProcess->SendMessageCommand(sAddress, sMsg, NULL_STR, 0, dPayload); }
@@ -341,6 +342,7 @@ template <class VALUE> class TSimpleEngine : public CSimpleEngine
 			void (VALUE::* MsgHandler)(const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 			};
 
+		void DebugSetSpy (bool bValue = true) { m_bSpy = bValue; }
 		int GetSessionCount (void) { return m_Sessions.GetCount(); }
 		void GetSessions (TArray<ISessionHandler *> *retSessions) { m_Sessions.GetSessions(retSessions); }
 
@@ -406,9 +408,15 @@ template <class VALUE> class TSimpleEngine : public CSimpleEngine
 				else if (IsFileMsg(Msg, &NewList))
 					OnProcessMessages(NewList);
 
-				else if (IsSandboxMsg(Msg, &NewMsg, &SecurityCtx)
-						&& ProcessMessageFromTable(NewMsg, &SecurityCtx))
-					;
+				else if (IsSandboxMsg(Msg, &NewMsg, &SecurityCtx))
+					{
+					if (ProcessMessageFromTable(NewMsg, &SecurityCtx))
+						;
+					else if (ProcessMessageDefault(NewMsg))
+						;
+					else
+						ProcessUnhandledMessage(NewMsg);
+					}
 
 				else if (ProcessMessageDefault(Msg))
 					;

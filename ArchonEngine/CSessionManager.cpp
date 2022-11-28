@@ -15,7 +15,6 @@ DECLARE_CONST_STRING(MSG_OK,							"OK")
 DECLARE_CONST_STRING(MSG_REPLY_DATA,					"Reply.data")
 
 DECLARE_CONST_STRING(ERR_CRASH_ON_REPLY,				"%s: CRASH processing reply: %s.")
-DECLARE_CONST_STRING(ERR_INVALID_MSG,					"%s: Unhandled message: %s.")
 DECLARE_CONST_STRING(ERR_INVALID_REPLY,					"%s: Unhandled reply: %s %s")
 
 CSessionManager::~CSessionManager (void)
@@ -152,9 +151,7 @@ void CSessionManager::ProcessMessage (CSimpleEngine *pEngine, const SArchonMessa
 
 		else
 			{
-			CString sError = strPattern(ERR_INVALID_MSG, pEngine->GetName(), Msg.sMsg);
-			pEngine->SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, sError, Msg);
-			pEngine->GetProcessCtx()->Log(MSG_LOG_ERROR, sError);
+			pEngine->ProcessUnhandledMessage(Msg);
 			}
 
 		return;
