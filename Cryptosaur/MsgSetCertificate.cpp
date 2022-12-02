@@ -160,7 +160,8 @@ bool CCryptosaurEngine::LoadPEMCertAndKey (CDatum dData, CDatum *retKey, CDatum 
 			//	Load the certificate so we know what it is.
 
 			CSSLCert *pCert = Certificates.Insert();
-			if (!pCert->InitFromPEM(CStringBuffer(sData), true, &sError))
+			CStringBuffer Buffer(sData);
+			if (!pCert->InitFromPEM(Buffer, true, &sError))
 				{
 				if (retsError) *retsError = strPattern(ERR_CANT_LOAD_CERTIFICATE, sError);
 				return false;
@@ -173,7 +174,8 @@ bool CCryptosaurEngine::LoadPEMCertAndKey (CDatum dData, CDatum *retKey, CDatum 
 			{
 			if (PrivateKey.IsEmpty())
 				{
-				if (!PrivateKey.InitFromPEM(CStringBuffer(sData), NULL_STR, true, &sError))
+				CStringBuffer Buffer(sData);
+				if (!PrivateKey.InitFromPEM(Buffer, NULL_STR, true, &sError))
 					{
 					if (retsError) *retsError = strPattern(ERR_CANT_LOAD_KEY, sError);
 					return false;

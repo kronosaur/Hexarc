@@ -189,7 +189,8 @@ bool CBootSession::OnProcessMessage (const SArchonMessage &Msg)
 			m_iState = State::creatingKeyTable;
 
 			CDatum dTableDesc;
-			CDatum::Deserialize(CDatum::EFormat::AEONScript, CStringBuffer(KEYS_TABLE_DESC), &dTableDesc);
+			CStringBuffer Buffer(KEYS_TABLE_DESC);
+			CDatum::Deserialize(CDatum::EFormat::AEONScript, Buffer, &dTableDesc);
 
 			CComplexArray *pPayload = new CComplexArray;
 			pPayload->Insert(dTableDesc);
@@ -216,7 +217,8 @@ bool CBootSession::OnProcessMessage (const SArchonMessage &Msg)
 			m_iState = State::creatingCertificatesTable;
 
 			CDatum dTableDesc;
-			CDatum::Deserialize(CDatum::EFormat::AEONScript, CStringBuffer(CERTIFICATES_TABLE_DESC), &dTableDesc);
+			CStringBuffer Buffer(CERTIFICATES_TABLE_DESC);
+			CDatum::Deserialize(CDatum::EFormat::AEONScript, Buffer, &dTableDesc);
 
 			CComplexArray *pPayload = new CComplexArray;
 			pPayload->Insert(dTableDesc);
@@ -243,7 +245,8 @@ bool CBootSession::OnProcessMessage (const SArchonMessage &Msg)
 			m_iState = State::creatingAccountsTable;
 
 			CDatum dTableDesc;
-			CDatum::Deserialize(CDatum::EFormat::AEONScript, CStringBuffer(ACCOUNTS_TABLE_DESC), &dTableDesc);
+			CStringBuffer Buffer(ACCOUNTS_TABLE_DESC);
+			CDatum::Deserialize(CDatum::EFormat::AEONScript, Buffer, &dTableDesc);
 
 			CDatum dPayload(CDatum::typeArray);
 			dPayload.Append(dTableDesc);
@@ -479,7 +482,8 @@ bool CBootSession::OnStartSession (const SArchonMessage &Msg, DWORD dwTicket)
 	//	Parse the table definition into a document
 
 	CHexeDocument TableDoc;
-	if (!TableDoc.InitFromStream(CStringBuffer(USERS_TABLE_DESC), Process, &sError))
+	CStringBuffer Buffer(USERS_TABLE_DESC);
+	if (!TableDoc.InitFromStream(Buffer, Process, &sError))
 		{
 		GetProcessCtx()->Log(MSG_LOG_ERROR, sError);
 		return false;

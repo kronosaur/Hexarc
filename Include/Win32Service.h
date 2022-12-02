@@ -56,7 +56,7 @@ class CWin32Service
 		//	Descendants may call these functions
 
 		inline bool InServiceDebugMode (void) const { return m_bServiceDebugMode; }
-		void ReportErrorEvent (LPSTR pMsg, DWORD dwError = 0);
+		void ReportErrorEvent (LPCSTR pMsg, DWORD dwError = 0);
 
 	private:
 		enum ECommandTypes

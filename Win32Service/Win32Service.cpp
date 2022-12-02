@@ -9,7 +9,7 @@ void PrintHelp (void);
 
 CWin32Service *g_pService = NULL;
 
-void main (int argc, char **argv)
+int main (int argc, char **argv)
 
 //	main
 //
@@ -22,7 +22,7 @@ void main (int argc, char **argv)
 	if (g_pService == NULL)
 		{
 		printf("Unable to create service.\n");
-		return;
+		return 1;
 		}
 
 	//	Go
@@ -33,6 +33,8 @@ void main (int argc, char **argv)
 
 	g_pService->DestroyWin32Service();
 	g_pService = NULL;
+
+	return 0;
 	}
 
 void PrintHelp (void)
@@ -336,7 +338,7 @@ void CWin32Service::Remove (void)
 	::CloseServiceHandle(hSCManager);
 	}
 
-void CWin32Service::ReportErrorEvent (LPSTR pMsg, DWORD dwError)
+void CWin32Service::ReportErrorEvent (LPCSTR pMsg, DWORD dwError)
 
 //	ReportErrorEvent
 //

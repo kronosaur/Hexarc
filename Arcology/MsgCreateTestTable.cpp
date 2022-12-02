@@ -190,7 +190,8 @@ bool CCreateTestTableSession::OnStartSession (const SArchonMessage &Msg, DWORD d
 	//	Payload
 
 	CDatum dTableDesc;
-	if (!CDatum::Deserialize(CDatum::EFormat::AEONScript, CStringBuffer(strPattern(TABLE_DEF, m_sTableSerialized)), &dTableDesc))
+	CStringBuffer Buffer(strPattern(TABLE_DEF, m_sTableSerialized));
+	if (!CDatum::Deserialize(CDatum::EFormat::AEONScript, Buffer, &dTableDesc))
 		{
 		ASSERT(false);
 		return false;

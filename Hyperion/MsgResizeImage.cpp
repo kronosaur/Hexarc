@@ -149,7 +149,8 @@ void CResizeImageSession::OnFileDownloaded (CDatum dFileDesc, CDatum dData)
 
 	CRGBA32Image FullSizeImage;
 	CString sError;
-	if (!CJPEG::Load(CBuffer((const CString &)dData), FullSizeImage, &sError))
+	CBuffer Buffer((const CString &)dData);
+	if (!CJPEG::Load(Buffer, FullSizeImage, &sError))
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_CANT_LOAD_JPEG, fileGetFilename(GetFilePath()), sError));
 		return;

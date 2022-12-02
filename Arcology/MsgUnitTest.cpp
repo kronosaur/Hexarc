@@ -48,10 +48,10 @@ class CUnitTestSession : public ISessionHandler
 			const CString &sMsg;
 			
 			int iPayloadLen;
-			char *pPayload;
+			const char *pPayload;
 
 			int iReplyLen;
-			char *pReply;
+			const char *pReply;
 
 			DWORD dwFlags;
 			};
@@ -978,7 +978,7 @@ void CUnitTestSession::SendMessageCommand (int iPos, DWORD dwTicket)
 	//	NOTE: We use CHexeDocument so that we can parse lambda expression into
 	//	code blocks.
 
-	CMemoryBuffer Buffer(m_TestMessageList[iTest].pPayload, m_TestMessageList[iTest].iPayloadLen);
+	CMemoryBuffer Buffer(const_cast<char*>(m_TestMessageList[iTest].pPayload), m_TestMessageList[iTest].iPayloadLen);
 	CDatum dPayload;
 	if (Buffer.GetLength() > 0 && !CHexeDocument::ParseData(Buffer, &dPayload))
 		{
