@@ -125,6 +125,7 @@ class CDatum
 			typeLibraryFunc =	22,
 			typeError =			23,
 			typeTextLines =		24,
+			typeAnnotated =		25,
 
 			typeCustom =		100,
 			};
@@ -167,6 +168,12 @@ class CDatum
 			runInvoke,
 			};
 
+		struct SAnnotation
+			{
+			DWORD fSpread:1 = false;
+			DWORD dwSpare:31 = 0;
+			};
+
 		CDatum () : m_dwData(0) { }
 		CDatum (int iValue);
 		CDatum (DWORD dwValue);
@@ -195,6 +202,7 @@ class CDatum
 
 		CDatum (const void *pValue) = delete;
 
+		static CDatum CreateAnnotated (CDatum dValue, const SAnnotation& Annotation);
 		static CDatum CreateArrayAsType (CDatum dType, CDatum dValue = CDatum());
 		static CDatum CreateAsType (CDatum dType, CDatum dValue = CDatum());
 		static bool CreateBinary (IByteStream &Stream, int iSize, CDatum *retDatum);
@@ -249,6 +257,7 @@ class CDatum
 		bool EnumElements (std::function<bool(CDatum)> fn);
 		bool Find (CDatum dValue, int *retiIndex = NULL) const;
 		bool FindElement (const CString &sKey, CDatum *retpValue);
+		const SAnnotation& GetAnnotation () const;
 		int GetArrayCount () const;
 		CDatum GetArrayElement (int iIndex) const;
 		Types GetBasicType () const;
@@ -354,6 +363,8 @@ class CDatum
 		template<class FUNC> CDatum MathArrayOp () const;
 
 		DWORD_PTR m_dwData;
+
+		static SAnnotation m_NullAnnotation;
 	};
 
 inline int KeyCompare (const CDatum &dKey1, const CDatum &dKey2) { return CDatum::Compare(dKey1, dKey2); }
@@ -406,6 +417,7 @@ class IComplexDatum
 		virtual bool DeserializeJSON (const CString &sTypename, const TArray<CDatum> &Data);
 		virtual bool Find (CDatum dValue, int *retiIndex = NULL) const { return false; }
 		virtual bool FindElement (const CString &sKey, CDatum *retpValue) { return false; }
+		virtual const CDatum::SAnnotation& GetAnnotation () const { return CDatum().GetAnnotation(); }
 		virtual CDatum::Types GetBasicType () const = 0;
 		virtual int GetBinarySize () const { return CastCString().GetLength(); }
 		virtual CDatum::ECallType GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) const { return CDatum::ECallType::None; }

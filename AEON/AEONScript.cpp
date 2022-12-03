@@ -84,6 +84,7 @@ DECLARE_CONST_STRING(STR_NIL,							"nil")
 DECLARE_CONST_STRING(STR_NULL,							"null")
 DECLARE_CONST_STRING(STR_TRUE,							"true")
 
+DECLARE_CONST_STRING(TYPENAME_ANNOTATED,				"annotated");
 DECLARE_CONST_STRING(TYPENAME_BINARY,					"binary")
 DECLARE_CONST_STRING(TYPENAME_BINARY_FILE,				"binaryFile")
 DECLARE_CONST_STRING(TYPENAME_DATATYPE,					"datatype")
@@ -628,6 +629,8 @@ CAEONScriptParser::ETokens CAEONScriptParser::ParseExternal (CDatum *retDatum)
 	IComplexDatum *pDatum;
 	if (strEquals(dTypename, TYPENAME_IP_INTEGER))
 		pDatum = new CComplexInteger;
+	else if (strEquals(dTypename, TYPENAME_ANNOTATED))
+		pDatum = new CAEONAnnotated;
 	else if (strEquals(dTypename, TYPENAME_BINARY))
 		pDatum = new CComplexBinary;
 	else if (strEquals(dTypename, TYPENAME_BINARY_FILE))

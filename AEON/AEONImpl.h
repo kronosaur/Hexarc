@@ -126,6 +126,49 @@ class CComplexInteger : public IComplexDatum
 		CIPInteger m_Value;
 	};
 
+class CAEONAnnotated : public IComplexDatum
+	{
+	public:
+
+		CAEONAnnotated () { }
+
+		static CDatum Create (CDatum dValue, const CDatum::SAnnotation& Annotations) { return CDatum(new CAEONAnnotated(dValue, Annotations)); }
+
+		//	IComplexDatum
+
+		virtual CString AsString (void) const override { return m_dValue.AsString(); }
+		virtual size_t CalcMemorySize () const override { return m_dValue.CalcMemorySize() + sizeof(m_Annotations); }
+		virtual const CString &CastCString (void) const override { return (const CString&)m_dValue; }
+		virtual const CDatum::SAnnotation& GetAnnotation () const override { return m_Annotations; }
+		virtual CDatum::Types GetBasicType () const override { return CDatum::typeAnnotated; }
+		virtual int GetCount () const override { return 1; }
+		virtual CDatum GetElement (IInvokeCtx *pCtx, int iIndex) const override { return GetElement(iIndex); }
+		virtual CDatum GetElement (int iIndex) const override { return m_dValue; }
+		virtual CDatum GetElement (IInvokeCtx *pCtx, const CString &sKey) const override { return GetElement(sKey); }
+		virtual CDatum GetElement (const CString &sKey) const override { return CDatum(); }
+		virtual CString GetKey (int iIndex) const override { return NULL_STR; }
+		virtual const CString &GetTypename () const override;
+		virtual bool IsArray () const override { return false; }
+		virtual bool IsError (void) const override { return false; }
+
+	protected:
+
+		virtual bool OnDeserialize (CDatum::EFormat iFormat, CDatum dStruct) override;
+		virtual DWORD OnGetSerializeFlags (void) const override { return FLAG_SERIALIZE_AS_STRUCT; }
+		virtual void OnMarked (void) override { m_dValue.Mark(); }
+		virtual void OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const override;
+
+	private:
+
+		CAEONAnnotated (CDatum dValue, const CDatum::SAnnotation& Annotations) :
+				m_dValue(dValue),
+				m_Annotations(Annotations)
+			{ }
+
+		CDatum m_dValue;
+		CDatum::SAnnotation m_Annotations;
+	};
+
 class CAEONError : public IComplexDatum
 	{
 	public:

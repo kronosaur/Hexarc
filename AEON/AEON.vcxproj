@@ -186,6 +186,7 @@
   <ItemGroup>
     <ClCompile Include="AEONMath.cpp" />
     <ClCompile Include="AEONScript.cpp" />
+    <ClCompile Include="CAEONAnnotated.cpp" />
     <ClCompile Include="CAEONError.cpp" />
     <ClCompile Include="CAEONFactoryList.cpp" />
     <ClCompile Include="CAEONLibraryFunction.cpp" />

@@ -25,6 +25,8 @@ DECLARE_CONST_STRING(ERR_INVALID_TABLE_DESC,			"Invalid table descriptor.");
 static CAEONFactoryList *g_pFactories = NULL;
 static int g_iUnalignedLiteralCount = 0;
 
+CDatum::SAnnotation CDatum::m_NullAnnotation;
+
 CDatum::CDatum (Types iType)
 
 //	CDatum constructor
@@ -1153,6 +1155,16 @@ bool CDatum::Contains (CDatum dValue, TArray<IComplexDatum *> &retChecked) const
 		}
 	}
 
+CDatum CDatum::CreateAnnotated (CDatum dValue, const SAnnotation& Annotation)
+
+//	CreateAnnotated
+//
+//	Create an annotated value.
+
+	{
+	return CAEONAnnotated::Create(dValue, Annotation);
+	}
+
 CDatum CDatum::CreateArrayAsType (CDatum dType, CDatum dValue)
 
 //	CreateArrayAsType
@@ -2005,6 +2017,23 @@ bool CDatum::FindExternalType (const CString &sTypename, IComplexFactory **retpF
 
 	{
 	return (g_pFactories == NULL ? false : g_pFactories->FindFactory(sTypename, retpFactory));
+	}
+
+const CDatum::SAnnotation& CDatum::GetAnnotation () const
+
+//	GetAnnotation
+//
+//	Get annotation
+
+	{
+	switch (m_dwData & AEON_TYPE_MASK)
+		{
+		case AEON_TYPE_COMPLEX:
+			return raw_GetComplex()->GetAnnotation();
+
+		default:
+			return m_NullAnnotation;
+		}
 	}
 
 int CDatum::GetArrayCount (void) const
