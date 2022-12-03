@@ -54,7 +54,6 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 	CDatum dValue;
 	int iCount;
 	bool bCondition;
-	CComplexArray *pArray;
 	CComplexStruct *pStruct;
 
 	//	Set abort time
@@ -369,12 +368,8 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 					m_Stack.Push(CDatum(CDatum::typeArray));
 				else
 					{
-					pArray = new CComplexArray;
-					pArray->InsertEmpty(iCount);
-					for (i = 0; i < iCount; i++)
-						pArray->SetElement(iCount - 1 - i, m_Stack.Pop());
-
-					m_Stack.Push(CDatum(pArray));
+					CDatum dArray = ExecuteMakeArrayFromStack(iCount);
+					m_Stack.Push(dArray);
 					}
 
 				m_pIP++;
@@ -743,16 +738,10 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				//	The arguments are pushed on the stack in left-to-right order,
 				//	which means the top of the stack if the right-most.
 
-#if 1
 				for (i = iArgCount - 1; i >= 0; i--)
 					m_pLocalEnv->AppendArgumentValue(m_Stack.Get(i));
 
 				m_Stack.Pop(iArgCount);
-
-#else
-				for (i = 0; i < iArgCount; i++)
-					m_pLocalEnv->SetArgumentValue(0, (iArgCount - 1) - i, m_Stack.Pop());
-#endif
 
 				m_pIP++;
 				break;
@@ -807,16 +796,10 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				//	The arguments are pushed on the stack in left-to-right order,
 				//	which means the top of the stack if the right-most.
 
-#if 1
 				for (i = iArgCount - 1; i >= 0; i--)
 					m_pLocalEnv->AppendArgumentValue(m_Stack.Get(i));
 
 				m_Stack.Pop(iArgCount);
-
-#else
-				for (i = 0; i < iArgCount; i++)
-					m_pLocalEnv->SetArgumentValue(0, (iArgCount - 1) - i, m_Stack.Pop());
-#endif
 
 				//	Pop the this pointer, if necessary.
 
@@ -2717,6 +2700,50 @@ bool CHexeProcess::ExecuteIsIdentical (CDatum dValue1, CDatum dValue2)
 				return false;
 			}
 		}
+	}
+
+CDatum CHexeProcess::ExecuteMakeArrayFromStack (int iElements)
+
+//	ExecuteMakeArrayFromStack
+//
+//	Returns an array from the given elements on the stack.
+
+	{
+	CDatum dResult(CDatum::typeArray);
+	dResult.GrowToFit(iElements);
+
+	//	The elements got pushed on the stack in left-to-right order, so the
+	//	last element is at the top of the stack.
+
+	for (int i = iElements - 1; i >= 0; i--)
+		{
+		CDatum dElement = m_Stack.Get(i);
+
+		//	If this is a spread function, then add its constituent elements.
+
+		if (dElement.GetAnnotation().fSpread)
+			{
+			CDatum dSubArray = dElement.GetElement(0);
+
+			//	NOTE: GrowToFit handles negative numbers correctly.
+
+			dResult.GrowToFit(dSubArray.GetCount() - 1);
+			for (int j = 0; j < dSubArray.GetCount(); j++)
+				dResult.Append(dSubArray.GetElement(j));
+			}
+		else
+			{
+			dResult.Append(dElement);
+			}
+		}
+
+	//	Pop the stack
+
+	m_Stack.Pop(iElements);
+
+	//	Done
+
+	return dResult;
 	}
 
 bool CHexeProcess::ExecuteMakeFlagsFromArray (CDatum dOptions, CDatum dMap, CDatum *retdResult)
