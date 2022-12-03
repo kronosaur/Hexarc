@@ -696,6 +696,17 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				m_pIP++;
 				break;
 
+			case opMakeSpread:
+				{
+				CDatum::SAnnotation Annotation;
+				Annotation.fSpread = true;
+
+				CDatum dValue = CDatum::CreateAnnotated(m_Stack.Pop(), Annotation);
+				m_Stack.Push(dValue);
+				m_pIP++;
+				break;
+				}
+
 			case opMakeApplyEnv:
 				{
 				m_LocalEnvStack.Save(m_dCurGlobalEnv, m_pCurGlobalEnv, m_dLocalEnv, m_pLocalEnv);
@@ -728,8 +739,20 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				m_dLocalEnv = CDatum(m_pLocalEnv);
 
 				int iArgCount = GetOperand(*m_pIP);
+
+				//	The arguments are pushed on the stack in left-to-right order,
+				//	which means the top of the stack if the right-most.
+
+#if 1
+				for (i = iArgCount - 1; i >= 0; i--)
+					m_pLocalEnv->AppendArgumentValue(m_Stack.Get(i));
+
+				m_Stack.Pop(iArgCount);
+
+#else
 				for (i = 0; i < iArgCount; i++)
 					m_pLocalEnv->SetArgumentValue(0, (iArgCount - 1) - i, m_Stack.Pop());
+#endif
 
 				m_pIP++;
 				break;
@@ -781,10 +804,19 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				if (!dThis.IsIdenticalToNil())
 					iArgCount++;
 
-				//	Pop arguments into local environment.
+				//	The arguments are pushed on the stack in left-to-right order,
+				//	which means the top of the stack if the right-most.
 
+#if 1
+				for (i = iArgCount - 1; i >= 0; i--)
+					m_pLocalEnv->AppendArgumentValue(m_Stack.Get(i));
+
+				m_Stack.Pop(iArgCount);
+
+#else
 				for (i = 0; i < iArgCount; i++)
 					m_pLocalEnv->SetArgumentValue(0, (iArgCount - 1) - i, m_Stack.Pop());
+#endif
 
 				//	Pop the this pointer, if necessary.
 

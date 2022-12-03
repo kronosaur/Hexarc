@@ -129,6 +129,7 @@ enum EOpCodes
 	opSetForEachItem =		0x67000000,
 	opExitEnvAndJumpIfNil =	0x68000000,
 	opInc =					0x69000000,
+	opMakeSpread =			0x6A000000,
 
 	opHalt =				0xff000000,
 

@@ -46,6 +46,7 @@ DECLARE_CONST_STRING(OP_MAKE_FUNC,						"makeFunc")
 DECLARE_CONST_STRING(OP_MAKE_FUNC2,						"makeFunc2")
 DECLARE_CONST_STRING(OP_MAKE_LOCAL_ENV,					"makeLocalEnv")
 DECLARE_CONST_STRING(OP_MAKE_PRIMITIVE,					"makePrimitive")
+DECLARE_CONST_STRING(OP_MAKE_SPREAD,					"makeSpread")
 DECLARE_CONST_STRING(OP_MAKE_STRUCT,					"makeStruct")
 DECLARE_CONST_STRING(OP_MAP_RESULT,						"mapResult")
 DECLARE_CONST_STRING(OP_MULTIPLY,						"multiply")
@@ -121,6 +122,7 @@ static SOpCodeInfo OPCODE_INFO[] =
 	SOpCodeInfo(opExitEnv,			OP_EXIT_ENV,			operandNone ),
 	SOpCodeInfo(opReturn,			OP_RETURN,				operandNone ),
 	SOpCodeInfo(opMakePrimitive,	OP_MAKE_PRIMITIVE,		operandIntShort ),
+	SOpCodeInfo(opMakeSpread,		OP_MAKE_SPREAD,			operandNone ),
 
 	//	Local environment
 	SOpCodeInfo(opIncLocalL0,		OP_INC_LOCAL_L0,		operandIntShort ),

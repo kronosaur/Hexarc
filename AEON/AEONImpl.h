@@ -148,7 +148,7 @@ class CAEONAnnotated : public IComplexDatum
 		virtual CDatum GetElement (const CString &sKey) const override { return CDatum(); }
 		virtual CString GetKey (int iIndex) const override { return NULL_STR; }
 		virtual const CString &GetTypename () const override;
-		virtual bool IsArray () const override { return false; }
+		virtual bool IsArray () const override { return true; }
 		virtual bool IsError (void) const override { return false; }
 
 	protected:

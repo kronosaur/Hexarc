@@ -303,6 +303,34 @@ void CHexeLocalEnvironment::SetArgumentKey (int iLevel, int iIndex, const CStrin
 		}
 	}
 
+void CHexeLocalEnvironment::AppendArgumentValue (CDatum dValue)
+
+//	AppendArgumentValue
+//
+//	Appends an argument value from left to right.
+
+	{
+	//	Handle the spread operator.
+
+	if (dValue.GetAnnotation().fSpread)
+		{
+		CDatum dArray = dValue.GetElement(0);
+		GrowArray(m_iNextArg + dArray.GetCount());
+		for (int i = 0; i < dArray.GetCount(); i++)
+			m_pArray[m_iNextArg + i].dValue = dArray.GetElement(i);
+
+		m_iNextArg += dArray.GetCount();
+		}
+
+	//	Normal argument.
+
+	else
+		{
+		GrowArray(m_iNextArg + 1);
+		m_pArray[m_iNextArg++].dValue = dValue;
+		}
+	}
+
 void CHexeLocalEnvironment::SetArgumentValue (int iLevel, int iIndex, CDatum dValue)
 
 //	SetArgumentValue

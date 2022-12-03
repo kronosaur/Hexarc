@@ -245,6 +245,7 @@ class CHexeLocalEnvironment : public TExternalDatum<CHexeLocalEnvironment>
 
 		static const CString &StaticGetTypename (void);
 
+		void AppendArgumentValue (CDatum dValue);
 		bool FindArgument (const CString &sArg, int *retiLevel, int *retiIndex);
 		CDatum GetArgument (int iIndex) const { return m_pArray[iIndex].dValue; }
 		CDatum GetArgument (int iLevel, int iIndex);
