@@ -40,7 +40,7 @@ DECLARE_CONST_STRING(TYPENAME_IP_INTEGER,				"ipInteger");
 DECLARE_CONST_STRING(TYPENAME_TABLE_REF,				"tableRef");
 
 DECLARE_CONST_STRING(STR_INFINITY,						"\"Infinity\"");
-DECLARE_CONST_STRING(STR_NAN,							"\"NaN\"");
+DECLARE_CONST_STRING(STR_NAN,							"[\"AEON2011:NaN\"]");
 
 const int MAX_IN_MEMORY_SIZE =							4 * 1024 * 1024;
 
@@ -83,7 +83,7 @@ void CDatum::SerializeJSON (IByteStream &Stream) const
 					switch (m_dwData)
 						{
 						case CONST_NAN:
-							Stream.Write("nan", 3);
+							Stream.Write(STR_NAN);
 							break;
 							
 						case CONST_TRUE:
