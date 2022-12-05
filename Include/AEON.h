@@ -269,10 +269,13 @@ class CDatum
 		CDatum GetElement (int iIndex) const;
 		CDatum GetElement (IInvokeCtx *pCtx, const CString &sKey) const;
 		CDatum GetElement (const CString &sKey) const;
+		CDatum GetElementAt (int iIndex) const;
 		CDatum GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) const;
+		int GetElementAtCount () const;
 		inline CDatum GetElementOrDefault (const CString &sKey, CDatum dDefault) const;
 		CString GetKey (int iIndex) const;
 		CDatum GetMethod (const CString &sMethod) const;
+		void* GetMethodThis ();
 		const CString &GetTypename () const;
 		void GrowToFit (int iCount);
 		bool IsArray () const;

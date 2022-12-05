@@ -147,6 +147,12 @@
     <ClCompile Include="CAEONAnnotated.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CAEONStringImpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CAEONNilImpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Include\AEON.h">

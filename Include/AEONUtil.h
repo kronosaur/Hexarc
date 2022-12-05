@@ -221,11 +221,42 @@ class TDatumMethodHandler
 			return Method.dFunc;
 			}
 
+		CDatum GetStaticMethod (const CString &sMethod)
+			{
+			auto* pEntry = m_Table.GetAt(sMethod);
+			if (!pEntry)
+				return CDatum();
+
+			auto& Method = m_Methods[*pEntry];
+			if (Method.dFunc.IsNil())
+				{
+				SAEONLibraryFunctionCreate Create;
+				Create.sName = Method.sName;
+				Create.fnInvoke = InvokeStaticThunk;
+				Create.dwData = *pEntry;
+				Create.dwExecutionRights = Method.dwExecutionRights;
+
+				//	LATER: This should be a fully defined type.
+				Create.dType = CAEONTypes::Get(IDatatype::FUNCTION);
+
+				Method.dFunc = CDatum::CreateLibraryFunction(Create);
+
+				if (!m_bMarkProcRegistered)
+					{
+					CDatum::RegisterMarkProc(MarkProc);
+					m_bMarkProcRegistered = true;
+					}
+				}
+
+			return Method.dFunc;
+			}
+
 		bool InvokeMethod (CDatum dObj, const CString &sMethod, IInvokeCtx &Ctx, CDatum dLocalEnv, CDatum dContinueCtx, CDatum &retdResult)
 			{
-			IComplexDatum *pObj = dObj.GetComplex();
+			void* pObj = dObj.GetMethodThis();
 			if (!pObj)
 				{
+				//	LATER: Invoke NULL methods.
 				retdResult = strPattern("Invalid object: %s.", dObj.AsString());
 				return false;
 				}
@@ -238,6 +269,19 @@ class TDatumMethodHandler
 				}
 
 			return m_Methods[*pEntry].fnInvoke(*(OBJ *)pObj, Ctx, sMethod, dLocalEnv, dContinueCtx, retdResult);
+			}
+
+		bool InvokeStaticMethod (const CString &sMethod, IInvokeCtx &Ctx, CDatum dLocalEnv, CDatum dContinueCtx, CDatum &retdResult)
+			{
+			auto *pEntry = m_Table.GetAt(sMethod);
+			if (!pEntry)
+				{
+				retdResult = strPattern("Undefined method: %s.", sMethod);
+				return false;
+				}
+
+			OBJ Dummy;
+			return m_Methods[*pEntry].fnInvoke(Dummy, Ctx, sMethod, dLocalEnv, dContinueCtx, retdResult);
 			}
 
 	private:
@@ -256,9 +300,10 @@ class TDatumMethodHandler
 			//	First argument must be the object.
 
 			CDatum dObj = dLocalEnv.GetElement(0);
-			IComplexDatum *pObj = dObj.GetComplex();
+			void* pObj = dObj.GetMethodThis();
 			if (!pObj)
 				{
+				//	LATER: Invoke NULL methods.
 				retdResult = strPattern("Invalid object: %s.", dObj.AsString());
 				return false;
 				}
@@ -270,6 +315,18 @@ class TDatumMethodHandler
 				}
 
 			return m_Methods[dwData].fnInvoke(*(OBJ *)pObj, Ctx, m_Methods[dwData].sName, dLocalEnv, dContinueCtx, retdResult);
+			}
+
+		static bool InvokeStaticThunk (IInvokeCtx &Ctx, DWORD dwData, CDatum dLocalEnv, CDatum dContinueCtx, CDatum &retdResult)
+			{
+			if (dwData >= (DWORD)m_Methods.GetCount())
+				{
+				retdResult = strPattern("Invalid library function index: %x.", dwData);
+				return false;
+				}
+
+			OBJ Dummy;
+			return m_Methods[dwData].fnInvoke(Dummy, Ctx, m_Methods[dwData].sName, dLocalEnv, dContinueCtx, retdResult);
 			}
 
 		static void MarkProc ()

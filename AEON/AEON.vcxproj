@@ -191,9 +191,11 @@
     <ClCompile Include="CAEONFactoryList.cpp" />
     <ClCompile Include="CAEONLibraryFunction.cpp" />
     <ClCompile Include="CAEONLines.cpp" />
+    <ClCompile Include="CAEONNilImpl.cpp" />
     <ClCompile Include="CAEONPolygon2D.cpp" />
     <ClCompile Include="CAEONQuery.cpp" />
     <ClCompile Include="CAEONStore.cpp" />
+    <ClCompile Include="CAEONStringImpl.cpp" />
     <ClCompile Include="CAEONTable.cpp" />
     <ClCompile Include="CAEONTableIndex.cpp" />
     <ClCompile Include="CAEONTableRef.cpp" />

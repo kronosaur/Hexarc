@@ -259,6 +259,20 @@ class CAEONLibraryFunction : public IComplexDatum
 		DWORD m_dwExecutionRights = 0;
 	};
 
+class CAEONNilImpl
+	{
+	public:
+
+		static CDatum GetElement (const CString &sKey) { return m_Properties.GetProperty(0, sKey); }
+		static CDatum GetMethod (const CString &sMethod) { return m_Methods.GetStaticMethod(sMethod); }
+		bool InvokeMethodImpl(const CString &sMethod, IInvokeCtx &Ctx, CDatum dLocalEnv, CDatum &retdResult)
+			{ return m_Methods.InvokeStaticMethod(sMethod, Ctx, dLocalEnv, CDatum(), retdResult); }
+
+	private:
+		static TDatumPropertyHandler<int> m_Properties;
+		static TDatumMethodHandler<int> m_Methods;
+	};
+
 class CAEONObject : public CComplexStruct
 	{
 	public:
@@ -277,6 +291,23 @@ class CAEONObject : public CComplexStruct
 
 	private:
 		CDatum m_dType;
+	};
+
+class CAEONStringImpl
+	{
+	public:
+
+		static void CalcSliceParams (CDatum dStart, CDatum dEnd, int iLength, int& retStart, int& retLen);
+
+		static CDatum GetElement (const CString& sValue, const CString &sKey) { return m_Properties.GetProperty(sValue, sKey); }
+		static CDatum GetElementAt (const CString& sValue, CAEONTypeSystem &TypeSystem, CDatum dIndex);
+		static CDatum GetMethod (const CString &sMethod) { return m_Methods.GetMethod(sMethod); }
+		bool InvokeMethodImpl(const CString& sValue, const CString &sMethod, IInvokeCtx &Ctx, CDatum dLocalEnv, CDatum &retdResult)
+			{ return m_Methods.InvokeMethod(sValue, sMethod, Ctx, dLocalEnv, CDatum(), retdResult); }
+
+	private:
+		static TDatumPropertyHandler<CString> m_Properties;
+		static TDatumMethodHandler<CString> m_Methods;
 	};
 
 class CAEONTimeSpan : public IComplexDatum

@@ -2516,11 +2516,57 @@ CDatum CDatum::GetElement (const CString &sKey) const
 	{
 	switch (m_dwData & AEON_TYPE_MASK)
 		{
+		case AEON_TYPE_STRING:
+			if (m_dwData == 0)
+				return CDatum();
+			else
+				return CAEONStringImpl::GetElement(raw_GetString(), sKey);
+
 		case AEON_TYPE_COMPLEX:
 			return raw_GetComplex()->GetElement(sKey);
 
 		default:
 			return CDatum();
+		}
+	}
+
+CDatum CDatum::GetElementAt (int iIndex) const
+
+//	GetElementAt
+//
+//	Gets the appropriate element
+
+	{
+	switch (m_dwData & AEON_TYPE_MASK)
+		{
+		case AEON_TYPE_STRING:
+			if (m_dwData == 0)
+				return CDatum();
+			else
+				{
+				auto& sValue = raw_GetString();
+				if (iIndex >= 0 && iIndex < sValue.GetLength())
+					return CString(sValue.GetParsePointer() + iIndex, 1);
+				else
+					return CDatum();
+				}
+
+		case AEON_TYPE_COMPLEX:
+			{
+			if (iIndex == 0)
+				{
+				IComplexDatum *pComplex = raw_GetComplex();
+				if (pComplex->IsArray())
+					return raw_GetComplex()->GetElement(0);
+				else
+					return *this;
+				}
+			else
+				return raw_GetComplex()->GetElement(iIndex);
+			}
+
+		default:
+			return (iIndex == 0 ? *this : CDatum());
 		}
 	}
 
@@ -2533,11 +2579,45 @@ CDatum CDatum::GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) const
 	{
 	switch (m_dwData & AEON_TYPE_MASK)
 		{
+		case AEON_TYPE_STRING:
+			if (m_dwData == 0)
+				return CDatum();
+			else
+				return CAEONStringImpl::GetElementAt(raw_GetString(), TypeSystem, dIndex);
+
 		case AEON_TYPE_COMPLEX:
 			return raw_GetComplex()->GetElementAt(TypeSystem, dIndex);
 
 		default:
 			return CDatum();
+		}
+	}
+
+int CDatum::GetElementAtCount () const
+
+//	GetElementAtCount
+//
+//	Returns the number of elements as determined by GetElementAt. This is 
+//	slightly different from GetCount and GetArrayCount.
+
+	{
+	switch (m_dwData & AEON_TYPE_MASK)
+		{
+		case AEON_TYPE_STRING:
+			if (m_dwData == 0)
+				return 0;
+			else
+				return raw_GetString().GetLength();
+
+		case AEON_TYPE_NUMBER:
+			return 1;
+
+		case AEON_TYPE_COMPLEX:
+			return raw_GetComplex()->GetCount();
+
+		default:
+			ASSERT(false);
+			return 0;
 		}
 	}
 
@@ -2567,11 +2647,42 @@ CDatum CDatum::GetMethod (const CString &sMethod) const
 	{
 	switch (m_dwData & AEON_TYPE_MASK)
 		{
+		case AEON_TYPE_STRING:
+			if (m_dwData == 0)
+				return CAEONNilImpl::GetMethod(sMethod);
+			else
+				return CAEONStringImpl::GetMethod(sMethod);
+
 		case AEON_TYPE_COMPLEX:
 			return raw_GetComplex()->GetMethod(sMethod);
 
 		default:
 			return CDatum();
+		}
+	}
+
+void* CDatum::GetMethodThis ()
+
+//	GetMethodThis
+//
+//	Returns the this pointer for the object.
+
+	{
+	switch (m_dwData & AEON_TYPE_MASK)
+		{
+		case AEON_TYPE_STRING:
+			{
+			if (m_dwData == 0)
+				return NULL;
+			else
+				return (CString *)&m_dwData;
+			}
+
+		case AEON_TYPE_COMPLEX:
+			return raw_GetComplex();
+
+		default:
+			return NULL;
 		}
 	}
 
