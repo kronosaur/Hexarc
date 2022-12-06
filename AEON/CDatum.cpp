@@ -432,7 +432,7 @@ CDatum::operator DWORD () const
 					return HIDWORD(m_dwData);
 
 				case AEON_NUMBER_DOUBLE:
-					return (int)CAEONStore::GetDouble(GetNumberIndex());
+					return (DWORD)CAEONStore::GetDouble(GetNumberIndex());
 
 				default:
 					ASSERT(false);
