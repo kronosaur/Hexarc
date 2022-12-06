@@ -277,13 +277,10 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				//
 				//	We compare the array index against the length of the array.
 				//	If less, then we push true; otherwise nil.
-				//
-				//	NOTE: We use GetElementAtCount (instead of GetCount) because
-				//	we treat strings as arrays of characters.
 
 				int iIndex = (int)m_pLocalEnv->GetArgument(1);
 				CDatum dArray = m_pLocalEnv->GetArgument(2);
-				m_Stack.Push(CDatum(iIndex < dArray.GetElementAtCount()));
+				m_Stack.Push(CDatum(iIndex < dArray.GetCount()));
 				m_pIP++;
 				break;
 				}
@@ -292,7 +289,7 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				{
 				int iIndex = (int)m_pLocalEnv->GetArgument(1);
 				CDatum dArray = m_pLocalEnv->GetArgument(2);
-				m_pLocalEnv->SetArgumentValue(0, dArray.GetElementAt(iIndex));
+				m_pLocalEnv->SetArgumentValue(0, dArray.GetElement(iIndex));
 				m_pIP++;
 				break;
 				}
