@@ -7,6 +7,46 @@
 
 TDatumPropertyHandler<CString> CAEONStringImpl::m_Properties = {
 	{
+		"bytes",
+		"Returns an array of bytes.",
+		[](const CString& sValue, const CString &sProperty)
+			{
+			CDatum dResult(CDatum::typeArray);
+			dResult.GrowToFit(sValue.GetLength());
+
+			const char *pPos = sValue.GetParsePointer();
+			const char *pEndPos = pPos + sValue.GetLength();
+			while (pPos < pEndPos)
+				{
+				dResult.Append((int)(BYTE)*pPos);
+				pPos++;
+				}
+
+			return dResult;
+			},
+		NULL,
+		},
+	{
+		"chars",
+		"Returns an array of Unicode characters.",
+		[](const CString& sValue, const CString &sProperty)
+			{
+			CDatum dResult(CDatum::typeArray);
+			dResult.GrowToFit(sValue.GetLength());
+
+			const char *pPos = sValue.GetParsePointer();
+			const char *pEndPos = pPos + sValue.GetLength();
+			while (pPos < pEndPos)
+				{
+				UTF32 dwCodePoint = strParseUTF8Char(&pPos, pEndPos);
+				dResult.Append(CDatum(strEncodeUTF8Char(dwCodePoint)));
+				}
+
+			return dResult;
+			},
+		NULL,
+		},
+	{
 		"length",
 		"Returns the length of the string in bytes.",
 		[](const CString& sValue, const CString &sProperty)
