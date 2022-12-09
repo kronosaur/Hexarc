@@ -16,6 +16,9 @@
     <Filter Include="Source Files\Type System">
       <UniqueIdentifier>{b9693dcf-b4f2-41ea-8cad-d2fc4a9a6b00}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\TextLines">
+      <UniqueIdentifier>{5a97a410-ddb4-47f7-82c2-1f5865825480}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AEONScript.cpp">
@@ -138,12 +141,6 @@
     <ClCompile Include="CAEONError.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CAEONLines.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CAEONTextLinesDiff.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="CAEONAnnotated.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -152,6 +149,15 @@
     </ClCompile>
     <ClCompile Include="CAEONNilImpl.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CAEONLines.cpp">
+      <Filter>Source Files\TextLines</Filter>
+    </ClCompile>
+    <ClCompile Include="CAEONTextLinesDiff.cpp">
+      <Filter>Source Files\TextLines</Filter>
+    </ClCompile>
+    <ClCompile Include="CAEONTextLinesSelection.cpp">
+      <Filter>Source Files\TextLines</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

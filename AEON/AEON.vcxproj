@@ -200,6 +200,7 @@
     <ClCompile Include="CAEONTableIndex.cpp" />
     <ClCompile Include="CAEONTableRef.cpp" />
     <ClCompile Include="CAEONTextLinesDiff.cpp" />
+    <ClCompile Include="CAEONTextLinesSelection.cpp" />
     <ClCompile Include="CAEONTimeSpan.cpp" />
     <ClCompile Include="CAEONTypes.cpp" />
     <ClCompile Include="CAEONTypeSystem.cpp" />

@@ -803,6 +803,16 @@ template <class VALUE> class TQueue
 			return (((m_iTail + 1) % m_iSize) == m_iHead);
 			}
 
+		void PrequeueAndGrow (const VALUE &Value)
+			{
+			if (IsFull())
+				GrowToFit(Max(1, Min(m_iSize, 1000)));
+
+			int iFront = (m_iHead + m_iSize - 1) % m_iSize;
+			m_pArray[iFront] = Value;
+			m_iHead = iFront;
+			}
+
 		VALUE &Tail (void) const
 			{
 			ASSERT(m_iHead != m_iTail);

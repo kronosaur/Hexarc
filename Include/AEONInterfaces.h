@@ -108,6 +108,33 @@ class CAEONTextLinesDiff
 		TArray<SEntry> m_Diff;
 	};
 
+class CAEONTextLinesSelection
+	{
+	public:
+
+		struct SPos
+			{
+			int iLine = 0;					//	0 = unknown/invalid. 1-total lines.
+			int iChar = 0;					//	0 = start of line.
+			};
+
+		CAEONTextLinesSelection () { }
+		CAEONTextLinesSelection (int iLine, int iChar);
+		CAEONTextLinesSelection (int iStartLine, int iStartChar, int iEndLine, int iEndChar);
+		CAEONTextLinesSelection (CDatum dValue);
+
+		CDatum AsAPIDatum () const;
+		CDatum AsDatum () const;
+		bool IsCaret () const { return (m_End.iLine == 0 && !IsEmpty()); }
+		bool IsEmpty () const { return m_Start.iLine == 0; }
+		bool IsRange () const { return (m_Start.iLine != 0 && m_End.iLine != 0); }
+
+	private:
+
+		SPos m_Start;
+		SPos m_End;
+	};
+
 class IAEONTextLines
 	{
 	public:
