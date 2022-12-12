@@ -582,7 +582,37 @@ IAEONTable::EResult CAEONTable::DeleteRow (int iRow)
 	OnModify();
 
 	if (m_pKeyIndex)
-		m_pKeyIndex->Remove(CDatum::raw_AsComplex(this), iRow);
+		m_pKeyIndex->DeleteRow(CDatum::raw_AsComplex(this), iRow);
+
+	for (int i = 0; i < m_Cols.GetCount(); i++)
+		m_Cols[i].DeleteElement(iRow);
+
+	m_iRows--;
+
+	return EResult::OK;
+	}
+
+IAEONTable::EResult CAEONTable::DeleteRowByID (CDatum dKey)
+
+//	DeleteRowByID
+//
+//	Deletes the given row by ID.
+
+	{
+	if (m_iKeyType == CAEONTableIndex::EType::None)
+		return IAEONTable::EResult::NotImplemented;
+
+	OnModify();
+
+	GetIndex();
+	if (!m_pKeyIndex)
+		return IAEONTable::EResult::NotImplemented;
+
+	int iRow = m_pKeyIndex->Find(CDatum::raw_AsComplex(this), dKey);
+	if (iRow == -1)
+		return IAEONTable::EResult::NotFound;
+
+	m_pKeyIndex->DeleteRow(CDatum::raw_AsComplex(this), iRow);
 
 	for (int i = 0; i < m_Cols.GetCount(); i++)
 		m_Cols[i].DeleteElement(iRow);

@@ -91,6 +91,32 @@ CString CAEONTableIndex::AsIndexKeyFromValue (CDatum dValue)
 		}
 	}
 
+void CAEONTableIndex::DeleteRow (CDatum dTable, int iRow)
+
+//	DeleteRow
+//
+//	Deletes the given row from the index. Note that this is different from 
+//	Remove because we need to adjust the row indices of all rows after this row.
+
+	{
+	const IAEONTable* pTable = dTable.GetTableInterface();
+	if (!pTable)
+		return;
+
+	for (int i = 0; i < m_Index.GetCount(); i++)
+		{
+		if (m_Index[i] == iRow)
+			{
+			m_Index.Delete(i);
+			i--;
+			}
+		else if (m_Index[i] > iRow)
+			{
+			m_Index[i]--;
+			}
+		}
+	}
+
 int CAEONTableIndex::Find (CDatum dTable, CDatum dValue) const
 
 //	Find

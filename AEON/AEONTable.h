@@ -25,6 +25,7 @@ class CAEONTableIndex
 			};
 
 		void Add (CDatum dTable, int iRow);
+		void DeleteRow (CDatum dTable, int iRow);
 		int Find (CDatum dTable, CDatum dValue) const;
 		EFindResult FindOrAdd (CDatum dTable, CDatum dKey, int iNewRow, int *retiRow = NULL);
 		CDatum GetKeyFromRow (CDatum dTable, CDatum dRow) const;
@@ -59,6 +60,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual EResult AppendTable (CDatum dTable) override;
 		virtual EResult DeleteAllRows () override;
 		virtual EResult DeleteRow (int iRow) override;
+		virtual EResult DeleteRowByID (CDatum dKey) override;
 		virtual bool FindCol (const CString &sName, int *retiCol = NULL) const override;
 		virtual bool FindRowByID (CDatum dValue, int *retiRow = NULL) const override;
 		virtual CDatum GetCol (int iIndex) const override { return ((iIndex >= 0 && iIndex < m_Cols.GetCount()) ? m_Cols[iIndex] : CDatum()); }

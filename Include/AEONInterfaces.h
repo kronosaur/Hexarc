@@ -50,6 +50,7 @@ class IAEONTable
 		virtual EResult AppendTable (CDatum dTable) { return EResult::NotImplemented; }
 		virtual EResult DeleteAllRows () { return EResult::NotImplemented; }
 		virtual EResult DeleteRow (int iRow) { return EResult::NotImplemented; }
+		virtual EResult DeleteRowByID (CDatum dKey) { return EResult::NotImplemented; }
 		virtual bool FindCol (const CString &sName, int *retiCol = NULL) const { return false; }
 		bool FindRow (int iCol, CDatum dValue, int *retiRow = NULL) const;
 		virtual bool FindRowByID (CDatum dValue, int *retiRow = NULL) const { return false; }
