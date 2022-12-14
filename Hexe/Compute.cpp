@@ -3398,6 +3398,35 @@ bool CHexeProcess::ExecutePushObjectMethod (CDatum &retResult)
 			break;
 			}
 
+		case CDatum::typeStruct:
+			{
+			CDatum dMember = dObject.GetElement(sField);
+			if (dMember.GetCallInfo() != CDatum::ECallType::None)
+				{
+				m_Stack.Push(dMember);
+
+				//	Push a nil this pointer. In opMakeMethodEnv we 
+				//	detect this and deal with it appropriately.
+
+				m_Stack.Push(CDatum());
+				break;
+				}
+			else
+				{
+				CDatum dMember = dObject.GetMethod(sField);
+				if (dMember.IsNil() || dMember.GetCallInfo() == CDatum::ECallType::None)
+					{
+					retResult = CDatum::CreateError(strPattern(ERR_MEMBER_FUNCTION_NOT_FOUND, sField));
+					return false;
+					}
+
+				m_Stack.Push(dMember);
+				m_Stack.Push(dObject);
+				}
+
+			break;
+			}
+
 		case CDatum::typeTable:
 			{
 			//	Look for a global function of the form, Table.xyz.

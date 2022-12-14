@@ -660,9 +660,10 @@ class CComplexStruct : public IComplexDatum
 		virtual int GetCount () const override { return m_Map.GetCount(); }
 		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::STRUCT); }
 		virtual CDatum GetElement (int iIndex) const override { return ((iIndex >= 0 && iIndex < m_Map.GetCount()) ? m_Map[iIndex] : CDatum()); }
-		virtual CDatum GetElement (const CString &sKey) const override { CDatum *pValue = m_Map.GetAt(sKey); return (pValue ? *pValue : CDatum()); }
+		virtual CDatum GetElement (const CString &sKey) const override;
 		virtual CDatum GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) const override;
 		virtual CString GetKey (int iIndex) const override { return m_Map.GetKey(iIndex); }
+		virtual CDatum GetMethod (const CString &sMethod) const override;
 		virtual const CString &GetTypename () const override;
 		virtual void GrowToFit (int iCount) override { OnCopyOnWrite(); m_Map.GrowToFit(iCount); }
 		virtual bool IsArray () const override { return true; }
@@ -682,6 +683,9 @@ class CComplexStruct : public IComplexDatum
 
 		bool m_bCopyOnWrite = false;
 		TSortMap<CString, CDatum> m_Map;
+
+		static TDatumPropertyHandler<CComplexStruct> m_Properties;
+		static TDatumMethodHandler<CComplexStruct> m_Methods;
 	};
 
 template <class VALUE> class TExternalDatum : public IComplexDatum

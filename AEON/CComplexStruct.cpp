@@ -7,6 +7,57 @@
 
 DECLARE_CONST_STRING(TYPENAME_STRUCT,					"struct");
 
+TDatumPropertyHandler<CComplexStruct> CComplexStruct::m_Properties = {
+	{
+		"columns",
+		"Returns an array of keys.",
+		[](const CComplexStruct& Obj, const CString &sProperty)
+			{
+			CDatum dResult(CDatum::typeArray);
+			dResult.GrowToFit(Obj.m_Map.GetCount());
+			for (int i = 0; i < Obj.m_Map.GetCount(); i++)
+				dResult.Append(Obj.m_Map.GetKey(i));
+
+			return dResult;
+			},
+		NULL,
+		},
+	{
+		"length",
+		"Returns the number of entries in the struct.",
+		[](const CComplexStruct& Obj, const CString &sProperty)
+			{
+			return CDatum(Obj.GetCount());
+			},
+		NULL,
+		},
+	};
+
+TDatumMethodHandler<CComplexStruct> CComplexStruct::m_Methods = {
+	{
+		"deleteAt",
+		"*",
+		".deleteAt(x) -> true/false.",
+		0,
+		[](CComplexStruct& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+			{
+			const CString& sKey = dLocalEnv.GetElement(1);
+			int iPos;
+			if (Obj.m_Map.FindPos(sKey, &iPos))
+				{
+				Obj.m_Map.Delete(iPos);
+				retdResult = CDatum(true);
+				}
+			else
+				{
+				retdResult = CDatum();
+				}
+
+			return true;
+			},
+		},
+	};
+
 CComplexStruct::CComplexStruct (CDatum dSrc)
 
 //	CComplexStruct constructor
@@ -183,6 +234,20 @@ bool CComplexStruct::FindElement (const CString &sKey, CDatum *retpValue)
 	return true;
 	}
 
+CDatum CComplexStruct::GetElement (const CString &sKey) const
+
+//	GetElement
+//
+//	Returns the element.
+
+	{
+	CDatum *pValue = m_Map.GetAt(sKey);
+	if (pValue)
+		return *pValue;
+
+	return m_Properties.GetProperty(*this, sKey);
+	}
+
 CDatum CComplexStruct::GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) const
 
 //	GetElement
@@ -234,6 +299,20 @@ CDatum CComplexStruct::GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex)
 		else
 			return CDatum();
 		}
+	}
+
+CDatum CComplexStruct::GetMethod (const CString &sMethod) const
+
+//	GetMethod
+//
+//	Returns a method
+
+	{
+	CDatum *pValue = m_Map.GetAt(sMethod);
+	if (pValue && pValue->GetCallInfo() != CDatum::ECallType::None)
+		return *pValue;
+
+	return m_Methods.GetMethod(sMethod);
 	}
 
 void CComplexStruct::OnCopyOnWrite ()
