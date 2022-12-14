@@ -47,6 +47,15 @@ TDatumPropertyHandler<CString> CAEONStringImpl::m_Properties = {
 		NULL,
 		},
 	{
+		"datatype",
+		"Returns the type of the string.",
+		[](const CString& sValue, const CString &sProperty)
+			{
+			return CAEONTypeSystem::GetCoreType(IDatatype::STRING);
+			},
+		NULL,
+		},
+	{
 		"length",
 		"Returns the length of the string in bytes.",
 		[](const CString& sValue, const CString &sProperty)

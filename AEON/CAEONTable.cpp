@@ -39,6 +39,15 @@ TDatumPropertyHandler<CAEONTable> CAEONTable::m_Properties = {
 		NULL,
 		},
 	{
+		"datatype",
+		"Returns the type of the table.",
+		[](const CAEONTable& Obj, const CString &sProperty)
+			{
+			return Obj.GetDatatype();
+			},
+		NULL,
+		},
+	{
 		"length",
 		"Returns the number of rows in the table.",
 		[](const CAEONTable &Obj, const CString &sProperty)

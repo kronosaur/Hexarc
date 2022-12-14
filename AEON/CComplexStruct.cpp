@@ -23,6 +23,15 @@ TDatumPropertyHandler<CComplexStruct> CComplexStruct::m_Properties = {
 		NULL,
 		},
 	{
+		"datatype",
+		"Returns the type of the struct.",
+		[](const CComplexStruct &Obj, const CString &sProperty)
+			{
+			return Obj.GetDatatype();
+			},
+		NULL,
+		},
+	{
 		"length",
 		"Returns the number of entries in the struct.",
 		[](const CComplexStruct& Obj, const CString &sProperty)

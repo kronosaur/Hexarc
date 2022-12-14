@@ -14,7 +14,16 @@ DECLARE_CONST_STRING(TYPENAME_VECTOR_STRING,			"vector_String");
 
 TDatumPropertyHandler<CAEONVectorFloat64> CAEONVectorFloat64::m_Properties = {
 	{
-		"elementType",
+		"datatype",
+		"Returns the type of the array.",
+		[](const CAEONVectorFloat64 &Obj, const CString &sProperty)
+			{
+			return Obj.GetDatatype();
+			},
+		NULL,
+		},
+	{
+		"elementtype",
 		"Returns the element type of the array.",
 		[](const CAEONVectorFloat64 &Obj, const CString &sProperty)
 			{
@@ -104,7 +113,16 @@ CDatum CAEONVectorFloat64::MathSum () const
 
 TDatumPropertyHandler<CAEONVectorInt32> CAEONVectorInt32::m_Properties = {
 	{
-		"elementType",
+		"datatype",
+		"Returns the type of the array.",
+		[](const CAEONVectorInt32 &Obj, const CString &sProperty)
+			{
+			return Obj.GetDatatype();
+			},
+		NULL,
+		},
+	{
+		"elementtype",
 		"Returns the element type of the array.",
 		[](const CAEONVectorInt32 &Obj, const CString &sProperty)
 			{
@@ -248,7 +266,16 @@ CDatum CAEONVectorInt32::MathSum () const
 
 TDatumPropertyHandler<CAEONVectorIntIP> CAEONVectorIntIP::m_Properties = {
 	{
-		"elementType",
+		"datatype",
+		"Returns the type of the array.",
+		[](const CAEONVectorIntIP &Obj, const CString &sProperty)
+			{
+			return Obj.GetDatatype();
+			},
+		NULL,
+		},
+	{
+		"elementtype",
 		"Returns the element type of the array.",
 		[](const CAEONVectorIntIP &Obj, const CString &sProperty)
 			{
@@ -341,7 +368,16 @@ CDatum CAEONVectorIntIP::MathSum () const
 
 TDatumPropertyHandler<CAEONVectorString> CAEONVectorString::m_Properties = {
 	{
-		"elementType",
+		"datatype",
+		"Returns the type of the array.",
+		[](const CAEONVectorString &Obj, const CString &sProperty)
+			{
+			return Obj.GetDatatype();
+			},
+		NULL,
+		},
+	{
+		"elementtype",
 		"Returns the element type of the array.",
 		[](const CAEONVectorString &Obj, const CString &sProperty)
 			{

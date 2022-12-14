@@ -9,7 +9,16 @@ DECLARE_CONST_STRING(TYPENAME_ARRAY,					"array");
 
 TDatumPropertyHandler<CComplexArray> CComplexArray::m_Properties = {
 	{
-		"elementType",
+		"datatype",
+		"Returns the type of the array.",
+		[](const CComplexArray &Obj, const CString &sProperty)
+			{
+			return Obj.GetDatatype();
+			},
+		NULL,
+		},
+	{
+		"elementtype",
 		"Returns the element type of the array.",
 		[](const CComplexArray &Obj, const CString &sProperty)
 			{
