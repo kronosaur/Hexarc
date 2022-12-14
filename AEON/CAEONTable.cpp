@@ -48,6 +48,16 @@ TDatumPropertyHandler<CAEONTable> CAEONTable::m_Properties = {
 		NULL,
 		},
 	{
+		"keys",
+		"Returns an array of keys.",
+		[](const CAEONTable &Obj, const CString &sProperty)
+			{
+			auto& Index = Obj.GetIndex();
+			return Index.GetKeyArray(CDatum::raw_AsComplex(&Obj));
+			},
+		NULL,
+		},
+	{
 		"length",
 		"Returns the number of rows in the table.",
 		[](const CAEONTable &Obj, const CString &sProperty)

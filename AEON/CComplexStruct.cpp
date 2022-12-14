@@ -32,6 +32,20 @@ TDatumPropertyHandler<CComplexStruct> CComplexStruct::m_Properties = {
 		NULL,
 		},
 	{
+		"keys",
+		"Returns an array of keys.",
+		[](const CComplexStruct& Obj, const CString &sProperty)
+			{
+			CDatum dResult(CDatum::typeArray);
+			dResult.GrowToFit(Obj.GetCount());
+			for (int i = 0; i < Obj.GetCount(); i++)
+				dResult.Append(Obj.GetKey(i));
+
+			return dResult;
+			},
+		NULL,
+		},
+	{
 		"length",
 		"Returns the number of entries in the struct.",
 		[](const CComplexStruct& Obj, const CString &sProperty)

@@ -185,6 +185,53 @@ CString CAEONTableIndex::GetIndexKey (const IAEONTable& Table, int iRow) const
 		return NULL_STR;
 	}
 
+CDatum CAEONTableIndex::GetKeyArray (CDatum dTable) const
+
+//	GetKeyArray
+//
+//	Returns an array of keys.
+
+	{
+	const IAEONTable* pTable = dTable.GetTableInterface();
+	if (!pTable)
+		return CDatum();
+
+	if (m_Cols.GetCount() == 0)
+		return CDatum();
+	else if (m_Cols.GetCount() == 1)
+		{
+		CDatum dResult(CDatum::typeArray);
+		dResult.GrowToFit(m_Index.GetCount());
+
+		for (int i = 0; i < m_Index.GetCount(); i++)
+			{
+			int iRow = m_Index[i];
+			dResult.Append(pTable->GetFieldValue(iRow, m_Cols[0]));
+			}
+
+		return dResult;
+		}
+	else
+		{
+		CDatum dResult(CDatum::typeArray);
+		dResult.GrowToFit(m_Index.GetCount());
+
+		for (int i = 0; i < m_Index.GetCount(); i++)
+			{
+			int iRow = m_Index[i];
+
+			CDatum dKey(CDatum::typeArray);
+			dKey.GrowToFit(m_Cols.GetCount());
+			for (int j = 0; j < m_Cols.GetCount(); j++)
+				dKey.Append(pTable->GetFieldValue(iRow, m_Cols[j]));
+
+			dResult.Append(dKey);
+			}
+
+		return dResult;
+		}
+	}
+
 CDatum CAEONTableIndex::GetKeyFromRow (CDatum dTable, CDatum dRow) const
 
 //	GetKeyFromRow

@@ -27,6 +27,20 @@ TDatumPropertyHandler<CComplexArray> CComplexArray::m_Properties = {
 		NULL,
 		},
 	{
+		"keys",
+		"Returns an array of valid indices.",
+		[](const CComplexArray &Obj, const CString &sProperty)
+			{
+			CDatum dResult(CDatum::typeArray);
+			dResult.GrowToFit(Obj.GetCount());
+			for (int i = 0; i < Obj.GetCount(); i++)
+				dResult.Append(i);
+
+			return dResult;
+			},
+		NULL,
+		},
+	{
 		"length",
 		"Returns the number of element in the array.",
 		[](const CComplexArray &Obj, const CString &sProperty)
