@@ -3362,29 +3362,9 @@ bool CHexeProcess::ExecutePushObjectMethod (CDatum &retResult)
 
 	switch (dObject.GetBasicType())
 		{
-		case CDatum::typeArray:
-			{
-			//	Look for a global function of the form, Array.xyz.
-
-			CString sFunctionName = strPattern("Array.%s", sField);
-
-			CDatum dValue;
-			if (!m_pCurGlobalEnv->Find(sFunctionName, &dValue))
-				{
-				retResult = CDatum::CreateError(strPattern(ERR_UNBOUND_VARIABLE, sFunctionName));
-				return false;
-				}
-
-			m_Stack.Push(dValue);
-
-			//	We always push the this pointer.
-
-			m_Stack.Push(dObject);
-			break;
-			}
-
 		case CDatum::typeNil:
 		case CDatum::typeString:
+		case CDatum::typeArray:
 			{
 			CDatum dMember = dObject.GetMethod(sField);
 			if (dMember.IsNil() || dMember.GetCallInfo() == CDatum::ECallType::None)

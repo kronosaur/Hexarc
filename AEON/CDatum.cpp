@@ -3509,6 +3509,26 @@ void CDatum::SetElementAt (CDatum dIndex, CDatum dValue)
 		}
 	}
 
+void CDatum::SetMethodsExt (CDatum::Types iType, TDatumMethodHandler<IComplexDatum> &MethodsExt)
+
+//	SetMethodsExt
+//
+//	Sets an extension block for methods.
+
+	{
+	switch (iType)
+		{
+		case Types::typeArray:
+			CComplexArray::SetMethodsExt(MethodsExt);
+			break;
+
+		//	Not Implemented.
+
+		default:
+			throw CException(errFail);
+		}
+	}
+
 void CDatum::Sort (ESortOptions Order, TArray<CDatum>::COMPAREPROC pfCompare, void *pCtx)
 
 //	Sort

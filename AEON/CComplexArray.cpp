@@ -51,6 +51,8 @@ TDatumPropertyHandler<CComplexArray> CComplexArray::m_Properties = {
 		},
 	};
 
+TDatumMethodHandler<IComplexDatum> *CComplexArray::m_pMethodsExt = NULL;
+
 const CString &CComplexArray::GetTypename (void) const { return TYPENAME_ARRAY; }
 
 CComplexArray::CComplexArray (CDatum dSrc)

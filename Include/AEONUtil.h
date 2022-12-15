@@ -135,6 +135,7 @@ class TDatumMethodHandler
 			DWORD dwExecutionRights = 0;
 
 			std::function<bool(OBJ &, IInvokeCtx &Ctx, const CString &, CDatum, CDatum, CDatum &)> fnInvoke;
+			std::function<bool(CDatum, IInvokeCtx &Ctx, const CString &, CDatum, CDatum &)> fnContinue;
 			};
 
 		TDatumMethodHandler (const std::initializer_list<SDef> &Table)
@@ -149,6 +150,7 @@ class TDatumMethodHandler
 				pEntry->sHelp = CString(entry.pHelp);
 				pEntry->dwExecutionRights = entry.dwExecutionRights;
 				pEntry->fnInvoke = entry.fnInvoke;
+				pEntry->fnContinue = entry.fnContinue;
 
 				m_Table.SetAt(pEntry->sName, iIndex);
 				}
@@ -291,30 +293,43 @@ class TDatumMethodHandler
 			DWORD dwExecutionRights = 0;
 			CString sHelp;
 			std::function<bool(OBJ &, IInvokeCtx &Ctx, const CString &, CDatum, CDatum, CDatum &)> fnInvoke;
+			std::function<bool(CDatum, IInvokeCtx &Ctx, const CString &, CDatum, CDatum &)> fnContinue;
 
 			CDatum dFunc;
 			};
 
 		static bool InvokeThunk (IInvokeCtx &Ctx, DWORD dwData, CDatum dLocalEnv, CDatum dContinueCtx, CDatum &retdResult)
 			{
-			//	First argument must be the object.
-
-			CDatum dObj = dLocalEnv.GetElement(0);
-			void* pObj = dObj.GetMethodThis();
-			if (!pObj)
-				{
-				//	LATER: Invoke NULL methods.
-				retdResult = strPattern("Invalid object: %s.", dObj.AsString());
-				return false;
-				}
-
 			if (dwData >= (DWORD)m_Methods.GetCount())
 				{
 				retdResult = strPattern("Invalid library function index: %x.", dwData);
 				return false;
 				}
 
-			return m_Methods[dwData].fnInvoke(*(OBJ *)pObj, Ctx, m_Methods[dwData].sName, dLocalEnv, dContinueCtx, retdResult);
+			else if (dContinueCtx.IsNil())
+				{
+				//	First argument must be the object.
+
+				CDatum dObj = dLocalEnv.GetElement(0);
+				void* pObj = dObj.GetMethodThis();
+				if (!pObj)
+					{
+					//	LATER: Invoke NULL methods.
+					retdResult = strPattern("Invalid object: %s.", dObj.AsString());
+					return false;
+					}
+
+				return m_Methods[dwData].fnInvoke(*(OBJ *)pObj, Ctx, m_Methods[dwData].sName, dLocalEnv, dContinueCtx, retdResult);
+				}
+			else if (m_Methods[dwData].fnContinue)
+				{
+				return m_Methods[dwData].fnContinue(dContinueCtx, Ctx, m_Methods[dwData].sName, dLocalEnv, retdResult);
+				}
+			else
+				{
+				retdResult = strPattern("Continue handler expected: %s", m_Methods[dwData].sName);
+				return false;
+				}
 			}
 
 		static bool InvokeStaticThunk (IInvokeCtx &Ctx, DWORD dwData, CDatum dLocalEnv, CDatum dContinueCtx, CDatum &retdResult)

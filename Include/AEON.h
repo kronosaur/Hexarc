@@ -32,6 +32,8 @@ class IDatatype;
 class IInvokeCtx;
 struct SAEONLibraryFunctionCreate;
 
+template <class OBJ> class TDatumMethodHandler;
+
 //	Data encoding constants
 
 constexpr DWORD_PTR AEON_TYPE_STRING =			0x00;
@@ -226,6 +228,7 @@ class CDatum
 		static bool Deserialize (EFormat iFormat, IByteStream &Stream, IAEONParseExtension *pExtension, CDatum *retDatum);
 		static bool Deserialize (EFormat iFormat, IByteStream &Stream, CDatum *retDatum) { return Deserialize(iFormat, Stream, NULL, retDatum); }
 		static Types GetStringValueType (const CString &sValue);
+		static void SetMethodsExt (CDatum::Types iType, TDatumMethodHandler<IComplexDatum> &MethodsExt);
 		static CDatum VectorOf (Types iType, CDatum dValues = CDatum());
 
 		operator int () const;
@@ -528,6 +531,7 @@ class CComplexArray : public IComplexDatum
 		virtual CDatum GetElement (int iIndex) const override { return ((iIndex >= 0 && iIndex < m_Array.GetCount()) ? m_Array[iIndex] : CDatum()); }
 		virtual CDatum GetElement (const CString &sKey) const override { return m_Properties.GetProperty(*this, sKey); }
 		virtual CDatum GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) const override;
+		virtual CDatum GetMethod (const CString &sMethod) const override { if (m_pMethodsExt) return m_pMethodsExt->GetMethod(sMethod); else return CDatum(); }
 		virtual const CString &GetTypename () const override;
 		virtual void GrowToFit (int iCount) override { OnCopyOnWrite(); m_Array.GrowToFit(iCount); }
 		virtual bool IsArray () const override { return true; }
@@ -542,6 +546,8 @@ class CComplexArray : public IComplexDatum
 		virtual void SetElement (const CString &sKey, CDatum dDatum) override { OnCopyOnWrite(); m_Properties.SetProperty(*this, sKey, dDatum, NULL); }
 		virtual void SetElementAt (CDatum dIndex, CDatum dDatum) override;
 
+		static void SetMethodsExt (TDatumMethodHandler<IComplexDatum> &MethodsExt) { m_pMethodsExt = &MethodsExt; }
+
 	protected:
 		void CloneContents ();
 		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const override;
@@ -552,6 +558,7 @@ class CComplexArray : public IComplexDatum
 		TArray<CDatum> m_Array;
 
 		static TDatumPropertyHandler<CComplexArray> m_Properties;
+		static TDatumMethodHandler<IComplexDatum> *m_pMethodsExt;
 	};
 
 class CComplexBinary : public IComplexDatum
