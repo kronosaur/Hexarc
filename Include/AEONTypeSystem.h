@@ -243,7 +243,8 @@ class CAEONTypes
 		static CDatum CreateSimple (const CString& sFullyQualifiedName, const CDatatypeList& Implements, bool bAbstract = false, DWORD dwCoreType = IDatatype::UNKNOWN);
 		static CDatum Get (DWORD dwID);
 		static int GetCount () { CSmartLock Lock(m_cs); return m_Types.GetCount(); }
-		static CString MakeAnonymousName (const CString& sFullyQualifiedScope, const CString& sName);
+		static CString MakeAnonymousName (const CString& sType);
+		static CString MakeAnonymousName (const CString& sFullyQualifiedScope, const CString& sType);
 		static CString MakeFullyQualifiedName (const CString &sFullyQualifiedScope, const CString &sName);
 		static void MarkAndSweep ();
 		static CString ParseNameFromFullyQualifiedName (const CString &sValue);

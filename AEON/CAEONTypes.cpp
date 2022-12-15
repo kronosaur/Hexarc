@@ -279,7 +279,21 @@ void CAEONTypes::InitCoreTypes ()
 #endif
 	}
 
-CString CAEONTypes::MakeAnonymousName (const CString& sFullyQualifiedScope, const CString& sName)
+CString CAEONTypes::MakeAnonymousName (const CString& sType)
+
+//	MakeAnonymousName
+//
+//	Returns a new name.
+
+	{
+	CSmartLock Lock(m_cs);
+	DWORD dwID = m_dwNextAnonymousID++;
+	Lock.Unlock();
+
+	return strPattern("Anonymous%s%08x", sType, dwID);
+	}
+
+CString CAEONTypes::MakeAnonymousName (const CString& sFullyQualifiedScope, const CString& sType)
 
 //	MakeAnonymousName
 //
@@ -290,7 +304,7 @@ CString CAEONTypes::MakeAnonymousName (const CString& sFullyQualifiedScope, cons
 	DWORD dwID = m_dwNextAnonymousID++;
 	Lock.Unlock();
 
-	return strPattern("%s$Anonymous%s%08x", sFullyQualifiedScope, sName, dwID);
+	return strPattern("%s$Anonymous%s%08x", sFullyQualifiedScope, sType, dwID);
 	}
 
 CString CAEONTypes::MakeFullyQualifiedName (const CString &sFullyQualifiedScope, const CString &sName)
