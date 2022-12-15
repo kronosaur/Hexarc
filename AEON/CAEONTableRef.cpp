@@ -46,6 +46,8 @@ TDatumPropertyHandler<CAEONTableRef> CAEONTableRef::m_Properties = {
 		},
 	};
 
+TDatumMethodHandler<IComplexDatum> *CAEONTableRef::m_pMethodsExt = NULL;
+
 CString CAEONTableRef::AsString (void) const
 
 //	AsString
@@ -324,6 +326,29 @@ CDatum CAEONTableRef::GetFieldValue (int iRow, int iCol) const
 		}
 	}
 
+CDatum CAEONTableRef::GetRow (int iRow) const
+
+//	GetRow
+//
+//	Return the nth row of the table (as a struct).
+
+	{
+	if (iRow < 0 || iRow >= GetRowCount())
+		return CDatum();
+
+	CDatum dRow(CDatum::typeStruct);
+
+	const IDatatype &Schema = m_dSchema;
+	for (int i = 0; i < Schema.GetMemberCount(); i++)
+		{
+		auto ColumnDesc = Schema.GetMember(i);
+
+		dRow.SetElement(ColumnDesc.sName, GetFieldValue(iRow, i));
+		}
+
+	return dRow;
+	}
+
 int CAEONTableRef::GetRowCount () const
 
 //	GetRowCount
@@ -335,29 +360,6 @@ int CAEONTableRef::GetRowCount () const
 		return m_dTable.GetCount();
 	else
 		return m_Rows.GetCount();
-	}
-
-CDatum CAEONTableRef::GetElement (int iIndex) const
-
-//	GetElement
-//
-//	Return the nth row of the table (as a struct).
-
-	{
-	if (iIndex < 0 || iIndex >= GetRowCount())
-		return CDatum();
-
-	CDatum dRow(CDatum::typeStruct);
-
-	const IDatatype &Schema = m_dSchema;
-	for (int i = 0; i < Schema.GetMemberCount(); i++)
-		{
-		auto ColumnDesc = Schema.GetMember(i);
-
-		dRow.SetElement(ColumnDesc.sName, GetFieldValue(iIndex, i));
-		}
-
-	return dRow;
 	}
 
 const CString &CAEONTableRef::GetTypename (void) const

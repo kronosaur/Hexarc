@@ -3365,6 +3365,7 @@ bool CHexeProcess::ExecutePushObjectMethod (CDatum &retResult)
 		case CDatum::typeNil:
 		case CDatum::typeString:
 		case CDatum::typeArray:
+		case CDatum::typeTable:
 			{
 			CDatum dMember = dObject.GetMethod(sField);
 			if (dMember.IsNil() || dMember.GetCallInfo() == CDatum::ECallType::None)
@@ -3404,27 +3405,6 @@ bool CHexeProcess::ExecutePushObjectMethod (CDatum &retResult)
 				m_Stack.Push(dObject);
 				}
 
-			break;
-			}
-
-		case CDatum::typeTable:
-			{
-			//	Look for a global function of the form, Table.xyz.
-
-			CString sFunctionName = strPattern("Table.%s", sField);
-
-			CDatum dValue;
-			if (!m_pCurGlobalEnv->Find(sFunctionName, &dValue))
-				{
-				retResult = CDatum::CreateError(strPattern(ERR_UNBOUND_VARIABLE, sFunctionName));
-				return false;
-				}
-
-			m_Stack.Push(dValue);
-
-			//	We always push the this pointer.
-
-			m_Stack.Push(dObject);
 			break;
 			}
 

@@ -152,7 +152,10 @@ class TDatumMethodHandler
 				pEntry->fnInvoke = entry.fnInvoke;
 				pEntry->fnContinue = entry.fnContinue;
 
-				m_Table.SetAt(pEntry->sName, iIndex);
+				bool bNew;
+				m_Table.SetAt(pEntry->sName, iIndex, &bNew);
+				if (!bNew)
+					throw CException(errFail);	//	Duplicate method in table.
 				}
 			}
 
@@ -204,12 +207,39 @@ class TDatumMethodHandler
 				{
 				SAEONLibraryFunctionCreate Create;
 				Create.sName = Method.sName;
-				Create.fnInvoke = InvokeThunk;
 				Create.dwData = *pEntry;
 				Create.dwExecutionRights = Method.dwExecutionRights;
 
 				//	LATER: This should be a fully defined type.
 				Create.dType = CAEONTypes::Get(IDatatype::FUNCTION);
+
+				Create.fnInvoke = [&Method](IInvokeCtx& Ctx, DWORD dwData, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+					{
+					if (dContinueCtx.IsNil())
+						{
+						//	First argument must be the object.
+
+						CDatum dObj = dLocalEnv.GetElement(0);
+						void* pObj = dObj.GetMethodThis();
+						if (!pObj)
+							{
+							//	LATER: Invoke NULL methods.
+							retdResult = strPattern("Invalid object: %s.", dObj.AsString());
+							return false;
+							}
+
+						return Method.fnInvoke(*(OBJ *)pObj, Ctx, Method.sName, dLocalEnv, dContinueCtx, retdResult);
+						}
+					else if (Method.fnContinue)
+						{
+						return Method.fnContinue(dContinueCtx, Ctx, Method.sName, dLocalEnv, retdResult);
+						}
+					else
+						{
+						retdResult = strPattern("Continue handler expected: %s", Method.sName);
+						return false;
+						}
+					};
 
 				Method.dFunc = CDatum::CreateLibraryFunction(Create);
 
@@ -218,6 +248,8 @@ class TDatumMethodHandler
 					CDatum::RegisterMarkProc(MarkProc);
 					m_bMarkProcRegistered = true;
 					}
+
+				m_Mark.Insert(Method.dFunc);
 				}
 
 			return Method.dFunc;
@@ -234,12 +266,17 @@ class TDatumMethodHandler
 				{
 				SAEONLibraryFunctionCreate Create;
 				Create.sName = Method.sName;
-				Create.fnInvoke = InvokeStaticThunk;
 				Create.dwData = *pEntry;
 				Create.dwExecutionRights = Method.dwExecutionRights;
 
 				//	LATER: This should be a fully defined type.
 				Create.dType = CAEONTypes::Get(IDatatype::FUNCTION);
+
+				Create.fnInvoke = [&Method](IInvokeCtx& Ctx, DWORD dwData, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+					{
+					OBJ Dummy;
+					return Method.fnInvoke(Dummy, Ctx, Method.sName, dLocalEnv, dContinueCtx, retdResult);
+					};
 
 				Method.dFunc = CDatum::CreateLibraryFunction(Create);
 
@@ -248,6 +285,8 @@ class TDatumMethodHandler
 					CDatum::RegisterMarkProc(MarkProc);
 					m_bMarkProcRegistered = true;
 					}
+
+				m_Mark.Insert(Method.dFunc);
 				}
 
 			return Method.dFunc;
@@ -298,63 +337,18 @@ class TDatumMethodHandler
 			CDatum dFunc;
 			};
 
-		static bool InvokeThunk (IInvokeCtx &Ctx, DWORD dwData, CDatum dLocalEnv, CDatum dContinueCtx, CDatum &retdResult)
-			{
-			if (dwData >= (DWORD)m_Methods.GetCount())
-				{
-				retdResult = strPattern("Invalid library function index: %x.", dwData);
-				return false;
-				}
-
-			else if (dContinueCtx.IsNil())
-				{
-				//	First argument must be the object.
-
-				CDatum dObj = dLocalEnv.GetElement(0);
-				void* pObj = dObj.GetMethodThis();
-				if (!pObj)
-					{
-					//	LATER: Invoke NULL methods.
-					retdResult = strPattern("Invalid object: %s.", dObj.AsString());
-					return false;
-					}
-
-				return m_Methods[dwData].fnInvoke(*(OBJ *)pObj, Ctx, m_Methods[dwData].sName, dLocalEnv, dContinueCtx, retdResult);
-				}
-			else if (m_Methods[dwData].fnContinue)
-				{
-				return m_Methods[dwData].fnContinue(dContinueCtx, Ctx, m_Methods[dwData].sName, dLocalEnv, retdResult);
-				}
-			else
-				{
-				retdResult = strPattern("Continue handler expected: %s", m_Methods[dwData].sName);
-				return false;
-				}
-			}
-
-		static bool InvokeStaticThunk (IInvokeCtx &Ctx, DWORD dwData, CDatum dLocalEnv, CDatum dContinueCtx, CDatum &retdResult)
-			{
-			if (dwData >= (DWORD)m_Methods.GetCount())
-				{
-				retdResult = strPattern("Invalid library function index: %x.", dwData);
-				return false;
-				}
-
-			OBJ Dummy;
-			return m_Methods[dwData].fnInvoke(Dummy, Ctx, m_Methods[dwData].sName, dLocalEnv, dContinueCtx, retdResult);
-			}
-
 		static void MarkProc ()
 			{
-			for (int i = 0; i < m_Methods.GetCount(); i++)
-				m_Methods[i].dFunc.Mark();
+			for (int i = 0; i < m_Mark.GetCount(); i++)
+				m_Mark[i].Mark();
 			}
 
 		TSortMap<LPCSTR, int> m_Table;
 
-		static TArray<SEntry> m_Methods;
+		TArray<SEntry> m_Methods;
 		static bool m_bMarkProcRegistered;
+		static TArray<CDatum> m_Mark;
 	};
 
-template <class OBJ> TArray<struct TDatumMethodHandler<OBJ>::SEntry> TDatumMethodHandler<OBJ>::m_Methods;
 template <class OBJ> bool TDatumMethodHandler<OBJ>::m_bMarkProcRegistered = false;
+template <class OBJ> TArray<CDatum> TDatumMethodHandler<OBJ>::m_Mark;

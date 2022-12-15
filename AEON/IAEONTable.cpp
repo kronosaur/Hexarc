@@ -220,6 +220,29 @@ bool IAEONTable::FindRow (int iCol, CDatum dValue, int *retiRow) const
 	return false;
 	}
 
+CDatum IAEONTable::GetRow (int iRow) const
+
+//	GetRow
+//
+//	Returns the row.
+
+	{
+	if (iRow < 0 || iRow >= GetRowCount())
+		return CDatum();
+
+	CDatum dRow(CDatum::typeStruct);
+
+	const IDatatype &Schema = GetSchema();
+	for (int i = 0; i < Schema.GetMemberCount(); i++)
+		{
+		auto ColumnDesc = Schema.GetMember(i);
+
+		dRow.SetElement(ColumnDesc.sName, GetFieldValue(iRow, i));
+		}
+
+	return dRow;
+	}
+
 bool IAEONTable::InsertColumnToSchema (CDatum dSchema, const CString& sName, CDatum dType, int iPos, CDatum& retdSchema, int* retiCol)
 
 //	InsertColumnToSchema

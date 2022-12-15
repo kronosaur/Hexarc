@@ -70,8 +70,10 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual CString GetColName (int iCol) const override;
 		virtual CDatum GetDataSlice (int iFirstRow, int iRowCount) const override;
 		virtual CDatum GetFieldValue (int iRow, int iCol) const override;
+		virtual CDatum GetRow (int iRow) const override;
 		virtual int GetRowCount () const override;
 		virtual CDatum GetRowID (int iRow) const override;
+		virtual CDatum GetSchema () const override { return m_dSchema; }
 		virtual SequenceNumber GetSeq () const override { return m_Seq; }
 		virtual bool HasKeys () const override { return m_iKeyType != CAEONTableIndex::EType::None; }
 		virtual EResult InsertColumn (const CString& sName, CDatum dType, CDatum dValues = CDatum(), int iPos = -1, int *retiCol = NULL) override;
@@ -93,9 +95,10 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeTable; }
 		virtual int GetCount (void) const override { return m_iRows; }
 		virtual CDatum GetDatatype () const override { return m_dSchema; }
-		virtual CDatum GetElement (int iIndex) const override;
+		virtual CDatum GetElement (int iIndex) const override { return GetRow(iIndex); }
 		virtual CDatum GetElement (const CString &sKey) const override { return m_Properties.GetProperty(*this, sKey); }
 		virtual CDatum GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) const override;
+		virtual CDatum GetMethod (const CString &sMethod) const override { if (m_pMethodsExt) return m_pMethodsExt->GetMethod(sMethod); else return CDatum(); }
 		virtual IAEONTable *GetTableInterface () { return this; }
 		virtual const CString &GetTypename (void) const override;
 		virtual void GrowToFit (int iCount) override;
@@ -114,6 +117,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		static bool CreateTableFromStruct (CAEONTypeSystem &TypeSystem, CDatum dValue, CDatum &retdDatum);
 		static bool IsValidMemberType (IDatatype::EMemberType iType)
 			{ return (iType == IDatatype::EMemberType::InstanceKeyVar || iType == IDatatype::EMemberType::InstanceVar); }
+		static void SetMethodsExt (TDatumMethodHandler<IComplexDatum> &MethodsExt) { m_pMethodsExt = &MethodsExt; }
 
 	protected:
 
@@ -150,6 +154,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		mutable TUniquePtr<CAEONTableIndex> m_pKeyIndex;
 
 		static TDatumPropertyHandler<CAEONTable> m_Properties;
+		static TDatumMethodHandler<IComplexDatum> *m_pMethodsExt;
 
 		friend class CAEONScriptParser;
 		friend class CJSONParser;
@@ -174,7 +179,9 @@ class CAEONTableRef : public IComplexDatum, public IAEONTable
 		virtual CString GetColName (int iCol) const override;
 		virtual CDatum GetDataSlice (int iFirstRow, int iRowCount) const override;
 		virtual CDatum GetFieldValue (int iRow, int iCol) const override;
+		virtual CDatum GetRow (int iRow) const override;
 		virtual int GetRowCount () const override;
+		virtual CDatum GetSchema () const override { return m_dSchema; }
 		virtual bool IsSameSchema (CDatum dSchema) const override;
 		virtual bool SetFieldValue (int iRow, int iCol, CDatum dValue) override;
 		virtual EResult SetRow (int iRow, CDatum dRow) override;
@@ -189,9 +196,10 @@ class CAEONTableRef : public IComplexDatum, public IAEONTable
 		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeTable; }
 		virtual int GetCount (void) const override { return (m_bAllRows ? m_dTable.GetCount() : m_Rows.GetCount()); }
 		virtual CDatum GetDatatype () const override { return m_dSchema; }
-		virtual CDatum GetElement (int iIndex) const override;
+		virtual CDatum GetElement (int iIndex) const override { return GetRow(iIndex); }
 		virtual CDatum GetElement (const CString& sKey) const override { return m_Properties.GetProperty(*this, sKey); }
 		virtual CDatum GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) const override;
+		virtual CDatum GetMethod (const CString &sMethod) const override { if (m_pMethodsExt) return m_pMethodsExt->GetMethod(sMethod); else return CDatum(); }
 		virtual IAEONTable* GetTableInterface () { return this; }
 		virtual const CString& GetTypename (void) const override;
 		virtual void GrowToFit (int iCount) override { }
@@ -203,6 +211,8 @@ class CAEONTableRef : public IComplexDatum, public IAEONTable
 		virtual void SetElement (int iIndex, CDatum dDatum) override;
 		virtual void SetElement (const CString& sKey, CDatum dDatum) override { m_Properties.SetProperty(*this, sKey, dDatum, NULL); }
 		virtual void SetElementAt (CDatum dIndex, CDatum dDatum) override;
+
+		static void SetMethodsExt (TDatumMethodHandler<IComplexDatum> &MethodsExt) { m_pMethodsExt = &MethodsExt; }
 
 	protected:
 
@@ -226,6 +236,7 @@ class CAEONTableRef : public IComplexDatum, public IAEONTable
 		bool m_bAllRows = false;			//	If TRUE, all rows in table.
 
 		static TDatumPropertyHandler<CAEONTableRef> m_Properties;
+		static TDatumMethodHandler<IComplexDatum> *m_pMethodsExt;
 
 		friend class CAEONScriptParser;
 	};

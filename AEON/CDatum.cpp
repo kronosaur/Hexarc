@@ -3522,6 +3522,11 @@ void CDatum::SetMethodsExt (CDatum::Types iType, TDatumMethodHandler<IComplexDat
 			CComplexArray::SetMethodsExt(MethodsExt);
 			break;
 
+		case Types::typeTable:
+			CAEONTable::SetMethodsExt(MethodsExt);
+			CAEONTableRef::SetMethodsExt(MethodsExt);
+			break;
+
 		//	Not Implemented.
 
 		default:
