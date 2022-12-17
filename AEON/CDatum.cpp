@@ -3073,6 +3073,34 @@ bool CDatum::IsArray () const
 		}
 	}
 
+bool CDatum::IsAtom () const
+
+//	IsAtom
+//
+//	Returns TRUE if this is an atom (not a collection and not a function).
+
+	{
+	switch (GetBasicType())
+		{
+		case typeNil:
+		case typeTrue:
+		case typeNaN:
+		case typeEnum:
+		case typeError:
+		case typeInteger32:
+		case typeInteger64:
+		case typeIntegerIP:
+		case typeDouble:
+		case typeString:
+		case typeDateTime:
+		case typeTimeSpan:
+			return true;
+
+		default:
+			return false;
+		}
+	}
+
 bool CDatum::IsContainer () const
 
 //	IsContainer

@@ -282,6 +282,7 @@ class CDatum
 		const CString &GetTypename () const;
 		void GrowToFit (int iCount);
 		bool IsArray () const;
+		bool IsAtom () const;
 		bool IsContainer () const;
 		bool IsMemoryBlock () const;
 		bool IsEqual (CDatum dValue) const;
