@@ -1515,6 +1515,17 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 				break;
 				}
 
+			case opConcat:
+				{
+				CDatum dB = m_Stack.Pop();
+				CDatum dA = m_Stack.Pop();
+
+				m_Stack.Push(ExecuteOpConcat(dA, dB));
+
+				m_pIP++;
+				break;
+				}
+
 			case opPushArrayItem:
 				{
 				DebugCheck(GetOperand(*m_pIP) == 2);
@@ -1956,6 +1967,9 @@ CDatum CHexeProcess::ExecuteBinaryOp (EOpCodes iOp, CDatum dLeft, CDatum dRight)
 		{
 		case opAdd:
 			return ExecuteOpAdd(dLeft, dRight);
+
+		case opConcat:
+			return ExecuteOpConcat(dLeft, dRight);
 			
 		case opDivide:
 			return ExecuteOpDivide(dLeft, dRight);
@@ -3036,6 +3050,170 @@ CDatum CHexeProcess::ExecuteOpAddCompatible (CDatum dLeft, CDatum dRight, bool b
 		CNumberValue Result(dLeft);
 		Result.Add(dRight);
 		return Result.GetDatum();
+		}
+	}
+
+CDatum CHexeProcess::ExecuteOpConcat (CDatum dLeft, CDatum dRight)
+
+//	ExecuteOpConcat
+//
+//	Binary operation
+
+	{
+	if (dLeft.GetBasicType() == dRight.GetBasicType())
+		{
+		switch (dLeft.GetBasicType())
+			{
+			case CDatum::typeNil:
+				return CDatum();
+
+			case CDatum::typeString:
+				{
+				const CString& sLeft = dLeft;
+				const CString& sRight = dRight;
+
+				CString sResult(sLeft.GetLength() + sRight.GetLength());
+				char *pDest = sResult.GetPointer();
+
+				utlMemCopy(sLeft.GetParsePointer(), pDest, sLeft.GetLength());
+				pDest += sLeft.GetLength();
+
+				utlMemCopy(sRight.GetParsePointer(), pDest, sRight.GetLength());
+
+				return CDatum(sResult);
+				}
+
+			case CDatum::typeArray:
+				{
+				CDatum dResult(CDatum::typeArray);
+				dResult.GrowToFit(dLeft.GetCount() + dRight.GetCount());
+
+				for (int i = 0; i < dLeft.GetCount(); i++)
+					dResult.Append(dLeft.GetElement(i));
+
+				for (int i = 0; i < dRight.GetCount(); i++)
+					dResult.Append(dRight.GetElement(i));
+
+				return dResult;
+				}
+
+			case CDatum::typeStruct:
+				{
+				CDatum dResult(CDatum::typeStruct);
+				dResult.GrowToFit(dLeft.GetCount() + dRight.GetCount());
+
+				dResult.Append(dLeft);
+				dResult.Append(dRight);
+
+				return dResult;
+				}
+
+			case CDatum::typeTable:
+				{
+				//	Combine the schemas for the two tables.
+
+				CDatum dSchema;
+				if (!IAEONTable::CombineSchema(dLeft.GetDatatype(), dRight.GetDatatype(), dSchema))
+					return CDatum();
+
+				CDatum dResult = CDatum::CreateTable(dSchema);
+				dResult.Append(dLeft);
+				dResult.Append(dRight);
+
+				return dResult;
+				}
+
+			case CDatum::typeTextLines:
+				{
+				CDatum dResult = CDatum::CreateTextLines();
+				dResult.Append(dLeft);
+				dResult.Append(dRight);
+
+				return dResult;
+				}
+
+			default:
+				{
+				CDatum dResult(CDatum::typeArray);
+				dResult.GrowToFit(2);
+				dResult.Append(dLeft);
+				dResult.Append(dRight);
+				return dResult;
+				}
+			}
+		}
+	else
+		{
+		switch (dLeft.GetBasicType())
+			{
+			case CDatum::typeNil:
+				return dRight;
+
+			case CDatum::typeString:
+				{
+				if (dRight.IsNil())
+					return dLeft;
+				else if (dRight.IsArray())
+					{
+					CDatum dResult(CDatum::typeArray);
+					dResult.GrowToFit(dRight.GetCount() + 1);
+
+					dResult.Append(dLeft);
+					for (int i = 0; i < dRight.GetCount(); i++)
+						dResult.Append(dRight.GetElement(i));
+
+					return dResult;
+					}
+				else
+					{
+					CString sResult = dLeft;
+					sResult += dRight.AsString();
+					return CDatum(sResult);
+					}
+				}
+
+			case CDatum::typeArray:
+			case CDatum::typeTable:
+			case CDatum::typeTextLines:
+				{
+				if (dRight.IsNil())
+					return dLeft;
+				else
+					{
+					CDatum dResult = dLeft.Clone();
+					dResult.Append(dRight);
+					return dResult;
+					}
+				}
+
+			case CDatum::typeStruct:
+				return dLeft;
+
+			default:
+				{
+				if (dRight.IsNil())
+					return dLeft;
+				else if (dRight.IsArray())
+					{
+					CDatum dResult(CDatum::typeArray);
+					dResult.GrowToFit(dRight.GetCount() + 1);
+
+					dResult.Append(dLeft);
+					for (int i = 0; i < dRight.GetCount(); i++)
+						dResult.Append(dRight.GetElement(i));
+
+					return dResult;
+					}
+				else
+					{
+					CDatum dResult(CDatum::typeArray);
+					dResult.GrowToFit(2);
+					dResult.Append(dLeft);
+					dResult.Append(dRight);
+					return dResult;
+					}
+				}
+			}
 		}
 	}
 

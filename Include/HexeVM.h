@@ -130,6 +130,7 @@ enum EOpCodes
 	opExitEnvAndJumpIfNil =	0x68000000,
 	opInc =					0x69000000,
 	opMakeSpread =			0x6A000000,
+	opConcat =				0x6B000000,
 
 	opHalt =				0xff000000,
 

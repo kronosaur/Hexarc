@@ -10,6 +10,7 @@ DECLARE_CONST_STRING(OP_ADD2,							"add2")
 DECLARE_CONST_STRING(OP_APPEND_LOCAL_ITEM,				"appendLocalItem")
 DECLARE_CONST_STRING(OP_CALL,							"call")
 DECLARE_CONST_STRING(OP_COMPARE_FOR_EACH,				"compareForEach")
+DECLARE_CONST_STRING(OP_CONCAT,							"concat")
 DECLARE_CONST_STRING(OP_DEFINE,							"define")
 DECLARE_CONST_STRING(OP_DEFINE_ARG,						"defineArg")
 DECLARE_CONST_STRING(OP_DEFINE_ARG_FROM_CODE,			"defineArgFromCode")
@@ -183,6 +184,7 @@ static SOpCodeInfo OPCODE_INFO[] =
 	SOpCodeInfo(opHalt,				OP_HALT,				operandNone ),
 	SOpCodeInfo(opMakeFlagsFromArray,	OP_MAKE_FLAGS_FROM_ARRAY,	operandNone ),
 	SOpCodeInfo(opMapResult,		OP_MAP_RESULT,			operandIntShort ),
+	SOpCodeInfo(opConcat,			OP_CONCAT,				operandNone ),
 	};
 
 static int OPCODE_INFO_COUNT = SIZEOF_STATIC_ARRAY(OPCODE_INFO);

@@ -357,6 +357,7 @@ class CHexeProcess : public IInvokeCtx
 		void ExecuteNilMemberItem (const CString &sField);
 		static CDatum ExecuteOpAdd (CDatum dLeft, CDatum dRight);
 		static CDatum ExecuteOpAddCompatible (CDatum dLeft, CDatum dRight, bool bConcatenateStrings);
+		static CDatum ExecuteOpConcat (CDatum dLeft, CDatum dRight);
 		static CDatum ExecuteOpDivide (CDatum dLeft, CDatum dRight);
 		static CDatum ExecuteOpMultiply (CDatum dLeft, CDatum dRight);
 		static CDatum ExecuteOpMultiplyArray (CDatum dArray, CDatum dValue);
