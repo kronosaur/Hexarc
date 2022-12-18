@@ -12,6 +12,98 @@ DECLARE_CONST_STRING(FIELD_NAME,						"name");
 
 DECLARE_CONST_STRING(ERR_UNABLE_TO_CREATE_SCHEMA,		"Unable to create schema.");
 DECLARE_CONST_STRING(ERR_INVALID_SCHEMA_DESC,			"Invalid schema desc.");
+DECLARE_CONST_STRING(ERR_CANT_COMBINE_KEYS_DONT_MATCH,	"Unable to combine schemas because they have different keys.");
+
+bool IAEONTable::CombineSchema (CDatum dSchema1, CDatum dSchema2, CDatum& retdSchema)
+
+//	CombineSchema
+//
+//	Creates a new schema that is a superset of the two given schemas. If the two
+//	schemas are not compatible, we return FALSE.
+
+	{
+	const IDatatype &Schema1 = dSchema1;
+	const IDatatype &Schema2 = dSchema2;
+
+	//	If one schema has no members, then we just return the other one.
+
+	if (Schema2.GetMemberCount() == 0)
+		{
+		retdSchema = dSchema1;
+		return true;
+		}
+	else if (Schema1.GetMemberCount() == 0)
+		{
+		retdSchema = dSchema2;
+		return true;
+		}
+
+	//	If the two schemas equal each other, then just return one.
+
+	else if (Schema1 == Schema2)
+		{
+		retdSchema = dSchema1;
+		return true;
+		}
+
+	//	Accumulate columns by name
+
+	TArray<IDatatype::SMemberDesc> Columns;
+	TSortMap<CString, int> ByName;
+
+	for (int i = 0; i < Schema1.GetMemberCount(); i++)
+		{
+		auto Member = Schema1.GetMember(i);
+
+		int iIndex = Columns.GetCount();
+		Columns.Insert(Member);
+		ByName.SetAt(strToLower(Member.sName), iIndex);
+		}
+
+	//	Now add the second schema.
+
+	for (int i = 0; i < Schema2.GetMemberCount(); i++)
+		{
+		auto Member2 = Schema2.GetMember(i);
+
+		//	If this column is already in schema1, then we continue.
+
+		int *pCol = ByName.GetAt(strToLower(Member2.sName));
+		if (pCol)
+			{
+			//	If schema2 does not consider this a key column, then we need to
+			//	convert it back to a normal column.
+
+			if (Columns[*pCol].iType == IDatatype::EMemberType::InstanceKeyVar
+					&& Member2.iType != IDatatype::EMemberType::InstanceKeyVar)
+				Columns[*pCol].iType = IDatatype::EMemberType::InstanceVar;
+
+			//	NOTE: If the datatypes don't match, we take schema1's datatype.
+			}
+
+		//	Otherwise, we need to add this column to the schema.
+
+		else
+			{
+			//	Make sure it is not a key
+
+			Member2.iType = IDatatype::EMemberType::InstanceVar;
+			Columns.Insert(Member2);
+			}
+		}
+
+	//	Done
+
+	CAEONTypeSystem TypeSystem;
+	retdSchema = TypeSystem.AddAnonymousSchema(Columns);
+	if (retdSchema.IsNil())
+		{
+		retdSchema = ERR_UNABLE_TO_CREATE_SCHEMA;
+		return false;
+		}
+
+	return true;
+	}
 
 CDatum IAEONTable::CreateColumn (CDatum dType)
 

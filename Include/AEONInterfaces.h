@@ -74,6 +74,7 @@ class IAEONTable
 		virtual EResult SetRowByID (CDatum dKey, CDatum dRow, int *retiRow = NULL) { return EResult::NotImplemented; }
 		virtual void SetSeq (SequenceNumber Seq) { }
 
+		static bool CombineSchema (CDatum dSchema1, CDatum dSchema2, CDatum& retdSchema);
 		static CDatum CreateColumn (CDatum dType);
 		static bool CreateRef (CAEONTypeSystem& TypeSystem, CDatum dTable, SSubset&& Subset, CDatum& retdValue);
 		static bool CreateSchema (CAEONTypeSystem& TypeSystem, CDatum dTable, SSubset& Subset, CDatum& retdSchema);
