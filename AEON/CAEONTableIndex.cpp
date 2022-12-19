@@ -295,6 +295,30 @@ CDatum CAEONTableIndex::GetKeyFromRow (CDatum dTable, int iRow) const
 		return CDatum();
 	}
 
+CDatum CAEONTableIndex::GetKeyFromRowArray (CDatum dTable, CDatum dRow) const
+
+//	GetKeyFromRowArray
+//
+//	Returns the key from a given row expressed as an array of values.
+
+	{
+	if (m_Cols.GetCount() == 1)
+		{
+		return dRow.GetElement(m_Cols[0]);
+		}
+	else if (m_Cols.GetCount() > 1)
+		{
+		CDatum dResult(CDatum::typeArray);
+		for (int i = 0; i < m_Cols.GetCount(); i++)
+			{
+			dResult.Append(dRow.GetElement(m_Cols[i]));
+			}
+		return dResult;
+		}
+	else
+		return CDatum();
+	}
+
 CDatum CAEONTableIndex::GetValueFromKey (CDatum dTable, CDatum dKey, const CString& sCol) const
 
 //	GetValueFromKey

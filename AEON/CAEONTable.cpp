@@ -137,6 +137,64 @@ IAEONTable::EResult CAEONTable::AppendRow (CDatum dRow)
 //	Appends a row.
 
 	{
+	if (dRow.GetBasicType() == CDatum::typeArray)
+		return AppendRowArray(dRow);
+	else
+		return AppendRowStruct(dRow);
+	}
+
+IAEONTable::EResult CAEONTable::AppendRowArray (CDatum dRow)
+
+//	AppendRowArray
+//
+//	Given an array of column values (in schema order), we add a new row.
+
+	{
+	if (m_iKeyType == CAEONTableIndex::EType::None)
+		{
+		OnModify();
+
+		const IDatatype &Schema = m_dSchema;
+		for (int i = 0; i < Schema.GetMemberCount(); i++)
+			{
+			CDatum dValue = dRow.GetElement(i);
+
+			//	Make sure we're not trying to add ourselves.
+
+			TArray<IComplexDatum *> Checked1;
+			TArray<IComplexDatum *> Checked2;
+			if (dValue.Contains(CDatum::raw_AsComplex(this), Checked1) || dValue.Contains(m_Cols[i], Checked2))
+				dValue = CDatum();
+
+			//	Add it
+
+			m_Cols[i].Append(dValue);
+			}
+
+		m_iRows++;
+
+		return EResult::OK;
+		}
+	else
+		{
+		OnModify();
+
+		GetIndex();
+		if (!m_pKeyIndex)
+			return IAEONTable::EResult::NotImplemented;
+
+		CDatum dKey = m_pKeyIndex->GetKeyFromRowArray(CDatum::raw_AsComplex(this), dRow);
+		return SetRowByID(dKey, dRow);
+		}
+	}
+
+IAEONTable::EResult CAEONTable::AppendRowStruct (CDatum dRow)
+
+//	AppendRowStruct
+//
+//	Given a struct of column values, we add a new row.
+
+	{
 	if (m_iKeyType == CAEONTableIndex::EType::None)
 		{
 		OnModify();
@@ -161,11 +219,6 @@ IAEONTable::EResult CAEONTable::AppendRow (CDatum dRow)
 			}
 
 		m_iRows++;
-
-		//	If we have an index, then update it.
-
-		if (m_pKeyIndex)
-			m_pKeyIndex->Add(CDatum::raw_AsComplex(this), m_iRows - 1);
 
 		//	Done
 
@@ -1444,13 +1497,24 @@ IAEONTable::EResult CAEONTable::SetRowByID (CDatum dKey, CDatum dRow, int *retiR
 			//	need to distinguish between a missing value and a null value.
 
 			bool bFound = false;
-			for (int iEntry = 0; iEntry < dRow.GetCount(); iEntry++)
+			if (dRow.GetBasicType() == CDatum::typeArray)
 				{
-				if (strEqualsNoCase(dRow.GetKey(iEntry), ColumnDesc.sName))
+				if (i < dRow.GetCount())
 					{
-					dValue = dRow.GetElement(iEntry);
+					dValue = dRow.GetElement(i);
 					bFound = true;
-					break;
+					}
+				}
+			else
+				{
+				for (int iEntry = 0; iEntry < dRow.GetCount(); iEntry++)
+					{
+					if (strEqualsNoCase(dRow.GetKey(iEntry), ColumnDesc.sName))
+						{
+						dValue = dRow.GetElement(iEntry);
+						bFound = true;
+						break;
+						}
 					}
 				}
 

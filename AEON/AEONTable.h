@@ -31,6 +31,7 @@ class CAEONTableIndex
 		CDatum GetKeyArray (CDatum dTable) const;
 		CDatum GetKeyFromRow (CDatum dTable, CDatum dRow) const;
 		CDatum GetKeyFromRow (CDatum dTable, int iRow) const;
+		CDatum GetKeyFromRowArray (CDatum dTable, CDatum dRow) const;
 		CDatum GetValueFromKey (CDatum dTable, CDatum dKey, const CString& sCol) const;
 		void Init (CDatum dTable, const TArray<int>& Cols);
 		void Remove (CDatum dTable, int iRow);
@@ -131,6 +132,8 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 
 		CAEONTable () { }
 
+		IAEONTable::EResult AppendRowArray (CDatum dRow);
+		IAEONTable::EResult AppendRowStruct (CDatum dRow);
 		static CDatum CalcColumnDatatype (CDatum dValue);
 		void CloneContents ();
 		const CAEONTableIndex& GetIndex () const;
