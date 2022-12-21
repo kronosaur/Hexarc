@@ -430,5 +430,11 @@ TArray<CString> CAEONLines::SplitBuffer (const IMemoryBlock& Buffer)
 			}
 		}
 
+	//	We always return at least one line, because callers will call this on
+	//	a blank line.
+
+	if (Result.GetCount() == 0)
+		Result.Insert(NULL_STR);
+
 	return Result;
 	}
