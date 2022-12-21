@@ -21,7 +21,7 @@
 
 #ifndef ASSERT
 #ifdef DEBUG
-#define ASSERT(exp)		((exp) ? true : (DebugBreak(), false))
+#define ASSERT(exp)		((exp) ? true : (throw CException(errFail), false))
 #else
 #define ASSERT(exp)
 #endif

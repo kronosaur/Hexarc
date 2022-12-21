@@ -83,6 +83,10 @@ void CAEONLines::ApplyDiff (const CAEONTextLinesDiff& Diff)
 //	Applies difference.
 
 	{
+#ifdef DEBUG_DIFF
+	printf("Cur lines: %d\n", m_Lines.GetCount());
+#endif
+
 	int iCurLine = 0;
 	for (int i = 0; i < Diff.GetCount(); i++)
 		{
@@ -93,12 +97,18 @@ void CAEONLines::ApplyDiff (const CAEONTextLinesDiff& Diff)
 			case CAEONTextLinesDiff::EType::Delete:
 				{
 				int iCount = Op.dParam;
+#ifdef DEBUG_DIFF
+				printf("Delete %d at %d.\n", iCount, iCurLine);
+#endif
 				m_Lines.Delete(iCurLine, iCount);
 				break;
 				}
 
 			case CAEONTextLinesDiff::EType::Insert:
 				{
+#ifdef DEBUG_DIFF
+				printf("Insert at %d\n", iCurLine);
+#endif
 				m_Lines.Insert(Op.dParam, iCurLine);
 				iCurLine++;
 				break;
@@ -374,7 +384,7 @@ TArray<CString> CAEONLines::SplitBuffer (const IMemoryBlock& Buffer)
 
 		const char* pLineStart = pPos;
 		while (pPos < pEnd
-				&& *pPos != '\n' && *pPos != '\r' && (*pPos == '\t' || *pPos >= ' '))
+				&& (*pPos == '\t' || (BYTE)*pPos >= (BYTE)' '))
 			pPos++;
 
 		//	Add to the current line.
