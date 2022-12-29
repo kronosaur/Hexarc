@@ -81,6 +81,18 @@ TDatumMethodHandler<int> CAEONNilImpl::m_Methods = {
 			},
 		},
 	{
+		"sort",
+		"*",
+		".sort() -> sorted array, ascending\n"
+		".sort(-1) -> sorted array, descending\n",
+		0,
+		[](int& iDummy, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+			{
+			retdResult = CDatum(CDatum::typeArray);
+			return true;
+			},
+		},
+	{
 		"split",
 		"*",
 		".split() -> array",
