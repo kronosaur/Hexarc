@@ -306,6 +306,15 @@ class CAEONStringImpl
 			{ return m_Methods.InvokeMethod(sValue, sMethod, Ctx, dLocalEnv, CDatum(), retdResult); }
 
 	private:
+		static CDatum CreateSplitItem (const char *pStart, const char *pEnd);
+		static CDatum ExecuteSplit (const CString& sString, const CString& sDelimiter);
+		static CDatum ExecuteSplitByArray (const CString& sString, CDatum dDelimiters);
+		static CDatum ExecuteSplitChars (const CString& sString);
+		static CDatum ExecuteSplitDoubleLine (const CString& sString);
+		static CDatum ExecuteSplitLines (const CString& sString);
+		static CDatum ExecuteSplitWhitespace (const CString& sString);
+		static bool StartsWith (const char *pSrc, const char *pSrcEnd, const CString& sValue);
+
 		static TDatumPropertyHandler<CString> m_Properties;
 		static TDatumMethodHandler<CString> m_Methods;
 	};

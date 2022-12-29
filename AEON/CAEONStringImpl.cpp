@@ -5,6 +5,15 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(FIELD_TYPE,						"type");
+
+DECLARE_CONST_STRING(TYPE_DOUBLE_LINE,					"doubleLine");
+DECLARE_CONST_STRING(TYPE_LINE,							"line");
+DECLARE_CONST_STRING(TYPE_WHITESPACE,					"whitespace");
+
+DECLARE_CONST_STRING(ERR_INVALID_SPLIT_TYPE,			"Invalid split type: %s.");
+DECLARE_CONST_STRING(ERR_INVALID_PARAM,					"Invalid parameter: %s.");
+
 TDatumPropertyHandler<CString> CAEONStringImpl::m_Properties = {
 	{
 		"bytes",
@@ -31,18 +40,7 @@ TDatumPropertyHandler<CString> CAEONStringImpl::m_Properties = {
 		"Returns an array of Unicode characters.",
 		[](const CString& sValue, const CString &sProperty)
 			{
-			CDatum dResult(CDatum::typeArray);
-			dResult.GrowToFit(sValue.GetLength());
-
-			const char *pPos = sValue.GetParsePointer();
-			const char *pEndPos = pPos + sValue.GetLength();
-			while (pPos < pEndPos)
-				{
-				UTF32 dwCodePoint = strParseUTF8Char(&pPos, pEndPos);
-				dResult.Append(CDatum(strEncodeUTF8Char(dwCodePoint)));
-				}
-
-			return dResult;
+			return ExecuteSplitChars(sValue);
 			},
 		NULL,
 		},
@@ -150,6 +148,71 @@ TDatumMethodHandler<CString> CAEONStringImpl::m_Methods = {
 			},
 		},
 	{
+		"split",
+		"*",
+		".split() -> array of chars.\n"
+		".split(string) -> array.\n"
+		".split(arrayOfStrings) -> array.\n"
+		".split(options) -> array.\n\n"
+
+		"options:\n\n"
+
+		"type: One of\n\n"
+
+		"   doubleLine\n"
+		"   line\n"
+		"   whitespace\n",
+		0,
+		[](CString& sValue, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+			{
+			CDatum dOptions = dLocalEnv.GetElement(1);
+			if (dOptions.IsNil())
+				{
+				retdResult = ExecuteSplitChars(sValue);
+				return true;
+				}
+			else if (dOptions.GetBasicType() == CDatum::typeString)
+				{
+				retdResult = ExecuteSplit(sValue, (const CString&)dOptions);
+				return true;
+				}
+			else if (dOptions.GetBasicType() == CDatum::typeArray)
+				{
+				retdResult = ExecuteSplitByArray(sValue, dOptions);
+				return true;
+				}
+			else if (dOptions.GetBasicType() == CDatum::typeStruct)
+				{
+				const CString& sType = dOptions.GetElement(FIELD_TYPE);
+				if (strEqualsNoCase(sType, TYPE_DOUBLE_LINE))
+					{
+					retdResult = ExecuteSplitDoubleLine(sValue);
+					return true;
+					}
+				else if (strEqualsNoCase(sType, TYPE_LINE))
+					{
+					retdResult = ExecuteSplitLines(sValue);
+					return true;
+					}
+				else if (strEqualsNoCase(sType, TYPE_WHITESPACE))
+					{
+					retdResult = ExecuteSplitWhitespace(sValue);
+					return true;
+					}
+				else
+					{
+					retdResult = strPattern(ERR_INVALID_SPLIT_TYPE, sType);
+					return false;
+					}
+				}
+			else
+				{
+				retdResult = strPattern(ERR_INVALID_PARAM, dOptions.AsString());
+				return false;
+				}
+			},
+		},
+	{
 		"toLowerCase",
 		"*",
 		".toLowerCase() -> string in lowercase.",
@@ -202,6 +265,248 @@ void CAEONStringImpl::CalcSliceParams (CDatum dStart, CDatum dEnd, int iLength, 
 		}
 	}
 
+CDatum CAEONStringImpl::CreateSplitItem (const char *pStart, const char *pEnd)
+
+//	CreateSplitItem
+//
+//	Creates an item.
+
+	{
+	//	If null, we generate a null item (instead of an empty string), because
+	//	we want to capture the semantic that the item is missing.
+
+	if (pStart == pEnd)
+		return CDatum();
+	else
+		return CDatum(CString(pStart, pEnd - pStart));
+	}
+
+CDatum CAEONStringImpl::ExecuteSplit (const CString& sString, const CString& sDelimiter)
+
+//	ExecuteSplit
+//
+//	Splits a string by a single delimiter.
+
+	{
+	CDatum dResult(CDatum::typeArray);
+
+	const char *pSrc = sString.GetParsePointer();
+	const char *pSrcEnd = pSrc + sString.GetLength();
+
+	const char *pStart = pSrc;
+	while (pSrc < pSrcEnd)
+		{
+		if (StartsWith(pSrc, pSrcEnd, sDelimiter))
+			{
+			dResult.Append(CreateSplitItem(pStart, pSrc));
+
+			pSrc += sDelimiter.GetLength();
+			pStart = pSrc;
+			}
+		else
+			{
+			pSrc++;
+			}
+		}
+
+	dResult.Append(CreateSplitItem(pStart, pSrc));
+
+	return dResult;
+	}
+
+CDatum CAEONStringImpl::ExecuteSplitByArray (const CString& sString, CDatum dDelimiters)
+
+//	ExecuteSplitByArray
+//
+//	Splits a string by an array of delimiters.
+
+	{
+	CDatum dResult(CDatum::typeArray);
+
+	const char *pSrc = sString.GetParsePointer();
+	const char *pSrcEnd = pSrc + sString.GetLength();
+
+	const char *pStart = pSrc;
+	while (pSrc < pSrcEnd)
+		{
+		//	See if any of the array delimiters match.
+
+		bool bMatch = false;
+		for (int i = 0; i < dDelimiters.GetCount(); i++)
+			{
+			const CString& sDelimiter = dDelimiters.GetElement(i);
+
+			if (StartsWith(pSrc, pSrcEnd, sDelimiter))
+				{
+				dResult.Append(CreateSplitItem(pStart, pSrc));
+
+				pSrc += sDelimiter.GetLength();
+				pStart = pSrc;
+
+				bMatch = true;
+				break;
+				}
+			}
+
+		if (!bMatch)
+			{
+			pSrc++;
+			}
+		}
+
+	dResult.Append(CreateSplitItem(pStart, pSrc));
+
+	return dResult;
+	}
+
+CDatum CAEONStringImpl::ExecuteSplitChars (const CString& sString)
+
+//	ExecuteSplitChars
+//
+//	Split a string into an array of characters.
+
+	{
+	CDatum dResult(CDatum::typeArray);
+	dResult.GrowToFit(sString.GetLength());
+
+	const char *pPos = sString.GetParsePointer();
+	const char *pEndPos = pPos + sString.GetLength();
+	while (pPos < pEndPos)
+		{
+		UTF32 dwCodePoint = strParseUTF8Char(&pPos, pEndPos);
+		dResult.Append(CDatum(strEncodeUTF8Char(dwCodePoint)));
+		}
+
+	return dResult;
+	}
+
+CDatum CAEONStringImpl::ExecuteSplitDoubleLine (const CString& sString)
+
+//	ExecuteSplitDoubleLine
+//
+//	Splits a string into lines.
+
+	{
+	CDatum dResult(CDatum::typeArray);
+
+	const char *pPos = sString.GetParsePointer();
+	const char *pEndPos = pPos + sString.GetLength();
+
+	const char *pStart = pPos;
+	while (pPos < pEndPos)
+		{
+		if (pPos[0] == '\n' && pPos[1] == '\n')
+			{
+			dResult.Append(CreateSplitItem(pStart, pPos));
+
+			pPos += 2;
+			pStart = pPos;
+			}
+		else if (pPos[0] == '\n' && pPos[1] == '\r' && pPos + 4 <= pEndPos && pPos[2] == '\n' && pPos[3] == '\r')
+			{
+			dResult.Append(CreateSplitItem(pStart, pPos));
+
+			pPos += 4;
+			pStart = pPos;
+			}
+		else if (pPos[0] == '\r' && pPos[1] == '\r')
+			{
+			dResult.Append(CreateSplitItem(pStart, pPos));
+
+			pPos += 2;
+			pStart = pPos;
+			}
+		else if (pPos[0] == '\r' && pPos[1] == '\n' && pPos + 4 <= pEndPos && pPos[2] == '\r' && pPos[3] == '\n')
+			{
+			dResult.Append(CreateSplitItem(pStart, pPos));
+
+			pPos += 4;
+			pStart = pPos;
+			}
+		else
+			pPos++;
+		}
+
+	dResult.Append(CreateSplitItem(pStart, pPos));
+	return dResult;
+	}
+
+CDatum CAEONStringImpl::ExecuteSplitLines (const CString& sString)
+
+//	ExecuteSplitLines
+//
+//	Splits a string into lines.
+
+	{
+	CDatum dResult(CDatum::typeArray);
+
+	const char *pPos = sString.GetParsePointer();
+	const char *pEndPos = pPos + sString.GetLength();
+
+	const char *pStart = pPos;
+	while (pPos < pEndPos)
+		{
+		if (*pPos == '\n')
+			{
+			dResult.Append(CreateSplitItem(pStart, pPos));
+
+			pPos++;
+			if (*pPos == '\r')
+				pPos++;
+
+			pStart = pPos;
+			}
+		else if (*pPos == '\r')
+			{
+			dResult.Append(CreateSplitItem(pStart, pPos));
+
+			pPos++;
+			if (*pPos == '\n')
+				pPos++;
+
+			pStart = pPos;
+			}
+		else
+			pPos++;
+		}
+
+	dResult.Append(CreateSplitItem(pStart, pPos));
+	return dResult;
+	}
+
+CDatum CAEONStringImpl::ExecuteSplitWhitespace (const CString& sString)
+
+//	ExecuteSplitWhitespace
+//
+//	Splits a string by whitespace.
+
+	{
+	CDatum dResult(CDatum::typeArray);
+
+	const char *pPos = sString.GetParsePointer();
+	const char *pEndPos = pPos + sString.GetLength();
+
+	const char *pStart = pPos;
+	while (pPos < pEndPos)
+		{
+		if (strIsWhitespace(pPos))
+			{
+			dResult.Append(CreateSplitItem(pStart, pPos));
+
+			pPos++;
+			while (strIsWhitespace(pPos))
+				pPos++;
+
+			pStart = pPos;
+			}
+		else
+			pPos++;
+		}
+
+	dResult.Append(CreateSplitItem(pStart, pPos));
+	return dResult;
+	}
+
 CDatum CAEONStringImpl::GetElementAt (const CString& sValue, CAEONTypeSystem &TypeSystem, CDatum dIndex)
 
 //	GetElementAt
@@ -233,4 +538,26 @@ CDatum CAEONStringImpl::GetElementAt (const CString& sValue, CAEONTypeSystem &Ty
 		}
 	else
 		return CDatum();
+	}
+
+bool CAEONStringImpl::StartsWith (const char *pSrc, const char *pSrcEnd, const CString& sValue)
+
+//	StartsWith
+//
+//	Returns TRUE if sValue is the given start.
+
+	{
+	const char *pValue = sValue.GetParsePointer();
+	const char *pValueEnd = pValue + sValue.GetLength();
+
+	while (pSrc < pSrcEnd && pValue < pValueEnd)
+		{
+		if (*pSrc != *pValue)
+			return false;
+
+		pSrc++;
+		pValue++;
+		}
+
+	return (pValue == pValueEnd) && (pSrc <= pSrcEnd);
 	}

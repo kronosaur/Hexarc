@@ -2518,7 +2518,7 @@ CDatum CDatum::GetElement (const CString &sKey) const
 		{
 		case AEON_TYPE_STRING:
 			if (m_dwData == 0)
-				return CDatum();
+				return CAEONNilImpl::GetElement(sKey);
 			else
 				return CAEONStringImpl::GetElement(raw_GetString(), sKey);
 

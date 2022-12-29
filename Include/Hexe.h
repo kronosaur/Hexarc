@@ -354,7 +354,6 @@ class CHexeProcess : public IInvokeCtx
 		CDatum ExecuteMakeArrayFromStack (int iElements);
 		static bool ExecuteMakeFlagsFromArray (CDatum dOptions, CDatum dMap, CDatum *retdResult);
 		bool ExecuteObjectMemberItem (CDatum dObject, const CString &sField, CDatum &retdResult);
-		void ExecuteNilMemberItem (const CString &sField);
 		static CDatum ExecuteOpAdd (CDatum dLeft, CDatum dRight);
 		static CDatum ExecuteOpAddCompatible (CDatum dLeft, CDatum dRight, bool bConcatenateStrings);
 		static CDatum ExecuteOpConcat (CDatum dLeft, CDatum dRight);
