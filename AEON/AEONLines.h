@@ -16,6 +16,8 @@ class CAEONLines : public IComplexDatum, public IAEONTextLines
 		//	IAEONTextLines
 
 		virtual void ApplyDiff (const CAEONTextLinesDiff& Diff) override;
+		virtual const CString& GetLine (int iLine) const { return (iLine >= 0 && iLine < m_Lines.GetCount() ? m_Lines[iLine] : NULL_STR); }
+		virtual int GetLineCount () const { return m_Lines.GetCount(); }
 		virtual SequenceNumber GetSeq () const override { return m_Seq; }
 		virtual void SetSeq (SequenceNumber Seq) override { m_Seq = Seq; }
 
@@ -38,7 +40,7 @@ class CAEONLines : public IComplexDatum, public IAEONTextLines
 		virtual void GrowToFit (int iCount) override;
 		virtual bool IsArray (void) const override { return true; }
 		virtual bool IsContainer () const override { return true; }
-		virtual bool IsNil (void) const override { return (GetCount() == 0); }
+		virtual bool IsNil (void) const override { return (GetCount() == 0) || (GetCount() == 1 && m_Lines[0].IsEmpty()); }
 		virtual void ResolveDatatypes (const CAEONTypeSystem &TypeSystem) override { }
 		virtual void Sort (ESortOptions Order = AscendingSort, TArray<CDatum>::COMPAREPROC pfCompare = NULL, void *pCtx = NULL) override { throw CException(errFail); }
 		virtual void SetElement (int iIndex, CDatum dDatum) override;

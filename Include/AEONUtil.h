@@ -196,18 +196,25 @@ class TDatumMethodHandler
 				}
 			}
 
-		CDatum GetMethod (const CString &sMethod)
+		int FindMethod (const CString& sMethod)
 			{
-			auto* pEntry = m_Table.GetAt(sMethod);
-			if (!pEntry)
-				return CDatum();
+			int* pEntry = m_Table.GetAt(sMethod);
+			if (pEntry)
+				return *pEntry;
+			else
+				return -1;
+			}
 
-			auto& Method = m_Methods[*pEntry];
+		CDatum GetMethod (int iIndex)
+			{
+			ASSERT(iIndex >= 0 && iIndex < m_Table.GetCount());
+
+			auto& Method = m_Methods[iIndex];
 			if (Method.dFunc.IsNil())
 				{
 				SAEONLibraryFunctionCreate Create;
 				Create.sName = Method.sName;
-				Create.dwData = *pEntry;
+				Create.dwData = iIndex;
 				Create.dwExecutionRights = Method.dwExecutionRights;
 
 				//	LATER: This should be a fully defined type.
@@ -255,6 +262,25 @@ class TDatumMethodHandler
 			return Method.dFunc;
 			}
 
+		bool GetMethod (const CString& sMethod, CDatum& retdMethod)
+			{
+			int* pEntry = m_Table.GetAt(sMethod);
+			if (!pEntry)
+				return false;
+
+			retdMethod = GetMethod(*pEntry);
+			return true;
+			}
+
+		CDatum GetMethod (const CString &sMethod)
+			{
+			auto* pEntry = m_Table.GetAt(sMethod);
+			if (!pEntry)
+				return CDatum();
+
+			return GetMethod(*pEntry);
+			}
+
 		CDatum GetStaticMethod (const CString &sMethod)
 			{
 			auto* pEntry = m_Table.GetAt(sMethod);
@@ -292,8 +318,10 @@ class TDatumMethodHandler
 			return Method.dFunc;
 			}
 
-		bool InvokeMethod (CDatum dObj, const CString &sMethod, IInvokeCtx &Ctx, CDatum dLocalEnv, CDatum dContinueCtx, CDatum &retdResult)
+		bool InvokeMethod (CDatum dObj, int iIndex, IInvokeCtx &Ctx, CDatum dLocalEnv, CDatum dContinueCtx, CDatum &retdResult)
 			{
+			ASSERT(iIndex >= 0 && iIndex < m_Table.GetCount());
+
 			void* pObj = dObj.GetMethodThis();
 			if (!pObj)
 				{
@@ -302,6 +330,11 @@ class TDatumMethodHandler
 				return false;
 				}
 
+			return m_Methods[iIndex].fnInvoke(*(OBJ *)pObj, Ctx, m_Methods[iIndex].sName, dLocalEnv, dContinueCtx, retdResult);
+			}
+
+		bool InvokeMethod (CDatum dObj, const CString &sMethod, IInvokeCtx &Ctx, CDatum dLocalEnv, CDatum dContinueCtx, CDatum &retdResult)
+			{
 			auto *pEntry = m_Table.GetAt(sMethod);
 			if (!pEntry)
 				{
@@ -309,7 +342,17 @@ class TDatumMethodHandler
 				return false;
 				}
 
-			return m_Methods[*pEntry].fnInvoke(*(OBJ *)pObj, Ctx, sMethod, dLocalEnv, dContinueCtx, retdResult);
+			return InvokeMethod(dObj, *pEntry, Ctx, dLocalEnv, dContinueCtx, retdResult);
+			}
+
+		bool InvokeMethod (CDatum dObj, const CString& sMethod, IInvokeCtx& Ctx, CDatum dLocalEnv, CDatum dContinueCtx, bool& retbResult, CDatum& retdResult)
+			{
+			auto *pEntry = m_Table.GetAt(sMethod);
+			if (!pEntry)
+				return false;
+
+			retbResult = InvokeMethod(dObj, *pEntry, Ctx, dLocalEnv, dContinueCtx, retdResult);
+			return true;
 			}
 
 		bool InvokeStaticMethod (const CString &sMethod, IInvokeCtx &Ctx, CDatum dLocalEnv, CDatum dContinueCtx, CDatum &retdResult)

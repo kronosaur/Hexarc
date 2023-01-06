@@ -144,6 +144,10 @@ class IAEONTextLines
 	public:
 
 		virtual void ApplyDiff (const CAEONTextLinesDiff& Diff) { throw CException(errFail); }
+		int Compare (const IAEONTextLines& Src) const;
+		int CompareNoCase (const IAEONTextLines& Src) const;
+		virtual const CString& GetLine (int iLine) const { return NULL_STR; }
+		virtual int GetLineCount () const { return 0; }
 		virtual SequenceNumber GetSeq () const { return 0; }
 		virtual void SetSeq (SequenceNumber Seq) { throw CException(errFail); }
 	};

@@ -2478,6 +2478,19 @@ bool CHexeProcess::ExecuteIsEquivalent (CDatum dValue1, CDatum dValue2)
 			case CDatum::typeVector2D:
 				return (const CVector2D&)dValue1 == (const CVector2D&)dValue2;
 
+			case CDatum::typeTextLines:
+				{
+				const IAEONTextLines *pLines1 = dValue1.GetTextLinesInterface();
+				if (!pLines1)
+					return false;
+
+				const IAEONTextLines *pLines2 = dValue2.GetTextLinesInterface();
+				if (!pLines2)
+					return false;
+
+				return (pLines1->CompareNoCase(*pLines2) == 0);
+				}
+
 			default:
 				return false;
 			}
@@ -2520,6 +2533,32 @@ bool CHexeProcess::ExecuteIsEquivalent (CDatum dValue1, CDatum dValue2)
 		return (Number1.IsValidNumber()
 				&& Number2.IsValidNumber()
 				&& Number1.Compare(Number2) == 0);
+		}
+
+	//	If one of the types is a string, then compare as strings.
+
+	else if (iType1 == CDatum::typeString)
+		{
+		switch (iType2)
+			{
+			case CDatum::typeTextLines:
+				return strEqualsNoCase(dValue1, dValue2.AsString());
+
+			default:
+				return false;
+			}
+		}
+
+	else if (iType2 == CDatum::typeString)
+		{
+		switch (iType1)
+			{
+			case CDatum::typeTextLines:
+				return strEqualsNoCase(dValue1.AsString(), dValue2);
+
+			default:
+				return false;
+			}
 		}
 
 	//	Otherwise, cannot compare
@@ -2633,6 +2672,19 @@ bool CHexeProcess::ExecuteIsIdentical (CDatum dValue1, CDatum dValue2)
 
 			case CDatum::typeVector2D:
 				return (const CVector2D&)dValue1 == (const CVector2D&)dValue2;
+
+			case CDatum::typeTextLines:
+				{
+				const IAEONTextLines *pLines1 = dValue1.GetTextLinesInterface();
+				if (!pLines1)
+					return false;
+
+				const IAEONTextLines *pLines2 = dValue2.GetTextLinesInterface();
+				if (!pLines2)
+					return false;
+
+				return (pLines1->Compare(*pLines2) == 0);
+				}
 
 			default:
 				return false;

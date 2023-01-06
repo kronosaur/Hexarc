@@ -159,6 +159,9 @@
     <ClCompile Include="CAEONTextLinesSelection.cpp">
       <Filter>Source Files\TextLines</Filter>
     </ClCompile>
+    <ClCompile Include="IAEONTextLines.cpp">
+      <Filter>Source Files\TextLines</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Include\AEON.h">

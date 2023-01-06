@@ -225,6 +225,7 @@
     <ClCompile Include="CDatum.cpp" />
     <ClCompile Include="HTTP.cpp" />
     <ClCompile Include="IAEONTable.cpp" />
+    <ClCompile Include="IAEONTextLines.cpp" />
     <ClCompile Include="IComplexDatum.cpp" />
     <ClCompile Include="IDatatype.cpp" />
     <ClCompile Include="JSON.cpp" />
