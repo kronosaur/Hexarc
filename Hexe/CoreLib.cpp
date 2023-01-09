@@ -268,7 +268,12 @@ DECLARE_CONST_STRING(STR_UPPERCASE_NAME,				"uppercase")
 DECLARE_CONST_STRING(STR_UPPERCASE_ARGS,				"*")
 DECLARE_CONST_STRING(STR_UPPERCASE_HELP,				"(uppercase string) -> string")
 
-const DWORD STR_URL_PARAM =								17;
+const DWORD STR_URL_DECODE =							17;
+DECLARE_CONST_STRING(STR_URL_DECODE_NAME,				"urlDecode")
+DECLARE_CONST_STRING(STR_URL_DECODE_ARGS,				"*")
+DECLARE_CONST_STRING(STR_URL_DECODE_HELP,				"(urlDecode string) -> string")
+
+const DWORD STR_URL_PARAM =								18;
 DECLARE_CONST_STRING(STR_URL_PARAM_NAME,				"urlParam")
 DECLARE_CONST_STRING(STR_URL_PARAM_ARGS,				"*")
 DECLARE_CONST_STRING(STR_URL_PARAM_HELP,				"(urlParam string) -> string")
@@ -400,6 +405,7 @@ SLibraryFuncDef g_CoreLibraryDef[] =
 	DECLARE_DEF_LIBRARY_FUNC(STR_TO_JSON, coreStrings, 0),
 	DECLARE_DEF_LIBRARY_FUNC(STR_TYPE_OF, coreStrings, 0),
 	DECLARE_DEF_LIBRARY_FUNC(STR_UPPERCASE, coreStrings, 0),
+	DECLARE_DEF_LIBRARY_FUNC(STR_URL_DECODE, coreStrings, 0),
 	DECLARE_DEF_LIBRARY_FUNC(STR_URL_PARAM, coreStrings, 0),
 
 	DECLARE_DEF_LIBRARY_FUNC(SYS_TICKS, coreSystem, 0),
@@ -1846,6 +1852,12 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 				*retdResult = CDatum();
 			else
 				*retdResult = strToUpper(sString);
+			return true;
+			}
+
+		case STR_URL_DECODE:
+			{
+			*retdResult = urlDecode(dLocalEnv.GetElement(0).AsString());
 			return true;
 			}
 
