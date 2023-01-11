@@ -66,6 +66,18 @@ TDatumPropertyHandler<CString> CAEONStringImpl::m_Properties = {
 
 TDatumMethodHandler<CString> CAEONStringImpl::m_Methods = {
 	{
+		"endsWith",
+		"*",
+		".endsWith(string) -> true/false",
+		0,
+		[](CString& sValue, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+			{
+			CString sStr = dLocalEnv.GetElement(1).AsString();
+			retdResult = CDatum(strEndsWithNoCase(sValue, sStr));
+			return true;
+			},
+		},
+	{
 		"find",
 		"*",
 		".find(x) -> Finds offset of x in string.",
@@ -210,6 +222,18 @@ TDatumMethodHandler<CString> CAEONStringImpl::m_Methods = {
 				retdResult = strPattern(ERR_INVALID_PARAM, dOptions.AsString());
 				return false;
 				}
+			},
+		},
+	{
+		"startsWith",
+		"*",
+		".startsWith(string) -> true/false",
+		0,
+		[](CString& sValue, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+			{
+			CString sStr = dLocalEnv.GetElement(1).AsString();
+			retdResult = CDatum(strStartsWithNoCase(sValue, sStr));
+			return true;
 			},
 		},
 	{

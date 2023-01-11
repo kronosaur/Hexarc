@@ -37,6 +37,17 @@ TDatumPropertyHandler<int> CAEONNilImpl::m_Properties = {
 
 TDatumMethodHandler<int> CAEONNilImpl::m_Methods = {
 	{
+		"endsWith",
+		"*",
+		".endsWith(string) -> true/false",
+		0,
+		[](int& iDummy, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+			{
+			retdResult = dLocalEnv.GetElement(0).IsNil();
+			return true;
+			},
+		},
+	{
 		"find",
 		"*",
 		".find(x) -> Finds offset of x in string.",
@@ -100,6 +111,17 @@ TDatumMethodHandler<int> CAEONNilImpl::m_Methods = {
 		[](int& iDummy, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
 			{
 			retdResult = CDatum(CDatum::typeArray);
+			return true;
+			},
+		},
+	{
+		"startsWith",
+		"*",
+		".startsWith(string) -> true/false",
+		0,
+		[](int& iDummy, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+			{
+			retdResult = dLocalEnv.GetElement(0).IsNil();
 			return true;
 			},
 		},

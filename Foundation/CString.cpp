@@ -1285,6 +1285,18 @@ bool strEndsWith (const CString &sString, const CString &sPartial)
 	return true;
 	}
 
+bool strEndsWithNoCase (const CString &sString, const CString &sPartial)
+
+//	strEndsWith
+//
+//	Returns TRUE if sString ends with sPartial
+
+	{
+	CString sStringNoCase = strToLower(sString);
+	CString sPartialNoCase = strToLower(sPartial);
+	return strEndsWith(sStringNoCase, sPartialNoCase);
+	}
+
 bool strEquals (const char *pKey1, const char *pKey2)
 
 //	strEquals
