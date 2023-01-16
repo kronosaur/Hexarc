@@ -68,7 +68,7 @@ TDatumMethodHandler<CString> CAEONStringImpl::m_Methods = {
 	{
 		"endsWith",
 		"*",
-		".endsWith(string) -> true/false",
+		".endsWith(string) -> true/false (case insensitive)",
 		0,
 		[](CString& sValue, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
 			{
@@ -78,9 +78,21 @@ TDatumMethodHandler<CString> CAEONStringImpl::m_Methods = {
 			},
 		},
 	{
+		"endsWithExact",
+		"*",
+		".endsWithExact(string) -> true/false (case sensitive)",
+		0,
+		[](CString& sValue, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+			{
+			CString sStr = dLocalEnv.GetElement(1).AsString();
+			retdResult = CDatum(strEndsWith(sValue, sStr));
+			return true;
+			},
+		},
+	{
 		"find",
 		"*",
-		".find(x) -> Finds offset of x in string.",
+		".find(x) -> Finds offset of x in string (case insensitive).",
 		0,
 		[](CString& sValue, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
 			{
@@ -92,6 +104,31 @@ TDatumMethodHandler<CString> CAEONStringImpl::m_Methods = {
 				}
 
 			int iIndex = strFindNoCase(sValue, dValueToFind.AsString());
+			if (iIndex == -1)
+				{
+				retdResult = CDatum();
+				return true;
+				}
+
+			retdResult = iIndex;
+			return true;
+			},
+		},
+	{
+		"findExact",
+		"*",
+		".findExact(x) -> Finds offset of x in string (case sensitive).",
+		0,
+		[](CString& sValue, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+			{
+			CDatum dValueToFind = dLocalEnv.GetElement(1);
+			if (dValueToFind.IsNil())
+				{
+				retdResult = CDatum();
+				return true;
+				}
+
+			int iIndex = strFind(sValue, dValueToFind.AsString());
 			if (iIndex == -1)
 				{
 				retdResult = CDatum();
@@ -227,12 +264,24 @@ TDatumMethodHandler<CString> CAEONStringImpl::m_Methods = {
 	{
 		"startsWith",
 		"*",
-		".startsWith(string) -> true/false",
+		".startsWith(string) -> true/false (case insensitive)",
 		0,
 		[](CString& sValue, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
 			{
 			CString sStr = dLocalEnv.GetElement(1).AsString();
 			retdResult = CDatum(strStartsWithNoCase(sValue, sStr));
+			return true;
+			},
+		},
+	{
+		"startsWithExact",
+		"*",
+		".startsWithExact(string) -> true/false (case sensitive)",
+		0,
+		[](CString& sValue, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+			{
+			CString sStr = dLocalEnv.GetElement(1).AsString();
+			retdResult = CDatum(strStartsWith(sValue, sStr));
 			return true;
 			},
 		},

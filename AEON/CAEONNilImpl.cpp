@@ -39,7 +39,18 @@ TDatumMethodHandler<int> CAEONNilImpl::m_Methods = {
 	{
 		"endsWith",
 		"*",
-		".endsWith(string) -> true/false",
+		".endsWith(string) -> true/false (case insensitive)",
+		0,
+		[](int& iDummy, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+			{
+			retdResult = dLocalEnv.GetElement(0).IsNil();
+			return true;
+			},
+		},
+	{
+		"endsWithExact",
+		"*",
+		".endsWithExact(string) -> true/false (case sensitive)",
 		0,
 		[](int& iDummy, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
 			{
@@ -50,11 +61,33 @@ TDatumMethodHandler<int> CAEONNilImpl::m_Methods = {
 	{
 		"find",
 		"*",
-		".find(x) -> Finds offset of x in string.",
+		".find(x) -> Finds offset of x in string (case insensitive).",
 		0,
 		[](int& iDummy, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
 			{
 			retdResult = CDatum();
+			return true;
+			},
+		},
+	{
+		"findExact",
+		"*",
+		".findExact(x) -> Finds offset of x in string (case sensitive).",
+		0,
+		[](int& iDummy, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+			{
+			retdResult = CDatum();
+			return true;
+			},
+		},
+	{
+		"join",
+		"*",
+		".join([separator, [lastSeparator]]) -> string.",
+		0,
+		[](int& iDummy, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+			{
+			retdResult = CDatum(NULL_STR);
 			return true;
 			},
 		},
@@ -117,7 +150,18 @@ TDatumMethodHandler<int> CAEONNilImpl::m_Methods = {
 	{
 		"startsWith",
 		"*",
-		".startsWith(string) -> true/false",
+		".startsWith(string) -> true/false (case insensitive)",
+		0,
+		[](int& iDummy, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+			{
+			retdResult = dLocalEnv.GetElement(0).IsNil();
+			return true;
+			},
+		},
+	{
+		"startsWithExact",
+		"*",
+		".startsWithExact(string) -> true/false (case sensitive)",
 		0,
 		[](int& iDummy, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
 			{
