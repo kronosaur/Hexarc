@@ -292,6 +292,9 @@ class CDatum
 		bool IsNaN () const { return (m_dwData == CONST_NAN); }
 		bool IsNil () const;
 		void Mark ();
+		int OpCompare (CDatum dValue) const;
+		bool OpIsEqual (CDatum dValue) const;
+		bool OpIsIdentical (CDatum dValue) const;
 		void ResolveDatatypes (const CAEONTypeSystem &TypeSystem);
 		void Serialize (EFormat iFormat, IByteStream &Stream) const;
 		CString SerializeToString (EFormat iFormat) const;
@@ -456,6 +459,9 @@ class IComplexDatum
 		virtual bool IsMemoryBlock () const { const CString &sData = CastCString(); return (sData.GetLength() > 0); }
 		virtual bool IsNil () const { return false; }
 		void Mark () { if (!m_bMarked) { m_bMarked = true; OnMarked(); } }	//	Check m_bMarked to avoid infinite recursion
+		virtual int OpCompare (CDatum::Types iValueType, CDatum dValue) const { return KeyCompare(AsString(), dValue.AsString()); }
+		virtual bool OpIsEqual (CDatum::Types iValueType, CDatum dValue) const { return false; }
+		virtual bool OpIsIdentical (CDatum::Types iValueType, CDatum dValue) const { return false; }
 		virtual CDatum MathAbs () const { return CDatum::CreateNaN(); }
 		virtual CDatum MathAverage () const;
 		virtual CDatum MathMax () const { return CDatum::CreateNaN(); }

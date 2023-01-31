@@ -3364,6 +3364,577 @@ CDatum CDatum::MergeKeysNoCase () const
 	return dResult;
 	}
 
+int CDatum::OpCompare (CDatum dValue) const
+
+//	OpCompare
+//
+//	-1:		If dKey1 < dKey2
+//	0:		If dKey1 == dKey2
+//	1:		If dKey1 > dKey2
+
+	{
+	CDatum::Types iType1 = GetBasicType();
+	CDatum::Types iType2 = dValue.GetBasicType();
+
+	//	If both types are equal, then compare
+
+	if (iType1 == iType2)
+		{
+		switch (iType1)
+			{
+			case CDatum::typeNil:
+			case CDatum::typeTrue:
+			case CDatum::typeNaN:
+				return 0;
+
+			case CDatum::typeInteger32:
+				return KeyCompare((int)*this, (int)dValue);
+
+			case CDatum::typeInteger64:
+				return KeyCompare((DWORDLONG)*this, (DWORDLONG)dValue);
+
+			case CDatum::typeDouble:
+				return KeyCompare((double)*this, (double)dValue);
+
+			case CDatum::typeIntegerIP:
+				return KeyCompare((const CIPInteger &)*this, (const CIPInteger &)dValue);
+
+			case CDatum::typeString:
+				return KeyCompareNoCase(*this, dValue);
+
+			case CDatum::typeDateTime:
+				return KeyCompare((const CDateTime &)*this,  (const CDateTime &)dValue);
+
+			case CDatum::typeTimeSpan:
+				return KeyCompare((const CDateTime &)*this,  (const CDateTime &)dValue);
+
+			case CDatum::typeEnum:
+				{
+				//	If both the symbol and the ordinal of the enum are equal, 
+				//	then we return as equal.
+
+				int iSymbolCompare = KeyCompareNoCase(AsString(), dValue.AsString());
+				if (iSymbolCompare == 0)
+					return KeyCompare((int)*this, (int)dValue);
+				else
+					return iSymbolCompare;
+				}
+
+			case CDatum::typeArray:
+				{
+				int iCount = Min(GetCount(), dValue.GetCount());
+				for (int i = 0; i < iCount; i++)
+					{
+					int iCompare = GetElement(i).OpCompare(dValue.GetElement(i));
+					if (iCompare != 0)
+						return iCompare;
+					}
+
+				return KeyCompare(GetCount(), dValue.GetCount());
+				}
+
+			case CDatum::typeStruct:
+				{
+				int iCount = Min(GetCount(), dValue.GetCount());
+				for (int i = 0; i < iCount; i++)
+					{
+					int iCompare = KeyCompareNoCase(GetKey(i), dValue.GetKey(i));
+					if (iCompare != 0)
+						return iCompare;
+
+					iCompare = GetElement(i).OpCompare(dValue.GetElement(i));
+					if (iCompare != 0)
+						return iCompare;
+					}
+
+				return KeyCompare(GetCount(), dValue.GetCount());
+				}
+
+			case CDatum::typeDatatype:
+				return KeyCompare(((const IDatatype &)*this).GetFullyQualifiedName(), ((const IDatatype &)dValue).GetFullyQualifiedName());
+
+			default:
+				{
+				auto pComplex = GetComplex();
+				if (pComplex)
+					return pComplex->OpCompare(iType2, dValue);
+				else
+					return KeyCompare(AsString(), dValue.AsString());
+				}
+			}
+		}
+
+	//	If one of the types is a number, then compare as numbers
+
+	else if (IsNumber() || dValue.IsNumber())
+		{
+		CNumberValue Number1(*this);
+		CNumberValue Number2(dValue);
+
+		//	If either number is invalid, then it counts as 0
+
+		if (Number1.IsValidNumber()
+				&& Number2.IsValidNumber())
+			return Number1.Compare(Number2);
+		else if (Number1.IsValidNumber())
+			return Number1.Compare(CDatum(0));
+		else if (Number2.IsValidNumber())
+			return CNumberValue(CDatum(0)).Compare(Number2);
+		else
+			return 0;
+		}
+
+	//	If iType1 is nil then everything is greater than it, except nil.
+
+	else if (iType1 == CDatum::typeNil)
+		{
+		switch (iType2)
+			{
+			case CDatum::typeString:
+				return (((const CString &)dValue).IsEmpty() ? 0 : -1);
+
+			case CDatum::typeArray:
+			case CDatum::typeStruct:
+				return (dValue.GetCount() == 0 ? 0 : -1);
+
+			default:
+				return -1;
+			}
+		}
+
+	//	If iType2 is nil then everything is greater than it, except nil.
+
+	else if (iType2 == CDatum::typeNil)
+		{
+		switch (iType1)
+			{
+			case CDatum::typeString:
+				return (((const CString &)*this).IsEmpty() ? 0 : 1);
+
+			case CDatum::typeArray:
+			case CDatum::typeStruct:
+				return (GetCount() == 0 ? 0 : 1);
+
+			default:
+				return 1;
+			}
+		}
+
+	//	Otherwise, compare as strings
+
+	else
+		return KeyCompare(AsString(), dValue.AsString());
+	}
+
+bool CDatum::OpIsEqual (CDatum dValue) const
+
+//	OpIsEqual
+//
+//	Returns TRUE if the two values are equivalent.
+
+	{
+	CDatum::Types iType1 = GetBasicType();
+	CDatum::Types iType2 = dValue.GetBasicType();
+
+	//	If both types are equal, then compare
+
+	if (iType1 == iType2)
+		{
+		switch (iType1)
+			{
+			case CDatum::typeNil:
+			case CDatum::typeTrue:
+			case CDatum::typeNaN:
+				return true;
+
+			case CDatum::typeInteger32:
+				return (int)*this == (int)dValue;
+
+			case CDatum::typeInteger64:
+				return (DWORDLONG)*this == (DWORDLONG)dValue;
+
+			case CDatum::typeDouble:
+				return (double)*this == (double)dValue;
+
+			case CDatum::typeIntegerIP:
+				return ((const CIPInteger &)*this) == ((const CIPInteger &)dValue);
+
+			case CDatum::typeString:
+				return strEqualsNoCase(*this, dValue);
+
+			case CDatum::typeDateTime:
+				return ((const CDateTime &)*this) == ((const CDateTime &)dValue);
+
+			case CDatum::typeTimeSpan:
+				return ((const CTimeSpan &)*this) == ((const CTimeSpan &)dValue);
+
+			case CDatum::typeEnum:
+				//	If both the symbol and the ordinal of the enum are equal, 
+				//	then we return as equivalent (even if the datatypes don't match)
+
+				return ((int)*this == (int)dValue
+						&& strEqualsNoCase(AsString(), dValue.AsString()));
+
+			case CDatum::typeArray:
+				{
+				if (GetCount() != dValue.GetCount())
+					return false;
+
+				for (int i = 0; i < GetCount(); i++)
+					if (!GetElement(i).OpIsEqual(dValue.GetElement(i)))
+						return false;
+
+				return true;
+				}
+
+			case CDatum::typeStruct:
+				{
+				if (GetCount() != dValue.GetCount())
+					return false;
+
+				for (int i = 0; i < GetCount(); i++)
+					if (!strEqualsNoCase(GetKey(i), dValue.GetKey(i))
+							|| !GetElement(i).OpIsEqual(dValue.GetElement(i)))
+						return false;
+
+				return true;
+				}
+
+			case CDatum::typeTable:
+				{
+				CDatum dSchema1 = GetDatatype();
+				CDatum dSchema2 = dValue.GetDatatype();
+				if (!dSchema1.OpIsEqual(dSchema2))
+					return false;
+
+				const IAEONTable *pTable1 = GetTableInterface();
+				const IAEONTable *pTable2 = dValue.GetTableInterface();
+				if (pTable1 == NULL || pTable2 == NULL)
+					return false;
+
+				for (int i = 0; i < pTable1->GetColCount(); i++)
+					{
+					CDatum dCol1 = pTable1->GetCol(i);
+					CDatum dCol2 = pTable2->GetCol(i);
+
+					if (!dCol1.OpIsEqual(dCol2))
+						return false;
+					}
+
+				return true;
+				}
+
+			case CDatum::typeDatatype:
+				return (const IDatatype &)*this == (const IDatatype &)dValue;
+
+			case CDatum::typeImage32:
+				return (const CRGBA32Image&)*this == (const CRGBA32Image&)dValue;
+
+			case CDatum::typeVector2D:
+				return (const CVector2D&)*this == (const CVector2D&)dValue;
+
+			case CDatum::typeTextLines:
+				{
+				const IAEONTextLines *pLines1 = GetTextLinesInterface();
+				if (!pLines1)
+					return false;
+
+				const IAEONTextLines *pLines2 = dValue.GetTextLinesInterface();
+				if (!pLines2)
+					return false;
+
+				return (pLines1->CompareNoCase(*pLines2) == 0);
+				}
+
+			default:
+				{
+				auto pComplex = GetComplex();
+				if (pComplex)
+					return pComplex->OpIsEqual(iType2, dValue);
+				else
+					return false;
+				}
+			}
+		}
+
+	//	If one of the types is nil, then compare
+
+	else if (iType1 == CDatum::typeNil || iType2 == CDatum::typeNil)
+		{
+		CDatum dValue1 = *this;
+		CDatum dValue2 = dValue;
+
+		if (iType2 == CDatum::typeNil)
+			{
+			Swap(dValue1, dValue2);
+			Swap(iType1, iType2);
+			}
+
+		switch (iType2)
+			{
+			case CDatum::typeString:
+				return ((const CString &)dValue2).IsEmpty();
+
+			case CDatum::typeArray:
+			case CDatum::typeStruct:
+				return dValue2.GetCount() == 0;
+
+			case CDatum::typeVector2D:
+				return (const CVector2D&)dValue2 == CVector2D::Null;
+
+			default:
+				return dValue2.IsNil();
+			}
+		}
+
+	//	If one of the types is a number, then compare as numbers
+
+	else if (IsNumber() || dValue.IsNumber())
+		{
+		CNumberValue Number1(*this);
+		CNumberValue Number2(dValue);
+
+		return (Number1.IsValidNumber()
+				&& Number2.IsValidNumber()
+				&& Number1.Compare(Number2) == 0);
+		}
+
+	//	If one of the types is a string, then compare as strings.
+
+	else if (iType1 == CDatum::typeString)
+		{
+		switch (iType2)
+			{
+			case CDatum::typeTextLines:
+				return strEqualsNoCase(*this, dValue.AsString());
+
+			default:
+				return false;
+			}
+		}
+
+	else if (iType2 == CDatum::typeString)
+		{
+		switch (iType1)
+			{
+			case CDatum::typeTextLines:
+				return strEqualsNoCase(AsString(), dValue);
+
+			default:
+				return false;
+			}
+		}
+
+	//	Otherwise, cannot compare
+
+	else
+		return false;
+	}
+
+bool CDatum::OpIsIdentical (CDatum dValue) const
+
+//	OpIsIdentical
+//
+//	Returns TRUE if the two values are identical.
+
+	{
+	CDatum::Types iType1 = GetBasicType();
+	CDatum::Types iType2 = dValue.GetBasicType();
+
+	if (iType1 == iType2)
+		{
+		switch (iType1)
+			{
+			case CDatum::typeNil:
+			case CDatum::typeTrue:
+			case CDatum::typeNaN:
+				return true;
+
+			case CDatum::typeInteger32:
+				return (int)*this == (int)dValue;
+
+			case CDatum::typeInteger64:
+				return (DWORDLONG)*this == (DWORDLONG)dValue;
+
+			case CDatum::typeDouble:
+				return (double)*this == (double)dValue;
+
+			case CDatum::typeIntegerIP:
+				return ((const CIPInteger &)*this) == ((const CIPInteger &)dValue);
+
+			case CDatum::typeString:
+				//	Case-sensitive compare
+				return strEquals(*this, dValue);
+
+			case CDatum::typeDateTime:
+				return ((const CDateTime &)*this) == ((const CDateTime &)dValue);
+
+			case CDatum::typeTimeSpan:
+				return ((const CTimeSpan &)*this) == ((const CTimeSpan &)dValue);
+
+			case CDatum::typeEnum:
+				//	For it to be identical, we need both values to be the same
+				//	ordinal and datatype.
+
+				return ((const IDatatype&)(GetDatatype()) == (const IDatatype&)(dValue.GetDatatype()))
+						&& ((int)*this == (int)dValue);
+
+			case CDatum::typeArray:
+				{
+				if (GetCount() != dValue.GetCount())
+					return false;
+
+				for (int i = 0; i < GetCount(); i++)
+					if (!GetElement(i).OpIsIdentical(dValue.GetElement(i)))
+						return false;
+
+				return true;
+				}
+
+			case CDatum::typeStruct:
+				{
+				if (GetCount() != dValue.GetCount())
+					return false;
+
+				for (int i = 0; i < GetCount(); i++)
+					if (!strEqualsNoCase(GetKey(i), dValue.GetKey(i))
+							|| !GetElement(i).OpIsIdentical(dValue.GetElement(i)))
+						return false;
+
+				return true;
+				}
+
+			case CDatum::typeTable:
+				{
+				CDatum dSchema1 = GetDatatype();
+				CDatum dSchema2 = dValue.GetDatatype();
+				if (!dSchema1.OpIsIdentical(dSchema2))
+					return false;
+
+				const IAEONTable *pTable1 = GetTableInterface();
+				const IAEONTable *pTable2 = dValue.GetTableInterface();
+				if (pTable1 == NULL || pTable2 == NULL)
+					return false;
+
+				for (int i = 0; i < pTable1->GetColCount(); i++)
+					{
+					CDatum dCol1 = pTable1->GetCol(i);
+					CDatum dCol2 = pTable2->GetCol(i);
+
+					if (!dCol1.OpIsIdentical(dCol2))
+						return false;
+					}
+
+				return true;
+				}
+
+			case CDatum::typeDatatype:
+				return (const IDatatype &)*this == (const IDatatype &)dValue;
+
+			case CDatum::typeImage32:
+				return (const CRGBA32Image&)*this == (const CRGBA32Image&)dValue;
+
+			case CDatum::typeVector2D:
+				return (const CVector2D&)*this == (const CVector2D&)dValue;
+
+			case CDatum::typeTextLines:
+				{
+				const IAEONTextLines *pLines1 = GetTextLinesInterface();
+				if (!pLines1)
+					return false;
+
+				const IAEONTextLines *pLines2 = dValue.GetTextLinesInterface();
+				if (!pLines2)
+					return false;
+
+				return (pLines1->Compare(*pLines2) == 0);
+				}
+
+			default:
+				{
+				auto pComplex = GetComplex();
+				if (pComplex)
+					return pComplex->OpIsIdentical(iType2, dValue);
+				else
+					return false;
+				}
+			}
+		}
+	else
+		{
+		switch (iType1)
+			{
+			case CDatum::typeInteger32:
+				{
+				switch (iType2)
+					{
+					case CDatum::typeInteger64:
+						{
+						int iValue1 = *this;
+						DWORDLONG dwValue2 = dValue;
+						return (iValue1 >= 0 && (DWORDLONG)iValue1 == dwValue2);
+						}
+
+					case CDatum::typeIntegerIP:
+						{
+						CIPInteger Value1((int)*this);
+						return Value1 == (const CIPInteger &)dValue;
+						}
+
+					default:
+						return false;
+					}
+				}
+
+			case CDatum::typeInteger64:
+				{
+				switch (iType2)
+					{
+					case CDatum::typeInteger32:
+						{
+						int iValue2 = dValue;
+						DWORDLONG dwValue1 = *this;
+						return (iValue2 >= 0 && (DWORDLONG)iValue2 == dwValue1);
+						}
+
+					case CDatum::typeIntegerIP:
+						{
+						CIPInteger Value1((DWORDLONG)*this);
+						return Value1 == (const CIPInteger &)dValue;
+						}
+
+					default:
+						return false;
+					}
+				}
+
+			case CDatum::typeIntegerIP:
+				{
+				switch (iType2)
+					{
+					case CDatum::typeInteger32:
+						{
+						CIPInteger Value2((int)dValue);
+						return Value2 == (const CIPInteger &)*this;
+						}
+
+					case CDatum::typeInteger64:
+						{
+						CIPInteger Value2((DWORDLONG)dValue);
+						return Value2 == (const CIPInteger &)*this;
+						}
+
+					default:
+						return false;
+					}
+				}
+
+			default:
+				return false;
+			}
+		}
+	}
+
 double CDatum::raw_GetDouble (void) const
 
 //	raw_GetDouble

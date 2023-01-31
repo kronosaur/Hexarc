@@ -306,10 +306,10 @@ class CHexeProcess : public IInvokeCtx
 
 		//	Execution helpers
 		static CDatum ExecuteBinaryOp (EOpCodes iOp, CDatum dLeft, CDatum dRight);
-		static int ExecuteCompare (CDatum dValue1, CDatum dValue2);
+		static int ExecuteCompare (CDatum dValue1, CDatum dValue2) { return dValue1.OpCompare(dValue2); }
 		static CDatum ExecuteIncrement (CDatum dValue, int iInc);
-		static bool ExecuteIsEquivalent (CDatum dValue1, CDatum dValue2);
-		static bool ExecuteIsIdentical (CDatum dValue1, CDatum dValue2);
+		static bool ExecuteIsEquivalent (CDatum dValue1, CDatum dValue2) { return dValue1.OpIsEqual(dValue2); }
+		static bool ExecuteIsIdentical (CDatum dValue1, CDatum dValue2) { return dValue1.OpIsIdentical(dValue2); }
 		static CDatum ExecuteUnaryOp (EOpCodes iOp, CDatum dValue);
 		static bool ExecuteIsShortOperand (int iValue) { return iValue < 0x7f0000 && iValue > -0x800000; }
 		static CDatum ExecuteOpDivideMod (CDatum dDividend, CDatum dDivisor);
