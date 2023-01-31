@@ -410,6 +410,9 @@ class CLuminousCanvasCtx
 		CLuminousPath2D& Path () { return m_Path; }
 		CLuminousShadowStyle& Shadow () { return m_ShadowStyle; }
 
+		static CLuminousCanvasCtx Read (IByteStream& Stream);
+		void Write (IByteStream& Stream) const;
+
 	private:
 
 		CLuminousPath2D m_Path;
@@ -444,6 +447,9 @@ class CLuminousCanvasModel
 		const ILuminousGraphic& GetRenderGraphic (int iIndex) const { if (iIndex >= 0 && iIndex < m_ZOrder.GetCount()) return *m_ZOrder[iIndex]; else throw CException(errFail); }
 		ILuminousGraphic& InsertGraphic (TUniquePtr<ILuminousGraphic>&& pGraphic);
 		void SetSeq (SequenceNumber Seq);
+
+		static CLuminousCanvasModel Read (IByteStream& Stream);
+		void Write (IByteStream& Stream) const;
 
 	private:
 

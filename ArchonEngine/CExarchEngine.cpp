@@ -2171,7 +2171,7 @@ void CExarchEngine::MsgUploadUpgrade (const SArchonMessage &Msg, const CHexeSecu
 	try
 		{
 		theFile.Seek((int)dwOffset);
-		theFile.Write(dData);
+		theFile.Write((const CString&)dData);
 
 		bSuccess = true;
 		}

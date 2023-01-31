@@ -24,6 +24,9 @@ class CLuminousCanvasResources
 		void Mark ();
 		void SetSeq (SequenceNumber Seq);
 
+		static CLuminousCanvasResources Read (IByteStream& Stream);
+		void Write (IByteStream& Stream) const;
+
 	private:
 
 		struct SNamedEntry

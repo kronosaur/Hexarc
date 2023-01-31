@@ -130,6 +130,17 @@ ILuminousGraphic& CLuminousCanvasModel::InsertGraphic (TUniquePtr<ILuminousGraph
 	return Ref;
 	}
 
+CLuminousCanvasModel CLuminousCanvasModel::Read (IByteStream& Stream)
+
+//	Read
+//
+//	Read from a stream.
+
+	{
+	//	LATER...
+	return CLuminousCanvasModel();
+	}
+
 void CLuminousCanvasModel::SetSeq (SequenceNumber Seq)
 
 //	SetSeq
@@ -139,4 +150,14 @@ void CLuminousCanvasModel::SetSeq (SequenceNumber Seq)
 	{
 	for (int i = 0; i < m_Graphics.GetCount(); i++)
 		m_Graphics[i]->SetSeq(Seq);
+	}
+
+void CLuminousCanvasModel::Write (IByteStream& Stream) const
+
+//	Write
+//
+//	Write to a stream.
+
+	{
+	//	LATER...
 	}

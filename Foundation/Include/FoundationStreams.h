@@ -27,8 +27,15 @@ class IByteStream
 
 		char ReadChar (void);
 		void ReadChecked (void *pData, int iLength) { if (Read(pData, iLength) != iLength) throw CException(errNotFound); }
+		int ReadInt () { int iValue; ReadChecked(&iValue, sizeof(int)); return iValue; }
+		DWORD ReadDWORD () { DWORD dwValue; ReadChecked(&dwValue, sizeof(DWORD)); return dwValue; }
+		DWORDLONG ReadDWORDLONG () { DWORDLONG dwValue; ReadChecked(&dwValue, sizeof(DWORDLONG)); return dwValue; }
 		void SeekBackward (int iLength = 1) { Seek(GetPos() - iLength); }
 		bool HasMore (void) { return (GetPos() < GetStreamLength()); }
+		void WriteChecked (const void* pData, int iLength) { if (Write(pData, iLength) != iLength) throw CException(errFail); }
+		void Write (int iData) { this->WriteChecked(&iData, sizeof(int)); }
+		void Write (DWORD dwData) { this->WriteChecked(&dwData, sizeof(DWORD)); }
+		void Write (DWORDLONG dwData) { this->WriteChecked(&dwData, sizeof(DWORDLONG)); }
 		int Write (const CString &sString) { return this->Write((LPSTR)sString, sString.GetLength()); }
 		inline int Write (IMemoryBlock &Block);
 		int Write (const void *pData, DWORD iLength) { ASSERT(iLength < MAXINT); return this->Write(pData, (int)iLength); }

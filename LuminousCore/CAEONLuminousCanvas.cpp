@@ -976,14 +976,18 @@ size_t CAEONLuminousCanvas::OnCalcSerializeSizeAEONScript (CDatum::EFormat iForm
 	return 0;
 	}
 
-bool CAEONLuminousCanvas::OnDeserialize (CDatum::EFormat iFormat, CDatum dStruct)
+bool CAEONLuminousCanvas::OnDeserialize (CDatum::EFormat iFormat, const CString &sTypename, IByteStream &Stream)
 
 //	OnDeserialize
 //
 //	Deserialize
 
 	{
-	throw CException(errFail);
+	m_Seq = Stream.ReadDWORDLONG();
+	m_Model = CLuminousCanvasModel::Read(Stream);
+	m_DrawCtx = CLuminousCanvasCtx::Read(Stream);
+	m_Resources = CLuminousCanvasResources::Read(Stream);
+	return true;
 	}
 
 void CAEONLuminousCanvas::OnMarked (void)
@@ -1006,15 +1010,17 @@ void CAEONLuminousCanvas::OnModify ()
 	m_Seq++;
 	}
 
-void CAEONLuminousCanvas::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const
+void CAEONLuminousCanvas::OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const
 
 //	OnSerialize
 //
 //	Serialize to a structure.
 
 	{
-	//	LATER
-	throw CException(errFail);
+	Stream.Write(m_Seq);
+	m_Model.Write(Stream);
+	m_DrawCtx.Write(Stream);
+	m_Resources.Write(Stream);
 	}
 
 int CAEONLuminousCanvas::OpCompare (CDatum::Types iValueType, CDatum dValue) const

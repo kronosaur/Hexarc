@@ -81,3 +81,24 @@ void CLuminousCanvasResources::SetSeq (SequenceNumber Seq)
 	for (int i = 0; i < m_NamedResources.GetCount(); i++)
 		m_NamedResources[i].Seq = Seq;
 	}
+
+CLuminousCanvasResources CLuminousCanvasResources::Read (IByteStream& Stream)
+
+//	Read
+//
+//	Read from a stream.
+
+	{
+	//	LATER...
+	return CLuminousCanvasResources();
+	}
+
+void CLuminousCanvasResources::Write (IByteStream& Stream) const
+
+//	Write
+//
+//	Write to stream.
+
+	{
+	//	LATER...
+	}

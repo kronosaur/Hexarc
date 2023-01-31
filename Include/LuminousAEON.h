@@ -111,10 +111,9 @@ class CAEONLuminousCanvas : public TExternalDatum<CAEONLuminousCanvas>, public I
 	protected:
 
 		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const override;
-		virtual bool OnDeserialize (CDatum::EFormat iFormat, CDatum dStruct) override;
-		virtual DWORD OnGetSerializeFlags (void) const override { return FLAG_SERIALIZE_AS_STRUCT; }
+		virtual bool OnDeserialize (CDatum::EFormat iFormat, const CString &sTypename, IByteStream &Stream) override;
 		virtual void OnMarked (void) override;
-		virtual void OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const override;
+		virtual void OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
 
 	private:
 
