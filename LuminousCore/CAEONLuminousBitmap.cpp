@@ -440,15 +440,18 @@ bool CAEONLuminousBitmap::OnDeserialize (CDatum::EFormat iFormat, const CString 
 			Stream.Read(&dwColor, sizeof(DWORD));
 			m_rgbBackground = CRGBA32(dwColor);
 			
-			DWORD dwBufferSize;
-			Stream.Read(&dwBufferSize, sizeof(DWORD));
+			if ((int)dwWidth > 0 && (int)dwHeight > 0)
+				{
+				DWORD dwBufferSize;
+				Stream.Read(&dwBufferSize, sizeof(DWORD));
 
-			CBuffer Buffer;
-			Buffer.SetLength(dwBufferSize);
-			Stream.Read(Buffer.GetPointer(), Buffer.GetLength());
+				CBuffer Buffer;
+				Buffer.SetLength(dwBufferSize);
+				Stream.Read(Buffer.GetPointer(), Buffer.GetLength());
 
-			if (!CPNG::Load(Buffer, m_Image))
-				return false;
+				if (!CPNG::Load(Buffer, m_Image))
+					return false;
+				}
 
 			return true;
 			}
@@ -495,15 +498,19 @@ void CAEONLuminousBitmap::OnSerialize (CDatum::EFormat iFormat, IByteStream &Str
 			dwSave = m_rgbBackground.AsDWORD();
 			Stream.Write(&dwSave, sizeof(DWORD));
 
-			//	PNG
+			//	PNG (but only if non-zero, because this code doesn't seem to
+			//	handle 0-sized bitmaps).
 
-			CBuffer PNG;
-			CPNG::Save(m_Image, PNG);
+			if (m_Image.GetHeight() > 0 && m_Image.GetWidth() > 0)
+				{
+				CBuffer PNG;
+				CPNG::Save(m_Image, PNG);
 
-			dwSave = PNG.GetLength();
-			Stream.Write(&dwSave, sizeof(DWORD));
+				dwSave = PNG.GetLength();
+				Stream.Write(&dwSave, sizeof(DWORD));
 
-			Stream.Write(PNG);
+				Stream.Write(PNG);
+				}
 			break;
 			}
 		}
