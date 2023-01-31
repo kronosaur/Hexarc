@@ -1017,6 +1017,40 @@ void CAEONLuminousCanvas::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *
 	throw CException(errFail);
 	}
 
+int CAEONLuminousCanvas::OpCompare (CDatum::Types iValueType, CDatum dValue) const
+
+//	OpCompare
+//
+//	-1:		If dKey1 < dKey2
+//	0:		If dKey1 == dKey2
+//	1:		If dKey1 > dKey2
+
+	{
+	const IAEONCanvas *pOtherCanvas = dValue.GetCanvasInterface();
+	if (!pOtherCanvas)
+		return KeyCompare(AsString(), dValue.AsString());
+
+	CDatum dThis = RenderAsHTMLCanvasCommands(0);
+	CDatum dOther = pOtherCanvas->RenderAsHTMLCanvasCommands(0);
+	return dThis.OpCompare(dOther);
+	}
+
+bool CAEONLuminousCanvas::OpIsEqual (CDatum::Types iValueType, CDatum dValue) const
+
+//	OpIsEqual
+//
+//	Returns TRUE if we are equal to dValue.
+
+	{
+	const IAEONCanvas *pOtherCanvas = dValue.GetCanvasInterface();
+	if (!pOtherCanvas)
+		return false;
+
+	CDatum dThis = RenderAsHTMLCanvasCommands(0);
+	CDatum dOther = pOtherCanvas->RenderAsHTMLCanvasCommands(0);
+	return dThis.OpIsEqual(dOther);
+	}
+
 void* CAEONLuminousCanvas::raw_GetGraphicByID (DWORD dwID) const
 
 //	raw_GetGraphicByID

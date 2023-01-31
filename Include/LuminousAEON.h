@@ -90,6 +90,9 @@ class CAEONLuminousCanvas : public TExternalDatum<CAEONLuminousCanvas>, public I
 		virtual CDatum GetMethod (const CString &sMethod) const override { return m_Methods.GetMethod(sMethod); }
 		virtual bool InvokeMethodImpl(CDatum dObj, const CString &sMethod, IInvokeCtx &Ctx, CDatum dLocalEnv, CDatum &retdResult) override 
 			{ return m_Methods.InvokeMethod(dObj, sMethod, Ctx, dLocalEnv, CDatum(), retdResult); }
+		virtual int OpCompare (CDatum::Types iValueType, CDatum dValue) const;
+		virtual bool OpIsEqual (CDatum::Types iValueType, CDatum dValue) const;
+		virtual bool OpIsIdentical (CDatum::Types iValueType, CDatum dValue) const { return OpIsEqual(iValueType, dValue); }
 		virtual void SetElement (const CString &sKey, CDatum dDatum) override { m_Properties.SetProperty(*this, sKey, dDatum, NULL); }
 
 		//	IAEONCanvas
