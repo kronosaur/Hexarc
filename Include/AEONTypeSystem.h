@@ -130,6 +130,7 @@ class IDatatype
 		bool operator != (const IDatatype &Src) const { return !(*this == Src); }
 
 		bool AddMember (const CString &sName, EMemberType iType, CDatum dType, CString *retsError = NULL) { return OnAddMember(sName, iType, dType, retsError); }
+		CDatum ApplyKeyToRow (CDatum dKey, CDatum dRow) const;
 		static TUniquePtr<IDatatype> Deserialize (CDatum::EFormat iFormat, IByteStream &Stream);
 		int FindMember (const CString &sName) const { return OnFindMember(sName); }
 		int FindMemberByOrdinal (int iOrdinal) const { return OnFindMemberByOrdinal(iOrdinal); }
@@ -137,6 +138,8 @@ class IDatatype
 		DWORD GetCoreType () const { return OnGetCoreType(); }
 		const CString &GetFullyQualifiedName () const { return m_sFullyQualifiedName; }
 		EImplementation GetImplementation () const { return OnGetImplementation(); }
+		CString GetKeyFromKeyValue (CDatum dKey) const;
+		CString GetKeyFromKeyValue (const TArray<int>& Keys, CDatum dKey) const;
 		bool GetKeyMembers (TArray<int>& retKeys) const;
 		SMemberDesc GetMember (int iIndex) const { return OnGetMember(iIndex); }
 		int GetMemberCount () const { return OnGetMemberCount(); }
@@ -172,6 +175,8 @@ class IDatatype
 		virtual void OnMark () { }
 		virtual void OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const = 0;
 		
+		static CString AsIndexKeyFromValue (CDatum dValue);
+
 		CString m_sFullyQualifiedName;
 	};
 

@@ -11,6 +11,7 @@
 
 constexpr int SECONDS_PER_DAY =					(60 * 60 * 24);
 constexpr int SECONDS_PER_HOUR =				(60 * 60);
+constexpr int SECONDS_PER_MINUTE =				60;
 
 class CDateTime
 	{
