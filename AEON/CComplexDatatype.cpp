@@ -58,6 +58,9 @@ int CComplexDatatype::GetID (IDatatype::EImplementation iValue)
 		case IDatatype::EImplementation::Enum:
 			return IMPL_ENUM_ID;
 
+		case IDatatype::EImplementation::Matrix:
+			return IMPL_MAXTRIX_ID;
+
 		case IDatatype::EImplementation::Number:
 			return IMPL_NUMBER_ID;
 
@@ -87,6 +90,9 @@ IDatatype::EImplementation CComplexDatatype::GetImplementation (int iID)
 
 		case IMPL_ENUM_ID:
 			return IDatatype::EImplementation::Enum;
+
+		case IMPL_MAXTRIX_ID:
+			return IDatatype::EImplementation::Matrix;
 
 		case IMPL_NUMBER_ID:
 			return IDatatype::EImplementation::Number;

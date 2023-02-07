@@ -376,6 +376,7 @@ class CComplexDatatype : public IComplexDatum
 		static constexpr int IMPL_SCHEMA_ID =			5;
 		static constexpr int IMPL_SIMPLE_ID =			6;
 		static constexpr int IMPL_ENUM_ID =				7;
+		static constexpr int IMPL_MAXTRIX_ID =			8;
 
 		//	IComplexDatum
 

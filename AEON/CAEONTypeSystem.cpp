@@ -272,6 +272,22 @@ CDatum CAEONTypeSystem::GetCoreType (DWORD dwType)
 	return m_CoreTypes[dwType];
 	}
 
+CDatum CAEONTypeSystem::GetTypeList () const
+
+//	GetTypeList
+//
+//	Returns all types defined.
+
+	{
+	CDatum dResult(CDatum::typeArray);
+	dResult.GrowToFit(m_Types.GetCount());
+
+	for (int i = 0; i < m_Types.GetCount(); i++)
+		dResult.Append(m_Types[i]);
+
+	return dResult;
+	}
+
 void CAEONTypeSystem::InitCoreTypes ()
 
 //	InitCoreType

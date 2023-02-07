@@ -132,6 +132,10 @@ TUniquePtr<IDatatype> IDatatype::Deserialize (CDatum::EFormat iFormat, IByteStre
 			pDatatype.Set(new CDatatypeEnum(sFullyQualifiedName));
 			break;
 
+		case EImplementation::Matrix:
+			pDatatype.Set(new CDatatypeMatrix(sFullyQualifiedName));
+			break;
+
 		case EImplementation::Number:
 			pDatatype.Set(new CDatatypeNumber(sFullyQualifiedName));
 			break;

@@ -212,6 +212,7 @@ class CAEONTypeSystem
 		static CDatum GetCoreType (DWORD dwType);
 		static int GetCoreTypeCount () { return m_CoreTypes.GetCount(); }
 		static const TArray<CDatum> &GetCoreTypes () { if (m_CoreTypes.GetCount() == 0) InitCoreTypes(); return m_CoreTypes; }
+		CDatum GetTypeList () const;
 		bool InitFrom (CDatum dSerialized, CString *retsError = NULL);
 		bool IsEmpty () const { return m_Types.GetCount() == 0; }
 		static CString MakeFullyQualifiedName (const CString &sFullyQualifiedScope, const CString &sName);

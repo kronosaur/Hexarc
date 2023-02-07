@@ -277,6 +277,7 @@ class CHexeProcess : public IInvokeCtx
 		CDatum GetGlobalEnv (void) { return m_dGlobalEnv; }
 		DWORDLONG GetLibraryTime () const { return m_dwLibraryTime; }
 		CHexeStack &GetStack () { return m_Stack; }
+		CDatum GetTypeList () const { return m_Types.GetTypeList(); }
 		const CAEONTypeSystem &GetTypeSystem () const { return m_Types; }
 		CAEONTypeSystem &GetTypeSystem () { return m_Types; }
 		bool InitFrom (const CHexeProcess &Process, CString *retsError = NULL);
