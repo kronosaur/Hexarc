@@ -51,7 +51,29 @@ DECLARE_CONST_STRING(TYPENAME_UNSIGNED,					"Unsigned");
 DECLARE_CONST_STRING(TYPENAME_VECTOR_2D_F64,			"Vector2DOfFloat64");
 
 TArray<CDatum> CAEONTypeSystem::m_CoreTypes;
+DWORD CAEONTypeSystem::m_dwNextCoreType = IDatatype::MAX_CORE_TYPE + 1;
 CAEONTypeSystem CAEONTypeSystem::m_Null;
+
+void CAEONTypeSystem::AccumulateCoreTypes (TSortMap<CString, CDatum>& retTypes)
+
+//	AccumulateCoreTypes
+//
+//	Adds core types to the map (but excluded library registered ones.
+
+	{
+	for (int i = 0; i <= IDatatype::MAX_CORE_TYPE; i++)
+		{
+		CDatum dType = GetCoreTypes()[i];
+		if (dType.IsNil())
+			continue;
+
+		if (dType.GetBasicType() != CDatum::typeDatatype)
+			throw CException(errFail);
+
+		const IDatatype &Type = dType;
+		retTypes.SetAt(Type.GetFullyQualifiedName(), dType);
+		}
+	}
 
 CDatum CAEONTypeSystem::AddAnonymousSchema (const TArray<IDatatype::SMemberDesc> &Columns)
 
@@ -84,8 +106,18 @@ void CAEONTypeSystem::AddCoreType (IDatatype *pNewDatatype)
 //	Adds the given core type.
 
 	{
-	CDatum dType(new CComplexDatatype(pNewDatatype));
-	DWORD dwType = pNewDatatype->GetCoreType();
+	AddCoreType(CDatum(new CComplexDatatype(pNewDatatype)));
+	}
+
+void CAEONTypeSystem::AddCoreType (CDatum dType)
+
+//	AddCoreType
+//
+//	Adds the given core type.
+
+	{
+	const IDatatype &Datatype = dType;
+	DWORD dwType = Datatype.GetCoreType();
 	if (dwType == IDatatype::UNKNOWN)
 		throw CException(errFail);
 
@@ -109,6 +141,7 @@ bool CAEONTypeSystem::AddType (CDatum dType)
 
 	const IDatatype &Datatype = dType;
 	m_Types.SetAt(strToLower(Datatype.GetFullyQualifiedName()), dType);
+
 	return true;
 	}
 
@@ -135,6 +168,23 @@ CDatum CAEONTypeSystem::CreateAnonymousSchema (const TArray<IDatatype::SMemberDe
 
 	CDatum dType(new CComplexDatatype(pNewType));
 	return dType;
+	}
+
+DWORD CAEONTypeSystem::CreateCoreTypeSimple (const CString& sName, const CDatatypeList& Implements, bool bAbstract)
+
+//	CreateCoreTypeSimple
+//
+//	Creates a simple core type and returns the core type ID.
+
+	{
+	if (m_CoreTypes.GetCount() == 0)
+		InitCoreTypes();
+
+	CString sFullyQualifiedName = MakeFullyQualifiedName(NULL_STR, sName);
+	DWORD dwCoreType = RegisterCoreType();
+	AddCoreType(new CDatatypeSimple({ sFullyQualifiedName, dwCoreType, Implements, bAbstract }));
+
+	return dwCoreType;
 	}
 
 CDatum CAEONTypeSystem::CreateDatatypeClass (const CString &sFullyQualifiedName, const CDatatypeList &Implements, IDatatype **retpNewType)

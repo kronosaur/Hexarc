@@ -201,8 +201,11 @@ class CDatatypeList
 class CAEONTypeSystem
 	{
 	public:
+
+		static void AccumulateCoreTypes (TSortMap<CString, CDatum>& retTypes);
 		CDatum AddAnonymousSchema (const TArray<IDatatype::SMemberDesc> &Columns);
 		bool AddType (CDatum dType);
+		static DWORD CreateCoreTypeSimple (const CString& sName, const CDatatypeList& Implements, bool bAbstract = false);
 		static CDatum CreateDatatypeClass (const CString &sFullyQualifiedName, const CDatatypeList &Implements, IDatatype **retpNewType = NULL);
 		static CDatum CreateDatatypeEnum (const CString &sFullyQualifiedName, const TArray<IDatatype::SMemberDesc>& Values, IDatatype **retpNewType = NULL, CString* retsError = NULL);
 		static CDatum CreateDatatypeSchema (const CString &sFullyQualifiedName, const CDatatypeList &Implements, IDatatype **retpNewType = NULL);
@@ -228,13 +231,17 @@ class CAEONTypeSystem
 		static IDatatype *CreateSchemaTable ();
 
 	private:
+
 		static void AddCoreType (IDatatype *pNewDatatype);
+		static void AddCoreType (CDatum dType);
 		static void InitCoreTypes ();
+		static DWORD RegisterCoreType () { return m_dwNextCoreType++; }
 
 		TSortMap<CString, CDatum> m_Types;
 		DWORD m_dwNextAnonymousID = 1;
 
 		static TArray<CDatum> m_CoreTypes;
+		static DWORD m_dwNextCoreType;
 		static CAEONTypeSystem m_Null;
 	};
 
