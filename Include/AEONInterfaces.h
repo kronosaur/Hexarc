@@ -45,7 +45,7 @@ class IAEONTable
 
 		virtual EResult AppendColumn (CDatum dColumn) { return EResult::NotImplemented; }
 		virtual EResult AppendEmptyRow (int iCount = 1) { return EResult::NotImplemented; }
-		virtual EResult AppendRow (CDatum dRow) { return EResult::NotImplemented; }
+		virtual EResult AppendRow (CDatum dRow, int* retiRow = NULL) { return EResult::NotImplemented; }
 		virtual EResult AppendSlice (CDatum dSlice) { return EResult::NotImplemented; }
 		virtual EResult AppendTable (CDatum dTable) { return EResult::NotImplemented; }
 		virtual EResult DeleteAllRows () { return EResult::NotImplemented; }
@@ -60,6 +60,7 @@ class IAEONTable
 		virtual CString GetColName (int iCol) const { return NULL_STR; }
 		virtual CDatum GetDataSlice (int iFirstRow, int iRowCount) const { return CDatum(); }
 		virtual CDatum GetFieldValue (int iRow, int iCol) const { return CDatum(); }
+		virtual SequenceNumber GetNextID () const { return 0; }
 		virtual CDatum GetRow (int iRow) const;
 		virtual int GetRowCount () const { return 0; }
 		virtual CDatum GetRowID (int iRow) const { return CDatum(); }
@@ -68,8 +69,10 @@ class IAEONTable
 		virtual bool HasKeys () const { return false; }
 		virtual EResult InsertColumn (const CString& sName, CDatum dType, CDatum dValues = CDatum(), int iPos = -1, int *retiCol = NULL) { return EResult::NotImplemented; }
 		virtual bool IsSameSchema (CDatum dSchema) const { return false; }
+		virtual SequenceNumber MakeID () { return 0; }
 		virtual CDatum Query (const CAEONQuery& Expr) const { return CDatum(); }
 		virtual bool SetFieldValue (int iRow, int iCol, CDatum dValue) { return false; }
+		virtual EResult SetNextID (SequenceNumber NextID) { return EResult::NotImplemented; }
 		virtual EResult SetRow (int iRow, CDatum dRow) { return EResult::NotImplemented; }
 		virtual EResult SetRowByID (CDatum dKey, CDatum dRow, int *retiRow = NULL) { return EResult::NotImplemented; }
 		virtual void SetSeq (SequenceNumber Seq) { }

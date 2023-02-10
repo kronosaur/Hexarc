@@ -130,7 +130,7 @@ IAEONTable::EResult CAEONTable::AppendEmptyRow (int iCount)
 	return EResult::OK;
 	}
 
-IAEONTable::EResult CAEONTable::AppendRow (CDatum dRow)
+IAEONTable::EResult CAEONTable::AppendRow (CDatum dRow, int* retiRow)
 
 //	AppendRow
 //
@@ -138,12 +138,12 @@ IAEONTable::EResult CAEONTable::AppendRow (CDatum dRow)
 
 	{
 	if (dRow.GetBasicType() == CDatum::typeArray)
-		return AppendRowArray(dRow);
+		return AppendRowArray(dRow, retiRow);
 	else
-		return AppendRowStruct(dRow);
+		return AppendRowStruct(dRow, retiRow);
 	}
 
-IAEONTable::EResult CAEONTable::AppendRowArray (CDatum dRow)
+IAEONTable::EResult CAEONTable::AppendRowArray (CDatum dRow, int* retiRow)
 
 //	AppendRowArray
 //
@@ -171,6 +171,8 @@ IAEONTable::EResult CAEONTable::AppendRowArray (CDatum dRow)
 			m_Cols[i].Append(dValue);
 			}
 
+		if (retiRow)
+			*retiRow = m_iRows;
 		m_iRows++;
 
 		return EResult::OK;
@@ -184,11 +186,11 @@ IAEONTable::EResult CAEONTable::AppendRowArray (CDatum dRow)
 			return IAEONTable::EResult::NotImplemented;
 
 		CDatum dKey = m_pKeyIndex->GetKeyFromRowArray(CDatum::raw_AsComplex(this), dRow);
-		return SetRowByID(dKey, dRow);
+		return SetRowByID(dKey, dRow, retiRow);
 		}
 	}
 
-IAEONTable::EResult CAEONTable::AppendRowStruct (CDatum dRow)
+IAEONTable::EResult CAEONTable::AppendRowStruct (CDatum dRow, int* retiRow)
 
 //	AppendRowStruct
 //
@@ -218,6 +220,8 @@ IAEONTable::EResult CAEONTable::AppendRowStruct (CDatum dRow)
 			m_Cols[i].Append(dValue);
 			}
 
+		if (retiRow)
+			*retiRow = m_iRows;
 		m_iRows++;
 
 		//	Done
@@ -233,7 +237,7 @@ IAEONTable::EResult CAEONTable::AppendRowStruct (CDatum dRow)
 			return IAEONTable::EResult::NotImplemented;
 
 		CDatum dKey = m_pKeyIndex->GetKeyFromRow(CDatum::raw_AsComplex(this), dRow);
-		return SetRowByID(dKey, dRow);
+		return SetRowByID(dKey, dRow, retiRow);
 		}
 	}
 

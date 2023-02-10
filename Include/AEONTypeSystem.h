@@ -205,6 +205,7 @@ class CAEONTypeSystem
 		static void AccumulateCoreTypes (TSortMap<CString, CDatum>& retTypes);
 		CDatum AddAnonymousSchema (const TArray<IDatatype::SMemberDesc> &Columns);
 		bool AddType (CDatum dType);
+		static DWORD CreateCoreTypeSchema (const CString& sName, const TArray<IDatatype::SMemberDesc> &Columns);
 		static DWORD CreateCoreTypeSimple (const CString& sName, const CDatatypeList& Implements, bool bAbstract = false);
 		static CDatum CreateDatatypeClass (const CString &sFullyQualifiedName, const CDatatypeList &Implements, IDatatype **retpNewType = NULL);
 		static CDatum CreateDatatypeEnum (const CString &sFullyQualifiedName, const TArray<IDatatype::SMemberDesc>& Values, IDatatype **retpNewType = NULL, CString* retsError = NULL);

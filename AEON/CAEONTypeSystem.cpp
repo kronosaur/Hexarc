@@ -170,6 +170,35 @@ CDatum CAEONTypeSystem::CreateAnonymousSchema (const TArray<IDatatype::SMemberDe
 	return dType;
 	}
 
+DWORD CAEONTypeSystem::CreateCoreTypeSchema (const CString& sName, const TArray<IDatatype::SMemberDesc> &Columns)
+
+//	CreateCoreTypeSchema
+//
+//	Creates a core type schema and returns the core type ID.
+
+	{
+	if (m_CoreTypes.GetCount() == 0)
+		InitCoreTypes();
+
+	CString sFullyQualifiedName = MakeFullyQualifiedName(NULL_STR, sName);
+	DWORD dwCoreType = RegisterCoreType();
+	IDatatype *pNewType = new CDatatypeSchema(CDatatypeSchema::SCreate({ sFullyQualifiedName, { CAEONTypeSystem::GetCoreType(IDatatype::TABLE) }, dwCoreType }));
+
+	for (int i = 0; i < Columns.GetCount(); i++)
+		{
+		if (Columns[i].iType != IDatatype::EMemberType::InstanceKeyVar
+				&& Columns[i].iType != IDatatype::EMemberType::InstanceVar)
+			throw CException(errFail);
+
+		if (!pNewType->AddMember(Columns[i].sName, Columns[i].iType, Columns[i].dType))
+			throw CException(errFail);
+		}
+
+	AddCoreType(pNewType);
+
+	return dwCoreType;
+	}
+
 DWORD CAEONTypeSystem::CreateCoreTypeSimple (const CString& sName, const CDatatypeList& Implements, bool bAbstract)
 
 //	CreateCoreTypeSimple

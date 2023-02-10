@@ -57,7 +57,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 
 		virtual EResult AppendColumn (CDatum dColumn) override;
 		virtual EResult AppendEmptyRow (int iCount = 1) override;
-		virtual EResult AppendRow (CDatum dRow) override;
+		virtual EResult AppendRow (CDatum dRow, int* retiRow = NULL) override;
 		virtual EResult AppendSlice (CDatum dSlice) override;
 		virtual EResult AppendTable (CDatum dTable) override;
 		virtual EResult DeleteAllRows () override;
@@ -71,6 +71,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual CString GetColName (int iCol) const override;
 		virtual CDatum GetDataSlice (int iFirstRow, int iRowCount) const override;
 		virtual CDatum GetFieldValue (int iRow, int iCol) const override;
+		virtual SequenceNumber GetNextID () const override { return m_NextID; }
 		virtual CDatum GetRow (int iRow) const override;
 		virtual int GetRowCount () const override;
 		virtual CDatum GetRowID (int iRow) const override;
@@ -79,8 +80,10 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual bool HasKeys () const override { return m_iKeyType != CAEONTableIndex::EType::None; }
 		virtual EResult InsertColumn (const CString& sName, CDatum dType, CDatum dValues = CDatum(), int iPos = -1, int *retiCol = NULL) override;
 		virtual bool IsSameSchema (CDatum dSchema) const override;
+		virtual SequenceNumber MakeID () override { return ++m_NextID; }
 		virtual CDatum Query (const CAEONQuery& Expr) const override;
 		virtual bool SetFieldValue (int iRow, int iCol, CDatum dValue) override;
+		virtual EResult SetNextID (SequenceNumber NextID) override { m_NextID = NextID; return EResult::OK; }
 		virtual EResult SetRow (int iRow, CDatum dRow) override;
 		virtual EResult SetRowByID (CDatum dKey, CDatum dRow, int *retiRow = NULL) override;
 		virtual void SetSeq (SequenceNumber Seq) override { m_Seq = Seq; }
@@ -132,8 +135,8 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 
 		CAEONTable () { }
 
-		IAEONTable::EResult AppendRowArray (CDatum dRow);
-		IAEONTable::EResult AppendRowStruct (CDatum dRow);
+		IAEONTable::EResult AppendRowArray (CDatum dRow, int* retiRow = NULL);
+		IAEONTable::EResult AppendRowStruct (CDatum dRow, int* retiRow = NULL);
 		static CDatum CalcColumnDatatype (CDatum dValue);
 		void CloneContents ();
 		const CAEONTableIndex& GetIndex () const;
@@ -149,6 +152,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		//	We can always rely on m_dSchema being of type ECategory::Schema.
 
 		CDatum m_dSchema;
+		SequenceNumber m_NextID = 0;
 
 		SequenceNumber m_Seq = 0;
 		bool m_bCopyOnWrite = false;
@@ -171,7 +175,7 @@ class CAEONTableRef : public IComplexDatum, public IAEONTable
 		//	IAEONTable
 
 		virtual EResult AppendColumn (CDatum dColumn) override { return EResult::NotMutable; }
-		virtual EResult AppendRow (CDatum dRow) override { return EResult::NotMutable; }
+		virtual EResult AppendRow (CDatum dRow, int* retiRow = NULL) override { return EResult::NotMutable; }
 		virtual EResult AppendSlice (CDatum dSlice) override { return EResult::NotMutable; }
 		virtual EResult AppendTable (CDatum dTable) override { return EResult::NotMutable; }
 		virtual EResult DeleteAllRows () override { return EResult::NotMutable; }
