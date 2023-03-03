@@ -80,6 +80,13 @@ bool CEsperConnectionManager::BeginAMP1Operation (const CString &sHostConnection
 		//	Create a new connection
 
 		pConnection = new CEsperAMP1ConnectionOut(*this, sHostConnection, sAddress, dwPort);
+		if (pConnection->GetSocket() == INVALID_SOCKET)
+			{
+			delete pConnection;
+			if (retsError) *retsError = strPattern(ERR_CANT_CONNECT, sAddress);
+			return false;
+			}
+
 		AddConnection(pConnection);
 
 		//	Add it to our list of outbound connections
