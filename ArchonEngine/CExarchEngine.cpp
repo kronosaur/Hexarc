@@ -3055,11 +3055,19 @@ bool CExarchEngine::TestFileRead (const CString &sFilespec)
 		{
 		int iLeftToRead = TestFile.GetStreamLength();
 		CBuffer Buffer(BUFFER_SIZE);
+		Buffer.SetLength(BUFFER_SIZE);
+
+		//	We check to make sure we can read the entire file, but we don't
+		//	actually load the whole thing into memory or check to see if the 
+		//	file is corrupt.
 
 		while (iLeftToRead > 0)
 			{
 			int iRead = Min(iLeftToRead, Buffer.GetLength());
-			TestFile.Read(Buffer.GetPointer(), iRead);
+			int iBytesRead = TestFile.Read(Buffer.GetPointer(), iRead);
+			if (iBytesRead == 0)
+				throw CException(errFail);
+
 			iLeftToRead -= iRead;
 			}
 		}
