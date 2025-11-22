@@ -1,7 +1,7 @@
 //	CHexeMarkupEvaluator.cpp
 //
 //	CHexeMarkupEvaluator class
-//	Copyright (c) 2012 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2012 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -63,7 +63,7 @@ void CHexeMarkupEvaluator::AddHeader (const CString &sField, CDatum dValue)
 		case CDatum::typeString:
 			pNewHeader = m_Headers.Insert();
 			pNewHeader->sField = sField;
-			pNewHeader->sValue = dValue;
+			pNewHeader->sValue = dValue.AsStringView();
 			break;
 
 		default:
@@ -100,8 +100,6 @@ bool CHexeMarkupEvaluator::ComposeResponse (SHTTPRequestCtx &Ctx)
 //	Compose a response message.
 
 	{
-	int i;
-
 	IMediaTypePtr pBody = IMediaTypePtr(new CRawMediaType);
 
 	//	NOTE: We default to HTML, but if the user added a Content-Type header 
@@ -117,8 +115,11 @@ bool CHexeMarkupEvaluator::ComposeResponse (SHTTPRequestCtx &Ctx)
 
 	//	Additional headers
 
-	for (i = 0; i < m_Headers.GetCount(); i++)
+	for (int i = 0; i < m_Headers.GetCount(); i++)
 		Ctx.Response.AddHeader(m_Headers[i].sField, m_Headers[i].sValue);
+
+	for (int i = 0; i < Ctx.AdditionalHeaders.GetCount(); i++)
+		Ctx.Response.AddHeader(Ctx.AdditionalHeaders[i].sField, Ctx.AdditionalHeaders[i].sValue);
 
 	return true;
 	}
@@ -165,6 +166,11 @@ bool CHexeMarkupEvaluator::EvalInit (SHTTPRequestCtx &Ctx,
 	m_dFileDesc = dFileDesc;
 	m_dData = dData;
 
+	//	Clear out the headers before we add them later, in case some script
+	//	adds them.
+
+	Ctx.AdditionalHeaders.DeleteAll();
+
 	//	Initialize the process that we'll use for evaluation
 
 	m_pProcess = new CHexeProcess;
@@ -193,7 +199,7 @@ bool CHexeMarkupEvaluator::EvalInit (SHTTPRequestCtx &Ctx,
 
 	//	Initialize parsing
 
-	const CString &sData = dData;
+	CStringView sData = dData;
 	m_Parser.Init(sData.GetParsePointer(), sData.GetLength());
 
 	//	Initialize state
@@ -527,8 +533,8 @@ bool CHexeMarkupEvaluator::ProcessResult (SHTTPRequestCtx &Ctx, CHexeProcess::ER
 	if (iRun == CHexeProcess::ERun::AsyncRequest)
 		{
 		Ctx.iStatus = pstatRPCReady;
-		Ctx.sRPCAddr = dResult.GetElement(0);
-		Ctx.RPCMsg.sMsg = dResult.GetElement(1);
+		Ctx.sRPCAddr = dResult.GetElement(0).AsStringView();
+		Ctx.RPCMsg.sMsg = dResult.GetElement(1).AsStringView();
 		Ctx.RPCMsg.dPayload = dResult.GetElement(2);
 		Ctx.RPCMsg.dwTicket = 0;
 		Ctx.RPCMsg.sReplyAddr = NULL_STR;
@@ -538,7 +544,7 @@ bool CHexeMarkupEvaluator::ProcessResult (SHTTPRequestCtx &Ctx, CHexeProcess::ER
 
 	//	If this is an error, then we just write the error.
 
-	else if (iRun == CHexeProcess::ERun::Error)
+	else if (iRun == CHexeProcess::ERun::Error || iRun == CHexeProcess::ERun::ForcedTerminate)
 		{
 		m_Output.Write(strPattern("ERROR: %s", dResult.AsString()));
 		return true;
@@ -560,7 +566,7 @@ bool CHexeMarkupEvaluator::ProcessResult (SHTTPRequestCtx &Ctx, CHexeProcess::ER
 		case tagFile:
 			//	If this is an error, then we return with 404
 
-			if (iRun == CHexeProcess::ERun::Error)
+			if (iRun == CHexeProcess::ERun::Error || iRun == CHexeProcess::ERun::ForcedTerminate)
 				{
 				Ctx.iStatus = pstatResponseReady;
 				Ctx.Response.InitResponse(http_NOT_FOUND, dResult.AsString());
@@ -583,7 +589,7 @@ bool CHexeMarkupEvaluator::ProcessResult (SHTTPRequestCtx &Ctx, CHexeProcess::ER
 			else
 				{
 				Ctx.iStatus = pstatFilePathReady;
-				Ctx.sFilePath = dResult;
+				Ctx.sFilePath = dResult.AsStringView();
 				Ctx.AdditionalHeaders = m_Headers;
 				bResult = false;
 				}
@@ -603,7 +609,7 @@ bool CHexeMarkupEvaluator::ProcessResult (SHTTPRequestCtx &Ctx, CHexeProcess::ER
 		case tagRedirectTemp:
 			//	If this is an error, then we return with 404
 
-			if (iRun == CHexeProcess::ERun::Error)
+			if (iRun == CHexeProcess::ERun::Error || iRun == CHexeProcess::ERun::ForcedTerminate)
 				{
 				Ctx.iStatus = pstatResponseReady;
 				Ctx.Response.InitResponse(http_NOT_FOUND, dResult.AsString());
@@ -631,7 +637,7 @@ bool CHexeMarkupEvaluator::ProcessResult (SHTTPRequestCtx &Ctx, CHexeProcess::ER
 			break;
 
 		case tagResponse:
-			if (iRun == CHexeProcess::ERun::Error)
+			if (iRun == CHexeProcess::ERun::Error || iRun == CHexeProcess::ERun::ForcedTerminate)
 				{
 				Ctx.iStatus = pstatResponseReady;
 				Ctx.Response.InitResponse(http_NOT_FOUND, dResult.AsString());

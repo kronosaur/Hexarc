@@ -1,7 +1,7 @@
 //	CString.cpp
 //
 //	CString class
-//	Copyright (c) 2010 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2010 by GridWhale Corporation. All Rights Reserved.
 //
 //	A CString is either NULL or a pointer to an allocated block
 //	of the following form:
@@ -41,6 +41,7 @@ static char MIN_INTEGER_DIGITS[] = "2147483648";
 static char MAX_INTEGER_DIGITS[] = "2147483647";
 
 char CString::BLANK_STRING[] = "\0\0\0\0\0";
+const char CStringView::BLANK_STRING[] = "\0\0\0\0\0";
 
 CString::CString (LPCSTR pStr)
 
@@ -153,6 +154,17 @@ CString::CString (const CString &sStr)
 		Init(sStr, sStr.GetLength());
 	}
 
+CString::CString (CStringView Src)
+
+//	CString constructor
+
+	{
+	if (Src.IsLiteral())
+		m_pString = (char *)Src.GetPointer();
+	else
+		Init(Src.GetPointer(), Src.GetLength());
+	}
+
 CString::CString (CStringBuffer &&Src) noexcept
 
 //	CString move constructor
@@ -161,7 +173,7 @@ CString::CString (CStringBuffer &&Src) noexcept
 	m_pString = Src.Handoff();
 	}
 
-CString::CString (LPSTR pStr, int iLen, bool bLiteral)
+CString::CString (LPCSTR pStr, int iLen, bool bLiteral)
 
 //	CString constructor
 
@@ -175,7 +187,7 @@ CString::CString (LPSTR pStr, int iLen, bool bLiteral)
 		Init((LPSTR)pStr, iLen);
 	}
 
-CString::CString (LPSTR pStr, DWORD iLen, bool bLiteral)
+CString::CString (LPCSTR pStr, DWORD iLen, bool bLiteral)
 
 //	CString constructor
 
@@ -191,7 +203,7 @@ CString::CString (LPSTR pStr, DWORD iLen, bool bLiteral)
 		Init((LPSTR)pStr, (int)iLen);
 	}
 
-CString::CString (LPSTR pStr, size_t iLen, bool bLiteral)
+CString::CString (LPCSTR pStr, size_t iLen, bool bLiteral)
 
 //	CString constructor
 
@@ -207,7 +219,7 @@ CString::CString (LPSTR pStr, size_t iLen, bool bLiteral)
 		Init((LPSTR)pStr, (int)iLen);
 	}
 
-CString::CString (LPSTR pStr, std::ptrdiff_t iLen, bool bLiteral)
+CString::CString (LPCSTR pStr, std::ptrdiff_t iLen, bool bLiteral)
 
 //	CString constructor
 
@@ -320,7 +332,7 @@ CString &CString::operator+= (const CString &sStr)
 //	CString operator +=
 
 	{
-	return (*this) += CBuffer(sStr.GetPointer(), sStr.GetLength(), false);
+	return (*this) += CStringSlice(sStr.GetPointer(), sStr.GetLength());
 	}
 
 CString &CString::operator+= (const IMemoryBlock& Value)
@@ -328,43 +340,54 @@ CString &CString::operator+= (const IMemoryBlock& Value)
 //	CString operator +=
 
 	{
+	return (*this) += CStringSlice(Value.GetPointer(), Value.GetLength());
+	}
+
+CString &CString::operator+= (const CStringSlice& Src)
+
+//	CString operator +=
+
+	{
 	int iStrLen1 = GetLength();
-	int iStrLen2 = Value.GetLength();
+	int iStrLen2 = Src.GetLength();
 
 	//	Edge conditions
 
-	int iFinalLen = iStrLen1 + iStrLen2;
 	if (iStrLen2 == 0)
 		return *this;
 	else if (iStrLen1 == 0)
 		{
-		*this = CString(Value.GetPointer(), Value.GetLength());
+		*this = CString(Src.GetPointer(), Src.GetLength());
 		return *this;
 		}
+	else
+		{
+		int iFinalLen = iStrLen1 + iStrLen2;
 
-	//	Create a buffer large enough to hold both string
+		//	Create a buffer large enough to hold both strings
 
-	LPSTR pBuffer = new char[sizeof(int) + iFinalLen + 1];
-	*(int *)pBuffer = iFinalLen;
+		LPSTR pBuffer = new char[sizeof(int) + iFinalLen + 1];
+		*(int *)pBuffer = iFinalLen;
 
-	//	Copy the original string
+		//	Copy the original string
 
-	utlMemCopy(m_pString, pBuffer + sizeof(int), iStrLen1);
+		std::memcpy(pBuffer + sizeof(int), m_pString, iStrLen1);
 
-	//	Copy the string being appended
+		//	Copy the string being appended
 
-	utlMemCopy(Value.GetPointer(), pBuffer + sizeof(int) + iStrLen1, iStrLen2);
+		std::memcpy(pBuffer + sizeof(int) + iStrLen1, Src.GetPointer(), iStrLen2);
 	
-	//	Clean up
+		//	Clean up
 
-	CleanUp();
+		CleanUp();
 
-	//	Assign
+		//	Assign
 
-	m_pString = pBuffer + sizeof(int);
-	m_pString[iFinalLen] = '\0';
+		m_pString = pBuffer + sizeof(int);
+		m_pString[iFinalLen] = '\0';
 
-	return *this;
+		return *this;
+		}
 	}
 
 CString CString::operator + (const CString &sStr) const
@@ -390,16 +413,90 @@ CString CString::operator + (const CString &sStr) const
 
 	//	Copy the original string
 
-	utlMemCopy(m_pString, pBuffer + sizeof(int), iStrLen1);
+	std::memcpy(pBuffer + sizeof(int), m_pString, iStrLen1);
 
 	//	Copy the string being appended
 
-	utlMemCopy(sStr.m_pString, pBuffer + sizeof(int) + iStrLen1, iStrLen2 + 1);
+	std::memcpy(pBuffer + sizeof(int) + iStrLen1, sStr.m_pString, iStrLen2 + 1);
 
 	//	Done (this private constructor just takes the string buffer that we
 	//	allocated without making a copy).
 
 	return CString(pBuffer + sizeof(int), PRIVATE_CONS);
+	}
+
+CString CString::AsBase64 () const
+
+//	AsBase64
+//
+//	Encode as Base64.
+
+	{
+	CStringBuffer Result;
+
+	CBase64Encoder Encoder(&Result);
+	Encoder.Write(*this);
+	Encoder.Close();
+
+	return CString(std::move(Result));
+	}
+
+CString CString::Clean (LPCSTR pStr, int iLength, DWORD dwFlags)
+
+//	Clean
+//
+//	Returns a "sanitized" version of the string. We perform the following
+//	transformations:
+//
+//	1.	Trim leading whitespace
+//	2.	Trim trailing whitespace
+//	3.	Convert any whitespace to a single space (replacing tabs, etc.)
+//	4.	Remove any non-printable characters (control characters, etc.)
+
+	{
+	CStringBuffer Stream;
+	bool bStart = true;
+	bool bInWhitespace = false;
+	bool bWriteSpace = false;
+
+	const char *pPos = pStr;
+	const char *pEndPos = pPos + iLength;
+	const char *pStart = pPos;
+	while (pPos < pEndPos)
+		{
+		UTF32 dwCodePoint = strParseUTF8Char(&pPos, pEndPos);
+		switch (CStringView::GetCharClass(dwCodePoint))
+			{
+			case CStringView::ECharClass::Normal:
+				if (bInWhitespace)
+					Stream.WriteChar(' ');
+
+				strEncodeUTF8Char(dwCodePoint, Stream);
+				bStart = false;
+				bInWhitespace = false;
+				break;
+
+			case CStringView::ECharClass::Null:
+			case CStringView::ECharClass::Whitespace:
+				if (bStart || bInWhitespace)
+					{
+					//	Skip
+					}
+				else
+					{
+					bInWhitespace = true;
+					}
+				break;
+
+			case CStringView::ECharClass::NonPrintable:
+				break;
+
+			default:
+				throw CException(errFail);
+			}
+		}
+
+	return CString(std::move(Stream));
 	}
 
 void CString::CleanUp (void)
@@ -427,7 +524,7 @@ LPSTR CString::CopyBuffer (void) const
 		{
 		int iBufferLen = GetBufferLength();
 		LPSTR pNewBuffer = new char [iBufferLen];
-		utlMemCopy(GetBuffer(), pNewBuffer, iBufferLen);
+		std::memcpy(pNewBuffer, GetBuffer(), iBufferLen);
 		return pNewBuffer + sizeof(int);
 		}
 	else
@@ -496,6 +593,43 @@ LPSTR CString::CreateBufferFromUTF16 (LPTSTR pStr, int iLen)
 	return pNewBuffer;
 	}
 
+CString CString::Concatenate (const CString &sStr1, const CString &sStr2)
+
+//	Concatenate
+//
+//	Concatenates two strings
+
+	{
+	int iStrLen1 = sStr1.GetLength();
+	int iStrLen2 = sStr2.GetLength();
+	
+	//	Edge conditions
+	
+	int iFinalLen = iStrLen1 + iStrLen2;
+	if (iStrLen2 == 0)
+		return sStr1;
+	else if (iStrLen1 == 0)
+		return sStr2;
+	
+	//	Create a buffer large enough to hold both string
+	
+	LPSTR pBuffer = new char[sizeof(int) + iFinalLen + 1];
+	*(int *)pBuffer = iFinalLen;
+	
+	//	Copy the original string
+	
+	std::memcpy(pBuffer + sizeof(int), sStr1.GetPointer(), iStrLen1);
+	
+	//	Copy the string being appended (+1 to copy the NULL)
+	
+	std::memcpy(pBuffer + sizeof(int) + iStrLen1, sStr2.GetPointer(), iStrLen2 + 1);
+	
+	//	Done (this private constructor just takes the string buffer that we
+	//	allocated without making a copy).
+	
+	return CString(pBuffer + sizeof(int), PRIVATE_CONS);
+	}
+
 CString CString::CreateFromHandoff (CStringBuffer &Buffer)
 
 //	CreateFromHandoff
@@ -504,6 +638,22 @@ CString CString::CreateFromHandoff (CStringBuffer &Buffer)
 
 	{
 	return CString(Buffer.Handoff(), PRIVATE_CONS);
+	}
+
+CString CString::DecodedBase64 () const
+
+//	DecodeBase64
+//
+//	Decodes from Base64.
+
+	{
+	CBuffer String(*this);
+	CBase64Decoder Decoder(&String);
+
+	CStringBuffer Result;
+	Result.Write(Decoder, Decoder.GetStreamLength());
+	
+	return CString(std::move(Result));
 	}
 
 CString CString::Deserialize (IByteStream &Stream)
@@ -527,7 +677,7 @@ CString CString::Deserialize (IByteStream &Stream)
 		int iActualLen = Stream.Read(sStr.m_pString, dwLength);
 
 		if (iActualLen < (int)dwLength)
-			utlMemSet(sStr.m_pString + iActualLen, (int)(dwLength - iActualLen), '?');
+			std::memset(sStr.m_pString + iActualLen, '?', (size_t)(dwLength - iActualLen));
 
 		int iPad = AlignUp((int)dwLength, (int)sizeof(DWORD)) - dwLength;
 		if (iPad)
@@ -565,7 +715,7 @@ CString CString::DeserializeJSON (IByteStream &Stream)
 			{
 			switch (chChar)
 				{
-				case '\"':
+				case '"':
 					Result.Write("\"", 1);
 					break;
 
@@ -619,7 +769,7 @@ CString CString::DeserializeJSON (IByteStream &Stream)
 
 			bEscape = false;
 			}
-		else if (chChar == '\"')
+		else if (chChar == '"')
 			break;
 		else if (chChar == '\\')
 			bEscape = true;
@@ -630,6 +780,67 @@ CString CString::DeserializeJSON (IByteStream &Stream)
 	//	Done
 
 	return CString::CreateFromHandoff(Result);
+	}
+
+CString CString::EncodeBase36 (DWORDLONG dwValue)
+
+//	EncodeBase36
+//
+//	Returns a base-36 encoded string for a 64-bit unsigned value.
+
+	{
+	static const char *DIGITS = "0123456789abcdefghijklmnopqrstuvwxyz";
+
+	char szBuf[32];   // more than enough for 64-bit value in base-36
+	char *pEnd = szBuf + _countof(szBuf);
+	*--pEnd = '\0';
+
+	// At least one digit
+	do
+		{
+		int iDigit = (int)(dwValue % 36);
+		*--pEnd = DIGITS[iDigit];
+		dwValue /= 36;
+		}
+	while (dwValue != 0);
+
+	return CString(pEnd);
+	}
+
+CString CString::EncodeBase64 (const BYTE* pData, int iLength, DWORD dwFlags)
+
+//	EncodeBase64
+//
+//	Encode data as Base64.
+
+	{
+	CStringBuffer Result;
+
+	CBase64Encoder Encoder(&Result, dwFlags);
+	Encoder.Write(pData, iLength);
+	Encoder.Close();
+
+	return CString(std::move(Result));
+	}
+
+CString CString::EncodeHex (const BYTE* pData, int iLength, DWORD dwFlags)
+
+//	EncodeHex
+//
+//	Encode data as hexadecimal.
+
+	{
+	CStringBuffer Buffer;
+
+	const BYTE* pPos = pData;
+	const BYTE* pEndPos = pPos + iLength;
+	while (pPos < pEndPos)
+		{
+		Buffer.Write(strPattern("%02x", *pPos));
+		pPos++;
+		}
+
+	return CString(std::move(Buffer));
 	}
 
 int CString::Find (char chChar, int iStartAt) const
@@ -710,7 +921,7 @@ void CString::Init (LPCSTR pStr, int iLen)
 		m_pString = pBuffer + sizeof(int);
 
 		if (pStr)
-			utlMemCopy(pStr, m_pString, iLen);
+			std::memcpy(m_pString, pStr, iLen);
 
 		m_pString[iLen] = '\0';
 		}
@@ -768,116 +979,6 @@ void CString::Serialize (IByteStream &Stream) const
 		}
 	}
 
-void CString::SerializeJSON (IByteStream &Stream) const
-
-//	SerializeJSON
-//
-//	Serializes to JSON format (not including surrounding
-//	double-quotes).
-
-	{
-	char *pPos = m_pString;
-
-	//	Handle some edge conditions
-
-	if (GetLength() == 0)
-		return;
-
-	//	Keep looping until we're done
-
-	bool bEscapeNextSlash = false;
-	char *pStart = pPos;
-	while (*pPos != '\0')
-		{
-		//	If we have a < then we need to escape the next character if it is
-		//	a slash. This prevents close tag injections inside <script> element.
-
-		if (*pPos == '<')
-			{
-			bEscapeNextSlash = true;
-			pPos++;
-			}
-
-		//	Escape a slash
-
-		else if (*pPos == '/' && bEscapeNextSlash)
-			{
-			//	Write out what we've got so far
-
-			Stream.Write(pStart, pPos - pStart);
-
-			//	Escape the character
-
-			Stream.Write("\\/", 2);
-
-			//	Next
-
-			bEscapeNextSlash = false;
-			pPos++;
-			pStart = pPos;
-			}
-
-		//	Look for characters that we need to escape
-
-		else if (*pPos == '\\' || *pPos == '\"' || strIsASCIIControl(pPos))
-			{
-			//	Write out what we've got so far
-
-			Stream.Write(pStart, pPos - pStart);
-
-			//	Escape the character
-
-			switch (*pPos)
-				{
-				case '\"':
-					Stream.Write("\\\"", 2);
-					break;
-
-				case '\\':
-					Stream.Write("\\\\", 2);
-					break;
-
-				case '\b':
-					Stream.Write("\\b", 2);
-					break;
-
-				case '\f':
-					Stream.Write("\\f", 2);
-					break;
-
-				case '\n':
-					Stream.Write("\\n", 2);
-					break;
-
-				case '\r':
-					Stream.Write("\\r", 2);
-					break;
-
-				case '\t':
-					Stream.Write("\\t", 2);
-					break;
-
-				default:
-					Stream.Write(strPattern("\\u%04x", (DWORD)*pPos));
-					break;
-				}
-
-			bEscapeNextSlash = false;
-			pPos++;
-			pStart = pPos;
-			}
-		else
-			{
-			bEscapeNextSlash = false;
-			pPos++;
-			}
-		}
-
-	//	Write out the remainder
-
-	Stream.Write(pStart, pPos - pStart);
-	}
-
 void CString::SetLength (int iLength)
 
 //	SetLength
@@ -907,7 +1008,7 @@ void CString::SetLength (int iLength)
 
 			//	Copy the original string
 
-			utlMemCopy(m_pString, pBuffer + sizeof(int), iCurrentLen);
+			std::memcpy(pBuffer + sizeof(int), m_pString, iCurrentLen);
 
 			//	Clean up
 
@@ -924,6 +1025,56 @@ void CString::SetLength (int iLength)
 		if (iLength > 0)
 			Init(NULL, iLength);
 		}
+	}
+
+CString CString::StripChar (char chChar) const
+
+//	StripChar
+//
+//	Returns a new string in which all instances of the given character are
+//	removed.
+
+	{
+	int iLen = GetLength();
+	char *pPos = m_pString;
+	char *pPosEnd = pPos + iLen;
+
+	//	Count the number of characters to remove
+
+	int iCount = 0;
+	while (pPos < pPosEnd)
+		{
+		if (*pPos == chChar)
+			iCount++;
+		pPos++;
+		}
+
+	//	If none, then we're done
+
+	if (iCount == 0)
+		return *this;
+
+	//	Allocate a new string
+
+	CString sResult;
+	sResult.Init(NULL, iLen - iCount);
+
+	//	Copy the string, skipping the given character
+
+	pPos = m_pString;
+	pPosEnd = pPos + iLen;
+	char *pDest = sResult.m_pString;
+	while (pPos < pPosEnd)
+		{
+		if (*pPos != chChar)
+			*pDest++ = *pPos;
+
+		pPos++;
+		}
+
+	//	Done
+
+	return sResult;
 	}
 
 void CString::TakeHandoff (CString &sStr)
@@ -1369,7 +1520,7 @@ bool strEquals (const CString &sKey1, const CString &sKey2)
 	return (pPos1 == pPos1End && pPos2 == pPos2End);
 	}
 
-bool strEqualsNoCase (const CString &sKey1, const CString &sKey2)
+bool strEqualsNoCase (const char* pKey1, int iKey1Len, const char* pKey2, int iKey2Len)
 
 //	strEqualsNoCase
 //
@@ -1380,16 +1531,14 @@ bool strEqualsNoCase (const CString &sKey1, const CString &sKey2)
 	{
 	//	Must be the same length
 
-	int iKey1Len = sKey1.GetLength();
-	int iKey2Len = sKey2.GetLength();
 	if (iKey1Len != iKey2Len)
 		return false;
 
 	//	Prepare
 
-	const char *pPos1 = (LPSTR)sKey1;
+	const char *pPos1 = pKey1;
 	const char *pPos1End = pPos1 + iKey1Len;
-	const char *pPos2 = (LPSTR)sKey2;
+	const char *pPos2 = pKey2;
 	const char *pPos2End = pPos2 + iKey2Len;
 
 	//	Handle NULL
@@ -1667,6 +1816,9 @@ CString strFromDouble (double rValue, int iDecimals)
 //	Converts a double to a string
 
 	{
+	if (std::isnan(rValue) || std::isinf(rValue))
+		return STR_NAN;
+
 	CString sResult(_CVTBUFSIZE + 1);
 	char *pPos = sResult.GetParsePointer();
 
@@ -1881,7 +2033,7 @@ CString strFromIntOfBase (int iInteger, int iBase, bool bSigned, bool bUppercase
 		}
 	}
 
-bool strIsASCIISymbol (char *pPos)
+bool strIsASCIISymbol (const char *pPos)
 
 //	strIsASCIISymbol
 //
@@ -1891,7 +2043,7 @@ bool strIsASCIISymbol (char *pPos)
 	switch (*pPos)
 		{
 		case '!':
-		case '\"':
+		case '"':
 		case '#':
 		case '$':
 		case '%':
@@ -1927,6 +2079,24 @@ bool strIsASCIISymbol (char *pPos)
 		default:
 			return false;
 		}
+	}
+
+bool strIsHexNumber (const char* pPos, int iLength)
+
+//	strIsHexNumber
+//
+//	Returns TRUE if all the characters in the given string are hex digits.
+
+	{
+	const char* pPosEnd = pPos + iLength;
+	while (pPos < pPosEnd)
+		{
+		if (!strIsHexDigit(pPos))
+			return false;
+		pPos++;
+		}
+
+	return true;
 	}
 
 bool strIsInt (const CString &sString, int *retiValue)
@@ -2449,7 +2619,7 @@ CString strPatternEngine (LPCSTR pPattern, LPVOID *pArgs, PATTERNHOOKPROC pfHook
 //	Returns a string with a pattern substitution
 
 	{
-	CMemoryBuffer Stream(4096);
+	CStringBuffer Stream;
 	LPCSTR pPos = pPattern;
 	LPCSTR pRunStart;
 	int iRunLength;
@@ -2608,7 +2778,7 @@ CString strPatternEngine (LPCSTR pPattern, LPVOID *pArgs, PATTERNHOOKPROC pfHook
 
 	//	Convert the stream to a string
 
-	return CString(Stream.GetPointer(), Stream.GetLength());
+	return CString(std::move(Stream));
 	}
 
 CString strPattern (LPCSTR pLine, ...)
@@ -3175,7 +3345,7 @@ bool strStartsWith (const CString &sString, const CString &sPartial)
 	return true;
 	}
 
-bool strStartsWithNoCase (const CString &sString, const CString &sPartial)
+bool strStartsWithNoCase (CStringSlice sString, CStringSlice sPartial)
 
 //	strStartsWithNoCase
 //
@@ -3184,9 +3354,9 @@ bool strStartsWithNoCase (const CString &sString, const CString &sPartial)
 //	have embedded 0s.
 
 	{
-	const char *pString = (LPSTR)sString;
+	const char *pString = (LPCSTR)sString;
 	const char *pStringEnd = pString + sString.GetLength();
-	const char *pPartial = (LPSTR)sPartial;
+	const char *pPartial = (LPCSTR)sPartial;
 	const char *pPartialEnd = pPartial + sPartial.GetLength();
 
 	//	Some edge conditions
@@ -3210,14 +3380,14 @@ bool strStartsWithNoCase (const CString &sString, const CString &sPartial)
 	return (pPartial == pPartialEnd);
 	}
 
-CString strSubString (const CString &sString, int iStart, int iLen)
+CString strSubString (CStringSlice sString, int iStart, int iLen)
 
 //	strSubString
 //
 //	Returns a substring
 
 	{
-	char *pPos = (LPSTR)sString;
+	const char *pPos = (LPCSTR)sString;
 	int iStringLen = sString.GetLength();
 	if (pPos == NULL || iStart >= iStringLen)
 		return CString();
@@ -3245,7 +3415,7 @@ CString strToLower (const CString &sString)
 //	Converts the string to lowercase
 
 	{
-	CMemoryBuffer Stream(4096);
+	CStringBuffer Stream;
 
 	const char *pPos = (LPSTR)sString;
 	const char *pEndPos = pPos + sString.GetLength();
@@ -3257,7 +3427,7 @@ CString strToLower (const CString &sString)
 		strEncodeUTF8Char(dwLower, Stream);
 		}
 
-	return CString(Stream.GetPointer(), Stream.GetLength());
+	return CString(std::move(Stream));
 	}
 
 TArray<CString> strToLower (TArray<CString> &&List)
@@ -3402,7 +3572,7 @@ CString strToUpper (const CString &sString)
 //	Converts the string to UPPERCASE
 
 	{
-	CMemoryBuffer Stream(4096);
+	CStringBuffer Stream;
 
 	const char *pPos = (LPSTR)sString;
 	const char *pEndPos = pPos + sString.GetLength();
@@ -3414,7 +3584,7 @@ CString strToUpper (const CString &sString)
 		strEncodeUTF8Char(dwLower, Stream);
 		}
 
-	return CString(Stream.GetPointer(), Stream.GetLength());
+	return CString(std::move(Stream));
 	}
 
 //	Functions
@@ -3463,7 +3633,53 @@ int KeyCompare (const LPCSTR &pKey1, const LPCSTR &pKey2)
 		return 1;
 	}
 
-int KeyCompareNoCase (const LPSTR &pKey1, int iKey1Len, const LPSTR &pKey2, int iKey2Len)
+int KeyCompare (const LPCSTR &pKey1, int iKey1Len, const LPCSTR &pKey2, int iKey2Len)
+
+//	KeyCompare
+//
+//	Case-sensitive, non-locale specific comparison
+//
+//	0 if Key1 == Key2
+//	1 if Key1 > Key2
+//	-1 if Key1 < Key2
+
+	{
+	const char *pPos1 = pKey1;
+	const char *pPos1End = pKey1 + iKey1Len;
+	const char *pPos2 = pKey2;
+	const char *pPos2End = pKey2 + iKey2Len;
+
+	//	Handle NULL
+
+	if (pPos1 == NULL || iKey1Len == 0)
+		return ((pPos2 == NULL || iKey2Len == 0) ? 0 : -1);
+	else if (pPos2 == NULL || iKey2Len == 0)
+		return ((iKey1Len == 0) ? 0 : 1);
+
+	//	Compare
+
+	while (pPos1 < pPos1End && pPos2 < pPos2End)
+		{
+		if (*pPos1 < *pPos2)
+			return -1;
+		else if (*pPos1 > *pPos2)
+			return 1;
+		else
+			{
+			pPos1++;
+			pPos2++;
+			}
+		}
+
+	if (pPos1 == pPos1End && pPos2 == pPos2End)
+		return 0;
+	else if (pPos1 == pPos1End)
+		return -1;
+	else
+		return 1;
+	}
+
+int KeyCompareNoCase (const LPCSTR &pKey1, int iKey1Len, const LPCSTR &pKey2, int iKey2Len)
 
 //	KeyCompareNoCase
 //

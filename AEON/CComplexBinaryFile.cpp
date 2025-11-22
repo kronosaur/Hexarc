@@ -1,7 +1,7 @@
 //	CComplexBinaryFileFile.cpp
 //
 //	CComplexBinaryFileFile class
-//	Copyright (c) 2015 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2015 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -102,7 +102,7 @@ void CComplexBinaryFile::Append (CDatum dDatum)
 		}
 	}
 
-const CString &CComplexBinaryFile::CastCString (void) const
+CStringView CComplexBinaryFile::CastCString (void) const
 
 //	CastCString
 //
@@ -113,7 +113,7 @@ const CString &CComplexBinaryFile::CastCString (void) const
 	printf("Attempting to cast CComplexBinaryFile to CString.\n");
 #endif
 
-	return NULL_STR;
+	return CStringView();
 	}
 
 IComplexDatum *CComplexBinaryFile::Clone (CDatum::EClone iMode) const
@@ -124,6 +124,10 @@ IComplexDatum *CComplexBinaryFile::Clone (CDatum::EClone iMode) const
 
 	{
 	CStringBuffer Src(CastCString());
+
+#ifdef DEBUG_BINARY_OBJECT
+	printf("Cloning CComplexBinaryFile\n");
+#endif
 
 	return new CComplexBinaryFile(Src, Src.GetLength());
 	}
@@ -236,6 +240,15 @@ bool CComplexBinaryFile::DecrementRefCount (void)
 #endif
 		return true;
 		}
+	}
+
+CDatum CComplexBinaryFile::GetElement (const CString &sKey) const
+	{
+#ifdef DEBUG_BINARY_OBJECT
+	printf("Attempting to get element %s from CComplexBinaryFile\n", (LPSTR)sKey);
+#endif
+
+	return CDatum();
 	}
 
 void CComplexBinaryFile::IncrementRefCount (void) const
@@ -414,6 +427,96 @@ void CComplexBinaryFile::OnSerialize (CDatum::EFormat iFormat, IByteStream &Stre
 		}
 	}
 
+CDatum CComplexBinaryFile::DeserializeAEON (IByteStream& Stream, DWORD dwID, CAEONSerializedMap &Serialized)
+	{
+#ifdef DEBUG_BINARY_OBJECT
+	printf("Deserializing binary file\n");
+#endif
+
+	CComplexBinaryFile* pValue = new CComplexBinaryFile;
+	CDatum dValue(pValue);
+
+	DWORD dwLength = Stream.ReadDWORD();
+
+	//	If this is 0xffffffff then it means we have a reference to a file.
+
+	if (dwLength == 0xffffffff)
+		{
+		//	Read the actual length
+
+		pValue->m_dwLength = Stream.ReadDWORD();
+
+		//	Read the filespec
+
+		pValue->m_sFilespec = CString::Deserialize(Stream);
+
+		//	Open the file
+
+		if (!pValue->m_File.Create(pValue->m_sFilespec, CFile::FLAG_ALLOW_WRITE))
+			throw CException(errFail);
+
+		//	We take ownership of the file, so we don't need to increment the
+		//	ref count.
+
+		//	LATER: We're not passing iFormat correctly, but in the future we 
+		//	should pass formatAEONLocal or else throw an error.
+		}
+
+	//	Otherwise, create a new file.
+
+	else
+		{
+		CreateBinaryFile(&pValue->m_sFilespec, &pValue->m_File);
+		pValue->m_File.Write(Stream, dwLength);
+		pValue->m_dwLength = dwLength;
+
+		Stream.Read(NULL, AlignUp((int)dwLength, (int)sizeof(DWORD)) - (int)dwLength);
+		}
+
+	return dValue;
+	}
+
+void CComplexBinaryFile::SerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const
+	{
+	Stream.Write(CDatum::SERIALIZE_TYPE_BINARY_FILE);
+
+	if (Serialized.IsLocal())
+		{
+#ifdef DEBUG_BINARY_OBJECT
+		printf("Serializing %s reference\n", (LPSTR)m_sFilespec);
+#endif
+
+		//	Write a length of 0xffffffff to indicate that this is a file reference.
+
+		DWORD dwLength = 0xffffffff;
+		Stream.Write(dwLength);
+
+		//	Write the actual length
+
+		Stream.Write(GetLength());
+
+		//	Write the filespec
+
+		m_sFilespec.Serialize(Stream);
+
+		//	Now increment the reference to indicate that we should not 
+		//	delete the file until it gets deserialized.
+
+		IncrementRefCount();
+		}
+	else
+		{
+#ifdef DEBUG_BINARY_OBJECT
+		printf("Serializing %s to AEON\n", (LPSTR)m_sFilespec);
+#endif
+
+		Stream.Write(GetLength());
+		m_File.Seek(sizeof(SHeader));
+		Stream.Write(m_File, GetLength());
+		Stream.Write("    ", AlignUp(GetLength(), (int)sizeof(DWORD)) - GetLength());
+		}
+	}
+
 void CComplexBinaryFile::WriteBinaryToStream (IByteStream &Stream, int iPos, int iLength, IProgressEvents *pProgress) const
 
 //	WriteBinaryToStream
@@ -421,6 +524,10 @@ void CComplexBinaryFile::WriteBinaryToStream (IByteStream &Stream, int iPos, int
 //	Writes the file to the stream
 
 	{
+#ifdef DEBUG_BINARY_OBJECT
+	printf("Writing %s to stream\n", (LPSTR)m_sFilespec);
+#endif
+
 	if (!m_File.IsOpen() 
 			|| (DWORD)iPos >= m_dwLength)
 		return;
@@ -431,5 +538,25 @@ void CComplexBinaryFile::WriteBinaryToStream (IByteStream &Stream, int iPos, int
 		iLength = Min(iLength, (int)m_dwLength - iPos);
 
 	m_File.Seek(sizeof(SHeader) + iPos);
-	Stream.WriteWithProgress(m_File, iLength, pProgress);
+	Stream.WriteStream(m_File, iLength);
+	}
+
+void CComplexBinaryFile::WriteBinaryToStream64 (IByteStream64 &Stream, DWORDLONG dwPos, DWORDLONG dwLength, IProgressEvents *pProgress) const
+	{
+	//	LATER: Handle 64-bit lengths
+#ifdef DEBUG_BINARY_OBJECT
+	printf("Writing %s to stream\n", (LPSTR)m_sFilespec);
+#endif
+
+	if (!m_File.IsOpen() 
+			|| (DWORD)dwPos >= m_dwLength)
+		return;
+
+	if (dwLength == 0xffffffffffffffff)
+		dwLength = Max((DWORD)0, m_dwLength - (DWORD)dwPos);
+	else
+		dwLength = Min((DWORD)dwLength, m_dwLength - (DWORD)dwPos);
+
+	m_File.Seek(sizeof(SHeader) + (DWORD)dwPos);
+	Stream.WriteStream(m_File, (DWORD)dwLength);
 	}

@@ -1,7 +1,7 @@
 //	CMultipartData.cpp
 //
 //	CMultipartData class
-//	Copyright (c) 2012 by Kronosaur Productions. All Rights Reserved.
+//	Copyright (c) 2012 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 

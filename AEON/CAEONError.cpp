@@ -1,7 +1,7 @@
 //	CAEONError.cpp
 //
 //	CAEONError class
-//	Copyright (c) 2022 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2022 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -19,6 +19,17 @@ bool CAEONError::OnDeserialize (CDatum::EFormat iFormat, const CString &sTypenam
 	m_sError = CString::Deserialize(Stream);
 	m_sDescription = CString::Deserialize(Stream);
 	return true;
+	}
+
+CDatum CAEONError::DeserializeAEON (IByteStream& Stream, DWORD dwID, CAEONSerializedMap &Serialized)
+	{
+	CAEONError *pValue = new CAEONError;
+	CDatum dValue(pValue);
+
+	pValue->m_sError = CString::Deserialize(Stream);
+	pValue->m_sDescription = CString::Deserialize(Stream);
+
+	return dValue;
 	}
 
 void CAEONError::OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const
@@ -41,6 +52,10 @@ void CAEONError::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const
 	{
 	switch (iFormat)
 		{
+		case CDatum::EFormat::GridLang:
+			CDatum::WriteGridLangString(Stream, strPattern("ERROR: %s", m_sDescription));
+			break;
+
 		case CDatum::EFormat::JSON:
 			{
 			//	For backwards compatibility we write this as a hexeError.
@@ -71,4 +86,12 @@ void CAEONError::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const
 			IComplexDatum::Serialize(iFormat, Stream);
 			break;
 		}
+	}
+
+void CAEONError::SerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const
+	{
+	Stream.Write(CDatum::SERIALIZE_TYPE_ERROR);
+
+	m_sError.Serialize(Stream);
+	m_sDescription.Serialize(Stream);
 	}

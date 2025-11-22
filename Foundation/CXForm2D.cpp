@@ -1,7 +1,7 @@
 //	CXForm2D2D.cpp
 //
 //	CXForm2D2D class
-//	Copyright (c) 2013 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2013 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 

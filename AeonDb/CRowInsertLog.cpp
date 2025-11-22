@@ -1,7 +1,7 @@
 //	CRowInsertLog.cpp
 //
 //	CRowInsertLog class
-//	Copyright (c) 2012 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2012 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -58,7 +58,7 @@ bool CRowInsertLog::Insert (const CRowKey &Key, CDatum dData, SEQUENCENUMBER Row
 
 	//	Save the data
 
-	dData.Serialize(CDatum::EFormat::AEONScript, Output);
+	dData.Serialize(CDatum::EFormat::AEONBinary, Output);
 
 	//	We need a terminator for the datum serialization
 

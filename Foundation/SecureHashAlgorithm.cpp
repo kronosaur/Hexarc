@@ -1,7 +1,7 @@
 //	SecureHashAlgorithm.cpp
 //
 //	Implements SHA
-//	Portions copyright (c) 2004 by George Moromisato. All Rights Reserved.
+//	Portions copyright (c) 2004 by GridWhale Corporation. All Rights Reserved.
 //
 //	Based on code from: http://www.di-mgt.com.au/crypto.html
 //

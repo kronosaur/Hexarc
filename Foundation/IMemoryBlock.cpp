@@ -1,9 +1,30 @@
 //	IMemoryBlock.cpp
 //
 //	IMemoryBlock class
-//	Copyright (c) 2016 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2016 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
+
+IByteStream::EBOM IMemoryBlock::ReadBOM (int iPos) const
+
+//	ReadBOM
+//
+//	FF FE		UTF16LE
+//	FE FF		UTF16BE
+
+	{
+	if (iPos + 2 > GetLength())
+		return IByteStream::EBOM::None;
+
+	const char* pPos = GetPointer() + iPos;
+
+	if (pPos[0] == (char)0xFF && pPos[1] == (char)0xFE)
+		return IByteStream::EBOM::UTF16LE;
+	else if (pPos[0] == (char)0xFE && pPos[1] == (char)0xFF)
+		return IByteStream::EBOM::UTF16BE;
+	else
+		return IByteStream::EBOM::None;
+	}
 
 bool IMemoryBlock::ReadCSVRow (DWORD_PTR &iCurPos, TArray<CString> &Row)
 

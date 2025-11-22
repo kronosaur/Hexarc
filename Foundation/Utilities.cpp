@@ -1,9 +1,10 @@
 //	Utilities.cpp
 //
 //	Utility functions
-//	Copyright (c) 2010 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2010 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
+#include "psapi.h"
 
 #define BASE 65521L /* largest prime smaller than 65536 */
 #define NMAX 5552
@@ -28,25 +29,25 @@ DWORD utlAdler32 (IMemoryBlock &Data)
 	{
 	BYTE *pPos = (BYTE *)Data.GetPointer();
 	DWORD dwLen = Data.GetLength();
-    if (dwLen == 0)
+	if (dwLen == 0)
 		return 1;
 
-    DWORD s1 = 1;
-    DWORD s2 = 0;
+	DWORD s1 = 1;
+	DWORD s2 = 0;
 
-    while (dwLen > 0)
+	while (dwLen > 0)
 		{
-        int k = (dwLen < NMAX ? dwLen : NMAX);
-        dwLen -= k;
+		int k = (dwLen < NMAX ? dwLen : NMAX);
+		dwLen -= k;
 
-        while (k >= 16)
+		while (k >= 16)
 			{
-            DO16(pPos);
+			DO16(pPos);
 			pPos += 16;
-            k -= 16;
+			k -= 16;
 			}
 
-        if (k != 0)
+		if (k != 0)
 			do 
 				{
 				s1 += *pPos++;
@@ -54,11 +55,25 @@ DWORD utlAdler32 (IMemoryBlock &Data)
 				}
 			while (--k);
 
-        s1 %= BASE;
-        s2 %= BASE;
+		s1 %= BASE;
+		s2 %= BASE;
 		}
 
-    return (s2 << 16) | s1;
+	return (s2 << 16) | s1;
+	}
+
+CString sysGetCurrentThreadName ()
+
+//	sysGetCurrentThreadName
+//
+//	Returns the name of the current thread, if it has one.
+
+	{
+	PTSTR pResult;
+	if (SUCCEEDED(::GetThreadDescription(::GetCurrentThread(), &pResult)) && pResult)
+		return CString(pResult);
+	else
+		return CString();
 	}
 
 CString sysGetDNSName (void)
@@ -90,6 +105,24 @@ bool sysGetMemoryInfo (SSystemMemoryInfo *retInfo)
 	retInfo->dwlTotalPhysicalMemory = MemStatus.ullTotalPhys;
 	retInfo->dwlAvailPhysicalMemory = MemStatus.ullAvailPhys;
 
+	return true;
+	}
+
+bool sysGetProcessMemoryInfo (SProcessMemoryInfo& retInfo)
+
+//	sysGetProcessMemoryInfo
+//
+//	Returns memory info stats
+
+	{
+	PROCESS_MEMORY_COUNTERS_EX MemCounters;
+	MemCounters.cb = sizeof(MemCounters);
+	if (!::GetProcessMemoryInfo(::GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS *)&MemCounters, sizeof(MemCounters)))
+		return false;
+
+	retInfo.dwlWorkingSetSize = MemCounters.WorkingSetSize;
+	retInfo.dwlCommittedSize = MemCounters.PrivateUsage;
+	
 	return true;
 	}
 
@@ -282,27 +315,12 @@ void utlMemSet (void *pDest, int Count, char Value)
 //		Value: Value to initialize to
 
 	{
-	char *pPos = (char *)pDest;
-	char *pEndPos = pPos + Count;
-	DWORD dwValue;
-	DWORD *pdwPos;
-
-	//	Store the initial unaligned piece
-
-	while (pPos < pEndPos && ((DWORD_PTR)pPos % sizeof(DWORD)))
-		*pPos++ = Value;
-
-	//	Store the aligned piece
-
-	dwValue = ((BYTE)Value) << 24 | ((BYTE)Value) << 16 | ((BYTE)Value) << 8 | (BYTE)Value;
-	pdwPos = (DWORD *)pPos;
-	while (pdwPos < (DWORD *)(pEndPos - (sizeof(DWORD) - 1)))
-		*pdwPos++ = dwValue;
-
-	//	Store the ending unaligned piece
-
-	pPos = (char *)pdwPos;
-	while (pPos < pEndPos)
-		*pPos++ = Value;
+#if defined(_MSC_VER)
+	// MSVC lowers this to __stosb/ERMSB when profitable.
+	__stosb(reinterpret_cast<unsigned char*>(pDest), Value, Count);
+#else
+	// GCC/Clang also recognize this as a builtin and emit the right thing.
+	std::memset(pDest, Value, Count);
+#endif
 	}
 

@@ -1,7 +1,7 @@
 //	CNamedPipe.cpp
 //
 //	CNamedPipe class
-//	Copyright (c) 2010 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2010 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 

@@ -1,7 +1,7 @@
 //	ArchonFilterImpl.h
 //
 //	Filter Implementations
-//	Copyright (c) 2010 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2010 by GridWhale Corporation. All Rights Reserved.
 //
 //	USAGE
 //

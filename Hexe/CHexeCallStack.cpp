@@ -1,9 +1,17 @@
 //	CHexeCallStack.cpp
 //
 //	CHexeCallStack class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
+
+CHexeCallStack::CHexeCallStack ()
+
+//	CHexeCallStack constructor
+
+	{
+	m_Stack.GrowToFit(DEFAULT_STACK_SIZE);
+	}
 
 void CHexeCallStack::Mark (void)
 
@@ -12,103 +20,50 @@ void CHexeCallStack::Mark (void)
 //	Mark data in use
 
 	{
-	int i;
-
-	for (i = 0; i < m_Stack.GetCount(); i++)
+	for (int i = 0; i < m_Stack.GetCount(); i++)
 		{
 		m_Stack[i].dCodeBank.Mark();
 		m_Stack[i].dExpression.Mark();
+		m_Stack[i].dPrimitive.Mark();
+		m_Stack[i].dContext.Mark();
 		}
 	}
 
-void CHexeCallStack::Restore (CDatum *retdExpression, 
-							  CDatum *retdCodeBank, 
-							  DWORD **retpIP, 
-							  CHexeCode **retpCodeBank)
-
-//	Restore
-//
-//	Restore the position
-
+const CHexeCallStack::SFrame& CHexeCallStack::Top () const
 	{
 	int iFrame = m_Stack.GetCount() - 1;
 	if (iFrame < 0)
 		throw CException(errFail);
 
-	SExecuteCtx *pFrame = &m_Stack[iFrame];
-
-	*retdExpression = pFrame->dExpression;
-	*retdCodeBank = pFrame->dCodeBank;
-	*retpIP = pFrame->pIP;
-	*retpCodeBank = CHexeCode::Upconvert(pFrame->dCodeBank);
-
-	m_Stack.Delete(iFrame);
+	return m_Stack[iFrame];
 	}
 
-void CHexeCallStack::Save (CDatum dExpression, CDatum dCodeBank, DWORD *pIP)
-
-//	Save
-//
-//	Save the position
-
+void CHexeCallStack::PushFunCall (CDatum dExpression, CDatum dCodeBank, DWORD* pIP)
 	{
-	SExecuteCtx *pFrame = m_Stack.Insert();
+	SFrame* pFrame = m_Stack.Insert();
+	pFrame->dwType = FUNC_CALL;
+	pFrame->pIP = pIP;
 	pFrame->dExpression = dExpression;
 	pFrame->dCodeBank = dCodeBank;
-	pFrame->pIP = pIP;
 	}
 
-//	CHexeEnvStack --------------------------------------------------------------
-
-void CHexeEnvStack::Mark (void)
-
-//	Mark
-//
-//	Mark data in use
-
+void CHexeCallStack::PushSysCall (CDatum dExpression, CDatum dCodeBank, DWORD* pIP, CDatum dPrimitive, CDatum dContext, DWORD dwFlags)
 	{
-	int i;
-
-	for (i = 0; i < m_Stack.GetCount(); i++)
-		{
-		m_Stack[i].dGlobalEnv.Mark();
-		m_Stack[i].dLocalEnv.Mark();
-		}
+	SFrame* pFrame = m_Stack.Insert();
+	pFrame->dwType = SYSTEM_CALL;
+	pFrame->dwFlags = dwFlags;
+	pFrame->pIP = pIP;
+	pFrame->dExpression = dExpression;
+	pFrame->dCodeBank = dCodeBank;
+	pFrame->dPrimitive = dPrimitive;
+	pFrame->dContext = dContext;
 	}
 
-void CHexeEnvStack::Restore (CDatum *retdGlobalEnv, CHexeGlobalEnvironment **retpGlobalEnv, CDatum *retdLocalEnv, CHexeLocalEnvironment **retpLocalEnv)
-
-//	Restore
-//
-//	Restore
-
+void CHexeCallStack::Pop ()
 	{
 	int iFrame = m_Stack.GetCount() - 1;
 	if (iFrame < 0)
 		throw CException(errFail);
 
-	SEnvCtx *pFrame = &m_Stack[iFrame];
-
-	*retdGlobalEnv = pFrame->dGlobalEnv;
-	*retpGlobalEnv = pFrame->pGlobalEnv;
-	*retdLocalEnv = pFrame->dLocalEnv;
-	*retpLocalEnv = pFrame->pLocalEnv;
-
 	m_Stack.Delete(iFrame);
 	}
-
-void CHexeEnvStack::Save (CDatum dGlobalEnv, CHexeGlobalEnvironment *pGlobalEnv, CDatum dLocalEnv, CHexeLocalEnvironment *pLocalEnv)
-
-//	Save
-//
-//	Save
-
-	{
-	SEnvCtx *pFrame = m_Stack.Insert();
-	pFrame->dGlobalEnv = dGlobalEnv;
-	pFrame->pGlobalEnv = pGlobalEnv;
-	pFrame->dLocalEnv = dLocalEnv;
-	pFrame->pLocalEnv = pLocalEnv;
-	}
-
-

@@ -1,7 +1,7 @@
 //	CHyperionCommandSet.cpp
 //
 //	CHyperionCommandSet class
-//	Copyright (c) 2012 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2012 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -45,14 +45,14 @@ bool CHyperionCommandSet::AddCommand (const CString &sName, CDatum dDesc, SComma
 	pNewCommand->sName = sName;
 	pNewCommand->dHelp = dDesc.GetElement(FIELD_HELP);
 	pNewCommand->dCode = dDesc.GetElement(FIELD_CODE);
-	pNewCommand->bPublic = strEquals(dDesc.GetElement(FIELD_EXPORT), EXPORT_PUBLIC);
+	pNewCommand->bPublic = strEquals((CStringView)dDesc.GetElement(FIELD_EXPORT), EXPORT_PUBLIC);
 
 	//	Add attributes
 
 	CDatum dAttribs = dDesc.GetElement(FIELD_ATTRIBUTES);
 	for (i = 0; i < dAttribs.GetCount(); i++)
 		{
-		const CString &sAttrib = dAttribs.GetElement(i);
+		CStringView sAttrib = dAttribs.GetElement(i);
 		if (!sAttrib.IsEmpty())
 			{
 			//	Add the attribute to the command entry

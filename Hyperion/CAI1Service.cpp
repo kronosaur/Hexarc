@@ -1,7 +1,7 @@
 //	CAI1Service.cpp
 //
 //	CAI1Service class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -50,7 +50,7 @@ bool CAI1Service::OnInit (CDatum dServiceDef, const CHexeDocument &Package, CStr
 	{
 	//	Get the interface
 
-	m_sInterface = dServiceDef.GetElement(FIELD_INTERFACE);
+	m_sInterface = dServiceDef.GetElement(FIELD_INTERFACE).AsStringView();
 	if (m_sInterface.IsEmpty())
 		{
 		*retsError = strPattern(ERR_INVALID_INTERFACE);

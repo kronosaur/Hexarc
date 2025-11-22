@@ -1,7 +1,7 @@
 //	CHyperionPackageList.cpp
 //
 //	CHyperionPackageList class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -88,7 +88,7 @@ bool CHyperionPackageList::AddPackage (IArchonProcessCtx *pProcess, CDatum dFile
 	{
 	CSmartLock Lock(m_cs);
 
-	const CString &sFilePath = dFileDesc.GetElement(FIELD_FILE_PATH);
+	CStringView sFilePath = dFileDesc.GetElement(FIELD_FILE_PATH);
 	DWORD dwVersion = (DWORD)(int)dFileDesc.GetElement(FIELD_VERSION);
 
 	int iIndex;
@@ -140,7 +140,7 @@ bool CHyperionPackageList::AddPackage (IArchonProcessCtx *pProcess, CDatum dFile
 	//	Update info
 
 	pPackage->dwVersion = dwVersion;
-	pPackage->sModifiedBy = dFileDesc.GetElement(FIELD_MODIFIED_BY);
+	pPackage->sModifiedBy = dFileDesc.GetElement(FIELD_MODIFIED_BY).AsStringView();
 	pPackage->ModifiedOn = dFileDesc.GetElement(FIELD_MODIFIED_ON);
 
 	//	return the name
@@ -161,7 +161,7 @@ bool CHyperionPackageList::AddPackage (IArchonProcessCtx *pProcess, CDatum dFile
 	{
 	CSmartLock Lock(m_cs);
 
-	const CString &sFilePath = dFileDesc.GetElement(FIELD_FILE_PATH);
+	CStringView sFilePath = dFileDesc.GetElement(FIELD_FILE_PATH);
 	DWORD dwVersion = (DWORD)(int)dFileDesc.GetElement(FIELD_VERSION);
 
 	int iIndex;
@@ -213,7 +213,7 @@ bool CHyperionPackageList::AddPackage (IArchonProcessCtx *pProcess, CDatum dFile
 	//	Update info
 
 	pPackage->dwVersion = dwVersion;
-	pPackage->sModifiedBy = dFileDesc.GetElement(FIELD_MODIFIED_BY);
+	pPackage->sModifiedBy = dFileDesc.GetElement(FIELD_MODIFIED_BY).AsStringView();
 	pPackage->ModifiedOn = dFileDesc.GetElement(FIELD_MODIFIED_ON);
 
 	//	return the name
@@ -548,10 +548,10 @@ void CHyperionPackageList::GetScheduledTasks (IArchonProcessCtx *pProcess, TArra
 				continue;
 
 			int iInterval;
-			if (strEquals(dSchedule, SCHEDULE_HOURLY))
+			if (strEquals(dSchedule.AsStringView(), SCHEDULE_HOURLY))
 				iInterval = 60 * 60;
 
-			else if (strEquals(dSchedule, SCHEDULE_DAILY))
+			else if (strEquals(dSchedule.AsStringView(), SCHEDULE_DAILY))
 				iInterval = 60 * 60 * 24;
 
 			else

@@ -1,226 +1,235 @@
 //	CExarchEngine.cpp
 //
 //	CExarchEngine class
-//	Copyright (c) 2010 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2010 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(STR_ARCOLOGY_PRIME,				"ArcologyPrime")
-DECLARE_CONST_STRING(STR_CENTRAL_MODULE,				"CentralModule")
-DECLARE_CONST_STRING(STR_CONFIG_FILENAME,				"Config.ars")
-DECLARE_CONST_STRING(STR_CONFIG_SEGMENT_FILENAME,		"ConfigSegment.ars")
-DECLARE_CONST_STRING(STR_ARCOLOGY_DIR,					"Arcology")
-DECLARE_CONST_STRING(STR_TEMP_DIR,						"Temp")
-DECLARE_CONST_STRING(STR_ALL_FILES,						"*.*")
-DECLARE_CONST_STRING(STR_DEFAULT_ARCOLOGY_NAME,			"Unnamed Arcology")
-DECLARE_CONST_STRING(FILESPEC_UPGRADE_ARS,				"Upgrade.ars")
-DECLARE_CONST_STRING(FILESPEC_UPGRADE_FOLDER,			"Upgrade")
+DECLARE_CONST_STRING(STR_ARCOLOGY_PRIME,				"ArcologyPrime");
+DECLARE_CONST_STRING(STR_CENTRAL_MODULE,				"CentralModule");
+DECLARE_CONST_STRING(STR_CONFIG_FILENAME,				"Config.ars");
+DECLARE_CONST_STRING(STR_CONFIG_SEGMENT_FILENAME,		"ConfigSegment.ars");
+DECLARE_CONST_STRING(STR_ARCOLOGY_DIR,					"Arcology");
+DECLARE_CONST_STRING(STR_TEMP_DIR,						"Temp");
+DECLARE_CONST_STRING(STR_ALL_FILES,						"*.*");
+DECLARE_CONST_STRING(STR_DEFAULT_ARCOLOGY_NAME,			"Unnamed Arcology");
+DECLARE_CONST_STRING(FILESPEC_UPGRADE_ARS,				"Upgrade.ars");
+DECLARE_CONST_STRING(FILESPEC_UPGRADE_FOLDER,			"Upgrade");
+DECLARE_CONST_STRING(STR_TEST,							"TEST");
 
-DECLARE_CONST_STRING(AMP1_LEAVE,						"LEAVE")
-DECLARE_CONST_STRING(AMP1_PING,							"PING")
-DECLARE_CONST_STRING(AMP1_REJOIN,						"REJOIN")
+DECLARE_CONST_STRING(AMP1_LEAVE,						"LEAVE");
+DECLARE_CONST_STRING(AMP1_PING,							"PING");
+DECLARE_CONST_STRING(AMP1_REJOIN,						"REJOIN");
 
-DECLARE_CONST_STRING(MODULE_ARCOLOGY,					"Arcology.exe")
-DECLARE_CONST_STRING(MODULE_AEON_DB,					"AeonDB.exe")
-DECLARE_CONST_STRING(MODULE_NAME_AEON_DB,				"AeonDB")
+DECLARE_CONST_STRING(DISK_STATUS_FILE_NOT_FOUND,		"fileNotFound");
+DECLARE_CONST_STRING(DISK_STATUS_FILE_ERROR,			"fileReadError");
+DECLARE_CONST_STRING(DISK_STATUS_SUCCESS,				"success");
+DECLARE_CONST_STRING(DISK_STATUS_LOW_DISK_SPACE,		"volumeDiskSpaceLow");
+DECLARE_CONST_STRING(DISK_STATUS_VOLUME_ERROR,			"volumeError");
+DECLARE_CONST_STRING(DISK_STATUS_VOLUME_NOT_FOUND,		"volumeNotFound");
 
-DECLARE_CONST_STRING(PORT_AEON_NOTIFY,					"Aeon.notify")
-DECLARE_CONST_STRING(PORT_EXARCH_COMMAND,				"Exarch.command")
-DECLARE_CONST_STRING(PORT_EXARCH_LOG,					"Exarch.log")
-DECLARE_CONST_STRING(PORT_MNEMOSYNTH_COMMAND,			"Mnemosynth.command")
+DECLARE_CONST_STRING(MODULE_ARCOLOGY,					"Arcology.exe");
+DECLARE_CONST_STRING(MODULE_AEON_DB,					"AeonDB.exe");
+DECLARE_CONST_STRING(MODULE_NAME_AEON_DB,				"AeonDB");
 
-DECLARE_CONST_STRING(PROTOCOL_AMP1,						"amp1")
+DECLARE_CONST_STRING(PORT_AEON_NOTIFY,					"Aeon.notify");
+DECLARE_CONST_STRING(PORT_EXARCH_COMMAND,				"Exarch.command");
+DECLARE_CONST_STRING(PORT_EXARCH_LOG,					"Exarch.log");
+DECLARE_CONST_STRING(PORT_MNEMOSYNTH_COMMAND,			"Mnemosynth.command");
 
-DECLARE_CONST_STRING(ADDRESS_ESPER_COMMAND,				"Esper.command@~/~")
-DECLARE_CONST_STRING(ADDRESS_EXARCH_COMMAND,			"Exarch.command@~/CentralModule")
-DECLARE_CONST_STRING(ADDRESS_EXARCH_LOG,				"Exarch.log@~/~")
-DECLARE_CONST_STRING(ADDRESS_EXARCH_NOTIFY,				"Exarch.notify")
-DECLARE_CONST_STRING(ADDRESS_MNEMOSYNTH_COMMAND,		"Mnemosynth.command@~/~")
+DECLARE_CONST_STRING(PROTOCOL_AMP1,						"amp1");
 
-DECLARE_CONST_STRING(ENGINE_NAME_EXARCH,				"Exarch")
+DECLARE_CONST_STRING(ADDRESS_ESPER_COMMAND,				"Esper.command@~/~");
+DECLARE_CONST_STRING(ADDRESS_EXARCH_COMMAND,			"Exarch.command@~/CentralModule");
+DECLARE_CONST_STRING(ADDRESS_EXARCH_LOG,				"Exarch.log@~/~");
+DECLARE_CONST_STRING(ADDRESS_EXARCH_NOTIFY,				"Exarch.notify");
+DECLARE_CONST_STRING(ADDRESS_MNEMOSYNTH_COMMAND,		"Mnemosynth.command@~/~");
 
-DECLARE_CONST_STRING(FIELD_ADDRESS,						"address")
-DECLARE_CONST_STRING(FIELD_AMP1_PORT,					"amp1Port")
-DECLARE_CONST_STRING(FIELD_ARCOLOGY_PRIME_KEY,			"arcologyPrimeKey")
-DECLARE_CONST_STRING(FIELD_CHECKSUM,					"checksum")
-DECLARE_CONST_STRING(FIELD_DEFINITION,					"definition")
-DECLARE_CONST_STRING(FIELD_FILENAME,					"filename")
-DECLARE_CONST_STRING(FIELD_FILESPEC,					"filespec")
-DECLARE_CONST_STRING(FIELD_HOST_ADDRESS,				"hostAddress")
-DECLARE_CONST_STRING(FIELD_KEY,							"key")
-DECLARE_CONST_STRING(FIELD_LOCAL_PATH,					"localPath")
-DECLARE_CONST_STRING(FIELD_MACHINE_NAME,				"machineName")
-DECLARE_CONST_STRING(FIELD_MACHINES,					"machines")
-DECLARE_CONST_STRING(FIELD_MODULES,						"modules")
-DECLARE_CONST_STRING(FIELD_NAME,						"name")
-DECLARE_CONST_STRING(FIELD_NEXT_VOLUME,					"nextVolume")
-DECLARE_CONST_STRING(FIELD_PARTIAL_POS,					"partialPos")
-DECLARE_CONST_STRING(FIELD_QUOTA,						"quota")
-DECLARE_CONST_STRING(FIELD_STATUS,						"status")
-DECLARE_CONST_STRING(FIELD_STORAGE,						"storage")
-DECLARE_CONST_STRING(FIELD_TEST_VOLUME,					"testVolume")
-DECLARE_CONST_STRING(FIELD_UPGRADE_DESC,				"upgradeDesc")
-DECLARE_CONST_STRING(FIELD_UPGRADE_ID,					"upgradeID")
-DECLARE_CONST_STRING(FIELD_VERSION,						"version")
-DECLARE_CONST_STRING(FIELD_VOLUME_NAME,					"volumeName")
-DECLARE_CONST_STRING(FIELD_VOLUMES,						"volumes")
+DECLARE_CONST_STRING(ENGINE_NAME_EXARCH,				"Exarch");
 
-DECLARE_CONST_STRING(MSG_ERROR_ALREADY_EXISTS,			"Error.alreadyExists")
-DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply")
-DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_INTERPRET,		"Error.unableToInterpret")
-DECLARE_CONST_STRING(MSG_ESPER_AMP1,					"Esper.amp1")
-DECLARE_CONST_STRING(MSG_ESPER_CREATE_LISTENER,			"Esper.startListener")
-DECLARE_CONST_STRING(MSG_ESPER_ON_AMP1,					"Esper.onAMP1")
-DECLARE_CONST_STRING(MSG_ESPER_ON_CONNECT,				"Esper.onConnect")
-DECLARE_CONST_STRING(MSG_ESPER_ON_DISCONNECT,			"Esper.onDisconnect")
-DECLARE_CONST_STRING(MSG_ESPER_ON_LISTENER_STARTED,		"Esper.onListenerStarted")
-DECLARE_CONST_STRING(MSG_ESPER_ON_READ,					"Esper.onRead")
-DECLARE_CONST_STRING(MSG_ESPER_ON_WRITE,				"Esper.onWrite")
-DECLARE_CONST_STRING(MSG_ESPER_READ,					"Esper.read")
-DECLARE_CONST_STRING(MSG_ESPER_WRITE,					"Esper.write")
-DECLARE_CONST_STRING(MSG_EXARCH_ON_LOG,					"Exarch.onLog")
-DECLARE_CONST_STRING(MSG_EXARCH_ON_MACHINE_START,		"Exarch.onMachineStart")
-DECLARE_CONST_STRING(MSG_EXARCH_ON_MODULE_START,		"Exarch.onModuleStart")
-DECLARE_CONST_STRING(MSG_EXARCH_ON_MODULE_STOP,			"Exarch.onModuleStop")
-DECLARE_CONST_STRING(MSG_LOG_DEBUG,						"Log.debug")
-DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error")
-DECLARE_CONST_STRING(MSG_LOG_INFO,						"Log.info")
-DECLARE_CONST_STRING(MSG_LOG_WARNING,					"Log.warning")
-DECLARE_CONST_STRING(MSG_MNEMOSYNTH_ENDPOINT_LIST,		"Mnemosynth.endpointList")
-DECLARE_CONST_STRING(MSG_MNEMOSYNTH_NOTIFY_ON_ARCOLOGY_UPDATE,	"Mnemosynth.notifyOnArcologyUpdate")
-DECLARE_CONST_STRING(MSG_MNEMOSYNTH_NOTIFY_ON_UPDATE,	"Mnemosynth.notifyOnEndpointUpdate")
-DECLARE_CONST_STRING(MSG_MNEMOSYNTH_ON_ARCOLOGY_UPDATED,"Mnemosynth.onArcologyUpdated")
-DECLARE_CONST_STRING(MSG_MNEMOSYNTH_READ,				"Mnemosynth.read")
-DECLARE_CONST_STRING(MSG_OK,							"OK")
-DECLARE_CONST_STRING(MSG_REPLY_DATA,					"Reply.data")
+DECLARE_CONST_STRING(FIELD_ADDRESS,						"address");
+DECLARE_CONST_STRING(FIELD_AMP1_PORT,					"amp1Port");
+DECLARE_CONST_STRING(FIELD_ARCOLOGY_PRIME_KEY,			"arcologyPrimeKey");
+DECLARE_CONST_STRING(FIELD_CHECKSUM,					"checksum");
+DECLARE_CONST_STRING(FIELD_DEFINITION,					"definition");
+DECLARE_CONST_STRING(FIELD_FILENAME,					"filename");
+DECLARE_CONST_STRING(FIELD_FILESPEC,					"filespec");
+DECLARE_CONST_STRING(FIELD_HOST_ADDRESS,				"hostAddress");
+DECLARE_CONST_STRING(FIELD_KEY,							"key");
+DECLARE_CONST_STRING(FIELD_LOCAL_PATH,					"localPath");
+DECLARE_CONST_STRING(FIELD_MACHINE_NAME,				"machineName");
+DECLARE_CONST_STRING(FIELD_MACHINES,					"machines");
+DECLARE_CONST_STRING(FIELD_MODULES,						"modules");
+DECLARE_CONST_STRING(FIELD_NAME,						"name");
+DECLARE_CONST_STRING(FIELD_NEXT_VOLUME,					"nextVolume");
+DECLARE_CONST_STRING(FIELD_NODE_ID,						"nodeID");
+DECLARE_CONST_STRING(FIELD_PARTIAL_POS,					"partialPos");
+DECLARE_CONST_STRING(FIELD_QUOTA,						"quota");
+DECLARE_CONST_STRING(FIELD_STATUS,						"status");
+DECLARE_CONST_STRING(FIELD_STORAGE,						"storage");
+DECLARE_CONST_STRING(FIELD_TEST_VOLUME,					"testVolume");
+DECLARE_CONST_STRING(FIELD_UPGRADE_DESC,				"upgradeDesc");
+DECLARE_CONST_STRING(FIELD_UPGRADE_ID,					"upgradeID");
+DECLARE_CONST_STRING(FIELD_VERSION,						"version");
+DECLARE_CONST_STRING(FIELD_VOLUME_NAME,					"volumeName");
+DECLARE_CONST_STRING(FIELD_VOLUMES,						"volumes");
 
-DECLARE_CONST_STRING(MNEMO_ARC_ARCOLOGY,				"Arc.arcology")
-DECLARE_CONST_STRING(MNEMO_ARC_MACHINES,				"Arc.machines")
-DECLARE_CONST_STRING(MNEMO_ARC_MODULES,					"Arc.modules")
-DECLARE_CONST_STRING(MNEMO_ARC_PORTS,					"Arc.ports")
-DECLARE_CONST_STRING(MNEMO_ARC_STORAGE,					"Arc.storage")
+DECLARE_CONST_STRING(MSG_ERROR_ALREADY_EXISTS,			"Error.alreadyExists");
+DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply");
+DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_INTERPRET,		"Error.unableToInterpret");
+DECLARE_CONST_STRING(MSG_ESPER_CREATE_LISTENER,			"Esper.startListener");
+DECLARE_CONST_STRING(MSG_ESPER_ON_AMP1,					"Esper.onAMP1");
+DECLARE_CONST_STRING(MSG_ESPER_ON_CONNECT,				"Esper.onConnect");
+DECLARE_CONST_STRING(MSG_ESPER_ON_LISTENER_STARTED,		"Esper.onListenerStarted");
+DECLARE_CONST_STRING(MSG_ESPER_ON_READ,					"Esper.onRead");
+DECLARE_CONST_STRING(MSG_ESPER_ON_WRITE,				"Esper.onWrite");
+DECLARE_CONST_STRING(MSG_ESPER_READ,					"Esper.read");
+DECLARE_CONST_STRING(MSG_ESPER_WRITE,					"Esper.write");
+DECLARE_CONST_STRING(MSG_EXARCH_ON_LOG,					"Exarch.onLog");
+DECLARE_CONST_STRING(MSG_EXARCH_ON_MACHINE_START,		"Exarch.onMachineStart");
+DECLARE_CONST_STRING(MSG_EXARCH_ON_MODULE_START,		"Exarch.onModuleStart");
+DECLARE_CONST_STRING(MSG_EXARCH_ON_MODULE_STOP,			"Exarch.onModuleStop");
+DECLARE_CONST_STRING(MSG_LOG_DEBUG,						"Log.debug");
+DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error");
+DECLARE_CONST_STRING(MSG_LOG_INFO,						"Log.info");
+DECLARE_CONST_STRING(MSG_LOG_WARNING,					"Log.warning");
+DECLARE_CONST_STRING(MSG_MNEMOSYNTH_ENDPOINT_LIST,		"Mnemosynth.endpointList");
+DECLARE_CONST_STRING(MSG_MNEMOSYNTH_NOTIFY_ON_ARCOLOGY_UPDATE,	"Mnemosynth.notifyOnArcologyUpdate");
+DECLARE_CONST_STRING(MSG_MNEMOSYNTH_NOTIFY_ON_UPDATE,	"Mnemosynth.notifyOnEndpointUpdate");
+DECLARE_CONST_STRING(MSG_MNEMOSYNTH_ON_ARCOLOGY_UPDATED,"Mnemosynth.onArcologyUpdated");
+DECLARE_CONST_STRING(MSG_MNEMOSYNTH_READ,				"Mnemosynth.read");
+DECLARE_CONST_STRING(MSG_OK,							"OK");
+DECLARE_CONST_STRING(MSG_REPLY_DATA,					"Reply.data");
 
-DECLARE_CONST_STRING(MNEMO_STATUS_BOOTING,				"booting")
-DECLARE_CONST_STRING(MNEMO_STATUS_ONLINE,				"online")
-DECLARE_CONST_STRING(MNEMO_STATUS_RUNNING,				"running")
-DECLARE_CONST_STRING(MNEMO_STATUS_STOPPED,				"stopped")
+DECLARE_CONST_STRING(MNEMO_ARC_ARCOLOGY,				"Arc.arcology");
+DECLARE_CONST_STRING(MNEMO_ARC_MACHINES,				"Arc.machines");
+DECLARE_CONST_STRING(MNEMO_ARC_MODULES,					"Arc.modules");
+DECLARE_CONST_STRING(MNEMO_ARC_PORTS,					"Arc.ports");
+DECLARE_CONST_STRING(MNEMO_ARC_STORAGE,					"Arc.storage");
 
-DECLARE_CONST_STRING(STR_PORT_EXARCH,					"7397")
+DECLARE_CONST_STRING(MNEMO_STATUS_BOOTING,				"booting");
+DECLARE_CONST_STRING(MNEMO_STATUS_ONLINE,				"online");
+DECLARE_CONST_STRING(MNEMO_STATUS_RUNNING,				"running");
+DECLARE_CONST_STRING(MNEMO_STATUS_STOPPED,				"stopped");
 
-DECLARE_CONST_STRING(STR_PROTOCOL_AMP1_00,				"AMP/1.00")
+DECLARE_CONST_STRING(STR_PORT_EXARCH,					"7397");
 
-DECLARE_CONST_STRING(STR_AMP1_ERROR_TYPE,				"ERROR")
-DECLARE_CONST_STRING(STR_AMP1_MSG_TYPE,					"MSG")
-DECLARE_CONST_STRING(STR_AMP1_OK_TYPE,					"OK")
+DECLARE_CONST_STRING(STR_PROTOCOL_AMP1_00,				"AMP/1.00");
 
-DECLARE_CONST_STRING(STR_DEBUG,							"debug")
-DECLARE_CONST_STRING(STR_REPLY_MSG,						"replyMsg")
-DECLARE_CONST_STRING(STR_WATERMARK,						"watermark")
+DECLARE_CONST_STRING(STR_AMP1_ERROR_TYPE,				"ERROR");
+DECLARE_CONST_STRING(STR_AMP1_MSG_TYPE,					"MSG");
+DECLARE_CONST_STRING(STR_AMP1_OK_TYPE,					"OK");
 
-DECLARE_CONST_STRING(CONFIG_ARCOLOGY,					"arcology")
-DECLARE_CONST_STRING(CONFIG_DEBUG,						"debug")
-DECLARE_CONST_STRING(CONFIG_LOCAL_PATH,					"localPath")
-DECLARE_CONST_STRING(CONFIG_MODULE,						"module")
-DECLARE_CONST_STRING(CONFIG_MODULES,					"modules")
-DECLARE_CONST_STRING(CONFIG_NAME,						"name")
-DECLARE_CONST_STRING(CONFIG_QUOTA,						"quota")
-DECLARE_CONST_STRING(CONFIG_STORAGE,					"storage")
+DECLARE_CONST_STRING(STR_DEBUG,							"debug");
+DECLARE_CONST_STRING(STR_REPLY_MSG,						"replyMsg");
+DECLARE_CONST_STRING(STR_WATERMARK,						"watermark");
 
-DECLARE_CONST_STRING(STR_DEBUG_LOG_PREFIX,				"DEBUG: ")
-DECLARE_CONST_STRING(STR_ERROR_LOG_PREFIX,				"ERROR: ")
-DECLARE_CONST_STRING(STR_WARNING_LOG_PREFIX,			"WARNING: ")
+DECLARE_CONST_STRING(CONFIG_ARCOLOGY,					"arcology");
+DECLARE_CONST_STRING(CONFIG_DEBUG,						"debug");
+DECLARE_CONST_STRING(CONFIG_LOCAL_PATH,					"localPath");
+DECLARE_CONST_STRING(CONFIG_MODULE,						"module");
+DECLARE_CONST_STRING(CONFIG_MODULES,					"modules");
+DECLARE_CONST_STRING(CONFIG_NAME,						"name");
+DECLARE_CONST_STRING(CONFIG_QUOTA,						"quota");
+DECLARE_CONST_STRING(CONFIG_STORAGE,					"storage");
 
-DECLARE_CONST_STRING(STR_MACHINE_AUTH,					"Arcology machine authenticated: %s.")
-DECLARE_CONST_STRING(STR_MACHINE_STARTED,				"Machine started.")
-DECLARE_CONST_STRING(STR_NO_KEYS_FOUND,					"(no keys found)")
-DECLARE_CONST_STRING(STR_NO_TABLES_FOUND,				"(no tables found)")
-DECLARE_CONST_STRING(STR_EMPTY_DATA,					"(nil)")
+DECLARE_CONST_STRING(STR_DEBUG_LOG_PREFIX,				"DEBUG: ");
+DECLARE_CONST_STRING(STR_ERROR_LOG_PREFIX,				"ERROR: ");
+DECLARE_CONST_STRING(STR_WARNING_LOG_PREFIX,			"WARNING: ");
 
-DECLARE_CONST_STRING(ERR_ARCOLOGY_EXISTS,				"%s is already part of an arcology.")
-DECLARE_CONST_STRING(ERR_NO_ARCOLOGY,					"%s is not yet part of an arcology.")
-DECLARE_CONST_STRING(ERR_INVALID_ARCOLOGY_NAME,			"\"%s\" is not a valid arcology name.")
-DECLARE_CONST_STRING(ERR_NOTHING_TO_UPGRADE,			"All files already up to date.")
-DECLARE_CONST_STRING(ERR_CANT_RESTART_CENTRAL_MODULE,	"Cannot restart CentralModule.")
-DECLARE_CONST_STRING(ERR_DELETING_BAD_FILE,				"Deleting bad file on volume %s: %s.")
-DECLARE_CONST_STRING(ERR_UNKNOWN_MSG,					"Exarch: Unknown message: %s.")
-DECLARE_CONST_STRING(ERR_UPGRADE_FAILED,				"Failed upgrading; please check the log for errors.")
-DECLARE_CONST_STRING(ERR_INVALID_LINES,					"Invalid line count: %d.")
-DECLARE_CONST_STRING(ERR_INVALID_VOLUME_NAME,			"Invalid volume name: %s.")
-DECLARE_CONST_STRING(ERR_DELETING_BAD_VOLUME,			"Removing bad volume: %s.")
-DECLARE_CONST_STRING(ERR_PATH_ALREADY_EXISTS,			"Test path already exists: %s.")
-DECLARE_CONST_STRING(ERR_CANT_DELETE_ORIGINALS,			"Unable to clean up previous files after upgrade.")
-DECLARE_CONST_STRING(ERR_CANT_SEND_TO_MNEMOSYNTH,		"Unable to contact mnemosynth in %s module.")
-DECLARE_CONST_STRING(ERR_CANT_MOVE_FILE,				"Unable to copy upgrade file from %s to %s.")
-DECLARE_CONST_STRING(ERR_CANT_CREATE_DRIVE,				"Unable to create a new drive mapped to: %s.")
-DECLARE_CONST_STRING(ERR_CANT_CREATE_FILE,				"Unable to create file: %s.")
-DECLARE_CONST_STRING(ERR_CANT_CREATE_PATH,				"Unable to create path: %s.")
-DECLARE_CONST_STRING(ERR_CANT_DELETE_BAD_FILE,			"Unable to delete bad file: %s.")
-DECLARE_CONST_STRING(ERR_CANT_DELETE_DRIVE,				"Unable to delete test drive: %s.")
-DECLARE_CONST_STRING(ERR_CANT_DELETE_FOLDER_CONTENTS,	"Unable to delete folder contents: %s.")
-DECLARE_CONST_STRING(ERR_CANT_WRITE_CONFIG,				"Unable to write configuration file.")
-DECLARE_CONST_STRING(ERR_NO_DISK_ERROR_FOUND,			"Unable to determine cause of disk error on: %s.")
-DECLARE_CONST_STRING(ERR_CANT_READ_VOLUME_DIR,			"Unable to get file list from volume %s at path: %s.")
-DECLARE_CONST_STRING(ERR_CANT_GET_VERSION_INFO,			"Unable to obtain file version info: %s.")
-DECLARE_CONST_STRING(ERR_INVALID_STORAGE_PATH,			"Unable to open volume %s: cannot access %s.")
-DECLARE_CONST_STRING(ERR_CANT_FIND_STORAGE,				"Unable to find default storage volume.")
-DECLARE_CONST_STRING(ERR_UNKNOWN_VOLUME,				"Unable to find volume %s on %s.")
-DECLARE_CONST_STRING(ERR_VOLUME_NOT_FOUND,				"Unable to find volume for disk error report: %s.")
-DECLARE_CONST_STRING(ERR_INVALID_MODULE_PATH,			"Unable to interpret module specification: %s.")
-DECLARE_CONST_STRING(ERR_CANT_OPEN_CONFIG_FILE,			"Unable to open arcology configuration file: %s.")
-DECLARE_CONST_STRING(ERR_CANT_PARSE_CONFIG_FILE,		"Unable to parse arcology configuration file: %s.")
-DECLARE_CONST_STRING(ERR_CANT_READ_FILE,				"Unable to read file on volume %s: %s.")
-DECLARE_CONST_STRING(ERR_CANT_READ_LOG,					"Unable to read log file.")
-DECLARE_CONST_STRING(ERR_CANT_REMOVE_ARCOLOGY_PRIME,	"Unable to remove Arcology Prime.")
-DECLARE_CONST_STRING(ERR_CANT_REMOVE_MODULE,			"Unable to remove module: %s.")
-DECLARE_CONST_STRING(ERR_CANT_RENAME_FILE,				"Unable to rename file from %s to %s.")
-DECLARE_CONST_STRING(ERR_CANT_RESTART,					"Unable to restart machine.")
-DECLARE_CONST_STRING(ERR_CANT_RECOVER_UPGRADED_FILE,	"Unable to restore original file after failed upgrade: %s.")
-DECLARE_CONST_STRING(ERR_CANT_WRITE_CONFIG_FILE,		"Unable to write arcology configuration file: %s.")
-DECLARE_CONST_STRING(ERR_CANT_WRITE,					"Unable to write to file: %s.")
-DECLARE_CONST_STRING(ERR_MODULE_NOT_FOUND,				"Unknown module: %s.")
-DECLARE_CONST_STRING(ERR_UPGRADED_FILE,					"Upgraded arcology system file: %s.")
-DECLARE_CONST_STRING(ERR_VOLUME_ALREADY_DELETED,		"Volume %s on %s already deleted.")
-DECLARE_CONST_STRING(ERR_SAME_VOLUME,					"Volume drive already part of arcology: %s.")
-DECLARE_CONST_STRING(ERR_VOLUME_ALREADY_EXISTS,			"Volume name already exists: %s.")
-DECLARE_CONST_STRING(ERR_DISK_SPACE_CRITICAL,			"Volume %s is out of disk space: %d MB left.")
-DECLARE_CONST_STRING(ERR_DISK_SPACE_WARNING,			"Volume %s is low on disk space: %d MB left.")
-DECLARE_CONST_STRING(ERR_MODULE_STOPPED,				"[%s] Module terminated.")
-DECLARE_CONST_STRING(ERR_DISK_ERROR_OP,					"Disk error when %s on filespec: %s.")
-DECLARE_CONST_STRING(ERR_TOO_MANY_LINES,				"Unable to return %d lines; maximum is %d.")
-DECLARE_CONST_STRING(ERR_MODULE_NOT_RESTARTED,			"[%s] Module not restarted because it failed quickly.")
-DECLARE_CONST_STRING(ERR_NOT_ARCOLOGY_PRIME,			"Unable to comply because we are not Arcology Prime.")
-DECLARE_CONST_STRING(ERR_CANT_START_MODULE,				"Unable to start module %s.")
-DECLARE_CONST_STRING(ERR_CANT_SEND_MESSAGE,				"Unable to send %s to %s.")
+DECLARE_CONST_STRING(STR_MACHINE_AUTH,					"[%s]: Arcology machine authenticated: %s.");
+DECLARE_CONST_STRING(STR_MACHINE_STARTED,				"Machine started.");
+DECLARE_CONST_STRING(STR_NO_KEYS_FOUND,					"(no keys found)");
+DECLARE_CONST_STRING(STR_NO_TABLES_FOUND,				"(no tables found)");
+DECLARE_CONST_STRING(STR_EMPTY_DATA,					"(nil)");
+
+DECLARE_CONST_STRING(ERR_ARCOLOGY_EXISTS,				"%s is already part of an arcology.");
+DECLARE_CONST_STRING(ERR_NO_ARCOLOGY,					"%s is not yet part of an arcology.");
+DECLARE_CONST_STRING(ERR_INVALID_ARCOLOGY_NAME,			"\"%s\" is not a valid arcology name.");
+DECLARE_CONST_STRING(ERR_NOTHING_TO_UPGRADE,			"All files already up to date.");
+DECLARE_CONST_STRING(ERR_CANT_RESTART_CENTRAL_MODULE,	"Cannot restart CentralModule.");
+DECLARE_CONST_STRING(ERR_DELETING_BAD_FILE,				"Deleting bad file on volume %s: %s.");
+DECLARE_CONST_STRING(ERR_UNKNOWN_MSG,					"Exarch: Unknown message: %s.");
+DECLARE_CONST_STRING(ERR_UPGRADE_FAILED,				"Failed upgrading; please check the log for errors.");
+DECLARE_CONST_STRING(ERR_INVALID_LINES,					"Invalid line count: %d.");
+DECLARE_CONST_STRING(ERR_INVALID_VOLUME_NAME,			"Invalid volume name: %s.");
+DECLARE_CONST_STRING(ERR_DELETING_BAD_VOLUME,			"Removing bad volume: %s.");
+DECLARE_CONST_STRING(ERR_PATH_ALREADY_EXISTS,			"Test path already exists: %s.");
+DECLARE_CONST_STRING(ERR_CANT_DELETE_ORIGINALS,			"Unable to clean up previous files after upgrade.");
+DECLARE_CONST_STRING(ERR_CANT_SEND_TO_MNEMOSYNTH,		"Unable to contact mnemosynth in %s module.");
+DECLARE_CONST_STRING(ERR_CANT_MOVE_FILE,				"Unable to copy upgrade file from %s to %s.");
+DECLARE_CONST_STRING(ERR_CANT_CREATE_DRIVE,				"Unable to create a new drive mapped to: %s.");
+DECLARE_CONST_STRING(ERR_CANT_CREATE_FILE,				"Unable to create file: %s.");
+DECLARE_CONST_STRING(ERR_CANT_CREATE_PATH,				"Unable to create path: %s.");
+DECLARE_CONST_STRING(ERR_CANT_DELETE_BAD_FILE,			"Unable to delete bad file: %s.");
+DECLARE_CONST_STRING(ERR_CANT_DELETE_DRIVE,				"Unable to delete test drive: %s.");
+DECLARE_CONST_STRING(ERR_CANT_DELETE_FOLDER_CONTENTS,	"Unable to delete folder contents: %s.");
+DECLARE_CONST_STRING(ERR_CANT_WRITE_CONFIG,				"Unable to write configuration file.");
+DECLARE_CONST_STRING(ERR_NO_DISK_ERROR_FOUND,			"Unable to determine cause of disk error on: %s.");
+DECLARE_CONST_STRING(ERR_CANT_READ_VOLUME_DIR,			"Unable to get file list from volume %s at path: %s.");
+DECLARE_CONST_STRING(ERR_CANT_GET_VERSION_INFO,			"Unable to obtain file version info: %s.");
+DECLARE_CONST_STRING(ERR_INVALID_STORAGE_PATH,			"Unable to open volume %s: cannot access %s.");
+DECLARE_CONST_STRING(ERR_CANT_FIND_STORAGE,				"Unable to find default storage volume.");
+DECLARE_CONST_STRING(ERR_UNKNOWN_VOLUME,				"Unable to find volume %s on %s.");
+DECLARE_CONST_STRING(ERR_VOLUME_NOT_FOUND,				"Unable to find volume for disk error report: %s.");
+DECLARE_CONST_STRING(ERR_INVALID_MODULE_PATH,			"Unable to interpret module specification: %s.");
+DECLARE_CONST_STRING(ERR_CANT_OPEN_CONFIG_FILE,			"Unable to open arcology configuration file: %s.");
+DECLARE_CONST_STRING(ERR_CANT_PARSE_CONFIG_FILE,		"Unable to parse arcology configuration file: %s.");
+DECLARE_CONST_STRING(ERR_CANT_READ_FILE,				"Unable to read file on volume %s: %s.");
+DECLARE_CONST_STRING(ERR_CANT_READ_LOG,					"Unable to read log file.");
+DECLARE_CONST_STRING(ERR_CANT_REMOVE_ARCOLOGY_PRIME,	"Unable to remove Arcology Prime.");
+DECLARE_CONST_STRING(ERR_CANT_REMOVE_MODULE,			"Unable to remove module: %s.");
+DECLARE_CONST_STRING(ERR_CANT_RENAME_FILE,				"Unable to rename file from %s to %s.");
+DECLARE_CONST_STRING(ERR_CANT_RESTART,					"Unable to restart machine.");
+DECLARE_CONST_STRING(ERR_CANT_RECOVER_UPGRADED_FILE,	"Unable to restore original file after failed upgrade: %s.");
+DECLARE_CONST_STRING(ERR_CANT_WRITE_CONFIG_FILE,		"Unable to write arcology configuration file: %s.");
+DECLARE_CONST_STRING(ERR_CANT_WRITE,					"Unable to write to file: %s.");
+DECLARE_CONST_STRING(ERR_MODULE_NOT_FOUND,				"Unknown module: %s.");
+DECLARE_CONST_STRING(ERR_UPGRADED_FILE,					"Upgraded arcology system file: %s.");
+DECLARE_CONST_STRING(ERR_VOLUME_ALREADY_DELETED,		"Volume %s on %s already deleted.");
+DECLARE_CONST_STRING(ERR_SAME_VOLUME,					"Volume drive already part of arcology: %s.");
+DECLARE_CONST_STRING(ERR_VOLUME_ALREADY_EXISTS,			"Volume name already exists: %s.");
+DECLARE_CONST_STRING(ERR_DISK_SPACE_CRITICAL,			"Volume %s is out of disk space: %d MB left.");
+DECLARE_CONST_STRING(ERR_DISK_SPACE_WARNING,			"Volume %s is low on disk space: %d MB left.");
+DECLARE_CONST_STRING(ERR_MODULE_STOPPED,				"[%s] Module terminated.");
+DECLARE_CONST_STRING(ERR_DISK_ERROR_OP,					"Disk error when %s on filespec: %s.");
+DECLARE_CONST_STRING(ERR_DISK_ERROR_TEST,				"Testing disk storage on filespec: %s.");
+DECLARE_CONST_STRING(ERR_TOO_MANY_LINES,				"Unable to return %d lines; maximum is %d.");
+DECLARE_CONST_STRING(ERR_MODULE_NOT_RESTARTED,			"[%s] Module not restarted because it failed quickly.");
+DECLARE_CONST_STRING(ERR_NOT_ARCOLOGY_PRIME,			"Unable to comply because we are not Arcology Prime.");
+DECLARE_CONST_STRING(ERR_CANT_START_MODULE,				"Unable to start module %s.");
+DECLARE_CONST_STRING(ERR_CANT_SEND_MESSAGE,				"Unable to send %s to %s.");
+DECLARE_CONST_STRING(ERR_TEST_COMPLETE,					"Diagnostics on %s complete. No errors found.");
 
 //	Message Table --------------------------------------------------------------
 
-DECLARE_CONST_STRING(MSG_AEON_ON_START,					"Aeon.onStart")
-DECLARE_CONST_STRING(MSG_ARC_HOUSEKEEPING,				"Arc.housekeeping")
-DECLARE_CONST_STRING(MSG_EXARCH_ADD_MACHINE,			"Exarch.addMachine")
-DECLARE_CONST_STRING(MSG_EXARCH_ADD_MODULE,				"Exarch.addModule")
-DECLARE_CONST_STRING(MSG_EXARCH_ADD_VOLUME,				"Exarch.addVolume")
-DECLARE_CONST_STRING(MSG_EXARCH_CHECK_UPGRADE,			"Exarch.checkUpgrade")
-DECLARE_CONST_STRING(MSG_EXARCH_COMPLETE_UPGRADE,		"Exarch.completeUpgrade")
-DECLARE_CONST_STRING(MSG_EXARCH_CREATE_TEST_VOLUME,		"Exarch.createTestVolume")
-DECLARE_CONST_STRING(MSG_EXARCH_DELETE_TEST_DRIVE,		"Exarch.deleteTestDrive")
-DECLARE_CONST_STRING(MSG_EXARCH_GET_LOG_ROWS,			"Exarch.getLogRows")
-DECLARE_CONST_STRING(MSG_EXARCH_GET_MACHINE_STATUS,		"Exarch.getMachineStatus")
-DECLARE_CONST_STRING(MSG_EXARCH_GET_MODULE_LIST,		"Exarch.getModuleList")
-DECLARE_CONST_STRING(MSG_EXARCH_GET_STATUS,				"Exarch.getStatus")
-DECLARE_CONST_STRING(MSG_EXARCH_GET_STORAGE_LIST,		"Exarch.getStorageList")
-DECLARE_CONST_STRING(MSG_EXARCH_MNEMOSYNTH_ENDPOINT_LIST,	"Exarch.mnemosynthEndpointList")
-DECLARE_CONST_STRING(MSG_EXARCH_MNEMOSYNTH_READ,		"Exarch.mnemosynthRead")
-DECLARE_CONST_STRING(MSG_EXARCH_PING,					"Exarch.ping")
-DECLARE_CONST_STRING(MSG_EXARCH_REMOVE_MACHINE,			"Exarch.removeMachine")
-DECLARE_CONST_STRING(MSG_EXARCH_REMOVE_MODULE,			"Exarch.removeModule")
-DECLARE_CONST_STRING(MSG_EXARCH_REMOVE_VOLUME,			"Exarch.removeVolume")
-DECLARE_CONST_STRING(MSG_EXARCH_REPORT_DISK_ERROR,		"Exarch.reportDiskError")
-DECLARE_CONST_STRING(MSG_EXARCH_REQUEST_UPGRADE,		"Exarch.requestUpgrade")
-DECLARE_CONST_STRING(MSG_EXARCH_RESTART_MACHINE,		"Exarch.restartMachine")
-DECLARE_CONST_STRING(MSG_EXARCH_RESTART_MODULE,			"Exarch.restartModule")
-DECLARE_CONST_STRING(MSG_EXARCH_SEND_TO_MACHINE,		"Exarch.sendToMachine")
-DECLARE_CONST_STRING(MSG_EXARCH_SHUTDOWN,				"Exarch.shutdown")
-DECLARE_CONST_STRING(MSG_EXARCH_UPLOAD_UPGRADE,			"Exarch.uploadUpgrade")
+DECLARE_CONST_STRING(MSG_AEON_ON_START,					"Aeon.onStart");
+DECLARE_CONST_STRING(MSG_ARC_HOUSEKEEPING,				"Arc.housekeeping");
+DECLARE_CONST_STRING(MSG_EXARCH_ADD_MACHINE,			"Exarch.addMachine");
+DECLARE_CONST_STRING(MSG_EXARCH_ADD_MODULE,				"Exarch.addModule");
+DECLARE_CONST_STRING(MSG_EXARCH_ADD_VOLUME,				"Exarch.addVolume");
+DECLARE_CONST_STRING(MSG_EXARCH_CHECK_UPGRADE,			"Exarch.checkUpgrade");
+DECLARE_CONST_STRING(MSG_EXARCH_COMPLETE_UPGRADE,		"Exarch.completeUpgrade");
+DECLARE_CONST_STRING(MSG_EXARCH_CREATE_TEST_VOLUME,		"Exarch.createTestVolume");
+DECLARE_CONST_STRING(MSG_EXARCH_DELETE_TEST_DRIVE,		"Exarch.deleteTestDrive");
+DECLARE_CONST_STRING(MSG_EXARCH_GET_LOG_ROWS,			"Exarch.getLogRows");
+DECLARE_CONST_STRING(MSG_EXARCH_GET_MACHINE_STATUS,		"Exarch.getMachineStatus");
+DECLARE_CONST_STRING(MSG_EXARCH_GET_MODULE_LIST,		"Exarch.getModuleList");
+DECLARE_CONST_STRING(MSG_EXARCH_GET_STATUS,				"Exarch.getStatus");
+DECLARE_CONST_STRING(MSG_EXARCH_GET_STORAGE_LIST,		"Exarch.getStorageList");
+DECLARE_CONST_STRING(MSG_EXARCH_MNEMOSYNTH_ENDPOINT_LIST,	"Exarch.mnemosynthEndpointList");
+DECLARE_CONST_STRING(MSG_EXARCH_MNEMOSYNTH_READ,		"Exarch.mnemosynthRead");
+DECLARE_CONST_STRING(MSG_EXARCH_PING,					"Exarch.ping");
+DECLARE_CONST_STRING(MSG_EXARCH_REMOVE_MACHINE,			"Exarch.removeMachine");
+DECLARE_CONST_STRING(MSG_EXARCH_REMOVE_MODULE,			"Exarch.removeModule");
+DECLARE_CONST_STRING(MSG_EXARCH_REMOVE_VOLUME,			"Exarch.removeVolume");
+DECLARE_CONST_STRING(MSG_EXARCH_REPORT_DISK_ERROR,		"Exarch.reportDiskError");
+DECLARE_CONST_STRING(MSG_EXARCH_REQUEST_UPGRADE,		"Exarch.requestUpgrade");
+DECLARE_CONST_STRING(MSG_EXARCH_RESTART_MACHINE,		"Exarch.restartMachine");
+DECLARE_CONST_STRING(MSG_EXARCH_RESTART_MODULE,			"Exarch.restartModule");
+DECLARE_CONST_STRING(MSG_EXARCH_SEND_TO_MACHINE,		"Exarch.sendToMachine");
+DECLARE_CONST_STRING(MSG_EXARCH_SHUTDOWN,				"Exarch.shutdown");
+DECLARE_CONST_STRING(MSG_EXARCH_UPLOAD_UPGRADE,			"Exarch.uploadUpgrade");
 
 const DWORDLONG LOW_DISK_SPACE_ERROR =					MEGABYTE_DISK;
 const DWORDLONG LOW_DISK_SPACE_WARNING =				200 * MEGABYTE_DISK;
@@ -762,7 +771,7 @@ bool CExarchEngine::DeleteStorage (const CString &sVolume, CString *retsError)
 
 	//	If this is a test drive, try to delete the mapped path.
 
-	const CString &sMappedPath = dVolumeDesc.GetElement(FIELD_TEST_VOLUME);
+	CStringView sMappedPath = dVolumeDesc.GetElement(FIELD_TEST_VOLUME);
 	if (!sMappedPath.IsEmpty())
 		filePathDelete(sMappedPath, FPD_FLAG_RECURSIVE);
 
@@ -838,7 +847,7 @@ void CExarchEngine::ExecuteProtocolAMP1 (CArcologySession *pCtx, const CString &
 		return;
 		}
 
-	CString sType = (const CString &)dDatum;
+	CStringView sType = dDatum;
 	if (strEquals(sType, STR_AMP1_MSG_TYPE))
 		{
 		SArchonMessage Msg;
@@ -864,7 +873,7 @@ void CExarchEngine::ExecuteProtocolAMP1 (CArcologySession *pCtx, const CString &
 			return;
 			}
 
-		Msg.sReplyAddr = (const CString &)dDatum;
+		Msg.sReplyAddr = dDatum.AsStringView();
 
 		//	Get the ticket
 
@@ -884,7 +893,7 @@ void CExarchEngine::ExecuteProtocolAMP1 (CArcologySession *pCtx, const CString &
 			return;
 			}
 
-		Msg.sMsg = (const CString &)dDatum;
+		Msg.sMsg = dDatum.AsStringView();
 
 		//	The remaining datums are the payload
 
@@ -935,7 +944,7 @@ bool CExarchEngine::FindVolume (const CString &sVolume, CDatum *retdVolumeDesc, 
 		if (strStartsWith(VolumeKeys[i], sMachine))
 			{
 			CDatum dVolumeDesc = MnemosynthRead(MNEMO_ARC_STORAGE, VolumeKeys[i]);
-			if (strEquals(sVolume, dVolumeDesc.GetElement(FIELD_VOLUME_NAME)))
+			if (strEquals(sVolume, dVolumeDesc.GetElement(FIELD_VOLUME_NAME).AsStringView()))
 				{
 				if (retdVolumeDesc)
 					*retdVolumeDesc = dVolumeDesc;
@@ -1006,7 +1015,7 @@ CString CExarchEngine::GetMachineStatus (void)
 
 	{
 	CDatum dData = MnemosynthRead(MNEMO_ARC_MACHINES, GetMachineName());
-	return (const CString &)dData.GetElement(FIELD_STATUS);
+	return dData.GetElement(FIELD_STATUS).AsString();
 	}
 
 bool CExarchEngine::IsRestartRequired (const CString &sFilename) const
@@ -1042,10 +1051,10 @@ bool CExarchEngine::LoadStorageConfig (CDatum dStorageConfig)
 	for (i = 0; i < dVolumes.GetCount(); i++)
 		{
 		CDatum dVolumeDesc = dVolumes.GetElement(i);
-		CString sName = dVolumeDesc.GetElement(FIELD_VOLUME_NAME);
-		CString sLocalPath = dVolumeDesc.GetElement(FIELD_LOCAL_PATH);
+		CStringView sName = dVolumeDesc.GetElement(FIELD_VOLUME_NAME);
+		CStringView sLocalPath = dVolumeDesc.GetElement(FIELD_LOCAL_PATH);
 		DWORD dwQuota = (DWORD)(int)dVolumeDesc.GetElement(CONFIG_QUOTA);
-		CString sTestDrive = dVolumeDesc.GetElement(FIELD_TEST_VOLUME);
+		CStringView sTestDrive = dVolumeDesc.GetElement(FIELD_TEST_VOLUME);
 
 		if (!AddStorage(sName, sLocalPath, dwQuota, sTestDrive, &sError))
 			Log(MSG_LOG_ERROR, sError);
@@ -1084,7 +1093,7 @@ void CExarchEngine::MsgAddVolume (const SArchonMessage &Msg, const CHexeSecurity
 
 	//	Get parameters
 
-	CString sNewFilePath = Msg.dPayload.GetElement(0);
+	CStringView sNewFilePath = Msg.dPayload.GetElement(0);
 	CString sNewDrive = fileGetDrive(sNewFilePath);
 	DWORD dwQuota = (int)Msg.dPayload.GetElement(1);
 	if (dwQuota == 0)
@@ -1104,7 +1113,7 @@ void CExarchEngine::MsgAddVolume (const SArchonMessage &Msg, const CHexeSecurity
 		if (strStartsWith(VolumeKeys[i], sMachine))
 			{
 			CDatum dVolumeDesc = MnemosynthRead(MNEMO_ARC_STORAGE, VolumeKeys[i]);
-			const CString &sFilePath = dVolumeDesc.GetElement(FIELD_LOCAL_PATH);
+			CStringView sFilePath = dVolumeDesc.GetElement(FIELD_LOCAL_PATH);
 
 			//	If both are on the same drive then this is a conflict
 
@@ -1153,7 +1162,7 @@ void CExarchEngine::MsgCreateTestVolume (const SArchonMessage &Msg, const CHexeS
 
 	//	Volume name must be valid
 
-	CString sVolume = Msg.dPayload.GetElement(0);
+	CStringView sVolume = Msg.dPayload.GetElement(0);
 	if (sVolume.IsEmpty())
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_INVALID_VOLUME_NAME, sVolume), Msg);
@@ -1260,7 +1269,7 @@ void CExarchEngine::MsgDeleteTestDrive (const SArchonMessage &Msg, const CHexeSe
 
 	//	Get parameters
 
-	CString sVolume = Msg.dPayload.GetElement(0);
+	CStringView sVolume = Msg.dPayload.GetElement(0);
 
 	//	Find the volume.
 
@@ -1275,7 +1284,7 @@ void CExarchEngine::MsgDeleteTestDrive (const SArchonMessage &Msg, const CHexeSe
 	//	Delete the drive (but don't delete the volume because we want to test
 	//	how the code detects drive failure).
 
-	CString sDrive = dVolumeDesc.GetElement(FIELD_LOCAL_PATH);
+	CStringView sDrive = dVolumeDesc.GetElement(FIELD_LOCAL_PATH);
 	if (!fileDeleteDrive(sDrive))
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_CANT_DELETE_DRIVE, sDrive), Msg);
@@ -1317,7 +1326,7 @@ void CExarchEngine::MsgGetLogRows (const SArchonMessage &Msg, const CHexeSecurit
 	//	No need to lock because we don't change state.
 
 	int iLines;
-	CString sFind;
+	CStringView sFind;
 
 	if (Msg.dPayload.GetCount() == 2)
 		{
@@ -1375,7 +1384,7 @@ void CExarchEngine::MsgGetMachineStatus (const SArchonMessage &Msg, const CHexeS
 	CDatum dResult;
 	if (!m_MecharcologyDb.GetStatus(&dResult))
 		{
-		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, dResult, Msg);
+		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, dResult.AsStringView(), Msg);
 		return;
 		}
 
@@ -1434,7 +1443,7 @@ void CExarchEngine::MsgMnemosynthEndpointList (const SArchonMessage &Msg, const 
 
 	CString sMachineName;
 	CString sModule;
-	if (!ParseModuleName(Msg.dPayload.GetElement(0), &sMachineName, &sModule))
+	if (!ParseModuleName(Msg.dPayload.GetElement(0).AsStringView(), &sMachineName, &sModule))
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern("Unknown module: %s.", Msg.dPayload.GetElement(0).AsString()), Msg);
 		return;
@@ -1465,7 +1474,7 @@ void CExarchEngine::MsgMnemosynthRead (const SArchonMessage &Msg, const CHexeSec
 
 	CString sMachineName;
 	CString sModule;
-	if (!ParseModuleName(Msg.dPayload.GetElement(2), &sMachineName, &sModule))
+	if (!ParseModuleName(Msg.dPayload.GetElement(2).AsStringView(), &sMachineName, &sModule))
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern("Unknown module: %s.", Msg.dPayload.GetElement(2).AsString()), Msg);
 		return;
@@ -1541,9 +1550,9 @@ void CExarchEngine::MsgOnLog (const SArchonMessage &Msg, const CHexeSecurityCtx 
 	//	This comes from a virtual port, so we decode the original
 	//	message and payload.
 
-	const CString &sMsg = Msg.dPayload.GetElement(0);
-	const CString &sText = Msg.dPayload.GetElement(1).GetElement(0);
-	const CString &sSender = Msg.dPayload.GetElement(1).GetElement(1);
+	CStringView sMsg = Msg.dPayload.GetElement(0);
+	CStringView sText = Msg.dPayload.GetElement(1).GetElement(0);
+	CStringView sSender = Msg.dPayload.GetElement(1).GetElement(1);
 
 	//	Parse the sender
 
@@ -1580,7 +1589,7 @@ void CExarchEngine::MsgOnModuleStart (const SArchonMessage &Msg, const CHexeSecu
 
 	{
 	CSmartLock Lock(m_cs);
-	const CString &sModuleName(Msg.dPayload.GetElement(0));
+	CStringView sModuleName(Msg.dPayload.GetElement(0));
 	CDatum dModuleData = Msg.dPayload.GetElement(2);
 
 	//	Make sure this module is in the list; if not, then we don't need to do
@@ -1632,7 +1641,7 @@ void CExarchEngine::MsgOnModuleStop (const SArchonMessage &Msg, const CHexeSecur
 
 	{
 	CSmartLock Lock(m_cs);
-	CString sModule = Msg.dPayload.GetElement(0);
+	CStringView sModule = Msg.dPayload.GetElement(0);
 	SModuleDesc OldModule;
 
 	//	If the module is not part of the arcology, then there is nothing
@@ -1716,7 +1725,7 @@ void CExarchEngine::MsgRemoveVolume (const SArchonMessage &Msg, const CHexeSecur
 
 	//	Get parameters
 
-	CString sVolume = Msg.dPayload.GetElement(0);
+	CStringView sVolume = Msg.dPayload.GetElement(0);
 
 	//	Delete the volume
 
@@ -1736,17 +1745,23 @@ void CExarchEngine::MsgReportDiskError (const SArchonMessage &Msg, const CHexeSe
 
 //	MsgReportDiskError
 //
-//	Exarch.reportDiskError {filespec}
+//	Exarch.reportDiskError {filespec} [{operation}]
+//
+//	If operation is "TEST" then this is just a non-destructive diagnosis of the
+//	file and volume.
 
 	{
 	CSmartLock Lock(m_cs);
 	CString sError;
-	int i;
 
-	const CString &sFilespec = Msg.dPayload.GetElement(0);
-	const CString &sOperation = Msg.dPayload.GetElement(1);
+	CStringView sFilespec = Msg.dPayload.GetElement(0);
+	CStringView sOperation = Msg.dPayload.GetElement(1);
+	bool bTesting = strEquals(sOperation, STR_TEST);
 
-	if (!sOperation.IsEmpty())
+	if (bTesting)
+		Log(MSG_LOG_INFO, strPattern(ERR_DISK_ERROR_TEST, sFilespec));
+
+	else if (!sOperation.IsEmpty())
 		Log(MSG_LOG_INFO, strPattern(ERR_DISK_ERROR_OP, sOperation, sFilespec));
 
 	//	Find the volume that holds this file.
@@ -1759,20 +1774,20 @@ void CExarchEngine::MsgReportDiskError (const SArchonMessage &Msg, const CHexeSe
 	CString sVolumePath;
 	bool bFound = false;
 
-	for (i = 0; i < VolumeKeys.GetCount(); i++)
+	for (int i = 0; i < VolumeKeys.GetCount(); i++)
 		{
 		//	Only check for volumes on this machine
 
 		if (strStartsWith(VolumeKeys[i], sMachine))
 			{
 			dVolumeDesc = MnemosynthRead(MNEMO_ARC_STORAGE, VolumeKeys[i]);
-			sVolumePath = dVolumeDesc.GetElement(FIELD_LOCAL_PATH);
+			sVolumePath = dVolumeDesc.GetElement(FIELD_LOCAL_PATH).AsStringView();
 
 			//	See if we match
 
 			if (strStartsWith(sFilespec, sVolumePath))
 				{
-				sVolume = dVolumeDesc.GetElement(FIELD_VOLUME_NAME);
+				sVolume = dVolumeDesc.GetElement(FIELD_VOLUME_NAME).AsStringView();
 				bFound = true;
 				break;
 				}
@@ -1784,6 +1799,8 @@ void CExarchEngine::MsgReportDiskError (const SArchonMessage &Msg, const CHexeSe
 	if (!bFound)
 		{
 		Log(MSG_LOG_INFO, strPattern(ERR_VOLUME_NOT_FOUND, sFilespec));
+		if (bTesting)
+			SendMessageReply(MSG_REPLY_DATA, DISK_STATUS_VOLUME_NOT_FOUND, Msg);
 		return;
 		}
 
@@ -1842,10 +1859,17 @@ void CExarchEngine::MsgReportDiskError (const SArchonMessage &Msg, const CHexeSe
 
 	if (!bReadSuccessful)
 		{
-		Log(MSG_LOG_INFO, strPattern(ERR_DELETING_BAD_VOLUME, sVolume));
+		if (bTesting)
+			{
+			SendMessageReply(MSG_REPLY_DATA, DISK_STATUS_VOLUME_ERROR, Msg);
+			}
+		else
+			{
+			Log(MSG_LOG_INFO, strPattern(ERR_DELETING_BAD_VOLUME, sVolume));
 
-		if (!DeleteStorage(sVolume, &sError))
-			Log(MSG_LOG_ERROR, sError);
+			if (!DeleteStorage(sVolume, &sError))
+				Log(MSG_LOG_ERROR, sError);
+			}
 
 		return;
 		}
@@ -1857,6 +1881,8 @@ void CExarchEngine::MsgReportDiskError (const SArchonMessage &Msg, const CHexeSe
 	if (dwAvailable < LOW_DISK_SPACE_ERROR)
 		{
 		Log(MSG_LOG_INFO, strPattern(ERR_DISK_SPACE_CRITICAL, sVolume, dwAvailable / MEGABYTE_DISK));
+		if (bTesting)
+			SendMessageReply(MSG_REPLY_DATA, DISK_STATUS_LOW_DISK_SPACE, Msg);
 		return;
 		}
 	
@@ -1872,6 +1898,8 @@ void CExarchEngine::MsgReportDiskError (const SArchonMessage &Msg, const CHexeSe
 	if (!fileExists(sFilespec, &bIsFile) || !bIsFile)
 		{
 		Log(MSG_LOG_INFO, strPattern(ERR_NO_DISK_ERROR_FOUND, sFilespec));
+		if (bTesting)
+			SendMessageReply(MSG_REPLY_DATA, DISK_STATUS_FILE_NOT_FOUND, Msg);
 		return;
 		}
 
@@ -1879,17 +1907,32 @@ void CExarchEngine::MsgReportDiskError (const SArchonMessage &Msg, const CHexeSe
 
 	if (!TestFileRead(sFilespec))
 		{
-		Log(MSG_LOG_INFO, strPattern(ERR_DELETING_BAD_FILE, sVolume, sFilespec));
+		if (bTesting)
+			{
+			SendMessageReply(MSG_REPLY_DATA, DISK_STATUS_FILE_ERROR, Msg);
+			}
+		else
+			{
+			Log(MSG_LOG_INFO, strPattern(ERR_DELETING_BAD_FILE, sVolume, sFilespec));
 
-		if (!fileDelete(sFilespec))
-			Log(MSG_LOG_ERROR, strPattern(ERR_CANT_DELETE_BAD_FILE, sFilespec));
+			if (!fileDelete(sFilespec))
+				Log(MSG_LOG_ERROR, strPattern(ERR_CANT_DELETE_BAD_FILE, sFilespec));
+			}
 
 		return;
 		}
 
 	//	Otherwise, we don't know what's wrong.
 
-	Log(MSG_LOG_INFO, strPattern(ERR_NO_DISK_ERROR_FOUND, sFilespec));
+	if (bTesting)
+		{
+		Log(MSG_LOG_INFO, strPattern(ERR_TEST_COMPLETE, sFilespec));
+		SendMessageReply(MSG_REPLY_DATA, DISK_STATUS_SUCCESS, Msg);
+		}
+	else
+		{
+		Log(MSG_LOG_INFO, strPattern(ERR_NO_DISK_ERROR_FOUND, sFilespec));
+		}
 	}
 
 void CExarchEngine::MsgRequestUpgrade (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)
@@ -1942,7 +1985,7 @@ void CExarchEngine::MsgRequestUpgrade (const SArchonMessage &Msg, const CHexeSec
 	for (i = 0; i < dRequest.GetCount(); i++)
 		{
 		CDatum dFileDesc = dRequest.GetElement(i);
-		CString sFilespec = fileAppend(sRootFolder, dFileDesc.GetElement(FIELD_FILENAME));
+		CString sFilespec = fileAppend(sRootFolder, dFileDesc.GetElement(FIELD_FILENAME).AsStringView());
 
 		//	If the file exists, then check to see if it needs to be upgraded
 
@@ -2066,7 +2109,7 @@ void CExarchEngine::MsgRestartModule (const SArchonMessage &Msg, const CHexeSecu
 
 	//	Find the module
 
-	const CString sModuleName = Msg.dPayload.GetElement(0);
+	CStringView sModuleName = Msg.dPayload.GetElement(0);
 	SModuleDesc ModuleDesc;
 	if (!m_MecharcologyDb.GetModule(sModuleName, &ModuleDesc))
 		{
@@ -2148,7 +2191,7 @@ void CExarchEngine::MsgUploadUpgrade (const SArchonMessage &Msg, const CHexeSecu
 
 	//	Get the inputs
 
-	CString sFilespec = fileAppend(sUpgradeFolder, Msg.dPayload.GetElement(0));
+	CString sFilespec = fileAppend(sUpgradeFolder, Msg.dPayload.GetElement(0).AsStringView());
 	CDatum dUploadDesc = Msg.dPayload.GetElement(1);
 	CDatum dData = Msg.dPayload.GetElement(2);
 
@@ -2171,7 +2214,7 @@ void CExarchEngine::MsgUploadUpgrade (const SArchonMessage &Msg, const CHexeSecu
 	try
 		{
 		theFile.Seek((int)dwOffset);
-		theFile.Write((const CString&)dData);
+		theFile.Write(dData.AsStringView());
 
 		bSuccess = true;
 		}
@@ -2247,7 +2290,7 @@ void CExarchEngine::OnBoot (void)
 		}
 	}
 
-void CExarchEngine::OnMachineConnection (const CString &sName)
+void CExarchEngine::OnMachineConnection (CStringView sNodeID, CStringView sName)
 
 //	OnMachineConnection
 //
@@ -2257,7 +2300,6 @@ void CExarchEngine::OnMachineConnection (const CString &sName)
 
 	{
 	CSmartLock Lock(m_cs);
-	int i;
 
 	//	Remove any old endpoints. For example, if this same machine was 
 	//	previously connected under a different name (because of a reboot)
@@ -2265,7 +2307,7 @@ void CExarchEngine::OnMachineConnection (const CString &sName)
 
 	TArray<CString> OldNames;
 	m_MecharcologyDb.ProcessOldMachines(OldNames);
-	for (i = 0; i < OldNames.GetCount(); i++)
+	for (int i = 0; i < OldNames.GetCount(); i++)
 		GetMnemosynth().RemoveMachineEndpoints(OldNames[i]);
 
 	//	Add this endpoint to Mnemosynth. (If this is NOT Arcology Prime, 
@@ -2277,44 +2319,49 @@ void CExarchEngine::OnMachineConnection (const CString &sName)
 	//	Delete old machines and all their resources (these won't get deleted
 	//	by ArcologyPrime because the owner is dead).
 
-	for (i = 0; i < OldNames.GetCount(); i++)
+	for (int i = 0; i < OldNames.GetCount(); i++)
 		DeleteMachineResources(OldNames[i]);
 
 	//	If we are Arcology Prime, then we also add this machine to Mnemosynth.
 
 	if (IsArcologyPrime())
 		{
+#ifdef DEBUG_STARTUP
+		printf("OnMachineConnection: Adding machine: %s as %s\n", (LPCSTR)sNodeID, (LPCSTR)sName);
+#endif
+
 		//	Add the machine
 		//
 		//	NOTE: This will also trigger a replication of Mnemosynth to all
 		//	endpoints.
 
-		CComplexStruct *pStruct = new CComplexStruct;
-		pStruct->SetElement(FIELD_HOST_ADDRESS, NULL_STR);
-		pStruct->SetElement(FIELD_STATUS, MNEMO_STATUS_RUNNING);
+		CDatum dMachineInfo(CDatum::typeStruct);
+		dMachineInfo.SetElement(FIELD_NODE_ID, sNodeID);
+		dMachineInfo.SetElement(FIELD_HOST_ADDRESS, NULL_STR);
+		dMachineInfo.SetElement(FIELD_STATUS, MNEMO_STATUS_RUNNING);
 
 		MnemosynthWrite(MNEMO_ARC_MACHINES, 
 				sName, 
-				CDatum(pStruct));
+				dMachineInfo);
 		}
 
 	//	Log it
 
-	Log(MSG_LOG_INFO, strPattern(STR_MACHINE_AUTH, sName));
+	Log(MSG_LOG_INFO, strPattern(STR_MACHINE_AUTH, sNodeID, sName));
 
-#ifdef DEBUG
+#ifdef DEBUG_STARTUP
 	Log(MSG_LOG_DEBUG, strPattern("Added endpoint: %s.", sFullName));
-	for (i = 0; i < OldNames.GetCount(); i++)
+	for (int i = 0; i < OldNames.GetCount(); i++)
 		printf("Old machine: %s\n", (LPSTR)OldNames[i]);
 
 	TArray<CString> Machines;
 	MnemosynthReadCollection(MNEMO_ARC_MACHINES, &Machines);
 
-	for (i = 0; i < Machines.GetCount(); i++)
+	for (int i = 0; i < Machines.GetCount(); i++)
 		{
 		CDatum dMachineInfo = MnemosynthRead(MNEMO_ARC_MACHINES, Machines[i]);
-		const CString &sName = dMachineInfo.GetElement(FIELD_NAME);
-		printf("%s: %s\n", (LPSTR)Machines[i], (LPSTR)sName);
+		CStringView sName = dMachineInfo.GetElement(FIELD_NAME);
+		printf("%s: %s\n", (LPCSTR)Machines[i], (LPCSTR)sName);
 		}
 
 #endif
@@ -2328,13 +2375,9 @@ void CExarchEngine::OnMachineStart (void)
 //	so we don't worry about other threads.
 
 	{
-	int i;
-
 #ifdef DEBUG_STARTUP
 	printf("[OnMachineStart]\n");
 #endif
-
-	SetMachineData(NULL_STR, MNEMO_STATUS_RUNNING);
 
 	//	Send the onMachineAdded notification message to everyone
 
@@ -2355,13 +2398,32 @@ void CExarchEngine::OnMachineStart (void)
 
 	if (IsArcologyPrime())
 		{
-		for (i = 0; i < m_MecharcologyDb.GetMachineCount(); i++)
+		SetMachineData(NULL_STR, MNEMO_STATUS_RUNNING);
+
+		for (int i = 0; i < m_MecharcologyDb.GetMachineCount(); i++)
 			{
 			SMachineDesc Desc;
 			m_MecharcologyDb.GetMachine(i, &Desc);
 
+			m_AMP1Server.AddClient(Desc.sNodeID, Desc.Key);
+
 			SendAMP1Command(Desc, AMP1_REJOIN, CDatum());
 			}
+
+#ifdef ENABLE_AMP1_FABRIC
+		//	Start the AMP1 server to listen for AMP1 connections either from a 
+		//	secondary machine (if we're Arcology Prime) or from Arcology Prime
+
+		CString sError;
+		if (m_AMP1Server.StartAsServer(DEFAULT_AMP1_PORT_NEW, *this, &sError))
+			{
+			Log(MSG_LOG_INFO, strPattern("%s listening on port %d", ADDRESS_EXARCH_COMMAND, DEFAULT_AMP1_PORT_NEW));
+			}
+		else
+			{
+			Log(MSG_LOG_ERROR, sError);
+			}
+#endif
 		}
 
 	//	If we're a secondary machine, then ping Arcology Prime
@@ -2372,8 +2434,25 @@ void CExarchEngine::OnMachineStart (void)
 		printf("[OnMachineStart]: Send PING to Arcology Prime.\n");
 #endif
 
-		if (m_MecharcologyDb.HasArcologyKey())
+		SMachineDesc Desc;
+		if (m_MecharcologyDb.FindArcologyPrime(&Desc))
+			{
 			SendAMP1Command(NULL_STR, AMP1_PING, CDatum());
+
+#ifdef ENABLE_AMP1_FABRIC
+			//	Start the AMP1 client
+
+			CString sError;
+			if (m_AMP1Server.StartAsClient(GetMachineName(), Desc.sAddress, DEFAULT_AMP1_PORT_NEW, Desc.Key, *this, &sError))
+				{
+				Log(MSG_LOG_INFO, strPattern("%s connecting on port %d", ADDRESS_EXARCH_COMMAND, DEFAULT_AMP1_PORT_NEW));
+				}
+			else
+				{
+				Log(MSG_LOG_ERROR, sError);
+				}
+#endif
+			}
 		}
 
 	//	Done
@@ -2405,7 +2484,6 @@ void CExarchEngine::OnStartRunning (void)
 //	messages at this point.
 
 	{
-	int i;
 	CString sError;
 
 	//	Load the configuration file
@@ -2438,11 +2516,6 @@ void CExarchEngine::OnStartRunning (void)
 	if (!LoadStorageConfig(m_dMachineConfig.GetElement(FIELD_STORAGE)))
 		return;
 
-	//	Wait until we get a notification from each module that it has completed
-	//	booting.
-
-	SetMachineData(NULL_STR, MNEMO_STATUS_BOOTING);
-
 	//	If we're Arcology Prime then we create the arcology and load all our
 	//	modules. Otherwise, we wait until we connect to the arcology before
 	//	we load our modules.
@@ -2450,6 +2523,8 @@ void CExarchEngine::OnStartRunning (void)
 	int iModulesLoaded = 0;
 	if (IsArcologyPrime())
 		{
+		SetMachineData(NULL_STR, MNEMO_STATUS_BOOTING);
+
 		//	Set arcology info
 
 		if (!CreateArcology(STR_DEFAULT_ARCOLOGY_NAME, NULL_STR, &sError))
@@ -2475,12 +2550,14 @@ void CExarchEngine::OnStartRunning (void)
 		//	Add all the machines we know about to the arcology
 
 		CDatum dMachines = m_dMachineConfig.GetElement(FIELD_MACHINES);
-		for (i = 0; i < dMachines.GetCount(); i++)
+		for (int i = 0; i < dMachines.GetCount(); i++)
 			{
 			CDatum dMachineDesc = dMachines.GetElement(i);
+			CString sNodeID = m_MecharcologyDb.MakeNodeID(i + 2);	//	+2 because we reserve 1 for Arcology Prime
 
-			if (!m_MecharcologyDb.AddMachine(dMachineDesc.GetElement(FIELD_NAME),
-					dMachineDesc.GetElement(FIELD_ADDRESS),
+			if (!m_MecharcologyDb.AddMachine(sNodeID,
+					dMachineDesc.GetElement(FIELD_NAME).AsStringView(),
+					dMachineDesc.GetElement(FIELD_ADDRESS).AsStringView(),
 					dMachineDesc.GetElement(FIELD_KEY),
 					m_bBroadcastCheckUpgrade,
 					&sError))
@@ -2488,6 +2565,10 @@ void CExarchEngine::OnStartRunning (void)
 				Log(MSG_LOG_ERROR, sError);
 				continue;
 				}
+
+#ifdef DEBUG_STARTUP
+			printf("[OnStartRunning]: Added machine: %s at %s.\n", (LPCSTR)dMachineDesc.GetElement(FIELD_NAME).AsStringView(), (LPCSTR)dMachineDesc.GetElement(FIELD_ADDRESS).AsStringView());
+#endif
 			}
 		}
 
@@ -2509,9 +2590,9 @@ void CExarchEngine::OnStartRunning (void)
 	//	Load other modules
 
 	CDatum dModules = m_dMachineConfig.GetElement(FIELD_MODULES);
-	for (i = 0; i < dModules.GetCount(); i++)
+	for (int i = 0; i < dModules.GetCount(); i++)
 		{
-		const CString &sModuleFilespec = dModules.GetElement(i);
+		CStringView sModuleFilespec = dModules.GetElement(i);
 
 		if (!AddModule(sModuleFilespec, false, NULL, &sError))
 			{
@@ -2544,15 +2625,15 @@ void CExarchEngine::OnStopRunning (void)
 //	Process has asked us to stop
 
 	{
-	int i;
-
 	//	Get a list of all modules to stop
 
 	m_cs.Lock();
 
+	m_AMP1Server.Shutdown();
+
 	TArray<CString> ModuleNames;
 	TArray<HANDLE> ModuleWait;
-	for (i = 1; i < m_MecharcologyDb.GetModuleCount(); i++)
+	for (int i = 1; i < m_MecharcologyDb.GetModuleCount(); i++)
 		{
 		ModuleNames.Insert(m_MecharcologyDb.GetModuleName(i));
 		ModuleWait.Insert(m_MecharcologyDb.GetModuleProcess(i).GetWaitObject());
@@ -2565,7 +2646,7 @@ void CExarchEngine::OnStopRunning (void)
 
 	//	Signal to all modules that they should quit
 
-	for (i = 0; i < ModuleNames.GetCount(); i++)
+	for (int i = 0; i < ModuleNames.GetCount(); i++)
 		{
 		SendMessageCommand(CMessageTransporter::GenerateAddress(PORT_MNEMOSYNTH_COMMAND, ModuleNames[i]),
 				MSG_EXARCH_SHUTDOWN,
@@ -2576,7 +2657,7 @@ void CExarchEngine::OnStopRunning (void)
 
 	//	Wait for them to quit
 
-	for (i = 0; i < ModuleWait.GetCount(); i++)
+	for (int i = 0; i < ModuleWait.GetCount(); i++)
 		{
 		if (::WaitForSingleObject(ModuleWait[i], 30000) == WAIT_TIMEOUT)
 			{
@@ -2919,7 +3000,7 @@ void CExarchEngine::RemoveMachine (const SMachineDesc &MachineToRemove)
 		CDatum dMachineList = m_dMachineConfig.GetElement(FIELD_MACHINES);
 		for (int i = 0; i < dMachineList.GetCount(); i++)
 			{
-			if (!strEquals(MachineToRemove.sAddress, dMachineList.GetElement(i).GetElement(FIELD_ADDRESS)))
+			if (!strEquals(MachineToRemove.sAddress, dMachineList.GetElement(i).GetElement(FIELD_ADDRESS).AsStringView()))
 				dNewMachineList.Append(dMachineList.GetElement(i));
 			}
 
@@ -3023,15 +3104,24 @@ void CExarchEngine::SetMachineData (const CString &sHostAddress, const CString &
 //	Sets data about this machine to Mnemosynth
 
 	{
-	CComplexStruct *pStruct = new CComplexStruct;
-	pStruct->SetElement(FIELD_HOST_ADDRESS, sHostAddress);
-	pStruct->SetElement(FIELD_STATUS, sStatus);
+	CDatum dMachineInfo(CDatum::typeStruct);
+	dMachineInfo.SetElement(FIELD_HOST_ADDRESS, sHostAddress);
+	dMachineInfo.SetElement(FIELD_STATUS, sStatus);
 	if (IsArcologyPrime())
-		pStruct->SetElement(FIELD_NAME, STR_ARCOLOGY_PRIME);
+		{
+		dMachineInfo.SetElement(FIELD_NODE_ID, m_MecharcologyDb.ArcologyPrimeNodeID());
+		dMachineInfo.SetElement(FIELD_NAME, STR_ARCOLOGY_PRIME);
+		}
+#ifdef DEBUG_STARTUP
+	else
+		{
+		printf("SetMachineData: Setting node ID for secondary machine: %s\n", (LPCSTR)GetMachineName());
+		}
+#endif
 
 	MnemosynthWrite(MNEMO_ARC_MACHINES, 
 			GetMachineName(), 
-			CDatum(pStruct));
+			dMachineInfo);
 	}
 
 bool CExarchEngine::TestFileRead (const CString &sFilespec)

@@ -1,7 +1,7 @@
 //	CHexeCodeRPCService.cpp
 //
 //	CHexeCodeRPCService class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -59,8 +59,8 @@ bool CHexeCodeRPCService::ComposeResponse (SHTTPRequestCtx &Ctx, CHexeProcess::E
 	if (iRun == CHexeProcess::ERun::AsyncRequest)
 		{
 		Ctx.iStatus = pstatRPCReady;
-		Ctx.sRPCAddr = dResult.GetElement(0);
-		Ctx.RPCMsg.sMsg = dResult.GetElement(1);
+		Ctx.sRPCAddr = dResult.GetElement(0).AsStringView();
+		Ctx.RPCMsg.sMsg = dResult.GetElement(1).AsStringView();
 		Ctx.RPCMsg.dwTicket = 0;
 		Ctx.RPCMsg.sReplyAddr = NULL_STR;
 		Ctx.RPCMsg.dPayload = dResult.GetElement(2);
@@ -70,9 +70,9 @@ bool CHexeCodeRPCService::ComposeResponse (SHTTPRequestCtx &Ctx, CHexeProcess::E
 
 	//	If error, log it
 
-	if (iRun == CHexeProcess::ERun::Error)
+	if (iRun == CHexeProcess::ERun::Error || iRun == CHexeProcess::ERun::ForcedTerminate)
 		{
-		const CString &sError = dResult;
+		CStringView sError = dResult;
 		if (strStartsWith(sError, STR_TIMEOUT_PREFIX))
 			{
 			//	No need to report because this is an expected error
@@ -92,11 +92,15 @@ bool CHexeCodeRPCService::ComposeResponse (SHTTPRequestCtx &Ctx, CHexeProcess::E
 	IMediaTypePtr pBody = IMediaTypePtr(new CRawMediaType);
 	if (strEquals(m_sOutputContentType, MEDIA_TYPE_JSON) || strEquals(m_sOutputContentType, MEDIA_TYPE_JSON_REQUEST))
 		{
-		CStringBuffer Buffer;
-
 		CArchonTimer Timer;
 
+		CStringBuffer Buffer;
 		dResult.Serialize(CDatum::EFormat::JSON, Buffer);
+
+#ifdef DEBUG_PERF
+		printf("DebugPerf: JSON serialize %d bytes.\n", Buffer.GetLength());
+#endif
+
 		pBody->DecodeFromBuffer(MEDIA_TYPE_JSON, Buffer);
 
 		Timer.LogTime(Ctx.pSession->GetEngine()->GetProcessCtx(), ERR_JSON_SERIALIZE_TIME_WARNING);
@@ -129,7 +133,7 @@ bool CHexeCodeRPCService::ComposeResponse (SHTTPRequestCtx &Ctx, CHexeProcess::E
 
 	else if (strEquals(m_sOutputContentType, MEDIA_TYPE_CUSTOM))
 		{
-		const CString& sResultType = dResult.GetElement(FIELD_TYPE);
+		CStringView sResultType = dResult.GetElement(FIELD_TYPE);
 		if (strEquals(sResultType, RESULT_FILE_DATA))
 			{
 			Ctx.iStatus = pstatFileDataReady;
@@ -142,11 +146,11 @@ bool CHexeCodeRPCService::ComposeResponse (SHTTPRequestCtx &Ctx, CHexeProcess::E
 				for (int i = 0; i < dHeaders.GetCount(); i++)
 					{
 					CString sField = dHeaders.GetKey(i);
-					CString sValue = dHeaders.GetElement(i);
+					CStringView sValue = dHeaders.GetElement(i);
 					if (sField.IsEmpty() || sValue.IsEmpty())
 						continue;
 
-					Ctx.AdditionalHeaders.Insert(CHTTPMessage::SHeader({ sField, sValue }));
+					Ctx.AdditionalHeaders.Insert(CHTTPMessage::SHeader({ sField, CString(sValue) }));
 					}
 				}
 
@@ -157,7 +161,7 @@ bool CHexeCodeRPCService::ComposeResponse (SHTTPRequestCtx &Ctx, CHexeProcess::E
 		else if (strEquals(sResultType, RESULT_FILE_PATH))
 			{
 			Ctx.iStatus = pstatFilePathReady;
-			Ctx.sFilePath = dResult.GetElement(FIELD_FILE_PATH);
+			Ctx.sFilePath = dResult.GetElement(FIELD_FILE_PATH).AsStringView();
 
 			//	Return because the caller will set up the response.
 
@@ -166,8 +170,8 @@ bool CHexeCodeRPCService::ComposeResponse (SHTTPRequestCtx &Ctx, CHexeProcess::E
 		else
 			{
 			CString sError;
-			if (iRun == CHexeProcess::ERun::Error)
-				sError = dResult;
+			if (iRun == CHexeProcess::ERun::Error || iRun == CHexeProcess::ERun::ForcedTerminate)
+				sError = dResult.AsStringView();
 			else
 				sError = strPattern("Unknown result type: %s", sResultType);
 
@@ -245,7 +249,7 @@ bool CHexeCodeRPCService::OnHandleRequest (SHTTPRequestCtx &Ctx)
 	if (!Ctx.pBodyBuilder->GetBody(&dBody))
 		{
 		Ctx.iStatus = pstatResponseReady;
-		Ctx.Response.InitResponse(http_UNSUPPORTED_MEDIA_TYPE, dBody);
+		Ctx.Response.InitResponse(http_UNSUPPORTED_MEDIA_TYPE, dBody.AsStringView());
 		return true;
 		}
 
@@ -350,8 +354,8 @@ bool CHexeCodeRPCService::OnHandleRPCResult (SHTTPRequestCtx &Ctx, const SArchon
 	if (iRun == CHexeProcess::ERun::AsyncRequest)
 		{
 		Ctx.iStatus = pstatRPCReady;
-		Ctx.sRPCAddr = dResult.GetElement(0);
-		Ctx.RPCMsg.sMsg = dResult.GetElement(1);
+		Ctx.sRPCAddr = dResult.GetElement(0).AsStringView();
+		Ctx.RPCMsg.sMsg = dResult.GetElement(1).AsStringView();
 		Ctx.RPCMsg.dPayload = dResult.GetElement(2);
 		Ctx.RPCMsg.dwTicket = 0;
 		Ctx.RPCMsg.sReplyAddr = NULL_STR;
@@ -371,7 +375,7 @@ bool CHexeCodeRPCService::OnHTTPInit (CDatum dServiceDef, const CHexeDocument &P
 	{
 	//	Load some parameters
 
-	m_sOutputContentType = dServiceDef.GetElement(FIELD_OUTPUT);
+	m_sOutputContentType = dServiceDef.GetElement(FIELD_OUTPUT).AsStringView();
 	if (m_sOutputContentType.IsEmpty())
 		m_sOutputContentType = MEDIA_TYPE_HTML;
 

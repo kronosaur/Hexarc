@@ -1,7 +1,7 @@
 //	FoundationArrays.h
 //
 //	Foundation header file
-//	Copyright (c) 2010 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2010 by GridWhale Corporation. All Rights Reserved.
 //
 //	USAGE
 //
@@ -10,6 +10,9 @@
 #pragma once
 
 #include <functional>
+#include <memory>
+
+class CRandomModule;
 
 enum ESortOptions
 	{
@@ -40,6 +43,7 @@ class CArrayBase
 		~CArrayBase (void);
 
 		void CopyOptions (const CArrayBase &Src);
+		void DeleteAllBytes () { if (m_pBlock) m_pBlock->m_iSize = 0; }
 		void DeleteBytes (int iOffset, int iLength);
 		char *GetBytes (void) const { return (m_pBlock ? (char *)(&m_pBlock[1]) : NULL); }
 		int GetGranularity (void) const { return (m_pBlock ? m_pBlock->m_iGranularity : DEFAULT_ARRAY_GRANULARITY); }
@@ -70,6 +74,9 @@ class CArrayBase
 
 #pragma warning(disable:4291)			//	No need for a delete because we're placing object
 
+template <typename KEY> class CKeyCompare;
+template <typename KEY, typename VALUE, typename COMPARE = CKeyCompare<KEY>> class TSortMap;
+
 template <class VALUE> class TArray : public CArrayBase
 	{
 	public:
@@ -89,6 +96,16 @@ template <class VALUE> class TArray : public CArrayBase
 		TArray (TArray<VALUE> &&Src) noexcept : CArrayBase(Src.m_pBlock)
 			{
 			Src.m_pBlock = NULL;
+			}
+		TArray (std::initializer_list<VALUE> Src) : CArrayBase(NULL, DEFAULT_ARRAY_GRANULARITY)
+			{
+			InsertBytes(0, NULL, (int)Src.size() * sizeof(VALUE), GetGranularity() * sizeof(VALUE));
+			int i = 0;
+			for (auto &Value : Src)
+				{
+				VALUE *pElement = new(GetBytes() + (i * sizeof(VALUE))) VALUE(Value);
+				i++;
+				}
 			}
 
 		~TArray (void) { DeleteAll(); }
@@ -131,13 +148,23 @@ template <class VALUE> class TArray : public CArrayBase
 			DeleteBytes(iIndex * sizeof(VALUE), iCount * sizeof(VALUE));
 			}
 
+		void Delete (const TArray<int>& Indices)
+			{
+			//	Convert to a sorted list of unique indices
+
+			TSortMap<int, bool> Sorted;
+			for (int i = 0; i < Indices.GetCount(); i++)
+				Sorted.SetAt(Indices[i], true);
+
+			Delete(Sorted);
+			}
+
+		inline void Delete (const TSortMap<int, bool>& SortedIndices);
+
 		void DeleteAll (void)
 			{
-			VALUE *pElement = (VALUE *)GetBytes();
-			for (int i = 0; i < GetCount(); i++, pElement++)
-				pElement->VALUE::~VALUE();
-
-			DeleteBytes(0, GetSize());
+			std::destroy_n(static_cast<VALUE*>((void*)GetBytes()), GetCount());
+			DeleteAllBytes();
 			}
 
 		int DeleteValue (const VALUE &ToDelete)
@@ -168,7 +195,7 @@ template <class VALUE> class TArray : public CArrayBase
 			int iCount = GetCount();
 
 			for (int i = 0; i < iCount; i++)
-				if (::KeyCompare(GetAt(i), ToFind) == 0)
+				if (CKeyCompare<VALUE>::Compare(GetAt(i), ToFind) == 0)
 					{
 					if (retiIndex)
 						*retiIndex = i;
@@ -180,6 +207,7 @@ template <class VALUE> class TArray : public CArrayBase
 
 		VALUE &GetAt (int iIndex) const
 			{
+			ASSERT(iIndex >= 0 && iIndex < GetCount());
 			VALUE *pElement = (VALUE *)(GetBytes() + iIndex * sizeof(VALUE));
 			return *pElement;
 			}
@@ -305,6 +333,26 @@ template <class VALUE> class TArray : public CArrayBase
 			pEntry->TakeHandoff(Value);
 			}
 
+		bool IsIndexValid (int iIndex) const
+			{
+			return (iIndex >= 0 && iIndex < GetCount());
+			}
+
+		CString Join (const CString& sSeparator) const
+			{
+			CStringBuffer Output;
+
+			for (int i = 0; i < GetCount(); i++)
+				{
+				if (i != 0)
+					Output.Write(sSeparator);
+				
+				Output.Write(GetAt(i));
+				}
+
+			return CString(std::move(Output));
+			}
+
 		VALUE &Random (void) const
 			{
 			int iCount = GetCount();
@@ -339,6 +387,26 @@ template <class VALUE> class TArray : public CArrayBase
 			while (i > 0)
 				{
 				int x = ::mathRandom(0, i);
+
+				VALUE Temp = GetAt(x);
+				GetAt(x) = GetAt(i);
+				GetAt(i) = Temp;
+
+				i--;
+				}
+			}
+
+		void Shuffle (CRandomModule& RNG)
+			{
+			if (GetCount() < 2)
+				return;
+
+			//	Fisher-Yates algorithm
+
+			int i = GetCount() - 1;
+			while (i > 0)
+				{
+				int x = RNG.RandomInRange(0, i);
 
 				VALUE Temp = GetAt(x);
 				GetAt(x) = GetAt(i);
@@ -397,6 +465,31 @@ template <class VALUE> class TArray : public CArrayBase
 			TakeHandoff(SortedArray);
 			}
 
+		TSortMap<VALUE, int> SortToMap () const
+			{
+			TSortMap<VALUE, int> Result;
+			Result.GrowToFit(GetCount());
+
+			if (GetCount() == 0)
+				return Result;
+			else if (GetCount() == 1)
+				{
+				Result.SetAt(GetAt(0), 0);
+				return Result;
+				}
+			else
+				{
+				TArray<int> Ordered;
+				Ordered.GrowToFit(GetCount());
+				SortRange(AscendingSort, 0, GetCount() - 1, DefaultCompare, NULL, Ordered);
+
+				for (int i = 0; i < Ordered.GetCount(); i++)
+					Result.AppendOrReplaceSorted(GetAt(Ordered[i]), Ordered[i]);
+
+				return Result;
+				}
+			}
+
 		void TakeHandoff (TArray<VALUE> &Obj)
 			{
 			DeleteAll();
@@ -407,7 +500,7 @@ template <class VALUE> class TArray : public CArrayBase
 
 		static int DefaultCompare (void *pCtx, const VALUE &Key1, const VALUE &Key2)
 			{
-			return ::KeyCompare(Key1, Key2);
+			return CKeyCompare<VALUE>::Compare(Key1, Key2);
 			}
 
 		bool IsValidInsertIndex (int iIndex) const
@@ -415,14 +508,14 @@ template <class VALUE> class TArray : public CArrayBase
 			return (iIndex >= 0 && iIndex <= GetCount());
 			}
 
-		void SortRange (ESortOptions Order, int iLeft, int iRight, COMPAREPROC pfCompare, void *pCtx, TArray<int> &Result)
+		void SortRange (ESortOptions Order, int iLeft, int iRight, COMPAREPROC pfCompare, void *pCtx, TArray<int> &Result) const
 			{
 			if (iLeft == iRight)
 				Result.Insert(iLeft);
 			else if (iLeft + 1 == iRight)
 				{
 				int iCompare = Order * pfCompare(pCtx, GetAt(iLeft), GetAt(iRight));
-				if (iCompare == 1)
+				if (iCompare > 0)
 					{
 					Result.Insert(iLeft);
 					Result.Insert(iRight);
@@ -453,9 +546,9 @@ template <class VALUE> class TArray : public CArrayBase
 					if (iPos1 < Buffer1.GetCount() && iPos2 < Buffer2.GetCount())
 						{
 						int iCompare = Order * pfCompare(pCtx, GetAt(Buffer1[iPos1]), GetAt(Buffer2[iPos2]));
-						if (iCompare == 1)
+						if (iCompare > 0)
 							Result.Insert(Buffer1[iPos1++]);
-						else if (iCompare == -1)
+						else if (iCompare < 0)
 							Result.Insert(Buffer2[iPos2++]);
 						else
 							{
@@ -473,14 +566,14 @@ template <class VALUE> class TArray : public CArrayBase
 				}
 			}
 
-		void SortRange (std::function<int(const VALUE &, const VALUE &)> fnCompare, ESortOptions Order, int iLeft, int iRight, TArray<int> &Result)
+		void SortRange (std::function<int(const VALUE &, const VALUE &)> fnCompare, ESortOptions Order, int iLeft, int iRight, TArray<int> &Result) const
 			{
 			if (iLeft == iRight)
 				Result.Insert(iLeft);
 			else if (iLeft + 1 == iRight)
 				{
 				int iCompare = Order * fnCompare(GetAt(iLeft), GetAt(iRight));
-				if (iCompare == 1)
+				if (iCompare > 0)
 					{
 					Result.Insert(iLeft);
 					Result.Insert(iRight);
@@ -511,9 +604,9 @@ template <class VALUE> class TArray : public CArrayBase
 					if (iPos1 < Buffer1.GetCount() && iPos2 < Buffer2.GetCount())
 						{
 						int iCompare = Order * fnCompare(GetAt(Buffer1[iPos1]), GetAt(Buffer2[iPos2]));
-						if (iCompare == 1)
+						if (iCompare > 0)
 							Result.Insert(Buffer1[iPos1++]);
-						else if (iCompare == -1)
+						else if (iCompare < 0)
 							Result.Insert(Buffer2[iPos2++]);
 						else
 							{
@@ -693,7 +786,7 @@ template <class VALUE> class TQueue
 			{
 			int i;
 			for (i = 0; i < GetCount(); i++)
-				if (::KeyCompare(GetAt(i), ToFind) == 0)
+				if (CKeyCompare::Compare(GetAt(i), ToFind) == 0)
 					return true;
 
 			return false;
@@ -947,6 +1040,63 @@ template <class VALUE> class TSharedQueue
 		TQueue<VALUE> m_Queue;
 	};
 
+template <class VALUE> class TStack
+	{
+	public:
+
+		VALUE& operator [] (int iIndex) { return GetAt(iIndex); }
+
+		const VALUE& operator [] (int iIndex) const { return GetAt(iIndex); }
+
+		const VALUE& GetAt (int iIndex) const
+			{
+			ASSERT(iIndex >= 0 && iIndex < GetCount());
+			return m_Array[m_iTop - iIndex];
+			}
+
+		VALUE& GetAt (int iIndex)
+			{
+			ASSERT(iIndex >= 0 && iIndex < GetCount());
+			return m_Array[m_iTop - iIndex];
+			}
+
+		int GetCount () const { return m_iTop + 1; }
+
+		bool IsEmpty () const { return (m_iTop == -1); }
+
+		VALUE Pop ()
+			{
+			if (IsEmpty())
+				throw CException(errOutOfMemory);
+			return std::move(m_Array[m_iTop--]);
+			}
+
+		void Push (const VALUE& Value)
+			{
+			if (m_iTop == m_Array.GetCount() - 1)
+				m_Array.Insert(Value);
+			else
+				m_Array[m_iTop + 1] = Value;
+
+			m_iTop++;
+			}
+
+		void Push (VALUE&& Value)
+			{
+			if (m_iTop == m_Array.GetCount() - 1)
+				m_Array.Insert(std::move(Value));
+			else
+				m_Array[m_iTop + 1] = std::move(Value);
+
+			m_iTop++;
+			}
+
+	private:
+
+		TArray<VALUE> m_Array;
+		int m_iTop = -1;
+	};
+
 //	Sets
 
 struct SLargeSetEnumerator
@@ -1048,3 +1198,5 @@ const DWORD SSP_FLAG_FORCE_LOWERCASE =			0x00000008;	//	Convert all to lowercase
 const DWORD SSP_FLAG_ALPHANUMERIC_ONLY =		0x00000010;	//	Anything except alphanumeric is a separator
 void strSplit (const CString &sString, const CString &sSeparators, TArray<CString> *retResult, int iMaxCount = -1, DWORD dwFlags = 0);
 TArray<CString> strToLower (TArray<CString> &&List);
+
+#include "FoundationArraysDiff.h"

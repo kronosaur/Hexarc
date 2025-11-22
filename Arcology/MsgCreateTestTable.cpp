@@ -1,7 +1,7 @@
 //	MsgCreateTestTable.cpp
 //
 //	Aeon table tests
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -145,7 +145,7 @@ bool CCreateTestTableSession::OnProcessMessage (const SArchonMessage &Msg)
 
 	if (IsError(Msg))
 		{
-		SendMessageReplyError(Msg.sMsg, Msg.dPayload);
+		SendMessageReplyError(Msg.sMsg, Msg.dPayload.AsStringView());
 		return false;
 		}
 

@@ -1,7 +1,7 @@
 //	Listeners.cpp
 //
 //	Handles listeners
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -88,7 +88,7 @@ void CHyperionEngine::ActivateListeners (void)
 		}
 	}
 
-void CHyperionEngine::Disconnect (const CString &sSocket)
+void CHyperionEngine::Disconnect (CDatum dSocket)
 
 //	Disconnect
 //
@@ -96,7 +96,7 @@ void CHyperionEngine::Disconnect (const CString &sSocket)
 
 	{
 	CComplexArray *pPayload = new CComplexArray;
-	pPayload->Insert(sSocket);
+	pPayload->Insert(dSocket);
 
 	SendMessageCommand(ADDRESS_ESPER_COMMAND,
 			MSG_ESPER_DISCONNECT,
@@ -126,9 +126,9 @@ void CHyperionEngine::MsgEsperOnConnect (const SArchonMessage &Msg, const CHexeS
 
 	//	Get some variables
 
-	CString sSocket = Msg.dPayload.GetElement(0).AsString();
-	CString sListener = Msg.dPayload.GetElement(1);
-	CString sNetAddress = Msg.dPayload.GetElement(2);
+	CDatum dSocket = Msg.dPayload.GetElement(0);
+	CStringView sListener = Msg.dPayload.GetElement(1);
+	CStringView sNetAddress = Msg.dPayload.GetElement(2);
 
 	//	We look up the name in the list of listeners. If no listener
 	//	could be found, then we drop the session.
@@ -137,7 +137,7 @@ void CHyperionEngine::MsgEsperOnConnect (const SArchonMessage &Msg, const CHexeS
 	if (!FindListener(sListener, &iIndex))
 		{
 		Log(MSG_LOG_ERROR, strPattern(ERR_INVALID_LISTENER, sListener));
-		Disconnect(sSocket);
+		Disconnect(dSocket);
 		return;
 		}
 
@@ -148,14 +148,14 @@ void CHyperionEngine::MsgEsperOnConnect (const SArchonMessage &Msg, const CHexeS
 	if (pListener->Services.GetCount() == 0)
 		{
 		Log(MSG_LOG_ERROR, ERR_NO_SERVICES);
-		Disconnect(sSocket);
+		Disconnect(dSocket);
 		return;
 		}
 
 	//	Ask one of the services (it doesn't matter which one)
 	//	to create a session object for us.
 
-	ISessionHandler *pSession = pListener->Services[0]->CreateSessionObject(this, sListener, pListener->sProtocol, sSocket, sNetAddress);
+	ISessionHandler *pSession = pListener->Services[0]->CreateSessionObject(this, sListener, pListener->sProtocol, dSocket, sNetAddress);
 
 	//	We can unlock at this point
 
@@ -176,7 +176,7 @@ void CHyperionEngine::MsgEsperOnListenerStarted (const SArchonMessage &Msg, cons
 	CSmartLock Lock(m_cs);
 
 	int iIndex;
-	if (FindListener(Msg.dPayload.GetElement(0), &iIndex))
+	if (FindListener(Msg.dPayload.GetElement(0).AsStringView(), &iIndex))
 		{
 		//	If this is not the latest ticket, then we ignore it
 
@@ -200,7 +200,7 @@ void CHyperionEngine::MsgEsperOnListenerStopped (const SArchonMessage &Msg, cons
 	CSmartLock Lock(m_cs);
 
 	int iIndex;
-	if (FindListener(Msg.dPayload.GetElement(0), &iIndex))
+	if (FindListener(Msg.dPayload.GetElement(0).AsStringView(), &iIndex))
 		{
 		//	If this is not the latest ticket, then we ignore it
 

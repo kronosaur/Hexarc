@@ -1,7 +1,7 @@
 //	FoundationMathGeometry.h
 //
 //	Foundation header file
-//	Copyright (c) 2012 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2012 GridWhale Corporation. All Rights Reserved.
 //
 //	USAGE
 //
@@ -33,6 +33,8 @@ template <class VALUE> class TVector2D
 		TVector2D (void);
 		TVector2D (VALUE x, VALUE y) : m_x(x), m_y(y) { }
 
+		static TVector2D<VALUE> CreateFromStream (IByteStream& Stream) = delete;
+
 		bool operator == (const TVector2D<VALUE> &vA) const { return (m_x == vA.m_x && m_y == vA.m_y); }
 		bool operator != (const TVector2D<VALUE> &vA) const { return !(*this == vA); }
 		TVector2D operator - (void) const { return TVector2D(-m_x, -m_y); }
@@ -41,7 +43,8 @@ template <class VALUE> class TVector2D
 		TVector2D operator * (VALUE a) const { return TVector2D(m_x * a, m_y * a); }
 		TVector2D operator / (VALUE a) const { return TVector2D(m_x / a, m_y / a); }
 
-		VALUE Distance2 (const TVector2D<VALUE> &vA) const { double rX = (vA.m_x - m_x); double rY = (vA.m_y - m_y); return (rX * rX + rY * rY); }
+		VALUE Cross (const TVector2D<VALUE>& vA) const { return m_x * vA.m_y - m_y * vA.m_x; }
+		VALUE Distance2 (const TVector2D<VALUE>& vA) const { double rX = (vA.m_x - m_x); double rY = (vA.m_y - m_y); return (rX * rX + rY * rY); }
 		VALUE Dot (const TVector2D<VALUE> &vA) const { return m_x * vA.m_x + m_y * vA.m_y; }
 		bool IsEqualTo (const TVector2D<VALUE> &vA, double rEpsilon2) const { return (Distance2(vA) < rEpsilon2); }
 		VALUE Length (void) const { return sqrt(m_x * m_x + m_y * m_y); }
@@ -50,6 +53,7 @@ template <class VALUE> class TVector2D
 		TVector2D Perp (void) const { return TVector2D(-m_y, m_x); }
 		VALUE Polar (VALUE *retrRadius = NULL) const;
 		void Randomize (VALUE xMin, VALUE xMax, VALUE yMin, VALUE yMax);
+		void Read (IByteStream& Stream) { *this = CreateFromStream(Stream);	}
 		TVector2D Rotation (double rAngle) const
 			{
 			double rSin = sin(rAngle);
@@ -61,6 +65,7 @@ template <class VALUE> class TVector2D
 		TVector2D ToPolar (void) { return ToPolar(*this); }
 		TVector2D ToXY (void) { return FromPolar(*this); }
 		TVector2D Unit (void) const { VALUE rLength = Length(); if (rLength == 0) return TVector2D(); else return TVector2D(m_x / rLength, m_y / rLength); }
+		void Write (IByteStream& Stream) const { Stream.Write(m_x); Stream.Write(m_y); }
 		VALUE X (void) const { return m_x; }
 		VALUE Y (void) const { return m_y; }
 
@@ -74,6 +79,13 @@ template <class VALUE> class TVector2D
 		VALUE m_x;
 		VALUE m_y;
 	};
+
+template <>
+inline TVector2D<double> TVector2D<double>::CreateFromStream (IByteStream& Stream) {
+    double x = Stream.ReadDouble();
+    double y = Stream.ReadDouble();
+    return TVector2D<double>(x, y);
+}
 
 template <class VALUE> const TVector2D<VALUE> TVector2D<VALUE>::Null;
 
@@ -432,6 +444,63 @@ void mathVoronoi (const TArray<CVector2D> &Points, TArray<CLine2D> *retSegments,
 void mathVoronoiEx (const TArray<CVector2D> &Points, TArray<SVoronoiEdge> *retSegments, double rWidth = 0.0, double rHeight = 0.0);
 
 //	3D Objects -----------------------------------------------------------------
+
+template <class VALUE> class TVector3D
+	{
+	public:
+		TVector3D ();
+		TVector3D (VALUE x, VALUE y, VALUE z) : m_x(x), m_y(y), m_z(z) { }
+
+		static TVector3D<VALUE> CreateFromStream (IByteStream& Stream) = delete;
+
+		bool operator == (const TVector3D<VALUE> &vA) const { return (m_x == vA.m_x && m_y == vA.m_y && m_z == vA.m_z); }
+		bool operator != (const TVector3D<VALUE> &vA) const { return !(*this == vA); }
+		TVector3D operator - () const { return TVector3D(-m_x, -m_y, -m_z); }
+		TVector3D operator + (const TVector3D<VALUE> &vA) const { return TVector3D(m_x + vA.m_x, m_y + vA.m_y, m_z + vA.m_z); }
+		TVector3D operator - (const TVector3D<VALUE> &vA) const { return TVector3D(m_x - vA.m_x, m_y - vA.m_y, m_z - vA.m_z); }
+		TVector3D operator * (VALUE a) const { return TVector3D(m_x * a, m_y * a, m_z * a); }
+		TVector3D operator / (VALUE a) const { return TVector3D(m_x / a, m_y / a, m_z / a); }
+
+		TVector3D Cross (const TVector3D<VALUE>& vA) const { return TVector3D(m_y * vA.m_z - m_z * vA.m_y, m_z * vA.m_x - m_x * vA.m_z, m_x * vA.m_y - m_y * vA.m_x); }
+		VALUE Distance2 (const TVector3D<VALUE>& vA) const { double rX = (vA.m_x - m_x); double rY = (vA.m_y - m_y); double rZ = (vA.m_z - m_z); return (rX * rX + rY * rY + rZ * rZ); }
+		VALUE Dot (const TVector3D<VALUE> &vA) const { return m_x * vA.m_x + m_y * vA.m_y + m_z * vA.m_z; }
+		bool IsEqualTo (const TVector3D<VALUE> &vA, double rEpsilon2) const { return (Distance2(vA) < rEpsilon2); }
+		VALUE Length () const { return sqrt(m_x * m_x + m_y * m_y + m_z * m_z); }
+		VALUE Length2 () const { return (m_x * m_x + m_y * m_y + m_z * m_z); }
+		void Read (IByteStream& Stream) { *this = CreateFromStream(Stream);	}
+		void SetX (VALUE x) { m_x = x; }
+		void SetY (VALUE y) { m_y = y; }
+		void SetZ (VALUE z) { m_z = z; }
+		TVector3D Unit () const { VALUE rLength = Length(); if (rLength == 0) return TVector3D(); else return TVector3D(m_x / rLength, m_y / rLength, m_z / rLength); }
+		void Write (IByteStream& Stream) const { Stream.Write(m_x); Stream.Write(m_y); Stream.Write(m_z); }
+		VALUE X () const { return m_x; }
+		VALUE Y () const { return m_y; }
+		VALUE Z () const { return m_z; }
+
+		static const TVector3D Null;
+
+	private:
+		VALUE m_x;
+		VALUE m_y;
+		VALUE m_z;
+	};
+
+template <>
+inline TVector3D<double> TVector3D<double>::CreateFromStream (IByteStream& Stream) {
+    double x = Stream.ReadDouble();
+    double y = Stream.ReadDouble();
+	double z = Stream.ReadDouble();
+    return TVector3D<double>(x, y, z);
+}
+
+template <class VALUE> const TVector3D<VALUE> TVector3D<VALUE>::Null;
+
+typedef TVector3D<double> CVector3D;
+
+template <> inline TVector3D<int>::TVector3D () : m_x(0), m_y(0), m_z(0) { }
+template <> inline TVector3D<double>::TVector3D () : m_x(0.0), m_y(0.0), m_z(0.0) { }
+
+template <class VALUE> const TVector3D<VALUE> operator * (const VALUE& a, const TVector3D<VALUE>& vB) { return TVector3D<VALUE>(a * vB.X(), a * vB.Y(), a * vB.Z()); }
 
 //	Functions ------------------------------------------------------------------
 

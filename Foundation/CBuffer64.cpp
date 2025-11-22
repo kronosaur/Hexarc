@@ -1,7 +1,7 @@
 //	CBuffer6464.cpp
 //
 //	CBuffer6464 class
-//	Copyright (c) 2020 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2020 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -75,6 +75,68 @@ CBuffer64 &CBuffer64::operator= (const CBuffer64 &Src)
 	return *this;
 	}
 
+CBuffer64 CBuffer64::AsUTF8 (const IMemoryBlock64& Stream)
+
+//	AsUTF8
+//
+//	If this buffer is a UTF-16 buffer, then we convert to UTF-8. Otherwise, we 
+//	return an empty buffer.
+
+	{
+	switch (Stream.ReadBOM())
+		{
+		case IByteStream64::EBOM::UTF16LE:
+			{
+			//	Skip the BOM
+
+			const char* pStart = Stream.GetPointer() + 2;
+			DWORDLONG dwLength = (Stream.GetLength() - 2) / sizeof(WORD);
+
+			CBuffer64 UTF8;
+
+			//	We optimistically assume that the UTF-8 buffer has 1 byte per 
+			//	character.
+
+			UTF8.m_dwAllocation = dwLength;
+			UTF8.m_dwLength = UTF8.m_dwAllocation;
+			UTF8.m_pBuffer = new char [UTF8.m_dwAllocation];
+			UTF8.m_bAllocated = true;
+
+			int iResult = ::WideCharToMultiByte(CP_UTF8, 0, (LPCTSTR)pStart, (int)dwLength, UTF8.m_pBuffer, (int)UTF8.m_dwAllocation, NULL, NULL);
+
+			//	Deal with failure
+
+			if (iResult == 0)
+				{
+				if (::GetLastError() == ERROR_INSUFFICIENT_BUFFER)
+					{
+					//	Figure out how big the buffer should be and allocate appropriately
+					//	And redo the conversion.
+
+					int iNewBufferLen = ::WideCharToMultiByte(CP_UTF8, 0, (LPCTSTR)pStart, (int)dwLength, NULL, 0, NULL, NULL);
+					if (iNewBufferLen == 0)
+						return CBuffer64();
+
+					delete [] UTF8.m_pBuffer;
+					UTF8.m_dwAllocation = iNewBufferLen;
+					UTF8.m_dwLength = UTF8.m_dwAllocation;
+					UTF8.m_pBuffer = new char [iNewBufferLen];
+					iResult = ::WideCharToMultiByte(CP_UTF8, 0, (LPCTSTR)pStart, (int)dwLength, UTF8.m_pBuffer, (int)UTF8.m_dwAllocation, NULL, NULL);
+					}
+				else
+					{
+					return CBuffer64();
+					}
+				}
+
+			return UTF8;
+			}
+		
+		default:
+			return CBuffer64();
+		}
+	}
+
 void CBuffer64::Copy (const CBuffer64 &Src)
 
 //	Copy
@@ -131,6 +193,37 @@ LPVOID CBuffer64::GetHandoff (DWORDLONG *retdwAllocation)
 		}
 
 	return pAlloc;
+	}
+
+void CBuffer64::GrowToFit (DWORDLONG dwLength)
+
+//	GrowToFit
+//
+//	Add enough to append the given length
+
+	{
+	//	m_dwAllocation is 0 if we've got a static buffer
+
+	DWORDLONG dwAvail = Max(m_dwAllocation, m_dwLength);
+	DWORDLONG dwNewLength = m_dwLength + dwLength;
+
+	//	Grow, if necessary
+
+	if (dwNewLength > dwAvail)
+		{
+		DWORDLONG dwInc = Max(MIN_ALLOC_INCREMENT, Min(MAX_ALLOC_INCREMENT, dwAvail));
+		DWORDLONG dwNewAlloc = AlignUp(dwNewLength, dwInc);
+
+		LPVOID pNewBuffer = new char[dwNewAlloc];
+		utlMemCopy(m_pBuffer, pNewBuffer, m_dwLength);
+
+		if (m_bAllocated)
+			delete[] m_pBuffer;
+
+		m_pBuffer = (char*)pNewBuffer;
+		m_dwAllocation = dwNewAlloc;
+		m_bAllocated = true;
+		}
 	}
 
 void CBuffer64::Init (const void *pBuffer, size_t dwLength, bool bCopy)

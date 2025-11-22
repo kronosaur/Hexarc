@@ -1,7 +1,7 @@
 //	CPolygon2D.cpp
 //
 //	CPolygon2D class
-//	Copyright (c) 2014 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2014 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 #include <Math.h>

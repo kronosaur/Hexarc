@@ -1,7 +1,7 @@
 //	Hyperion.h
 //
 //	Hyperion Engine Implementation
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 //
 //	STANDARD PERMISSIONS
 //
@@ -99,6 +99,7 @@ class CHyperionSession : public ISessionHandler
 		CHyperionEngine *GetEngine (void) const { return m_pEngine; }
 		const CString &GetProtocol (void) const { return m_sProtocol; }
 		CHexeSecurityCtx &GetSecurityCtx (void) { return m_SecurityCtx; }
+		CDatum GetSocket () const { return m_dSocket; }
 		void SetServiceSecurity (const CHexeSecurityCtx &SecurityCtx) { m_SecurityCtx.SetServiceSecurity(SecurityCtx); }
 
 		//	CHyperionSession virtuals
@@ -148,7 +149,7 @@ class IHyperionService
 								   IHyperionService **retpService, 
 								   CString *retsError);
 
-		CHyperionSession *CreateSessionObject (CHyperionEngine *pEngine, const CString &sListener, const CString &sProtocol, const CString &sSocket, const CString &sNetAddress) { return OnCreateSessionObject(pEngine, sListener, sProtocol, sSocket, sNetAddress); }
+		CHyperionSession *CreateSessionObject (CHyperionEngine *pEngine, const CString &sListener, const CString &sProtocol, CDatum dSocket, const CString &sNetAddress) { return OnCreateSessionObject(pEngine, sListener, sProtocol, dSocket, sNetAddress); }
 		void DeleteSession (CHyperionSession *pSession) { CSmartLock Lock(m_cs); m_Sessions.DeleteValue(pSession); }
 		const CServicePermissions &GetAccessPermissions (void) const { return m_Access; }
 		CString GetFileRoot (void) const { return OnGetFileRoot(); }
@@ -171,7 +172,7 @@ class IHyperionService
 
 	protected:
 		//	IHyperionService
-		virtual CHyperionSession *OnCreateSessionObject (CHyperionEngine *pEngine, const CString &sListener, const CString &sProtocol, const CString &sSocket, const CString &sNetAddress) { return NULL; }
+		virtual CHyperionSession *OnCreateSessionObject (CHyperionEngine *pEngine, const CString &sListener, const CString &sProtocol, CDatum dSocket, const CString &sNetAddress) { return NULL; }
 		virtual CString OnGetFileRoot (void) const { return NULL_STR; }
 		virtual void OnGetListeners (TArray<SListenerDesc> &Listeners) const;
 		virtual bool OnInit (CDatum dServiceDef, const CHexeDocument &Package, CString *retsError) { return true; }
@@ -423,7 +424,7 @@ class CHyperionEngine : public TSimpleEngine<CHyperionEngine>
 		//	Used by session objects
 		bool AddServicePackage (CDatum dFileDesc, CHexeProcess &Process, CHexeDocument &Doc, CString *retsName);
 		void AddServicePackage (const CString &sResName);
-		void Disconnect (const CString &sSocket);
+		void Disconnect (CDatum dSocket);
 		void FatalError (const SArchonMessage &Msg);
 		bool FindAI1Service (const CString &sListener, const CString &sInterface, CAI1Service **retpService);
 		bool FindHTTPService (const CString &sListener, const CHTTPMessage &Request, CHTTPService **retpService);

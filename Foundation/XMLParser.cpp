@@ -1,7 +1,7 @@
 //	XMLParser.cpp
 //
 //	XML functions and classes
-//	Copyright (c) 2014 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2014 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -18,10 +18,13 @@ enum TokenTypes
 	tkQuote,					//	"
 	tkSingleQuote,				//	'
 	tkText,						//	plain text
+	tkAtom,						//	TokenID
 	tkDeclOpen,					//	<!
 	tkBracketOpen,				//	[
 	tkBracketClose,				//	]
 	tkError,					//	error
+
+	tkSlice,					//	sTokenSlice
 	};
 
 enum StateTypes
@@ -44,30 +47,85 @@ enum StateTypes
 	EntityDeclarationFindValueState,
 	EntityDeclarationValueState,
 	EntityDeclarationEndState,
+
+	StartAtomState,
+	IdentifierAtomState,
+
+	StartSliceState,
+	IdentifierSliceState,
+	};
+
+struct SKeyValuePair
+	{
+	CStringSlice sAttrib;
+	CString sValue;
+	};
+
+class CNamespacePrefixTable
+	{
+	public:
+
+		bool AddNamespace (CStringView sPrefix, CStringView sNamespace)
+			{
+			bool bAdded;
+			m_Namespaces.SetAt(sPrefix, sNamespace, &bAdded);
+			if (!bAdded)
+				return false;
+
+			return true;
+			}
+
+		CStringView GetNamespace (CStringSlice sPrefix) const
+			{
+			CString* pNamespace = m_Namespaces.GetAt(sPrefix);
+			if (!pNamespace)
+				{
+				if (m_pParent)
+					return m_pParent->GetNamespace(sPrefix);
+				else
+					return CStringView();
+				}
+
+			return *pNamespace;
+			}
+
+		const CNamespacePrefixTable* GetParent () const { return m_pParent; }
+		bool IsEmpty () const { return m_Namespaces.GetCount() == 0; }
+
+		void SetParent (const CNamespacePrefixTable* pParent) { m_pParent = pParent; }
+
+	private:
+
+		const CNamespacePrefixTable* m_pParent = NULL;
+		TSortMap<CString, CString> m_Namespaces;
 	};
 
 struct ParserCtx
 	{
 	public:
-		ParserCtx (IMemoryBlock &Stream, IXMLParserController *pController);
-		ParserCtx (ParserCtx *pParentCtx, const CString &sString);
+		ParserCtx (const IMemoryBlock &Stream, CXMLStore& Store, IXMLParserController *pController);
+		ParserCtx (ParserCtx& pParentCtx, const CString &sString);
 
 		void DefineEntity (const CString &sName, const CString &sValue);
 		CString LookupEntity (const CString &sName, bool *retbFound = NULL);
 
 	public:
+		CXMLStore& m_Store;
 		IXMLParserController *m_pController;
 		ParserCtx *m_pParentCtx;
 
-		char *pPos;
-		char *pEndPos;
+		const char *pPos;
+		const char *pEndPos;
 
 		TSortMap<CString, CString> EntityTable;
+		const CNamespacePrefixTable* pNamespaces = NULL;
 
 		CXMLElement *pElement;
 
 		TokenTypes iToken;
 		CString sToken;
+		CStringSlice sTokenSlice;
+		SXMLNameID TokenID;
 		int iLine;
 
 		bool m_bParseRootElement;
@@ -77,7 +135,12 @@ struct ParserCtx
 		TokenTypes iAttribQuote;
 
 		CString sError;
+
+		TArray<SKeyValuePair> TempAttributeList;
 	};
+
+DECLARE_CONST_STRING(ATTRIB_XMLNS,					"xmlns");
+DECLARE_CONST_STRING(ATTRIB_XMLNS_PREFIX,			"xmlns:");
 
 DECLARE_CONST_STRING(STR_10,						"1.0")
 DECLARE_CONST_STRING(STR_DOCTYPE,					"DOCTYPE")
@@ -120,7 +183,8 @@ DECLARE_CONST_STRING(ERR_MISMATCHED_ATTRIB_QUOTE,	"Mismatched attribute quote.")
 DECLARE_CONST_STRING(ERR_VERSION_EXPECTED,			"Version attribute expected.")
 DECLARE_CONST_STRING(ERR_VERSION_10_EXPECTED,		"Version 1.0 attribute expected.")
 
-ParserCtx::ParserCtx (IMemoryBlock &Stream, IXMLParserController *pController) : 
+ParserCtx::ParserCtx (const IMemoryBlock& Stream, CXMLStore& Store, IXMLParserController *pController) : 
+		m_Store(Store),
 		m_pController(pController)
 	{
 	pPos = Stream.GetPointer();
@@ -134,8 +198,9 @@ ParserCtx::ParserCtx (IMemoryBlock &Stream, IXMLParserController *pController) :
 	m_pParentCtx = NULL;
 	}
 
-ParserCtx::ParserCtx (ParserCtx *pParentCtx, const CString &sString) : 
-		m_pController(pParentCtx->m_pController)
+ParserCtx::ParserCtx (ParserCtx& ParentCtx, const CString &sString) : 
+		m_Store(ParentCtx.m_Store),
+		m_pController(ParentCtx.m_pController)
 	{
 	pPos = sString.GetPointer();
 	pEndPos = pPos + sString.GetLength();
@@ -145,7 +210,7 @@ ParserCtx::ParserCtx (ParserCtx *pParentCtx, const CString &sString) :
 	m_bParseRootElement = false;
 	m_bParseRootTag = false;
 
-	m_pParentCtx = pParentCtx;
+	m_pParentCtx = &ParentCtx;
 	}
 
 void ParserCtx::DefineEntity (const CString &sName, const CString &sValue)
@@ -176,23 +241,36 @@ CString ParserCtx::LookupEntity (const CString &sName, bool *retbFound)
 //	Forwards
 
 bool ParseElement (ParserCtx *pCtx, CXMLElement **retpElement);
+TokenTypes ParseEqualsToken (ParserCtx *pCtx);
+TokenTypes ParseQuoteToken (ParserCtx *pCtx);
 bool ParsePrologue (ParserCtx *pCtx);
 TokenTypes ParseToken (ParserCtx *pCtx, StateTypes iInitialState = StartState);
 CString ResolveEntity (ParserCtx *pCtx, const CString &sName, bool *retbFound);
 
-bool CXMLElement::ParseXML (IMemoryBlock &Stream, 
-							   CXMLElement **retpElement, 
-							   CString *retsError,
-							   CExternalEntityTable *retEntityTable)
+bool CXMLElement::ParseXML (const IMemoryBlock& Stream, 
+							CXMLStore& Store,
+						    CXMLElement **retpElement, 
+							CString *retsError,
+							CExternalEntityTable *retEntityTable)
 	{
-	return ParseXML(Stream, NULL, retpElement, retsError, retEntityTable);
+	try
+		{
+		return ParseXML(Stream, Store, NULL, retpElement, retsError, retEntityTable);
+		}
+	catch (...)
+		{
+		if (retsError)
+			*retsError = CString("Unable to parse XML file.");
+		return false;
+		}
 	}
 
-bool CXMLElement::ParseXML (IMemoryBlock &Stream, 
-							   IXMLParserController *pController,
-							   CXMLElement **retpElement, 
-							   CString *retsError,
-							   CExternalEntityTable *retEntityTable)
+bool CXMLElement::ParseXML (const IMemoryBlock &Stream, 
+							CXMLStore& Store,
+							IXMLParserController *pController,
+							CXMLElement **retpElement, 
+							CString *retsError,
+							CExternalEntityTable *retEntityTable)
 
 //	ParseXML
 //
@@ -201,7 +279,7 @@ bool CXMLElement::ParseXML (IMemoryBlock &Stream,
 	{
 	//	Initialize context
 
-	ParserCtx Ctx(Stream, pController);
+	ParserCtx Ctx(Stream, Store, pController);
 
 	//	Parse the prologue
 
@@ -252,60 +330,43 @@ bool ParseDTD (ParserCtx *pCtx)
 	return true;
 	}
 
-bool ParseElement (ParserCtx *pCtx, CXMLElement **retpElement)
-
-//	ParseElement
-//
-//	Parses an element and returns it. We assume that we've already
-//	parsed an open tag
-
+bool ParseElementHeader (ParserCtx* pCtx, CStringSlice& retsTag, CNamespacePrefixTable& retNamespaces)
 	{
-	CXMLElement *pElement;
-
-	ASSERT(pCtx->iToken == tkTagOpen);
-
-	//	Parse the tag name
-
-	if (ParseToken(pCtx) != tkText)
+	if (ParseToken(pCtx, StartSliceState) != tkSlice)
 		{
 		pCtx->sError = ERR_ELEMENT_TAG_EXPECTED;
 		return false;
 		}
 
-	//	Create a new element with the tag
-
-	pElement = new CXMLElement(pCtx->sToken, pCtx->pElement);
-	if (pElement == NULL)
-		throw CException(errOutOfMemory);
+	pCtx->TempAttributeList.DeleteAll();
+	retsTag = pCtx->sTokenSlice;
 
 	//	Keep parsing until the tag is done
 
-	ParseToken(pCtx);
+	ParseToken(pCtx, StartSliceState);
 	while (pCtx->iToken != tkTagClose && pCtx->iToken != tkSimpleTagClose)
 		{
 		//	If we've got an identifier then this must be an attribute
 
-		if (pCtx->iToken == tkText)
+		if (pCtx->iToken == tkSlice)
 			{
-			CString sAttribute = pCtx->sToken;
+			CStringSlice sAttrib = pCtx->sTokenSlice;
 			CString sValue;
 
 			//	Expect an equals sign
 
-			if (ParseToken(pCtx) != tkEquals)
+			if (ParseEqualsToken(pCtx) != tkEquals)
 				{
 				pCtx->sError = ERR_EQUAL_EXPECTED;
-				delete pElement;
 				return false;
 				}
 
 			//	Expect a quote
 
-			ParseToken(pCtx);
+			ParseQuoteToken(pCtx);
 			if (pCtx->iToken != tkQuote && pCtx->iToken != tkSingleQuote)
 				{
 				pCtx->sError = ERR_ATTRIB_NEEDS_QUOTES;
-				delete pElement;
 				return false;
 				}
 
@@ -319,8 +380,8 @@ bool ParseElement (ParserCtx *pCtx, CXMLElement **retpElement)
 			ParseToken(pCtx, AttributeState);
 			if (pCtx->iToken == tkText)
 				{
-				sValue = pCtx->sToken;
-				ParseToken(pCtx);
+				sValue = std::move(pCtx->sToken);
+				ParseQuoteToken(pCtx);
 				}
 			else
 				sValue = NULL_STR;
@@ -331,17 +392,35 @@ bool ParseElement (ParserCtx *pCtx, CXMLElement **retpElement)
 				{
 				if (pCtx->iToken != tkError || pCtx->sError.IsEmpty())
 					pCtx->sError = ERR_MISMATCHED_ATTRIB_QUOTE;
-				delete pElement;
 				return false;
+				}
+
+			//	Check for namespace declarations
+
+			if (strEqualsNoCase(sAttrib, ATTRIB_XMLNS))
+				{
+				if (!retNamespaces.AddNamespace(CStringView(), sValue))
+					{
+					pCtx->sError = strPattern("Duplicate xmlns attribute");
+					return false;
+					}
+				}
+			else if (strStartsWithNoCase(sAttrib, ATTRIB_XMLNS_PREFIX))
+				{
+				if (!retNamespaces.AddNamespace(strSubString(sAttrib, ATTRIB_XMLNS_PREFIX.GetLength()), sValue))
+					{
+					pCtx->sError = strPattern("Duplicate xmlns prefix: %s", CString(sAttrib));
+					return false;
+					}
 				}
 
 			//	Add the attribute to the element
 
-			pElement->AddAttribute(sAttribute, sValue);
+			pCtx->TempAttributeList.Insert({ sAttrib, std::move(sValue) });
 
-			//	Parse the next token
+			//	Parse the next token (which might be another attribute)
 
-			ParseToken(pCtx);
+			ParseToken(pCtx, StartSliceState);
 			}
 
 		//	Otherwise this is an error
@@ -350,9 +429,144 @@ bool ParseElement (ParserCtx *pCtx, CXMLElement **retpElement)
 			{
 			if (pCtx->iToken != tkError || pCtx->sError.IsEmpty())
 				pCtx->sError = ERR_ATTRIB_EXPECTED;
-			delete pElement;
 			return false;
 			}
+		}
+
+	return true;
+	}
+
+void PushNamespace (ParserCtx* pCtx, CNamespacePrefixTable* pNamespaces)
+	{
+	pNamespaces->SetParent(pCtx->pNamespaces);
+	pCtx->pNamespaces = pNamespaces;
+	}
+
+void PopNamespace (ParserCtx* pCtx)
+	{
+	const CNamespacePrefixTable* pPrev = pCtx->pNamespaces->GetParent();
+	pCtx->pNamespaces = pPrev;
+	}
+
+SXMLNameID ResolveAttributeName (ParserCtx* pCtx, CStringSlice sName)
+	{
+	CStringSlice sPrefix;
+	CStringSlice sLocalName;
+
+	const char* pPos = sName.GetPointer();
+	const char* pStart = pPos;
+	const char* pEnd = pPos + sName.GetLength();
+	while (pPos < pEnd && *pPos != '\0' && *pPos != ':')
+		pPos++;
+
+	if (*pPos == ':')
+		{
+		sPrefix = CStringSlice(pStart, pPos - pStart);
+		pPos++;
+		sLocalName = CStringSlice(pPos, sName.GetLength() - (pPos - pStart));
+
+		//	xmlns:?? is special and doesn't count as a prefix.
+
+		if (strEqualsNoCase(sPrefix, ATTRIB_XMLNS))
+			{
+			sPrefix = CStringSlice();
+			sLocalName = sName;
+			}
+		}
+	else
+		{
+		//	Elements without a prefix have no namespace.
+
+		return pCtx->m_Store.Atomize(sName);
+		}
+
+	//	Figure out the namespace (empty prefix returns the default namespace)
+
+	CStringView sNamespace = (pCtx->pNamespaces ? pCtx->pNamespaces->GetNamespace(sPrefix) : CStringView());
+
+	//	Atomize
+
+	return pCtx->m_Store.Atomize(sNamespace, sLocalName);
+	}
+
+SXMLNameID ResolveElementName (ParserCtx* pCtx, CStringSlice sName)
+	{
+	CStringSlice sPrefix;
+	CStringSlice sLocalName;
+
+	const char* pPos = sName.GetPointer();
+	const char* pStart = pPos;
+	const char* pEnd = pPos + sName.GetLength();
+	while (pPos < pEnd && *pPos != '\0' && *pPos != ':')
+		pPos++;
+
+	if (*pPos == ':')
+		{
+		sPrefix = CStringSlice(pStart, pPos - pStart);
+
+		//	xmlns:?? is special and doesn't count as a prefix.
+
+		if (strEqualsNoCase(sPrefix, ATTRIB_XMLNS))
+			{
+			sPrefix = CStringSlice();
+			sLocalName = sName;
+			}
+		else
+			{
+			pPos++;
+			sLocalName = CStringSlice(pPos, sName.GetLength() - (pPos - pStart));
+			}
+		}
+	else
+		{
+		sLocalName = sName;
+		}
+
+	//	Figure out the namespace (empty prefix returns the default namespace)
+
+	CStringView sNamespace = (pCtx->pNamespaces ? pCtx->pNamespaces->GetNamespace(sPrefix) : CStringView());
+
+	//	Atomize
+
+	return pCtx->m_Store.Atomize(sNamespace, sLocalName);
+	}
+
+bool ParseElement (ParserCtx *pCtx, CXMLElement **retpElement)
+
+//	ParseElement
+//
+//	Parses an element and returns it. We assume that we've already
+//	parsed an open tag
+
+	{
+	ASSERT(pCtx->iToken == tkTagOpen);
+
+	//	Parse the element header and get back a tag name and a map of attribute/values.
+	//	These are strings because we can't parse namespaces until we have all
+	//	attributes.
+
+	CStringSlice sTag;
+	CNamespacePrefixTable Namespaces;
+	if (!ParseElementHeader(pCtx, sTag, Namespaces))
+		return false;
+
+	//	Add namespaces, if any
+
+	bool bPopNamespace;
+	if (!Namespaces.IsEmpty())
+		{
+		PushNamespace(pCtx, &Namespaces);
+		bPopNamespace = true;
+		}
+	else
+		bPopNamespace = false;
+
+	//	Now create the element and all its attributes.
+
+	CXMLElement *pElement = new CXMLElement(pCtx->m_Store, ResolveElementName(pCtx, sTag), pCtx->pElement);
+	for (int i = 0; i < pCtx->TempAttributeList.GetCount(); i++)
+		{
+		pElement->AddAttribute(ResolveAttributeName(pCtx, pCtx->TempAttributeList[i].sAttrib), std::move(pCtx->TempAttributeList[i].sValue));
 		}
 
 	//	Give our controller a chance to deal with an element
@@ -367,6 +581,7 @@ bool ParseElement (ParserCtx *pCtx, CXMLElement **retpElement)
 		if (!pCtx->m_pController->OnOpenTag(pElement, &pCtx->sError))
 			{
 			delete pElement;
+			if (bPopNamespace) PopNamespace(pCtx);
 			return false;
 			}
 		}
@@ -390,7 +605,15 @@ bool ParseElement (ParserCtx *pCtx, CXMLElement **retpElement)
 			//	If this is text then append it as content
 
 			if (pCtx->iToken == tkText)
-				pElement->AppendContent(pCtx->sToken);
+				pElement->AppendContent(std::move(pCtx->sToken));
+
+			//	If this is a tag close, then emit > because some XML
+			//	generators do this.
+
+			else if (pCtx->iToken == tkTagClose)
+				{
+				pElement->AppendContent(CString(">"));
+				}
 
 			//	Otherwise, append an element
 
@@ -402,6 +625,7 @@ bool ParseElement (ParserCtx *pCtx, CXMLElement **retpElement)
 					{
 					pCtx->pElement = pParentElement;
 					delete pElement;
+					if (bPopNamespace) PopNamespace(pCtx);
 					return false;
 					}
 
@@ -416,6 +640,7 @@ bool ParseElement (ParserCtx *pCtx, CXMLElement **retpElement)
 				if (pCtx->iToken != tkError || pCtx->sError.IsEmpty())
 					pCtx->sError = ERR_CONTENT_EXPECTED;
 				delete pElement;
+				if (bPopNamespace) PopNamespace(pCtx);
 				return false;
 				}
 			}
@@ -426,11 +651,12 @@ bool ParseElement (ParserCtx *pCtx, CXMLElement **retpElement)
 
 		//	The element tag should match ours
 
-		if (ParseToken(pCtx) != tkText
-				|| strEqualsNoCase(pCtx->sToken, pElement->GetTag()))
+		if (ParseToken(pCtx, StartAtomState) != tkAtom
+				|| pCtx->TokenID != pElement->GetTagID())
 			{
 			pCtx->sError = ERR_UNMATCHED_CLOSE_TAG;
 			delete pElement;
+			if (bPopNamespace) PopNamespace(pCtx);
 			return false;
 			}
 
@@ -440,6 +666,7 @@ bool ParseElement (ParserCtx *pCtx, CXMLElement **retpElement)
 			{
 			pCtx->sError = ERR_CLOSE_TAG_EXPECTED;
 			delete pElement;
+			if (bPopNamespace) PopNamespace(pCtx);
 			return false;
 			}
 		}
@@ -448,6 +675,7 @@ bool ParseElement (ParserCtx *pCtx, CXMLElement **retpElement)
 
 	*retpElement = pElement;
 
+	if (bPopNamespace) PopNamespace(pCtx);
 	return true;
 	}
 
@@ -458,6 +686,14 @@ bool ParsePrologue (ParserCtx *pCtx)
 //	Parses <?XML prologue
 
 	{
+	//	Skip BOM, if any.
+
+	if (pCtx->pPos + 2 < pCtx->pEndPos
+			&& pCtx->pPos[0] == '\xEF'
+			&& pCtx->pPos[1] == '\xBB'
+			&& pCtx->pPos[2] == '\xBF')
+		pCtx->pPos += 3;
+
 	//	We don't allow any whitespace at the beginning
 
 	if (*pCtx->pPos != '<')
@@ -473,9 +709,9 @@ bool ParsePrologue (ParserCtx *pCtx)
 	if (ParseToken(pCtx) != tkPIOpen)
 		return true;
 
-	//	Expect XML tag
+	//	Expect any tag
 
-	if (ParseToken(pCtx) != tkText || !strEquals(strToLower(pCtx->sToken), STR_XML))
+	if (ParseToken(pCtx) != tkText)
 		{
 		pCtx->sError = ERR_XML_PROLOGUE_EXPECTED;
 		return false;
@@ -489,7 +725,7 @@ bool ParsePrologue (ParserCtx *pCtx)
 
 		if (strEquals(sTokenLC, FIELD_VERSION))
 			{
-			if (ParseToken(pCtx) != tkEquals)
+			if (ParseEqualsToken(pCtx) != tkEquals)
 				{
 				pCtx->sError = ERR_VERSION_EXPECTED;
 				return false;
@@ -515,7 +751,7 @@ bool ParsePrologue (ParserCtx *pCtx)
 			}
 		else if (strEquals(sTokenLC, FIELD_ENCODING))
 			{
-			if (ParseToken(pCtx) != tkEquals)
+			if (ParseEqualsToken(pCtx) != tkEquals)
 				{
 				pCtx->sError = ERR_ENCODING_EXPECTED;
 				return false;
@@ -543,7 +779,7 @@ bool ParsePrologue (ParserCtx *pCtx)
 			{
 			//	Assume it is an unknown attribute
 
-			if (ParseToken(pCtx) != tkEquals)
+			if (ParseEqualsToken(pCtx) != tkEquals)
 				{
 				pCtx->sError = ERR_INVALID_PROLOG_ATTRIB;
 				return false;
@@ -690,24 +926,12 @@ TokenTypes ParseToken (ParserCtx *pCtx, StateTypes iInitialState)
 
 	{
 	bool bDone = false;
-	bool bNoEOF = false;
-	StateTypes iState;
-	char *pStartRun;
+	const char *pStartRun;
 	CString sName;
-
-	//	If we're parsing an entity then the rules change slightly
-
-	if (iInitialState == ParseEntityState)
-		{
-		iInitialState = TextState;
-		pStartRun = pCtx->pPos;
-		pCtx->sToken = CString("");
-		bNoEOF = true;
-		}
 
 	//	If we're parsing content then start in the content state
 
-	iState = iInitialState;
+	StateTypes iState = iInitialState;
 
 	//	Keep parsing until we're done
 
@@ -720,6 +944,8 @@ TokenTypes ParseToken (ParserCtx *pCtx, StateTypes iInitialState)
 		switch (iState)
 			{
 			case StartState:
+			case StartAtomState:
+			case StartSliceState:
 				{
 				switch (chChar)
 					{
@@ -763,7 +989,12 @@ TokenTypes ParseToken (ParserCtx *pCtx, StateTypes iInitialState)
 						break;
 
 					default:
-						iState = IdentifierState;
+						if (iState == StartAtomState)
+							iState = IdentifierAtomState;
+						else if (iState == StartSliceState)
+							iState = IdentifierSliceState;
+						else
+							iState = IdentifierState;
 						pStartRun = pCtx->pPos;
 						break;
 					}
@@ -990,7 +1221,7 @@ TokenTypes ParseToken (ParserCtx *pCtx, StateTypes iInitialState)
 						iState = EntityDeclarationFindValueState;
 						break;
 
-					case '\"':
+					case '"':
 					case '>':
 					case '<':
 						pCtx->iToken = tkError;
@@ -1004,7 +1235,7 @@ TokenTypes ParseToken (ParserCtx *pCtx, StateTypes iInitialState)
 				{
 				switch (chChar)
 					{
-					case '\"':
+					case '"':
 						pStartRun = pCtx->pPos + 1;
 						iState = EntityDeclarationValueState;
 						break;
@@ -1022,7 +1253,7 @@ TokenTypes ParseToken (ParserCtx *pCtx, StateTypes iInitialState)
 				{
 				switch (chChar)
 					{
-					case '\"':
+					case '"':
 						{
 						CString sValue = CString(pStartRun, pCtx->pPos - pStartRun);
 						pCtx->DefineEntity(sName, sValue);
@@ -1069,6 +1300,8 @@ TokenTypes ParseToken (ParserCtx *pCtx, StateTypes iInitialState)
 				}
 
 			case IdentifierState:
+			case IdentifierAtomState:
+			case IdentifierSliceState:
 				{
 				switch (chChar)
 					{
@@ -1082,8 +1315,22 @@ TokenTypes ParseToken (ParserCtx *pCtx, StateTypes iInitialState)
 					case '/':
 					case '"':
 					case '<':
-						pCtx->iToken = tkText;
-						pCtx->sToken = CString(pStartRun, pCtx->pPos - pStartRun);
+						if (iState == IdentifierAtomState)
+							{
+							pCtx->iToken = tkAtom;
+							pCtx->TokenID = ResolveElementName(pCtx, CStringSlice(pStartRun, pCtx->pPos - pStartRun));
+							}
+						else if (iState == IdentifierSliceState)
+							{
+							pCtx->iToken = tkSlice;
+							pCtx->sTokenSlice = CStringSlice(pStartRun, pCtx->pPos - pStartRun);
+							}
+						else
+							{
+							pCtx->iToken = tkText;
+							pCtx->sToken = CString(pStartRun, pCtx->pPos - pStartRun);
+							}
+
 						pCtx->pPos--;
 						bDone = true;
 						break;
@@ -1099,7 +1346,7 @@ TokenTypes ParseToken (ParserCtx *pCtx, StateTypes iInitialState)
 					case '<':
 					case '>':
 						pCtx->iToken = tkText;
-						pCtx->sToken += CString(pStartRun, pCtx->pPos - pStartRun);
+						pCtx->sToken += CStringSlice(pStartRun, pCtx->pPos - pStartRun);
 						pCtx->pPos--;
 						bDone = true;
 						break;
@@ -1107,7 +1354,7 @@ TokenTypes ParseToken (ParserCtx *pCtx, StateTypes iInitialState)
 					//	Handle embeded entities
 
 					case '&':
-						pCtx->sToken += CString(pStartRun, pCtx->pPos - pStartRun);
+						pCtx->sToken += CStringSlice(pStartRun, pCtx->pPos - pStartRun);
 						pStartRun = pCtx->pPos + 1;
 						iSavedState = TextState;
 						iState = EntityState;
@@ -1124,7 +1371,7 @@ TokenTypes ParseToken (ParserCtx *pCtx, StateTypes iInitialState)
 					//	Handle embeded entities
 
 					case '&':
-						pCtx->sToken += CString(pStartRun, pCtx->pPos - pStartRun);
+						pCtx->sToken += CStringSlice(pStartRun, pCtx->pPos - pStartRun);
 						pStartRun = pCtx->pPos + 1;
 						iSavedState = AttributeTextState;
 						iState = EntityState;
@@ -1136,7 +1383,7 @@ TokenTypes ParseToken (ParserCtx *pCtx, StateTypes iInitialState)
 								|| (chChar == '\'' && pCtx->iAttribQuote == tkSingleQuote))
 							{
 							pCtx->iToken = tkText;
-							pCtx->sToken += CString(pStartRun, pCtx->pPos - pStartRun);
+							pCtx->sToken += CStringSlice(pStartRun, pCtx->pPos - pStartRun);
 							pCtx->pPos--;
 							bDone = true;
 							break;
@@ -1174,7 +1421,7 @@ TokenTypes ParseToken (ParserCtx *pCtx, StateTypes iInitialState)
 					case ' ':
 					case '>':
 					case '<':
-					case '\"':
+					case '"':
 					case '\'':
 					case '\\':
 					case '&':
@@ -1216,7 +1463,7 @@ TokenTypes ParseToken (ParserCtx *pCtx, StateTypes iInitialState)
 						&& pCtx->pPos[2] == '>')
 					{
 					pCtx->iToken = tkText;
-					pCtx->sToken += CString(pStartRun, pCtx->pPos - pStartRun);
+					pCtx->sToken += CStringSlice(pStartRun, pCtx->pPos - pStartRun);
 					pCtx->pPos += 2;
 					bDone = true;
 					}
@@ -1242,15 +1489,215 @@ TokenTypes ParseToken (ParserCtx *pCtx, StateTypes iInitialState)
 
 	if (!bDone)
 		{
-		if (bNoEOF)
-			{
-			pCtx->iToken = tkText;
-			pCtx->sToken += CString(pStartRun, pCtx->pPos - pStartRun);
-			}
-		else
-			pCtx->iToken = tkEOF;
+		pCtx->iToken = tkEOF;
 		}
 
+	return pCtx->iToken;
+	}
+
+TokenTypes ParseEntityToken (ParserCtx *pCtx)
+
+//	ParseEntityToken
+//
+//	Parses the next token and updatex pCtx->iToken and pCtx->sToken.
+//	If bContent is TRUE, then we treat whitespace as text.
+
+	{
+	//	If we're parsing an entity then the rules change slightly
+
+	bool bDone = false;
+	StateTypes iState = TextState;
+	const char* pStartRun = pCtx->pPos;
+	pCtx->sToken = CString("");
+
+	//	Keep parsing until we're done
+
+	StateTypes iSavedState = StartState;
+
+	while (pCtx->pPos < pCtx->pEndPos && !bDone)
+		{
+		char chChar = *pCtx->pPos;
+
+		switch (iState)
+			{
+			case TextState:
+				{
+				switch (chChar)
+					{
+					case '<':
+					case '>':
+						pCtx->iToken = tkText;
+						pCtx->sToken += CStringSlice(pStartRun, pCtx->pPos - pStartRun);
+						pCtx->pPos--;
+						bDone = true;
+						break;
+
+					//	Handle embeded entities
+
+					case '&':
+						pCtx->sToken += CStringSlice(pStartRun, pCtx->pPos - pStartRun);
+						pStartRun = pCtx->pPos + 1;
+						iSavedState = TextState;
+						iState = EntityState;
+						break;
+					}
+
+				break;
+				}
+
+			case EntityState:
+				{
+				switch (chChar)
+					{
+					case ';':
+						{
+						CString sEntity(pStartRun, pCtx->pPos - pStartRun);
+
+						bool bFound;
+						pCtx->sToken += ResolveEntity(pCtx, sEntity, &bFound);
+						if (!bFound)
+							{
+							pCtx->iToken = tkError;
+							pCtx->sError = strPattern("Invalid entity: %s.", sEntity);
+							bDone = true;
+							break;
+							}
+
+						pStartRun = pCtx->pPos + 1;
+						ASSERT(iSavedState != StartState);
+						iState = iSavedState;
+						break;
+						}
+
+					case ' ':
+					case '>':
+					case '<':
+					case '"':
+					case '\'':
+					case '\\':
+					case '&':
+						{
+						CString sEntity(pStartRun, (pCtx->pPos + 1) - pStartRun);
+
+						pCtx->iToken = tkError;
+						pCtx->sError = strPattern("Illegal character in entity: '%s' (or missing semi-colon).", sEntity);
+						bDone = true;
+						break;
+						}
+					}
+
+				break;
+				}
+
+			default:
+				throw CException(errFail);
+			}
+
+		//	Count lines
+
+		if (chChar == '\n')
+			pCtx->iLine++;
+
+		//	Next character
+
+		pCtx->pPos++;
+		}
+
+	//	If we're not done, then we hit the end of the file
+
+	if (!bDone)
+		{
+		pCtx->iToken = tkText;
+		pCtx->sToken += CStringSlice(pStartRun, pCtx->pPos - pStartRun);
+		}
+
+	return pCtx->iToken;
+	}
+
+TokenTypes ParseEqualsToken (ParserCtx *pCtx)
+
+//	ParseEqualsToken
+//
+//	Parses the next token and updatex pCtx->iToken and pCtx->sToken.
+//	If bContent is TRUE, then we treat whitespace as text.
+
+	{
+	while (pCtx->pPos < pCtx->pEndPos)
+		{
+		switch (*pCtx->pPos)
+			{
+			//	Swallow whitespace
+			case ' ':
+			case '\t':
+			case '\r':
+				pCtx->pPos++;
+				break;
+
+			case '\n':
+				pCtx->iLine++;
+				pCtx->pPos++;
+				break;
+
+			case '=':
+				pCtx->iToken = tkEquals;
+				pCtx->pPos++;
+				return pCtx->iToken;
+
+			default:
+				pCtx->iToken = tkError;
+				return pCtx->iToken;
+			}
+		}
+
+	//	If we're not done, then we hit the end of the file
+
+	pCtx->iToken = tkEOF;
+	return pCtx->iToken;
+	}
+
+TokenTypes ParseQuoteToken (ParserCtx *pCtx)
+
+//	ParseQuoteToken
+//
+//	Parses the next token and updatex pCtx->iToken and pCtx->sToken.
+//	If bContent is TRUE, then we treat whitespace as text.
+
+	{
+	while (pCtx->pPos < pCtx->pEndPos)
+		{
+		switch (*pCtx->pPos)
+			{
+			//	Swallow whitespace
+			case ' ':
+			case '\t':
+			case '\r':
+				pCtx->pPos++;
+				break;
+
+			case '\n':
+				pCtx->iLine++;
+				pCtx->pPos++;
+				break;
+
+			case '"':
+				pCtx->iToken = tkQuote;
+				pCtx->pPos++;
+				return pCtx->iToken;
+
+			case '\'':
+				pCtx->iToken = tkSingleQuote;
+				pCtx->pPos++;
+				return pCtx->iToken;
+
+			default:
+				pCtx->iToken = tkError;
+				return pCtx->iToken;
+			}
+		}
+
+	//	If we're not done, then we hit the end of the file
+
+	pCtx->iToken = tkEOF;
 	return pCtx->iToken;
 	}
 
@@ -1305,9 +1752,9 @@ CString ResolveEntity (ParserCtx *pCtx, const CString &sName, bool *retbFound)
 		{
 		//	Parse the value to resolve embedded entities
 
-		ParserCtx SubCtx(pCtx, sValue);
+		ParserCtx SubCtx(*pCtx, sValue);
 
-		ParseToken(&SubCtx, ParseEntityState);
+		ParseEntityToken(&SubCtx);
 		if (SubCtx.iToken == tkText)
 			sResult = SubCtx.sToken;
 		else
@@ -1323,7 +1770,7 @@ CString ResolveEntity (ParserCtx *pCtx, const CString &sName, bool *retbFound)
 	return sResult;
 	}
 
-bool CXMLElement::ParseEntityTable (IMemoryBlock &Stream, CExternalEntityTable *retEntityTable, CString *retsError)
+bool CXMLElement::ParseEntityTable (IMemoryBlock &Stream, CXMLStore& Store, CExternalEntityTable *retEntityTable, CString *retsError)
 
 //	ParseEntityTable
 //
@@ -1332,7 +1779,7 @@ bool CXMLElement::ParseEntityTable (IMemoryBlock &Stream, CExternalEntityTable *
 	{
 	//	Initialize context
 
-	ParserCtx Ctx(Stream, NULL);
+	ParserCtx Ctx(Stream, Store, NULL);
 
 	//	Parse the prologue
 
@@ -1350,7 +1797,7 @@ bool CXMLElement::ParseEntityTable (IMemoryBlock &Stream, CExternalEntityTable *
 	return true;
 	}
 
-bool CXMLElement::ParseRootElement (IMemoryBlock &Stream, CXMLElement **retpRoot, CExternalEntityTable *retEntityTable, CString *retsError)
+bool CXMLElement::ParseRootElement (IMemoryBlock &Stream, CXMLStore& Store, CXMLElement **retpRoot, CExternalEntityTable *retEntityTable, CString *retsError)
 
 //	ParseRootElement
 //
@@ -1360,7 +1807,7 @@ bool CXMLElement::ParseRootElement (IMemoryBlock &Stream, CXMLElement **retpRoot
 	{
 	//	Initialize context
 
-	ParserCtx Ctx(Stream, NULL);
+	ParserCtx Ctx(Stream, Store, NULL);
 
 	//	Parse the prologue
 
@@ -1395,7 +1842,7 @@ bool CXMLElement::ParseRootElement (IMemoryBlock &Stream, CXMLElement **retpRoot
 	return true;
 	}
 
-bool CXMLElement::ParseRootTag (IMemoryBlock &Stream, CString *retsTag)
+bool CXMLElement::ParseRootTag (IMemoryBlock &Stream, CXMLStore& Store, CString *retsTag)
 
 //	ParseRootTag
 //
@@ -1408,7 +1855,7 @@ bool CXMLElement::ParseRootTag (IMemoryBlock &Stream, CString *retsTag)
 	{
 	//	Initialize context
 
-	ParserCtx Ctx(Stream, NULL);
+	ParserCtx Ctx(Stream, Store, NULL);
 	Ctx.m_bParseRootTag = true;
 
 	//	Parse the prologue

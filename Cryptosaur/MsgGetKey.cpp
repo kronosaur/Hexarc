@@ -1,7 +1,7 @@
 //	MsgGetKey.cpp
 //
 //	MsgGetKey
-//	Copyright (c) 2012 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2012 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -38,7 +38,7 @@ void CCryptosaurEngine::MsgGetKey (const SArchonMessage &Msg, const CHexeSecurit
 //	Cryptosaur.getKey {keyName}
 
 	{
-	CString sKeyName = Msg.dPayload.GetElement(0);
+	CStringView sKeyName = Msg.dPayload.GetElement(0);
 
 	//	Make sure that the keyname is appropriate to the security context
 
@@ -104,7 +104,7 @@ void CCreateKeySession::OnSuccess (void)
 	{
 	//	Since we were successful, store the key in our store
 
-	m_pEngine->InsertKey((const CString &)GetKeyPath(), (const CIPInteger &)GetData());
+	m_pEngine->InsertKey(GetKeyPath().AsStringView(), (const CIPInteger &)GetData());
 
 	//	Return the key that we just stored to the user
 

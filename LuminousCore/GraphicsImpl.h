@@ -1,7 +1,7 @@
 //	GraphicsImpl.h
 //
 //	ILuminousGraphics Implementations
-//	Copyright (c) 2022 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2022 GridWhale Corporation. All Rights Reserved.
 
 #pragma once
 
@@ -15,6 +15,8 @@ class CClearRectGraphic : public ILuminousGraphic
 			{
 			m_Path.Rect(vUL, vLR);
 			}
+
+		virtual TUniquePtr<ILuminousGraphic> Clone () const override { return TUniquePtr<ILuminousGraphic>(new CClearRectGraphic(*this)); }
 
 	private:
 
@@ -32,6 +34,8 @@ class CImageGraphic : public ILuminousGraphic
 				m_Image(ImageRef)
 			{ }
 
+		virtual TUniquePtr<ILuminousGraphic> Clone () const override { return TUniquePtr<ILuminousGraphic>(new CImageGraphic(*this)); }
+
 	private:
 
 		virtual const CRGBA32Image& OnGetImage () const override { return m_Image; }
@@ -48,6 +52,8 @@ class CMetaCommandGraphic : public ILuminousGraphic
 				m_iType(iType)
 			{ }
 
+		virtual TUniquePtr<ILuminousGraphic> Clone () const override { return TUniquePtr<ILuminousGraphic>(new CMetaCommandGraphic(*this)); }
+
 	private:
 
 		virtual EType OnGetType () const { return m_iType; }
@@ -62,6 +68,8 @@ class CResourceGraphic : public ILuminousGraphic
 		CResourceGraphic (DWORD dwID, const CString& sName, const CString& sResourceID) : ILuminousGraphic(dwID, sName),
 				m_sResourceID(sResourceID)
 			{ }
+
+		virtual TUniquePtr<ILuminousGraphic> Clone () const override { return TUniquePtr<ILuminousGraphic>(new CResourceGraphic(*this)); }
 
 	private:
 
@@ -78,6 +86,8 @@ class CShapeGraphic : public ILuminousGraphic
 		CShapeGraphic (DWORD dwID, const CString& sName) : ILuminousGraphic(dwID, sName)
 			{ }
 
+		virtual TUniquePtr<ILuminousGraphic> Clone () const override { return TUniquePtr<ILuminousGraphic>(new CShapeGraphic(*this)); }
+
 		void SetFillStyle (const CLuminousFillStyle& Style) { m_FillStyle = Style; }
 		void SetLineStyle (const CLuminousLineStyle& Style) { m_LineStyle = Style; }
 		void SetPath (const CLuminousPath2D& Path) { m_Path = Path; }
@@ -92,6 +102,40 @@ class CShapeGraphic : public ILuminousGraphic
 		virtual EType OnGetType () const { return EType::Shape; }
 
 		CLuminousPath2D m_Path;
+		CLuminousFillStyle m_FillStyle;
+		CLuminousLineStyle m_LineStyle;
+		CLuminousShadowStyle m_ShadowStyle;
+	};
+
+class CTextGraphic : public ILuminousGraphic
+	{
+	public:
+
+		CTextGraphic (DWORD dwID, const CString& sName) : ILuminousGraphic(dwID, sName)
+			{ }
+
+		virtual TUniquePtr<ILuminousGraphic> Clone () const override { return TUniquePtr<ILuminousGraphic>(new CTextGraphic(*this)); }
+
+		void SetAlignStyle (const CLuminousTextAlign& Style) { m_AlignStyle = Style; }
+		void SetFillStyle (const CLuminousFillStyle& Style) { m_FillStyle = Style; }
+		void SetFontStyle (const CLuminousFontStyle& Style) { m_FontStyle = Style; }
+		void SetLineStyle (const CLuminousLineStyle& Style) { m_LineStyle = Style; }
+		void SetShadowStyle (const CLuminousShadowStyle& Style) { m_ShadowStyle = Style; }
+		void SetText (const CString& sText) { m_sText = sText; }
+
+	private:
+
+		virtual const CLuminousTextAlign& OnGetAlignStyle () const { return m_AlignStyle; }
+		virtual const CLuminousFillStyle& OnGetFillStyle () const override { return m_FillStyle; }
+		virtual const CLuminousFontStyle& OnGetFontStyle () const { return m_FontStyle; }
+		virtual const CLuminousLineStyle& OnGetLineStyle () const override { return m_LineStyle; }
+		virtual const CLuminousShadowStyle& OnGetShadowStyle () const override { return m_ShadowStyle; }
+		virtual const CString& OnGetText () const { return m_sText; }
+		virtual EType OnGetType () const { return EType::Text; }
+
+		CString m_sText;
+		CLuminousFontStyle m_FontStyle;
+		CLuminousTextAlign m_AlignStyle;
 		CLuminousFillStyle m_FillStyle;
 		CLuminousLineStyle m_LineStyle;
 		CLuminousShadowStyle m_ShadowStyle;

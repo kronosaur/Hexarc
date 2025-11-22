@@ -1,14 +1,19 @@
 //	Exarch.h
 //
 //	Exarch Archon Implementation
-//	Copyright (c) 2010 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2010 by GridWhale Corporation. All Rights Reserved.
 
 #pragma once
+
+#ifdef DEBUG
+#define ENABLE_AMP1_FABRIC
+#endif
 
 //	Arcology Membership --------------------------------------------------------
 
 struct SMachineDesc
 	{
+	CString sNodeID;							//	Unique ID (persistent across node restart)
 	CString sName;								//	Unique name of machine
 	CString sAddress;							//	Address to reach machine
 	CIPInteger Key;								//	Machine key
@@ -43,7 +48,8 @@ class CMecharcologyDb
 
 		//	Machine functions
 
-		bool AddMachine (const CString &sDisplayName, const CString &sAddress, const CIPInteger &SecretKey, bool bCheckUpgrade, CString *retsError);
+		bool AddMachine (CStringView sNodeID, CStringView sDisplayName, CStringView sAddress, const CIPInteger &SecretKey, bool bCheckUpgrade, CString *retsError);
+		CString AllocNodeID () const;
 		bool AuthenticateMachine (const CString &sAuthName, const CIPInteger &AuthKey);
 		bool CheckForUpgrade (const CString &sMachineName);
 		bool DeleteMachine (const CString &sName);
@@ -52,17 +58,20 @@ class CMecharcologyDb
 		bool FindArcologyPrime (SMachineDesc *retDesc = NULL) const;
 		bool FindMachineByAddress (const CString &sAddress, SMachineDesc *retDesc = NULL);
 		bool FindMachineByName (const CString &sName, SMachineDesc *retDesc = NULL) const;
+		bool FindMachineByNodeID (CStringView sNodeID, SMachineDesc* retDesc = NULL) const;
 		bool FindMachineByPartialName (const CString &sName, SMachineDesc *retDesc = NULL) const;
 		bool GetMachine (const CString &sName, SMachineDesc *retDesc = NULL);
 		bool GetMachine (int iIndex, SMachineDesc *retDesc) const;
 		int GetMachineCount (void) const { return m_Machines.GetCount(); }
 		bool GetStatus (CDatum *retStatus);
-		bool HasArcologyKey (void) const;
+		bool HasArcologyKey (CIPInteger* retsKey = NULL) const;
 		bool IsArcologyPrime () const { return m_iArcologyPrime == -1; }
 		bool IsArcologyPrime (const CString &sName) const;
 		bool JoinArcology (const CString &sPrimeName, const CIPInteger &PrimeKey, CString *retsError);
 		bool LeaveArcology (CString *retsError);
-		bool OnCompleteAuth (const CString &sName);
+		static CString MakeNodeID (DWORD dwID);
+		static CString ArcologyPrimeNodeID () { return MakeNodeID(1); }
+		bool OnCompleteAuth (CStringView sName, CString& retsNodeID);
 		bool ProcessOldMachines (TArray<CString> &OldMachines);
 		bool SetArcologyKey (const CIPInteger &PrimeKey, CString *retsError);
 
@@ -100,6 +109,7 @@ class CMecharcologyDb
 
 		struct SMachineEntry
 			{
+			CString sNodeID;					//	Unique ID (persistent across node restart)
 			CString sName;						//	Machine name (generated at connect time)
 			CString sDisplayName;				//	Name assigned by user
 			CString sAddress;					//	Machine address
@@ -132,6 +142,7 @@ class CMecharcologyDb
 			CDateTime StartTime;				//	Time when module started
 			};
 
+		static SMachineDesc AsMachineDesc (const SMachineEntry& Entry);
 		int FindMachine (const SMachineDesc &Desc) const;
 		int FindMachine (const CString &sName);
 		int FindModule (const CString &sName) const;
@@ -168,10 +179,14 @@ class CArcologySession : public ISessionCtx
 
 //	CExarchEngine --------------------------------------------------------------
 
-class CExarchEngine : public TSimpleEngine<CExarchEngine>, public IArchonExarch
+class CExarchEngine : public TSimpleEngine<CExarchEngine>,
+		public IArchonExarch,
+		public IAMP1CommunicatorEvents
 	{
 	public:
+
 		static constexpr DWORD DEFAULT_AMP1_PORT =					7397;
+		static constexpr DWORD DEFAULT_AMP1_PORT_NEW =				7398;
 
 		struct SOptions
 			{
@@ -202,14 +217,26 @@ class CExarchEngine : public TSimpleEngine<CExarchEngine>, public IArchonExarch
 
 		virtual bool ExarchAuthenticateMachine (const CString &sMachineName, const CIPInteger &Key) override;
 
+		//	IAMP1CommunicatorEvents
+
+		virtual void OnAMP1ClientConnected (CStringView sNodeID) override;
+		virtual void OnAMP1ClientDisconnected (CStringView sNodeID) override;
+		virtual void OnAMP1ConnectedToServer () override;
+		virtual void OnAMP1FatalError (CStringView sError) override;
+		virtual void OnAMP1Message (CStringView sNodeID, CStringView sMsg, CBuffer&& retData) override;
+
 	protected:
+
 		//	TSimpleEngine override
 		virtual void OnBoot (void) override;
 		virtual void OnMarkEx (void) override;
+		virtual void OnSignalPause (void) override { CSmartLock Lock(m_cs); m_bInGC = true; }
+		virtual void OnSignalResume (void) override { CSmartLock Lock(m_cs); m_bInGC = false; m_AMP1Queue.ReplayEvents(*this); }
 		virtual void OnStartRunning (void) override;
 		virtual void OnStopRunning (void) override;
 
 	private:
+		static constexpr DWORDLONG MAX_LOG_ROWS =					1000;
 		//	Message handlers
 		void MsgAddMachine (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgAddModule (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
@@ -270,7 +297,7 @@ class CExarchEngine : public TSimpleEngine<CExarchEngine>, public IArchonExarch
 		bool FindVolume (const CString &sVolume, CDatum *retdVolumeDesc = NULL, CString *retsKey = NULL);
 		CString GenerateResourceNameFromFilespec (const CString &sFilespec);
 		CString GetMachineStatus (void);
-		void OnMachineConnection (const CString &sName);
+		void OnMachineConnection (CStringView sNodeID, CStringView sName);
 		void OnMachineStart (void);
 		bool ParseMachineName (const CString &sValue, CString *retsMachineName) const;
 		bool ParseModuleName (const CString &sValue, CString *retsMachineName, CString *retsModuleName) const;
@@ -298,11 +325,14 @@ class CExarchEngine : public TSimpleEngine<CExarchEngine>, public IArchonExarch
 
 		CDatum m_dMachineConfig;				//	Configuration for this machine
 		CMecharcologyDb m_MecharcologyDb;		//	Machine arcology database
+		CAMP1CommunicatorServer m_AMP1Server;	//	Communicator for AMP1 messages
+		CAMP1Queue m_AMP1Queue;					//	Queue for deferred AMP1 messages
 		CSessionManagerOld m_Sessions;			//	Keeping track of sessions
 		CProxyPort *m_pLoggingPort = NULL;
 
 		DWORD m_dwNextVolume = 0;				//	Next volume number
 		TArray<CString> m_DeletedVolumes;		//	Keep track of deleted volumes (for UI purposes)
+		bool m_bInGC = false;					//	If TRUE, we're in the middle of a garbage collection
 		bool m_bInStopRunning = false;			//	If TRUE, we're shutting down the machine
 		bool m_bAeonInitialized = false;		//	If TRUE, Aeon has already started
 		bool m_bBroadcastCheckUpgrade = false;	//	If TRUE, remember to tell other machines to check for upgrade

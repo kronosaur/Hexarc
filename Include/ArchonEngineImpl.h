@@ -1,7 +1,7 @@
 //	ArchonEngineImpl.h
 //
 //	Engine Implementations
-//	Copyright (c) 2010 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2010 by GridWhale Corporation. All Rights Reserved.
 //
 //	USAGE
 //
@@ -127,7 +127,6 @@ class CSimpleEngine : public IArchonEngine, public IArchonMessagePort, protected
 		//	Used by CSession
 		void DeleteTimedMessage (DWORD dwID) { m_TimedQueue.DeleteMessage(dwID); }
 		void KeepAliveTimedMessage (DWORD dwID) { m_TimedQueue.KeepAliveMessage(dwID); }
-		void SendTimedMessage (DWORD dwDelay, const CString &sAddr, const CString &sMsg, const CString &sReplyAddr, DWORD dwTicket, CDatum dPayload, DWORD *retdwID = NULL)	{ m_TimedQueue.AddMessage(dwDelay, sAddr, sMsg, sReplyAddr, dwTicket, dPayload, retdwID); }
 		void SendTimeoutMessage (DWORD dwDelay, const CString &sAddr, const CString &sMsg, DWORD dwTicket, DWORD *retdwID) { m_TimedQueue.AddTimeoutMessage(dwDelay, sAddr, sMsg, dwTicket, retdwID); }
 
 		//	Helpers
@@ -474,10 +473,7 @@ template <class VALUE> class TSimpleEngine : public CSimpleEngine
 class CConsoleThread : public TThread<CConsoleThread>
 	{
 	public:
-		CConsoleThread (CArchonProcess *pProcess) : m_pProcess(pProcess)
-			{
-			m_Busy.Create(1);
-			}
+		CConsoleThread (CArchonProcess *pProcess);
 
 		void OnEndHousekeeping (void) { m_Busy.Decrement(); }
 		void OnStartHousekeeping (void) { m_Busy.Increment(); }

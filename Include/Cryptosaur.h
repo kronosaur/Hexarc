@@ -1,7 +1,7 @@
 //	Cryptosaur.h
 //
 //	Cryptosaur Engine Implementation
-//	Copyright (c) 2011 Kronosaur Productions. All Rights Reserved.
+//	Copyright (c) 2011 GridWhale Corporation. All Rights Reserved.
 //
 //	ARC.ACCOUNTS
 //
@@ -86,6 +86,7 @@ class CCryptosaurEngine : public TSimpleEngine<CCryptosaurEngine>
 		void MsgCreateAuthToken (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgCreateScopedCredentials (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgCreateUser (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
+		void MsgDeleteUser (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgGetCertificate (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgGetKey (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgGetUser (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);

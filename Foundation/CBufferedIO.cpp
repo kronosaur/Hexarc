@@ -1,7 +1,7 @@
 //	CBufferedIO.cpp
 //
 //	CBufferedIO class
-//	Copyright (c) 2015 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2015 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -52,7 +52,7 @@ int CBufferedIO::Read (void *pData, int iLength)
 
 //	Read
 //
-//	Reads
+//	Reads. NOTE: pData could be NULL, in which case we just skip the data.
 
 	{
 	char *pDest = (char *)pData;
@@ -65,10 +65,14 @@ int CBufferedIO::Read (void *pData, int iLength)
 		if (m_bReadBuffer && m_iBufferPos < m_iBufferLen)
 			{
 			int iWrite = Min(iDestLeft, m_iBufferLen - m_iBufferPos);
-			utlMemCopy(m_pBuffer + m_iBufferPos, pDest, iWrite);
+
+			if (pDest)
+				{
+				utlMemCopy(m_pBuffer + m_iBufferPos, pDest, iWrite);
+				pDest += iWrite;
+				}
 
 			m_iBufferPos += iWrite;
-			pDest += iWrite;
 			iDestLeft -= iWrite;
 			}
 
@@ -88,7 +92,7 @@ int CBufferedIO::Read (void *pData, int iLength)
 			//	If we don't have more, then we're at the end of the stream.
 
 			if (m_iBufferLen == 0)
-				return (int)(pDest - (char *)pData);
+				return iLength - iDestLeft;
 
 			//	Otherwise, continue reading
 

@@ -1,13 +1,16 @@
 //	CEsperMsgProcessingThread.cpp
 //
 //	CEsperMsgProcessingThread class
-//	Copyright (c) 2017 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2017 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
+
+DECLARE_CONST_STRING(STR_THREAD_NAME,					"EsperMsgProcessing");
 
 DECLARE_CONST_STRING(ERR_CRASH,							"Crash in CEsperMsgProcessingThread.")
 
 CEsperMsgProcessingThread::CEsperMsgProcessingThread (CEsperEngine &Engine) :
+		TThread(STR_THREAD_NAME),
 		m_Engine(Engine),
 		m_iState(processingUnknown),
 		m_dwLastStateChange(0)

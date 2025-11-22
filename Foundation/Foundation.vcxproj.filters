@@ -34,9 +34,6 @@
     <Filter Include="Source Files\Compression">
       <UniqueIdentifier>{abe79071-1c1d-4156-9461-7d77c8b3bea0}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\Markup">
-      <UniqueIdentifier>{1f74c109-df10-48cb-9de2-8035fba23c8f}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\IOCompletionPort">
       <UniqueIdentifier>{97bcaeb3-22ba-47a9-9863-e3a1e0f54369}</UniqueIdentifier>
     </Filter>
@@ -72,6 +69,15 @@
     </Filter>
     <Filter Include="Source Files\DB">
       <UniqueIdentifier>{e2ca37e3-7d77-4104-94ab-cec85d24b660}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Markdown">
+      <UniqueIdentifier>{1f74c109-df10-48cb-9de2-8035fba23c8f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="cmark-gfm">
+      <UniqueIdentifier>{d3aeb050-d13c-4cd3-bf6f-f09fa5188cb5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\BLAKE2">
+      <UniqueIdentifier>{a5237e47-9132-4aa9-8042-05ea3fec7862}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -169,10 +175,10 @@
       <Filter>Source Files\Compression</Filter>
     </ClCompile>
     <ClCompile Include="CHexeTextProcessor.cpp">
-      <Filter>Source Files\Markup</Filter>
+      <Filter>Source Files\Markdown</Filter>
     </ClCompile>
     <ClCompile Include="CTextMarkupParser.cpp">
-      <Filter>Source Files\Markup</Filter>
+      <Filter>Source Files\Markdown</Filter>
     </ClCompile>
     <ClCompile Include="CHTTPMessageBodyBuilder.cpp">
       <Filter>Source Files\NetworkIO</Filter>
@@ -414,6 +420,57 @@
     <ClCompile Include="CEmailAddress.cpp">
       <Filter>Source Files\NetworkIO</Filter>
     </ClCompile>
+    <ClCompile Include="CZipFormatReader.cpp">
+      <Filter>Source Files\Compression</Filter>
+    </ClCompile>
+    <ClCompile Include="CCommonMarkGFM.cpp">
+      <Filter>Source Files\Markdown</Filter>
+    </ClCompile>
+    <ClCompile Include="CSymbolTable.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CZipFormatWriter.cpp">
+      <Filter>Source Files\Compression</Filter>
+    </ClCompile>
+    <ClCompile Include="CHTML.cpp">
+      <Filter>Source Files\NetworkIO</Filter>
+    </ClCompile>
+    <ClCompile Include="BLAKE2.cpp">
+      <Filter>Source Files\Crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="BLAKE2\blake2b.c">
+      <Filter>Source Files\BLAKE2</Filter>
+    </ClCompile>
+    <ClCompile Include="CHexDecoder.cpp">
+      <Filter>Source Files\Streams</Filter>
+    </ClCompile>
+    <ClCompile Include="CStatistics.cpp">
+      <Filter>Source Files\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="CDateTimeParser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CRandomModule.cpp">
+      <Filter>Source Files\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="CStringView.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="IMemoryBlock64.cpp">
+      <Filter>Source Files\Streams</Filter>
+    </ClCompile>
+    <ClCompile Include="CFile64.cpp">
+      <Filter>Source Files\FileIO</Filter>
+    </ClCompile>
+    <ClCompile Include="CWebSocketProtocol.cpp">
+      <Filter>Source Files\NetworkIO</Filter>
+    </ClCompile>
+    <ClCompile Include="CIODiagnostics.cpp">
+      <Filter>Source Files\IOCompletionPort</Filter>
+    </ClCompile>
+    <ClCompile Include="CStringFormat.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -590,6 +647,21 @@
     <ClInclude Include="Include\FoundationColor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Include\FoundationGitHubMarkdown.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\FoundationZipFile.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\FoundationHTML.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\FoundationArraysDiff.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\FoundationStringFormat.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Library Include="LibJPEG\LibDebug\turbojpeg-static.lib">
@@ -597,6 +669,12 @@
     </Library>
     <Library Include="LibJPEG\LibRelease\turbojpeg-static.lib">
       <Filter>LibJPEG</Filter>
+    </Library>
+    <Library Include="cmark-gfm\lib\cmark-gfm-extensions_static.lib">
+      <Filter>cmark-gfm</Filter>
+    </Library>
+    <Library Include="cmark-gfm\lib\cmark-gfm_static.lib">
+      <Filter>cmark-gfm</Filter>
     </Library>
   </ItemGroup>
 </Project>

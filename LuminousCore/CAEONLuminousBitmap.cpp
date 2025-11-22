@@ -1,7 +1,7 @@
 //	CAEONLuminousBitmap.cpp
 //
 //	CAEONLuminousBitmap Class
-//	Copyright (c) 2022 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2022 GridWhale Corporation. All Rights Reserved.
 
 #include "pch.h"
 #include "LuminousAEON.h"
@@ -13,6 +13,7 @@ DECLARE_CONST_STRING(ERR_UNABLE_TO_CREATE_IMAGE,	"Unable to create image.");
 TDatumPropertyHandler<CAEONLuminousBitmap> CAEONLuminousBitmap::m_Properties = {
 	{
 		"height",
+		"I",
 		"Returns the height of the image (in pixels).",
 		[](const CAEONLuminousBitmap &Obj, const CString &sProperty)
 			{
@@ -22,6 +23,7 @@ TDatumPropertyHandler<CAEONLuminousBitmap> CAEONLuminousBitmap::m_Properties = {
 		},
 	{
 		"width",
+		"I",
 		"Returns the width of the image (in pixels).",
 		[](const CAEONLuminousBitmap &Obj, const CString &sProperty)
 			{
@@ -35,103 +37,103 @@ TDatumMethodHandler<CAEONLuminousBitmap> CAEONLuminousBitmap::m_Methods = {
 	{
 		"arc",
 		"*",
-		".arc(x, y, radius, startAngle, endAngle[, counterclockwise]) -> true/null",
+		".arc(x, y, radius, startAngle, endAngle[, counterclockwise]) -> true/false",
 		0,
-		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			double x = dLocalEnv.GetElement(1);
-			double y = dLocalEnv.GetElement(2);
-			double radius = dLocalEnv.GetElement(3);
-			double startAngle = dLocalEnv.GetElement(4);
-			double endAngle = dLocalEnv.GetElement(5);
-			bool bCounterclock = !dLocalEnv.GetElement(6).IsNil();
+			double x = LocalEnv.GetArgument(1);
+			double y = LocalEnv.GetArgument(2);
+			double radius = LocalEnv.GetArgument(3);
+			double startAngle = LocalEnv.GetArgument(4);
+			double endAngle = LocalEnv.GetArgument(5);
+			bool bCounterclock = !LocalEnv.GetArgument(6).IsNil();
 
 			Obj.m_DrawCtx.Path().Arc(CVector2D(x, y), radius, startAngle, endAngle, bCounterclock);
 
-			retdResult = CDatum(true);
+			retResult.dResult = CDatum(true);
 			return true;
 			},
 		},
 	{
 		"beginPath",
 		"*",
-		".beginPath() -> true/null",
+		".beginPath() -> true/false",
 		0,
-		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
 			Obj.m_DrawCtx.Path().DeleteAll();
 
-			retdResult = CDatum(true);
+			retResult.dResult = CDatum(true);
 			return true;
 			},
 		},
 	{
 		"circle",
 		"*",
-		".circle(x, y, radius) -> true/null",
+		".circle(x, y, radius) -> true/false",
 		0,
-		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			double x = dLocalEnv.GetElement(1);
-			double y = dLocalEnv.GetElement(2);
-			double radius = dLocalEnv.GetElement(3);
+			double x = LocalEnv.GetArgument(1);
+			double y = LocalEnv.GetArgument(2);
+			double radius = LocalEnv.GetArgument(3);
 
 			Obj.m_DrawCtx.Path().Arc(CVector2D(x, y), radius, 0.0, TAU, true);
 
-			retdResult = CDatum(true);
+			retResult.dResult = CDatum(true);
 			return true;
 			},
 		},
 	{
 		"clearRect",
 		"*",
-		".clearRect() -> true/null\n"
-		".clearRect(x, y, width, height) -> true/null",
+		".clearRect() -> true/false\n"
+		".clearRect(x, y, width, height) -> true/false",
 		0,
-		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
 			//	LATER
 
-			retdResult = CDatum(true);
+			retResult.dResult = CDatum(true);
 			return true;
 			},
 		},
 	{
 		"closePath",
 		"*",
-		".closePath() -> true/null",
+		".closePath() -> true/false",
 		0,
-		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
 			Obj.m_DrawCtx.Path().ClosePath();
 
-			retdResult = CDatum(true);
+			retResult.dResult = CDatum(true);
 			return true;
 			},
 		},
 	{
 		"drawImage",
 		"*",
-		".drawImage(image, x, y) -> true/null",
+		".drawImage(image, x, y) -> true/false",
 		0,
-		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			CDatum dImage = dLocalEnv.GetElement(1);
-			double x = dLocalEnv.GetElement(2);
-			double y = dLocalEnv.GetElement(3);
+			CDatum dImage = LocalEnv.GetArgument(1);
+			double x = LocalEnv.GetArgument(2);
+			double y = LocalEnv.GetArgument(3);
 
 			//	LATER
 
-			retdResult = CDatum(true);
+			retResult.dResult = CDatum(true);
 			return true;
 			},
 		},
 	{
 		"fill",
 		"*",
-		".fill() -> true/null",
+		".fill() -> true/false",
 		0,
-		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
 			CLuminousCanvasModel::SShapeOptions Options;
 			Options.Path = Obj.m_DrawCtx.Path();
@@ -139,27 +141,27 @@ TDatumMethodHandler<CAEONLuminousBitmap> CAEONLuminousBitmap::m_Methods = {
 
 			//	LATER
 
-			retdResult = CDatum(true);
+			retResult.dResult = CDatum(true);
 			return true;
 			},
 		},
 	{
 		"fillRect",
 		"*",
-		".fillRect(x, y, width, height) -> true/null",
+		".fillRect(x, y, width, height) -> true/false",
 		0,
-		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			double x = dLocalEnv.GetElement(1);
-			double y = dLocalEnv.GetElement(2);
-			double cx = dLocalEnv.GetElement(3);
-			double cy = dLocalEnv.GetElement(4);
+			double x = LocalEnv.GetArgument(1);
+			double y = LocalEnv.GetArgument(2);
+			double cx = LocalEnv.GetArgument(3);
+			double cy = LocalEnv.GetArgument(4);
 
 			//	LATER: Use a graphics library.
 
 			CImageDraw::Rectangle(Obj.m_Image, (int)x, (int)y, (int)cx, (int)cy, Obj.m_DrawCtx.Fill().GetColor().GetSolidColor());
 
-			retdResult = CDatum(true);
+			retResult.dResult = CDatum(true);
 			return true;
 			},
 		},
@@ -168,26 +170,26 @@ TDatumMethodHandler<CAEONLuminousBitmap> CAEONLuminousBitmap::m_Methods = {
 		"*",
 		".getScaled(width, height) -> image",
 		0,
-		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			int cx = (int)dLocalEnv.GetElement(1);
-			int cy = (int)dLocalEnv.GetElement(2);
+			int cx = (int)LocalEnv.GetArgument(1);
+			int cy = (int)LocalEnv.GetArgument(2);
 
 			if (cx <= 0 || cy <= 0)
 				{
-				retdResult = CDatum();
+				retResult.dResult = CDatum();
 				return true;
 				}
 
 			CRGBA32Image Result;
 			if (!Result.Create(cx, cy, Obj.m_Image.GetAlphaType(), CRGBA32(0, 0, 0, 0)))
 				{
-				retdResult = ERR_UNABLE_TO_CREATE_IMAGE;
+				retResult.dResult = ERR_UNABLE_TO_CREATE_IMAGE;
 				return false;
 				}
 
 			CImageDraw::CopyScaled(Result, 0, 0, cx, cy, Obj.m_Image);
-			retdResult = CAEONLuminousBitmap::Create(std::move(Result));
+			retResult.dResult = CAEONLuminousBitmap::Create(std::move(Result));
 			return true;
 			},
 		},
@@ -196,69 +198,69 @@ TDatumMethodHandler<CAEONLuminousBitmap> CAEONLuminousBitmap::m_Methods = {
 		"*",
 		".getSlice(x, y, width, height) -> image",
 		0,
-		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			int x = (int)dLocalEnv.GetElement(1);
-			int y = (int)dLocalEnv.GetElement(2);
-			int cx = Min((int)dLocalEnv.GetElement(3), Obj.m_Image.GetWidth() - x);
-			int cy = Min((int)dLocalEnv.GetElement(4), Obj.m_Image.GetHeight() - y);
+			int x = (int)LocalEnv.GetArgument(1);
+			int y = (int)LocalEnv.GetArgument(2);
+			int cx = Min((int)LocalEnv.GetArgument(3), Obj.m_Image.GetWidth() - x);
+			int cy = Min((int)LocalEnv.GetArgument(4), Obj.m_Image.GetHeight() - y);
 
 			if (cx <= 0 || cy <= 0)
 				{
-				retdResult = CDatum();
+				retResult.dResult = CDatum();
 				return true;
 				}
 
 			CRGBA32Image Result;
 			if (!Result.Create(cx, cy, Obj.m_Image.GetAlphaType()))
 				{
-				retdResult = ERR_UNABLE_TO_CREATE_IMAGE;
+				retResult.dResult = ERR_UNABLE_TO_CREATE_IMAGE;
 				return false;
 				}
 
 			CImageDraw::Copy(Result, 0, 0, Obj.m_Image, x, y, cx, cy);
-			retdResult = CAEONLuminousBitmap::Create(std::move(Result));
+			retResult.dResult = CAEONLuminousBitmap::Create(std::move(Result));
 			return true;
 			},
 		},
 	{
 		"lineTo",
 		"*",
-		".lineTo(x, y) -> true/null",
+		".lineTo(x, y) -> true/false",
 		0,
-		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			double x = dLocalEnv.GetElement(1);
-			double y = dLocalEnv.GetElement(2);
+			double x = LocalEnv.GetArgument(1);
+			double y = LocalEnv.GetArgument(2);
 
 			Obj.m_DrawCtx.Path().LineTo(CVector2D(x, y));
 
-			retdResult = CDatum(true);
+			retResult.dResult = CDatum(true);
 			return true;
 			},
 		},
 	{
 		"moveTo",
 		"*",
-		".moveTo(x, y) -> true/null",
+		".moveTo(x, y) -> true/false",
 		0,
-		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			double x = dLocalEnv.GetElement(1);
-			double y = dLocalEnv.GetElement(2);
+			double x = LocalEnv.GetArgument(1);
+			double y = LocalEnv.GetArgument(2);
 
 			Obj.m_DrawCtx.Path().MoveTo(CVector2D(x, y));
 
-			retdResult = CDatum(true);
+			retResult.dResult = CDatum(true);
 			return true;
 			},
 		},
 	{
 		"outline",
 		"*",
-		".outline() -> true/null",
+		".outline() -> true/false",
 		0,
-		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
 			CLuminousCanvasModel::SShapeOptions Options;
 			Options.Path = Obj.m_DrawCtx.Path();
@@ -266,55 +268,55 @@ TDatumMethodHandler<CAEONLuminousBitmap> CAEONLuminousBitmap::m_Methods = {
 
 			//	LATER
 
-			retdResult = CDatum(true);
+			retResult.dResult = CDatum(true);
 			return true;
 			},
 		},
 	{
 		"rect",
 		"*",
-		".rect(x, y, width, height) -> true/null",
+		".rect(x, y, width, height) -> true/false",
 		0,
-		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			double x = dLocalEnv.GetElement(1);
-			double y = dLocalEnv.GetElement(2);
-			double cx = dLocalEnv.GetElement(3);
-			double cy = dLocalEnv.GetElement(4);
+			double x = LocalEnv.GetArgument(1);
+			double y = LocalEnv.GetArgument(2);
+			double cx = LocalEnv.GetArgument(3);
+			double cy = LocalEnv.GetArgument(4);
 
 			Obj.m_DrawCtx.Path().Rect(CVector2D(x, y), CVector2D(x + cx, y + cy));
 
-			retdResult = CDatum(true);
+			retResult.dResult = CDatum(true);
 			return true;
 			},
 		},
 	{
 		"setFillStyle",
 		"*",
-		".setFillStyle(style) -> true/null",
+		".setFillStyle(style) -> true/false",
 		0,
-		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			CDatum dStyle = dLocalEnv.GetElement(1);
+			CDatum dStyle = LocalEnv.GetArgument(1);
 
 			Obj.m_DrawCtx.Fill().SetColor(CLuminousColor(CRGBA32::Parse(dStyle.AsString())));
 
-			retdResult = CDatum(true);
+			retResult.dResult = CDatum(true);
 			return true;
 			},
 		},
 	{
 		"setLineStyle",
 		"*",
-		".setLineStyle(style) -> true/null",
+		".setLineStyle(style) -> true/false",
 		0,
-		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			CDatum dStyle = dLocalEnv.GetElement(1);
+			CDatum dStyle = LocalEnv.GetArgument(1);
 
 			Obj.m_DrawCtx.Line().SetColor(CLuminousColor(CRGBA32::Parse(dStyle.AsString())));
 
-			retdResult = CDatum(true);
+			retResult.dResult = CDatum(true);
 			return true;
 			},
 		},
@@ -513,5 +515,103 @@ void CAEONLuminousBitmap::OnSerialize (CDatum::EFormat iFormat, IByteStream &Str
 				}
 			break;
 			}
+		}
+	}
+
+int CAEONLuminousBitmap::OpCompare (CDatum::Types iValueType, CDatum dValue) const
+
+//	OpCompare
+//
+//	-1:		If dKey1 < dKey2
+//	0:		If dKey1 == dKey2
+//	1:		If dKey1 > dKey2
+
+	{
+	switch (iValueType)
+		{
+		case CDatum::typeImage32:
+			{
+			const CRGBA32Image& Other = dValue;
+			if (m_Image.GetWidth() < Other.GetWidth())
+				return -1;
+			else if (m_Image.GetWidth() > Other.GetWidth())
+				return 1;
+			else if (m_Image.GetHeight() < Other.GetHeight())
+				return -1;
+			else if (m_Image.GetHeight() > Other.GetHeight())
+				return 1;
+			else
+				{
+				CRGBA32* pSrcRow = m_Image.GetPixelPos(0, 0);
+				CRGBA32* pSrcRowEnd = m_Image.GetPixelPos(0, m_Image.GetHeight());
+				CRGBA32* pDestRow = Other.GetPixelPos(0, 0);
+				while (pSrcRow < pSrcRowEnd)
+					{
+					CRGBA32* pSrc = pSrcRow;
+					CRGBA32* pSrcEnd = pSrcRow + m_Image.GetWidth();
+					CRGBA32* pDest = pDestRow;
+					while (pSrc < pSrcEnd)
+						{
+						if (*pSrc < *pDest)
+							return -1;
+						else if (*pSrc > *pDest)
+							return 1;
+											
+						pSrc++;
+						pDest++;
+						}
+					
+					pSrcRow = m_Image.NextRow(pSrcRow);
+					pDestRow = Other.NextRow(pDestRow);
+					}
+
+				return 0;
+				}
+			}
+		
+		default:
+			return KeyCompare(AsString(), dValue.AsString());
+		}
+	}
+
+void CAEONLuminousBitmap::DeserializeAEONExternal (IByteStream& Stream, CAEONSerializedMap &Serialized)
+	{
+	DWORD dwWidth = Stream.ReadDWORD();
+	DWORD dwHeight = Stream.ReadDWORD();
+	DWORD dwAlphaType = Stream.ReadDWORD();
+
+	DWORD dwColor = Stream.ReadDWORD();
+	m_rgbBackground = CRGBA32(dwColor);
+			
+	if ((int)dwWidth > 0 && (int)dwHeight > 0)
+		{
+		DWORD dwBufferSize = Stream.ReadDWORD();
+
+		CBuffer Buffer;
+		Buffer.SetLength(dwBufferSize);
+		Stream.Read(Buffer.GetPointer(), Buffer.GetLength());
+
+		if (!CPNG::Load(Buffer, m_Image))
+			return;
+		}
+	}
+
+void CAEONLuminousBitmap::SerializeAEONExternal (IByteStream& Stream, CAEONSerializedMap &Serialized) const
+	{
+	Stream.Write(m_Image.GetWidth());
+	Stream.Write(m_Image.GetHeight());
+	Stream.Write((DWORD)m_Image.GetAlphaType());
+	Stream.Write(m_rgbBackground.AsDWORD());
+
+	//	PNG (but only if non-zero, because this code doesn't seem to
+	//	handle 0-sized bitmaps).
+
+	if (m_Image.GetHeight() > 0 && m_Image.GetWidth() > 0)
+		{
+		CBuffer PNG;
+		CPNG::Save(m_Image, PNG);
+
+		Stream.Write(PNG.GetLength());
+		Stream.Write(PNG);
 		}
 	}

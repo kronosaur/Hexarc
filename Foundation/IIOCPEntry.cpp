@@ -1,7 +1,7 @@
 //	IIOCPEntry.cpp
 //
 //	IIOCPEntry class
-//	Copyright (c) 2013 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2013 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -11,8 +11,12 @@ DECLARE_CONST_STRING(ERR_NOT_SUPPORTED,				"IO operation not supported.");
 DECLARE_CONST_STRING(ERR_NO_BYTES,					"IO operation returned 0 bytes.");
 DECLARE_CONST_STRING(ERR_INVALID_ADDRESS,			"Invalid address: %s %d.");
 DECLARE_CONST_STRING(ERR_CANNOT_BIND,				"Unable to bind socket.");
+DECLARE_CONST_STRING(ERR_NOT_ENOUGH_BYTES,			"Wrote %d of %d bytes.");
+DECLARE_CONST_STRING(ERR_CANT_CONNECT,				"Operation failed during connect.");
+DECLARE_CONST_STRING(ERR_CANT_READ,					"Operation failed during read.");
+DECLARE_CONST_STRING(ERR_CANT_WRITE,				"Operation failed during write.");
 
-bool IIOCPEntry::BeginConnection (const CString &sAddress, DWORD dwPort, CString *retsError)
+bool IIOCPEntry::BeginConnection (CStringView sAddress, DWORD dwPort, CString* retsError)
 
 //	BeginConnection
 //
@@ -23,21 +27,25 @@ bool IIOCPEntry::BeginConnection (const CString &sAddress, DWORD dwPort, CString
 
 	HANDLE hHandle = GetCompletionHandle();
 	if (hHandle == INVALID_HANDLE_VALUE
-			|| m_iCurrentOp != opNone)
+			|| m_bConnected 
+			|| m_bConnecting)
 		{
 		if (retsError) *retsError = ERR_INVALID_STATE;
 		return false;
 		}
 
-	m_iCurrentOp = opConnect;
-	m_dwOpStartTime = sysGetTickCount64();
-	utlMemSet(&m_Overlapped, sizeof(m_Overlapped));
+	m_bConnecting = true;
+
+	//	We use the write operation to connect
+
+	m_dwWriteStartTime = sysGetTickCount64();
+	utlMemSet(&m_OverlappedWrite, sizeof(m_OverlappedWrite));
 
 	//	Connect
 
-	if (!CreateConnection(sAddress, dwPort, m_Overlapped, retsError))
+	if (!CreateConnection(sAddress, dwPort, m_OverlappedWrite, retsError))
 		{
-		m_iCurrentOp = opNone;
+		m_bConnecting = false;
 		return false;
 		}
 
@@ -55,28 +63,28 @@ bool IIOCPEntry::BeginRead (CString *retsError)
 
 	HANDLE hHandle = GetCompletionHandle();
 	if (hHandle == INVALID_HANDLE_VALUE
-			|| m_iCurrentOp != opNone)
+			|| !m_bConnected
+			|| m_dwReadStartTime != 0)
 		{
 		if (retsError) *retsError = ERR_INVALID_STATE;
 		return false;
 		}
 
-	m_iCurrentOp = opRead;
-	m_dwOpStartTime = sysGetTickCount64();
+	m_dwReadStartTime = sysGetTickCount64();
 
 	//	If we don't have a buffer, then we're done.
 
-	IMemoryBlock *pBuffer = GetBuffer();
+	IMemoryBlock* pBuffer = GetReadBuffer();
 	if (pBuffer == NULL)
 		{
-		m_iCurrentOp = opNone;
+		m_dwReadStartTime = 0;
 		if (retsError) *retsError = ERR_INVALID_STATE;
 		return false;
 		}
 
 	//	Initialize operation
 
-	utlMemSet(&m_Overlapped, sizeof(m_Overlapped));
+	utlMemSet(&m_OverlappedRead, sizeof(m_OverlappedRead));
 
 	//	Let our subclasses know
 
@@ -89,7 +97,7 @@ bool IIOCPEntry::BeginRead (CString *retsError)
 			pBuffer->GetPointer(),
 			pBuffer->GetLength(),
 			NULL,
-			&m_Overlapped))
+			&m_OverlappedRead))
 		lasterror = GetLastError();
 
 	//	If IO is pending or we succeeded, then nothing to do--we will get an
@@ -103,7 +111,7 @@ bool IIOCPEntry::BeginRead (CString *retsError)
 
 	else
 		{
-		m_iCurrentOp = opNone;
+		m_dwReadStartTime = 0;
 
 		if (retsError)
 			*retsError = strPattern(ERR_FILE_ERROR, lasterror);
@@ -112,7 +120,7 @@ bool IIOCPEntry::BeginRead (CString *retsError)
 		}
 	}
 
-bool IIOCPEntry::BeginWrite (const CString &sData, CString *retsError)
+bool IIOCPEntry::BeginWrite (CStringView sData, CString *retsError)
 
 //	BeginWrite
 //
@@ -123,109 +131,148 @@ bool IIOCPEntry::BeginWrite (const CString &sData, CString *retsError)
 
 	HANDLE hHandle = GetCompletionHandle();
 	if (hHandle == INVALID_HANDLE_VALUE
-			|| m_iCurrentOp != opNone)
+			|| !m_bConnected
+			|| m_dwWriteStartTime != 0)
 		{
 		if (retsError) *retsError = ERR_INVALID_STATE;
 		return false;
 		}
 
-	m_iCurrentOp = opWrite;
-	m_dwOpStartTime = sysGetTickCount64();
-
-	//	If we don't have a buffer, then we're done.
-
-	IMemoryBlock *pBuffer = GetBuffer();
-	if (pBuffer == NULL)
-		{
-		m_iCurrentOp = opNone;
-		if (retsError) *retsError = ERR_INVALID_STATE;
-		return false;
-		}
-
-	//	Initialize operation
-
-	utlMemSet(&m_Overlapped, sizeof(m_Overlapped));
+	m_dwWriteStartTime = sysGetTickCount64();
+	m_dwWriteOffset = 0;
 
 	//	Let our subclasses know (this also initializes the buffer)
 
 	OnBeginWrite(sData);
 
-	//	Write into the buffer
+	//	Initiate overlapped write
 
-	DWORD lasterror = 0;
-	if (!::WriteFile(hHandle,
-			pBuffer->GetPointer(),
-			pBuffer->GetLength(),
-			NULL,
-			&m_Overlapped))
-		lasterror = GetLastError();
-
-	//	If IO is pending or we succeeded, then nothing to do--we will get an
-	//	event on the completion port.
-
-	if (lasterror == ERROR_IO_PENDING
-			|| lasterror == 0)
-		return true;
-
-	//	If another error or 0 bytes read, then we fail
-
-	else
-		{
-		m_iCurrentOp = opNone;
-
-		if (retsError)
-			*retsError = strPattern(ERR_FILE_ERROR, lasterror);
-
-		return false;
-		}
+	return WriteBuffer(retsError);
 	}
 
-void IIOCPEntry::OperationComplete (DWORD dwBytesTransferred)
+bool IIOCPEntry::OperationComplete (DWORD dwBytesTransferred, OVERLAPPED* pOverlapped)
 
 //	OperationComplete
 //
-//	Operation has completed.
+//	Operation has completed. Returns TRUE if it succeeded.
 	
 	{
-	if (m_bDeleteOnCompletion)
+	CSmartLock Lock(m_cs);
+
+	m_dwLastActivity = sysGetTickCount64();
+
+	if (m_bDeleted)
 		{
-		delete this;
-		return;
+		//	Nothing else to do; caller will delete this object.
+		return true;
 		}
+	else if (m_bConnecting)
+		{
+		m_bConnecting = false;
+		m_bConnected = true;
+		m_dwWriteStartTime = 0;
 
-	//	We need to reset the status because we might get called back
-	//	(on another thread) before we return from OnOperationComplete.
+		OnOperationComplete(EOperation::connect, dwBytesTransferred);
+		return true;
+		}
+	else if (pOverlapped == &m_OverlappedRead && m_dwReadStartTime)
+		{
+		GetReadBuffer()->SetLength(dwBytesTransferred);
+		m_dwReadStartTime = 0;
 
-	EOperations iOp = m_iCurrentOp;
-	m_iCurrentOp = opNone;
+		if (dwBytesTransferred > 0)
+			{
+			OnOperationComplete(EOperation::read, dwBytesTransferred);
+			return true;
+			}
+		else
+			{
+			OnOperationFailed(EOperation::read, ERR_NO_BYTES);
+			return false;
+			}
+		}
+	else if (pOverlapped == &m_OverlappedWrite && m_dwWriteStartTime)
+		{
+		if (dwBytesTransferred > 0)
+			{
+			m_dwWriteOffset += dwBytesTransferred;
 
-	//	Let our subclass handle this.
+			//	If not done, then we need to write more
 
-	OnOperationComplete(iOp, dwBytesTransferred);
+			if (m_dwWriteOffset < (DWORD)GetWriteBuffer()->GetLength())
+				{
+				CString sError;
+				if (!WriteBuffer(&sError))
+					{
+					m_dwWriteStartTime = 0;
+
+					OnOperationFailed(EOperation::write, sError);
+					return false;
+					}
+
+				return true;
+				}
+			else
+				{
+				m_dwWriteStartTime = 0;
+
+				OnOperationComplete(EOperation::write, m_dwWriteOffset);
+				return true;
+				}
+			}
+		else
+			{
+			m_dwWriteStartTime = 0;
+
+			OnOperationFailed(EOperation::write, ERR_NO_BYTES);
+			return false;
+			}
+		}
+	else
+		{
+		//	We should never get here.
+		throw CException(errFail);
+		}
 	}
 
-void IIOCPEntry::OperationFailed (void)
+void IIOCPEntry::OperationFailed (OVERLAPPED* pOverlapped)
 
 //	OperationFailed
 //
 //	Operation has failed.
 	
 	{
-	if (m_bDeleteOnCompletion)
+	CSmartLock Lock(m_cs);
+
+	if (m_bDeleted)
 		{
-		delete this;
 		return;
 		}
+	else if (m_bConnecting)
+		{
+		m_bConnecting = false;
+		m_bConnected = false;
+		m_dwWriteStartTime = 0;
 
-	//	We need to reset the status because we might get called back
-	//	(on another thread) before we return from OnOperationComplete.
+		OnOperationFailed(EOperation::connect, ERR_CANT_CONNECT);
+		}
+	else if (pOverlapped == &m_OverlappedRead && m_dwReadStartTime)
+		{
+		m_dwReadStartTime = 0;
 
-	EOperations iOp = m_iCurrentOp;
-	m_iCurrentOp = opNone;
+		OnOperationFailed(EOperation::read, ERR_CANT_READ);
+		}
+	else if (pOverlapped == &m_OverlappedWrite && m_dwWriteStartTime)
+		{
+		m_dwWriteStartTime = 0;
 
-	//	Let our subclass handle this.
-
-	OnOperationFailed(iOp);
+		OnOperationFailed(EOperation::write, ERR_CANT_WRITE);
+		}
+	else
+		{
+		//	We should never get here.
+		throw CException(errFail);
+		}
 	}
 
 void IIOCPEntry::Process (void)
@@ -235,9 +282,10 @@ void IIOCPEntry::Process (void)
 //	Process a simple event
 	
 	{
-	if (m_bDeleteOnCompletion)
+	CSmartLock Lock(m_cs);
+
+	if (m_bDeleted)
 		{
-		delete this;
 		return;
 		}
 	
@@ -254,22 +302,97 @@ bool IIOCPEntry::TimeoutCheck (DWORDLONG dwNow, DWORDLONG dwTimeout)
 //	If we return TRUE, it means the caller should delete us.
 
 	{
-	if (m_dwOpStartTime == 0)
-		return false;
-
 	HANDLE hHandle = GetCompletionHandle();
 	if (hHandle == INVALID_HANDLE_VALUE)
 		return false;
 
-	DWORDLONG dwElapsed = dwNow - m_dwOpStartTime;
-	if (dwElapsed <= dwTimeout)
-		return false;
-
-	if (m_iCurrentOp != opNone)
+	if (m_dwWriteStartTime > 0)
 		{
-		::CancelIoEx(hHandle, &m_Overlapped);
+		DWORDLONG dwElapsed = dwNow - m_dwWriteStartTime;
+		if (dwElapsed > dwTimeout)
+			{
+			::CancelIoEx(hHandle, &m_OverlappedWrite);
+			return false;
+			}
+		}
+
+	if (m_dwReadStartTime > 0)
+		{
+		DWORDLONG dwElapsed = dwNow - m_dwReadStartTime;
+		if (dwElapsed > dwTimeout)
+			{
+			::CancelIoEx(hHandle, &m_OverlappedRead);
+			return false;
+			}
+		}
+
+	if (m_bMarkedForDelete)
+		return true;
+
+	if (m_dwLastActivity > 0)
+		{
+		DWORDLONG dwElapsed = dwNow - m_dwLastActivity;
+		if (dwElapsed <= dwTimeout)
+			return false;
+		}
+
+	return true;
+	}
+
+bool IIOCPEntry::WriteBuffer (CString *retsError)
+
+//	WriteBuffer
+//
+//	Writes the buffer.
+
+	{
+	HANDLE hHandle = GetCompletionHandle();
+
+	//	If we don't have a buffer, then we're done.
+
+	IMemoryBlock *pBuffer = GetWriteBuffer();
+	if (pBuffer == NULL)
+		{
+		m_dwWriteStartTime = 0;
+		if (retsError) *retsError = ERR_INVALID_STATE;
 		return false;
 		}
-	else
+
+	//	Initialize operation
+
+	utlMemSet(&m_OverlappedWrite, sizeof(m_OverlappedWrite));
+
+	//	Write into the buffer
+
+#ifdef DEBUG_PERF
+	printf("DebugPerf: ::WriteFile %d bytes\n", pBuffer->GetLength());
+#endif
+
+	DWORD lasterror = 0;
+	if (!::WriteFile(hHandle,
+			pBuffer->GetPointer() + m_dwWriteOffset,
+			pBuffer->GetLength() - m_dwWriteOffset,
+			NULL,
+			&m_OverlappedWrite))
+		lasterror = GetLastError();
+
+	//	If IO is pending or we succeeded, then nothing to do--we will get an
+	//	event on the completion port.
+
+	if (lasterror == ERROR_IO_PENDING
+			|| lasterror == 0)
 		return true;
+
+	//	If another error or 0 bytes read, then we fail
+
+	else
+		{
+		m_dwWriteStartTime = 0;
+
+		if (retsError)
+			*retsError = strPattern(ERR_FILE_ERROR, lasterror);
+
+		return false;
+		}
 	}
+

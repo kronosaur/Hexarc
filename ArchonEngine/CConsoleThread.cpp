@@ -1,15 +1,23 @@
 //	CConsoleThread.cpp
 //
 //	CConsoleThread class
-//	Copyright (c) 2018 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2018 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(CMD_QUIT,							"quit")
+DECLARE_CONST_STRING(CMD_QUIT,							"quit");
 
-DECLARE_CONST_STRING(STR_PROMPT,						": ")
+DECLARE_CONST_STRING(STR_PROMPT,						": ");
+DECLARE_CONST_STRING(STR_THREAD_NAME,					"Console");
 
-DECLARE_CONST_STRING(ERR_UNKNOWN_COMMAND,				"Unknown command.")
+DECLARE_CONST_STRING(ERR_UNKNOWN_COMMAND,				"Unknown command.");
+
+CConsoleThread::CConsoleThread (CArchonProcess *pProcess) : 
+		TThread(STR_THREAD_NAME),
+		m_pProcess(pProcess)
+	{
+	m_Busy.Create(1);
+	}
 
 CString CConsoleThread::GetInputLine (const CString &sPrompt)
 	{
@@ -114,7 +122,7 @@ bool CConsoleThread::ParseInputLine (const CString &sInput, CString *retsCmd, TA
 
 			retArgs->Insert(dArg);
 			}
-		else if (*pPos == '\"')
+		else if (*pPos == '"')
 			{
 			if (!ParseString(pPos, pPosEnd, &pPos, &dArg))
 				return false;
@@ -166,7 +174,7 @@ bool CConsoleThread::ParseString (char *pPos, char *pPosEnd, char **retpPos, CDa
 			pPos++;
 			if (*pPos == '\0')
 				break;
-			else if (*pPos == '\"')
+			else if (*pPos == '"')
 				Output.Write("\\\"", 2);
 			else
 				{

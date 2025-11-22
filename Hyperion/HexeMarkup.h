@@ -1,7 +1,7 @@
 //	HexeMarkup.h
 //
 //	HexeMarkup Implementation
-//	Copyright (c) 2012 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2012 GridWhale Corporation. All Rights Reserved.
 
 #pragma once
 
@@ -26,7 +26,7 @@ class CHexeMarkupParser
 
 		CHexeMarkupParser (void) : m_pPos(NULL), m_pPosEnd(NULL), m_bCDATAText(false), m_iToken(tkEoS) { }
 
-		void Init (char *pPos, int iLength);
+		void Init (const char *pPos, int iLength);
 		Tokens ParseToken (CString *retsKey, CString *retsValue);
 
 	private:
@@ -54,8 +54,8 @@ class CHexeMarkupParser
 			stateEnd,						//	Done
 			};
 
-		char *m_pPos;						//	Current parsing position
-		char *m_pPosEnd;
+		const char *m_pPos;					//	Current parsing position
+		const char *m_pPosEnd;
 
 		bool m_bCDATAText;					//	If TRUE, then parse text as CDATA
 
@@ -63,7 +63,7 @@ class CHexeMarkupParser
 		CString m_sKey;
 		CString m_sValue;
 
-		char *m_pStart;
+		const char *m_pStart;
 	};
 
 class CHexeMarkupEvaluator

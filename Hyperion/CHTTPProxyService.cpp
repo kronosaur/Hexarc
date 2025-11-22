@@ -1,7 +1,7 @@
 //	CHTTPProxyService.cpp
 //
 //	CHTTPProxyService class
-//	Copyright (c) 2013 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2013 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -85,9 +85,9 @@ bool CHTTPProxyService::OnHandleRPCResult (SHTTPRequestCtx &Ctx, const SArchonMe
 	//	Parse the result
 
 	DWORD dwResultCode = (int)RPCResult.dPayload.GetElement(0);
-	const CString &sResultMsg = RPCResult.dPayload.GetElement(1);
+	CStringView sResultMsg = RPCResult.dPayload.GetElement(1);
 	CDatum dHeaders = RPCResult.dPayload.GetElement(2);
-	const CString &sBody = RPCResult.dPayload.GetElement(3);
+	CStringView sBody = RPCResult.dPayload.GetElement(3);
 
 	//	Compose the response
 
@@ -119,7 +119,7 @@ bool CHTTPProxyService::OnHTTPInit (CDatum dServiceDef, const CHexeDocument &Pac
 	{
 	//	Load some parameters
 
-	m_sDestHost = dServiceDef.GetElement(FIELD_DEST_HOST);
+	m_sDestHost = dServiceDef.GetElement(FIELD_DEST_HOST).AsStringView();
 	m_dwDestPort = (DWORD)(int)dServiceDef.GetElement(FIELD_DEST_PORT);
 	if (m_dwDestPort == 0)
 		m_dwDestPort = strToInt(GetPort(), 80);

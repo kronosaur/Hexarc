@@ -1,7 +1,7 @@
 //	MsgGetStorageList.cpp
 //
 //	CExarchEngine class
-//	Copyright (c) 2017 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2017 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -52,7 +52,7 @@ void CExarchEngine::MsgGetStorageList (const SArchonMessage &Msg, const CHexeSec
 			{
 			CDatum dLocalPath = dVolume.GetElement(FIELD_LOCAL_PATH);
 			DWORDLONG dwAvail;
-			fileGetDriveSpace(dLocalPath, &dwAvail);
+			fileGetDriveSpace(dLocalPath.AsStringView(), &dwAvail);
 
 			if (dwAvail > 0)
 				{

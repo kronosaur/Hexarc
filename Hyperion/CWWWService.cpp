@@ -1,21 +1,24 @@
 //	CWWWService.cpp
 //
 //	CWWWService class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(STR_OK,							"OK")
+DECLARE_CONST_STRING(STR_OK,							"OK");
+DECLARE_CONST_STRING(STR_STAR,							"*");
 
-DECLARE_CONST_STRING(FIELD_DEFAULT_FILE,				"defaultFile")
-DECLARE_CONST_STRING(FIELD_FILE_PATHS,					"filePaths")
-DECLARE_CONST_STRING(FIELD_URL_PATHS,					"urlPaths")
+DECLARE_CONST_STRING(FIELD_DEFAULT_FILE,				"defaultFile");
+DECLARE_CONST_STRING(FIELD_FILE_PATHS,					"filePaths");
+DECLARE_CONST_STRING(FIELD_URL_PATHS,					"urlPaths");
 
-DECLARE_CONST_STRING(ERR_404_NOT_FOUND,					"Not Found")
+DECLARE_CONST_STRING(ERR_404_NOT_FOUND,					"Not Found");
 
-DECLARE_CONST_STRING(LIBRARY_SESSION,					"session")
+DECLARE_CONST_STRING(LIBRARY_SESSION,					"session");
 
-DECLARE_CONST_STRING(MEDIA_TYPE_HTML,					"text/html")
+DECLARE_CONST_STRING(MEDIA_TYPE_HTML,					"text/html");
+
+DECLARE_CONST_STRING(ERR_MUST_HAVE_DEFAULT_FILE,		"WWW service must have default file when using * path pattern.");
 
 CString CWWWService::GetFilePath (const CString &sPath)
 
@@ -82,9 +85,14 @@ bool CWWWService::OnHandleRequest (SHTTPRequestCtx &Ctx)
 	urlParseQuery(Ctx.Request.GetRequestedPath(), &sPath, &dQuery);
 	const CString &sMethod = Ctx.Request.GetMethod();
 
+	//	If this is a single file, then we always return the default file.
+
+	if (m_bSingleFile)
+		sPath = urlAppend(m_sWebPath, m_sDefaultFile);
+
 	//	If this is the root then we supply the default file.
 
-	if (strEquals(sPath, m_sWebPath) && !m_sDefaultFile.IsEmpty())
+	else if (strEquals(sPath, m_sWebPath) && !m_sDefaultFile.IsEmpty())
 		sPath = urlAppend(sPath, m_sDefaultFile);
 
 	//	Translate the path to a filePath
@@ -140,9 +148,27 @@ bool CWWWService::OnHTTPInit (CDatum dServiceDef, const CHexeDocument &Package, 
 	{
 	//	Get some basic info
 
-	m_sWebPath = dServiceDef.GetElement(FIELD_URL_PATHS).GetElement(0);
-	m_sFilePath = dServiceDef.GetElement(FIELD_FILE_PATHS).GetElement(0);
-	m_sDefaultFile = dServiceDef.GetElement(FIELD_DEFAULT_FILE);
+	m_sWebPath = dServiceDef.GetElement(FIELD_URL_PATHS).GetElement(0).AsStringView();
+	m_sFilePath = dServiceDef.GetElement(FIELD_FILE_PATHS).GetElement(0).AsStringView();
+	m_sDefaultFile = dServiceDef.GetElement(FIELD_DEFAULT_FILE).AsStringView();
+
+	//	If the web path ends in * then it means that all requests starting with 
+	//	that path go to the default file (which can then parse the rest of the
+	//	path).
+
+	if (strEndsWith(m_sWebPath, STR_STAR))
+		{
+		m_sWebPath = strSubString(m_sWebPath, 0, m_sWebPath.GetLength() - 1);
+		m_bSingleFile = true;
+
+		if (m_sDefaultFile.IsEmpty())
+			{
+			if (retsError) *retsError = ERR_MUST_HAVE_DEFAULT_FILE;
+			return false;
+			}
+		}
+	else
+		m_bSingleFile = false;
 
 	//	Initialize the process template
 

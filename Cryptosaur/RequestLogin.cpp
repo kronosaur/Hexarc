@@ -1,7 +1,7 @@
 //	RequestLogin.cpp
 //
 //	Cryptosaur.requestLogin
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -99,7 +99,7 @@ void CCryptosaurEngine::MsgAddRights (const SArchonMessage &Msg, const CHexeSecu
 //	Cryptosaur.addRights {username} {rights}
 
 	{
-	const CString &sUsername = Msg.dPayload.GetElement(0);
+	CStringView sUsername = Msg.dPayload.GetElement(0);
 	CDatum dRights = Msg.dPayload.GetElement(1);
 
 	CAttributeList Rights;
@@ -149,7 +149,7 @@ void CCryptosaurEngine::MsgChangePassword (const SArchonMessage &Msg, const CHex
 
 	//	Make sure we have a username
 
-	const CString &sUsername = Msg.dPayload.GetElement(0);
+	CStringView sUsername = Msg.dPayload.GetElement(0);
 	if (sUsername.IsEmpty())
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, ERR_INVALID_USERNAME, Msg);
@@ -172,7 +172,7 @@ void CCryptosaurEngine::MsgRemoveRights (const SArchonMessage &Msg, const CHexeS
 //	Cryptosaur.removeRights {username} {rights}
 
 	{
-	const CString &sUsername = Msg.dPayload.GetElement(0);
+	CStringView sUsername = Msg.dPayload.GetElement(0);
 	CDatum dRights = Msg.dPayload.GetElement(1);
 
 	CAttributeList Rights;
@@ -222,7 +222,7 @@ void CCryptosaurEngine::MsgRequestLogin (const SArchonMessage &Msg, const CHexeS
 
 	//	Make sure we have a username
 
-	const CString &sUsername = Msg.dPayload.GetElement(0);
+	CStringView sUsername = Msg.dPayload.GetElement(0);
 	if (sUsername.IsEmpty())
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, ERR_INVALID_USERNAME, Msg);
@@ -252,7 +252,7 @@ void CCryptosaurEngine::MsgResetPasswordManual (const SArchonMessage &Msg, const
 
 	//	Make sure we have a username
 
-	const CString &sUsername = Msg.dPayload.GetElement(0);
+	CStringView sUsername = Msg.dPayload.GetElement(0);
 	if (sUsername.IsEmpty())
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, ERR_INVALID_USERNAME, Msg);
@@ -281,7 +281,7 @@ bool CChangeUserSession::OnProcessMessage (const SArchonMessage &Msg)
 
 	if (IsError(Msg))
 		{
-		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, Msg.dPayload);
+		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, Msg.dPayload.AsStringView());
 		return false;
 		}
 
@@ -329,7 +329,7 @@ bool CChangeUserSession::OnProcessMessage (const SArchonMessage &Msg)
 						}
 
 					CIPInteger Credentials;
-					CCryptosaurInterface::CreateCredentials(m_sUsername, dPassword, &Credentials);
+					CCryptosaurInterface::CreateCredentials(m_sUsername, dPassword.AsStringView(), &Credentials);
 					CDatum::CreateIPIntegerFromHandoff(Credentials, &dOldCredentials);
 					}
 
@@ -344,7 +344,7 @@ bool CChangeUserSession::OnProcessMessage (const SArchonMessage &Msg)
 						}
 
 					CIPInteger Credentials;
-					CCryptosaurInterface::CreateCredentials(m_sUsername, dPassword, &Credentials);
+					CCryptosaurInterface::CreateCredentials(m_sUsername, dPassword.AsStringView(), &Credentials);
 					CDatum::CreateIPIntegerFromHandoff(Credentials, &dNewCredentials);
 					}
 

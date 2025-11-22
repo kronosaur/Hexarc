@@ -1,7 +1,7 @@
 //	ArchonLambdaSessionImpl.h
 //
 //	Session Implementations
-//	Copyright (c) 2021 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2021 GridWhale Corporation. All Rights Reserved.
 //
 //	USAGE
 //
@@ -99,7 +99,7 @@ template<typename DATACTX> class CLambdaSession : public ISessionHandler
 					}
 				else
 					{
-					SendMessageReplyError(Msg.sMsg, Msg.dPayload);
+					SendMessageReplyError(Msg.sMsg, Msg.dPayload.AsStringView());
 					return false;
 					}
 				}

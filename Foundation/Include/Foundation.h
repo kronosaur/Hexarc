@@ -1,7 +1,7 @@
 //	Foundation.h
 //
 //	Foundation header file
-//	Copyright (c) 2010 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2010 by GridWhale Corporation. All Rights Reserved.
 //
 //	USAGE
 //
@@ -58,6 +58,7 @@ struct IUnknown;
 
 #define _WINSOCKAPI_				//	Don't want Windows.h to include winsock.h
 #include <windows.h>
+#include <objbase.h>
 
 #include <winsock2.h>
 #include <WS2tcpip.h>
@@ -84,6 +85,7 @@ struct IUnknown;
 #include "FoundationThreads.h"
 #include "FoundationTime.h"
 #include "FoundationIOInterfaces.h"
+#include "FoundationStringFormat.h"
 
 //	Include Foundation classes
 
@@ -92,12 +94,14 @@ struct IUnknown;
 #include "FoundationCrypto.h"
 #include "FoundationDB.h"
 #include "FoundationFileIO.h"
+#include "FoundationGitHubMarkdown.h"
 #include "FoundationGrids.h"
 #include "FoundationMarkup.h"
 #include "FoundationNetworkIO.h"
 #include "FoundationIOCompletionPort.h"
 #include "FoundationParsers.h"
 #include "FoundationPipes.h"
+#include "FoundationHTML.h"
 #include "FoundationXML.h"
 
 //	Graphics subsystem
@@ -124,6 +128,8 @@ class CFoundation
 
 		static bool Boot (DWORD dwFlags = 0, CString *retsError = NULL);
 		static SCPUInfo GetCPUInfo ();
+
+		static void DebugTest_TIDTable ();
 
 	private:
 		bool Startup (DWORD dwFlags, CString *retsError = NULL);

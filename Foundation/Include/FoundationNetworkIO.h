@@ -1,7 +1,7 @@
 //	FoundationNetworkIO.h
 //
 //	Foundation header file
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 //
 //	USAGE
 //
@@ -93,6 +93,7 @@ class CSocket : public IByteStream
 
 		~CSocket (void);
 
+		operator HANDLE () const { return (HANDLE)m_hSocket; }
 		operator SOCKET () const { return m_hSocket; }
 
 		CSocket &operator= (const CSocket &Src) = delete;
@@ -301,6 +302,7 @@ class CHTTPMessage
 
 		CHTTPMessage (void);
 
+		void AddAuthBasic (const CString &sUsername, const CString &sPassword);
 		void AddHeader (const CString &sField, const CString &sValue);
 		void AddHeader (const CString &sField, const CDateTime &Value);
 		inline void DeleteBodyBuilder (void) { m_pBodyBuilder = NULL; }
@@ -337,6 +339,7 @@ class CHTTPMessage
 		bool WriteHeadersToBuffer (IByteStream &Stream, DWORD dwFlags = 0) const;
 		bool WriteToBuffer (IByteStream &Stream) const;
 
+		CString DebugDump (void) const;
 		CString DebugGetInitState (void) const;
 
 		static void ParseCookies (const CString &sValue, TSortMap<CString, CString> *retCookies);
@@ -494,17 +497,63 @@ class CEmailAddress
 		CString m_sDomain;
 	};
 
+//	WebSocket ------------------------------------------------------------------
+
+class CWebSocketProtocol
+	{
+	public:
+
+		enum class EOpCode
+			{
+			Continuation = 0x0,
+			Text = 0x1,
+			Binary = 0x2,
+			Close = 0x8,
+			Ping = 0x9,
+			Pong = 0xA,
+
+			//	Internal codes
+
+			Invalid = 0xff,
+			Error = 0xfe,
+			};
+
+		CWebSocketProtocol () { }
+
+		EOpCode GetNextFrame (CString& retsData);
+		bool HasMore () const { return (m_Messages.GetCount() > 0 && m_Messages[0].bComplete); }
+		void OnRead (const IMemoryBlock& Buffer);
+
+		static CHTTPMessage ComposeAcceptResponse (CStringView sKey, CStringView sServerHeader = NULL_STR);
+		static CString EncodeFrame (bool bFinal, EOpCode iOpCode, CStringView sData);
+
+	private:
+
+		struct SMessage
+			{
+			EOpCode iOpCode = EOpCode::Invalid;
+			CString sData;
+			bool bComplete = false;
+			};
+
+		void AppendFrame (bool bFinal, EOpCode iOpCode, CString sData);
+		int ParseFrame (const BYTE* pPos, const BYTE* pPosEnd);
+
+		CBuffer m_Buffer;
+		TArray<SMessage> m_Messages;		//	Whole frames
+	};
+
 //	Utilities ------------------------------------------------------------------
 
 void htmlWriteAttributeValue (const CString &sText, IByteStream &Output);
 CString htmlWriteAttributeValue (const CString &sText);
-void htmlWriteText (char *pPos, char *pPosEnd, IByteStream &Output);
-void htmlWriteText (const CString &sText, IByteStream &Output);
+void htmlWriteText (const char* pPos, const char* pPosEnd, IByteStream& Output);
+void htmlWriteText (const CString& sText, IByteStream& Output);
 CString htmlWriteText (const CString &sText);
 CString urlAppend (const CString &sPath, const CString &sComponent);
-CString urlDecode (const CString &sValue);
+CString urlDecode (const CString &sValue, bool bDoNotDecodePlus = false);
 CString urlEncodeParam (const CString &sValue);
 DWORD urlGetDefaultPort (const CString &sProtocol);
 bool urlMatchPattern (const CString &sPattern, const CString &sURL);
-bool urlParse (char *pStart, CString *retsProtocol = NULL, CString *retsHost = NULL, CString *retsPath = NULL, char **retpEnd = NULL);
+bool urlParse (const char *pStart, CString *retsProtocol = NULL, CString *retsHost = NULL, CString *retsPath = NULL, const char **retpEnd = NULL);
 bool urlParseHostPort (const CString &sProtocol, const CString &sHost, CString *retsHostname, DWORD *retdwPort = NULL);

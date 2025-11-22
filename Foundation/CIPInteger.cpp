@@ -1,7 +1,7 @@
 //	CIPInteger.cpp
 //
 //	CIPInteger class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 //
 //	Based in part on BigDigits multiple-precision arithmetic library
 //	Version 2.2 originally written by David Ireland, copyright
@@ -44,8 +44,8 @@
 
 #ifndef USE_BOOST_MULTIPRECISION
 
-#include "BigDigits\bigd.h"
-#include "BigDigits\bigdRand.h"
+#include "BigDigits/bigd.h"
+#include "BigDigits/bigdRand.h"
 
 const DWORD STREAM_SIGNATURE_POSITIVE = 'IP1+';
 const DWORD STREAM_SIGNATURE_NEGATIVE = 'IP1-';
@@ -105,7 +105,7 @@ CIPInteger::CIPInteger (int iSrc)
 		}
 	}
 
-CIPInteger::CIPInteger (DWORDLONG ilSrc)
+CIPInteger::CIPInteger (DWORDLONG ilSrc, bool bNegative)
 
 //	CIPInteger constructor
 
@@ -124,7 +124,7 @@ CIPInteger::CIPInteger (DWORDLONG ilSrc)
 
 	//	DWORDLONGs are unsigned
 
-	m_bNegative = false;
+	m_bNegative = bNegative;
 	}
 
 CIPInteger::CIPInteger (LONGLONG ilSrc)
@@ -164,7 +164,43 @@ CIPInteger::CIPInteger (double rSrc)
 	if (rInt >= (double)LLONG_MIN && rInt <= (double)LLONG_MAX)
 		*this = CIPInteger((LONGLONG)rInt);
 	else
-		InitFromString(strFromDouble(rInt));
+		{
+		bool bNegative = (rSrc < 0.0);
+		rSrc = (bNegative ? -rSrc : rSrc);
+
+		int exponent;
+		double significand = frexp(rSrc, &exponent);
+
+		CIPInteger Value(0);
+		CIPInteger One(1);
+		CIPInteger Two(2);
+
+		//	Handle the significand
+
+		while (significand > 0 && significand != 1.0) 
+			{
+			Value = Value * Two;
+	        significand *= 2;
+		    if (significand >= 1.0) {
+				Value = Value + One;
+				significand -= 1.0;
+				}
+
+			exponent--; // Decrement the exponent as we multiply the significand by 2
+			}
+
+	    //	Handle the exponent
+
+		for (int i = 0; i < exponent; i++)
+			{
+			Value = Value * Two;
+			}
+
+		//	Done
+
+		Value.m_bNegative = bNegative;
+		TakeHandoff(Value);
+		}
 	}
 
 CIPInteger::~CIPInteger (void)
@@ -297,7 +333,7 @@ CIPInteger CIPInteger::operator+ (const CIPInteger &Src) const
 			}
 		else
 			{
-			bdSetZero((BIGD)m_Value);
+			bdSetZero((BIGD)NewValue);
 			bNewNegative = false;
 			}
 		}
@@ -347,7 +383,7 @@ CIPInteger CIPInteger::operator - (void) const
 
 	void *NewValue = bdNew();
 	bdSetEqual((BIGD)NewValue, (BIGD)m_Value);
-	return CIPInteger(NewValue, !m_bNegative);
+	return CIPInteger(NewValue, !IsZero() && !m_bNegative);
 	}
 
 CIPInteger CIPInteger::operator- (const CIPInteger &Src) const
@@ -377,7 +413,7 @@ CIPInteger CIPInteger::operator- (const CIPInteger &Src) const
 			}
 		else
 			{
-			bdSetZero((BIGD)m_Value);
+			bdSetZero((BIGD)NewValue);
 			bNewNegative = false;
 			}
 		}
@@ -406,7 +442,7 @@ CIPInteger &CIPInteger::operator *= (const CIPInteger &Src)
 	else
 		{
 		bdMultiply_s((BIGD)m_Value, (BIGD)m_Value, (BIGD)Src.m_Value);
-		m_bNegative = (m_bNegative != Src.m_bNegative);
+		m_bNegative = !IsZero() && (m_bNegative != Src.m_bNegative);
 		}
 
 	return *this;
@@ -424,7 +460,7 @@ CIPInteger CIPInteger::operator * (const CIPInteger &Src) const
 
 	void *NewValue = bdNew();
 	bdMultiply_s((BIGD)NewValue, (BIGD)m_Value, (BIGD)Src.m_Value);
-	bool bNewNegative = (m_bNegative != Src.m_bNegative);
+	bool bNewNegative = (bdIsZero((BIGD)NewValue) == 0) && (m_bNegative != Src.m_bNegative);
 
 	return CIPInteger(NewValue, bNewNegative);
 	}
@@ -469,7 +505,7 @@ bool CIPInteger::DivideMod (const CIPInteger &Divisor, CIPInteger &retQuotient, 
 
 	bdDivide_s((BIGD)retQuotient.m_Value, (BIGD)retRemainder.m_Value, (BIGD)m_Value, (BIGD)Divisor.m_Value);
 	retQuotient.m_bNegative = (m_bNegative != Divisor.m_bNegative);
-	retRemainder.m_bNegative = retQuotient.m_bNegative;
+	retRemainder.m_bNegative = !retRemainder.IsZero() && retQuotient.m_bNegative;
 
 	return true;
 	}
@@ -509,7 +545,7 @@ CIPInteger &CIPInteger::operator %= (const CIPInteger &Src)
 	CIPInteger Quotient(bdNew(), false);
 
 	bdDivide_s((BIGD)Quotient.m_Value, (BIGD)m_Value, (BIGD)m_Value, (BIGD)Src.m_Value);
-	m_bNegative = (m_bNegative != Src.m_bNegative);
+	m_bNegative = !IsZero() && (m_bNegative != Src.m_bNegative);
 
 	return *this;
 	}
@@ -528,7 +564,7 @@ CIPInteger CIPInteger::operator % (const CIPInteger &Src) const
 
 	void *NewValue = bdNew();
 	bdDivide_s((BIGD)Quotient.m_Value, (BIGD)NewValue, (BIGD)m_Value, (BIGD)Src.m_Value);
-	bool bNewNegative = (m_bNegative != Src.m_bNegative);
+	bool bNewNegative = bdIsZero((BIGD)NewValue) == 0 && (m_bNegative != Src.m_bNegative);
 
 	return CIPInteger(NewValue, bNewNegative);
 	}
@@ -589,6 +625,28 @@ CIPInteger CIPInteger::operator << (size_t iBits) const
 	bdShiftLeft((BIGD)NewValue, (BIGD)m_Value, iBits);
 
 	return CIPInteger(NewValue, m_bNegative);
+	}
+
+CString CIPInteger::AsBase64 () const
+	{
+	if (!m_Value)
+		return NULL_STR;
+
+	CStringBuffer Out;
+	CBase64Encoder Encoder(&Out);
+
+	DWORD dwSize = (DWORD)bdConvToOctets((BIGD)m_Value, NULL, 0);
+	if (dwSize > 0)
+		{
+		CBuffer Buffer((int)dwSize);
+		Buffer.SetLength(dwSize);
+		bdConvToOctets((BIGD)m_Value, (BYTE*)Buffer.GetPointer(), dwSize);
+		Encoder.Write(Buffer.GetPointer(), Buffer.GetLength());
+		}
+
+	Encoder.Close();
+
+	return CString(std::move(Out));
 	}
 
 int CIPInteger::AsByteArray (TArray<BYTE> *retValue) const
@@ -685,7 +743,7 @@ DWORDLONG CIPInteger::AsInteger64Unsigned (void) const
 	return Result;
 	}
 
-CString CIPInteger::AsString (void) const
+CString CIPInteger::AsString (bool bOmitSign) const
 
 //	AsString
 //
@@ -700,7 +758,7 @@ CString CIPInteger::AsString (void) const
 
 	//	Write the negative sign, if necessary
 
-	if (m_bNegative)
+	if (m_bNegative && !bOmitSign)
 		{
 		Buffer.Write("-", 1);
 		iOffset = 1;
@@ -882,8 +940,53 @@ void CIPInteger::InitFromString (const CString &sString)
 		else
 			m_bNegative = false;
 
-		bdConvFromDecimal((BIGD)m_Value, pPos);
+		//	See if this is a floating point number, in which case we need to
+		//	convert to an integer.
+
+		CIPInteger Float;
+		if (InitFromStringDouble(pPos, pPosEnd, Float))
+			{
+			Float.m_bNegative = m_bNegative;
+			TakeHandoff(Float);
+			return;
+			}
+		else
+			{
+			bdConvFromDecimal((BIGD)m_Value, pPos);
+			}
 		}
+	}
+
+bool CIPInteger::InitFromStringDouble (const char* pPos, const char* pPosEnd, CIPInteger& retResult)
+
+//	InitFromStringDouble
+//
+//	Initializes from a string representation of a floating point number. We
+//	parse any exponent, but drop any fractional components.
+
+	{
+	//	See if this is a floating point number. If not, then we're done.
+
+	bool bIsFloat = false;
+	while (pPos < pPosEnd)
+		{
+		if (*pPos == '.' || *pPos == 'e' || *pPos == 'E')
+			{
+			bIsFloat = true;
+			break;
+			}
+
+		pPos++;
+		}
+
+	if (!bIsFloat)
+		return false;
+
+	//	Convert to a double and then to an integer
+
+	double rValue = strToDouble(pPos);
+	retResult = CIPInteger(rValue);
+	return true;
 	}
 
 bool CIPInteger::IsEmpty (void) const

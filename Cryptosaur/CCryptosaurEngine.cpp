@@ -1,7 +1,7 @@
 //	CCryptosaurEngine.cpp
 //
 //	CCryptosaurEngine class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -53,6 +53,7 @@ DECLARE_CONST_STRING(MSG_CRYPTOSAUR_CREATE_ADMIN,		"Cryptosaur.createAdmin")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_CREATE_AUTH_TOKEN,	"Cryptosaur.createAuthToken")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_CREATE_SCOPED_CREDENTIALS,	"Cryptosaur.createScopedCredentials")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_CREATE_USER,		"Cryptosaur.createUser")
+DECLARE_CONST_STRING(MSG_CRYPTOSAUR_DELETE_USER,		"Cryptosaur.deleteUser")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_GET_CERTIFICATE,	"Cryptosaur.getCertificate")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_GET_KEY,			"Cryptosaur.getKey")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_GET_USER,			"Cryptosaur.getUser")
@@ -96,6 +97,9 @@ CCryptosaurEngine::SMessageHandler CCryptosaurEngine::m_MsgHandlerList[] =
 
 		//	Cryptosaur.createUser {username} {authDesc}
 		{	MSG_CRYPTOSAUR_CREATE_USER,					&CCryptosaurEngine::MsgCreateUser },
+
+		//	Cryptosaur.deleteUser {username}
+		{	MSG_CRYPTOSAUR_DELETE_USER,					&CCryptosaurEngine::MsgDeleteUser },
 
 		//	Cryptosaur.getCertificate {type} {name}
 		{	MSG_CRYPTOSAUR_GET_CERTIFICATE,				&CCryptosaurEngine::MsgGetCertificate },
@@ -277,7 +281,7 @@ void CCryptosaurEngine::MsgValidateAuthToken (const SArchonMessage &Msg, const C
 	//	Validate
 
 	CDatum dData;
-	if (!CCryptosaurInterface::ValidateAuthToken(Msg.dPayload.GetElement(0), *pAuthTokenKey, &dData))
+	if (!CCryptosaurInterface::ValidateAuthToken(Msg.dPayload.GetElement(0).AsStringView(), *pAuthTokenKey, &dData))
 		{
 		SendMessageReply(MSG_REPLY_DATA, CDatum(), Msg);
 		return;
@@ -286,7 +290,7 @@ void CCryptosaurEngine::MsgValidateAuthToken (const SArchonMessage &Msg, const C
 	//	A sandboxed authtoken is not valid outside of its scope.
 	//	(But it is valid in admin services).
 
-	const CString &sScope = dData.GetElement(FIELD_SCOPE);
+	CStringView sScope = dData.GetElement(FIELD_SCOPE);
 	if (!sScope.IsEmpty() 
 			&& pSecurityCtx
 			&& !pSecurityCtx->IsNamespaceAccessible(sScope))
@@ -370,12 +374,12 @@ bool CCryptosaurEngine::ValidateAuthDescActual (CDatum dAuthDesc, const CString 
 		//	Validate
 
 		CDatum dData;
-		if (!CCryptosaurInterface::ValidateAuthToken(dAuthToken, *pAuthTokenKey, &dData))
+		if (!CCryptosaurInterface::ValidateAuthToken(dAuthToken.AsStringView(), *pAuthTokenKey, &dData))
 			return false;
 
 		//	The proper user?
 
-		if (!strEquals(strToLower(dData.GetElement(FIELD_USERNAME)), strToLower(dUserData.GetElement(FIELD_USERNAME))))
+		if (!strEquals(strToLower(dData.GetElement(FIELD_USERNAME).AsStringView()), strToLower(dUserData.GetElement(FIELD_USERNAME).AsStringView())))
 			return false;
 		
 		//	AuthToken for actual?
@@ -417,7 +421,7 @@ bool CCryptosaurEngine::ValidateAuthDescCreate (const SArchonMessage &Msg, const
 //	a new user (either admin or not).
 
 	{
-	if (!strEquals(dAuthDesc.GetElement(FIELD_TYPE), AUTH_TYPE_SHA1))
+	if (!strEquals(dAuthDesc.GetElement(FIELD_TYPE).AsStringView(), AUTH_TYPE_SHA1))
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_INVALID_AUTHDESC_TYPE, dAuthDesc.GetElement(FIELD_TYPE).AsString()), Msg);
 		return false;

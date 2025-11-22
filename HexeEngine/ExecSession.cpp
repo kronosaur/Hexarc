@@ -1,7 +1,7 @@
 //	ExecSession.cpp
 //
 //	ExecSession class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -65,14 +65,15 @@ bool CRunSession::HandleResult (CHexeProcess::ERun iRun, CDatum dResult)
 		{
 		case CHexeProcess::ERun::OK:
 		case CHexeProcess::ERun::Error:
+		case CHexeProcess::ERun::ForcedTerminate:
 			SendMessageReply(MSG_REPLY_DATA, dResult);
 			//	FALSE means we're done with the session
 			return false;
 
 		case CHexeProcess::ERun::AsyncRequest:
 			{
-			SendMessageCommand(dResult.GetElement(0), 
-					dResult.GetElement(1), 
+			SendMessageCommand(dResult.GetElement(0).AsStringView(), 
+					dResult.GetElement(1).AsStringView(), 
 					GenerateAddress(PORT_HEXE_COMMAND),
 					dResult.GetElement(2),
 					MESSAGE_TIMEOUT);
@@ -148,17 +149,13 @@ bool CRunSession::OnStartSession (const SArchonMessage &Msg, DWORD dwTicket)
 	SecurityCtx.SetExecutionRights(CHexeSecurityCtx::EXEC_RIGHTS_MINIMAL);
 	m_Process.SetSecurityCtx(SecurityCtx);
 
-	//	Abort if we don't complete this in a certain amount of time
-
-	m_Process.SetMaxExecutionTime(MAX_EXECUTION_TIME);
-
 	//	Parse into an expression (depending on the type of input)
 
 	CDatum dExpression;
 	if (dCode.GetBasicType() == CDatum::typeString)
 		{
 		CString sError;
-		if (!CHexeDocument::ParseLispExpression(dCode, &dExpression, &sError))
+		if (!CHexeDocument::ParseLispExpression(dCode.AsStringView(), &dExpression, &sError))
 			{
 			SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_COMPILER, sError));
 			return false;

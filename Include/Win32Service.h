@@ -1,7 +1,7 @@
 //	Win32Service.h
 //
 //	Functions and classes for a Win32 Service
-//	Copyright (c) 2010 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2010 by GridWhale Corporation. All Rights Reserved.
 //
 //	USAGE
 //
@@ -39,6 +39,7 @@ class CWin32Service
 		virtual void DestroyWin32Service (void) { delete this; }
 
 		virtual void GetInfo (SWin32ServiceInfo *retInfo) { }
+		virtual void OnCrash (CStringView sError) { }
 		virtual void OnRun (void) { }
 		virtual void OnStart (const TArray<CString> &Params) { }
 		virtual void OnStop (void) { }
@@ -50,6 +51,8 @@ class CWin32Service
 		//	main application function).
 
 		void Execute (int argc, char **argv);
+
+		static void BootHandlers ();
 
 	protected:
 		//	Helper functions
@@ -77,7 +80,9 @@ class CWin32Service
 		bool ReportStatus (DWORD dwCurrentState, DWORD dwWin32ExitCode, DWORD dwWaitHint);
 		void Restart (void);
 
+		static void __cdecl AbortHandler (int sig);
 		static BOOL WINAPI CtrlHandler (DWORD dwCtrlType);
+		static LONG WINAPI ExceptionHandler (PEXCEPTION_POINTERS ep);
 		static void WINAPI ServiceControl (DWORD dwCtrlCode);
 		static void WINAPI ServiceMain (DWORD dwArgc, LPTSTR *pArgv);
 

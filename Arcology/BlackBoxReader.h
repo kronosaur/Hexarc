@@ -1,7 +1,7 @@
 //	BlackBoxReader.h
 //
 //	DrHouse Engine Implementation
-//	Copyright (c) 2017 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2017 by GridWhale Corporation. All Rights Reserved.
 
 #pragma once
 

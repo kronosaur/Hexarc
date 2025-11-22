@@ -1,7 +1,7 @@
 //	ArchonEngine.h
 //
 //	Functions and classes for Archons
-//	Copyright (c) 2010 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2010 by GridWhale Corporation. All Rights Reserved.
 //
 //	USAGE
 //
@@ -194,6 +194,8 @@ class IArchonEngine
 			//	published in the Mnemosynth entry for this module.
 			}
 
+		virtual void AccumulateCrashData (TArray<CString>& retLines) const { }
+
 		virtual void Boot (IArchonProcessCtx *pProcess, DWORD dwID)
 			{
 			//	The engine should initialize its state. After Boot returns,
@@ -331,6 +333,7 @@ class CArchonProcess : public IArchonProcessCtx
 		void Run (void);
 		void SendGlobalMessage (const CString &sMsg, CDatum dPayload = CDatum());
 		void SignalShutdown (void);
+		void UnhandledException (CStringView sError);
 
 		//	IArchonProcessCtx
 		virtual void AddEventRequest (const CString &sName, COSObject &Event, IArchonMessagePort *pPort, const CString &sMsg, DWORD dwTicket) override;

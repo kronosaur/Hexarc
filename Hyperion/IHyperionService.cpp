@@ -1,7 +1,7 @@
 //	IHyperionService.cpp
 //
 //	IHyperionService class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -34,7 +34,7 @@ bool IHyperionService::CreateService (const CString &sName,
 	{
 	//	Create the appropriate service
 
-	CString sProtocol = dServiceDef.GetElement(FIELD_PROTOCOL);
+	CStringView sProtocol = dServiceDef.GetElement(FIELD_PROTOCOL);
 	IHyperionService *pService;
 	if (strEquals(sProtocol, PROTOCOL_HTTP))
 		{
@@ -115,7 +115,7 @@ bool IHyperionService::IsAccessible (const CString &sName)
 //
 //	Returns TRUE if the given name is accessible from the sandbox
 //
-//	sName may be:
+//	sID may be:
 //
 //	An AI1 interface
 //	A table

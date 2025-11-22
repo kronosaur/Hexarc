@@ -1,7 +1,7 @@
 //	CHexeStack.cpp
 //
 //	CHexeStack class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -31,20 +31,5 @@ CDatum CHexeStack::SafeGet (int iIndex) const
 		return CDatum();
 
 	return m_Stack[iEntry];
-	}
-
-void CHexeStack::SafePush (CDatum dData)
-
-//	SafePush
-//
-//	Push the datum
-
-	{
-	m_iTop++;
-
-	if (m_iTop >= m_Stack.GetCount())
-		m_Stack.InsertEmpty(1000);
-
-	m_Stack[m_iTop] = dData;
 	}
 

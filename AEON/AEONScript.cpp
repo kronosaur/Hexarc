@@ -1,7 +1,7 @@
 //	AEONScript.cpp
 //
 //	Methods for converting to/from AEONScript
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 //
 //	value
 //		array
@@ -79,6 +79,7 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_FALSE,							"false")
 DECLARE_CONST_STRING(STR_NAN,							"nan")
 DECLARE_CONST_STRING(STR_NIL,							"nil")
 DECLARE_CONST_STRING(STR_NULL,							"null")
@@ -93,6 +94,7 @@ DECLARE_CONST_STRING(TYPENAME_ERROR,					"error")
 DECLARE_CONST_STRING(TYPENAME_HEXE_ERROR,				"hexeError")
 DECLARE_CONST_STRING(TYPENAME_IMAGE32,					"image32")
 DECLARE_CONST_STRING(TYPENAME_IP_INTEGER,				"ipInteger")
+DECLARE_CONST_STRING(TYPENAME_OBJECT,					"object");
 DECLARE_CONST_STRING(TYPENAME_TABLE,					"table");
 DECLARE_CONST_STRING(TYPENAME_TABLE_REF,				"tableRef");
 DECLARE_CONST_STRING(TYPENAME_TEXT_LINES,				"textLines");
@@ -114,69 +116,53 @@ size_t CDatum::CalcSerializeSizeAEONScript (EFormat iFormat) const
 //	we would have to traverse the entire data.
 
 	{
-	size_t TotalSize = 0;
-
-	switch (m_dwData & AEON_TYPE_MASK)
+	switch (DecodeType(m_dwData))
 		{
-		case AEON_TYPE_STRING:
-			if (m_dwData == 0)
-				TotalSize = 3;	//	"nil"
-			else
+		case TYPE_NULL:
+			return 3;	//	"nil"
+
+		case TYPE_CONSTANTS:
+			{
+			switch (m_dwData)
 				{
-				//	We approximate the size.
+				case VALUE_FALSE:
+					return 5;	//	"false"
 
-				const CString &sString = raw_GetString();
-				TotalSize = sString.GetLength();
-				}
-			break;
-
-		case AEON_TYPE_NUMBER:
-			switch (m_dwData & AEON_NUMBER_TYPE_MASK)
-				{
-				case AEON_NUMBER_CONSTANT:
-					{
-					switch (m_dwData)
-						{
-						case CONST_NAN:
-							TotalSize = 3;	//	"nan"
-							break;
-
-						case CONST_TRUE:
-							TotalSize = 4;	//	"true"
-							break;
-
-						default:
-							ASSERT(false);
-						}
-					break;
-					}
-
-				case AEON_NUMBER_INTEGER:
-					TotalSize = 6;
-					break;
-
-				case AEON_NUMBER_ENUM:
-					TotalSize = 100;
-					break;
-
-				case AEON_NUMBER_DOUBLE:
-					TotalSize = 8;
-					break;
+				case VALUE_TRUE:
+					return 4;	//	"true"
 
 				default:
 					ASSERT(false);
+					return 0;
 				}
-			break;
+			}
 
-		case AEON_TYPE_COMPLEX:
-			TotalSize = raw_GetComplex()->CalcSerializeSizeAEONScript(iFormat);
-			break;
+		case TYPE_INT32:
+			return 6;
+
+		case TYPE_ENUM:
+			return 100;
+
+		case TYPE_STRING:
+			//	We approximate the size
+			return DecodeString(m_dwData).GetLength();
+
+		case TYPE_COMPLEX:
+			return DecodeComplex(m_dwData).CalcSerializeSizeAEONScript(iFormat);
+
+		case TYPE_ROW_REF:
+			return CAEONRowRefImpl::CalcSerializeSizeAEONScript(m_dwData, iFormat);
+
+		case TYPE_NAN:
+			return 3;	//	"nan"
+
+		case TYPE_INFINITY_N:
+		case TYPE_INFINITY_P:
+			return 3;	//	"nan"
 
 		default:
-			ASSERT(false);
+			return 8;
 		}
-
-	return TotalSize;
 	}
 
 bool CDatum::DeserializeAEONScript (IByteStream &Stream, IAEONParseExtension *pExtension, CDatum *retDatum)
@@ -211,78 +197,99 @@ void CDatum::SerializeAEONScript (EFormat iFormat, IByteStream &Stream) const
 //	Serializes to AEONScript
 
 	{
-	switch (m_dwData & AEON_TYPE_MASK)
+	switch (DecodeType(m_dwData))
 		{
-		case AEON_TYPE_STRING:
-			if (m_dwData == 0)
-				Stream.Write("nil", 3);
-			else
-				{
-				const CString &sString = raw_GetString();
-				bool bQuote = CAEONScriptParser::HasSpecialChars(sString);
-				if (bQuote)
-					Stream.Write("\"", 1);
-				sString.SerializeJSON(Stream);
-				if (bQuote)
-					Stream.Write("\"", 1);
-				}
+		case TYPE_NULL:
+			Stream.Write("nil", 3);
 			break;
 
-		case AEON_TYPE_NUMBER:
-			switch (m_dwData & AEON_NUMBER_TYPE_MASK)
+		case TYPE_CONSTANTS:
+			{
+			switch (m_dwData)
 				{
-				case AEON_NUMBER_CONSTANT:
-					{
-					switch (m_dwData)
-						{
-						case CONST_NAN:
-							Stream.Write("nan", 3);
-							break;
-
-						case CONST_TRUE:
-							Stream.Write("true", 4);
-							break;
-
-						default:
-							ASSERT(false);
-						}
-					break;
-					}
-
-				case AEON_NUMBER_INTEGER:
-					{
-					CString sInt = strFromInt((int)HIDWORD(m_dwData));
-					Stream.Write(sInt);
-					break;
-					}
-
-				case AEON_NUMBER_ENUM:
-					SerializeEnum(iFormat, Stream);
+				case VALUE_FALSE:
+					Stream.Write("false", 5);
 					break;
 
-				case AEON_NUMBER_DOUBLE:
-					{
-					CString sNumber = strFromDouble(raw_GetDouble());
-					Stream.Write(sNumber);
+				case VALUE_TRUE:
+					Stream.Write("true", 4);
 					break;
-					}
 
 				default:
 					ASSERT(false);
+					break;
 				}
 			break;
+			}
 
-		case AEON_TYPE_COMPLEX:
-			raw_GetComplex()->Serialize(iFormat, Stream);
+		case TYPE_INT32:
+			{
+			CString sInt = strFromInt(DecodeInt32(m_dwData));
+			Stream.Write(sInt);
+			break;
+			}
+
+		case TYPE_ENUM:
+			SerializeEnum(iFormat, Stream);
+			break;
+
+		case TYPE_STRING:
+			{
+			CStringView sString = DecodeString(m_dwData);
+			bool bQuote = CAEONScriptParser::HasSpecialChars(sString);
+			if (bQuote)
+				Stream.Write("\"", 1);
+			sString.SerializeJSON(Stream);
+			if (bQuote)
+				Stream.Write("\"", 1);
+			break;
+			}
+
+		case TYPE_COMPLEX:
+			DecodeComplex(m_dwData).Serialize(iFormat, Stream);
+			break;
+
+		case TYPE_ROW_REF:
+			//	No longer supported
+			throw CException(errFail);
+
+		case TYPE_NAN:
+		case TYPE_INFINITY_N:
+		case TYPE_INFINITY_P:
+			Stream.Write("nan", 3);
 			break;
 
 		default:
-			ASSERT(false);
+			{
+			CString sNumber = strFromDouble(DecodeDouble(m_dwData));
+			Stream.Write(sNumber);
+			break;
+			}
 		}
 	}
 
 void CDatum::SerializeEnum (EFormat iFormat, IByteStream &Stream) const
 	{
+	DWORD dwDatatypeID = DecodeEnumType(m_dwData);
+	CDatum dType = CAEONTypes::Get(dwDatatypeID);
+
+	CString sID;
+	CString sLabel;
+	int iOrdinal = DecodeEnumValue(m_dwData);
+	const IDatatype& EnumType = dType;
+	int iIndex = EnumType.FindMemberByOrdinal(iOrdinal);
+	if (iIndex != -1)
+		{
+		IDatatype::SMemberDesc MemberDesc = EnumType.GetMember(iIndex);
+		sID = MemberDesc.sID;
+		sLabel = MemberDesc.sLabel;
+		}
+	else
+		sID = strFromInt(iOrdinal);
+
+	if (sLabel.IsEmpty())
+		sLabel = sID;
+
 	switch (iFormat)
 		{
 		case CDatum::EFormat::AEONScript:
@@ -292,36 +299,39 @@ void CDatum::SerializeEnum (EFormat iFormat, IByteStream &Stream) const
 			Stream.Write(TYPENAME_ENUM);
 			Stream.Write(":", 1);
 
-			CString sInt = strFromInt((int)HIDWORD(m_dwData));
-			Stream.Write(sInt);
+			Stream.Write(sID);
 			Stream.Write(" ", 1);
-
-			DWORD dwDatatypeID = GetNumberIndex();
-			CDatum dType = CAEONTypes::Get(dwDatatypeID);
 
 			dType.Serialize(iFormat, Stream);
 			Stream.Write("]", 1);
 			break;
 			}
 
+		case CDatum::EFormat::GridLang:
+			{
+			if (iIndex == -1)
+				{
+				WriteGridLangString(Stream, sID);
+				}
+			else
+				{
+				Stream.Write(EnumType.GetName());
+				Stream.WriteChar('.');
+				Stream.Write(sID);
+				}
+			break;
+			}
+
 		case CDatum::EFormat::JSON:
 			{
-			Stream.Write("[", 1);
-			int iValue = (int)HIDWORD(m_dwData);
-			CString sInt = strFromInt(iValue);
-			Stream.Write(sInt);
-			Stream.Write(",", 1);
-
-			DWORD dwDatatypeID = GetNumberIndex();
-			CDatum dType = CAEONTypes::Get(dwDatatypeID);
-			const IDatatype& Datatype = dType;
-			int iIndex = Datatype.FindMemberByOrdinal(iValue);
+			Stream.Write("[\"AEON2011:enum:v1\",", 20);
 
 			Stream.Write("\"", 1);
-			if (iIndex == -1)
-				Stream.Write(STR_NULL);
-			else
-				Stream.Write(Datatype.GetMember(iIndex).sName);
+			Stream.Write(sLabel);
+			Stream.Write("\",", 2);
+
+			Stream.Write("\"", 1);
+			Stream.Write(sID);
 			Stream.Write("\"", 1);
 
 			Stream.Write("]", 1);
@@ -626,32 +636,53 @@ CAEONScriptParser::ETokens CAEONScriptParser::ParseExternal (CDatum *retDatum)
 
 	//	Create the object based on the typename
 
+	CStringView sTypename = dTypename.AsStringView();
 	IComplexDatum *pDatum;
-	if (strEquals(dTypename, TYPENAME_IP_INTEGER))
+	if (strEquals(sTypename, TYPENAME_IP_INTEGER))
 		pDatum = new CComplexInteger;
-	else if (strEquals(dTypename, TYPENAME_ANNOTATED))
+	else if (strEquals(sTypename, TYPENAME_ANNOTATED))
 		pDatum = new CAEONAnnotated;
-	else if (strEquals(dTypename, TYPENAME_BINARY))
+	else if (strEquals(sTypename, TYPENAME_BINARY))
 		pDatum = new CComplexBinary;
-	else if (strEquals(dTypename, TYPENAME_BINARY_FILE))
+	else if (strEquals(sTypename, TYPENAME_BINARY_FILE))
 		pDatum = new CComplexBinaryFile;
-	else if (strEquals(dTypename, TYPENAME_DATATYPE))
-		pDatum = new CComplexDatatype(NULL);
-	else if (strEquals(dTypename, TYPENAME_ERROR)
-			|| strEquals(dTypename, TYPENAME_HEXE_ERROR))
+	else if (strEquals(sTypename, TYPENAME_DATATYPE))
+		{
+		if (!CComplexDatatype::CreateFromStream(*m_pStream, *retDatum))
+			return tkError;
+
+		//	Parse the closing bracket
+
+		if (ParseToken(retDatum) != tkCloseBracket)
+			return tkError;
+
+		return tkDatum;
+		}
+	else if (strEquals(sTypename, TYPENAME_ERROR)
+			|| strEquals(sTypename, TYPENAME_HEXE_ERROR))
 		pDatum = new CAEONError;
-	else if (strEquals(dTypename, TYPENAME_IMAGE32))
+	else if (strEquals(sTypename, TYPENAME_IMAGE32))
 		pDatum = new CComplexImage32;
-	else if (strEquals(dTypename, TYPENAME_TABLE)
-			|| strEquals(dTypename, TYPENAME_TABLE_REF))
+	else if (strEquals(sTypename, TYPENAME_OBJECT))
+		{
+		if (!ParseObject(*retDatum))
+			return tkError;
+
+		if (ParseToken(retDatum) != tkCloseBracket)
+			return tkError;
+
+		return tkDatum;
+		}
+	else if (strEquals(sTypename, TYPENAME_TABLE)
+			|| strEquals(sTypename, TYPENAME_TABLE_REF))
 		pDatum = new CAEONTable;
-	else if (strEquals(dTypename, TYPENAME_TEXT_LINES))
+	else if (strEquals(sTypename, TYPENAME_TEXT_LINES))
 		pDatum = new CAEONLines;
-	else if (strEquals(dTypename, TYPENAME_TIME_SPAN))
+	else if (strEquals(sTypename, TYPENAME_TIME_SPAN))
 		pDatum = new CAEONTimeSpan;
-	else if (strEquals(dTypename, TYPENAME_VECTOR_2D))
+	else if (strEquals(sTypename, TYPENAME_VECTOR_2D))
 		pDatum = new CAEONVector2D;
-	else if (strEquals(dTypename, TYPENAME_ENUM))
+	else if (strEquals(sTypename, TYPENAME_ENUM))
 		{
 		CDatum dInt;
 		if (ParseToken(&dInt) != tkDatum)
@@ -661,7 +692,8 @@ CAEONScriptParser::ETokens CAEONScriptParser::ParseExternal (CDatum *retDatum)
 		if (ParseToken(&dType) != tkDatum || dType.GetBasicType() != CDatum::typeDatatype)
 			return tkError;
 
-		*retDatum = CDatum::CreateEnum((int)dInt, dType);
+		if (!CDatum::DeserializeEnumFromAEONScript(dType, dInt, *retDatum))
+			return tkError;
 
 		//	Parse the closing bracket
 
@@ -673,15 +705,28 @@ CAEONScriptParser::ETokens CAEONScriptParser::ParseExternal (CDatum *retDatum)
 	else
 		{
 		IComplexFactory *pFactory;
-		if (!CDatum::FindExternalType(dTypename, &pFactory))
-			return tkError;
+		if (!CDatum::FindExternalType(sTypename, &pFactory))
+			{
+			//	If the typename is not registered then we treat it as a foreign
+			//	type and just make sure that we can serialize it back.
+
+			if (!CAEONForeign::CreateFromStream(sTypename, *m_pStream, *retDatum))
+				return tkError;
+
+			//	Parse the closing bracket
+
+			if (ParseToken(retDatum) != tkCloseBracket)
+				return tkError;
+
+			return tkDatum;
+			}
 
 		pDatum = pFactory->Create();
 		}
 
 	//	Deserialize the object
 
-	if (!pDatum->DeserializeAEONScript(CDatum::EFormat::AEONScript, dTypename, m_pStream))
+	if (!pDatum->DeserializeAEONScript(CDatum::EFormat::AEONScript, sTypename, m_pStream))
 		return tkError;
 
 	//	Parse the closing bracket
@@ -738,7 +783,7 @@ CAEONScriptParser::ETokens CAEONScriptParser::ParseLiteral (CDatum *retDatum)
 //	Parse a literal
 
 	{
-	CMemoryBuffer Stream(4096);
+	CStringBuffer Stream;
 
 	char chChar = m_pStream->GetChar();
 	do
@@ -748,11 +793,13 @@ CAEONScriptParser::ETokens CAEONScriptParser::ParseLiteral (CDatum *retDatum)
 		}
 	while (chChar != ' ' && chChar != ',' && chChar != ':' && chChar != ')' && chChar != '}' && chChar != ']' && chChar != '\r' && chChar != '\n' && chChar != '\t' && chChar != '\0');
 
-	CString sLiteral(Stream.GetPointer(), Stream.GetLength());
+	CString sLiteral(std::move(Stream));
 	if (strEquals(strToLower(sLiteral), STR_NIL))
 		*retDatum = CDatum();
 	else if (strEquals(strToLower(sLiteral), STR_NULL))
 		*retDatum = CDatum();
+	else if (strEquals(strToLower(sLiteral), STR_FALSE))
+		*retDatum = CDatum(false);
 	else if (strEquals(strToLower(sLiteral), STR_NAN))
 		*retDatum = CDatum::CreateNaN();
 	else if (strEquals(strToLower(sLiteral), STR_TRUE))
@@ -911,6 +958,92 @@ CAEONScriptParser::ETokens CAEONScriptParser::ParseNumber (CDatum *retDatum)
 	return tkDatum;
 	}
 
+CAEONScriptParser::ETokens CAEONScriptParser::ParseObject (CDatum& retDatum)
+
+//	ParseObject
+//
+//	Parses an object from the stream. We start after the colon, just at the
+//	datatype:
+//
+//	[object:[datatype:...]:{ ... }]
+//			^
+
+	{
+	CDatum dDatatype;
+	ETokens iToken = ParseToken(&dDatatype);
+	if (iToken != tkDatum)
+		return tkError;
+
+	//	Create the object
+
+	CDatum dObj = CDatum::CreateObject(dDatatype);
+
+	//	Skip the colon
+
+	m_pStream->ReadChar();
+
+	//	Skip the open brace
+
+	m_pStream->ReadChar();
+
+	//	Parse elements
+
+	while (true)
+		{
+		CDatum dElement;
+		ETokens iToken = ParseToken(&dElement);
+		if (iToken == tkCloseBrace)
+			break;
+		else if (iToken == tkComma)
+			continue;
+		else if (iToken == tkDatum)
+			{
+			CDatum dValue;
+
+			//	Parse the colon
+
+			iToken = ParseToken(&dValue);
+			if (iToken != tkColon)
+				{
+				if (iToken == tkError)
+					retDatum = dValue;
+				else
+					retDatum = strPattern(ERR_COLON_EXPECTED, dValue.AsString());
+				return tkError;
+				}
+
+			//	Parse the value
+
+			iToken = ParseToken(&dValue);
+			if (iToken != tkDatum)
+				{
+				if (iToken == tkError)
+					retDatum = dValue;
+				return tkError;
+				}
+
+			//	Add
+
+			dObj.SetElement(dElement.AsStringView(), dValue);
+			}
+		else if (iToken == tkError)
+			{
+			retDatum = dElement;
+			return tkError;
+			}
+		else
+			{
+			retDatum = strPattern(ERR_UNEXPECTED_TOKEN_IN_STRUCT, dElement.AsString());
+			return tkError;
+			}
+		}
+
+	//	Done
+
+	retDatum = dObj;
+	return tkDatum;
+	}
+
 CAEONScriptParser::ETokens CAEONScriptParser::ParseString (CDatum *retDatum)
 
 //	ParseString
@@ -918,7 +1051,7 @@ CAEONScriptParser::ETokens CAEONScriptParser::ParseString (CDatum *retDatum)
 //	Parse a JSON string
 
 	{
-	CMemoryBuffer Stream(4096);
+	CStringBuffer Stream;
 	CComplexBinaryFile *pBigData = NULL;
 
 	//	Skip the open quote
@@ -927,14 +1060,14 @@ CAEONScriptParser::ETokens CAEONScriptParser::ParseString (CDatum *retDatum)
 
 	//	Keep looping
 
-	while (chChar != '\"' && chChar != '\0')
+	while (chChar != '"' && chChar != '\0')
 		{
 		if (chChar == '\\')
 			{
 			chChar = m_pStream->ReadChar();
 			switch (chChar)
 				{
-				case '\"':
+				case '"':
 					Stream.Write("\"", 1);
 					break;
 
@@ -1040,7 +1173,7 @@ CAEONScriptParser::ETokens CAEONScriptParser::ParseString (CDatum *retDatum)
 		*retDatum = CDatum(pBigData);
 		}
 	else
-		*retDatum = CDatum(CString(Stream.GetPointer(), Stream.GetLength()));
+		*retDatum = CDatum(std::move(Stream));
 
 	return tkDatum;
 	}
@@ -1100,7 +1233,7 @@ CAEONScriptParser::ETokens CAEONScriptParser::ParseStruct (CDatum *retDatum)
 
 			//	Add
 
-			pStruct->SetElement(dElement, dValue);
+			pStruct->SetElement(dElement.AsStringView(), dValue);
 			}
 		else if (iToken == tkError)
 			{
@@ -1186,7 +1319,7 @@ CAEONScriptParser::ETokens CAEONScriptParser::ParseToken (CDatum *retDatum)
 				//	Loop and get another token
 				break;
 
-			case '\"':
+			case '"':
 				return ParseString(retDatum);
 
 			case '#':

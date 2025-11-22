@@ -1,7 +1,7 @@
 //	ArchonPromiseSessionImpl.h
 //
 //	Session Implementations
-//	Copyright (c) 2022 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2022 GridWhale Corporation. All Rights Reserved.
 //
 //	USAGE
 //
@@ -225,24 +225,38 @@ template <class CTX = SDefaultSessionCtx> class TPromiseSession : public ISessio
 
 			//	Start
 
-			SArchonMessage Reply;
-			auto iResult = m_pCurrent->fnStart(*this, m_Ctx, Msg, Reply);
+			try
+				{
+				SArchonMessage Reply;
+				auto iResult = m_pCurrent->fnStart(*this, m_Ctx, Msg, Reply);
 
-			return HandleReply(iResult, Reply);
+				return HandleReply(iResult, Reply);
+				}
+			catch (...)
+				{
+				return ReturnCrashError(Msg);
+				}
 			}
 
 		virtual bool OnProcessMessage (const SArchonMessage &Msg) override
 			{
 			if (m_pCurrent->fnProcess)
 				{
-				SArchonMessage Reply;
-				auto iResult = m_pCurrent->fnProcess(*this, m_Ctx, Msg, Reply);
+				try
+					{
+					SArchonMessage Reply;
+					auto iResult = m_pCurrent->fnProcess(*this, m_Ctx, Msg, Reply);
 
-				return HandleReply(iResult, Reply);
+					return HandleReply(iResult, Reply);
+					}
+				catch (...)
+					{
+					return ReturnCrashError(Msg);
+					}
 				}
 			else if (IsError(Msg))
 				{
-				SendMessageReplyError(Msg.sMsg, Msg.dPayload);
+				SendMessageReplyError(Msg.sMsg, Msg.dPayload.AsStringView());
 				return false;
 				}
 			else
@@ -274,10 +288,17 @@ template <class CTX = SDefaultSessionCtx> class TPromiseSession : public ISessio
 						}
 					else
 						{
-						SArchonMessage NextReply;
-						auto iNextResult = m_pCurrent->fnStart(*this, m_Ctx, Reply, NextReply);
+						try 
+							{
+							SArchonMessage NextReply;
+							auto iNextResult = m_pCurrent->fnStart(*this, m_Ctx, Reply, NextReply);
 
-						return HandleReply(iNextResult, NextReply);
+							return HandleReply(iNextResult, NextReply);
+							}
+						catch (...)
+							{
+							return ReturnCrashError(Reply);
+							}
 						}
 
 				//	Repeat
@@ -290,10 +311,17 @@ template <class CTX = SDefaultSessionCtx> class TPromiseSession : public ISessio
 						}
 					else
 						{
-						SArchonMessage NextReply;
-						auto iNextResult = m_pCurrent->fnStart(*this, m_Ctx, Reply, NextReply);
+						try
+							{
+							SArchonMessage NextReply;
+							auto iNextResult = m_pCurrent->fnStart(*this, m_Ctx, Reply, NextReply);
 
-						return HandleReply(iNextResult, NextReply);
+							return HandleReply(iNextResult, NextReply);
+							}
+						catch (...)
+							{
+							return ReturnCrashError(Reply);
+							}
 						}
 
 				//	Wait for reply
@@ -304,12 +332,18 @@ template <class CTX = SDefaultSessionCtx> class TPromiseSession : public ISessio
 				//	Error
 
 				case EPromiseResult::Error:
-					SendMessageReplyError(Reply.sMsg, Reply.dPayload);
+					SendMessageReplyError(Reply.sMsg, Reply.dPayload.AsStringView());
 					return false;
 
 				default:
 					throw CException(errFail);
 				}
+			}
+
+		bool ReturnCrashError (const SArchonMessage &Msg)
+			{
+			SendMessageReplyError(CString("Error.unableToComply"), strPattern("Crash in %s.", Msg.sMsg));
+			return false;
 			}
 
 		TUniquePtr<ArchonPromise> m_pCode;

@@ -1,9 +1,18 @@
 //	CMemoryBlockImpl.cpp
 //
 //	CMemoryBlockImpl class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
+
+void CMemoryBlockImpl::GrowToFit (int iLength)
+	{
+	int iOldPos = GetPos();
+	int iOldLength = GetLength();
+	Write(NULL, iLength);
+	SetLength(iOldLength);
+	Seek(iOldPos);
+	}
 
 int CMemoryBlockImpl::Read (void *pData, int iLength)
 
@@ -87,3 +96,37 @@ int CMemoryBlockImpl::Write (const void *pData, int iLength)
 	return iLength;
 	}
 
+int CMemoryBlockImpl::WriteStream (IByteStream& Stream, int iLength)
+
+//	WriteStream
+//
+//	Write the stream.
+
+	{
+	ASSERT(iLength >= 0);
+	int iCurrentSize = GetLength();
+
+	//	Compute required size
+
+	int iRequiredSize = m_iPos + iLength;
+	if (iRequiredSize > iCurrentSize)
+		{
+		SetLength(iRequiredSize);
+
+		//	No guarantee that we were able to grow
+
+		iCurrentSize = GetLength();
+		iLength = Min(iLength, iCurrentSize - m_iPos);
+		}
+
+	//	Get the pointer (after we grow)
+
+	char *pMemory = GetPointer();
+
+	//	Write to the newly allocated area
+
+	Stream.Read(pMemory + m_iPos, iLength);
+	m_iPos += iLength;
+
+	return iLength;
+	}

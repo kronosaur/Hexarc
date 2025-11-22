@@ -1,7 +1,7 @@
 //	CHexeCodeIntermediate.cpp
 //
 //	CHexeCodeIntermeidate class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -24,22 +24,31 @@ int CHexeCodeIntermediate::CreateDatumBlock (CDatum dDatum)
 //	Allocates a new datum block
 
 	{
-	int i;
-
 	//	If this is a string see if we've already added the same string
 
 	if (dDatum.GetBasicType() == CDatum::typeString)
 		{
-		for (i = 0; i < m_DatumBlocks.GetCount(); i++)
-			if (strEquals(dDatum, m_DatumBlocks[i]))
-				return i;
+		bool bNew;
+		int* pID = m_StringMap.SetAt(dDatum.AsStringView(), &bNew);
+		if (!bNew)
+			return *pID;
+		else
+			{
+			int iID = m_DatumBlocks.GetCount();
+			m_DatumBlocks.Insert(dDatum);
+			*pID = iID;
+			return iID;
+			}
 		}
 
 	//	Add a new datum
 
-	int iID = m_DatumBlocks.GetCount();
-	m_DatumBlocks.Insert(dDatum);
-	return iID;
+	else
+		{
+		int iID = m_DatumBlocks.GetCount();
+		m_DatumBlocks.Insert(dDatum);
+		return iID;
+		}
 	}
 
 CDatum CHexeCodeIntermediate::CreateOutput (int iBlock) const
@@ -65,6 +74,11 @@ void CHexeCodeIntermediate::RewriteShortOpCode (int iBlock, int iPos, OPCODE opC
 	m_CodeBlocks[iBlock].Seek(iPos);
 	WriteShortOpCode(iBlock, opCode, dwOperand);
 	m_CodeBlocks[iBlock].Seek(iOldPos);
+	}
+
+void CHexeCodeIntermediate::WriteParam (int iBlock, DWORD dwData)
+	{
+	m_CodeBlocks[iBlock].Write(&dwData, sizeof(DWORD));
 	}
 
 void CHexeCodeIntermediate::WriteShortOpCode (int iBlock, OPCODE opCode, DWORD dwOperand)

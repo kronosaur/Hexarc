@@ -14,6 +14,24 @@ openssl-1.0.1j/
 
 Foundation/Boost/*
 
+Dependencies/zlib-1.2.7
+
+## OpenSSL
+
+!Dependencies/openssl/lib/Debug
+!Dependencies/openssl/lib/Release
+
+## AWS
+
+!Dependencies/aws/lib/Debug
+!Dependencies/aws/lib/Release
+
+## SQLite
+
+Dependencies/SQLite/src
+!Dependencies/SQLite/lib/Debug
+!Dependencies/SQLite/lib/Release
+
 #################
 ## Eclipse
 #################

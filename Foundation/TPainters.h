@@ -1,7 +1,7 @@
 //	TPainters.h
 //
 //	Templates for various pixel painters and filters
-//	Copyright (c) 2018 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2018 GridWhale Corporation. All Rights Reserved.
 
 #pragma once
 

@@ -1,7 +1,7 @@
 //	MsgRunTask.cpp
 //
 //	Hyperion.runTask
-//	Copyright (c) 2014 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2014 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -62,7 +62,7 @@ void CHyperionEngine::MsgRunTask (const SArchonMessage &Msg, const CHexeSecurity
 //	Hyperion.runTask {taskName}
 
 	{
-	StartSession(Msg, new CRunTaskSession(this, m_Scheduler, Msg.dPayload));
+	StartSession(Msg, new CRunTaskSession(this, m_Scheduler, Msg.dPayload.AsStringView()));
 	}
 
 //	CRunTaskSession ------------------------------------------------------------
@@ -78,10 +78,11 @@ bool CRunTaskSession::HandleResult (CHexeProcess::ERun iRun, CDatum dResult)
 		{
 		case CHexeProcess::ERun::OK:
 		case CHexeProcess::ERun::Error:
+		case CHexeProcess::ERun::ForcedTerminate:
 			{
 			//	If we got an error, then log it.
 
-			if (iRun == CHexeProcess::ERun::Error)
+			if (iRun == CHexeProcess::ERun::Error || iRun == CHexeProcess::ERun::ForcedTerminate)
 				GetProcessCtx()->Log(MSG_LOG_ERROR, strPattern(ERR_RUN_ERROR, m_sTask, dResult.AsString()));
 
 			//	Either way we're done running
@@ -107,8 +108,8 @@ bool CRunTaskSession::HandleResult (CHexeProcess::ERun iRun, CDatum dResult)
 
 			//	Async request
 
-			SendMessageCommand(dResult.GetElement(0), 
-					dResult.GetElement(1), 
+			SendMessageCommand(dResult.GetElement(0).AsStringView(), 
+					dResult.GetElement(1).AsStringView(), 
 					GenerateAddress(PORT_HYPERION_COMMAND),
 					dResult.GetElement(2),
 					MESSAGE_TIMEOUT);

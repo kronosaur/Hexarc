@@ -1,17 +1,22 @@
 //	CAEONLuminousCanvas.cpp
 //
 //	CAEONLuminousCanvas Class
-//	Copyright (c) 2022 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2022 GridWhale Corporation. All Rights Reserved.
 
 #include "pch.h"
 #include "LuminousAEON.h"
 
+DECLARE_CONST_STRING(FIELD_ALIGN,					"align");
+DECLARE_CONST_STRING(FIELD_BASELINE,				"baseline");
 DECLARE_CONST_STRING(FIELD_BLUR,					"blur");
 DECLARE_CONST_STRING(FIELD_COLOR,					"color");
+DECLARE_CONST_STRING(FIELD_DIRECTION,				"direction");
 DECLARE_CONST_STRING(FIELD_FILL_STYLE,				"fillStyle");
+DECLARE_CONST_STRING(FIELD_FONT_STYLE,				"fontStyle");
 DECLARE_CONST_STRING(FIELD_IMAGE,					"image");
 DECLARE_CONST_STRING(FIELD_LINE_CAP,				"lineCap");
 DECLARE_CONST_STRING(FIELD_LINE_JOIN,				"lineJoin");
+DECLARE_CONST_STRING(FIELD_LINE_HEIGHT,				"lineHeight");
 DECLARE_CONST_STRING(FIELD_LINE_STYLE,				"lineStyle");
 DECLARE_CONST_STRING(FIELD_LINE_WIDTH,				"lineWidth");
 DECLARE_CONST_STRING(FIELD_LR,						"lr");
@@ -19,11 +24,20 @@ DECLARE_CONST_STRING(FIELD_MITER_LIMIT,				"miterLimit");
 DECLARE_CONST_STRING(FIELD_OFFSET_XY,				"offset");
 DECLARE_CONST_STRING(FIELD_PATH,					"path");
 DECLARE_CONST_STRING(FIELD_POS,						"pos");
+DECLARE_CONST_STRING(FIELD_POS_X,					"posX");
+DECLARE_CONST_STRING(FIELD_POS_Y,					"posY");
 DECLARE_CONST_STRING(FIELD_RESOURCE_ID,				"resourceID");
 DECLARE_CONST_STRING(FIELD_SEQ,						"seq");
 DECLARE_CONST_STRING(FIELD_SHADOW_STYLE,			"shadowStyle");
+DECLARE_CONST_STRING(FIELD_SIZE,					"size");
+DECLARE_CONST_STRING(FIELD_STRETCH,					"stretch");
+DECLARE_CONST_STRING(FIELD_STYLE,					"style");
+DECLARE_CONST_STRING(FIELD_TEXT,					"text");
+DECLARE_CONST_STRING(FIELD_TEXT_ALIGN,				"textAlign");
 DECLARE_CONST_STRING(FIELD_TYPE,					"type");
+DECLARE_CONST_STRING(FIELD_TYPEFACE,				"typeface");
 DECLARE_CONST_STRING(FIELD_UL,						"ul");
+DECLARE_CONST_STRING(FIELD_WEIGHT,					"weight");
 
 DECLARE_CONST_STRING(TYPE_ARC,						"arc");
 DECLARE_CONST_STRING(TYPE_ARC_TO,					"arcTo");
@@ -37,9 +51,12 @@ DECLARE_CONST_STRING(TYPE_RECT,						"rect");
 DECLARE_CONST_STRING(TYPE_SET_RESOURCE,				"setResource");
 DECLARE_CONST_STRING(TYPE_SHAPE,					"shape");
 DECLARE_CONST_STRING(TYPE_SOLID,					"solid");
+DECLARE_CONST_STRING(TYPE_TEXT,						"text");
 
 DECLARE_CONST_STRING(TYPENAME_LUMINOUS_CANVAS,		"luminousCanvas");
 
+DECLARE_CONST_STRING(ERR_INVALID_TEXT_ALIGN,		"Invalid textAlign value: %s.");
+DECLARE_CONST_STRING(ERR_INVALID_TEXT_BASELINE,		"Invalid textBaseline value: %s.");
 DECLARE_CONST_STRING(ERR_INVALID_SPRITE_DESC,		"Invalid sprite descriptor.");
 DECLARE_CONST_STRING(ERR_INVALID_RESOURCE_NAME,		"Invalid resource name.");
 DECLARE_CONST_STRING(ERR_RESOURCE_NOT_FOUND,		"Unable to find canvas resource: %s.");
@@ -47,10 +64,11 @@ DECLARE_CONST_STRING(ERR_RESOURCE_NOT_FOUND,		"Unable to find canvas resource: %
 TDatumPropertyHandler<CAEONLuminousCanvas> CAEONLuminousCanvas::m_Properties = {
 	{
 		"fillStyle",
+		"?",
 		"The fill style for future shapes.",
 		[](const CAEONLuminousCanvas &Obj, const CString &sProperty)
 			{
-			return CDatum(CAEONLuminousCanvas::AsDatum(Obj.m_DrawCtx.Fill().GetColor()));
+			return CDatum(CAEONLuminous::AsDatum(Obj.m_DrawCtx.Fill().GetColor()));
 			},
 		[](CAEONLuminousCanvas &Obj, const CString &sProperty, CDatum dValue, CString *retsError)
 			{
@@ -59,7 +77,22 @@ TDatumPropertyHandler<CAEONLuminousCanvas> CAEONLuminousCanvas::m_Properties = {
 			},
 		},
 	{
+		"fontStyle",
+		"?",
+		"The font style to use for future text draw.",
+		[](const CAEONLuminousCanvas &Obj, const CString &sProperty)
+			{
+			return CDatum(Obj.m_DrawCtx.Font().AsHTML());
+			},
+		[](CAEONLuminousCanvas &Obj, const CString &sProperty, CDatum dValue, CString *retsError)
+			{
+			Obj.m_DrawCtx.Font() = CAEONLuminous::AsFontStyle(dValue);
+			return true;
+			},
+		},
+	{
 		"length",
+		"?",
 		"Returns the number of rows in the table.",
 		[](const CAEONLuminousCanvas &Obj, const CString &sProperty)
 			{
@@ -69,10 +102,11 @@ TDatumPropertyHandler<CAEONLuminousCanvas> CAEONLuminousCanvas::m_Properties = {
 		},
 	{
 		"lineStyle",
+		"?",
 		"The line style for future shapes.",
 		[](const CAEONLuminousCanvas &Obj, const CString &sProperty)
 			{
-			return CDatum(CAEONLuminousCanvas::AsDatum(Obj.m_DrawCtx.Line().GetColor()));
+			return CDatum(CAEONLuminous::AsDatum(Obj.m_DrawCtx.Line().GetColor()));
 			},
 		[](CAEONLuminousCanvas &Obj, const CString &sProperty, CDatum dValue, CString *retsError)
 			{
@@ -82,6 +116,7 @@ TDatumPropertyHandler<CAEONLuminousCanvas> CAEONLuminousCanvas::m_Properties = {
 		},
 	{
 		"lineWidth",
+		"?",
 		"The line width for future shapes.",
 		[](const CAEONLuminousCanvas &Obj, const CString &sProperty)
 			{
@@ -93,101 +128,154 @@ TDatumPropertyHandler<CAEONLuminousCanvas> CAEONLuminousCanvas::m_Properties = {
 			return true;
 			},
 		},
+	{
+		"seq",
+		"?",
+		"Returns the current sequence number.",
+		[](const CAEONLuminousCanvas &Obj, const CString &sProperty)
+			{
+			return CDatum(Obj.m_Seq);
+			},
+		NULL,
+		},
+	{
+		"textAlign",
+		"?",
+		"The horizontal alignment for future text draw.",
+		[](const CAEONLuminousCanvas &Obj, const CString &sProperty)
+			{
+			return CDatum(Obj.m_DrawCtx.TextAlign().GetAlignAsHTML());
+			},
+		[](CAEONLuminousCanvas &Obj, const CString &sProperty, CDatum dValue, CString *retsError)
+			{
+			CLuminousTextAlign::EAlign iAlign = CLuminousTextAlign::ParseAlign(dValue.AsStringView());
+			if (iAlign == CLuminousTextAlign::EAlign::Unknown)
+				{
+				if (retsError) *retsError = strPattern(ERR_INVALID_TEXT_ALIGN, dValue.AsString());
+				return false;
+				}
+
+			Obj.m_DrawCtx.TextAlign().SetAlign(iAlign);
+			return true;
+			},
+		},
+	{
+		"textBaseline",
+		"?",
+		"The vertical alignment for future text draw.",
+		[](const CAEONLuminousCanvas &Obj, const CString &sProperty)
+			{
+			return CDatum(Obj.m_DrawCtx.TextAlign().GetBaselineAsHTML());
+			},
+		[](CAEONLuminousCanvas &Obj, const CString &sProperty, CDatum dValue, CString *retsError)
+			{
+			CLuminousTextAlign::EBaseline iBaseline = CLuminousTextAlign::ParseBaseline(dValue.AsStringView());
+			if (iBaseline == CLuminousTextAlign::EBaseline::Unknown)
+				{
+				if (retsError) *retsError = strPattern(ERR_INVALID_TEXT_BASELINE, dValue.AsString());
+				return false;
+				}
+
+			Obj.m_DrawCtx.TextAlign().SetBaseline(iBaseline);
+			return true;
+			},
+		},
 	};
 
 TDatumMethodHandler<CAEONLuminousCanvas> CAEONLuminousCanvas::m_Methods = {
 	{
 		"arc",
 		"*",
-		".arc(x, y, radius, startAngle, endAngle[, counterclockwise]) -> true/null",
+		".arc(x, y, radius, startAngle, endAngle[, counterclockwise]) -> true/false",
 		0,
-		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			double x = dLocalEnv.GetElement(1);
-			double y = dLocalEnv.GetElement(2);
-			double radius = dLocalEnv.GetElement(3);
-			double startAngle = dLocalEnv.GetElement(4);
-			double endAngle = dLocalEnv.GetElement(5);
-			bool bCounterclock = !dLocalEnv.GetElement(6).IsNil();
+			double x = LocalEnv.GetArgument(1);
+			double y = LocalEnv.GetArgument(2);
+			double radius = LocalEnv.GetArgument(3);
+			double startAngle = LocalEnv.GetArgument(4);
+			double endAngle = LocalEnv.GetArgument(5);
+			bool bCounterclock = !LocalEnv.GetArgument(6).IsNil();
 
 			Obj.m_DrawCtx.Path().Arc(CVector2D(x, y), radius, startAngle, endAngle, bCounterclock);
 
-			retdResult = CDatum(true);
+			retResult.dResult = CDatum(true);
 			return true;
 			},
 		},
 	{
 		"beginPath",
 		"*",
-		".beginPath() -> true/null",
+		".beginPath() -> true/false",
 		0,
-		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
 			Obj.m_DrawCtx.Path().DeleteAll();
 
-			retdResult = CDatum(true);
+			retResult.dResult = CDatum(true);
 			return true;
 			},
 		},
 	{
 		"circle",
 		"*",
-		".circle(x, y, radius) -> true/null",
+		".circle(x, y, radius) -> true/false",
 		0,
-		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			double x = dLocalEnv.GetElement(1);
-			double y = dLocalEnv.GetElement(2);
-			double radius = dLocalEnv.GetElement(3);
+			double x = LocalEnv.GetArgument(1);
+			double y = LocalEnv.GetArgument(2);
+			double radius = LocalEnv.GetArgument(3);
 
 			Obj.m_DrawCtx.Path().Arc(CVector2D(x, y), radius, 0.0, TAU, true);
 
-			retdResult = CDatum(true);
+			retResult.dResult = CDatum(true);
 			return true;
 			},
 		},
 	{
 		"clearRect",
 		"*",
-		".clearRect() -> true/null\n"
-		".clearRect(x, y, width, height) -> true/null",
+		".clearRect() -> true/false\n"
+		".clearRect(x, y, width, height) -> true/false",
 		0,
-		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
 			Obj.OnModify();
 
 			CDatum dCmdData;
-			if (dLocalEnv.GetCount() == 1)
+			if (LocalEnv.GetCount() == 1)
 				Obj.m_Model.DeleteAll();
 			else
 				{
-				double x = dLocalEnv.GetElement(1);
-				double y = dLocalEnv.GetElement(2);
-				double width = dLocalEnv.GetElement(3);
-				double height = dLocalEnv.GetElement(4);
+				double x = LocalEnv.GetArgument(1);
+				double y = LocalEnv.GetArgument(2);
+				double width = LocalEnv.GetArgument(3);
+				double height = LocalEnv.GetArgument(4);
 				if (width <= 0.0 || height <= 0.0)
 					{
-					retdResult = CDatum();
+					retResult.dResult = CDatum(false);
 					return true;
 					}
 
-				Obj.m_Model.InsertGraphic(CLuminousCanvasModel::CreateClearRect(CVector2D(x, y), CVector2D(x + width, y + height)));
+				auto& Graphic = Obj.m_Model.InsertGraphic(CLuminousCanvasModel::CreateClearRect(CVector2D(x, y), CVector2D(x + width, y + height)));
+				Graphic.SetSeq(Obj.GetSeq());
 				}
 
-			retdResult = CDatum(true);
+			retResult.dResult = CDatum(true);
 			return true;
 			},
 		},
 	{
 		"closePath",
 		"*",
-		".closePath() -> true/null",
+		".closePath() -> true/false",
 		0,
-		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
 			Obj.m_DrawCtx.Path().ClosePath();
 
-			retdResult = CDatum(true);
+			retResult.dResult = CDatum(true);
 			return true;
 			},
 		},
@@ -196,57 +284,59 @@ TDatumMethodHandler<CAEONLuminousCanvas> CAEONLuminousCanvas::m_Methods = {
 		"*",
 		".createSprite(desc, [options]) -> sprite",
 		0,
-		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			CDatum dDesc = dLocalEnv.GetElement(1);
-			CDatum dOptions = dLocalEnv.GetElement(2);
+			CDatum dDesc = LocalEnv.GetArgument(1);
+			CDatum dOptions = LocalEnv.GetArgument(2);
 			CDatum dSprite = Obj.CreateSprite(dDesc, dOptions);
 			if (dSprite.IsNil())
 				{
-				retdResult = ERR_INVALID_SPRITE_DESC;
+				retResult.dResult = ERR_INVALID_SPRITE_DESC;
 				return false;
 				}
 
-			retdResult = dSprite;
+			retResult.dResult = dSprite;
 			return true;
 			},
 		},
 	{
 		"drawImage",
 		"*",
-		".drawImage(image, x, y) -> true/null",
+		".drawImage(image, x, y) -> true/false",
 		0,
-		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			CDatum dImage = dLocalEnv.GetElement(1);
-			double x = dLocalEnv.GetElement(2);
-			double y = dLocalEnv.GetElement(3);
+			CDatum dImage = LocalEnv.GetArgument(1);
+			double x = LocalEnv.GetArgument(2);
+			double y = LocalEnv.GetArgument(3);
 
 			Obj.OnModify();
 
 			if (!((const CRGBA32Image&)dImage).IsEmpty())
 				{
 				auto& Graphic = Obj.m_Model.InsertGraphic(CLuminousCanvasModel::CreateImage(dImage));
+				Graphic.SetSeq(Obj.GetSeq());
 				Graphic.SetPos(CVector2D(x, y));
 
 				Obj.m_Resources.AddResource(Graphic, dImage);
 
-				retdResult = CDatum(true);
+				retResult.dResult = CDatum(true);
 				return true;
 				}
 			else
 				{
-				const CString& sResourceID = dImage;
+				CStringView sResourceID = dImage;
 				if (Obj.m_Resources.FindNamedResource(sResourceID) == -1)
 					{
-					retdResult = strPattern(ERR_RESOURCE_NOT_FOUND, sResourceID);
+					retResult.dResult = strPattern(ERR_RESOURCE_NOT_FOUND, sResourceID);
 					return false;
 					}
 
 				auto& Graphic = Obj.m_Model.InsertGraphic(CLuminousCanvasModel::CreateResource(sResourceID));
+				Graphic.SetSeq(Obj.GetSeq());
 				Graphic.SetPos(CVector2D(x, y));
 
-				retdResult = CDatum(true);
+				retResult.dResult = CDatum(true);
 				return true;
 				}
 			},
@@ -254,82 +344,110 @@ TDatumMethodHandler<CAEONLuminousCanvas> CAEONLuminousCanvas::m_Methods = {
 	{
 		"fill",
 		"*",
-		".fill() -> true/null",
+		".fill() -> true/false",
 		0,
-		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
 			CLuminousCanvasModel::SShapeOptions Options;
 			Options.Path = Obj.m_DrawCtx.Path();
 			Options.FillStyle = Obj.m_DrawCtx.Fill();
 
 			Obj.OnModify();
-			Obj.m_Model.InsertGraphic(CLuminousCanvasModel::CreateShape(Options));
+			auto& Graphic = Obj.m_Model.InsertGraphic(CLuminousCanvasModel::CreateShape(Options));
+			Graphic.SetSeq(Obj.GetSeq());
 
-			retdResult = CDatum(true);
+			retResult.dResult = CDatum(true);
 			return true;
 			},
 		},
 	{
 		"fillRect",
 		"*",
-		".fillRect(x, y, width, height) -> true/null",
+		".fillRect(x, y, width, height) -> true/false",
 		0,
-		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			double x = dLocalEnv.GetElement(1);
-			double y = dLocalEnv.GetElement(2);
-			double cx = dLocalEnv.GetElement(3);
-			double cy = dLocalEnv.GetElement(4);
+			double x = LocalEnv.GetArgument(1);
+			double y = LocalEnv.GetArgument(2);
+			double cx = LocalEnv.GetArgument(3);
+			double cy = LocalEnv.GetArgument(4);
 
 			Obj.OnModify();
 
 			CLuminousCanvasModel::SShapeOptions Options;
 			Options.Path.Rect(CVector2D(x, y), CVector2D(x + cx, y + cy));
 			Options.FillStyle = Obj.m_DrawCtx.Fill();
-			Obj.m_Model.InsertGraphic(CLuminousCanvasModel::CreateShape(Options));
+			auto& Graphic = Obj.m_Model.InsertGraphic(CLuminousCanvasModel::CreateShape(Options));
+			Graphic.SetSeq(Obj.GetSeq());
 
-			retdResult = CDatum(true);
+			retResult.dResult = CDatum(true);
+			return true;
+			},
+		},
+	{
+		"fillText",
+		"*",
+		".fillText(text, x, y) -> true/false",
+		0,
+		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
+			{
+			CString sText = LocalEnv.GetArgument(1).AsString();
+			double x = LocalEnv.GetArgument(2);
+			double y = LocalEnv.GetArgument(3);
+
+			Obj.OnModify();
+
+			CLuminousCanvasModel::STextOptions Options;
+			Options.sText = sText;
+			Options.Pos = CVector2D(x, y);
+			Options.AlignStyle = Obj.m_DrawCtx.TextAlign();
+			Options.FontStyle = Obj.m_DrawCtx.Font();
+			Options.FillStyle = Obj.m_DrawCtx.Fill();
+			auto& Graphic = Obj.m_Model.InsertGraphic(CLuminousCanvasModel::CreateText(Options));
+			Graphic.SetSeq(Obj.GetSeq());
+
+			retResult.dResult = CDatum(true);
 			return true;
 			},
 		},
 	{
 		"lineTo",
 		"*",
-		".lineTo(x, y) -> true/null",
+		".lineTo(x, y) -> true/false",
 		0,
-		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			double x = dLocalEnv.GetElement(1);
-			double y = dLocalEnv.GetElement(2);
+			double x = LocalEnv.GetArgument(1);
+			double y = LocalEnv.GetArgument(2);
 
 			Obj.m_DrawCtx.Path().LineTo(CVector2D(x, y));
 
-			retdResult = CDatum(true);
+			retResult.dResult = CDatum(true);
 			return true;
 			},
 		},
 	{
 		"moveTo",
 		"*",
-		".moveTo(x, y) -> true/null",
+		".moveTo(x, y) -> true/false",
 		0,
-		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			double x = dLocalEnv.GetElement(1);
-			double y = dLocalEnv.GetElement(2);
+			double x = LocalEnv.GetArgument(1);
+			double y = LocalEnv.GetArgument(2);
 
 			Obj.m_DrawCtx.Path().MoveTo(CVector2D(x, y));
 
-			retdResult = CDatum(true);
+			retResult.dResult = CDatum(true);
 			return true;
 			},
 		},
 	{
 		"outline",
 		"*",
-		".outline() -> true/null",
+		".outline() -> true/false",
 		0,
-		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
 			CLuminousCanvasModel::SShapeOptions Options;
 			Options.Path = Obj.m_DrawCtx.Path();
@@ -337,27 +455,54 @@ TDatumMethodHandler<CAEONLuminousCanvas> CAEONLuminousCanvas::m_Methods = {
 
 			Obj.OnModify();
 
-			Obj.m_Model.InsertGraphic(CLuminousCanvasModel::CreateShape(Options));
+			auto& Graphic = Obj.m_Model.InsertGraphic(CLuminousCanvasModel::CreateShape(Options));
+			Graphic.SetSeq(Obj.GetSeq());
 
-			retdResult = CDatum(true);
+			retResult.dResult = CDatum(true);
+			return true;
+			},
+		},
+	{
+		"outlineText",
+		"*",
+		".outlineText(text, x, y) -> true/false",
+		0,
+		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
+			{
+			CStringView sText = LocalEnv.GetArgument(1);
+			double x = LocalEnv.GetArgument(2);
+			double y = LocalEnv.GetArgument(3);
+
+			Obj.OnModify();
+
+			CLuminousCanvasModel::STextOptions Options;
+			Options.sText = sText;
+			Options.Pos = CVector2D(x, y);
+			Options.AlignStyle = Obj.m_DrawCtx.TextAlign();
+			Options.FontStyle = Obj.m_DrawCtx.Font();
+			Options.LineStyle = Obj.m_DrawCtx.Line();
+			auto& Graphic = Obj.m_Model.InsertGraphic(CLuminousCanvasModel::CreateText(Options));
+			Graphic.SetSeq(Obj.GetSeq());
+
+			retResult.dResult = CDatum(true);
 			return true;
 			},
 		},
 	{
 		"rect",
 		"*",
-		".rect(x, y, width, height) -> true/null",
+		".rect(x, y, width, height) -> true/false",
 		0,
-		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			double x = dLocalEnv.GetElement(1);
-			double y = dLocalEnv.GetElement(2);
-			double cx = dLocalEnv.GetElement(3);
-			double cy = dLocalEnv.GetElement(4);
+			double x = LocalEnv.GetArgument(1);
+			double y = LocalEnv.GetArgument(2);
+			double cx = LocalEnv.GetArgument(3);
+			double cy = LocalEnv.GetArgument(4);
 
 			Obj.m_DrawCtx.Path().Rect(CVector2D(x, y), CVector2D(x + cx, y + cy));
 
-			retdResult = CDatum(true);
+			retResult.dResult = CDatum(true);
 			return true;
 			},
 		},
@@ -366,13 +511,13 @@ TDatumMethodHandler<CAEONLuminousCanvas> CAEONLuminousCanvas::m_Methods = {
 		"*",
 		"DEPRECATED: Use .fillStyle property instead.",
 		0,
-		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			CDatum dStyle = dLocalEnv.GetElement(1);
+			CDatum dStyle = LocalEnv.GetArgument(1);
 
 			Obj.m_DrawCtx.Fill().SetColor(CLuminousColor(CRGBA32::Parse(dStyle.AsString())));
 
-			retdResult = CDatum(true);
+			retResult.dResult = CDatum(true);
 			return true;
 			},
 		},
@@ -381,54 +526,54 @@ TDatumMethodHandler<CAEONLuminousCanvas> CAEONLuminousCanvas::m_Methods = {
 		"*",
 		"DEPRECATED: Use .lineStyle property instead.",
 		0,
-		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			CDatum dStyle = dLocalEnv.GetElement(1);
+			CDatum dStyle = LocalEnv.GetArgument(1);
 
 			Obj.m_DrawCtx.Line().SetColor(CLuminousColor(CRGBA32::Parse(dStyle.AsString())));
 
-			retdResult = CDatum(true);
+			retResult.dResult = CDatum(true);
 			return true;
 			},
 		},
 	{
 		"setResource",
 		"*",
-		".setResource(name, image) -> true/null",
+		".setResource(name, image) -> true/false",
 		0,
-		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			const CString& sName = dLocalEnv.GetElement(1);
-			CDatum dResource = dLocalEnv.GetElement(2);
+			CStringView sName = LocalEnv.GetArgument(1);
+			CDatum dResource = LocalEnv.GetArgument(2);
 
 			if (sName.IsEmpty())
 				{
-				retdResult = ERR_INVALID_RESOURCE_NAME;
+				retResult.dResult = ERR_INVALID_RESOURCE_NAME;
 				return false;
 				}
 
 			Obj.m_Resources.AddNamedResource(sName, dResource);
 
-			retdResult = CDatum(true);
+			retResult.dResult = CDatum(true);
 			return true;
 			},
 		},
 	{
 		"sprite_moveTo",
 		"*",
-		".sprite_moveTo(spriteID, pos) -> true/null",
+		".sprite_moveTo(spriteID, pos) -> true/false",
 		0,
-		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](CAEONLuminousCanvas& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			DWORD dwID = dLocalEnv.GetElement(1);
-			CVector2D vPos = dLocalEnv.GetElement(2);
+			DWORD dwID = LocalEnv.GetArgument(1);
+			CVector2D vPos = LocalEnv.GetArgument(2);
 
 			auto& Graphic = Obj.m_Model.GetGraphicByID(dwID);
 			Graphic.SetPos(vPos);
 
 			Obj.OnModify();
 
-			retdResult = CDatum(true);
+			retResult.dResult = CDatum(true);
 			return true;
 			},
 		},
@@ -437,352 +582,16 @@ TDatumMethodHandler<CAEONLuminousCanvas> CAEONLuminousCanvas::m_Methods = {
 		"*",
 		".renderHTMLCanvasCommands() -> desc",
 		0,
-		[](CAEONLuminousCanvas &Obj, IInvokeCtx &Ctx, const CString &sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum &retdResult)
+		[](CAEONLuminousCanvas &Obj, IInvokeCtx &Ctx, const CString &sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			retdResult = Obj.RenderAsHTMLCanvasCommands();
+			CDatum dSeq = LocalEnv.GetArgument(1);
+			retResult.dResult = Obj.RenderAsHTMLCanvasCommands((DWORDLONG)dSeq);
 			return true;
 			},
 		},
 	};
 
 const CString &CAEONLuminousCanvas::StaticGetTypename (void) { return TYPENAME_LUMINOUS_CANVAS; }
-
-CLuminousColor CAEONLuminousCanvas::AsColor (CDatum dValue, const CLuminousColor& Default)
-
-//	AsColor
-//
-//	Decode from datum.
-
-	{
-	if (dValue.IsNil())
-		return Default;
-	else if (dValue.GetBasicType() == CDatum::typeString)
-		{
-		const CString& sValue = dValue;
-
-		//	A leading dot means a theme color.
-
-		if (*sValue.GetParsePointer() == '.')
-			{
-			return CLuminousColor::ParseThemeColor(strSubString(sValue, 1), Default);
-			}
-
-		//	Otherwise, either a CSS color or a theme color.
-
-		else
-			{
-			bool bFail;
-			CRGBA32 rgbColor = CRGBA32::Parse(sValue, &bFail);
-			if (!bFail)
-				return CLuminousColor(rgbColor);
-
-			//	Otherwise, we expect a theme color.
-
-			else
-				return CLuminousColor::ParseThemeColor(sValue, Default);
-			}
-		}
-	else
-		{
-		const CString& sType = dValue.GetElement(0);
-		if (sType.IsEmpty())
-			return Default;
-		else if (strEquals(sType, TYPE_SOLID))
-			{
-			CRGBA32 rgbColor = CRGBA32((DWORD)dValue.GetElement(1));
-			return CLuminousColor(rgbColor);
-			}
-		else
-			return Default;
-		}
-	}
-
-CLuminousFillStyle CAEONLuminousCanvas::AsFillStyle (CDatum dValue)
-
-//	AsFillStyle
-//
-//	Decode from datum.
-
-	{
-	CLuminousColor Color = AsColor(dValue.GetElement(FIELD_COLOR));
-	return CLuminousFillStyle(Color);
-	}
-
-CLuminousLineStyle CAEONLuminousCanvas::AsLineStyle (CDatum dValue)
-
-//	AsLineStyle
-//
-//	Decode from datum.
-
-	{
-	CLuminousColor Color = AsColor(dValue.GetElement(FIELD_COLOR));
-	CLuminousLineStyle::ELineCap iLineCap = (CLuminousLineStyle::ELineCap)(int)dValue.GetElement(FIELD_LINE_CAP);
-	CLuminousLineStyle::ELineJoin iLineJoin = (CLuminousLineStyle::ELineJoin)(int)dValue.GetElement(FIELD_LINE_JOIN);
-	double rLineWidth = dValue.GetElement(FIELD_LINE_WIDTH);
-	double rMiterLimit = dValue.GetElement(FIELD_MITER_LIMIT);
-
-	return CLuminousLineStyle(Color, rLineWidth, iLineJoin, iLineCap, rMiterLimit);
-	}
-
-CLuminousPath2D CAEONLuminousCanvas::AsPath2D (CDatum dValue)
-
-//	AsPath2D
-//
-//	Decode from datum.
-
-	{
-	CLuminousPath2D Path;
-	for (int i = 0; i < dValue.GetCount(); i++)
-		{
-		CDatum dSegment = dValue.GetElement(i);
-		const CString& sType = dSegment.GetElement(0);
-
-		if (strEquals(sType, TYPE_ARC))
-			{
-			CVector2D vCenter = dSegment.GetElement(1);
-			double rRadius = dSegment.GetElement(2);
-			double rStartAngle = dSegment.GetElement(3);
-			double rEndAngle = dSegment.GetElement(4);
-			bool bCounterClockwise = !dSegment.GetElement(5).IsNil();
-
-			Path.Arc(vCenter, rRadius, rStartAngle, rEndAngle, bCounterClockwise);
-			}
-		else if (strEquals(sType, TYPE_ARC_TO))
-			{
-			CVector2D vTangent1 = dSegment.GetElement(1);
-			CVector2D vTangent2 = dSegment.GetElement(2);
-			double rRadius = dSegment.GetElement(3);
-
-			Path.ArcTo(vTangent1, vTangent2, rRadius);
-			}
-		else if (strEquals(sType, TYPE_CLOSE_PATH))
-			{
-			Path.ClosePath();
-			}
-		else if (strEquals(sType, TYPE_LINE_TO))
-			{
-			double rX = dSegment.GetElement(1);
-			double rY = dSegment.GetElement(2);
-
-			Path.LineTo(CVector2D(rX, rY));
-			}
-		else if (strEquals(sType, TYPE_MOVE_TO))
-			{
-			double rX = dSegment.GetElement(1);
-			double rY = dSegment.GetElement(2);
-
-			Path.MoveTo(CVector2D(rX, rY));
-			}
-		else if (strEquals(sType, TYPE_RECT))
-			{
-			double rULX = dSegment.GetElement(1);
-			double rULY = dSegment.GetElement(2);
-			double rLRX = dSegment.GetElement(3);
-			double rLRY = dSegment.GetElement(4);
-
-			Path.Rect(CVector2D(rULX, rULY), CVector2D(rLRX, rLRY));
-			}
-		else
-			{
-			return CLuminousPath2D();
-			}
-		}
-
-	return Path;
-	}
-
-CLuminousShadowStyle CAEONLuminousCanvas::AsShadowStyle (CDatum dValue)
-
-//	AsShadowStyle
-//
-//	Decode from datum.
-
-	{
-	CLuminousColor Color = AsColor(dValue.GetElement(FIELD_COLOR));
-	double rBlur = dValue.GetElement(FIELD_BLUR);
-	CVector2D vOffset = dValue.GetElement(FIELD_OFFSET_XY);
-
-	return CLuminousShadowStyle(Color, rBlur, vOffset);
-	}
-
-CDatum CAEONLuminousCanvas::AsDatum (const CLuminousColor& Color)
-
-//	AsDatum
-//
-//	Encodes as a datum.
-
-	{
-	switch (Color.GetType())
-		{
-		case CLuminousColor::EType::None:
-			return CDatum();
-
-		case CLuminousColor::EType::Solid:
-			return CDatum(Color.GetSolidColor().AsHTMLColor());
-
-		case CLuminousColor::EType::Theme:
-			//	Add a leading dot so we can distinguish on the client.
-			return CDatum(strPattern(".%s", Color.GetThemeColorID()));
-
-		default:
-			throw CException(errFail);
-		}
-	}
-
-CDatum CAEONLuminousCanvas::AsDatum (const CLuminousPath2D& Path)
-
-//	AsDatum
-//
-//	Encodes as a datum.
-
-	{
-	CDatum dResult(CDatum::typeArray);
-	dResult.GrowToFit(Path.GetSegmentCount());
-	for (int i = 0; i < Path.GetSegmentCount(); i++)
-		{
-		switch (Path.GetSegmentType(i))
-			{
-			case CLuminousPath2D::ESegmentType::ArcClockwise:
-			case CLuminousPath2D::ESegmentType::ArcCounterClockwise:
-				{
-				CVector2D vCenter;
-				double rRadius;
-				double rStartAngle;
-				double rEndAngle;
-				bool bCounterClockwise;
-
-				Path.GetArc(i, vCenter, rRadius, rStartAngle, rEndAngle, bCounterClockwise);
-
-				CDatum dSegment(CDatum::typeArray);
-				dSegment.Append(TYPE_ARC);
-				dSegment.Append(vCenter);
-				dSegment.Append(rRadius);
-				dSegment.Append(rStartAngle);
-				dSegment.Append(rEndAngle);
-				dSegment.Append(bCounterClockwise);
-
-				dResult.Append(dSegment);
-				break;
-				}
-
-			case CLuminousPath2D::ESegmentType::ArcTo:
-				{
-				CVector2D vTangent1;
-				CVector2D vTangent2;
-				double rRadius;
-
-				Path.GetArcTo(i, vTangent1, vTangent2, rRadius);
-
-				CDatum dSegment(CDatum::typeArray);
-				dSegment.Append(TYPE_ARC_TO);
-				dSegment.Append(vTangent1);
-				dSegment.Append(vTangent2);
-				dSegment.Append(rRadius);
-
-				dResult.Append(dSegment);
-				break;
-				}
-
-			case CLuminousPath2D::ESegmentType::ClosePath:
-				dResult.Append(TYPE_CLOSE_PATH);
-				break;
-
-			case CLuminousPath2D::ESegmentType::LineTo:
-				{
-				CVector2D vPos = Path.GetLineTo(i);
-
-				CDatum dSegment(CDatum::typeArray);
-				dSegment.Append(TYPE_LINE_TO);
-				dSegment.Append(vPos.X());
-				dSegment.Append(vPos.Y());
-
-				dResult.Append(dSegment);
-				break;
-				}
-
-			case CLuminousPath2D::ESegmentType::MoveTo:
-				{
-				CVector2D vPos = Path.GetMoveTo(i);
-
-				CDatum dSegment(CDatum::typeArray);
-				dSegment.Append(TYPE_MOVE_TO);
-				dSegment.Append(vPos.X());
-				dSegment.Append(vPos.Y());
-
-				dResult.Append(dSegment);
-				break;
-				}
-
-			case CLuminousPath2D::ESegmentType::Rect:
-				{
-				CVector2D vUL;
-				CVector2D vLR;
-
-				Path.GetRect(i, vUL, vLR);
-
-				CDatum dSegment(CDatum::typeArray);
-				dSegment.Append(TYPE_RECT);
-				dSegment.Append(vUL.X());
-				dSegment.Append(vUL.Y());
-				dSegment.Append(vLR.X());
-				dSegment.Append(vLR.Y());
-
-				dResult.Append(dSegment);
-				break;
-				}
-
-			default:
-				throw CException(errFail);
-			}
-		}
-
-	return dResult;
-	}
-
-CDatum CAEONLuminousCanvas::AsDatum (const CLuminousFillStyle& Style)
-
-//	AsDatum
-//
-//	Encodes as a datum.
-
-	{
-	CDatum dResult(CDatum::typeStruct);
-	dResult.SetElement(FIELD_COLOR, AsDatum(Style.GetColor()));
-
-	return dResult;
-	}
-
-CDatum CAEONLuminousCanvas::AsDatum (const CLuminousLineStyle& Style)
-
-//	AsDatum
-//
-//	Encodes as a datum.
-
-	{
-	CDatum dResult(CDatum::typeStruct);
-	dResult.SetElement(FIELD_COLOR, AsDatum(Style.GetColor()));
-	dResult.SetElement(FIELD_LINE_CAP, (int)Style.GetLineCap());
-	dResult.SetElement(FIELD_LINE_JOIN, (int)Style.GetLineJoin());
-	dResult.SetElement(FIELD_LINE_WIDTH, Style.GetLineWidth());
-	dResult.SetElement(FIELD_MITER_LIMIT, Style.GetMiterLimit());
-
-	return dResult;
-	}
-
-CDatum CAEONLuminousCanvas::AsDatum (const CLuminousShadowStyle& Style)
-
-//	AsDatum
-//
-//	Encodes as a datum.
-
-	{
-	CDatum dResult(CDatum::typeStruct);
-	dResult.SetElement(FIELD_COLOR, AsDatum(Style.GetColor()));
-	dResult.SetElement(FIELD_BLUR, Style.GetBlur());
-	dResult.SetElement(FIELD_OFFSET_XY, Style.GetOffset());
-
-	return dResult;
-	}
 
 CDatum CAEONLuminousCanvas::Create ()
 
@@ -815,7 +624,7 @@ CDatum CAEONLuminousCanvas::CreateSprite (CDatum dDesc, CDatum dOptions)
 		return CDatum();
 	}
 
-CDatum CAEONLuminousCanvas::GenerateBeginUpdate (SequenceNumber Seq)
+CDatum CAEONLuminousCanvas::GenerateBeginUpdate ()
 
 //	GenerateBeginUpdate
 //
@@ -824,7 +633,6 @@ CDatum CAEONLuminousCanvas::GenerateBeginUpdate (SequenceNumber Seq)
 	{
 	CDatum dResult(CDatum::typeStruct);
 	dResult.SetElement(FIELD_TYPE, TYPE_BEGIN_UPDATE);
-	dResult.SetElement(FIELD_SEQ, Seq);
 
 	return dResult;
 	}
@@ -883,10 +691,31 @@ CDatum CAEONLuminousCanvas::GenerateShapeDesc (const CLuminousCanvasModel::SShap
 	{
 	CDatum dResult(CDatum::typeStruct);
 	dResult.SetElement(FIELD_TYPE, TYPE_SHAPE);
-	dResult.SetElement(FIELD_PATH, AsDatum(Options.Path));
-	dResult.SetElement(FIELD_FILL_STYLE, AsDatum(Options.FillStyle));
-	dResult.SetElement(FIELD_LINE_STYLE, AsDatum(Options.LineStyle));
-	dResult.SetElement(FIELD_SHADOW_STYLE, AsDatum(Options.ShadowStyle));
+	dResult.SetElement(FIELD_PATH, CAEONLuminous::AsDatum(Options.Path));
+	dResult.SetElement(FIELD_FILL_STYLE, CAEONLuminous::AsDatum(Options.FillStyle));
+	dResult.SetElement(FIELD_LINE_STYLE, CAEONLuminous::AsDatum(Options.LineStyle));
+	dResult.SetElement(FIELD_SHADOW_STYLE, CAEONLuminous::AsDatum(Options.ShadowStyle));
+
+	return dResult;
+	}
+
+CDatum CAEONLuminousCanvas::GenerateTextDesc (const CLuminousCanvasModel::STextOptions& Options)
+
+//	GenerateTextDesc
+//
+//	Generates a text descriptor
+
+	{
+	CDatum dResult(CDatum::typeStruct);
+	dResult.SetElement(FIELD_TYPE, TYPE_TEXT);
+	dResult.SetElement(FIELD_TEXT, Options.sText);
+	dResult.SetElement(FIELD_POS_X, Options.Pos.X());
+	dResult.SetElement(FIELD_POS_Y, Options.Pos.Y());
+	dResult.SetElement(FIELD_FONT_STYLE, CAEONLuminous::AsDatum(Options.FontStyle));
+	dResult.SetElement(FIELD_TEXT_ALIGN, CAEONLuminous::AsDatum(Options.AlignStyle));
+	dResult.SetElement(FIELD_FILL_STYLE, CAEONLuminous::AsDatum(Options.FillStyle));
+	dResult.SetElement(FIELD_LINE_STYLE, CAEONLuminous::AsDatum(Options.LineStyle));
+	dResult.SetElement(FIELD_SHADOW_STYLE, CAEONLuminous::AsDatum(Options.ShadowStyle));
 
 	return dResult;
 	}
@@ -898,13 +727,10 @@ bool CAEONLuminousCanvas::InsertGraphic (CDatum dDesc)
 //	Inserts a new graphic.
 
 	{
-	SequenceNumber Seq = dDesc.GetElement(FIELD_SEQ);
-
 	OnModify();
-	if (Seq == 0)
-		Seq = GetSeq();
+	SequenceNumber Seq = GetSeq();
 
-	const CString& sType = dDesc.GetElement(FIELD_TYPE);
+	CStringView sType = dDesc.GetElement(FIELD_TYPE);
 	if (strEquals(sType, TYPE_BEGIN_UPDATE))
 		{
 		auto& Graphic = m_Model.InsertGraphic(CLuminousCanvasModel::CreateBeginUpdate());
@@ -933,7 +759,7 @@ bool CAEONLuminousCanvas::InsertGraphic (CDatum dDesc)
 			}
 		else
 			{
-			const CString& sResourceID = dImage;
+			CStringView sResourceID = dImage;
 			if (m_Resources.FindNamedResource(sResourceID) == -1)
 				return false;
 
@@ -944,7 +770,7 @@ bool CAEONLuminousCanvas::InsertGraphic (CDatum dDesc)
 		}
 	else if (strEquals(sType, TYPE_SET_RESOURCE))
 		{
-		const CString& sResourceID = dDesc.GetElement(FIELD_RESOURCE_ID);
+		CStringView sResourceID = dDesc.GetElement(FIELD_RESOURCE_ID);
 		CDatum dImage = dDesc.GetElement(FIELD_IMAGE);
 
 		m_Resources.AddNamedResource(sResourceID, dImage, Seq);
@@ -952,12 +778,26 @@ bool CAEONLuminousCanvas::InsertGraphic (CDatum dDesc)
 	else if (strEquals(sType, TYPE_SHAPE))
 		{
 		CLuminousCanvasModel::SShapeOptions Options;
-		Options.Path = AsPath2D(dDesc.GetElement(FIELD_PATH));
-		Options.FillStyle = AsFillStyle(dDesc.GetElement(FIELD_FILL_STYLE));
-		Options.LineStyle = AsLineStyle(dDesc.GetElement(FIELD_LINE_STYLE));
-		Options.ShadowStyle = AsShadowStyle(dDesc.GetElement(FIELD_SHADOW_STYLE));
+		Options.Path = CAEONLuminous::AsPath2D(dDesc.GetElement(FIELD_PATH));
+		Options.FillStyle = CAEONLuminous::AsFillStyle(dDesc.GetElement(FIELD_FILL_STYLE));
+		Options.LineStyle = CAEONLuminous::AsLineStyle(dDesc.GetElement(FIELD_LINE_STYLE));
+		Options.ShadowStyle = CAEONLuminous::AsShadowStyle(dDesc.GetElement(FIELD_SHADOW_STYLE));
 
 		auto& Graphic = m_Model.InsertGraphic(CLuminousCanvasModel::CreateShape(Options));
+		Graphic.SetSeq(Seq);
+		}
+	else if (strEquals(sType, TYPE_TEXT))
+		{
+		CLuminousCanvasModel::STextOptions Options;
+		Options.sText = dDesc.GetElement(FIELD_TEXT).AsStringView();
+		Options.Pos = CVector2D(dDesc.GetElement(FIELD_POS_X), dDesc.GetElement(FIELD_POS_Y));
+		Options.FontStyle = CAEONLuminous::AsFontStyle(dDesc.GetElement(FIELD_FONT_STYLE));
+		Options.AlignStyle = CAEONLuminous::AsTextAlign(dDesc.GetElement(FIELD_TEXT_ALIGN));
+		Options.FillStyle = CAEONLuminous::AsFillStyle(dDesc.GetElement(FIELD_FILL_STYLE));
+		Options.LineStyle = CAEONLuminous::AsLineStyle(dDesc.GetElement(FIELD_LINE_STYLE));
+		Options.ShadowStyle = CAEONLuminous::AsShadowStyle(dDesc.GetElement(FIELD_SHADOW_STYLE));
+
+		auto& Graphic = m_Model.InsertGraphic(CLuminousCanvasModel::CreateText(Options));
 		Graphic.SetSeq(Seq);
 		}
 	else
@@ -1016,6 +856,22 @@ void CAEONLuminousCanvas::OnSerialize (CDatum::EFormat iFormat, IByteStream &Str
 //
 //	Serialize to a structure.
 
+	{
+	Stream.Write(m_Seq);
+	m_Model.Write(Stream);
+	m_DrawCtx.Write(Stream);
+	m_Resources.Write(Stream);
+	}
+
+void CAEONLuminousCanvas::DeserializeAEONExternal (IByteStream& Stream, CAEONSerializedMap &Serialized)
+	{
+	m_Seq = Stream.ReadDWORDLONG();
+	m_Model = CLuminousCanvasModel::Read(Stream);
+	m_DrawCtx = CLuminousCanvasCtx::Read(Stream);
+	m_Resources = CLuminousCanvasResources::Read(Stream);
+	}
+
+void CAEONLuminousCanvas::SerializeAEONExternal (IByteStream& Stream, CAEONSerializedMap &Serialized) const
 	{
 	Stream.Write(m_Seq);
 	m_Model.Write(Stream);

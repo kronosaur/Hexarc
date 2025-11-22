@@ -1,40 +1,42 @@
 //	CXMLElement.cpp
 //
 //	CXMLElement class
-//	Copyright (c) 2014 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2014 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
 DECLARE_CONST_STRING(STR_1,							"1")
 DECLARE_CONST_STRING(STR_TRUE,						"true")
 
-CXMLElement::CXMLElement (void) :
-		m_pParent(NULL)
+CXMLElement::CXMLElement (const CXMLElement &Obj) : 
+		m_Store(Obj.m_Store)
 
 //	CXMLElement constructor
 
 	{
-	}
-
-CXMLElement::CXMLElement (const CXMLElement &Obj)
-
-//	CXMLElement constructor
-
-	{
-	int i;
-
-	m_sTag = Obj.m_sTag;
+	m_Tag = Obj.m_Tag;
 	m_pParent = Obj.m_pParent;
 	m_Attributes = Obj.m_Attributes;
 	m_ContentText = Obj.m_ContentText;
 
 	m_ContentElements.InsertEmpty(Obj.m_ContentElements.GetCount());
-	for (i = 0; i < m_ContentElements.GetCount(); i++)
+	for (int i = 0; i < m_ContentElements.GetCount(); i++)
 		m_ContentElements[i] = new CXMLElement(*Obj.m_ContentElements[i]);
 	}
 
-CXMLElement::CXMLElement (const CString &sTag, CXMLElement *pParent) :
-		m_sTag(sTag),
+CXMLElement::CXMLElement (CXMLStore& Store, SXMLNameID TagID, CXMLElement* pParent) :
+		m_Store(Store),
+		m_Tag(TagID),
+		m_pParent(pParent)
+
+//	CXMLElement constructor
+
+	{
+	}
+
+CXMLElement::CXMLElement (CXMLStore& Store, const CString &sTag, CXMLElement *pParent) :
+		m_Store(Store),
+		m_Tag(Atomize(sTag)),
 		m_pParent(pParent)
 
 //	CXMLElement constructor
@@ -47,30 +49,18 @@ CXMLElement &CXMLElement::operator= (const CXMLElement &Obj)
 //	CXMLElement operator=
 
 	{
-	int i;
-
 	CleanUp();
 
-	m_sTag = Obj.m_sTag;
+	m_Tag = Obj.m_Tag;
 	m_pParent = Obj.m_pParent;
 	m_Attributes = Obj.m_Attributes;
 	m_ContentText = Obj.m_ContentText;
 
 	m_ContentElements.InsertEmpty(Obj.m_ContentElements.GetCount());
-	for (i = 0; i < m_ContentElements.GetCount(); i++)
+	for (int i = 0; i < m_ContentElements.GetCount(); i++)
 		m_ContentElements[i] = new CXMLElement(*Obj.m_ContentElements[i]);
 
 	return *this;
-	}
-
-void CXMLElement::AddAttribute (const CString &sAttribute, const CString &sValue)
-
-//	AddAttribute
-//
-//	Add the given attribute to our table
-
-	{
-	m_Attributes.Insert(sAttribute, sValue);
 	}
 
 void CXMLElement::AppendContent (const CString &sContent)
@@ -84,7 +74,51 @@ void CXMLElement::AppendContent (const CString &sContent)
 
 	int iCount = m_ContentText.GetCount();
 	if (iCount == 0)
-		m_ContentText.Insert(sContent);
+		{
+		//	If we have sub elements, but no content array then it means we've
+		//	deferred creating the content array until we actually have content.
+		//	We need to add some empty content.
+
+		if (m_ContentElements.GetCount() > 0)
+			{
+			m_ContentText.InsertEmpty(m_ContentElements.GetCount() + 1);
+			m_ContentText[m_ContentElements.GetCount()] = sContent;
+			}
+		else
+			{
+			m_ContentText.Insert(sContent);
+			}
+		}
+	else
+		m_ContentText[iCount - 1] += sContent;
+	}
+
+void CXMLElement::AppendContent (CString&& sContent)
+
+//	AppendContent
+//
+//	Appends some content
+
+	{
+	//	Always append to the last content element
+
+	int iCount = m_ContentText.GetCount();
+	if (iCount == 0)
+		{
+		//	If we have sub elements, but no content array then it means we've
+		//	deferred creating the content array until we actually have content.
+		//	We need to add some empty content.
+
+		if (m_ContentElements.GetCount() > 0)
+			{
+			m_ContentText.InsertEmpty(m_ContentElements.GetCount() + 1);
+			m_ContentText[m_ContentElements.GetCount()] = std::move(sContent);
+			}
+		else
+			{
+			m_ContentText.Insert(std::move(sContent));
+			}
+		}
 	else
 		m_ContentText[iCount - 1] += sContent;
 	}
@@ -96,30 +130,26 @@ void CXMLElement::AppendSubElement (CXMLElement *pElement)
 //	Append a sub element
 
 	{
-	//	If this element was previously empty, we have to add
-	//	a content text item. [Because we optimize the case where
-	//	there are no children.]
-
-	if (m_ContentText.GetCount() == 0)
-		m_ContentText.Insert(NULL_STR);
-
 	//	Append the element
 
 	m_ContentElements.Insert(pElement);
 
-	//	We always add a new content text value at the end
+	//	If we have content text, then add content text entries.
 
-	m_ContentText.Insert(NULL_STR);
+	if (m_ContentText.GetCount() > 0)
+		{
+		m_ContentText.Insert(NULL_STR);
+		}
 	}
 
-bool CXMLElement::AttributeExists (const CString &sName)
+bool CXMLElement::AttributeExists (SXMLNameID ID) const
 
 //	AttributeExists
 //
 //	Returns TRUE if the attribute exists in the element
 
 	{
-	return (m_Attributes.GetAt(sName) != NULL);
+	return (FindAttributeIndex(ID) != -1);
 	}
 
 void CXMLElement::CleanUp (void)
@@ -129,15 +159,13 @@ void CXMLElement::CleanUp (void)
 //	Free
 
 	{
-	int i;
-
-	for (i = 0; i < m_ContentElements.GetCount(); i++)
+	for (int i = 0; i < m_ContentElements.GetCount(); i++)
 		delete m_ContentElements[i];
 
 	m_ContentElements.DeleteAll();
 	}
 
-bool CXMLElement::FindAttribute (const CString &sName, CString *retsValue)
+bool CXMLElement::FindAttribute (SXMLNameID ID, CString *retsValue) const
 
 //	FindAttribute
 //
@@ -145,17 +173,17 @@ bool CXMLElement::FindAttribute (const CString &sName, CString *retsValue)
 //	Otherwise, returns FALSE
 
 	{
-	CString *pValue = m_Attributes.GetAt(sName);
-	if (pValue == NULL)
+	int iIndex = FindAttributeIndex(ID);
+	if (iIndex == -1)
 		return false;
 
 	if (retsValue)
-		*retsValue = *pValue;
+		*retsValue = m_Attributes[iIndex].sValue;
 
 	return true;
 	}
 
-bool CXMLElement::FindAttributeBool (const CString &sName, bool *retbValue)
+bool CXMLElement::FindAttributeBool (SXMLNameID ID, bool *retbValue) const
 
 //	FindAttributeBool
 //
@@ -163,34 +191,48 @@ bool CXMLElement::FindAttributeBool (const CString &sName, bool *retbValue)
 //	Otherwise, returns FALSE
 
 	{
-	CString *pValue = m_Attributes.GetAt(sName);
-	if (pValue == NULL)
+	int iIndex = FindAttributeIndex(ID);
+	if (iIndex == -1)
 		return false;
 
 	if (retbValue)
-		*retbValue = IsBoolTrueValue(*pValue);
+		*retbValue = IsBoolTrueValue(m_Attributes[iIndex].sValue);
 
 	return true;
 	}
 
-bool CXMLElement::FindAttributeDouble (const CString &sName, double *retrValue)
+bool CXMLElement::FindAttributeDouble (SXMLNameID ID, double *retrValue) const
 
 //	FindAttributeDouble
 //
 //	Finds an attribute.
 
 	{
-	CString *pValue = m_Attributes.GetAt(sName);
-	if (pValue == NULL)
+	int iIndex = FindAttributeIndex(ID);
+	if (iIndex == -1)
 		return false;
 
 	if (retrValue)
-		*retrValue = strToDouble(*pValue);
+		*retrValue = strToDouble(m_Attributes[iIndex].sValue);
 
 	return true;
 	}
 
-bool CXMLElement::FindAttributeInteger (const CString &sName, int *retiValue)
+int CXMLElement::FindAttributeIndex (SXMLNameID ID) const
+
+//	FindAttributeIndex
+//
+//	Returns the index of the given attribute (of -1 if not found).
+
+	{
+	for (int i = 0; i < m_Attributes.GetCount(); i++)
+		if (m_Attributes[i].Attrib == ID)
+			return i;
+
+	return -1;
+	}
+
+bool CXMLElement::FindAttributeInteger (SXMLNameID ID, int *retiValue) const
 
 //	FindAttributeInteger
 //
@@ -198,59 +240,59 @@ bool CXMLElement::FindAttributeInteger (const CString &sName, int *retiValue)
 //	Otherwise, returns FALSE
 
 	{
-	CString *pValue = m_Attributes.GetAt(sName);
-	if (pValue == NULL)
+	int iIndex = FindAttributeIndex(ID);
+	if (iIndex == -1)
 		return false;
 
 	if (retiValue)
-		*retiValue = strToInt(*pValue, 0, NULL);
+		*retiValue = strToInt(m_Attributes[iIndex].sValue, 0, NULL);
 
 	return true;
 	}
 
-CString CXMLElement::GetAttribute (const CString &sName)
+const CString& CXMLElement::GetAttribute (SXMLNameID ID) const
 
 //	GetAttribute
 //
 //	Returns the attribute
 
 	{
-	CString *pValue = m_Attributes.GetAt(sName);
-	if (pValue == NULL)
+	int iIndex = FindAttributeIndex(ID);
+	if (iIndex == -1)
 		return NULL_STR;
 
-	return *pValue;
+	return m_Attributes[iIndex].sValue;
 	}
 
-bool CXMLElement::GetAttributeBool (const CString &sName)
+bool CXMLElement::GetAttributeBool (SXMLNameID ID) const
 
 //	GetAttributeBool
 //
 //	Returns TRUE or FALSE for the attribute
 
 	{
-	CString *pValue = m_Attributes.GetAt(sName);
-	if (pValue == NULL)
+	int iIndex = FindAttributeIndex(ID);
+	if (iIndex == -1)
 		return false;
 
-	return IsBoolTrueValue(*pValue);
+	return IsBoolTrueValue(m_Attributes[iIndex].sValue);
 	}
 
-double CXMLElement::GetAttributeDouble (const CString &sName)
+double CXMLElement::GetAttributeDouble (SXMLNameID ID) const
 
 //	GetAttributeDouble
 //
 //	Returns a double attribute.
 
 	{
-	CString *pValue = m_Attributes.GetAt(sName);
-	if (pValue == NULL)
+	int iIndex = FindAttributeIndex(ID);
+	if (iIndex == -1)
 		return 0.0;
 
-	return strToDouble(*pValue);
+	return strToDouble(m_Attributes[iIndex].sValue);
 	}
 
-double CXMLElement::GetAttributeDoubleBounded (const CString &sName, double rMin, double rMax, double rNull)
+double CXMLElement::GetAttributeDoubleBounded (SXMLNameID ID, double rMin, double rMax, double rNull) const
 
 //	GetAttributeDoubleBounded
 //
@@ -258,7 +300,7 @@ double CXMLElement::GetAttributeDoubleBounded (const CString &sName, double rMin
 
 	{
 	CString sValue;
-	if (FindAttribute(sName, &sValue))
+	if (FindAttribute(ID, &sValue))
 		{
 		double rValue = strToDouble(sValue);
 
@@ -281,31 +323,31 @@ double CXMLElement::GetAttributeDoubleBounded (const CString &sName, double rMin
 		return rNull;
 	}
 
-float CXMLElement::GetAttributeFloat (const CString &sName)
+float CXMLElement::GetAttributeFloat (SXMLNameID ID) const
 
 //	GetAttributeFloat
 //
 //	Returns a floating point attribute
 
 	{
-	CString *pValue = m_Attributes.GetAt(sName);
-	if (pValue == NULL)
+	int iIndex = FindAttributeIndex(ID);
+	if (iIndex == -1)
 		return 0.0;
 
-	return (float)strToDouble(*pValue);
+	return (float)strToDouble(m_Attributes[iIndex].sValue);
 	}
 
-int CXMLElement::GetAttributeInteger (const CString &sName)
+int CXMLElement::GetAttributeInteger (SXMLNameID ID) const
 
 //	GetAttributeInteger
 //
 //	Returns an integer attribute
 
 	{
-	return strToInt(GetAttribute(sName), 0, NULL);
+	return strToInt(GetAttribute(ID), 0, NULL);
 	}
 
-int CXMLElement::GetAttributeIntegerBounded (const CString &sName, int iMin, int iMax, int iNull)
+int CXMLElement::GetAttributeIntegerBounded (SXMLNameID ID, int iMin, int iMax, int iNull) const
 
 //	GetAttributeIntegerBounded
 //
@@ -313,7 +355,7 @@ int CXMLElement::GetAttributeIntegerBounded (const CString &sName, int iMin, int
 
 	{
 	CString sValue;
-	if (FindAttribute(sName, &sValue))
+	if (FindAttribute(ID, &sValue))
 		{
 		bool bFailed;
 		int iValue = strToInt(sValue, iNull, &bFailed);
@@ -339,17 +381,17 @@ int CXMLElement::GetAttributeIntegerBounded (const CString &sName, int iMin, int
 		return iNull;
 	}
 
-void CXMLElement::GetAttributeIntegerList (const CString &sName, TArray<int> *retList)
+void CXMLElement::GetAttributeIntegerList (SXMLNameID ID, TArray<int> *retList) const
 
 //	GetAttributeIntegerList
 //
 //	Appends a list of integers separated by commas
 
 	{
-	ParseAttributeIntegerList(GetAttribute(sName), retList);
+	ParseAttributeIntegerList(GetAttribute(ID), retList);
 	}
 
-CXMLElement *CXMLElement::GetContentElementByTag (const CString &sTag) const
+const CXMLElement *CXMLElement::GetContentElementByTag (SXMLNameID ID) const
 
 //	GetContentElementByTag
 //
@@ -358,9 +400,9 @@ CXMLElement *CXMLElement::GetContentElementByTag (const CString &sTag) const
 	{
 	for (int i = 0; i < GetContentElementCount(); i++)
 		{
-		CXMLElement *pElement = GetContentElement(i);
+		const CXMLElement *pElement = GetContentElement(i);
 
-		if (strEquals(sTag, pElement->GetTag()))
+		if (pElement->GetTagID() == ID)
 			return pElement;
 		}
 
@@ -399,12 +441,16 @@ CXMLElement *CXMLElement::OrphanCopy (void)
 	return pCopy;
 	}
 
-void CXMLElement::SetAttribute (const CString &sName, const CString &sValue)
+void CXMLElement::SetAttribute (SXMLNameID ID, const CString &sValue)
 
 //	SetAttribute
 //
 //	Sets an attribute on the element.
 
 	{
-	m_Attributes.SetAt(sName, sValue);
+	int iIndex = FindAttributeIndex(ID);
+	if (iIndex == -1)
+		AddAttribute(ID, sValue);
+	else
+		m_Attributes[iIndex].sValue = sValue;
 	}

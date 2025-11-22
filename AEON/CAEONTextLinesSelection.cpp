@@ -1,7 +1,7 @@
 //	CAEONTextLinesSelection.cpp
 //
 //	CAEONTextLinesSelection class
-//	Copyright (c) 2022 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2022 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -38,7 +38,7 @@ CAEONTextLinesSelection::CAEONTextLinesSelection (CDatum dValue)
 	{
 	if (dValue.IsNil())
 		{ }
-	else if (dValue.GetBasicType() == CDatum::typeArray)
+	else if (dValue.GetBasicType() == CDatum::typeArray || dValue.GetBasicType() == CDatum::typeTensor)
 		{
 		m_Start.iLine = Max(0, (int)dValue.GetElement(0));
 		m_Start.iChar = Max(0, (int)dValue.GetElement(1));

@@ -1,7 +1,7 @@
 //	CBlackBox.cpp
 //
 //	CBlackBox class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -52,33 +52,39 @@ void CBlackBox::Log (const CString &sLine)
 //	Log a line
 
 	{
-	bool bConsoleOut = m_bConsoleOut;
-
-	CDateTime Now(CDateTime::Now);
-	CString sOutput = strPattern("%s %s\r\n",
-			Now.Format(CDateTime::dfShort, CDateTime::tfLong24),
-			sLine);
-
-	if (m_File.IsOpen())
+	try 
 		{
-		int iWritten = m_File.Write(sOutput);
+		bool bConsoleOut = m_bConsoleOut;
 
-		//	LATER: Handle out of disk space
+		CDateTime Now(CDateTime::Now);
+		CString sOutput = strPattern("%s %s\r\n",
+				Now.Format(CDateTime::dfShort, CDateTime::tfLong24),
+				sLine);
 
-		//	In Debug mode, we always output.
+		if (m_File.IsOpen())
+			{
+			int iWritten = m_File.Write(sOutput);
+
+			//	LATER: Handle out of disk space
+
+			//	In Debug mode, we always output.
 
 #ifdef DEBUG
-		bConsoleOut = true;
+			bConsoleOut = true;
 #endif
+			}
+
+		if (bConsoleOut)
+			{
+			//	Write out to console
+			//	NOTE: We rely on the fact that we called SetConsoleOutputCP(65001),
+			//	which is UTF8.
+
+			printf(sOutput);
+			}
 		}
-
-	if (bConsoleOut)
+	catch (...)
 		{
-		//	Write out to console
-		//	NOTE: We rely on the fact that we called SetConsoleOutputCP(65001),
-		//	which is UTF8.
-
-		printf(sOutput);
 		}
 	}
 

@@ -1,7 +1,7 @@
 //	FoundationMathHexGrid.h
 //
 //	Foundation header file
-//	Copyright (c) 2014 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2014 GridWhale Corporation. All Rights Reserved.
 //
 //	USAGE
 //

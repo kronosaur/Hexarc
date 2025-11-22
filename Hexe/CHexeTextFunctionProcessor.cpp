@@ -1,7 +1,7 @@
 //	CHexeTextFunctionProcessor.cpp
 //
 //	CHexeTextFunctionProcessor class
-//	Copyright (c) 2013 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2013 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -54,7 +54,7 @@ bool CHexeTextFunctionProcessor::Process (CDatum dSelf, CDatum *retResult)
 //	3.	If there is an error we return FALSE and retResult is an error string.
 
 	{
-	CStringBuffer Input((const CString &)m_dInput);
+	CStringBuffer Input(m_dInput.AsStringView());
 
 	if (strEquals(m_sFormat, FORMAT_HEXE_TEXT))
 		{
@@ -222,7 +222,7 @@ bool CHexeTextFunctionProcessor::ProcessHexeText (CDatum *retResult)
 //	Now that we've initialized all templates and links, we process the full text.
 
 	{
-	CStringBuffer Input((const CString &)m_dInput);
+	CStringBuffer Input(m_dInput.AsStringView());
 	CStringBuffer Output;
 
 	CString sError;

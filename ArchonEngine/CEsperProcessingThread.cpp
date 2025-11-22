@@ -1,7 +1,7 @@
 //	CEsperProcessingThread.cpp
 //
 //	CEsperProcessingThread class
-//	Copyright (c) 2013 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2013 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -10,25 +10,38 @@ DECLARE_CONST_STRING(IOCP_SOCKET_OP,					"IOCP.socketOp")
 DECLARE_CONST_STRING(MSG_LOG_DEBUG,						"Log.debug")
 DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error")
 
+DECLARE_CONST_STRING(STR_THREAD_NAME,					"EsperProcessing");
+
 DECLARE_CONST_STRING(WORKER_SIGNAL_SHUTDOWN,			"Worker.shutdown")
 DECLARE_CONST_STRING(WORKER_SIGNAL_PAUSE,				"Worker.pause")
 
 class CPauseThreadEvent : public IIOCPEntry
 	{
 	public:
-		CPauseThreadEvent (CEsperProcessingThread *pThread) : IIOCPEntry(WORKER_SIGNAL_PAUSE),
-				m_pThread(pThread)
+		CPauseThreadEvent () : IIOCPEntry(WORKER_SIGNAL_PAUSE)
 			{ }
 
 	protected:
 
 		//	IIOCPEntry overrides
 
-		virtual void OnProcess (void) {	m_pThread->Stop(); }
+		virtual void OnProcess (void) {	}
 
 	private:
-		CEsperProcessingThread *m_pThread;
 	};
+
+CEsperProcessingThread::CEsperProcessingThread (CEsperEngine *pEngine, bool bLogTrace) : 
+		TThread(STR_THREAD_NAME),
+		m_pEngine(pEngine), 
+		m_pPauseSignal(NULL),
+		m_bLogTrace(bLogTrace),
+		m_bQuit(false)
+
+//	CEsperProcessingThread constructor
+
+	{
+	m_PausedEvent.Create();
+	}
 
 void CEsperProcessingThread::Mark (void)
 
@@ -51,7 +64,7 @@ void CEsperProcessingThread::Run (void)
 		//	Create a couple of special entries for stopping the thread
 		//	and quitting the app.
 
-		m_pPauseSignal = new CPauseThreadEvent(this);
+		m_pPauseSignal = new CPauseThreadEvent();
 
 		//	Process Events
 
@@ -62,7 +75,7 @@ void CEsperProcessingThread::Run (void)
 				//	If ProcessConnections returns FALSE, then it means we want
 				//	to quit processing.
 
-				if (!m_pEngine->ProcessConnections())
+				if (!m_pEngine->ProcessConnections(*this))
 					break;
 				}
 			catch (...)
@@ -89,10 +102,6 @@ void CEsperProcessingThread::Stop (void)
 //	Stop the thread while we garbage collect
 
 	{
-	//	LATER: We need a new way to do this. We should do this like stopping the
-	//	thread, because currently we can't guarantee that the thread running 
-	//	this code will be the one that owns the m_PausedEvent.
-
 	m_PausedEvent.Set();
 
 	CWaitArray Events;

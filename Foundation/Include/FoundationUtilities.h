@@ -1,7 +1,7 @@
 //	FoundationUtilities.h
 //
 //	Foundation header file
-//	Copyright (c) 2010 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2010 by GridWhale Corporation. All Rights Reserved.
 //
 //	USAGE
 //
@@ -28,7 +28,7 @@ class CAttributeList
 		void DeleteAll (void) { m_sAttributes = NULL_STR; }
 		void GetAll (TArray<CString> *retAttribs) const;
 		bool HasAttribute (const CString &sAttrib) const { return FindAttribute(strToLower(sAttrib)); }
-		void Insert (const CString &sAttrib);
+		void Insert (CStringView sAttrib);
 		bool IsEmpty (void) const { return m_sAttributes.IsEmpty(); }
 		static bool ValidateAttribute (const CString &sAttrib);
 
@@ -51,11 +51,22 @@ template<class KEY> int KeyCompare (const KEY &Key1, const KEY &Key2)
 	}
 
 int KeyCompare (const LPCSTR &pKey1, const LPCSTR &pKey2);
+int KeyCompare (const LPCSTR &pKey1, int iKey1Len, const LPCSTR &pKey2, int iKey2Len);
 inline int KeyCompare (const LPSTR &pKey1, const LPSTR &pKey2) { return KeyCompare((LPCSTR)pKey1, (LPCSTR)pKey2); }
-inline int KeyCompare (const CString &sKey1, const CString &sKey2) { return KeyCompare((LPSTR)sKey1, (LPSTR)sKey2); }
+inline int KeyCompare (const CString &sKey1, const CString &sKey2) { return KeyCompare((LPCSTR)sKey1, sKey1.GetLength(), (LPCSTR)sKey2, sKey2.GetLength()); }
+inline int KeyCompare (CStringView sKey1, CStringView sKey2) { return KeyCompare((LPCSTR)sKey1, sKey1.GetLength(), (LPCSTR)sKey2, sKey2.GetLength()); }
 
-int KeyCompareNoCase (const LPSTR &pKey1, int iKey1Len, const LPSTR &pKey2, int iKey2Len);
+int KeyCompareNoCase (const LPCSTR &pKey1, int iKey1Len, const LPCSTR &pKey2, int iKey2Len);
 inline int KeyCompareNoCase (const CString &sKey1, const CString &sKey2) { return KeyCompareNoCase((LPSTR)sKey1, sKey1.GetLength(), (LPSTR)sKey2, sKey2.GetLength()); }
+inline int KeyCompareNoCase (CStringView sKey1, CStringView sKey2) { return KeyCompareNoCase((LPCSTR)sKey1, sKey1.GetLength(), (LPCSTR)sKey2, sKey2.GetLength()); }
+inline int KeyCompareNoCase (const CString& sKey1, CStringView sKey2) { return KeyCompareNoCase((LPCSTR)sKey1, sKey1.GetLength(), (LPCSTR)sKey2, sKey2.GetLength()); }
+inline int KeyCompareNoCase (CStringView sKey1, const CString& sKey2) { return KeyCompareNoCase((LPCSTR)sKey1, sKey1.GetLength(), (LPCSTR)sKey2, sKey2.GetLength()); }
+
+template <> class CKeyCompareEquivalent<CString>
+	{
+	public:
+		static int Compare(const CString& key1, const CString& key2) { return ::KeyCompareNoCase((LPSTR)key1, key1.GetLength(), (LPSTR)key2, key2.GetLength()); }
+	};
 
 //	Ref-counted classes
 
@@ -133,6 +144,45 @@ template <class VALUE> class TSmartRefCountPtr
 		VALUE *m_pObj;
 	};
 
+class CRecursionState
+	{
+	public:
+
+		bool IsLocked () const { return m_bInUse; }
+		void Lock () const { ASSERT(!m_bInUse); m_bInUse = true; }
+		void Unlock () const { ASSERT(m_bInUse); m_bInUse = false; }
+
+	private:
+
+		mutable bool m_bInUse = false;
+	};
+
+class CRecursionSmartLock
+	{
+	public:
+
+		CRecursionSmartLock (const CRecursionState& Lock) : 
+				m_Lock(Lock),
+				m_bInRecursion(Lock.IsLocked())
+			{
+			if (!m_bInRecursion)
+				m_Lock.Lock();
+			}
+
+		~CRecursionSmartLock (void)
+			{
+			if (!m_bInRecursion)
+				m_Lock.Unlock();
+			}
+
+		bool InRecursion () const { return m_bInRecursion; }
+
+	private:
+
+		const CRecursionState& m_Lock;
+		bool m_bInRecursion;
+	};
+
 //	Memory utilities
 
 void utlMemCopy (const void *pSource, void *pDest, DWORD dwCount);
@@ -149,12 +199,19 @@ int utlBitsSet (DWORD dwValue);
 
 struct SSystemMemoryInfo
 	{
-	DWORDLONG dwlTotalPhysicalMemory;		//	Bytes of physical memory in the system.
-	DWORDLONG dwlAvailPhysicalMemory;		//	Bytes of physical memory available.
+	DWORDLONG dwlTotalPhysicalMemory = 0;	//	Bytes of physical memory in the system.
+	DWORDLONG dwlAvailPhysicalMemory = 0;	//	Bytes of physical memory available.
+	};
+
+struct SProcessMemoryInfo
+	{
+	DWORDLONG dwlWorkingSetSize = 0;		//	Bytes of physical memory used by the process.
+	DWORDLONG dwlCommittedSize = 0;			//	Bytes of virtual memory committed by the process.
 	};
 
 CString sysGetDNSName (void);
 bool sysGetMemoryInfo (SSystemMemoryInfo *retInfo);
+bool sysGetProcessMemoryInfo (SProcessMemoryInfo& retInfo);
 CString sysGetOSErrorText (DWORD dwError);
 inline DWORD sysGetTickCount (void) { return ::GetTickCount(); }
 inline DWORDLONG sysGetTickCount64 (void) { return ::GetTickCount64(); }

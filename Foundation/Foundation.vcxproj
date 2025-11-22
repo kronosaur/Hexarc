@@ -1,6 +1,14 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="DebugSAN|Win32">
+      <Configuration>DebugSAN</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugSAN|x64">
+      <Configuration>DebugSAN</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="DebugSecondary|Win32">
       <Configuration>DebugSecondary</Configuration>
       <Platform>Win32</Platform>
@@ -50,10 +58,21 @@
     <CharacterSet>Unicode</CharacterSet>
     <PlatformToolset>v145</PlatformToolset>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugSAN|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
     <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugSAN|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+    <EnableASAN>true</EnableASAN>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugSecondary|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
@@ -77,7 +96,13 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DebugSAN|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DebugSAN|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DebugSecondary|Win32'" Label="PropertySheets">
@@ -90,8 +115,10 @@
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='DebugSAN|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='DebugSecondary|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(Configuration)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='DebugSAN|Win32'">$(Configuration)\</IntDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='DebugSecondary|Win32'">$(Configuration)\</IntDir>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(Configuration)\</IntDir>
@@ -117,10 +144,31 @@
       </AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugSAN|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>..\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <ExceptionHandling>Async</ExceptionHandling>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <ProjectReference>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+    </ProjectReference>
+    <Lib>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
+    </Lib>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir)Include;$(ProjectDir)Boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)Include;$(ProjectDir)cmark-gfm\include;$(ProjectDir)Boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;__SSE2__;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>Async</ExceptionHandling>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -135,11 +183,38 @@
     </ClCompile>
     <ProjectReference />
     <Lib>
-      <AdditionalLibraryDirectories>
-      </AdditionalLibraryDirectories>
-      <AdditionalDependencies>
-      </AdditionalDependencies>
+      <AdditionalLibraryDirectories>cmark-gfm\lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>cmark-gfm_static.lib</AdditionalDependencies>
     </Lib>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugSAN|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir)Include;$(ProjectDir)cmark-gfm\include;$(ProjectDir)Boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;__SSE2__;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ExceptionHandling>Async</ExceptionHandling>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <TreatWarningAsError>false</TreatWarningAsError>
+      <ConformanceMode>true</ConformanceMode>
+      <Optimization>Disabled</Optimization>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+    </ClCompile>
+    <ProjectReference />
+    <Lib>
+      <AdditionalLibraryDirectories>cmark-gfm\lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>cmark-gfm_static.lib</AdditionalDependencies>
+    </Lib>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugSecondary|Win32'">
     <ClCompile>
@@ -165,8 +240,8 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugSecondary|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(ProjectDir)Include;$(ProjectDir)Boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)Include;$(ProjectDir)cmark-gfm\include;$(ProjectDir)Boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;__SSE2__;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>Async</ExceptionHandling>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -176,14 +251,16 @@
       <TreatWarningAsError>false</TreatWarningAsError>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
     </ClCompile>
     <ProjectReference />
     <Lib>
-      <AdditionalLibraryDirectories>
-      </AdditionalLibraryDirectories>
-      <AdditionalDependencies>
-      </AdditionalDependencies>
+      <AdditionalLibraryDirectories>cmark-gfm\lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>cmark-gfm_static.lib</AdditionalDependencies>
     </Lib>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -202,8 +279,8 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir)Include;$(ProjectDir)Boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)Include;$(ProjectDir)cmark-gfm\include;$(ProjectDir)Boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;__SSE2__;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>Async</ExceptionHandling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -213,16 +290,25 @@
       <ConformanceMode>true</ConformanceMode>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
     </ClCompile>
     <Lib>
-      <AdditionalLibraryDirectories>
-      </AdditionalLibraryDirectories>
-      <AdditionalDependencies>
-      </AdditionalDependencies>
+      <AdditionalLibraryDirectories>cmark-gfm\lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>cmark-gfm_static.lib</AdditionalDependencies>
     </Lib>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Array.cpp" />
+    <ClCompile Include="BLAKE2.cpp" />
+    <ClCompile Include="BLAKE2\blake2b.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugSAN|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugSecondary|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="C8bitImage.cpp" />
     <ClCompile Include="CAttributeList.cpp" />
     <ClCompile Include="CBase64Decoder.cpp" />
@@ -233,9 +319,11 @@
     <ClCompile Include="CBufferedIO.cpp" />
     <ClCompile Include="CCharStream.cpp" />
     <ClCompile Include="CCircularBuffer.cpp" />
+    <ClCompile Include="CCommonMarkGFM.cpp" />
     <ClCompile Include="CCryptoDigest.cpp" />
     <ClCompile Include="CCSVParser.cpp" />
     <ClCompile Include="CDateTime.cpp" />
+    <ClCompile Include="CDateTimeParser.cpp" />
     <ClCompile Include="CDBColumnDef.cpp" />
     <ClCompile Include="CDBFormatCSV.cpp" />
     <ClCompile Include="CDBFormatDesc.cpp" />
@@ -253,19 +341,23 @@
     <ClCompile Include="CEntityResolverList.cpp" />
     <ClCompile Include="CExternalEntityTable.cpp" />
     <ClCompile Include="CFile.cpp" />
+    <ClCompile Include="CFile64.cpp" />
     <ClCompile Include="CFileBuffer.cpp" />
     <ClCompile Include="CFileBuffer64.cpp" />
     <ClCompile Include="CFileMultiplexer.cpp" />
     <ClCompile Include="CFoundation.cpp" />
+    <ClCompile Include="CHexDecoder.cpp" />
     <ClCompile Include="CHexeTextProcessor.cpp" />
     <ClCompile Include="CHexGridBase.cpp" />
     <ClCompile Include="CHexGridNavigator.cpp" />
+    <ClCompile Include="CHTML.cpp" />
     <ClCompile Include="CHTTPMessageBodyBuilder.cpp" />
     <ClCompile Include="CImageDraw.cpp" />
     <ClCompile Include="CImageLoader.cpp" />
     <ClCompile Include="CImagePlane.cpp" />
     <ClCompile Include="CIOCompletionPort.cpp" />
     <ClCompile Include="CIOCPSocket.cpp" />
+    <ClCompile Include="CIODiagnostics.cpp" />
     <ClCompile Include="CIPInteger.cpp" />
     <ClCompile Include="CJPEG.cpp" />
     <ClCompile Include="CLargeSet.cpp" />
@@ -282,6 +374,7 @@
     <ClCompile Include="CPolygon2D.cpp" />
     <ClCompile Include="CPolygonIntersector.cpp" />
     <ClCompile Include="CProcess.cpp" />
+    <ClCompile Include="CRandomModule.cpp" />
     <ClCompile Include="CRect2D.cpp" />
     <ClCompile Include="CModuleResource.cpp" />
     <ClCompile Include="CRGBA32.cpp" />
@@ -289,26 +382,35 @@
     <ClCompile Include="CSemaphore.cpp" />
     <ClCompile Include="CSharedMemoryBuffer.cpp" />
     <ClCompile Include="CSocketSet.cpp" />
+    <ClCompile Include="CStatistics.cpp" />
     <ClCompile Include="CString.cpp" />
     <ClCompile Include="CString16.cpp" />
     <ClCompile Include="CStringBuffer.cpp" />
+    <ClCompile Include="CStringFormat.cpp" />
+    <ClCompile Include="CStringView.cpp" />
+    <ClCompile Include="CSymbolTable.cpp" />
     <ClCompile Include="CTextMarkupParser.cpp" />
     <ClCompile Include="CVoronoiNavigator.cpp" />
     <ClCompile Include="CVoronoiTessellation.cpp" />
+    <ClCompile Include="CWebSocketProtocol.cpp" />
     <ClCompile Include="CXForm2D.cpp" />
     <ClCompile Include="CXLSColorPalette.cpp" />
     <ClCompile Include="CXLSFontTable.cpp" />
     <ClCompile Include="CXLSXFTable.cpp" />
     <ClCompile Include="CXMLElement.cpp" />
     <ClCompile Include="CZipFile.cpp" />
+    <ClCompile Include="CZipFormatReader.cpp" />
+    <ClCompile Include="CZipFormatWriter.cpp" />
     <ClCompile Include="FileIO.cpp" />
     <ClCompile Include="Geometry.cpp" />
     <ClCompile Include="IByteStream64.cpp" />
     <ClCompile Include="IIOCPEntry.cpp" />
     <ClCompile Include="ILogService.cpp" />
     <ClCompile Include="IMemoryBlock.cpp" />
+    <ClCompile Include="IMemoryBlock64.cpp" />
     <ClCompile Include="lodepng\lodepng.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugSAN|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugSecondary|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -316,7 +418,9 @@
     <ClCompile Include="CWSAddrInfo.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugSAN|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugSAN|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugSecondary|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugSecondary|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
@@ -329,7 +433,11 @@
     <ClCompile Include="BigDigits\bigd.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
       </PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugSAN|Win32'">
+      </PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugSAN|x64'">
       </PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugSecondary|Win32'">
       </PrecompiledHeader>
@@ -343,7 +451,11 @@
     <ClCompile Include="BigDigits\bigdigits.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
       </PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugSAN|Win32'">
+      </PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugSAN|x64'">
       </PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugSecondary|Win32'">
       </PrecompiledHeader>
@@ -357,7 +469,11 @@
     <ClCompile Include="BigDigits\bigdigitsRand.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
       </PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugSAN|Win32'">
+      </PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugSAN|x64'">
       </PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugSecondary|Win32'">
       </PrecompiledHeader>
@@ -371,7 +487,11 @@
     <ClCompile Include="BigDigits\bigdRand.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
       </PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugSAN|Win32'">
+      </PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugSAN|x64'">
       </PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugSecondary|Win32'">
       </PrecompiledHeader>
@@ -397,7 +517,9 @@
     <ClCompile Include="Voronoi.cpp" />
     <ClCompile Include="VoronoiGenerator.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugSAN|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugSAN|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugSecondary|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugSecondary|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
@@ -412,6 +534,7 @@
     <ClInclude Include="GraphicsImpl.h" />
     <ClInclude Include="Include\Foundation.h" />
     <ClInclude Include="Include\FoundationArrays.h" />
+    <ClInclude Include="Include\FoundationArraysDiff.h" />
     <ClInclude Include="Include\FoundationBase.h" />
     <ClInclude Include="Include\FoundationColor.h" />
     <ClInclude Include="Include\FoundationCompression.h" />
@@ -421,6 +544,7 @@
     <ClInclude Include="Include\FoundationDebug.h" />
     <ClInclude Include="Include\FoundationExceptions.h" />
     <ClInclude Include="Include\FoundationFileIO.h" />
+    <ClInclude Include="Include\FoundationGitHubMarkdown.h" />
     <ClInclude Include="Include\FoundationGraphicsCore.h" />
     <ClInclude Include="Include\FoundationGraphicsDraw.h" />
     <ClInclude Include="Include\FoundationGraphicsImage32.h" />
@@ -429,6 +553,7 @@
     <ClInclude Include="Include\FoundationGraphicsPNG.h" />
     <ClInclude Include="Include\FoundationGrids.h" />
     <ClInclude Include="Include\FoundationHashMaps.h" />
+    <ClInclude Include="Include\FoundationHTML.h" />
     <ClInclude Include="Include\FoundationIOCompletionPort.h" />
     <ClInclude Include="Include\FoundationIOInterfaces.h" />
     <ClInclude Include="Include\FoundationMaps.h" />
@@ -444,12 +569,14 @@
     <ClInclude Include="Include\FoundationStreams.h" />
     <ClInclude Include="Include\FoundationStreams64.h" />
     <ClInclude Include="Include\FoundationStreamsTBuffer.h" />
+    <ClInclude Include="Include\FoundationStringFormat.h" />
     <ClInclude Include="Include\FoundationStrings.h" />
     <ClInclude Include="Include\FoundationThreads.h" />
     <ClInclude Include="Include\FoundationTime.h" />
     <ClInclude Include="Include\FoundationUtilities.h" />
     <ClInclude Include="Include\FoundationXLS.h" />
     <ClInclude Include="Include\FoundationXML.h" />
+    <ClInclude Include="Include\FoundationZipFile.h" />
     <ClInclude Include="IOCompletionPortImpl.h" />
     <ClInclude Include="lodepng\lodepng.h" />
     <ClInclude Include="PolygonIntersect.h" />
@@ -467,11 +594,14 @@
     <ClInclude Include="VoronoiGenerator.h" />
   </ItemGroup>
   <ItemGroup>
+    <Library Include="cmark-gfm\lib\cmark-gfm-extensions_static.lib" />
+    <Library Include="cmark-gfm\lib\cmark-gfm_static.lib" />
     <Library Include="LibJPEG\LibDebug\turbojpeg-static.lib">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </Library>
     <Library Include="LibJPEG\LibRelease\turbojpeg-static.lib">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugSAN|x64'">true</ExcludedFromBuild>
     </Library>
   </ItemGroup>
   <ItemGroup>

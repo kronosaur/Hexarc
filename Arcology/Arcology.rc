@@ -51,8 +51,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,1,111,0
- PRODUCTVERSION 1,1,111,0
+ FILEVERSION 1,1,144,0
+ PRODUCTVERSION 1,1,144,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -67,14 +67,14 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "CompanyName", "Kronosaur Productions, LLC."
+            VALUE "CompanyName", "GridWhale Corporation."
             VALUE "FileDescription", "Arcology"
-            VALUE "FileVersion", "1.1.111.0"
+            VALUE "FileVersion", "1.1.144.0"
             VALUE "InternalName", "Arcology"
-            VALUE "LegalCopyright", "Copyright © 2011-2023 by GridWhale Corporation. All Rights Reserved."
+            VALUE "LegalCopyright", "Copyright © 2011-2025 by GridWhale Corporation. All Rights Reserved."
             VALUE "OriginalFilename", "Arcology"
             VALUE "ProductName", "Hexarc"
-            VALUE "ProductVersion", "v111"
+            VALUE "ProductVersion", "v144"
         END
     END
     BLOCK "VarFileInfo"

@@ -1,7 +1,7 @@
 //	CreateScopedCredentials.cpp
 //
 //	Cryptosaur.createScopedCredentials
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -86,7 +86,7 @@ void CCryptosaurEngine::MsgCreateScopedCredentials (const SArchonMessage &Msg, c
 
 	//	Make sure we have a username
 
-	const CString &sUsername = Msg.dPayload.GetElement(0);
+	CStringView sUsername = Msg.dPayload.GetElement(0);
 	if (sUsername.IsEmpty())
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, ERR_INVALID_USERNAME, Msg);
@@ -103,7 +103,7 @@ void CCryptosaurEngine::MsgCreateScopedCredentials (const SArchonMessage &Msg, c
 
 	CString sScope;
 	if (pSecurityCtx == NULL || pSecurityCtx->GetSandbox().IsEmpty())
-		sScope = ValidateSandbox(dAuthDesc.GetElement(FIELD_SCOPE));
+		sScope = ValidateSandbox(dAuthDesc.GetElement(FIELD_SCOPE).AsStringView());
 	else
 		sScope = pSecurityCtx->GetSandbox();
 
@@ -134,7 +134,7 @@ bool CCreateScopedCredentialsSession::OnProcessMessage (const SArchonMessage &Ms
 
 	if (IsError(Msg))
 		{
-		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, Msg.dPayload);
+		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, Msg.dPayload.AsStringView());
 		return false;
 		}
 

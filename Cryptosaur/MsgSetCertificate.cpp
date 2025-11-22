@@ -1,7 +1,7 @@
 //	MsgSetCertificate.cpp
 //
 //	MsgSetCertificate
-//	Copyright (c) 2017 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2017 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -61,7 +61,7 @@ void CCryptosaurEngine::MsgGetCertificate (const SArchonMessage &Msg, const CHex
 
 	//	For now we only support sslCertificates
 
-	if (!strEqualsNoCase(dType, TYPE_SSL_CERTIFICATE))
+	if (!strEqualsNoCase(dType.AsStringView(), TYPE_SSL_CERTIFICATE))
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_UNKNOWN_CERT_TYPE, dType.AsString()), Msg);
 		return;
@@ -72,7 +72,7 @@ void CCryptosaurEngine::MsgGetCertificate (const SArchonMessage &Msg, const CHex
 	CSmartLock Lock(m_cs);
 	CDatum dRecord;
 
-	if (!m_Certificates.Find(dName, &dRecord))
+	if (!m_Certificates.Find(dName.AsStringView(), &dRecord))
 		{
 		SendMessageReplyError(MSG_ERROR_DOES_NOT_EXIST, strPattern(ERR_UNKNOWN_CERT, dName.AsString()), Msg);
 		return;
@@ -92,7 +92,7 @@ void CCryptosaurEngine::MsgSetCertificate (const SArchonMessage &Msg, const CHex
 //	Cryptosaur.setCertificate {type} {data}
 
 	{
-	CString sType = Msg.dPayload.GetElement(0);
+	CStringView sType = Msg.dPayload.GetElement(0);
 	CDatum dData = Msg.dPayload.GetElement(1);
 
 	//	Handle each type
@@ -134,7 +134,7 @@ bool CCryptosaurEngine::LoadPEMCertAndKey (CDatum dData, CDatum *retKey, CDatum 
 	{
 	int i;
 	CString sError;
-	CStringBuffer Data(dData);
+	CStringBuffer Data(dData.AsStringView());
 
 	TArray<CSSLCert> Certificates;
 	CSSLEnvelopeKey PrivateKey;

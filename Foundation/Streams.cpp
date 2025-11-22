@@ -1,13 +1,14 @@
 //	Streams.cpp
 //
 //	Stream functions
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
 const int BUFFER_SIZE =									65536;
 
 CNullStream NULL_STREAM;
+CNullStream64 NULL_STREAM64;
 
 //	IByteStream ----------------------------------------------------------------
 
@@ -23,9 +24,9 @@ char IByteStream::ReadChar (void)
 	return (iRead > 0 ? chChar : '\0');
 	}
 
-int IByteStream::Write (IByteStream &Stream, int iLength)
+int IByteStream::WriteStreamDefault (IByteStream &Stream, int iLength)
 
-//	Write
+//	WriteStreamDefault
 //
 //	Writes from the given stream.
 

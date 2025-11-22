@@ -1,7 +1,7 @@
 //	Math.cpp
 //
 //	Math functions and classes
-//	Copyright (c) 2012 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2012 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 #include <Math.h>

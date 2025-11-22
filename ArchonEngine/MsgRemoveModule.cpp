@@ -1,7 +1,7 @@
 //	MsgRemoveModule.cpp
 //
 //	CExarchEngine class
-//	Copyright (c) 2017 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2017 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -32,7 +32,7 @@ void CExarchEngine::MsgRemoveModule (const SArchonMessage &Msg, const CHexeSecur
 
 	CString sMachineName;
 	CString sModule;
-	if (!ParseModuleName(Msg.dPayload.GetElement(0), &sMachineName, &sModule))
+	if (!ParseModuleName(Msg.dPayload.GetElement(0).AsStringView(), &sMachineName, &sModule))
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern("Unknown module: %s.", Msg.dPayload.GetElement(0).AsString()), Msg);
 		return;

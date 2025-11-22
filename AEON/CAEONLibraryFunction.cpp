@@ -1,12 +1,14 @@
 //	CAEONLibraryFunction.cpp
 //
 //	CAEONLibraryFunction class
-//	Copyright (c) 2022 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2022 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(FIELD_RESULT,						"result");
 DECLARE_CONST_STRING(FIELD_TYPE,						"type")
 
+DECLARE_CONST_STRING(TYPE_DIALOG_SIM,					"dialogSim");
 DECLARE_CONST_STRING(TYPE_HEXARC_MSG,					"hexarcMsg");
 DECLARE_CONST_STRING(TYPE_INPUT_REQUEST,				"inputRequest");
 
@@ -18,85 +20,128 @@ DECLARE_CONST_STRING(ERR_UNKNOWN_TYPE,					"Unknown invoke result type: %s.");
 
 const CString &CAEONLibraryFunction::GetTypename (void) const { return TYPENAME_LIBRARY_FUNCTION; }
 
-CDatum::InvokeResult CAEONLibraryFunction::HandleSpecialResult (CDatum *retdResult)
+CDatum::InvokeResult CAEONLibraryFunction::HandleSpecialResult (SAEONInvokeResult& retResult)
 
 //	HandleResult
 //
 //	Converts to appropriate result.
 
 	{
-	if (retdResult->IsError())
-		return CDatum::InvokeResult::error;
+	//	If the result is already set, then return it.
+	//	LATER: Eventually we should migrate all library functions
+	//	to the new system.
 
-	else if (retdResult->GetBasicType() == CDatum::typeArray)
-		return CDatum::InvokeResult::runFunction;
+	if (retResult.iResult != CDatum::InvokeResult::unknown)
+		return retResult.iResult;
 
-	else if (retdResult->GetBasicType() == CDatum::typeString)
+	else if (retResult.dResult.IsError())
 		{
-		const CString &sType = *retdResult;
+		retResult.iResult = CDatum::InvokeResult::error;
+		return retResult.iResult;
+		}
+
+	else if (retResult.dResult.GetBasicType() == CDatum::typeArray)
+		{
+		retResult.iResult = CDatum::InvokeResult::runFunction;
+		return retResult.iResult;
+		}
+
+	else if (retResult.dResult.GetBasicType() == CDatum::typeString)
+		{
+		CStringView sType = retResult.dResult;
 		if (strEquals(sType, TYPE_INPUT_REQUEST))
 			{
-			return CDatum::InvokeResult::runInputRequest;
+			retResult.iResult = CDatum::InvokeResult::runInputRequest;
+			return retResult.iResult;
 			}
 		else
 			{
-			*retdResult = CDatum::CreateError(strPattern(ERR_UNKNOWN_TYPE, sType));
-			return CDatum::InvokeResult::error;
+			retResult.iResult = CDatum::InvokeResult::error;
+			retResult.dResult = CDatum::CreateError(strPattern(ERR_UNKNOWN_TYPE, sType));
+			return retResult.iResult;
 			}
 		}
-	else if (retdResult->GetBasicType() == CDatum::typeStruct)
+	else if (retResult.dResult.GetBasicType() == CDatum::typeStruct)
 		{
-		const CString &sType = retdResult->GetElement(FIELD_TYPE);
+		CStringView sType = retResult.dResult.GetElement(FIELD_TYPE);
 		if (strEquals(sType, TYPE_HEXARC_MSG))
 			{
-			return CDatum::InvokeResult::runInvoke;
+			retResult.iResult = CDatum::InvokeResult::runInvoke;
+			return retResult.iResult;
 			}
 		else if (strEquals(sType, TYPE_INPUT_REQUEST))
 			{
-			return CDatum::InvokeResult::runInputRequest;
+			retResult.iResult = CDatum::InvokeResult::runInputRequest;
+			return retResult.iResult;
+			}
+		else if (strEquals(sType, TYPE_DIALOG_SIM))
+			{
+			retResult.iResult = CDatum::InvokeResult::runInputRequestDebugSim;
+			retResult.dResult = retResult.dResult.GetElement(FIELD_RESULT);
+			return retResult.iResult;
 			}
 		else
 			{
-			*retdResult = CDatum::CreateError(strPattern(ERR_UNKNOWN_TYPE, sType));
-			return CDatum::InvokeResult::error;
+			retResult.iResult = CDatum::InvokeResult::error;
+			retResult.dResult = CDatum::CreateError(strPattern(ERR_UNKNOWN_TYPE, sType));
+			return retResult.iResult;
 			}
 		}
 	else
-		return CDatum::InvokeResult::error;
+		{
+		retResult.iResult = CDatum::InvokeResult::error;
+		return retResult.iResult;
+		}
 	}
 
-CDatum::InvokeResult CAEONLibraryFunction::Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, DWORD dwExecutionRights, CDatum *retdResult)
+CDatum::InvokeResult CAEONLibraryFunction::Invoke (IInvokeCtx *pCtx, CHexeLocalEnvironment& LocalEnv, DWORD dwExecutionRights, SAEONInvokeResult& retResult)
 
 //	Invoke
 //
 //	Invoke the library function
 
 	{
+	ASSERT(retResult.iResult == CDatum::InvokeResult::unknown);
+
+	TArray<CDatum> Args;
+	for (int i = 0; i < LocalEnv.GetCount(); i++)
+		Args.Insert(LocalEnv.GetArgument(i));
+
+	CHexeStackEnv Stack(std::move(Args));
+
 	//	Make sure we have the execution rights required by this primitive
 
-	if ((m_dwExecutionRights & dwExecutionRights) != m_dwExecutionRights)
+	if (!IInvokeCtx::CanExecute(m_dwExecFlags, dwExecutionRights))
 		{
-		*retdResult = CDatum::CreateError(strPattern(ERR_NOT_ALLOWED, m_sName));
-		return CDatum::InvokeResult::error;
+		retResult.iResult = CDatum::InvokeResult::error;
+		retResult.dResult = CDatum::CreateError(strPattern(ERR_NOT_ALLOWED, m_sName));
+		return retResult.iResult;
 		}
 
 	//	Invoke
 
 	try
 		{
-		if (!m_fnInvoke(*pCtx, m_dwData, dLocalEnv, CDatum(), *retdResult))
-			return HandleSpecialResult(retdResult);
+		//	NOTE: When we call m_fnInvoke we expect retResult.iResult to be set
+		//	to a valid value if the function wants to return a special result.
+		//	For backwards compatibility, and because we're lazy, a value of
+		//	unknown means use the old method.
 
-		return CDatum::InvokeResult::ok;
+		if (!m_fnInvoke(*pCtx, m_dwData, Stack, CDatum(), CDatum(), retResult))
+			return HandleSpecialResult(retResult);
+
+		retResult.iResult = CDatum::InvokeResult::ok;
+		return retResult.iResult;
 		}
 	catch (...)
 		{
-		*retdResult = CDatum::CreateError(strPattern(ERR_CRASH, m_sName));
-		return CDatum::InvokeResult::error;
+		retResult.iResult = CDatum::InvokeResult::error;
+		retResult.dResult = CDatum::CreateError(strPattern(ERR_CRASH, m_sName));
+		return retResult.iResult;
 		}
 	}
 
-CDatum::InvokeResult CAEONLibraryFunction::InvokeContinues (IInvokeCtx *pCtx, CDatum dContext, CDatum dResult, CDatum *retdResult)
+CDatum::InvokeResult CAEONLibraryFunction::InvokeContinues (IInvokeCtx *pCtx, CDatum dContext, CDatum dResult, SAEONInvokeResult& retResult)
 
 //	InvokeContinues
 //
@@ -105,15 +150,52 @@ CDatum::InvokeResult CAEONLibraryFunction::InvokeContinues (IInvokeCtx *pCtx, CD
 	{
 	try
 		{
-		if (!m_fnInvoke(*pCtx, m_dwData, dResult, dContext, *retdResult))
-			return HandleSpecialResult(retdResult);
+		CHexeStackEnv Dummy;
+		if (!m_fnInvoke(*pCtx, m_dwData, Dummy, dContext, dResult, retResult))
+			return HandleSpecialResult(retResult);
 
-		return CDatum::InvokeResult::ok;
+		retResult.iResult = CDatum::InvokeResult::ok;
+		return retResult.iResult;
 		}
 	catch (...)
 		{
-		*retdResult = CDatum::CreateError(strPattern(ERR_CRASH, m_sName));
-		return CDatum::InvokeResult::error;
+		retResult.iResult = CDatum::InvokeResult::error;
+		retResult.dResult = CDatum::CreateError(strPattern(ERR_CRASH, m_sName));
+		return retResult.iResult;
+		}
+	}
+
+CDatum::InvokeResult CAEONLibraryFunction::InvokeLibrary (IInvokeCtx& Ctx, CHexeStackEnv& LocalEnv, DWORD dwExecutionRights, SAEONInvokeResult& retResult)
+
+//	Invoke
+//
+//	Invoke the library function
+
+	{
+	//	Make sure we have the execution rights required by this primitive
+
+	if (!IInvokeCtx::CanExecute(m_dwExecFlags, dwExecutionRights))
+		{
+		retResult.iResult = CDatum::InvokeResult::error;
+		retResult.dResult = CDatum::CreateError(strPattern(ERR_NOT_ALLOWED, m_sName));
+		return retResult.iResult;
+		}
+
+	//	Invoke
+
+	try
+		{
+		if (!m_fnInvoke(Ctx, m_dwData, LocalEnv, CDatum(), CDatum(), retResult))
+			return HandleSpecialResult(retResult);
+
+		retResult.iResult = CDatum::InvokeResult::ok;
+		return retResult.iResult;
+		}
+	catch (...)
+		{
+		retResult.iResult = CDatum::InvokeResult::error;
+		retResult.dResult = CDatum::CreateError(strPattern(ERR_CRASH, m_sName));
+		return retResult.iResult;
 		}
 	}
 
@@ -128,4 +210,16 @@ void CAEONLibraryFunction::Serialize (CDatum::EFormat iFormat, IByteStream &Stre
 	{
 	CDatum dResult(m_sName);
 	dResult.Serialize(iFormat, Stream);
+	}
+
+void CAEONLibraryFunction::SerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const
+	{
+	//	We serialize as a string, because we can't serialize the library 
+	//	function.
+	//
+	//	LATER: We could somehow serialize an identifier for the function and
+	//	then reload.
+
+	CDatum dResult(m_sName);
+	dResult.SerializeAEON(Stream, Serialized);
 	}

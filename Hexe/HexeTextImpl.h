@@ -1,7 +1,7 @@
 //	HexeTextImpl.h
 //
 //	Hexe header file
-//	Copyright (c) 2013 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2013 by GridWhale Corporation. All Rights Reserved.
 //
 //	USAGE
 //
@@ -12,6 +12,7 @@
 class CHexeTextFunctionProcessor : public TExternalDatum<CHexeTextFunctionProcessor>
 	{
 	public:
+
 		CHexeTextFunctionProcessor (CDatum dInput, const CString &sFormat, CDatum dParams);
 		static const CString &StaticGetTypename (void);
 
@@ -19,9 +20,11 @@ class CHexeTextFunctionProcessor : public TExternalDatum<CHexeTextFunctionProces
 		bool ProcessContinues (CDatum dSelf, CDatum dResult, CDatum *retResult);
 
 	protected:
+
 		virtual void OnMarked (void) override;
 
 	private:
+
 		bool ProcessExtension (CDatum dSelf, CTextMarkupParser::SExtensionDesc &Desc, CString *retsText, CDatum *retResult);
 		bool ProcessHexeText (CDatum *retResult);
 

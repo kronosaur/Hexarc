@@ -1,32 +1,42 @@
 //	CEsperHTTPOutConnection.cpp
 //
 //	CEsperHTTPOutConnection class
-//	Copyright (c) 2014 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2014 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
+
+DECLARE_CONST_STRING(CONNECTION_CLOSE,					"close");
 
 DECLARE_CONST_STRING(FIELD_PROXY,						"proxy");
 DECLARE_CONST_STRING(FIELD_RAW,							"raw");
 
+DECLARE_CONST_STRING(HEADER_CONNECTION,					"Connection");
+
 DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply");
+DECLARE_CONST_STRING(MSG_LOG_DEBUG,						"Log.debug")
+DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error");
 
 DECLARE_CONST_STRING(PROTOCOL_HTTPS,					"https");
 
-DECLARE_CONST_STRING(ERR_LOST_CONNECTION,				"HTTP connection lost.");
+DECLARE_CONST_STRING(STR_BEGIN_HTTP,					"BeginHTTPRequest: Need to connect.");
+DECLARE_CONST_STRING(STR_BEGIN_HTTP_REUSE,				"BeginHTTPRequest: Already connected.");
+
+DECLARE_CONST_STRING(ERR_LOST_CONNECTION_TRANS_FAILED,	"HTTP connection lost: Transmission failed in state: %d.");
+DECLARE_CONST_STRING(ERR_LOST_CONNECTION_SSL_ERROR,		"HTTP connection lost: SSL Error: %s");
 DECLARE_CONST_STRING(ERR_INVALID_STATE,					"Invalid state for CEsperHTTPOutConnection: %x.");
 DECLARE_CONST_STRING(ERR_CANNOT_CONNECT,				"Unable to connect to %s on port %d: %s");
 
 CEsperHTTPOutConnection::CEsperHTTPOutConnection (CEsperConnectionManager &Manager, const CString &sHostConnection, const CString &sAddress, DWORD dwPort) : 
 		CEsperConnection(sAddress, dwPort),
 		m_Manager(Manager),
-		m_sHostConnection(sHostConnection),
-		m_pSSL(NULL),
-		m_iState(stateDisconnected),
-		m_iSSLSavedState(stateNone)
+		m_sHostConnection(sHostConnection)
 
 //	CEsperHTTPOutConnection constructor
 
 	{
+#ifdef DEBUG_HTTP_MESSAGE
+	SetEnableDiagnostics(true);
+#endif
 	}
 
 CEsperHTTPOutConnection::~CEsperHTTPOutConnection (void)
@@ -71,12 +81,19 @@ bool CEsperHTTPOutConnection::BeginHTTPRequest (const SArchonMessage &Msg, const
 //	Makes a request
 
 	{
+	CSmartLock Lock(m_cs);
+
 	//	Prepare the request.
 
 	m_Msg = Msg;
 	m_bProxy = !Request.dOptions.GetElement(FIELD_PROXY).IsNil();
 	m_bRaw = !Request.dOptions.GetElement(FIELD_RAW).IsNil();
 	m_HTTPMessage = CHTTPUtil::EncodeRequest(Request.sMethod, (m_bProxy ? NULL_STR : Request.sHost), Request.sPath, Request.dHeaders, Request.dBody);
+
+#ifdef DEBUG_HTTP_MESSAGE
+	CString sDump = m_HTTPMessage.DebugDump();
+	printf("%s\n", (LPCSTR)sDump);
+#endif
 
 	//	Allow reconnect in case of error.
 
@@ -87,9 +104,8 @@ bool CEsperHTTPOutConnection::BeginHTTPRequest (const SArchonMessage &Msg, const
 
 	if (m_iState == stateDisconnectedBusy)
 		{
-#ifdef DEBUG_SSL_IO
-		printf("BeginHTTPRequest: Need to connect\n");
-#endif
+		GetDiagnostics().Log(STR_BEGIN_HTTP);
+
 		//	Get some options
 
 		m_bSSL = strEquals(Request.sProtocol, PROTOCOL_HTTPS);
@@ -106,9 +122,7 @@ bool CEsperHTTPOutConnection::BeginHTTPRequest (const SArchonMessage &Msg, const
 
 	else if (m_iState == stateConnectedBusy)
 		{
-#ifdef DEBUG_SSL_IO
-		printf("[%x:%x] BeginHTTPRequest: Already connected\n", ((GetID() & 0x00ffffff) + 1), (DWORD)GetSocket());
-#endif
+		GetDiagnostics().Log(STR_BEGIN_HTTP_REUSE);
 		OpSendRequest();
 		}
 
@@ -125,35 +139,46 @@ bool CEsperHTTPOutConnection::BeginHTTPRequest (const SArchonMessage &Msg, const
 	return true;
 	}
 
-void CEsperHTTPOutConnection::ClearBusy (void)
+void CEsperHTTPOutConnection::DeleteConnection ()
 
-//	ClearBusy
+//	DeleteConnection
 //
-//	Mark this connection as no longer busy
+//	Deletes the connection.
 
 	{
-	if (IsDeleted())
-		return;
-
-	switch (m_iState)
-		{
-		case stateConnectedBusy:
-			m_iState = stateConnected;
-			break;
-
-		case stateDisconnectedBusy:
-			m_iState = stateDisconnected;
-			break;
-		}
+	m_iState = stateDisconnected;
+	SetMarkedForDelete();
 	}
 
-void CEsperHTTPOutConnection::OnSocketOperationComplete (EOperations iOp, DWORD dwBytesTransferred)
+void CEsperHTTPOutConnection::OnSocketOperationComplete (EOperation iOp, DWORD dwBytesTransferred)
 
 //	OnSocketOperationComplete
 //
 //	Operation complete
+//
+//	NOTE: This is called by CIOCPSocket::OnOperationComplete, which is called by 
+//	IIOCPEntry::OperationComplete, inside the lock.
 
 	{
+#ifdef DEBUG_SOCKET_OPS_VERBOSE
+	printf("OnSocketOperationComplete(%d): %d bytes\n", iOp, dwBytesTransferred);
+#endif
+
+	GetDiagnostics().LogFn([iOp, dwBytesTransferred]() 
+		{
+		switch (iOp)
+			{
+			case EOperation::connect:
+				return strPattern("Socket Connected");
+			case EOperation::read:
+				return strPattern("Socket read %d bytes", dwBytesTransferred);
+			case EOperation::write:
+				return strPattern("Socket wrote %d bytes", dwBytesTransferred);
+			default:
+				return strPattern("Socket op complete: %d bytes", dwBytesTransferred);
+			}
+		});
+
 	switch (m_iState)
 		{
 		case stateWaitForConnect:
@@ -173,7 +198,7 @@ void CEsperHTTPOutConnection::OnSocketOperationComplete (EOperations iOp, DWORD 
 				if (m_pSSL)
 					delete m_pSSL;
 
-				m_pSSL = new CSSLAsyncEngine;
+				m_pSSL = new CSSLAsyncEngine(NULL, GetDiagnostics());
 
 				//	Set the hostname so that we can support SNI
 
@@ -209,39 +234,48 @@ void CEsperHTTPOutConnection::OnSocketOperationComplete (EOperations iOp, DWORD 
 
 		case stateWaitForResponse:
 			{
-#ifdef DEBUG_SOCKET_OPS
-			m_Manager.LogTrace(strPattern("[%x] Received %d bytes.", CEsperInterface::ConnectionToFriendlyID(GetID()), GetBuffer()->GetLength()));
+#ifdef DEBUG_SOCKET_OPS_VERBOSE
+			m_Manager.LogTrace(strPattern("[%x] Received %d bytes.", CEsperInterface::ConnectionToFriendlyID(GetID()), GetReadBuffer()->GetLength()));
 #endif
 			//	Process message
 
-			OpProcessReceivedData(*GetBuffer());
+			OpProcessReceivedData(*GetReadBuffer());
 			break;
 			}
 
 		case stateWaitToReceiveSSLData:
 			{
-#ifdef DEBUG_SSL_IO
-			printf("Received %d bytes\n", GetBuffer()->GetLength());
+#ifdef DEBUG_SOCKET_OPS_VERBOSE
+			printf("(SSL) Received %d bytes\n", GetReadBuffer()->GetLength());
 #endif
-			m_pSSL->ProcessReceiveData(*GetBuffer());
+			m_pSSL->ProcessReceiveData(*GetReadBuffer());
 			OpProcessSSL();
 			break;
 			}
 
 		case stateWaitToSendSSLData:
 			{
+#ifdef DEBUG_SOCKET_OPS_VERBOSE
+			printf("(SSL) Sent %d bytes\n", dwBytesTransferred);
+#endif
 			OpProcessSSL();
 			break;
 			}
 
 		case stateWaitToSendSSLDataThenReceive:
 			{
+#ifdef DEBUG_SOCKET_OPS_VERBOSE
+			printf("(SSL) Sent %d bytes then receive\n", dwBytesTransferred);
+#endif
 			OpRead(stateWaitToReceiveSSLData);
 			break;
 			}
 
 		case stateWaitToSendSSLDataThenReady:
 			{
+#ifdef DEBUG_SOCKET_OPS_VERBOSE
+			printf("(SSL) Sent %d bytes then ready\n", dwBytesTransferred);
+#endif
 			OnSSLOperationComplete();
 			break;
 			}
@@ -251,7 +285,7 @@ void CEsperHTTPOutConnection::OnSocketOperationComplete (EOperations iOp, DWORD 
 		}
 	}
 
-void CEsperHTTPOutConnection::OnSocketOperationFailed (EOperations iOp)
+void CEsperHTTPOutConnection::OnSocketOperationFailed (EOperation iOp, CStringView sError)
 
 //	OnSocketOperationFailed
 //
@@ -270,9 +304,13 @@ void CEsperHTTPOutConnection::OnSocketOperationFailed (EOperations iOp)
 			break;
 
 		default:
+#ifdef DEBUG_HTTP_MESSAGE
+			printf("OnSocketOperationFailed\n");
+#endif
+			m_Manager.Log(MSG_LOG_ERROR, strPattern("[%x]: %s", CEsperInterface::ConnectionToFriendlyID(CDatum(GetID())), sError));
 			m_Manager.LogTrace(strPattern("[%x] Disconnect on failure", CEsperInterface::ConnectionToFriendlyID(CDatum(GetID()))));
-			m_Manager.SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, ERR_LOST_CONNECTION, m_Msg);
-			m_Manager.DeleteConnection(CDatum(GetID()));
+			m_Manager.SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_LOST_CONNECTION_TRANS_FAILED, (int)m_iState), m_Msg);
+			DeleteConnection();
 			break;
 		}
 	}
@@ -282,6 +320,10 @@ void CEsperHTTPOutConnection::OnSSLOperationComplete (void)
 //	OnSSLOperationComplete
 //
 //	SSL operation finished.
+//
+//	NOTE: Called by:
+//		OnSocketOperationComplete()
+//		OpProcessSSL()
 
 	{
 	switch (m_iSSLSavedState)
@@ -305,8 +347,8 @@ void CEsperHTTPOutConnection::OnSSLOperationComplete (void)
 			break;
 
 		case stateWaitForResponse:
-#ifdef DEBUG_SOCKET_OPS
-			m_Manager.LogTrace(strPattern("[%x] Received response (%d bytes).", CEsperInterface::ConnectionToFriendlyID(GetID()), m_pSSL->GetBuffer().GetLength()));
+#ifdef DEBUG_SOCKET_OPS_VERBOSE
+//			m_Manager.LogTrace(strPattern("[%x] Received response (%d bytes).", CEsperInterface::ConnectionToFriendlyID(GetID()), m_pSSL->GetBuffer().GetLength()));
 #endif
 			OpProcessReceivedData(m_pSSL->GetBuffer());
 			break;
@@ -365,6 +407,9 @@ bool CEsperHTTPOutConnection::OpConnect (bool bReconnect)
 #ifdef DEBUG_SOCKET_OPS
 		m_Manager.LogTrace(strPattern("[%x] Connect failed.", CEsperInterface::ConnectionToFriendlyID(GetID())));
 #endif
+#ifdef DEBUG_HTTP_MESSAGE
+		printf("CEsperHTTPOutConnection::OpConnect failed\n");
+#endif
 		m_Manager.SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_CANNOT_CONNECT, m_sAddress, m_dwPort, sError), m_Msg);
 		return false;
 		}
@@ -389,6 +434,28 @@ bool CEsperHTTPOutConnection::OpMessageComplete (void)
 	CDatum dPayload = CEsperInterface::DecodeHTTPResponse(m_HTTPMessage, m_bRaw);
 	m_Manager.SendMessageReplyData(dPayload, m_Msg);
 
+#ifdef DEBUG_SOCKET_OPS
+	if (m_pSSL)
+		printf("%s\n", (LPCSTR)m_pSSL->DebugGetBufferState());
+#endif
+
+#ifdef DEBUG
+	printf("%s\n", (LPCSTR)GetDiagnostics().AsString());
+#endif
+
+	//	If the server is closing the connection, then we need to reset the
+	//	socket.
+
+	CString sValue;
+	if (m_HTTPMessage.FindHeader(HEADER_CONNECTION, &sValue) && strEqualsNoCase(sValue, CONNECTION_CLOSE))
+		{
+#ifdef DEBUG_HTTP_MESSAGE
+		printf("CEsperHTTPOutConnection::OpMessageComplete: Connection close\n");
+#endif
+		m_iState = stateDisconnected;
+		m_Manager.ResetConnection(CDatum(GetID()));
+		}
+
 	//	Free up some memory
 
 	m_HTTPMessage.InitFromPartialBufferReset();
@@ -409,6 +476,10 @@ bool CEsperHTTPOutConnection::OpProcessReceivedData (const IMemoryBlock &Buffer)
 
 	if (m_bResetBuffer)
 		{
+#ifdef DEBUG_HTTP_MESSAGE
+		printf("CEsperHTTPOutConnection::OpProcessReceivedData: Reset buffer\n");
+#endif
+
 		m_HTTPMessage.InitFromPartialBufferReset();
 		m_bResetBuffer = false;
 
@@ -441,12 +512,20 @@ bool CEsperHTTPOutConnection::OpProcessSSL (void)
 //	OpProcessSSL
 //
 //	Process SSL until we are ready.
+//
+//	NOTE: Called by
+//		OpReceiveResponse
+//		OpSendRequest
+//		OnSocketOperationComplete
 
 	{
 	CString sError;
 	switch (m_pSSL->Process(&sError))
 		{
-		case CSSLAsyncEngine::resReady:
+		case CSSLAsyncEngine::resReadyConnect:
+		case CSSLAsyncEngine::resReadyRead:
+		case CSSLAsyncEngine::resReadyWrite:
+		case CSSLAsyncEngine::resReadyIdle:
 			{
 			OnSSLOperationComplete();
 			return true;
@@ -491,8 +570,10 @@ bool CEsperHTTPOutConnection::OpProcessSSL (void)
 #ifdef DEBUG_SOCKET_OPS
 				m_Manager.LogTrace(strPattern("[%x] SSL error: %s", CEsperInterface::ConnectionToFriendlyID(CDatum(GetID())), sError));
 #endif
-				m_Manager.SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, ERR_LOST_CONNECTION, m_Msg);
-				m_Manager.DeleteConnection(CDatum(GetID()));
+				m_Manager.Log(MSG_LOG_DEBUG, GetDiagnostics().AsString());
+
+				m_Manager.SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_LOST_CONNECTION_SSL_ERROR, sError), m_Msg);
+				DeleteConnection();
 				return false;
 				}
 
@@ -507,6 +588,11 @@ bool CEsperHTTPOutConnection::OpRead (EStates iNewState)
 //	OpRead
 //
 //	Initiates a read operation.
+//
+//	NOTE: Called by
+//		OpReceiveResponse
+//		OnSocketOperationComplete
+//		OpProcessSSL
 
 	{
 	CString sError;
@@ -530,6 +616,10 @@ bool CEsperHTTPOutConnection::OpReceiveResponse (void)
 //	OpReceiveResponse
 //
 //	Reads a response from the server
+//
+//	NOTE: Called by
+//		OnSSLOperationComplete
+//		OpProcessReceiveData
 
 	{
 	//	SSL
@@ -559,6 +649,11 @@ bool CEsperHTTPOutConnection::OpSendRequest (void)
 //	OpSendRequest
 //
 //	Makes an HTTP request.
+//
+//	NOTE: Called by
+//		BeginHTTPRequest
+//		OnSocketOperationComplete
+//		OnSSLOperationComplete
 
 	{
 	CString sError;
@@ -614,12 +709,16 @@ bool CEsperHTTPOutConnection::OpTransmissionFailed (void)
 		//
 		//	Alternatively, we could reset the socket here.
 
+		EStates iOldState = m_iState;
 		m_iState = stateConnected;
 
 #ifdef DEBUG_SOCKET_OPS
 		m_Manager.LogTrace(strPattern("[%x] Unable to communicate on socket.", CEsperInterface::ConnectionToFriendlyID(CDatum(GetID()))));
 #endif
-		m_Manager.SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, ERR_LOST_CONNECTION, m_Msg);
+#ifdef DEBUG_HTTP_MESSAGE
+		printf("CEsperHTTPOutConnection::OpTransmissionFailed\n");
+#endif
+		m_Manager.SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_LOST_CONNECTION_TRANS_FAILED, iOldState), m_Msg);
 		return false;
 		}
 	}
@@ -644,7 +743,7 @@ bool CEsperHTTPOutConnection::OpWrite (const CString &sData, EStates iNewState)
 	return true;
 	}
 
-bool CEsperHTTPOutConnection::SetBusy (void)
+bool CEsperHTTPOutConnection::SetBusy (EOperation iOperation)
 
 //	SetBusy
 //

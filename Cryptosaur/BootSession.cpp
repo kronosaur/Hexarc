@@ -1,7 +1,7 @@
 //	BootSession.cpp
 //
 //	Boot session for the engine
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -304,14 +304,14 @@ bool CBootSession::OnProcessMessage (const SArchonMessage &Msg)
 				CDatum dKeyName = dKeyList.GetElement(i);
 				CDatum dKey = dKeyList.GetElement(i + 1);
 
-				if (dKeyName.IsNil() || ((const CString &)dKeyName).IsEmpty() 
+				if (dKeyName.IsNil() || dKeyName.AsStringView().IsEmpty() 
 						|| dKey.IsNil())
 					{
 					GetProcessCtx()->Log(MSG_LOG_ERROR, strPattern(ERR_INVALID_KEY, dKeyName.AsString()));
 					return false;
 					}
 
-				m_pEngine->InsertKey(dKeyName, dKey);
+				m_pEngine->InsertKey(dKeyName.AsStringView(), dKey);
 				}
 
 			//	Do we have the key to create authTokens? If not, then we need to
@@ -400,12 +400,12 @@ bool CBootSession::OnProcessMessage (const SArchonMessage &Msg)
 
 				//	We only handle ssl certificates
 
-				if (!strEqualsNoCase(dCert.GetElement(FIELD_TYPE), TYPE_SSL_CERTIFICATE))
+				if (!strEqualsNoCase(dCert.GetElement(FIELD_TYPE).AsStringView(), TYPE_SSL_CERTIFICATE))
 					continue;
 
 				//	Add to our cache
 
-				m_pEngine->InsertCertificate(dCert.GetElement(FIELD_NAME), dCert);
+				m_pEngine->InsertCertificate(dCert.GetElement(FIELD_NAME).AsStringView(), dCert);
 				}
 
 			//	Now read the Users table to see if we have at least one username

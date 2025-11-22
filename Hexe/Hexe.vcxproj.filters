@@ -42,9 +42,6 @@
     <ClCompile Include="CHexeLibraryFunction.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CHexeLocalEnvironment.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="CHexePrimitive.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -96,6 +93,48 @@
     <ClCompile Include="CHexeConsole.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CHexeEnvStack.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="IHexeVMHost.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CArrayMapProcessor.cpp">
+      <Filter>Source Files\Core Library</Filter>
+    </ClCompile>
+    <ClCompile Include="CTableMapProcessor.cpp">
+      <Filter>Source Files\Core Library</Filter>
+    </ClCompile>
+    <ClCompile Include="CHexeProgram.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CDictionaryMapProcessor.cpp">
+      <Filter>Source Files\Core Library</Filter>
+    </ClCompile>
+    <ClCompile Include="CHexeCodeHistogram.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CTensorMapProcessor.cpp">
+      <Filter>Source Files\Core Library</Filter>
+    </ClCompile>
+    <ClCompile Include="CHexeGlobalEnvCache.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CHexeColumnExpressionEval.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CHexeMapColumnExpressionEval.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CHexeTableGroupEval.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CHexeExpressionEval.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CHexeTableExpressionEval.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Include\Hexe.h">
@@ -123,6 +162,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="TypeImpl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HexeProcessors.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\HexeDocument.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\HexeLibrarian.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,7 +1,7 @@
 //	CEsperEngine.cpp
 //
 //	CEsperEngine class
-//	Copyright (c) 2010 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2010 by GridWhale Corporation. All Rights Reserved.
 //
 //	IMPLEMENTATION
 //
@@ -39,71 +39,81 @@ const int INITIAL_PROCESSING_THREADS =					6;
 const int DEFAULT_BUFFER_SIZE =							16 * 1024;
 const int DEFAULT_QUEUE_SIZE =							1000;
 
-DECLARE_CONST_STRING(ADDR_NULL,							"Arc.null")
+DECLARE_CONST_STRING(ADDR_NULL,							"Arc.null");
 
-DECLARE_CONST_STRING(VIRTUAL_PORT_ESPER_COMMAND,		"Esper.command")
-DECLARE_CONST_STRING(ADDRESS_ESPER_COMMAND,				"Esper.command@~/~")
+DECLARE_CONST_STRING(VIRTUAL_PORT_ESPER_COMMAND,		"Esper.command");
+DECLARE_CONST_STRING(ADDRESS_ESPER_COMMAND,				"Esper.command@~/~");
 
-DECLARE_CONST_STRING(ENGINE_NAME_ESPER,					"Esper")
+DECLARE_CONST_STRING(ENGINE_NAME_ESPER,					"Esper");
 
-DECLARE_CONST_STRING(FIELD_CLASS,						"class")
-DECLARE_CONST_STRING(FIELD_DATE,						"date")
-DECLARE_CONST_STRING(FIELD_PEAK_CONNECTIONS,			"peakConnections")
-DECLARE_CONST_STRING(FIELD_PEAK_RECEIVED,				"peakReceived")
-DECLARE_CONST_STRING(FIELD_PEAK_SENT,					"peakSent")
-DECLARE_CONST_STRING(FIELD_STATUS,						"status")
-DECLARE_CONST_STRING(FIELD_TOTAL_CONNECTIONS,			"totalConnections")
-DECLARE_CONST_STRING(FIELD_TOTAL_RECEIVED,				"totalReceived")
-DECLARE_CONST_STRING(FIELD_TOTAL_SENT,					"totalSent")
+DECLARE_CONST_STRING(FIELD_CLASS,						"class");
+DECLARE_CONST_STRING(FIELD_DATE,						"date");
+DECLARE_CONST_STRING(FIELD_PEAK_CONNECTIONS,			"peakConnections");
+DECLARE_CONST_STRING(FIELD_PEAK_RECEIVED,				"peakReceived");
+DECLARE_CONST_STRING(FIELD_PEAK_SENT,					"peakSent");
+DECLARE_CONST_STRING(FIELD_STATUS,						"status");
+DECLARE_CONST_STRING(FIELD_TOTAL_CONNECTIONS,			"totalConnections");
+DECLARE_CONST_STRING(FIELD_TOTAL_RECEIVED,				"totalReceived");
+DECLARE_CONST_STRING(FIELD_TOTAL_SENT,					"totalSent");
 
-DECLARE_CONST_STRING(MSG_ARC_FILE_MSG,					"Arc.fileMsg")
-DECLARE_CONST_STRING(MSG_ARC_GET_STATUS,				"Arc.getStatus")
-DECLARE_CONST_STRING(MSG_ARC_HOUSEKEEPING,				"Arc.housekeeping")
-DECLARE_CONST_STRING(MSG_ARC_SANDBOX_MSG,				"Arc.sandboxMsg")
-DECLARE_CONST_STRING(MSG_ERROR_NO_RIGHT,				"Error.notAllowed")
-DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply")
-DECLARE_CONST_STRING(MSG_ESPER_AMP1,					"Esper.amp1")
-DECLARE_CONST_STRING(MSG_ESPER_AMP1_DISCONNECT,			"Esper.amp1Disconnect")
-DECLARE_CONST_STRING(MSG_ESPER_DISCONNECT,				"Esper.disconnect")
-DECLARE_CONST_STRING(MSG_ESPER_GET_USAGE_HISTORY,		"Esper.getUsageHistory")
-DECLARE_CONST_STRING(MSG_ESPER_HTTP,					"Esper.http")
-DECLARE_CONST_STRING(MSG_ESPER_ON_CONNECT,				"Esper.onConnect")
-DECLARE_CONST_STRING(MSG_ESPER_ON_DISCONNECT,			"Esper.onDisconnect")
-DECLARE_CONST_STRING(MSG_ESPER_ON_READ,					"Esper.onRead")
-DECLARE_CONST_STRING(MSG_ESPER_ON_WRITE,				"Esper.onWrite")
-DECLARE_CONST_STRING(MSG_ESPER_READ,					"Esper.read")
-DECLARE_CONST_STRING(MSG_ESPER_SET_CONNECTION_PROPERTY,	"Esper.setConnectionProperty")
-DECLARE_CONST_STRING(MSG_ESPER_START_LISTENER,			"Esper.startListener")
-DECLARE_CONST_STRING(MSG_ESPER_STOP_LISTENER,			"Esper.stopListener")
-DECLARE_CONST_STRING(MSG_ESPER_WRITE,					"Esper.write")
-DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error")
-DECLARE_CONST_STRING(MSG_LOG_DEBUG,						"Log.debug")
-DECLARE_CONST_STRING(MSG_LOG_INFO,						"Log.info")
-DECLARE_CONST_STRING(MSG_OK,							"OK")
-DECLARE_CONST_STRING(MSG_REPLY_DATA,					"Reply.data")
+DECLARE_CONST_STRING(MSG_ARC_FILE_MSG,					"Arc.fileMsg");
+DECLARE_CONST_STRING(MSG_ARC_GET_STATUS,				"Arc.getStatus");
+DECLARE_CONST_STRING(MSG_ARC_HOUSEKEEPING,				"Arc.housekeeping");
+DECLARE_CONST_STRING(MSG_ARC_SANDBOX_MSG,				"Arc.sandboxMsg");
+DECLARE_CONST_STRING(MSG_ERROR_NO_RIGHT,				"Error.notAllowed");
+DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply");
+DECLARE_CONST_STRING(MSG_ESPER_AMP1,					"Esper.amp1");
+DECLARE_CONST_STRING(MSG_ESPER_AMP1_DISCONNECT,			"Esper.amp1Disconnect");
+DECLARE_CONST_STRING(MSG_ESPER_DISCONNECT,				"Esper.disconnect");
+DECLARE_CONST_STRING(MSG_ESPER_GET_USAGE_HISTORY,		"Esper.getUsageHistory");
+DECLARE_CONST_STRING(MSG_ESPER_HTTP,					"Esper.http");
+DECLARE_CONST_STRING(MSG_ESPER_ON_CONNECT,				"Esper.onConnect");
+DECLARE_CONST_STRING(MSG_ESPER_ON_DISCONNECT,			"Esper.onDisconnect");
+DECLARE_CONST_STRING(MSG_ESPER_ON_READ,					"Esper.onRead");
+DECLARE_CONST_STRING(MSG_ESPER_ON_WRITE,				"Esper.onWrite");
+DECLARE_CONST_STRING(MSG_ESPER_READ,					"Esper.read");
+DECLARE_CONST_STRING(MSG_ESPER_SET_CONNECTION_PROPERTY,	"Esper.setConnectionProperty");
+DECLARE_CONST_STRING(MSG_ESPER_SET_OPTION,				"Esper.setOption");
+DECLARE_CONST_STRING(MSG_ESPER_START_LISTENER,			"Esper.startListener");
+DECLARE_CONST_STRING(MSG_ESPER_START_WS_CONNECTION,		"Esper.startWSConnection");
+DECLARE_CONST_STRING(MSG_ESPER_STOP_LISTENER,			"Esper.stopListener");
+DECLARE_CONST_STRING(MSG_ESPER_WRITE,					"Esper.write");
+DECLARE_CONST_STRING(MSG_ESPER_SEND_WS_MESSAGE,			"Esper.sendWSMessage");
+DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error");
+DECLARE_CONST_STRING(MSG_LOG_DEBUG,						"Log.debug");
+DECLARE_CONST_STRING(MSG_LOG_INFO,						"Log.info");
+DECLARE_CONST_STRING(MSG_OK,							"OK");
+DECLARE_CONST_STRING(MSG_REPLY_DATA,					"Reply.data");
 
-DECLARE_CONST_STRING(PROTOCOL_AMP1,						"amp1")
-DECLARE_CONST_STRING(PROTOCOL_RAW,						"raw")
-DECLARE_CONST_STRING(PROTOCOL_TLS,						"tls")
+DECLARE_CONST_STRING(OPTION_DISABLE,					"disable");
+DECLARE_CONST_STRING(OPTION_ENABLE,						"enable");
+DECLARE_CONST_STRING(OPTION_LOG_WEB_SOCKET,				"Esper.logWebSocket");
 
-DECLARE_CONST_STRING(STR_ESPER_ENGINE,					"CEsperEngine")
+DECLARE_CONST_STRING(PROTOCOL_AMP1,						"amp1");
+DECLARE_CONST_STRING(PROTOCOL_RAW,						"raw");
+DECLARE_CONST_STRING(PROTOCOL_TLS,						"tls");
+DECLARE_CONST_STRING(PROTOCOL_WSS,						"wss");
 
-DECLARE_CONST_STRING(WORKER_SIGNAL_SHUTDOWN,			"Worker.shutdown")
+DECLARE_CONST_STRING(STR_ESPER_ENGINE,					"CEsperEngine");
+DECLARE_CONST_STRING(STR_IDLE,							"Idle");
+DECLARE_CONST_STRING(STR_UPGRADED_TO_WEB_SOCKET,		"Upgraded to WebSocket.");
 
-DECLARE_CONST_STRING(ERR_DUPLICATE_LISTENER_NAME,		"Duplicate listener name.")
-DECLARE_CONST_STRING(ERR_INVALID_LISTENER_NAME,			"Invalid listener name.")
-DECLARE_CONST_STRING(ERR_LISTENER_NOT_FOUND,			"Unable to find listener: %s.")
-DECLARE_CONST_STRING(ERR_READ_FAILED,					"Read failed: %s")
-DECLARE_CONST_STRING(ERR_CONNECT_FAILED,				"Unable to connect: %s")
-DECLARE_CONST_STRING(ERR_CREATE_SOCKET_FAILED,			"Unable to create a socket.")
-DECLARE_CONST_STRING(ERR_MSG_TIMING,					"Esper: %s took %d ms to process.")
-DECLARE_CONST_STRING(ERR_UNABLE_TO_SEND_MESSAGE,		"Unable to send Esper message to engine.")
-DECLARE_CONST_STRING(ERR_UNKNOWN_PROTOCOL,				"Unknown protocol: %s.")
-DECLARE_CONST_STRING(ERR_WRITE_FAILED,					"Write failed: %s")
-DECLARE_CONST_STRING(ERR_CRASH_MSG,						"CRASH: Esper crashed processing %s.")
-DECLARE_CONST_STRING(ERR_INTERNAL_SERVER_ERROR,			"Internal server error.")
-DECLARE_CONST_STRING(ERR_INVALID_MSG,					"Esper: Unhandled message: %s.")
-DECLARE_CONST_STRING(ERR_NOT_ADMIN,						"Service does not have Arc.admin right.")
+DECLARE_CONST_STRING(WORKER_SIGNAL_SHUTDOWN,			"Worker.shutdown");
+
+DECLARE_CONST_STRING(ERR_DUPLICATE_LISTENER_NAME,		"Duplicate listener name.");
+DECLARE_CONST_STRING(ERR_INVALID_LISTENER_NAME,			"Invalid listener name.");
+DECLARE_CONST_STRING(ERR_LISTENER_NOT_FOUND,			"Unable to find listener: %s.");
+DECLARE_CONST_STRING(ERR_READ_FAILED,					"Read failed: %s");
+DECLARE_CONST_STRING(ERR_CONNECT_FAILED,				"Unable to connect: %s");
+DECLARE_CONST_STRING(ERR_CREATE_SOCKET_FAILED,			"Unable to create a socket.");
+DECLARE_CONST_STRING(ERR_MSG_TIMING,					"Esper: %s took %d ms to process.");
+DECLARE_CONST_STRING(ERR_UNABLE_TO_SEND_MESSAGE,		"Unable to send Esper message to engine.");
+DECLARE_CONST_STRING(ERR_UNKNOWN_PROTOCOL,				"Unknown protocol: %s.");
+DECLARE_CONST_STRING(ERR_WRITE_FAILED,					"Write failed: %s");
+DECLARE_CONST_STRING(ERR_CRASH_MSG,						"CRASH: Esper crashed processing %s.");
+DECLARE_CONST_STRING(ERR_INTERNAL_SERVER_ERROR,			"Internal server error.");
+DECLARE_CONST_STRING(ERR_INVALID_MSG,					"Esper: Unhandled message: %s.");
+DECLARE_CONST_STRING(ERR_NOT_ADMIN,						"Service does not have Arc.admin right.");
 
 class CWorkerShutdownEvent : public IIOCPEntry
 	{
@@ -112,9 +122,8 @@ class CWorkerShutdownEvent : public IIOCPEntry
 			{ }
 	};
 
-CEsperEngine::CEsperEngine (void) : 
-		m_pProcess(NULL), 
-		m_bShutdown(false),
+CEsperEngine::CEsperEngine (void) :
+		m_Connections(*this),
 		m_Queue(DEFAULT_QUEUE_SIZE)
 
 //	CSimpleEngine constructor
@@ -146,6 +155,13 @@ CEsperEngine::~CEsperEngine (void)
 
 	for (i = 0; i < m_Processors.GetCount(); i++)
 		delete m_Processors[i];
+	}
+
+void CEsperEngine::AccumulateCrashData (TArray<CString>& retLines) const
+	{
+	CSmartLock Lock(m_cs);
+	for (int i = 0; i < m_Status.GetCount(); i++)
+		retLines.Insert(strPattern("[%x]: %s", m_Status[i].dwThreadID, m_Status[i].sTask));
 	}
 
 CMessagePort *CEsperEngine::Bind (const CString &sAddr)
@@ -197,7 +213,7 @@ void CEsperEngine::DeleteListener (const SArchonMessage &Msg)
 
 	//	Get the name
 
-	CString sName = Msg.dPayload.GetElement(0);
+	CStringView sName = Msg.dPayload.GetElement(0);
 
 	//	Find the listener
 
@@ -320,6 +336,17 @@ void CEsperEngine::LogTrace (const CString &sText)
 #endif
 	}
 
+void CEsperEngine::LogWebSocket (CDatum dConnection, CStringView sText)
+
+//	LogWebSocket
+//
+//	Log mesage for WebSocket
+
+	{
+	if (m_bLogWebSocket)
+		Log(MSG_LOG_DEBUG, strPattern("[%x]: %s", CEsperInterface::ConnectionToFriendlyID(dConnection), sText));
+	}
+
 void CEsperEngine::Mark (void)
 
 //	Mark
@@ -327,6 +354,8 @@ void CEsperEngine::Mark (void)
 //	Mark all AEON data in use
 
 	{
+	DEBUG_TRY
+
 	for (int i = 0; i < m_Listeners.GetCount(); i++)
 		m_Listeners[i]->Mark();
 
@@ -334,6 +363,9 @@ void CEsperEngine::Mark (void)
 		m_Workers[i]->Mark();
 
 	m_Connections.Mark();
+	m_Queue.Mark();
+
+	DEBUG_CATCH
 	}
 
 void CEsperEngine::MsgEsperAMP1 (const SArchonMessage &Msg)
@@ -343,10 +375,10 @@ void CEsperEngine::MsgEsperAMP1 (const SArchonMessage &Msg)
 //	Esper.amp1 {machine-address} {command} {data}
 
 	{
-	CString sFullAddress = Msg.dPayload.GetElement(0);
-	CString sCommand = Msg.dPayload.GetElement(1);
+	CStringView sFullAddress = Msg.dPayload.GetElement(0);
+	CStringView sCommand = Msg.dPayload.GetElement(1);
 	CDatum dData = Msg.dPayload.GetElement(2);
-	CString sAuthName = Msg.dPayload.GetElement(3);
+	CStringView sAuthName = Msg.dPayload.GetElement(3);
 	CIPInteger AuthKey = Msg.dPayload.GetElement(4);
 
 	//	Don't log, because we might recurse when sending a log message
@@ -374,7 +406,7 @@ void CEsperEngine::MsgEsperAMP1Disconnect (const SArchonMessage &Msg)
 //	Esper.amp1Disconnect {machine-address}
 
 	{
-	m_Connections.DeleteConnectionByAddress(Msg.dPayload.GetElement(0));
+	m_Connections.DeleteConnectionByAddress(CString(Msg.dPayload.GetElement(0).AsStringView()));
 	SendMessageReply(MSG_OK, CDatum(), Msg);
 	}
 
@@ -466,8 +498,8 @@ void CEsperEngine::MsgEsperHTTP (const SArchonMessage &Msg)
 //	Issues an HTTP request
 
 	{
-	CString sRequest = Msg.dPayload.GetElement(0);
-	CString sURL = Msg.dPayload.GetElement(1);
+	CStringView sRequest = Msg.dPayload.GetElement(0);
+	CStringView sURL = Msg.dPayload.GetElement(1);
 	CDatum dHeaders = Msg.dPayload.GetElement(2);
 	CDatum dBody = Msg.dPayload.GetElement(3);
 	CDatum dOptions = Msg.dPayload.GetElement(4);
@@ -512,6 +544,26 @@ void CEsperEngine::MsgEsperRead (const SArchonMessage &Msg)
 	//	We reply when the async operation completes (or we get an error).
 	}
 
+void CEsperEngine::MsgEsperSendWSMessage (const SArchonMessage &Msg)
+
+//	MsgEsperSendWSMessage
+//
+//	Esper.sendWSMessage socket message
+
+	{
+	CDatum dSocket = Msg.dPayload.GetElement(0);
+	CDatum dMessage = Msg.dPayload.GetElement(1);
+
+	CString sError;
+	if (!m_Connections.SendWSMessage(dSocket, dMessage, &sError))
+		{
+		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, sError, Msg);
+		return;
+		}
+
+	SendMessageReply(MSG_OK, CDatum(true), Msg);
+	}
+
 void CEsperEngine::MsgEsperSetConnectionProperty (const SArchonMessage &Msg)
 
 //	MsgEsperSetConnectionProperty
@@ -520,13 +572,39 @@ void CEsperEngine::MsgEsperSetConnectionProperty (const SArchonMessage &Msg)
 
 	{
 	CDatum dConnection = Msg.dPayload.GetElement(0);
-	CString sProperty = Msg.dPayload.GetElement(1);
+	CStringView sProperty = Msg.dPayload.GetElement(1);
 	CDatum dValue = Msg.dPayload.GetElement(2);
 
 	CString sError;
 	if (!m_Connections.SetProperty(dConnection, sProperty, dValue, &sError))
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, sError, Msg);
+		return;
+		}
+
+	SendMessageReply(MSG_OK, CDatum(), Msg);
+	}
+
+void CEsperEngine::MsgEsperSetOption (const SArchonMessage &Msg)
+
+//	MsgEsperSetOption
+//
+//	Esper.setOption {option} {value}
+
+	{
+	CStringView sOption = Msg.dPayload.GetElement(0);
+	CDatum dValue = Msg.dPayload.GetElement(1);
+
+	if (strEqualsNoCase(sOption, OPTION_LOG_WEB_SOCKET))
+		{
+		if (strEqualsNoCase(dValue.AsStringView(), OPTION_ENABLE) || dValue.AsBool())
+			m_bLogWebSocket = true;
+		else
+			m_bLogWebSocket = false;
+		}
+	else
+		{
+		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern("Unknown option: %s.", sOption), Msg);
 		return;
 		}
 
@@ -549,8 +627,8 @@ void CEsperEngine::MsgEsperStartListener (const SArchonMessage &Msg)
 
 	//	Get some parameters
 
-	CString sName = Msg.dPayload.GetElement(0);
-	CString sProtocol = Msg.dPayload.GetElement(2);
+	CStringView sName = Msg.dPayload.GetElement(0);
+	CStringView sProtocol = Msg.dPayload.GetElement(2);
 
 	//	Get the type from the protocol
 
@@ -561,6 +639,8 @@ void CEsperEngine::MsgEsperStartListener (const SArchonMessage &Msg)
 		iType = CEsperConnection::typeAMP1In;
 	else if (strEquals(sProtocol, PROTOCOL_TLS))
 		iType = CEsperConnection::typeTLSIn;
+	else if (strEquals(sProtocol, PROTOCOL_WSS))
+		iType = CEsperConnection::typeWSIn;
 	else
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_UNKNOWN_PROTOCOL, sProtocol), Msg);
@@ -584,6 +664,39 @@ void CEsperEngine::MsgEsperStartListener (const SArchonMessage &Msg)
 	pThread->Start();
 	}
 
+void CEsperEngine::MsgEsperStartWSConnection (const SArchonMessage &Msg)
+
+//	MsgEsperStartWSConnection
+//
+//	Esper.startWSConnection {socket} {connectInfo} {webSocketKey}
+//
+//	connectInfo has the following fields:
+//
+//		address: The address to send messages to
+//		msg: The message to send
+//		api: The API to send
+
+	{
+	CDatum dConnection = Msg.dPayload.GetElement(0);
+	CDatum dConnectInfo = Msg.dPayload.GetElement(1);
+	CStringView sWebSocketKey = Msg.dPayload.GetElement(2);
+
+	CString sError;
+	if (!m_Connections.UpgradeToWebSocket(dConnection, dConnectInfo, sWebSocketKey, &sError))
+		{
+		LogWebSocket((DWORD)dConnection, sError);
+		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, sError, Msg);
+		return;
+		}
+
+	LogWebSocket((DWORD)dConnection, STR_UPGRADED_TO_WEB_SOCKET);
+
+	//	We reply success, but the conversation continues asynchronously on the
+	//	socket.
+
+	SendMessageReply(MSG_OK, CDatum(), Msg);
+	}
+
 void CEsperEngine::MsgEsperWrite (const SArchonMessage &Msg)
 
 //	MsgEsperWrite
@@ -592,7 +705,7 @@ void CEsperEngine::MsgEsperWrite (const SArchonMessage &Msg)
 
 	{
 	CDatum dConnection = Msg.dPayload.GetElement(0);
-	const CString &sData = Msg.dPayload.GetElement(1);
+	CStringView sData = Msg.dPayload.GetElement(1);
 
 	CString sError;
 	if (!m_Connections.BeginWrite(Msg, dConnection, sData, &sError))
@@ -692,7 +805,7 @@ bool CEsperEngine::OnServerNameIndication (DWORD_PTR dwData, const CString &sSer
 			return false;
 
 		CSSLCert::SDesc CertDesc;
-		CertDesc.Subject = CDistinguishedName(strPattern("CN=%s,O=Kronosaur Productions,C=US", sServerName));
+		CertDesc.Subject = CDistinguishedName(strPattern("CN=%s,O=GridWhale Corporation,C=US", sServerName));
 		CertDesc.Issuer = CertDesc.Subject;
 		CertDesc.ValidTime = CTimeSpan(90, 0);
 		CertDesc.Key = Key;
@@ -721,6 +834,7 @@ void CEsperEngine::ProcessMessage (const SArchonMessage &Msg, CHexeSecurityCtx *
 	try
 		{
 		DWORD dwStartTime = sysGetTickCount();
+		SetProcessingStatus(Msg.sMsg);
 
 		//	Arc.fileMsg
 
@@ -748,7 +862,7 @@ void CEsperEngine::ProcessMessage (const SArchonMessage &Msg, CHexeSecurityCtx *
 			SArchonMessage SandboxMsg;
 			CHexeSecurityCtx SecurityCtx;
 
-			SandboxMsg.sMsg = Msg.dPayload.GetElement(0);
+			SandboxMsg.sMsg = Msg.dPayload.GetElement(0).AsStringView();
 			SandboxMsg.sReplyAddr = Msg.sReplyAddr;
 			SandboxMsg.dwTicket = Msg.dwTicket;
 			SandboxMsg.dPayload = Msg.dPayload.GetElement(1);
@@ -760,11 +874,44 @@ void CEsperEngine::ProcessMessage (const SArchonMessage &Msg, CHexeSecurityCtx *
 
 		//	Esper messages
 
+		else if (strEquals(Msg.sMsg, MSG_ESPER_AMP1))
+			MsgEsperAMP1(Msg);
+
+		else if (strEquals(Msg.sMsg, MSG_ESPER_AMP1_DISCONNECT))
+			MsgEsperAMP1Disconnect(Msg);
+
+		else if (strEquals(Msg.sMsg, MSG_ESPER_DISCONNECT))
+			MsgEsperDisconnect(Msg);
+
+		else if (strEquals(Msg.sMsg, MSG_ESPER_READ))
+			MsgEsperRead(Msg);
+
+		else if (strEquals(Msg.sMsg, MSG_ESPER_SET_CONNECTION_PROPERTY))
+			MsgEsperSetConnectionProperty(Msg);
+
+		else if (strEquals(Msg.sMsg, MSG_ESPER_SET_OPTION))
+			MsgEsperSetOption(Msg);
+
+		else if (strEquals(Msg.sMsg, MSG_ESPER_START_LISTENER))
+			MsgEsperStartListener(Msg);
+
+		else if (strEquals(Msg.sMsg, MSG_ESPER_START_WS_CONNECTION))
+			MsgEsperStartWSConnection(Msg);
+
+		else if (strEquals(Msg.sMsg, MSG_ESPER_STOP_LISTENER))
+			DeleteListener(Msg);
+
+		else if (strEquals(Msg.sMsg, MSG_ESPER_WRITE))
+			MsgEsperWrite(Msg);
+
 		else if (strEquals(Msg.sMsg, MSG_ESPER_HTTP))
 			MsgEsperHTTP(Msg);
 
 		else if (strEquals(Msg.sMsg, MSG_ESPER_GET_USAGE_HISTORY))
 			MsgEsperGetUsageHistory(Msg, pSecurityCtx);
+
+		else if (strEquals(Msg.sMsg, MSG_ESPER_SEND_WS_MESSAGE))
+			MsgEsperSendWSMessage(Msg);
 
 		//	Else, unhandled message
 
@@ -781,9 +928,25 @@ void CEsperEngine::ProcessMessage (const SArchonMessage &Msg, CHexeSecurityCtx *
 		}
 	catch (...)
 		{
-		m_pProcess->Log(MSG_LOG_ERROR, strPattern(ERR_CRASH_MSG, Msg.sMsg));
-		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, ERR_INTERNAL_SERVER_ERROR, Msg);
+		//	For AMP1 messages we always log locally; otherwise we would need to 
+		//	send an AMP1 message to log and we would crash infinitely.
+
+		if (!m_pProcess->IsOnArcologyPrime()
+				&& strEquals(Msg.sMsg, MSG_ESPER_AMP1))
+			{
+			m_pProcess->LogBlackBox(strPattern("[%s] CRASH: CEsperEngine::SendMessage Esper.AMP1", m_pProcess->GetMachineName()));
+			}
+
+		//	Otherwise, normal logging
+
+		else
+			{
+			m_pProcess->Log(MSG_LOG_ERROR, strPattern(ERR_CRASH_MSG, Msg.sMsg));
+			SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, ERR_INTERNAL_SERVER_ERROR, Msg);
+			}
 		}
+
+	SetProcessingStatus(STR_IDLE);
 	}
 
 void CEsperEngine::RemoveListener (const CString &sName)
@@ -832,54 +995,7 @@ bool CEsperEngine::SendMessage (const SArchonMessage &Msg)
 //	Handle messages sent to us
 
 	{
-	try
-		{
-		//	Stop processing messages once we shutdown
-
-		if (m_bShutdown)
-			return false;
-
-		//	We handle our messages synchronously since they only post stuff on
-		//	queues handled by other threads.
-
-		if (strEquals(Msg.sMsg, MSG_ESPER_AMP1))
-			MsgEsperAMP1(Msg);
-
-		else if (strEquals(Msg.sMsg, MSG_ESPER_AMP1_DISCONNECT))
-			MsgEsperAMP1Disconnect(Msg);
-
-		else if (strEquals(Msg.sMsg, MSG_ESPER_DISCONNECT))
-			MsgEsperDisconnect(Msg);
-
-		else if (strEquals(Msg.sMsg, MSG_ESPER_READ))
-			MsgEsperRead(Msg);
-
-		else if (strEquals(Msg.sMsg, MSG_ESPER_SET_CONNECTION_PROPERTY))
-			MsgEsperSetConnectionProperty(Msg);
-
-		else if (strEquals(Msg.sMsg, MSG_ESPER_START_LISTENER))
-			MsgEsperStartListener(Msg);
-
-		else if (strEquals(Msg.sMsg, MSG_ESPER_STOP_LISTENER))
-			DeleteListener(Msg);
-
-		else if (strEquals(Msg.sMsg, MSG_ESPER_WRITE))
-			MsgEsperWrite(Msg);
-
-		//	Otherwise, post to our message queue.
-
-		else
-			return m_Queue.Enqueue(Msg);
-
-		//	Message is always posted
-
-		return true;
-		}
-	catch (...)
-		{
-		m_pProcess->Log(MSG_LOG_ERROR, CString("CRASH: CEsperEngine::SendMessage."));
-		return false;
-		}
+	return m_Queue.Enqueue(Msg);
 	}
 
 void CEsperEngine::SendMessageReplyData (CDatum dPayload, const SArchonMessage &OriginalMsg) 
@@ -935,6 +1051,13 @@ void CEsperEngine::SendMessageReplyOnWrite (CDatum dConnection, DWORD dwBytesTra
 	m_pProcess->SendMessageReply(MSG_ESPER_ON_WRITE, CDatum(pPayload), OriginalMsg);
 	}
 
+void CEsperEngine::SetProcessingStatus (CStringView sTask)
+	{
+	CSmartLock Lock(m_cs);
+	SProcessingStatus* pStatus = m_Status.SetAt(::GetCurrentThreadId());
+	pStatus->sTask = sTask;
+	}
+
 void CEsperEngine::SignalShutdown (void)
 
 //	SignalShutdown
@@ -967,11 +1090,9 @@ void CEsperEngine::SignalPause (void)
 //	Tell engine to pause its threads
 
 	{
-	int i;
-
 	//	Stop all worker threads
 
-	for (i = 0; i < m_Workers.GetCount(); i++)
+	for (int i = 0; i < m_Workers.GetCount(); i++)
 		m_Connections.SignalEvent(m_Workers[i]->GetPauseSignal());
 	}
 
@@ -1063,14 +1184,12 @@ void CEsperEngine::WaitForPause (void)
 //	Wait for all threads to pause for garbage collection
 
 	{
-	int i;
-
-	for (i = 0; i < m_Workers.GetCount(); i++)
+	for (int i = 0; i < m_Workers.GetCount(); i++)
 		m_Workers[i]->WaitForPause();
 
-	for (i = 0; i < m_Processors.GetCount(); i++)
+	for (int i = 0; i < m_Processors.GetCount(); i++)
 		m_Processors[i]->WaitForPause();
 
-	for (i = 0; i < m_Listeners.GetCount(); i++)
+	for (int i = 0; i < m_Listeners.GetCount(); i++)
 		m_Listeners[i]->WaitForPause();
 	}

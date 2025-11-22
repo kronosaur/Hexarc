@@ -1,29 +1,32 @@
 //	CEsperListenerThread.cpp
 //
 //	CEsperListenerThread class
-//	Copyright (c) 2010 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2010 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(ADDR_NULL,							"Arc.null")
+DECLARE_CONST_STRING(ADDR_NULL,							"Arc.null");
 
-DECLARE_CONST_STRING(MSG_LOG_INFO,						"Log.info")
-DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error")
+DECLARE_CONST_STRING(MSG_LOG_INFO,						"Log.info");
+DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error");
 
-DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply")
-DECLARE_CONST_STRING(MSG_ESPER_CREATE_LISTENER,			"Esper.startListener")
-DECLARE_CONST_STRING(MSG_ESPER_ON_CONNECT,				"Esper.onConnect")
-DECLARE_CONST_STRING(MSG_ESPER_ON_LISTENER_STARTED,		"Esper.onListenerStarted")
-DECLARE_CONST_STRING(MSG_ESPER_ON_LISTENER_STOPPED,		"Esper.onListenerStopped")
-DECLARE_CONST_STRING(MSG_OK,							"OK")
+DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply");
+DECLARE_CONST_STRING(MSG_ESPER_CREATE_LISTENER,			"Esper.startListener");
+DECLARE_CONST_STRING(MSG_ESPER_ON_CONNECT,				"Esper.onConnect");
+DECLARE_CONST_STRING(MSG_ESPER_ON_LISTENER_STARTED,		"Esper.onListenerStarted");
+DECLARE_CONST_STRING(MSG_ESPER_ON_LISTENER_STOPPED,		"Esper.onListenerStopped");
+DECLARE_CONST_STRING(MSG_OK,							"OK");
 
-DECLARE_CONST_STRING(ERR_UNABLE_TO_BIND,				"Esper unable to bind to client message port: %s.")
-DECLARE_CONST_STRING(ERR_UNABLE_TO_CREATE_SOCKET,		"Out of server resources.")
-DECLARE_CONST_STRING(ERR_UNABLE_TO_ACCEPT_SOCKET,		"Socket accept failed.")
-DECLARE_CONST_STRING(ERR_UNABLE_TO_SEND_MESSAGE,		"Unable to send Esper message to engine.")
-DECLARE_CONST_STRING(ERR_UNABLE_TO_LISTEN_ON_PORT,		"Unable to listen on port %s.")
+DECLARE_CONST_STRING(STR_THREAD_NAME,					"EsperListener %s");
+
+DECLARE_CONST_STRING(ERR_UNABLE_TO_BIND,				"Esper unable to bind to client message port: %s.");
+DECLARE_CONST_STRING(ERR_UNABLE_TO_CREATE_SOCKET,		"Out of server resources.");
+DECLARE_CONST_STRING(ERR_UNABLE_TO_ACCEPT_SOCKET,		"Socket accept failed.");
+DECLARE_CONST_STRING(ERR_UNABLE_TO_SEND_MESSAGE,		"Unable to send Esper message to engine.");
+DECLARE_CONST_STRING(ERR_UNABLE_TO_LISTEN_ON_PORT,		"Unable to listen on port %s.");
 
 CEsperListenerThread::CEsperListenerThread (CEsperEngine *pEngine, CEsperConnection::ETypes iType, const SArchonMessage &Msg) :
+		TThread(strPattern(STR_THREAD_NAME, Msg.dPayload.GetElement(0).AsStringView())),
 		m_pEngine(pEngine),
 		m_iType(iType),
 		m_OriginalMsg(Msg)
@@ -35,7 +38,7 @@ CEsperListenerThread::CEsperListenerThread (CEsperEngine *pEngine, CEsperConnect
 
 	//	Parse the message
 
-	m_sName = Msg.dPayload.GetElement(0);
+	m_sName = Msg.dPayload.GetElement(0).AsStringView();
 	m_sService = Msg.dPayload.GetElement(1).AsString();
 	m_sClientAddr = Msg.sReplyAddr;
 	m_dwClientTicket = Msg.dwTicket;
@@ -99,6 +102,18 @@ void CEsperListenerThread::Run (void)
 			CSocket NewSocket;
 			bool bSuccess = m_Listener.AcceptConnection(NewSocket);
 
+			//	We're in one of two states here: We've either started a GC pass or
+			//	not. If we've started a GC pass, then the Wait(0) will return true
+			//	and we'll block until GC is done. If we haven't started a GC pass,
+			//	then we will wait to start GC until we loop again.
+			//
+			//	NOTE: In an earlier version we reset m_PausedEvent AFTER the Wait(0).
+			//	However, this could lead to a race condition if we were paused
+			//	between the time that AcceptConnection returned and the time we
+			//	reset m_PausedEvent.
+
+			m_PausedEvent.Reset();
+
 			//	If we've been asked to stop, then stop here before we allocate any
 			//	memory.
 			//
@@ -107,16 +122,22 @@ void CEsperListenerThread::Run (void)
 
 			if (m_pEngine->GetPauseEvent().Wait(0))
 				{
+				//	We're going to block until GC is done, so mark
+				//	ourselves as paused.
+				m_PausedEvent.Set();
+
 				CWaitArray Wait;
 				int QUIT_EVENT = Wait.Insert(m_pEngine->GetQuitEvent());
 				int RUN_EVENT = Wait.Insert(m_pEngine->GetRunEvent());
 
 				int iEvent = Wait.WaitForAny();
+
+				//	Once we're unblocked, clear the paused flag.
+				m_PausedEvent.Reset();
+
 				if (iEvent == QUIT_EVENT)
 					break;
 				}
-
-			m_PausedEvent.Reset();
 
 			//	If we've been asked to terminate, then exit
 

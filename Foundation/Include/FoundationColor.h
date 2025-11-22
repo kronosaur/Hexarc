@@ -1,7 +1,7 @@
 //	FoundationGraphicsImage32.h
 //
 //	Foundation header file
-//	Copyright (c) 2018 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2018 GridWhale Corporation. All Rights Reserved.
 //
 //	USAGE
 //
@@ -40,6 +40,7 @@ class CRGBA32
 		DWORD AsR5G6B5 (void) const { return (((m_dwPixel & 0x00f80000) >> 8) | ((m_dwPixel & 0x0000fc00) >> 5) | ((m_dwPixel & 0x000000f8) >> 3)); }
 		DWORD AsR8G8B8 (void) const { return m_dwPixel; }
 		CString AsHTMLColor () const;
+		CString AsARGBColor () const;
 		BYTE GetAlpha (void) const { return (BYTE)((m_dwPixel & 0xff000000) >> 24); }
 		BYTE GetBlue (void) const { return (BYTE)(m_dwPixel & 0x000000ff); }
 		BYTE GetGreen (void) const { return (BYTE)((m_dwPixel & 0x0000ff00) >> 8); }
@@ -66,6 +67,7 @@ class CRGBA32
 			{ return CRGBA32((BYTE)(rRed * 255.0), (BYTE)(rGreen * 255.0), (BYTE)(rBlue * 255.0), byAlpha); }
 		static CRGBA32 Null (void) { return CRGBA32(0, true); }
 		static CRGBA32 Parse (const CString &sValue, bool *retbFail = NULL);
+		static CRGBA32 ParseHTMLColor (const CString& sValue, bool* retbFail = NULL);
 
 		//  Expects solid pixels, and always returns solid pixels
 
@@ -86,5 +88,7 @@ class CRGBA32
 		typedef BYTE AlphaArray8 [256];
 		static AlphaArray8 g_Alpha8 [256];
 		static bool m_bAlphaInitialized;
+
+		static TSortMap<CString, CRGBA32> m_HTMLColors;
 	};
 

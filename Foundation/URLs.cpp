@@ -1,7 +1,7 @@
 //	URLs.cpp
 //
 //	URL utilities
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -35,7 +35,7 @@ CString urlAppend (const CString &sPath, const CString &sComponent)
 		return sPath + sComponent;
 	}
 
-CString urlDecode (const CString &sValue)
+CString urlDecode (const CString &sValue, bool bDoNotDecodePlus)
 
 //	urlDecode
 //
@@ -50,7 +50,7 @@ CString urlDecode (const CString &sValue)
 	char *pStart = pPos;
 	while (pPos < pPosEnd)
 		{
-		if (*pPos == '+')
+		if (*pPos == '+' && !bDoNotDecodePlus)
 			{
 			Output.Write(pStart, pPos - pStart);
 			Output.Write(" ", 1);
@@ -117,8 +117,9 @@ CString urlEncodeParam (const CString &sValue)
 			{
 			Output.Write(pStart, pPos - pStart);
 
-			CString sChar = strPattern("%%%02x", (DWORD)(BYTE)*pPos);
-			Output.Write(sChar);
+			Output.WriteChar('%');
+			Output.WriteChar(strEncodeHexDigit((BYTE)*pPos / 16));
+			Output.WriteChar(strEncodeHexDigit((BYTE)*pPos % 16));
 
 			pPos++;
 			pStart = pPos;
@@ -207,7 +208,7 @@ bool urlMatchPattern (const CString &sPattern, const CString &sURL)
 	return false;
 	}
 
-bool urlParse (char *pStart, CString *retsProtocol, CString *retsHost, CString *retsPath, char **retpEnd)
+bool urlParse (const char *pStart, CString *retsProtocol, CString *retsHost, CString *retsPath, const char **retpEnd)
 
 //	urlParse
 //
@@ -250,8 +251,8 @@ bool urlParse (char *pStart, CString *retsProtocol, CString *retsHost, CString *
 	//	Parse
 
 	States iState = stateStart;
-	char *pToken = pStart;
-	char *pPos = pStart;
+	const char *pToken = pStart;
+	const char *pPos = pStart;
 	while (true)
 		{
 		switch (iState)

@@ -1,13 +1,13 @@
 //	CDatatypeList.cpp
 //
 //	CDatatypeList class
-//	Copyright (c) 2021 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2021 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
-CDatatypeList::CDatatypeList (const std::initializer_list<CDatum> &List)
+CDatatypeList::CDatatypeList (std::initializer_list<CDatum> List)
 
-//	CGLTypeList constructor
+//	CDatatypeList constructor
 
 	{
 	m_Types.GrowToFit((int)List.size());
@@ -18,6 +18,23 @@ CDatatypeList::CDatatypeList (const std::initializer_list<CDatum> &List)
 			throw CException(errFail);
 
 		m_Types.Insert(entry);
+		}
+	}
+
+CDatatypeList::CDatatypeList (std::initializer_list<DWORD> List)
+
+//	CDatatypeList constructor
+
+	{
+	m_Types.GrowToFit((int)List.size());
+
+	for (DWORD dwID : List)
+		{
+		CDatum dType = CAEONTypes::Get(dwID);
+		if (dType.IsNil())
+			throw CException(errFail);
+
+		m_Types.Insert(dType);
 		}
 	}
 
@@ -38,6 +55,13 @@ bool CDatatypeList::operator == (const CDatatypeList &Src) const
 	return true;
 	}
 
+void CDatatypeList::DebugDump () const
+	{
+	for (int i = 0; i < m_Types.GetCount(); i++)
+		{
+		printf("Type %d: %s\n", i, (LPSTR)m_Types[i].AsString());
+		}
+	}
 bool CDatatypeList::Deserialize (CDatum::EFormat iFormat, IByteStream &Stream, CDatatypeList &retList)
 
 //	Deserialize
@@ -53,11 +77,24 @@ bool CDatatypeList::Deserialize (CDatum::EFormat iFormat, IByteStream &Stream, C
 
 	for (int i = 0; i < Result.m_Types.GetCount(); i++)
 		{
-		TUniquePtr<IDatatype> pType = IDatatype::Deserialize(iFormat, Stream);
-		if (!pType)
+		if (!CComplexDatatype::CreateFromStream(Stream, Result.m_Types[i]))
 			return false;
+		}
 
-		Result.m_Types[i] = CDatum(new CComplexDatatype(std::move(pType)));
+	retList = std::move(Result);
+	return true;
+	}
+
+bool CDatatypeList::DeserializeAEON (IByteStream& Stream, CAEONSerializedMap &Serialized, CDatatypeList& retList)
+	{
+	CDatatypeList Result;
+
+	DWORD dwCount = Stream.ReadDWORD();
+	Result.m_Types.InsertEmpty(dwCount);
+
+	for (int i = 0; i < Result.m_Types.GetCount(); i++)
+		{
+		Result.m_Types[i] = CDatum::DeserializeAEON(Stream, Serialized);
 		}
 
 	retList = std::move(Result);
@@ -92,23 +129,13 @@ void CDatatypeList::Mark ()
 		m_Types[i].Mark();
 	}
 
-void CDatatypeList::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const
-
-//	Serialize
-//
-//	Serialize the list.
-
+void CDatatypeList::SerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const
 	{
-	//	Write the count
-
-	DWORD dwCount = m_Types.GetCount();
-	Stream.Write(&dwCount, sizeof(DWORD));
-
 	//	Write each type.
 
+	Stream.Write(m_Types.GetCount());
 	for (int i = 0; i < m_Types.GetCount(); i++)
 		{
-		const IDatatype &Type = m_Types[i];
-		Type.Serialize(iFormat, Stream);
+		m_Types[i].SerializeAEON(Stream, Serialized);
 		}
 	}

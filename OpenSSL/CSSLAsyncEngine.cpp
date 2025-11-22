@@ -1,7 +1,7 @@
 //	CSSLAsyncEngine.cpp
 //
 //	CSSLAsyncEngine class
-//	Copyright (c) 2014 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2014 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -10,6 +10,9 @@ DECLARE_CONST_STRING(FIELD_ENC_PREFIX,					"Enc=");
 DECLARE_CONST_STRING(FIELD_KX_PREFIX,					"Kx=");
 DECLARE_CONST_STRING(FIELD_MAC_PREFIX,					"Mac=");
 
+DECLARE_CONST_STRING(STR_CONNECTED,						"Connected.");
+DECLARE_CONST_STRING(STR_HANDSHAKE_START,				"Handshake start.");
+
 DECLARE_CONST_STRING(ERR_CONNECT_INVALID_STATE,			"Connect: Invalid state.");
 DECLARE_CONST_STRING(ERR_PROCESS_INVALID_STATE,			"Process: Invalid state.");
 DECLARE_CONST_STRING(ERR_OUT_OF_MEMORY,					"SSL: Out of memory.");
@@ -17,16 +20,27 @@ DECLARE_CONST_STRING(ERR_CONNECT_FAILED,				"SSL: Connect failed: %x.");
 DECLARE_CONST_STRING(ERR_READ_FAILED,					"SSL: Read failed: %x.");
 DECLARE_CONST_STRING(ERR_WRITE_FAILED,					"SSL: Write failed: %x.");
 DECLARE_CONST_STRING(ERR_ACCEPT_FAILED,					"SSL: Accept failed error = %d.");
+DECLARE_CONST_STRING(ERR_CANT_SET_HOST,					"SSL: Unable to set SNI hostname.");
 
-const int BUFFER_SIZE =									16 * 1024;
+const int BUFFER_SIZE =									160 * 1024;
 
-CSSLAsyncEngine::CSSLAsyncEngine (CSSLCtx *pSSLCtx) :
+int CSSLAsyncEngine::m_SSLCtxIndex = -1;
+CIODiagnostics CSSLAsyncEngine::m_NullDiagnostics;
+
+CSSLAsyncEngine::CSSLAsyncEngine (CSSLCtx *pSSLCtx, CIODiagnostics& Diag) :
 		m_pSSLCtx(pSSLCtx),
-		m_Buffer(BUFFER_SIZE)
+		m_Buffer(BUFFER_SIZE),
+		m_Diagnostics(Diag)
 
 //	CSSLAsyncEngine constructor
 
 	{
+	if (m_SSLCtxIndex == -1)
+		{
+		m_SSLCtxIndex = SSL_CTX_get_ex_new_index(0, NULL, NULL, NULL, NULL);
+		if (m_SSLCtxIndex == -1)
+			throw CException(errFail);
+		}
 	}
 
 CSSLAsyncEngine::~CSSLAsyncEngine (void)
@@ -90,6 +104,13 @@ void CSSLAsyncEngine::Connect (void)
 	}
 
 #ifdef DEBUG
+CString CSSLAsyncEngine::DebugGetBufferState () const
+	{
+	int iLeftToRead = (int)BIO_ctrl_pending(COpenSSL::AsBIO(m_pInput));
+	int iLeftToWrite = (int)BIO_ctrl_pending(COpenSSL::AsBIO(m_pOutput));
+	return strPattern("Left to Read: %d; Left to Write: %d", iLeftToRead, iLeftToWrite);
+	}
+
 void CSSLAsyncEngine::DebugLog (const CString& sLine) const
 
 //	DebugLog
@@ -123,7 +144,7 @@ bool CSSLAsyncEngine::GetConnectionStatus (SConnectionStatus *retStatus) const
 	retStatus->sProtocol = CString(SSL_get_version(COpenSSL::AsSSL(m_pSSL)));
 	
 	const SSL_CIPHER *cipher = SSL_get_current_cipher(COpenSSL::AsSSL(m_pSSL));
-	retStatus->sCipherName = CString(cipher->name);
+	retStatus->sCipherName = CString(SSL_CIPHER_get_name(cipher));
 
 	CString sDesc(256);
 	SSL_CIPHER_description(cipher, sDesc.GetPointer(), sDesc.GetLength());
@@ -148,6 +169,59 @@ bool CSSLAsyncEngine::GetConnectionStatus (SConnectionStatus *retStatus) const
 	return true;
 	}
 
+CString CSSLAsyncEngine::GetSSLError () const
+	{
+	CStringBuffer Buffer;
+
+	int iMoreError;
+	while (iMoreError = ERR_get_error())
+		{
+		if (Buffer.GetLength() > 0)
+			Buffer.Write("\n");
+
+		CString sError(ERR_reason_error_string(iMoreError));
+		Buffer.Write(sError);
+		}
+
+	return CString(std::move(Buffer));
+	}
+
+CSSLAsyncEngine& CSSLAsyncEngine::GetThis (const void* pSSL)
+	{
+	return *(CSSLAsyncEngine*)SSL_get_ex_data((const SSL*)pSSL, m_SSLCtxIndex);
+	}
+
+static void SSLInfoCallback (const SSL *ssl, int where, int ret)
+	{
+	CSSLAsyncEngine& Engine = CSSLAsyncEngine::GetThis(ssl);
+	CIODiagnostics& Diag = Engine.GetDiagnostics();
+	if (!Diag.IsEnabled())
+		return;
+
+	if (where & SSL_CB_HANDSHAKE_START)
+		{
+		// This is the start of a (re)handshake
+		Diag.Log(STR_HANDSHAKE_START);
+		}
+
+	if (where & SSL_CB_LOOP)
+		{
+		// For example, states like "SSLv3 read server certificate request A"
+		// can tell you the server asked for a client cert.
+		const char *str = SSL_state_string_long(ssl);
+		Diag.Log(strPattern("SSL state: %s", CString(str)));
+		}
+
+#ifdef DEBUG
+	if (where & SSL_CB_ALERT)
+		{
+		const char *str = SSL_alert_type_string_long(ret);
+		const char *desc = SSL_alert_desc_string_long(ret);
+		Diag.Log(strPattern("SSL alert: %s %s", CString(str), CString(desc)));
+		}
+#endif
+	}
+
 bool CSSLAsyncEngine::Init (bool bAsServer, CString *retsError)
 
 //	Init
@@ -157,6 +231,8 @@ bool CSSLAsyncEngine::Init (bool bAsServer, CString *retsError)
 	{
 	if (m_pSSL)
 		return true;
+
+	ERR_clear_error();
 
 	ASSERT(m_pInput == NULL);
 	ASSERT(m_pOutput == NULL);
@@ -170,6 +246,9 @@ bool CSSLAsyncEngine::Init (bool bAsServer, CString *retsError)
 		if (retsError) *retsError = ERR_OUT_OF_MEMORY;
 		return false;
 		}
+
+	SSL_set_ex_data(COpenSSL::AsSSL(m_pSSL), m_SSLCtxIndex, this);
+	SSL_set_info_callback(COpenSSL::AsSSL(m_pSSL), SSLInfoCallback);
 
 	//	Allocate input and output memory buffers
 
@@ -200,6 +279,22 @@ bool CSSLAsyncEngine::Init (bool bAsServer, CString *retsError)
 	//	ownership of the input/output buffers.
 
 	SSL_set_bio(COpenSSL::AsSSL(m_pSSL), COpenSSL::AsBIO(m_pInput), COpenSSL::AsBIO(m_pOutput));
+
+	//	Make sure we set the host name on the SSL object because we need 
+	//	it in the TLS handshake for SNI.
+
+	if (!m_sHostname.IsEmpty())
+		{
+#ifdef DEBUG_SSL
+		printf("Setting hostname: %s\n", (LPSTR)m_sHostname);
+#endif
+		int res = SSL_set_tlsext_host_name(COpenSSL::AsSSL(m_pSSL), (LPSTR)m_sHostname);
+		if (res != 1)
+			{
+			if (retsError) *retsError = ERR_CANT_SET_HOST;
+			return false;
+			}
+		}
 
 	//	Done
 
@@ -235,13 +330,14 @@ CSSLAsyncEngine::EResults CSSLAsyncEngine::Process (CString *retsError)
 
 				//	Connect
 
+				ERR_clear_error();
 				int err = SSL_accept(COpenSSL::AsSSL(m_pSSL));
 				if (err > 0)
 					{
 					DebugLog("SSL State = stateReady");
 
 					m_iState = stateReady;
-					return resReady;
+					return resReadyConnect;
 					}
 
 				//	Otherwise, we need data to complete the handshake
@@ -268,23 +364,20 @@ CSSLAsyncEngine::EResults CSSLAsyncEngine::Process (CString *retsError)
 				if (!Init(false, retsError))
 					return resError;
 
-				//	Make sure we set the host name on the SSL object because we need 
-				//	it in the TLS handshake for SNI.
-
-				if (!m_sHostname.IsEmpty())
-					{
-					int res = SSL_set_tlsext_host_name(COpenSSL::AsSSL(m_pSSL), (LPSTR)m_sHostname);
-					}
+#ifdef DEBUG_SSL
+				printf("Connecting to %s\n", (LPSTR)m_sHostname);
+#endif
 
 				//	Connect
 
+				ERR_clear_error();
 				int err = SSL_connect(COpenSSL::AsSSL(m_pSSL));
 				if (err > 0)
 					{
-					DebugLog("SSL State = stateReady");
+					m_Diagnostics.Log(STR_CONNECTED);
 
 					m_iState = stateReady;
-					return resReady;
+					return resReadyConnect;
 					}
 
 				//	Otherwise, we need data to complete the handshake
@@ -304,121 +397,127 @@ CSSLAsyncEngine::EResults CSSLAsyncEngine::Process (CString *retsError)
 					}
 				}
 
-			case stateReading:
+			case stateWorking:
 				{
-				m_Buffer.SetLength(BUFFER_SIZE);
-				int iBytesRead = SSL_read(COpenSSL::AsSSL(m_pSSL), m_Buffer.GetPointer(), m_Buffer.GetLength());
-
-				DebugLog(strPattern("SSL_read: %d bytes (buffer size=%d)", iBytesRead, m_Buffer.GetLength()));
-
-				if (iBytesRead > 0)
+				if (m_bWriting)
 					{
-					m_bReadRetried = false;
-					m_Buffer.SetLength(iBytesRead);
-					return resReady;
-					}
+					ERR_clear_error();
+					int iBytesWritten = SSL_write(COpenSSL::AsSSL(m_pSSL), m_Buffer.GetPointer(), m_Buffer.GetLength());
 
-				//	Otherwise, we need data to complete read
-
-				else
-					{
-					int iError = SSL_get_error(COpenSSL::AsSSL(m_pSSL), iBytesRead);
-					switch (iError)
+					m_Diagnostics.LogFn([iBytesWritten]() { return strPattern("SSL_write: %d bytes", iBytesWritten); });
+			
+					if (iBytesWritten > 0)
 						{
-						case SSL_ERROR_WANT_READ:
+						m_bWriting = false;
+						if (!m_bReading)
+							m_iState = stateReady;
+
+						return resReadyWrite;
+						}
+
+					//	Otherwise, we need data to complete read
+
+					else
+						{
+						int iError = SSL_get_error(COpenSSL::AsSSL(m_pSSL), iBytesWritten);
+						if (iError == SSL_ERROR_WANT_READ)
 							{
-							m_bReadRetried = false;
 							DebugLog("SSL wants to read");
 							return resReceiveData;
 							}
-
-						case SSL_ERROR_WANT_WRITE:
+						else if (iError == SSL_ERROR_WANT_WRITE)
 							{
-							m_bReadRetried = false;
-							DebugLog("SSL wants to write");
+							DebugLog("SSL wants to write\n");
 							return resSendData;
 							}
-
-						case SSL_ERROR_SSL:
+						else
 							{
-							//	LATER: Under certain conditions, we get this 
-							//	error. Empirically, the error goes away if we
-							//	read more data from the socket and pass it to 
-							//	the SSL engine. It's almost as if SSL_read
-							//	has a bug in which it returns this error instead
-							//	of SSL_ERROR_WANT_READ.
-							//
-							//	It's also possible/likely that we're not calling
-							//	SSL correctly and are missing some signal that 
-							//	we should read more. But for now this is the 
-							//	best fix I have.
+							CString sError = GetSSLError();
+							m_Diagnostics.Log(strPattern("SSL_write error: %s", sError));
 
-							if (!m_bReadRetried)
+							if (retsError) *retsError = strPattern(ERR_WRITE_FAILED, iError);
+							return resError;
+							}
+						}
+					}
+
+				if (m_bReading)
+					{
+#ifdef DEBUG_SSL
+					printf("SSL_read buffer: %llx\n", (DWORDLONG)m_Buffer.GetPointer());
+#endif
+					m_Buffer.SetLength(BUFFER_SIZE);
+					ERR_clear_error();
+					int iBytesRead = SSL_read(COpenSSL::AsSSL(m_pSSL), m_Buffer.GetPointer(), m_Buffer.GetLength());
+
+					m_Diagnostics.LogFn([iBytesRead]() { return strPattern("SSL_read: %d bytes", iBytesRead); });
+
+					if (iBytesRead > 0)
+						{
+						m_bReading = false;
+						if (!m_bWriting)
+							m_iState = stateReady;
+
+						m_bReadRetried = false;
+						m_Buffer.SetLength(iBytesRead);
+						return resReadyRead;
+						}
+
+					//	Otherwise, we need data to complete read
+
+					else
+						{
+						int iError = SSL_get_error(COpenSSL::AsSSL(m_pSSL), iBytesRead);
+						switch (iError)
+							{
+							case SSL_ERROR_WANT_READ:
 								{
-								DebugLog("SSL_ERROR_SSL, reading more...\n");
-								m_bReadRetried = true;
+#ifdef DEBUG_SSL
+								printf("SSL_ERROR_WANT_READ\n");
+#endif
+								m_bReadRetried = false;
+								DebugLog("SSL wants to read");
 								return resReceiveData;
 								}
-							else
+
+							case SSL_ERROR_WANT_WRITE:
 								{
-								CStringBuffer Buffer;
+#ifdef DEBUG_SSL
+								printf("SSL_ERROR_WANT_WRITE\n");
+#endif
+								m_bReadRetried = false;
+								DebugLog("SSL wants to write");
+								return resSendData;
+								}
 
-								int iMoreError;
-								while (iMoreError = ERR_get_error())
-									{
-									if (Buffer.GetLength() > 0)
-										Buffer.Write("\n");
+							case SSL_ERROR_SSL:
+								{
+								CString sError = GetSSLError();
+								m_Diagnostics.Log(strPattern("SSL_read error: %s", sError));
 
-									CString sError(ERR_reason_error_string(iMoreError));
-									Buffer.Write(sError);
-									}
+								if (retsError) *retsError = sError;
+								return resError;
+								}
 
-								if (retsError) *retsError = CString(std::move(Buffer));
+							default:
+								{
+								CString sError = GetSSLError();
+								m_Diagnostics.Log(strPattern("SSL_read unknown error: %s", sError));
+
+								if (retsError) *retsError = strPattern(ERR_READ_FAILED, iError);
 								return resError;
 								}
 							}
-
-						default:
-							if (retsError) *retsError = strPattern(ERR_READ_FAILED, iError);
-							return resError;
 						}
 					}
-				}
 
-			case stateWriting:
-				{
-				int iBytesWritten = SSL_write(COpenSSL::AsSSL(m_pSSL), m_Buffer.GetPointer(), m_Buffer.GetLength());
-
-				DebugLog(strPattern("SSL_write: %d bytes (wrote %d)\n", m_Buffer.GetLength(), iBytesWritten));
-			
-				if (iBytesWritten > 0)
-					return resReady;
-
-				//	Otherwise, we need data to complete read
-
-				else
-					{
-					int iError = SSL_get_error(COpenSSL::AsSSL(m_pSSL), iBytesWritten);
-					if (iError == SSL_ERROR_WANT_READ)
-						{
-						DebugLog("SSL wants to read");
-						return resReceiveData;
-						}
-					else if (iError == SSL_ERROR_WANT_WRITE)
-						{
-						DebugLog("SSL wants to write\n");
-						return resSendData;
-						}
-					else
-						{
-						if (retsError) *retsError = strPattern(ERR_WRITE_FAILED, iError);
-						return resError;
-						}
-					}
+				//	Should never get here because we can't be in stateWorking
+				//	unless we're either reading or writing.
+				continue;
 				}
 
 			case stateReady:
-				return resReady;
+				return resReadyIdle;
 
 			case stateError:
 				if (retsError)
@@ -444,6 +543,9 @@ bool CSSLAsyncEngine::ProcessHasDataToSend (void)
 //	Returns TRUE if we have data to send
 
 	{
+#ifdef DEBUG_SSL
+	printf("BIO_ctrl_pending: %lld\n", BIO_ctrl_pending(COpenSSL::AsBIO(m_pOutput)));
+#endif
 	return (BIO_ctrl_pending(COpenSSL::AsBIO(m_pOutput)) > 0);
 	}
 
@@ -454,12 +556,21 @@ void CSSLAsyncEngine::ProcessReceiveData (IMemoryBlock &Data)
 //	Gives raw data to the engine for processing.
 
 	{
+#ifdef DEBUG_SSL
+	printf("BIO_Write: %d bytes\n", Data.GetLength());
+#endif
+
 	int iResult = BIO_write(COpenSSL::AsBIO(m_pInput), Data.GetPointer(), Data.GetLength());
 
 	if (iResult <= 0)
 		DebugLog("BIO_write error");
 	else if (iResult < Data.GetLength())
 		DebugLog("BIO_write did not write enough");
+
+#ifdef DEBUG_SSL
+	if (iResult != Data.GetLength())
+		printf("BIO_write: %d bytes (wrote %d)\n", Data.GetLength(), iResult);
+#endif
 	}
 
 void CSSLAsyncEngine::ProcessSendData (IByteStream &Data)
@@ -469,6 +580,10 @@ void CSSLAsyncEngine::ProcessSendData (IByteStream &Data)
 //	Retrieves raw data from the engine for transmission.
 
 	{
+#ifdef DEBUG_SSL
+	printf("BIO_get_mem_data\n");
+#endif
+
 	void *pData;
 	int iLength = BIO_get_mem_data(COpenSSL::AsBIO(m_pOutput), &pData);
 	Data.Write(pData, iLength);
@@ -485,7 +600,8 @@ void CSSLAsyncEngine::Receive (void)
 //	Asks the engine to receive data
 
 	{
-	m_iState = stateReading;
+	m_iState = stateWorking;
+	m_bReading = true;
 	}
 
 void CSSLAsyncEngine::Send (IMemoryBlock &Data)
@@ -497,5 +613,6 @@ void CSSLAsyncEngine::Send (IMemoryBlock &Data)
 	{
 	m_Buffer.SetLength(Data.GetLength());
 	utlMemCopy(Data.GetPointer(), m_Buffer.GetPointer(), Data.GetLength());
-	m_iState = stateWriting;
+	m_iState = stateWorking;
+	m_bWriting = true;
 	}

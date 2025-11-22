@@ -1,7 +1,7 @@
 //	ArchonUtilities.h
 //
 //	Archon helper classes
-//	Copyright (c) 2010 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2010 by GridWhale Corporation. All Rights Reserved.
 //
 //	USAGE
 //
@@ -9,8 +9,228 @@
 
 #pragma once
 
+#ifdef DEBUG
+//#define DEBUG_AMP1_SERVER
+#endif
+
 class CMessagePort;
 class CMessageTransporter;
+
+class IAMP1CommunicatorEvents
+	{
+	public:
+
+		virtual void OnAMP1ClientConnected (CStringView sNodeID) { }
+		virtual void OnAMP1ClientDisconnected (CStringView sNodeID) { }
+		virtual void OnAMP1ConnectedToServer () { }
+		virtual void OnAMP1FatalError (CStringView sError) { }
+		virtual void OnAMP1Message (CStringView sNodeID, CStringView sMsg, CBuffer&& Data) { }
+	};
+
+class CAMP1Queue : public IAMP1CommunicatorEvents
+	{
+	public:
+
+		void ReplayEvents (IAMP1CommunicatorEvents& Events);
+
+		//	IAMP1CommunicatorEvents
+
+		virtual void OnAMP1ClientConnected (CStringView sNodeID) override { m_Queue.Insert(SEntry{ EEntryType::ClientConnected, CString(sNodeID), CString(), CBuffer() }); }
+		virtual void OnAMP1ClientDisconnected (CStringView sNodeID) override { m_Queue.Insert(SEntry{ EEntryType::ClientDisconnected, CString(sNodeID), CString(), CBuffer() }); }
+		virtual void OnAMP1ConnectedToServer () override { m_Queue.Insert(SEntry{ EEntryType::ConnectedToServer, CString(), CString(), CBuffer() }); }
+		virtual void OnAMP1FatalError (CStringView sError) override { m_Queue.Insert(SEntry{ EEntryType::FatalError, CString(), CString(sError), CBuffer() }); }
+		virtual void OnAMP1Message (CStringView sNodeID, CStringView sMsg, CBuffer&& Data) override { m_Queue.Insert(SEntry{ EEntryType::Message, CString(sNodeID), CString(sMsg), std::move(Data) }); }
+
+	private:
+
+		enum class EEntryType
+			{
+			None,
+
+			ClientConnected,
+			ClientDisconnected,
+			ConnectedToServer,
+			FatalError,
+			Message,
+			};
+
+		struct SEntry
+			{
+			EEntryType iType = EEntryType::None;
+			CString sNodeID;
+			CString sCommand;
+			CBuffer Data;
+			};
+
+		TArray<SEntry> m_Queue;
+	};
+
+class CAMP1CommunicatorServer
+	{
+	public:
+
+		CAMP1CommunicatorServer ();
+		~CAMP1CommunicatorServer () { Shutdown(); }
+
+		void AddClient (CString sNodeID, const CIPInteger& SecretKey);
+		bool StartAsClient (CStringView sMachineName, CStringView sServerAddr, DWORD dwPort, const CIPInteger& SecretKey, IAMP1CommunicatorEvents& Events, CString* retsError = NULL);
+		bool StartAsServer (DWORD dwPort, IAMP1CommunicatorEvents& Events, CString* retsError = NULL);
+		void Shutdown ();
+
+	private:
+
+		static constexpr int MIN_BUFFER_SIZE = 64 * 1024;
+
+		enum class EState
+			{
+			Unknown,
+
+			Client,						//	We're a secondary node
+			Server,						//	We're Arcology Prime
+			};
+
+		struct SClientInfo
+			{
+			int iClientID = -1;			//	Index into m_Clients
+			CString sNodeID;
+			CString sMachineName;
+			CIPInteger SecretKey;
+			DWORDLONG dwLastPing = 0;
+			bool bConnected = false;
+			};
+
+		struct SConnectionInfo
+			{
+			void AddRef () { cs.Lock(); m_iRefCount++; cs.Unlock(); }
+			void Delete ()
+				{
+				cs.Lock();
+				if (--m_iRefCount == 0)
+					{
+					cs.Unlock();
+					delete this;
+					}
+				else
+					cs.Unlock();
+				}
+
+			CCriticalSection cs;
+			int m_iRefCount = 1;
+
+			DWORD dwID = 0;							//	Unique ID
+			CSocket Socket;							//	Socket for connection
+
+			bool bConnectRequested = false;			//	An async connect is outstanding
+			bool bConnected = false;
+			bool bAuthenticated = false;
+
+			bool bReadRequested = false;			//	An async read is outstanding
+			bool bHeaderReady = true;				//	TRUE if the header is valid
+			OVERLAPPED OverlappedRead = { 0 };
+			DWORDLONG dwReadStartTime = 0;			//	Tick when we started current operation (0 = no read outstanding)
+			CBuffer ReadBuffer;
+			CString sCommand;
+			DWORD dwExpectedReadSize = 0;			//	Expected size of current read
+			CBuffer DataBuffer;						//	Received data.
+
+			bool bWriteRequested = false;			//	An async write is outstanding
+			OVERLAPPED OverlappedWrite = { 0 };
+
+			int iClientID = -1;						//	Index into m_Clients (server mode only)
+			CString sServerAddr;					//	Server address (client mode only)
+			};
+
+		class CListenerThread : public TThread<CListenerThread>
+			{
+			public:
+
+				CListenerThread (CAMP1CommunicatorServer& Server) : m_Server(Server) { }
+				~CListenerThread () { }
+
+				void Run () { m_Server.RunListener(); }
+
+			private:
+
+				CAMP1CommunicatorServer& m_Server;
+			};
+
+		class CProcessorThread : public TThread<CProcessorThread>
+			{
+			public:
+
+				CProcessorThread (CAMP1CommunicatorServer& Server) : m_Server(Server) { }
+				~CProcessorThread () { }
+
+				void Run () { m_Server.RunProcessor(); }
+
+			private:
+
+				CAMP1CommunicatorServer& m_Server;
+			};
+
+		class CConnectingThread : public TThread<CConnectingThread>
+			{
+			public:
+
+				CConnectingThread (CAMP1CommunicatorServer& Server) : m_Server(Server) { }
+				~CConnectingThread () { }
+
+				void Run () { m_Server.RunConnection(); }
+
+			private:
+
+				CAMP1CommunicatorServer& m_Server;
+			};
+
+		struct SCommandDesc
+			{
+			CString sCommand;
+			CBuffer Data;
+			};
+
+		void RunConnection ();
+		void RunListener ();
+		void RunProcessor ();
+
+		void AcceptConnection (CSocket&& Socket);
+		void AddConnection (TSharedPtr<SConnectionInfo> pConnection);
+		bool ConnectToServer (CStringView sServerAddr, DWORD dwPort, const CIPInteger& SecretKey, CString* retsError);
+		void Disconnect (TSharedPtr<SConnectionInfo> pConnection);
+		TSharedPtr<SConnectionInfo> FindConnectionByAddress (CStringView sServerAddr);
+		TSharedPtr<SConnectionInfo> FindConnectionByID (DWORD dwID);
+		bool HandleAUTH0 (TSharedPtr<SConnectionInfo> pConnection, DWORD dwDataLen, const char* pData, int* retiClientID = NULL);
+		bool HandleAUTHOK (TSharedPtr<SConnectionInfo> pConnection, CStringView sMachineName);
+		void HandleCommand (int iClientID, CStringView sCommand, CBuffer&& Data);
+		void HandleRead (TSharedPtr<SConnectionInfo> pConnection, DWORD dwBytesRead);
+		void HandleWrite (TSharedPtr<SConnectionInfo> pConnection);
+		void RequestRead (TSharedPtr<SConnectionInfo> pConnection, int iReadSize = MIN_BUFFER_SIZE);
+		void RequestWrite (TSharedPtr<SConnectionInfo> pConnection, CStringView sData);
+
+		CCriticalSection m_cs;
+		IAMP1CommunicatorEvents* m_pEvents = nullptr;
+
+		TArray<SClientInfo> m_Clients;
+		EState m_iState = EState::Unknown;
+		bool m_bTerminated = false;
+
+		CListenerThread m_ListenerThread;
+		CSocketSet m_Listener;				//	Socket to use
+
+		CProcessorThread m_ProcessorThread;
+		TIDTable<TSharedPtr<SConnectionInfo>> m_Connections;
+		CIOCompletionPort m_IOCP;
+
+		CConnectingThread m_ConnectingThread;
+		CString m_sMachineName;
+		CString m_sServerAddr;
+		CIPInteger m_ServerKey;
+		DWORD m_dwPort = 0;
+		bool m_bConnected = false;
+	};
+
+class CAMP1CommunicatorClient
+	{
+	};
 
 class CArchonTimer
 	{
@@ -19,6 +239,7 @@ class CArchonTimer
 
 		void LogTime (IArchonProcessCtx *pProcess, const CString &sText, DWORDLONG dwMinTime = 1000) const;
 		void Start (void) { m_dwStart = ::sysGetTickCount64(); }
+		DWORD GetTime () const { return (DWORD)(::sysGetTickCount64() - m_dwStart); }
 
 	private:
 		DWORDLONG m_dwStart;
@@ -133,7 +354,7 @@ class CInterprocessMessageQueue
 		bool CreateTempFile (CString *retsFilespec, CFile *retFile, CString *retsError = NULL);
 		void DebugDumpBlocks (void);
 		static bool DeserializeMessage (IByteStream &Stream, SArchonEnvelope *retEnv);
-		bool Enqueue (CMemoryBuffer &Buffer, CString *retsError);
+		bool Enqueue (const IMemoryBlock& Buffer, CString *retsError);
 		DWORD FindFreeBlock (int iMinSize, SFreeEntry **retpPrev);
 		void FreeEntry (DWORD dwOffset);
 		SEntry *GetEntry (DWORD dwOffset) { return (SEntry *)(((char *)m_pHeader) + dwOffset); }
@@ -345,10 +566,10 @@ class CMessageTransporter
 class CTimedMessageQueue
 	{
 	public:
-		CTimedMessageQueue (void) : m_dwNextID(1) { m_HasMessages.Create(); }
 
-		void AddMessage (DWORD dwDelay, const CString &sAddr, const CString &sMsg, const CString &sReplyAddr, DWORD dwTicket, CDatum dPayload, DWORD *retdwID = NULL);
-		void AddTimeoutMessage (DWORD dwDelay, const CString &sAddr, const CString &sMsg, DWORD dwTicket, DWORD *retdwID = NULL);
+		CTimedMessageQueue ();
+
+		void AddTimeoutMessage (DWORD dwDelay, const CString& sAddr, const CString& sMsg, DWORD dwTicket, DWORD *retdwID = NULL);
 		void DeleteMessage (DWORD dwID);
 		CManualEvent &GetEvent (void) { return m_HasMessages; }
 		DWORD GetTimeForNextMessage (void);
@@ -357,25 +578,38 @@ class CTimedMessageQueue
 		void ProcessMessages (IArchonProcessCtx *pProcess);
 
 	private:
+
+		static constexpr int DEFAULT_QUEUE_SIZE = 1000;
+		static constexpr DWORD KEEP_ALIVE_TIME = 1000 * 30;
+
 		struct SEntry
 			{
-			DWORD dwID;
-			DWORD dwTime;
+			DWORDLONG dwTime = 0;						//	0 = free
+
+			DWORD dwID = 0;
+			DWORD dwNext = 0;
+			DWORD dwPrev = 0;
 
 			CString sAddr;
 			CString sMsg;
 			CString sReplyAddr;
-			DWORD dwTicket;
+			DWORD dwTicket = 0;
 			CDatum dPayload;
 			};
 
-		DWORD GetTimeToWait (DWORD dwNow, DWORD dwTime);
-		DWORD GetSmallestTimeToWait (DWORD dwNow);
+		SEntry& AddMessage (DWORD dwDelay, const CString& sAddr, const CString& sMsg, const CString& sReplyAddr, DWORD dwTicket, CDatum dPayload);
+		SEntry& Allocate ();
+		void Free (SEntry& Entry);
+		void InsertToList (SEntry& NewEntry);
+		void RemoveFromList (SEntry& Entry);
 
 		CCriticalSection m_cs;
 		CManualEvent m_HasMessages;
-		TArray<SEntry> m_Queue;
-		DWORD m_dwNextID;
+
+		TArray<SEntry> m_Pool;
+		DWORD m_dwFirstTimer = 0;						//	Timers are sorted by time
+		DWORD m_dwLastTimer = 0;
+		DWORD m_dwFirstFree = 0;
 	};
 
 //	TTicketManager -------------------------------------------------------------

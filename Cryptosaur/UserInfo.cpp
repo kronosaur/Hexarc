@@ -1,7 +1,7 @@
 //	UserInfo.cpp
 //
 //	User info routines
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -107,7 +107,7 @@ void CCryptosaurEngine::MsgCheckPasswordSHA1 (const SArchonMessage &Msg, const C
 //	Cryptosaur.login_SHA1 {username} {challenge} {response}
 
 	{
-	StartSession(Msg, new CUserInfoSession(this, NULL_STR, Msg.dPayload.GetElement(0)));
+	StartSession(Msg, new CUserInfoSession(this, NULL_STR, Msg.dPayload.GetElement(0).AsStringView()));
 	}
 
 void CCryptosaurEngine::MsgGetUser (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)
@@ -117,7 +117,7 @@ void CCryptosaurEngine::MsgGetUser (const SArchonMessage &Msg, const CHexeSecuri
 //	Cryptosaur.getUser {username}
 
 	{
-	StartSession(Msg, new CUserInfoSession(this, (pSecurityCtx ? pSecurityCtx->GetSandbox() : NULL_STR), Msg.dPayload.GetElement(0), Msg.dPayload));
+	StartSession(Msg, new CUserInfoSession(this, (pSecurityCtx ? pSecurityCtx->GetSandbox() : NULL_STR), Msg.dPayload.GetElement(0).AsStringView(), Msg.dPayload));
 	}
 
 void CCryptosaurEngine::MsgHasRights (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)
@@ -127,7 +127,7 @@ void CCryptosaurEngine::MsgHasRights (const SArchonMessage &Msg, const CHexeSecu
 //	Cryptosaur.hasRights {username} {rights}
 
 	{
-	StartSession(Msg, new CUserInfoSession(this, (pSecurityCtx ? pSecurityCtx->GetSandbox() : NULL_STR), Msg.dPayload.GetElement(0), Msg.dPayload));
+	StartSession(Msg, new CUserInfoSession(this, (pSecurityCtx ? pSecurityCtx->GetSandbox() : NULL_STR), Msg.dPayload.GetElement(0).AsStringView(), Msg.dPayload));
 	}
 
 void CCryptosaurEngine::MsgLoginUser (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)
@@ -137,7 +137,7 @@ void CCryptosaurEngine::MsgLoginUser (const SArchonMessage &Msg, const CHexeSecu
 //	Cryptosaur.loginUser {username} {authDesc}
 
 	{
-	StartSession(Msg, new CUserInfoSession(this, (pSecurityCtx ? pSecurityCtx->GetSandbox() : NULL_STR), Msg.dPayload.GetElement(0)));
+	StartSession(Msg, new CUserInfoSession(this, (pSecurityCtx ? pSecurityCtx->GetSandbox() : NULL_STR), Msg.dPayload.GetElement(0).AsStringView()));
 	}
 
 //	CUserInfoSession -----------------------------------------------------------
@@ -192,7 +192,7 @@ bool CUserInfoSession::OnProcessMessage (const SArchonMessage &Msg)
 
 	if (IsError(Msg))
 		{
-		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, Msg.dPayload);
+		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, Msg.dPayload.AsStringView());
 		return false;
 		}
 
@@ -227,7 +227,7 @@ bool CUserInfoSession::OnProcessMessage (const SArchonMessage &Msg)
 				CComplexArray *pRights = new CComplexArray;
 
 				for (i = 0; i < dRights.GetCount(); i++)
-					if (strStartsWith(dRights.GetElement(i), m_sScope))
+					if (strStartsWith(dRights.GetElement(i).AsStringView(), m_sScope))
 						pRights->Insert(dRights.GetElement(i));
 
 				pReply->SetElement(FIELD_RIGHTS, CDatum(pRights));
@@ -301,7 +301,7 @@ bool CUserInfoSession::OnProcessMessage (const SArchonMessage &Msg)
 
 			for (i = 0; i < dRightsRequired.GetCount(); i++)
 				{
-				if (!Rights.HasAttribute(dRightsRequired.GetElement(i)))
+				if (!Rights.HasAttribute(dRightsRequired.GetElement(i).AsStringView()))
 					{
 					SendMessageReply(MSG_REPLY_DATA, CDatum());
 					return false;
@@ -347,7 +347,7 @@ bool CUserInfoSession::OnProcessMessage (const SArchonMessage &Msg)
 			//	service and we must get the scope from parameters.
 
 			if (m_sScope.IsEmpty())
-				m_sScope = CCryptosaurEngine::ValidateSandbox(dRequestAuthDesc.GetElement(FIELD_SCOPE));
+				m_sScope = CCryptosaurEngine::ValidateSandbox(dRequestAuthDesc.GetElement(FIELD_SCOPE).AsStringView());
 			if (!m_bActual && m_sScope.IsEmpty())
 				{
 				SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, ERR_SCOPE_REQUIRED);
@@ -447,7 +447,7 @@ bool CUserInfoSession::OnProcessMessage (const SArchonMessage &Msg)
 				//	We have to hash the password to compare with credentials.
 
 				CIPInteger Credentials;
-				CCryptosaurInterface::CreateCredentials(dUserData.GetElement(FIELD_USERNAME), dPassword, &Credentials);
+				CCryptosaurInterface::CreateCredentials(dUserData.GetElement(FIELD_USERNAME).AsStringView(), dPassword.AsStringView(), &Credentials);
 
 				//	Compare
 

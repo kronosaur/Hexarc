@@ -1,7 +1,7 @@
 //	HexeImpl.h
 //
 //	Hexe header file
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #pragma once
 
@@ -9,10 +9,12 @@ enum EOperandTypes
 	{
 	operandNone,				//	No operand for opcode
 	operandIntShort,			//	Operand is an integer encoded in the lower 24 bits of the opcode
+	operandIntShort2,			//	Operand is two ints, an 8-bit arg and a 16-bit value, encoded in the lower 24 bits of the opcode
 	operandCodeOffset,			//	Operand is a block offset pointing to code
 	operandStringOffset,		//	Operand is a block offset pointing to a string
 	operandDatumOffset,			//	Operand is a block offset pointing to a serialized datum
 	operandInt,					//	Operand is an integer following the opcode
+	operandLibCall,				//	Operand is a count of args followed by a function ID
 	};
 
 struct SOpCodeInfo
@@ -43,6 +45,9 @@ class COpCodeDatabase
 inline DWORD GetOpCode (DWORD dwCode) { return (dwCode & 0xff000000); }
 inline DWORD GetOperand (DWORD dwCode) { return (dwCode & 0x00ffffff); }
 inline DWORD MakeOpCode (DWORD dwOpCode, DWORD dwOperand) { return (dwOpCode | dwOperand); }
+inline DWORD MakeOperand2 (DWORD dwArg, DWORD dwValue) { return ((dwArg & 0xff) << 16) | (dwValue & 0xffff); }
+inline DWORD GetOperand2Arg (DWORD dwOperand) { return (dwOperand >> 16) & 0xff; }
+inline DWORD GetOperand2Value (DWORD dwOperand) { return (dwOperand & 0xffff); }
 
 extern COpCodeDatabase g_OpCodeDb;
 
@@ -53,9 +58,11 @@ extern COpCodeDatabase g_OpCodeDb;
 class CHexeCode : public TExternalDatum<CHexeCode>
 	{
 	public:
+
 		static void Create (const CHexeCodeIntermediate &Intermediate, int iEntryPoint, CDatum *retdEntryPoint);
 		static void CreateFunctionCall (const CString &sFunction, const TArray<CDatum> &Args, CDatum *retdEntryPoint);
 		static void CreateFunctionCall (int iArgCount, CDatum *retdEntryPoint);
+		static void CreateFunctionCall (CStringView sFunction, int iArgCount, CDatum& retdEntryPoint);
 		static void CreateInvokeCall (const TArray<CDatum> &Args, CDatum *retdEntryPoint);
 		static const CString &StaticGetTypename (void);
 
@@ -68,7 +75,9 @@ class CHexeCode : public TExternalDatum<CHexeCode>
 		CString GetStringLiteral (int iOffset) const { return CString(m_Code.GetPointer() + iOffset, -1, true); }
 
 	protected:
+
 		//	IComplexDatum
+
 		virtual bool OnDeserialize (CDatum::EFormat iFormat, const CString &sTypename, IByteStream &Stream) override;
 		virtual void OnMarked (void) override;
 		virtual void OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
@@ -96,6 +105,9 @@ class CHexeCode : public TExternalDatum<CHexeCode>
 		static DWORD GetBlockSize (BLOCKHEADER dwHeader) { return (dwHeader & BLOCK_LEN_MASK); }
 		static EBlockType GetBlockType (BLOCKHEADER dwHeader) { return (EBlockType)(dwHeader & BLOCK_TYPE_MASK); }
 
+		virtual void DeserializeAEONExternal (IByteStream& Stream, CAEONSerializedMap &Serialized) override;
+		virtual void SerializeAEONExternal (IByteStream& Stream, CAEONSerializedMap &Serialized) const override;
+
 		CBuffer m_Code;
 		TArray<int> m_CodeOffsets;
 		TArray<int> m_DataOffsets;
@@ -114,6 +126,7 @@ class CHexePrimitive : public TExternalDatum<CHexePrimitive>
 		//	IComplexDatum
 		virtual bool CanInvoke (void) const override { return true; }
 		virtual CDatum::ECallType GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) const override { return m_iPrimitive; }
+		virtual void SerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const override { CDatum((int)m_iPrimitive).SerializeAEON(Stream, Serialized); }
 
 	private:
 		CDatum::ECallType m_iPrimitive;
@@ -122,11 +135,12 @@ class CHexePrimitive : public TExternalDatum<CHexePrimitive>
 class CHexeFunction : public TExternalDatum<CHexeFunction>
 	{
 	public:
-		CHexeFunction (void) { }
 
-		static CDatum Create (CDatum dCodeBank, int iCodeOffset, CDatum dGlobalEnv, CDatum dLocalEnv, CDatum dAttribs);
+		CHexeFunction (void) : m_dDatatype(CAEONTypes::Get(IDatatype::FUNCTION)) { }
+
+		static CDatum Create (CDatum dCodeBank, int iCodeOffset, CDatum dGlobalEnv, CDatum dLocalEnv, CDatum dAttribs, CDatum dDatatype);
 		static void Create (CDatum dCodeBank, int iCodeOffset, CDatum dGlobalEnv, CDatum dLocalEnv, CDatum *retdFunc)
-			{ *retdFunc = Create(dCodeBank, iCodeOffset, dGlobalEnv, dLocalEnv, CDatum()); }
+			{ *retdFunc = Create(dCodeBank, iCodeOffset, dGlobalEnv, dLocalEnv, CDatum(), CAEONTypes::Get(IDatatype::FUNCTION)); }
 		static const CString &StaticGetTypename (void);
 
 		CDatum GetAttribs () const { return m_dAttribs; }
@@ -136,30 +150,42 @@ class CHexeFunction : public TExternalDatum<CHexeFunction>
 		CDatum GetLocalEnv (void) { return m_dLocalEnv; }
 
 		//	IComplexDatum
+
+		virtual void CacheInvokeResult (CHexeLocalEnvironment& LocalEnv, CDatum dResult) override;
 		virtual bool CanInvoke (void) const override { return true; }
-		virtual bool Contains (CDatum dValue, TArray<IComplexDatum *> &retChecked) const override;
+		virtual bool Contains (CDatum dValue) const override;
 		virtual CDatum::ECallType GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) const override;
 		virtual int GetCount (void) const override;
-		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::FUNCTION); }
+		virtual CDatum GetDatatype () const override { return m_dDatatype; }
 		virtual CDatum GetElement (int iIndex) const override;
 		virtual CDatum GetElement (const CString &sKey) const override;
 		virtual CString GetKey (int iIndex) const override;
+		virtual CDatum::InvokeResult Invoke (IInvokeCtx *pCtx, CHexeLocalEnvironment& LocalEnv, DWORD dwExecutionRights, SAEONInvokeResult& retResult) override;
 		virtual void SetElement (const CString &sKey, CDatum dDatum) override;
 
 	protected:
+
 		virtual DWORD OnGetSerializeFlags (void) const override { return FLAG_SERIALIZE_AS_STRUCT; }
-		virtual void OnMarked (void) override { m_dHexeCode.Mark(); m_dGlobalEnv.Mark(); m_dLocalEnv.Mark(); m_dAttribs.Mark(); }
+		virtual void OnMarked (void) override;
 		virtual void OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const override;
 
 	private:
+
+		virtual void DeserializeAEONExternal (IByteStream& Stream, CAEONSerializedMap &Serialized) override;
+		virtual void SerializeAEONExternal (IByteStream& Stream, CAEONSerializedMap &Serialized) const override;
+
 		CDatum m_dHexeCode;
 		int m_iOffset = 0;
+		CDatum m_dDatatype;
 		CDatum m_dAttribs;
 
 		CDatum m_dGlobalEnv;
 		CHexeGlobalEnvironment *m_pGlobalEnv = NULL;
 
 		CDatum m_dLocalEnv;
+
+		bool m_bCached = false;
+		TSortMap<CString, CDatum> m_Cache;
 	};
 
 class CHexeLibraryFunction : public TExternalDatum<CHexeLibraryFunction>
@@ -170,32 +196,41 @@ class CHexeLibraryFunction : public TExternalDatum<CHexeLibraryFunction>
 		static const CString &StaticGetTypename (void);
 
 		void SetArgList (CString &&sValue) { m_sArgList = std::move(sValue); }
-		void SetExecutionRights (DWORD dwValue) { m_dwExecutionRights = dwValue; }
+		void SetExecFlags (DWORD dwValue) { m_dwExecFlags = dwValue; }
 		void SetFunction (FHexeLibraryFunc pfFunc, DWORD dwData = 0) { m_pfFunc = pfFunc; m_dwData = dwData; }
 		void SetHelp (CString &&sValue) { m_sHelpLine = std::move(sValue); }
 		void SetName (CString &&sValue) { m_sName = std::move(sValue); }
 
 		//	IComplexDatum
 
+		virtual CString AsString () const override { return strPattern("[%s]: %s", GetTypename(), m_sName); }
 		virtual bool CanInvoke (void) const override { return true; }
 		virtual CDatum::ECallType GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) const override { return CDatum::ECallType::Library; }
-		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::FUNCTION); }
-		virtual CDatum::InvokeResult Invoke (IInvokeCtx *pCtx, CDatum dLocalEnv, DWORD dwExecutionRights, CDatum *retdResult) override;
-		virtual CDatum::InvokeResult InvokeContinues (IInvokeCtx *pCtx, CDatum dContext, CDatum dResult, CDatum *retdResult) override;
+		virtual CDatum GetDatatype () const override { return (m_dDatatype.IsNil() ? CAEONTypeSystem::GetCoreType(IDatatype::FUNCTION) : m_dDatatype); }
+		virtual CDatum::InvokeResult Invoke (IInvokeCtx *pCtx, CHexeLocalEnvironment& LocalEnv, DWORD dwExecutionRights, SAEONInvokeResult& retResult) override;
+		virtual CDatum::InvokeResult InvokeContinues (IInvokeCtx *pCtx, CDatum dContext, CDatum dResult, SAEONInvokeResult& retResult) override;
+		virtual CDatum::InvokeResult InvokeLibrary (IInvokeCtx& Ctx, CHexeStackEnv& LocalEnv, DWORD dwExecutionRights, SAEONInvokeResult& retResult) override;
 
 		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const { return (size_t)m_sName.GetLength() + 2; }
 		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
+		virtual void SerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const override { CDatum(m_sName).SerializeAEON(Stream, Serialized); }
+
+	protected:
+
+		virtual void OnMarked (void) override { m_dDatatype.Mark(); }
 
 	private:
 
-		static CDatum::InvokeResult HandleSpecialResult (CDatum *retdResult);
+		static CDatum::InvokeResult HandleSpecialResult (SAEONInvokeResult& retResult);
 
 		CString m_sName;
 		FHexeLibraryFunc m_pfFunc = NULL;
 		DWORD m_dwData = 0;
+		CDatum m_dDatatype;
+
 		CString m_sArgList;
 		CString m_sHelpLine;
-		DWORD m_dwExecutionRights = 0;
+		DWORD m_dwExecFlags = 0;
 	};
 
 //	CHexeGlobalEnvironment -----------------------------------------------------
@@ -203,103 +238,43 @@ class CHexeLibraryFunction : public TExternalDatum<CHexeLibraryFunction>
 class CHexeGlobalEnvironment : public TExternalDatum<CHexeGlobalEnvironment>
 	{
 	public:
-		CHexeGlobalEnvironment (void) { }
-		CHexeGlobalEnvironment (CHexeGlobalEnvironment *pSrc) { m_Env = pSrc->m_Env; m_ServiceSecurity = pSrc->m_ServiceSecurity; }
+
+		CHexeGlobalEnvironment () { }
 
 		static const CString &StaticGetTypename (void);
 
-		bool Find (const CString &sIdentifier, CDatum *retdValue) { return m_Env.Find(sIdentifier, retdValue); }
-		bool FindPos (const CString &sIdentifier, int *retiPos) { return m_Env.FindPos(sIdentifier, retiPos); }
-		CDatum GetAt (int iIndex) { return m_Env[iIndex]; }
+		bool AddSymbol (CStringView sIdentifier, CDatum dValue, DWORD* retdwID = NULL);
+		bool FindSymbol (CStringView sIdentifier, DWORD* retdwID = NULL) { return m_Index.Find(sIdentifier, retdwID); }
+		CDatum GetAt (DWORD dwID) { if (dwID >= (DWORD)m_Data.GetCount()) throw CException(errFail); return m_Data[(int)dwID]; }
 		void GetServiceSecurity (CHexeSecurityCtx *retCtx) { m_ServiceSecurity.GetServiceSecurity(retCtx); }
-		void SetAt (int iIndex, CDatum dValue) { m_Env[iIndex] = dValue; }
-		void SetAt (const CString &sIdentifier, CDatum dValue, bool *retbNew = NULL) { m_Env.SetAt(sIdentifier, dValue, retbNew); }
+		void SetAt (DWORD dwID, CDatum dValue) { if (dwID >= (DWORD)m_Data.GetCount()) throw CException(errFail); m_Data[(int)dwID] = dValue; }
+		void SetAt (CStringView sSymbol, CDatum dValue);
 		void SetServiceSecurity (const CHexeSecurityCtx &Ctx) { m_ServiceSecurity.SetServiceSecurity(Ctx); }
 
 		//	IComplexDatum
-		virtual int GetCount (void) const override { return m_Env.GetCount(); }
-		virtual CDatum GetElement (int iIndex) const override { return (iIndex < m_Env.GetCount() ? m_Env[iIndex] : CDatum()); }
-		virtual CDatum GetElement (const CString &sKey) const override { CDatum *pFound = m_Env.GetAt(sKey); return (pFound ? *pFound : CDatum()); }
-		virtual CString GetKey (int iIndex) const override { return m_Env.GetKey(iIndex); }
+
+		virtual int GetCount (void) const override { return m_Data.GetCount(); }
+		virtual CDatum GetElement (int iIndex) const override { return (iIndex >= 0 && iIndex < m_Index.GetCount() ? m_Data[m_Index[iIndex]] : CDatum()); }
+		virtual CDatum GetElement (const CString &sKey) const override { DWORD* pFound = m_Index.GetAt(sKey); return (pFound ? m_Data[*pFound] : CDatum()); }
+		virtual CString GetKey (int iIndex) const override { return (iIndex >= 0 && iIndex < m_Index.GetCount() ? m_Index.GetKey(iIndex) : NULL_STR); }
 		virtual bool IsArray (void) const override { return true; }
 		virtual bool IsContainer () const override { return true; }
 		virtual void SetElement (const CString &sKey, CDatum dDatum) override { SetAt(sKey, dDatum); }
 
 	protected:
+
 		virtual DWORD OnGetSerializeFlags (void) const override { return FLAG_SERIALIZE_AS_STRUCT; }
 		virtual void OnMarked (void) override;
 		virtual void OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const override;
 
 	private:
-		TSortMap<CString, CDatum> m_Env;			//	Global environment
+
+		virtual void DeserializeAEONExternal (IByteStream& Stream, CAEONSerializedMap &Serialized) override { }
+		virtual void SerializeAEONExternal (IByteStream& Stream, CAEONSerializedMap &Serialized) const override { }
+
+		TArray<CDatum> m_Data;						//	Data values by ID
+		TSortMap<CString, DWORD> m_Index;			//	Index of symbol to ID
 		CHexeSecurityCtx m_ServiceSecurity;			//	Service that defined this environment
-	};
-
-//	CHexeLocalEnvironment ------------------------------------------------------
-
-class CHexeLocalEnvironment : public TExternalDatum<CHexeLocalEnvironment>
-	{
-	public:
-		CHexeLocalEnvironment () { m_pArray = m_BaseArray; }
-		explicit CHexeLocalEnvironment (int iCount);
-
-		static const CString &StaticGetTypename (void);
-
-		void AppendArgumentValue (CDatum dValue);
-		bool FindArgument (const CString &sArg, int *retiLevel, int *retiIndex);
-		CDatum GetArgument (int iIndex) const { return m_pArray[iIndex].dValue; }
-		CDatum GetArgument (int iLevel, int iIndex);
-		int GetNextArg () const { return m_iNextArg; }
-		CDatum GetParentEnv (void) { return m_dParentEnv; }
-		void IncArgumentValue (int iIndex, int iInc);
-		void ResetNextArg (void) { m_iNextArg = 0; }
-		void SetArgumentKey (int iLevel, int iIndex, const CString &sKey);
-		void SetArgumentValue (int iIndex, CDatum dValue) { ASSERT(iIndex < GetAllocSize()); m_pArray[iIndex].dValue = dValue; }
-		void SetArgumentValue (int iLevel, int iIndex, CDatum dValue);
-		void SetElement (int iIndex, CDatum dValue) { ASSERT(iIndex < GetAllocSize()); m_pArray[iIndex].dValue = dValue; }
-		void SetNextArg (int iValue) { GrowArray(iValue); m_iNextArg = iValue; }
-		void SetNextArgKey (const CString &sKey) { SetArgumentKey(0, m_iNextArg, sKey); m_iNextArg++; }
-		void SetParentEnv (CDatum dParentEnv) { m_dParentEnv = dParentEnv; }
-
-		//	IComplexDatum
-		virtual bool Contains (CDatum dValue, TArray<IComplexDatum *> &retChecked) const override;
-		virtual int GetCount (void) const override { return GetArgumentCount(); }
-		virtual CDatum GetElement (int iIndex) const override { return (iIndex < GetArgumentCount() ? m_pArray[iIndex].dValue : CDatum()); }
-		virtual CDatum GetElement (const CString &sKey) const override;
-		virtual CString GetKey (int iIndex) const override { return m_pArray[iIndex].sArg; }
-		virtual bool IsArray (void) const override { return true; }
-		virtual bool IsContainer () const override { return true; }
-		virtual bool IsNil () const { return GetArgumentCount() == 0; }
-		virtual CDatum MathMax () const override;
-		virtual CDatum MathMin () const override;
-		virtual void SetElement (const CString &sKey, CDatum dDatum) override;
-
-	protected:
-		virtual bool OnDeserialize (CDatum::EFormat iFormat, CDatum dStruct) override;
-		virtual DWORD OnGetSerializeFlags (void) const override { return FLAG_SERIALIZE_AS_STRUCT; }
-		virtual void OnMarked (void) override;
-		virtual void OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const override;
-
-	private:
-		static constexpr int DEFAULT_SIZE = 10;
-
-		struct SEntry
-			{
-			CString sArg;
-			CDatum dValue;
-			};
-
-		int GetAllocSize () const { return Max(DEFAULT_SIZE, m_DynamicArray.GetCount()); }
-		int GetArgumentCount () const { return m_iNextArg; }
-		void GrowArray (int iNewCount);
-
-		CDatum m_dParentEnv;
-		int m_iNextArg = 0;
-
-		SEntry m_BaseArray[DEFAULT_SIZE];
-		SEntry *m_pArray = NULL;
-
-		TArray<SEntry> m_DynamicArray;
 	};
 
 //	CLispParser ----------------------------------------------------------------

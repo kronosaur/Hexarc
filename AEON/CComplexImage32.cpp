@@ -1,7 +1,7 @@
 //	CComplexImage32.cpp
 //
 //	CComplexImage32 class
-//	Copyright (c) 2020 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2020 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -73,6 +73,21 @@ bool CComplexImage32::OnDeserialize (CDatum::EFormat iFormat, const CString &sTy
 		}
 	}
 
+CDatum CComplexImage32::DeserializeAEON (IByteStream& Stream, DWORD dwID, CAEONSerializedMap &Serialized)
+	{
+	CComplexImage32 *pImage = new CComplexImage32;
+	CDatum dValue(pImage);
+	
+	DWORD dwWidth = Stream.ReadDWORD();
+	DWORD dwHeight = Stream.ReadDWORD();
+	DWORD dwAlphaType = Stream.ReadDWORD();
+
+	pImage->m_Image.Create(dwWidth, dwHeight, (CRGBA32Image::EAlphaTypes)dwAlphaType);
+	Stream.Read(pImage->m_Image.GetPixelPos(0, 0), dwWidth * dwHeight * sizeof(DWORD));
+
+	return dValue;
+	}
+
 void CComplexImage32::OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const
 
 //	OnSerialize
@@ -84,6 +99,7 @@ void CComplexImage32::OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream)
 		{
 		//	Always serialize to a PNG.
 
+		case CDatum::EFormat::GridLang:
 		case CDatum::EFormat::JSON:
 			CPNG::Save(m_Image, Stream);
 			break;
@@ -107,4 +123,16 @@ void CComplexImage32::OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream)
 			break;
 			}
 		}
+	}
+
+void CComplexImage32::SerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const
+	{
+	Stream.Write(CDatum::SERIALIZE_TYPE_IMAGE32);
+
+	Stream.Write(m_Image.GetWidth());
+	Stream.Write(m_Image.GetHeight());
+	Stream.Write((DWORD)m_Image.GetAlphaType());
+
+	DWORD dwLength = m_Image.GetWidth() * m_Image.GetHeight() * sizeof(DWORD);
+	Stream.Write((char *)m_Image.GetPixelPos(0, 0), dwLength);
 	}

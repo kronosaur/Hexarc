@@ -1,7 +1,7 @@
 //	CArchonProcess.cpp
 //
 //	CArchonProcess class
-//	Copyright (c) 2010 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2010 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -63,6 +63,7 @@ DECLARE_CONST_STRING(ERR_CRASH_IN_CONSOLE_COMMAND,		"Crash processing console co
 DECLARE_CONST_STRING(ERR_CRASH_IN_SEND_GLOBAL_MESSAGE,	"CRASH: In SendGlobalMessage.");
 DECLARE_CONST_STRING(ERR_CRASH_IN_COLLECT_GARBAGE,		"CRASH: In CollectGarbage.");
 DECLARE_CONST_STRING(ERR_CRASH_IN_RUN,					"CRASH: In CArchonProcess::Run.");
+DECLARE_CONST_STRING(ERR_CRASH_UNHANDLED,				"CRASH [%x]: %s");
 
 CArchonProcess::CArchonProcess (void) :
 		m_EventThread(*this, m_RunEvent, m_PauseEvent, m_QuitEvent)
@@ -132,10 +133,9 @@ bool CArchonProcess::Boot (const SProcessDesc &Config)
 		m_iState = stateNone;
 
 		//	Initialize the black box so that we can record boot errors.
-		//	(But only if we're the central module on arcology prime).
+		//	(But only if we're the central module.)
 
-		if (m_bCentralModule
-				&& m_bArcologyPrime)
+		if (m_bCentralModule)
 			{
 			m_BlackBox.Boot(sExecutablePath);
 			if (Config.dwFlags & PROCESS_FLAG_CONSOLE_OUTPUT)
@@ -174,10 +174,10 @@ bool CArchonProcess::Boot (const SProcessDesc &Config)
 			LogBlackBox(m_Version.sCopyright);
 			}
 
-		//	Boot Foundation, including Winsock
+		//	Boot Foundation, including Winsock and COM
 
 		CString sError;
-		if (!CFoundation::Boot(0, &sError))
+		if (!CFoundation::Boot(CFoundation::BOOT_FLAG_COM, &sError))
 			{
 			LogBlackBox(sError);
 			m_iState = stateBootError;
@@ -454,6 +454,15 @@ void CArchonProcess::CollectGarbage (void)
 					dwTime / 1000, (dwTime % 1000) / 10,
 					dwSweepTime / 1000, (dwSweepTime % 1000) / 10));
 			}
+		}
+	catch (CException e)
+		{
+		if (!e.GetErrorString().IsEmpty())
+			CriticalError(strPattern("CRASH: %s", e.GetErrorString()));
+		else if (sTask.IsEmpty())
+			CriticalError(ERR_CRASH_IN_COLLECT_GARBAGE);
+		else
+			CriticalError(strPattern("CRASH: %s", sTask));
 		}
 	catch (...)
 		{
@@ -1123,4 +1132,18 @@ void CArchonProcess::TranspaceDownload (const CString &sAddress, const CString &
 		}
 	else
 		SendMessageCommand(sDestMsgAddress, sDestMsg, sReplyAddr, dwTicket, dDestPayload);
+	}
+
+void CArchonProcess::UnhandledException (CStringView sError)
+	{
+	LogBlackBox(strPattern(ERR_CRASH_UNHANDLED, ::GetCurrentThreadId(), sError));
+
+	//	Loop over engines and let them dump extra info
+
+	TArray<CString> Lines;
+	for (int i = 0; i < m_Engines.GetCount(); i++)
+		m_Engines[i].pEngine->AccumulateCrashData(Lines);
+
+	for (int i = 0; i < Lines.GetCount(); i++)
+		LogBlackBox(Lines[i]);
 	}

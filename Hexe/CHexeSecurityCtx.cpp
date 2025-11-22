@@ -1,7 +1,7 @@
 //	CHexeSecurityCtx.cpp
 //
 //	CHexeSecurityCtx class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -80,11 +80,11 @@ void CHexeSecurityCtx::Init (CDatum dDatum)
 
 	{
 	SetServiceRights(dDatum.GetElement(0));
-	m_sSandbox = dDatum.GetElement(1);
+	m_sSandbox = dDatum.GetElement(1).AsStringView();
 
 	if (dDatum.GetCount() >= 4)
 		{
-		m_sUsername = dDatum.GetElement(2);
+		m_sUsername = dDatum.GetElement(2).AsStringView();
 		SetUserRights(dDatum.GetElement(3));
 		}
 	else

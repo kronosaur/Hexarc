@@ -1,7 +1,7 @@
 //	CEsperAMP1ConnectionIn.cpp
 //
 //	CEsperAMP1ConnectionIn class
-//	Copyright (c) 2015 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2015 by GridWhale Corporation. All Rights Reserved.
 //
 //	AMP1 PROTOCOL
 //
@@ -83,109 +83,6 @@ void CEsperAMP1ConnectionIn::AccumulateStatus (SStatus *ioStatus)
 		}
 	}
 
-void CEsperAMP1ConnectionIn::ClearBusy (void)
-
-//	ClearBusy
-//
-//	We're not in use
-
-	{
-	//	We don't take direct orders from clients (read/write), so we don't have 
-	//	to do anything here.
-	}
-
-bool CEsperAMP1ConnectionIn::GetHeader (const IMemoryBlock &Data, CString *retsCommand, DWORD *retdwDataLen, char **retpPartialData, DWORD *retdwPartialDataLen)
-
-//	GetHeader
-//
-//	Parses Data and sees if we have a complete and valid header. There are three
-//	possible results:
-//
-//	1.	We have a complete and valid header. In that case, we return TRUE and 
-//		the command, data length, and partial data variables are initialized.
-//
-//	2.	We don't have a full header yet. In that case, we return FALSE, and
-//		retsCommand is empty.
-//
-//	3.	We have an invalid header. In that case we return FALSE, and retsCommand
-//		is the human-readable error.
-
-	{
-	//	Initialize return command to NULL so that we can return when we detect
-	//	that we need more data.
-
-	*retsCommand = NULL_STR;
-
-	//	Start parsing
-
-	char *pPos = Data.GetPointer();
-	char *pPosEnd = pPos + Data.GetLength();
-
-	//	Parse the protocol and version
-
-	CString sVersion;
-	if (!ParseHeaderWord(pPos, pPosEnd, &sVersion, &pPos))
-		return false;
-
-	//	Parse the command
-
-	CString sCommand;
-	if (!ParseHeaderWord(pPos, pPosEnd, &sCommand, &pPos))
-		return false;
-
-	//	Parse the data length
-
-	CString sDataLen;
-	if (!ParseHeaderWord(pPos, pPosEnd, &sDataLen, &pPos))
-		return false;
-
-	//	Must be a number
-
-	bool bFailed;
-	DWORD dwDataLen = strToInt(sDataLen, 0, &bFailed);
-	if (bFailed)
-		{
-		*retsCommand = strPattern(ERR_INVALID_DATA_LEN, sDataLen);
-		return false;
-		}
-
-	//	We must end in CRLF
-
-	while (pPos < pPosEnd && (*pPos == ' ' || *pPos == '\t'))
-		pPos++;
-
-	if (pPos == pPosEnd)
-		return false;
-	
-	if (*pPos != '\r')
-		{
-		*retsCommand = ERR_INVALID_HEADER;
-		return false;
-		}
-
-	pPos++;
-	if (pPos == pPosEnd)
-		return false;
-	
-	if (*pPos != '\n')
-		{
-		*retsCommand = ERR_INVALID_HEADER;
-		return false;
-		}
-
-	pPos++;
-
-	//	We now have a valid and complete header and pPos points to the start 
-	//	of the data.
-
-	*retsCommand = sCommand;
-	*retdwDataLen = dwDataLen;
-	*retpPartialData = pPos;
-	*retdwPartialDataLen = (int)(pPosEnd - pPos);
-
-	return true;
-	}
-
 CDatum CEsperAMP1ConnectionIn::GetProperty (const CString &sProperty) const
 
 //	GetProperty
@@ -221,7 +118,7 @@ void CEsperAMP1ConnectionIn::OnConnect (void)
 	OpReadRequest(stateReadingHeader);
 	}
 
-void CEsperAMP1ConnectionIn::OnSocketOperationComplete (EOperations iOp, DWORD dwBytesTransferred)
+void CEsperAMP1ConnectionIn::OnSocketOperationComplete (EOperation iOp, DWORD dwBytesTransferred)
 
 //	OnSocketOperationComplete
 //
@@ -235,21 +132,21 @@ void CEsperAMP1ConnectionIn::OnSocketOperationComplete (EOperations iOp, DWORD d
 		{
 		case stateReadingHeader:
 			{
-			IMemoryBlock *pData = GetBuffer();
+			IMemoryBlock *pData = GetReadBuffer();
 
 			//	See if we have the entire header. If we don't then we need to 
 			//	keep reading.
 
-			char *pPartialData;
+			const char *pPartialData;
 			DWORD dwPartialDataLen;
-			if (!GetHeader(*pData, &m_sCommand, &m_dwDataLen, &pPartialData, &dwPartialDataLen))
+			if (!CAMP1Protocol::GetHeader(*pData, &m_sCommand, &m_dwDataLen, &pPartialData, &dwPartialDataLen))
 				{
 				//	Error
 
 				if (!m_sCommand.IsEmpty())
 					{
 					m_Manager.LogTrace(strPattern(ERR_INVALID_MESSAGE, CEsperInterface::ConnectionToFriendlyID(CDatum(GetID())), m_sCommand));
-					m_Manager.DeleteConnection(CDatum(GetID()));
+					SetMarkedForDelete();
 					}
 
 				//	Need more data
@@ -290,21 +187,21 @@ void CEsperAMP1ConnectionIn::OnSocketOperationComplete (EOperations iOp, DWORD d
 			{
 			//	Append the new data to what we read before
 
-			m_Data.Write(*GetBuffer());
+			m_Data.Write(*GetWriteBuffer());
 
 			//	See if we have the entire header. If we don't then we need to 
 			//	keep reading.
 
-			char *pPartialData;
+			const char *pPartialData;
 			DWORD dwPartialDataLen;
-			if (!GetHeader(m_Data, &m_sCommand, &m_dwDataLen, &pPartialData, &dwPartialDataLen))
+			if (!CAMP1Protocol::GetHeader(m_Data, &m_sCommand, &m_dwDataLen, &pPartialData, &dwPartialDataLen))
 				{
 				//	Error
 
 				if (!m_sCommand.IsEmpty())
 					{
 					m_Manager.LogTrace(strPattern(ERR_INVALID_MESSAGE, CEsperInterface::ConnectionToFriendlyID(CDatum(GetID())), m_sCommand));
-					m_Manager.DeleteConnection(CDatum(GetID()));
+					SetMarkedForDelete();
 					}
 
 				//	Need more data
@@ -340,7 +237,7 @@ void CEsperAMP1ConnectionIn::OnSocketOperationComplete (EOperations iOp, DWORD d
 
 		case stateReadingData:
 			{
-			m_Data.Write(*GetBuffer());
+			m_Data.Write(*GetReadBuffer());
 
 			if (m_Data.GetLength() >= (int)m_dwDataLen)
 				{
@@ -366,17 +263,17 @@ void CEsperAMP1ConnectionIn::OnSocketOperationComplete (EOperations iOp, DWORD d
 
 	switch (iOp)
 		{
-		case opRead:
+		case EOperation::read:
 			Stats.IncStat(CEsperStats::statBytesRead, dwBytesTransferred);
 			break;
 
-		case opWrite:
+		case EOperation::write:
 			Stats.IncStat(CEsperStats::statBytesWritten, dwBytesTransferred);
 			break;
 		}
 	}
 
-void CEsperAMP1ConnectionIn::OnSocketOperationFailed (EOperations iOp)
+void CEsperAMP1ConnectionIn::OnSocketOperationFailed (EOperation iOp, CStringView sError)
 
 //	OnSocketOperationFailed
 //
@@ -389,12 +286,12 @@ void CEsperAMP1ConnectionIn::OnSocketOperationFailed (EOperations iOp)
 		case stateReadingHeaderContinues:
 		case stateReadingData:
 			m_Manager.LogTrace(strPattern(ERR_READ_OP_FAILED, CEsperInterface::ConnectionToFriendlyID(CDatum(GetID()))));
-			m_Manager.DeleteConnection(CDatum(GetID()));
+			SetMarkedForDelete();
 			break;
 
 		case stateWriting:
 			m_Manager.LogTrace(strPattern(ERR_WRITE_OP_FAILED, CEsperInterface::ConnectionToFriendlyID(CDatum(GetID()))));
-			m_Manager.DeleteConnection(CDatum(GetID()));
+			SetMarkedForDelete();
 			break;
 		}
 	}
@@ -414,7 +311,7 @@ void CEsperAMP1ConnectionIn::OpReadRequest (EStates iNewState)
 	if (!IIOCPEntry::BeginRead(&sError))
 		{
 		m_Manager.LogTrace(strPattern(ERR_READ_START_FAILED, CEsperInterface::ConnectionToFriendlyID(CDatum(GetID())), sError));
-		m_Manager.DeleteConnection(CDatum(GetID()));
+		SetMarkedForDelete();
 		}
 	}
 
@@ -437,7 +334,7 @@ void CEsperAMP1ConnectionIn::OpSendAMPMessage (const CString &sCommand, IMemoryB
 	bool bAuthFailure = false;
 	if (strEquals(sCommand, AMP1_AUTH))
 		{
-		CString sName = dData.GetElement(FIELD_AUTH_NAME);
+		CStringView sName = dData.GetElement(FIELD_AUTH_NAME);
 		CIPInteger Key = dData.GetElement(FIELD_AUTH_KEY);
 
 		if (m_Manager.AuthenticateMachine(sName, Key))
@@ -483,42 +380,11 @@ void CEsperAMP1ConnectionIn::OpSendAMPMessage (const CString &sCommand, IMemoryB
 	if (!IIOCPEntry::BeginWrite(sReply, &sError))
 		{
 		m_Manager.LogTrace(strPattern(ERR_WRITE_OP_FAILED, CEsperInterface::ConnectionToFriendlyID(CDatum(GetID()))));
-		m_Manager.DeleteConnection(CDatum(GetID()));
+		SetMarkedForDelete();
 		}
 	}
 
-bool CEsperAMP1ConnectionIn::ParseHeaderWord (char *pPos, char *pPosEnd, CString *retsWord, char **retpPos)
-
-//	ParseHeaderWord
-//
-//	Parses a word. We expect the word to terminate in whitespace. If we don't
-//	have enough buffer, we return FALSE.
-
-	{
-	//	Skip leading whitespace
-
-	while (pPos < pPosEnd && strIsWhitespace(pPos))
-		pPos++;
-
-	if (pPos == pPosEnd)
-		return false;
-
-	//	Parse the word
-
-	char *pStart = pPos;
-	while (pPos < pPosEnd && !strIsWhitespace(pPos))
-		pPos++;
-
-	if (pPos == pPosEnd)
-		return false;
-
-	*retsWord = CString(pStart, pPos - pStart);
-	*retpPos = pPos;
-
-	return true;
-	}
-
-bool CEsperAMP1ConnectionIn::SetBusy (void)
+bool CEsperAMP1ConnectionIn::SetBusy (EOperation iOperation)
 
 //	SetBusy
 //
@@ -539,7 +405,7 @@ bool CEsperAMP1ConnectionIn::SetProperty (const CString &sProperty, CDatum dValu
 
 	{
 	if (strEquals(sProperty, FIELD_AUTH_NAME))
-		m_sMachineName = dValue;
+		m_sMachineName = dValue.AsStringView();
 
 	else
 		return false;

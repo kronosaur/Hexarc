@@ -1,7 +1,7 @@
 //	MsgWaitForVolume.cpp
 //
 //	CAeonEngine class
-//	Copyright (c) 2012 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2012 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -38,7 +38,7 @@ void CAeonEngine::MsgWaitForVolume (const SArchonMessage &Msg, const CHexeSecuri
 
 	//	Parameters
 
-	const CString &sVolume = Msg.dPayload.GetElement(0);
+	CStringView sVolume = Msg.dPayload.GetElement(0);
 
 	//	If the volume is online then we return OK
 

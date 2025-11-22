@@ -1,7 +1,7 @@
 //	AeonDB.h
 //
 //	AeonDB Archon Implementation
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #pragma once
 
@@ -67,6 +67,7 @@ class CRowKey
 		const CString &AsEncodedString (void) const { return *m_psKey; }
 		int GetCount (void) const { return m_iCount; }
 		bool HasNullDimensions (const CTableDimensions &Dims) const;
+		bool IsEmpty () const { return (m_iCount == 0); }
 		bool MatchesDimensions (const CTableDimensions &Dims) const;
 
 		static int Compare (const CTableDimensions &Dims, const CRowKey &Key1, const CRowKey &Key2);
@@ -332,11 +333,12 @@ class CSegmentBlockCache
 class CAeonSegment : public IOrderedRowSet
 	{
 	public:
-		enum Flags
-			{
-			FLAG_SECONDARY_VIEW =			0x00000001,	//	Segment is a secondary view
-			FLAG_HAS_ROW_ID =				0x00000002,	//	Segment stores a rowID
-			};
+
+		static constexpr DWORD FLAG_SECONDARY_VIEW =			0x00000001;	//	Segment is a secondary view
+		static constexpr DWORD FLAG_HAS_ROW_ID =				0x00000002;	//	Segment stores a rowID
+		static constexpr DWORD FLAG_MASK =						0x00000003;
+
+		static constexpr DWORD CREATE_OPTION_DEBUG_ORDER =		0x10000000;	//	Debug order of rows
 
 		struct SInfo
 			{
@@ -355,6 +357,7 @@ class CAeonSegment : public IOrderedRowSet
 
 		bool Create (DWORD dwViewID, const CTableDimensions &Dims, SEQUENCENUMBER Seq, CRowIterator &Rows, const CString &sFilespec, DWORD dwFlags, CString *retsError);
 		CDatum DebugDump (void) const;
+		bool Diagnostics (DWORD dwFlags, TArray<CString>& retLog, CString* retsError = NULL);
 		DWORDLONG GetFileSize (void) { return m_Blocks.GetFileSize(); }
 		const CString &GetFilespec (void) const { return m_sFilespec; }
 		static bool GetInfo (const CString &sFilespec, SInfo *retInfo);
@@ -439,6 +442,7 @@ class CAeonSegment : public IOrderedRowSet
 		const SIndexEntry *GetIndexEntry (int iIndex) const { ASSERT(iIndex >= 0 && iIndex < GetIndexCount()); return &m_pIndex[iIndex]; }
 		bool HasRowID (void) { return ((m_pHeader->dwFlags & FLAG_HAS_ROW_ID) ? true : false); }
 		CString IndexGetKey (const SIndexEntry *pIndex) const;
+		bool IsSecondaryView (void) { return ((m_pHeader->dwFlags & FLAG_SECONDARY_VIEW) ? true : false); }
 
 		CCriticalSection m_cs;
 		CString m_sFilespec;						//	Filespec backing this segment
@@ -563,6 +567,7 @@ class CAeonView
 		bool CreateSecondaryRows (const CTableDimensions &PrimaryDims, CHexeProcess &Process, const CRowKey &PrimaryKey, CDatum dFullData, SEQUENCENUMBER RowID, CAeonRowArray *Rows);
 		bool CreateSegment (const CString &sFilespec, SEQUENCENUMBER Seq, IOrderedRowSet *pRows, CAeonSegment **retpNewSeg, CString *retsError);
 		CDatum DebugDump (void) const;
+		bool Diagnostics (DWORD dwFlags, TArray<CString>& retLog, CString* retsError = NULL);
 		bool GetData (const CRowKey &Path, CDatum *retData, SEQUENCENUMBER *retRowID, CString *retsError);
 		const CTableDimensions &GetDimensions (void) { return m_Dims; }
 		DWORD GetID (void) { return m_dwID; }
@@ -669,6 +674,7 @@ class CAeonTable
 			int iPos = 0;
 			CDateTime IfModifiedAfter;
 
+			bool bNoFileDataErrors = false;
 			bool bTranspace = false;
 			};
 
@@ -685,6 +691,7 @@ class CAeonTable
 		bool DebugDumpView (DWORD dwViewID, CDatum *retdResult) const;
 		bool Delete (void);
 		bool DeleteView (DWORD dwViewID, CString *retsError);
+		bool Diagnostics (DWORD dwFlags, TArray<CString>& retLog, CString* retsError = NULL);
 		bool FileDirectory (const CString &sDirKey, CDatum dRequestedFields, CDatum dOptions, CDatum *retResult, CString *retsError);
 		bool FindView (const CString &sView, DWORD *retdwViewID);
 		bool FindViewAndPath (const CString &sView, DWORD *retdwViewID, CDatum dKey, CRowKey *retKey, CString *retsError);
@@ -692,14 +699,17 @@ class CAeonTable
 		CDatum GetDesc (void);
 		bool GetFileData (const CString &sFilePath, const SFileDataOptions &Options, CDatum *retdFileDownloadDesc, CString *retsError);
 		bool GetFileDesc (const CString &sFilePath, CDatum *retdFileDesc, CString *retsError);
+		CString GetFilespec (const CString& sStoragePath) const;
 		bool GetKeyRange (int iCount, CDatum *retdResult, CString *retsError);
 		const CString &GetName (void) { return m_sName; }
 
 		static constexpr DWORD FLAG_MORE_ROWS =		0x00000001;	//	GetRows: Start with first row AFTER key
 		static constexpr DWORD FLAG_INCLUDE_KEY =	0x00000002;	//	GetRows: Include key in data (instead of interleaving)
 		static constexpr DWORD FLAG_NO_KEY =		0x00000004;	//	GetRows: Just return the data
+		static constexpr DWORD FLAG_NEAREST =		0x00000008;	//	GetRows: Start at the nearest key
 
 		bool GetRows (DWORD dwViewID, CDatum dLastKey, int iRowCount, const TArray<int> &Limits, DWORD dwFlags, CDatum *retdResult, CString *retsError);
+		bool GetRowsFromList (DWORD dwViewID, CDatum dKeys, DWORD dwFlags, CDatum& retdResult, CString* retsError = NULL);
 
 		Types GetType (void) const { return m_iType; }
 		bool GetViewStatus (DWORD dwViewID, bool *retbUpToDate, CString *retsError);
@@ -709,6 +719,7 @@ class CAeonTable
 		AEONERR Insert (const CRowKey &Path, CDatum dData, bool bInsertNew, CString *retsError);
 		bool Insert (const CRowKey &Path, CDatum dData, CString *retsError) { return (Insert(Path, dData, false, retsError) == AEONERR_OK); }
 		void Mark (void);
+		AEONERR Merge (CAeonTable& SrcTable, CString *retsError = NULL);
 		AEONERR Mutate (const CRowKey &Path, CDatum dData, CDatum dMutateDesc, CDatum *retdResult, CString *retsError);
 		bool OnVolumesChanged (const TArray<CString> &VolumesDeleted);
 		bool Open (IArchonProcessCtx *pProcess, CMachineStorage *pStorage, const CString &sName, const TArray<CString> &Volumes, CString *retsError);
@@ -717,7 +728,10 @@ class CAeonTable
 		bool RecoverTableRows (CString *retsError);
 		bool Recreate (IArchonProcessCtx *pProcess, CDatum dDesc, bool *retbUpdated, CString *retsError);
 		bool Save (CString *retsError);
-		bool UpdateFileDesc (const CString &sFilePath, CDatum dFileDesc, CDatum *retdResult);
+
+		static constexpr DWORD FLAG_NO_MODIFIED_ON =	0x00000001;	//	UpdateFileDesc: Do not update modifiedOn
+
+		bool UpdateFileDesc (const CString &sFilePath, CDatum dFileDesc, DWORD dwFlags, CDatum *retdResult);
 		AEONERR UploadFile (CMsgProcessCtx &Ctx, const CString &sSessionID, const CString &sFilePath, CDatum dUploadDesc, CDatum dData, CAeonUploadSessions::SReceipt *retReceipt, CString *retsError);
 
 		static CDatum GetDimensionDesc (SDimensionDesc &Dim);
@@ -872,6 +886,7 @@ class CAeonEngine : public TSimpleEngine<CAeonEngine>
 		void MsgGetData (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgGetKeyRange (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgGetRows (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
+		void MsgGetRowsFromList (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgGetTables (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgGetViewInfo (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgHousekeeping (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);

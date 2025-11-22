@@ -1,7 +1,7 @@
 //	CAEONStringImpl.cpp
 //
 //	CAEONStringImpl class
-//	Copyright (c) 2022 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2022 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -14,12 +14,14 @@ DECLARE_CONST_STRING(TYPE_WHITESPACE,					"whitespace");
 DECLARE_CONST_STRING(ERR_INVALID_SPLIT_TYPE,			"Invalid split type: %s.");
 DECLARE_CONST_STRING(ERR_INVALID_PARAM,					"Invalid parameter: %s.");
 
-TDatumPropertyHandler<CString> CAEONStringImpl::m_Properties = {
+TDatumPropertyHandler<LPCSTR> CAEONStringImpl::m_Properties = {
 	{
 		"bytes",
+		"a",
 		"Returns an array of bytes.",
-		[](const CString& sValue, const CString &sProperty)
+		[](LPCSTR pValue, const CString &sProperty)
 			{
+			CStringView sValue = CStringView::FromCStringPtr(pValue);
 			CDatum dResult(CDatum::typeArray);
 			dResult.GrowToFit(sValue.GetLength());
 
@@ -37,17 +39,19 @@ TDatumPropertyHandler<CString> CAEONStringImpl::m_Properties = {
 		},
 	{
 		"chars",
+		"a",
 		"Returns an array of Unicode characters.",
-		[](const CString& sValue, const CString &sProperty)
+		[](LPCSTR pValue, const CString &sProperty)
 			{
-			return ExecuteSplitChars(sValue);
+			return ExecuteSplitChars(CStringView::FromCStringPtr(pValue));
 			},
 		NULL,
 		},
 	{
 		"datatype",
+		"%",
 		"Returns the type of the string.",
-		[](const CString& sValue, const CString &sProperty)
+		[](LPCSTR pValue, const CString &sProperty)
 			{
 			return CAEONTypeSystem::GetCoreType(IDatatype::STRING);
 			},
@@ -55,150 +59,382 @@ TDatumPropertyHandler<CString> CAEONStringImpl::m_Properties = {
 		},
 	{
 		"length",
+		"I",
 		"Returns the length of the string in bytes.",
-		[](const CString& sValue, const CString &sProperty)
+		[](LPCSTR pValue, const CString &sProperty)
 			{
-			return CDatum(sValue.GetLength());
+			return CDatum(CStringView::FromCStringPtr(pValue).GetLength());
+			},
+		NULL,
+		},
+	{
+		"size",
+		"I",
+		"Returns the length of the string in bytes.",
+		[](LPCSTR pValue, const CString &sProperty)
+			{
+			return CDatum(CStringView::FromCStringPtr(pValue).GetLength());
 			},
 		NULL,
 		},
 	};
 
-TDatumMethodHandler<CString> CAEONStringImpl::m_Methods = {
+TDatumMethodHandler<char> CAEONStringImpl::m_Methods = {
+	{
+		"cleaned",
+		"s:",
+		".cleaned() -> string",
+		0,
+		[](char& Value, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
+			{
+			retResult.dResult = CDatum(CStringView::FromCStringPtr(&Value).Clean());
+			return true;
+			},
+		},
+	{
+		"edited",
+		"s:pos=?,replace=s|start=?,len=?|start=?,len=?,replace=s",
+		".edited(start, end, replace) -> string.",
+		0,
+		[](char& Value, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
+			{
+			CStringView sValue = CStringView::FromCStringPtr(&Value);
+
+			CDatum dStart = LocalEnv.GetArgument(1);
+			int iStart = (int)dStart;
+			if (iStart < 0)
+				iStart = Max(0, iStart + sValue.GetLength());
+
+			if (iStart > sValue.GetLength())
+				{
+				retResult.dResult = CDatum();
+				return true;
+				}
+
+			CDatum dEnd = LocalEnv.GetArgument(2);
+			if (dEnd.GetBasicType() == CDatum::typeString)
+				{
+				CStringView sReplace = dEnd;
+
+				CString sResult(sValue.GetLength() + sReplace.GetLength());
+				char *pDest = sResult.GetPointer();
+				utlMemCopy(sValue.GetParsePointer(), pDest, iStart);
+				pDest += iStart;
+				utlMemCopy(sReplace.GetParsePointer(), pDest, sReplace.GetLength());
+				pDest += sReplace.GetLength();
+				utlMemCopy(sValue.GetParsePointer() + iStart, pDest, sValue.GetLength() - iStart);
+
+				retResult.dResult = CDatum(sResult);
+				return true;
+				}
+			else
+				{
+				CStringView sReplace = LocalEnv.GetArgument(3);
+				int iLen = Max(0, Min((int)dEnd, sValue.GetLength() - iStart));
+
+				CString sResult(sValue.GetLength() - iLen + sReplace.GetLength());
+				char *pDest = sResult.GetPointer();
+				utlMemCopy(sValue.GetParsePointer(), pDest, iStart);
+				pDest += iStart;
+				utlMemCopy(sReplace.GetParsePointer(), pDest, sReplace.GetLength());
+				pDest += sReplace.GetLength();
+				utlMemCopy(sValue.GetParsePointer() + iStart + iLen, pDest, sValue.GetLength() - iStart - iLen);
+
+				retResult.dResult = CDatum(sResult);
+				return true;
+				}
+			},
+		},
 	{
 		"endsWith",
-		"*",
+		"b:str=?",
 		".endsWith(string) -> true/false (case insensitive)",
 		0,
-		[](CString& sValue, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](char& Value, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			CString sStr = dLocalEnv.GetElement(1).AsString();
-			retdResult = CDatum(strEndsWithNoCase(sValue, sStr));
+			CStringView sValue = CStringView::FromCStringPtr(&Value);
+
+			CString sStr = LocalEnv.GetArgument(1).AsString();
+			retResult.dResult = CDatum(strEndsWithNoCase(sValue, sStr));
 			return true;
 			},
 		},
 	{
 		"endsWithExact",
-		"*",
+		"b:str=?",
 		".endsWithExact(string) -> true/false (case sensitive)",
 		0,
-		[](CString& sValue, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](char& Value, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			CString sStr = dLocalEnv.GetElement(1).AsString();
-			retdResult = CDatum(strEndsWith(sValue, sStr));
+			CStringView sValue = CStringView::FromCStringPtr(&Value);
+
+			CString sStr = LocalEnv.GetArgument(1).AsString();
+			retResult.dResult = CDatum(strEndsWith(sValue, sStr));
 			return true;
 			},
 		},
 	{
 		"find",
-		"*",
+		"?:str=?",
 		".find(x) -> Finds offset of x in string (case insensitive).",
 		0,
-		[](CString& sValue, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](char& Value, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			CDatum dValueToFind = dLocalEnv.GetElement(1);
+			CStringView sValue = CStringView::FromCStringPtr(&Value);
+
+			CDatum dValueToFind = LocalEnv.GetArgument(1);
 			if (dValueToFind.IsNil())
 				{
-				retdResult = CDatum();
+				retResult.dResult = CDatum();
 				return true;
 				}
 
 			int iIndex = strFindNoCase(sValue, dValueToFind.AsString());
 			if (iIndex == -1)
 				{
-				retdResult = CDatum();
+				retResult.dResult = CDatum();
 				return true;
 				}
 
-			retdResult = iIndex;
+			retResult.dResult = iIndex;
 			return true;
 			},
 		},
 	{
 		"findExact",
-		"*",
+		"?:str=?",
 		".findExact(x) -> Finds offset of x in string (case sensitive).",
 		0,
-		[](CString& sValue, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](char& Value, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			CDatum dValueToFind = dLocalEnv.GetElement(1);
+			CStringView sValue = CStringView::FromCStringPtr(&Value);
+
+			CDatum dValueToFind = LocalEnv.GetArgument(1);
 			if (dValueToFind.IsNil())
 				{
-				retdResult = CDatum();
+				retResult.dResult = CDatum();
 				return true;
 				}
 
 			int iIndex = strFind(sValue, dValueToFind.AsString());
 			if (iIndex == -1)
 				{
-				retdResult = CDatum();
+				retResult.dResult = CDatum();
 				return true;
 				}
 
-			retdResult = iIndex;
+			retResult.dResult = iIndex;
+			return true;
+			},
+		},
+	{
+		"format",
+		"s:data=x|*=?",
+		".format(data) -> string.",
+		0,
+		[](char& Value, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
+			{
+			CStringView sValue = CStringView::FromCStringPtr(&Value);
+
+			CDatum dData = LocalEnv.GetArgument(1);
+			if (dData.IsStruct() || dData.IsArray())
+				retResult.dResult = CDatumFormat::FormatParams(sValue, dData);
+			else
+				retResult.dResult = CDatumFormat::FormatParamsByOrdinal(sValue, LocalEnv);
+
+			return true;
+			},
+		},
+	{
+		"hashed",
+		"v:|options=?",
+		".hashed() -> BLAKE2 hash.",
+		0,
+		[](char& Value, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
+			{
+			CStringView sValue = CStringView::FromCStringPtr(&Value);
+
+			CBuffer Buffer(sValue);
+			retResult.dResult = CDatum::CreateBinary(cryptoBLAKE2(Buffer));
 			return true;
 			},
 		},
 	{
 		"left",
-		"*",
+		"s:chars=?",
 		".left(n) -> left n bytes.",
 		0,
-		[](CString& sValue, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](char& Value, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			int iLen = Min((int)dLocalEnv.GetElement(1), sValue.GetLength());
+			CStringView sValue = CStringView::FromCStringPtr(&Value);
+
+			int iLen = Min((int)LocalEnv.GetArgument(1), sValue.GetLength());
 			if (iLen <= 0)
 				{
-				retdResult = CDatum();
+				retResult.dResult = CDatum();
 				return true;
 				}
 
-			retdResult = strSubString(sValue, 0, iLen);
+			retResult.dResult = strSubString(sValue, 0, iLen);
 			return true;
 			},
 		},
 	{
+		"lowercased",
+		"s:",
+		".lowercased() -> string in lowercase.",
+		0,
+		[](char& Value, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
+			{
+			CStringView sValue = CStringView::FromCStringPtr(&Value);
+
+			retResult.dResult = strToLower(sValue);
+			return true;
+			},
+		},
+	{
+		"repeat",
+		"s:copies=?",
+		"DEPRECATED: Use .repeated() instead.",
+		0,
+		[](char& Value, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
+			{
+			CStringView sValue = CStringView::FromCStringPtr(&Value);
+
+			int iCount = (int)LocalEnv.GetArgument(1);
+			if (iCount <= 0)
+				{
+				retResult.dResult = CDatum();
+				return true;
+				}
+			else if (iCount == 1)
+				{
+				retResult.dResult = CDatum(sValue);
+				return true;
+				}
+			else
+				{
+				CStringBuffer Buffer;
+				Buffer.SetLength(sValue.GetLength() * iCount);
+				char *pDest = Buffer.GetPointer();
+
+				for (int i = 0; i < iCount; i++)
+					{
+					utlMemCopy(sValue.GetParsePointer(), pDest, sValue.GetLength());
+					pDest += sValue.GetLength();
+					}
+
+				retResult.dResult = CDatum(std::move(Buffer));
+				return true;
+				}
+			},
+		},
+	{
+		"repeated",
+		"s:copies=?",
+		".repeated(n) -> string.",
+		0,
+		[](char& Value, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
+			{
+			CStringView sValue = CStringView::FromCStringPtr(&Value);
+
+			int iCount = (int)LocalEnv.GetArgument(1);
+			if (iCount <= 0)
+				{
+				retResult.dResult = CDatum();
+				return true;
+				}
+			else if (iCount == 1)
+				{
+				retResult.dResult = sValue;
+				return true;
+				}
+			else
+				{
+				CStringBuffer Buffer;
+				Buffer.SetLength(sValue.GetLength() * iCount);
+				char *pDest = Buffer.GetPointer();
+
+				for (int i = 0; i < iCount; i++)
+					{
+					utlMemCopy(sValue.GetParsePointer(), pDest, sValue.GetLength());
+					pDest += sValue.GetLength();
+					}
+
+				retResult.dResult = CDatum(std::move(Buffer));
+				return true;
+				}
+			},
+		},
+	{
 		"right",
-		"*",
+		"s:chars=?",
 		".right(n) -> right n bytes.",
 		0,
-		[](CString& sValue, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](char& Value, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			int iLen = Min((int)dLocalEnv.GetElement(1), sValue.GetLength());
+			CStringView sValue = CStringView::FromCStringPtr(&Value);
+
+			int iLen = Min((int)LocalEnv.GetArgument(1), sValue.GetLength());
 			if (iLen <= 0)
 				{
-				retdResult = CDatum();
+				retResult.dResult = CDatum();
 				return true;
 				}
 
-			retdResult = strSubString(sValue, sValue.GetLength() - iLen, iLen);
+			retResult.dResult = strSubString(sValue, sValue.GetLength() - iLen, iLen);
 			return true;
 			},
 		},
 	{
 		"slice",
-		"*",
-		".slice(start, [end]) -> string.",
+		"s:start=?|start=?,end=?",
+		"DEPRECATED: Use sliced() instead.",
 		0,
-		[](CString& sValue, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](char& Value, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
+			CStringView sValue = CStringView::FromCStringPtr(&Value);
+
 			int iStart;
 			int iLen;
-			CalcSliceParams(dLocalEnv.GetElement(1), dLocalEnv.GetElement(2), sValue.GetLength(), iStart, iLen);
+			CAEONOp::CalcSliceParams(LocalEnv.GetArgument(1), LocalEnv.GetArgument(2), sValue.GetLength(), iStart, iLen);
 
 			if (iLen <= 0)
 				{
-				retdResult = CDatum();
+				retResult.dResult = CDatum();
 				return true;
 				}
 
-			retdResult = strSubString(sValue, iStart, iLen);
+			retResult.dResult = strSubString(sValue, iStart, iLen);
+			return true;
+			},
+		},
+	{
+		"sliced",
+		"s:start=?|start=?,end=?",
+		".sliced(start, [end]) -> string.",
+		0,
+		[](char& Value, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
+			{
+			CStringView sValue = CStringView::FromCStringPtr(&Value);
+
+			int iStart;
+			int iLen;
+			CAEONOp::CalcSliceParams(LocalEnv.GetArgument(1), LocalEnv.GetArgument(2), sValue.GetLength(), iStart, iLen);
+
+			if (iLen <= 0)
+				{
+				retResult.dResult = CDatum();
+				return true;
+				}
+
+			retResult.dResult = strSubString(sValue, iStart, iLen);
 			return true;
 			},
 		},
 	{
 		"split",
-		"*",
+		"a:|options=?",
 		".split() -> array of chars.\n"
 		".split(string) -> array.\n"
 		".split(arrayOfStrings) -> array.\n"
@@ -212,131 +448,125 @@ TDatumMethodHandler<CString> CAEONStringImpl::m_Methods = {
 		"   line\n"
 		"   whitespace\n",
 		0,
-		[](CString& sValue, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](char& Value, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			CDatum dOptions = dLocalEnv.GetElement(1);
+			CStringView sValue = CStringView::FromCStringPtr(&Value);
+
+			CDatum dOptions = LocalEnv.GetArgument(1);
 			if (dOptions.IsNil())
 				{
-				retdResult = ExecuteSplitChars(sValue);
+				retResult.dResult = ExecuteSplitChars(sValue);
 				return true;
 				}
 			else if (dOptions.GetBasicType() == CDatum::typeString)
 				{
-				retdResult = ExecuteSplit(sValue, (const CString&)dOptions);
+				retResult.dResult = ExecuteSplit(sValue, dOptions.AsStringView());
 				return true;
 				}
-			else if (dOptions.GetBasicType() == CDatum::typeArray)
+			else if (dOptions.GetBasicType() == CDatum::typeArray || dOptions.GetBasicType() == CDatum::typeTensor)
 				{
-				retdResult = ExecuteSplitByArray(sValue, dOptions);
+				retResult.dResult = ExecuteSplitByArray(sValue, dOptions);
 				return true;
 				}
 			else if (dOptions.GetBasicType() == CDatum::typeStruct)
 				{
-				const CString& sType = dOptions.GetElement(FIELD_TYPE);
+				CStringView sType = dOptions.GetElement(FIELD_TYPE);
 				if (strEqualsNoCase(sType, TYPE_DOUBLE_LINE))
 					{
-					retdResult = ExecuteSplitDoubleLine(sValue);
+					retResult.dResult = ExecuteSplitDoubleLine(sValue);
 					return true;
 					}
 				else if (strEqualsNoCase(sType, TYPE_LINE))
 					{
-					retdResult = ExecuteSplitLines(sValue);
+					retResult.dResult = ExecuteSplitLines(sValue);
 					return true;
 					}
 				else if (strEqualsNoCase(sType, TYPE_WHITESPACE))
 					{
-					retdResult = ExecuteSplitWhitespace(sValue);
+					retResult.dResult = ExecuteSplitWhitespace(sValue);
 					return true;
 					}
 				else
 					{
-					retdResult = strPattern(ERR_INVALID_SPLIT_TYPE, sType);
+					retResult.dResult = strPattern(ERR_INVALID_SPLIT_TYPE, sType);
 					return false;
 					}
 				}
 			else
 				{
-				retdResult = strPattern(ERR_INVALID_PARAM, dOptions.AsString());
+				retResult.dResult = strPattern(ERR_INVALID_PARAM, dOptions.AsString());
 				return false;
 				}
 			},
 		},
 	{
 		"startsWith",
-		"*",
+		"b:str=?",
 		".startsWith(string) -> true/false (case insensitive)",
 		0,
-		[](CString& sValue, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](char& Value, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			CString sStr = dLocalEnv.GetElement(1).AsString();
-			retdResult = CDatum(strStartsWithNoCase(sValue, sStr));
+			CStringView sValue = CStringView::FromCStringPtr(&Value);
+
+			CString sStr = LocalEnv.GetArgument(1).AsString();
+			retResult.dResult = CDatum(strStartsWithNoCase(sValue, sStr));
 			return true;
 			},
 		},
 	{
 		"startsWithExact",
-		"*",
+		"b:str=?",
 		".startsWithExact(string) -> true/false (case sensitive)",
 		0,
-		[](CString& sValue, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](char& Value, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			CString sStr = dLocalEnv.GetElement(1).AsString();
-			retdResult = CDatum(strStartsWith(sValue, sStr));
+			CStringView sValue = CStringView::FromCStringPtr(&Value);
+
+			CString sStr = LocalEnv.GetArgument(1).AsString();
+			retResult.dResult = CDatum(strStartsWith(sValue, sStr));
 			return true;
 			},
 		},
 	{
 		"toLowerCase",
-		"*",
-		".toLowerCase() -> string in lowercase.",
+		"s:",
+		"DEPRECATED: Use .lowercased() instead.",
 		0,
-		[](CString& sValue, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](char& Value, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			retdResult = strToLower(sValue);
+			CStringView sValue = CStringView::FromCStringPtr(&Value);
+
+			retResult.dResult = strToLower(sValue);
 			return true;
 			},
 		},
 	{
 		"toUpperCase",
-		"*",
-		".toUpperCase() -> string in uppercase.",
+		"s:",
+		"DEPRECATED: Use .uppercased() instead.",
 		0,
-		[](CString& sValue, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](char& Value, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			retdResult = strToUpper(sValue);
+			CStringView sValue = CStringView::FromCStringPtr(&Value);
+
+			retResult.dResult = strToUpper(sValue);
+			return true;
+			},
+		},
+	{
+		"uppercased",
+		"s:",
+		".uppercased() -> string in uppercase.",
+		0,
+		[](char& Value, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
+			{
+			CStringView sValue = CStringView::FromCStringPtr(&Value);
+
+			retResult.dResult = strToUpper(sValue);
 			return true;
 			},
 		},
 	};
-
-void CAEONStringImpl::CalcSliceParams (CDatum dStart, CDatum dEnd, int iLength, int& retStart, int& retLen)
-
-//	CalcSliceParams
-//
-//	We use the same semantics as JavaScript slice:
-//	https://developer.mozilla.org/en-US/docs/web/javascript/reference/global_objects/array/slice
-
-	{
-	int iStart = (int)dStart;
-	int iEnd = (dEnd.IsNil() ? iLength : (int)dEnd);
-
-	if (iStart < 0)
-		iStart = Max(0, iStart + iLength);
-
-	if (iEnd < 0)
-		iEnd = Min(Max(0, iEnd + iLength), iLength);
-
-	if (iEnd <= iStart || iStart >= iLength)
-		{
-		retStart = 0;
-		retLen = 0;
-		}
-	else
-		{
-		retStart = iStart;
-		retLen = iEnd - iStart;
-		}
-	}
 
 CDatum CAEONStringImpl::CreateSplitItem (const char *pStart, const char *pEnd)
 
@@ -407,7 +637,7 @@ CDatum CAEONStringImpl::ExecuteSplitByArray (const CString& sString, CDatum dDel
 		bool bMatch = false;
 		for (int i = 0; i < dDelimiters.GetCount(); i++)
 			{
-			const CString& sDelimiter = dDelimiters.GetElement(i);
+			CStringView sDelimiter = dDelimiters.GetElement(i);
 
 			if (StartsWith(pSrc, pSrcEnd, sDelimiter))
 				{
@@ -562,18 +792,27 @@ CDatum CAEONStringImpl::ExecuteSplitWhitespace (const CString& sString)
 	const char *pStart = pPos;
 	while (pPos < pEndPos)
 		{
-		if (strIsWhitespace(pPos))
+		const char *pNext = pPos;
+		UTF32 dwCodePoint = strParseUTF8Char(&pNext, pEndPos);
+
+		if (strIsWhitespaceChar(dwCodePoint))
 			{
 			dResult.Append(CreateSplitItem(pStart, pPos));
 
-			pPos++;
-			while (strIsWhitespace(pPos))
-				pPos++;
+			pPos = pNext;
+			while (pPos < pEndPos)
+				{
+				dwCodePoint = strParseUTF8Char(&pNext, pEndPos);
+				if (!strIsWhitespaceChar(dwCodePoint))
+					break;
+
+				pPos = pNext;
+				}
 
 			pStart = pPos;
 			}
 		else
-			pPos++;
+			pPos = pNext;
 		}
 
 	dResult.Append(CreateSplitItem(pStart, pPos));
@@ -587,30 +826,35 @@ CDatum CAEONStringImpl::GetElementAt (const CString& sValue, CAEONTypeSystem &Ty
 //	Returns the given element.
 
 	{
-	int iIndex = dIndex.AsArrayIndex();
-	if (iIndex >= 0 && iIndex < sValue.GetLength())
-		return CString(sValue.GetParsePointer() + iIndex, 1);
-
-	else if (dIndex.IsContainer())
+	if (dIndex.IsContainer())
 		{
-		const char *pStart = sValue.GetParsePointer();
+		const char* pStart = sValue.GetParsePointer();
 
-		CDatum dResult(CDatum::typeArray);
-		dResult.GrowToFit(dIndex.GetCount());
+		CString sResult(dIndex.GetCount());
+		char* pDestStart = sResult.GetPointer();
+		char* pDest = pDestStart;
 
 		for (int i = 0; i < dIndex.GetCount(); i++)
 			{
-			int iIndex = dIndex.GetElement(i).AsArrayIndex();
+			int iIndex = dIndex.GetElement(i).AsArrayIndex(sValue.GetLength());
 			if (iIndex >= 0 && iIndex < sValue.GetLength())
-				dResult.Append(CString(pStart + iIndex, 1));
-			else
-				dResult.Append(CDatum());
+				{
+				*pDest++ = *(pStart + iIndex);
+				}
 			}
 
-		return dResult;
+		sResult.SetLength(pDest - pDestStart);
+
+		return CDatum(sResult);
 		}
 	else
-		return CDatum();
+		{
+		int iIndex = dIndex.AsArrayIndex(sValue.GetLength());
+		if (iIndex >= 0 && iIndex < sValue.GetLength())
+			return CString(sValue.GetParsePointer() + iIndex, 1);
+		else
+			return CDatum();
+		}
 	}
 
 bool CAEONStringImpl::StartsWith (const char *pSrc, const char *pSrcEnd, const CString& sValue)

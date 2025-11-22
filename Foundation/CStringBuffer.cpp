@@ -1,12 +1,12 @@
 //	CStringBuffer.cpp
 //
 //	CStringBuffer class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
-#define MIN_ALLOC_INCREMENT							4096
-#define MAX_ALLOC_INCREMENT							1000000
+static constexpr int MIN_ALLOC_INCREMENT =			4096;
+static constexpr int MAX_ALLOC_INCREMENT =			100'000'000;
 
 CStringBuffer::CStringBuffer (CString &&Src) noexcept
 
@@ -17,6 +17,38 @@ CStringBuffer::CStringBuffer (CString &&Src) noexcept
 		{
 		m_iAlloc = Src.GetLength() + sizeof(int);
 		m_pString = Src.Handoff();
+		}
+	}
+
+CStringBuffer::CStringBuffer (int iSize)
+
+//	CStringBuffer constructor
+//
+//	NOTE: Unlike CBuffer, we set the size of the string to the given size.
+
+	{
+	if (iSize < 0)
+		throw CException(errFail);
+	else if (iSize == 0)
+		{
+		m_pString = NULL;
+		m_iAlloc = 0;
+		}
+	else
+		{
+		char *pNewBuffer = new char [iSize + sizeof(int) + 1];
+		char *pNewString = pNewBuffer + sizeof(int);
+
+		m_pString = pNewString;
+		m_iAlloc = iSize;
+
+		//	Null-terminate
+
+		m_pString[iSize] = '\0';
+
+		//	Done
+
+		SetLengthParameter(iSize);
 		}
 	}
 
@@ -32,6 +64,7 @@ void CStringBuffer::CleanUp ()
 		delete [] GetBuffer();
 		m_pString = NULL;
 		m_iAlloc = 0;
+		Seek(0);
 		}
 	}
 
@@ -68,6 +101,7 @@ void CStringBuffer::Move (CStringBuffer &Src)
 
 	Src.m_pString = NULL;
 	Src.m_iAlloc = 0;
+	Src.Seek(0);
 	}
 
 void CStringBuffer::SetLength (int iLength)
@@ -86,6 +120,7 @@ void CStringBuffer::SetLength (int iLength)
 
 		m_pString = NULL;
 		m_iAlloc = 0;
+		Seek(0);
 		return;
 		}
 
@@ -95,7 +130,7 @@ void CStringBuffer::SetLength (int iLength)
 		{
 		//	Allocate in chunks
 
-		int iInc = Max(MIN_ALLOC_INCREMENT, Min(iLength, MAX_ALLOC_INCREMENT));
+		int iInc = Max(MIN_ALLOC_INCREMENT, Min(m_iAlloc, MAX_ALLOC_INCREMENT));
 		int iNewAlloc = Max(iLength, m_iAlloc + iInc);
 
 		//	Allocate the buffer

@@ -1,7 +1,7 @@
 //	HexeRun.cpp
 //
 //	Runs a HexeLisp script
-//	Copyright (c) 2015 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2015 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 #include "Hexe.h"
@@ -86,6 +86,7 @@ int ExecuteHexeDocument (const SOptions &Options)
 			break;
 
 		case CHexeProcess::ERun::Error:
+		case CHexeProcess::ERun::ForcedTerminate:
 			printf("ERROR: %s\n", (LPSTR)dResult.AsString());
 			break;
 

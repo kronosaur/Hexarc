@@ -1,7 +1,7 @@
 //	CSVParser.cpp
 //
 //	CSVParser class
-//	Copyright (c) 2018 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2018 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -140,6 +140,11 @@ bool CCSVParser::ParseRow (TArray<CString> *retRow, CString *retsError)
 					switch (GetCurChar())
 						{
 						case '\0':
+							//	If we get here then it means that we ended a line with a comma.
+							//	In that case we add an empty value to the row.
+
+							if (retRow && retRow->GetCount() > 0)
+								retRow->Insert(NULL_STR);
 							return true;
 
 						case ' ':
@@ -147,10 +152,22 @@ bool CCSVParser::ParseRow (TArray<CString> *retRow, CString *retsError)
 							break;
 
 						case '\r':
+							//	If we get here then it means that we ended a line with a comma.
+							//	In that case we add an empty value to the row.
+
+							if (retRow && retRow->GetCount() > 0)
+								retRow->Insert(NULL_STR);
+
 							iState = stateCR;
 							break;
 
 						case '\n':
+							//	If we get here then it means that we ended a line with a comma.
+							//	In that case we add an empty value to the row.
+
+							if (retRow && retRow->GetCount() > 0)
+								retRow->Insert(NULL_STR);
+
 							iState = stateLF;
 							break;
 
@@ -158,7 +175,7 @@ bool CCSVParser::ParseRow (TArray<CString> *retRow, CString *retsError)
 							iState = stateSingleQuote;
 							break;
 
-						case '\"':
+						case '"':
 							iState = stateDoubleQuote;
 							break;
 
@@ -207,7 +224,7 @@ bool CCSVParser::ParseRow (TArray<CString> *retRow, CString *retsError)
 							retRow->Insert(CString(Value.GetPointer(), Value.GetLength()));
 						return true;
 
-					case '\"':
+					case '"':
 						//if (retRow)
 						//	{
 						//	retRow->Insert(CString(Value.GetPointer(), Value.GetLength()));
@@ -247,8 +264,8 @@ bool CCSVParser::ParseRow (TArray<CString> *retRow, CString *retsError)
 						//	Two double-quotes in a row is an escape for an embedded
 						//	double-quote.
 
-						case '\"':
-							Value.WriteChar('\"');
+						case '"':
+							Value.WriteChar('"');
 							iState = stateDoubleQuote;
 							break;
 
@@ -410,6 +427,6 @@ void CCSVParser::ParseToOpenQuote (void)
 //	Reads characters until we find an open quote.
 
 	{
-	while (GetCurChar() != '\"')
+	while (GetCurChar() != '"')
 		GetNextChar();
 	}

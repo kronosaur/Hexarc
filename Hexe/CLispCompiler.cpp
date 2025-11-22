@@ -1,7 +1,7 @@
 //	CLispCompiler.cpp
 //
 //	CListCompiler class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -98,7 +98,7 @@ bool CLispCompiler::CompileExpression (int iBlock)
 			{
 			//	Optimize empty strings
 
-			if (((const CString &)dToken).IsEmpty())
+			if (dToken.AsStringView().IsEmpty())
 				m_pCode->WriteShortOpCode(iBlock, opPushStrNull);
 
 			//	Allocate a literal string in the code block
@@ -151,7 +151,7 @@ bool CLispCompiler::CompileExpression (int iBlock)
 			}
 
 		case CLispParser::tkError:
-			m_sError = m_Parser.ComposeError(dToken);
+			m_sError = m_Parser.ComposeError(dToken.AsStringView());
 			return false;
 
 		case CLispParser::tkEOF:
@@ -159,7 +159,7 @@ bool CLispCompiler::CompileExpression (int iBlock)
 			return false;
 
 		default:
-			m_sError = m_Parser.ComposeError(strPattern(ERR_UNEXPECTED_TOKEN, (const CString &)dToken));
+			m_sError = m_Parser.ComposeError(strPattern(ERR_UNEXPECTED_TOKEN, dToken.AsStringView()));
 			return false;
 		}
 	}
@@ -178,6 +178,7 @@ bool CLispCompiler::CompileFunctionCall (int iBlock)
 
 	CDatum dToken;
 	CLispParser::ETokens iToken = m_Parser.ParseToken(&dToken);
+	CStringView sToken = dToken;
 
 	//	If we have a close paren then treat this as a literal nil
 
@@ -191,143 +192,143 @@ bool CLispCompiler::CompileFunctionCall (int iBlock)
 	//
 	//	(and {expr} ...)
 
-	else if (iToken == CLispParser::tkIdentifier && strEquals(dToken, SPECIAL_AND))
+	else if (iToken == CLispParser::tkIdentifier && strEquals(sToken, SPECIAL_AND))
 		return CompileSpecialFormAnd(iBlock);
 
 	//	(apply ...)
 
-	else if (iToken == CLispParser::tkIdentifier && strEquals(dToken, SPECIAL_APPLY))
+	else if (iToken == CLispParser::tkIdentifier && strEquals(sToken, SPECIAL_APPLY))
 		return CompileSpecialFormApply(iBlock);
 
 	//	(block {locals} ...)
 
-	else if (iToken == CLispParser::tkIdentifier && strEquals(dToken, SPECIAL_BLOCK))
+	else if (iToken == CLispParser::tkIdentifier && strEquals(sToken, SPECIAL_BLOCK))
 		return CompileSpecialFormBlock(iBlock);
 
 	//	(define {symbol} {value})
 
-	else if (iToken == CLispParser::tkIdentifier && strEquals(dToken, SPECIAL_DEFINE))
+	else if (iToken == CLispParser::tkIdentifier && strEquals(sToken, SPECIAL_DEFINE))
 		return CompileSpecialFormDefine(iBlock);
 
 	//	(enum {list} {var} {expr})
 
-	else if (iToken == CLispParser::tkIdentifier && strEquals(dToken, SPECIAL_ENUM))
+	else if (iToken == CLispParser::tkIdentifier && strEquals(sToken, SPECIAL_ENUM))
 		return CompileSpecialFormEnum(iBlock);
 
 	//	(error {errorCode} {errorDesc})
 
-	else if (iToken == CLispParser::tkIdentifier && strEquals(dToken, SPECIAL_ERROR))
+	else if (iToken == CLispParser::tkIdentifier && strEquals(sToken, SPECIAL_ERROR))
 		return CompileSpecialFormError(iBlock);
 
 	//	(if {cond} {then} {else})
 
-	else if (iToken == CLispParser::tkIdentifier && strEquals(dToken, SPECIAL_IF))
+	else if (iToken == CLispParser::tkIdentifier && strEquals(sToken, SPECIAL_IF))
 		return CompileSpecialFormIf(iBlock);
 
 	//	(invoke {msg} ...)
 
-	else if (iToken == CLispParser::tkIdentifier && strEquals(dToken, SPECIAL_INVOKE))
+	else if (iToken == CLispParser::tkIdentifier && strEquals(sToken, SPECIAL_INVOKE))
 		return CompileSpecialFormInvoke(iBlock);
 
 	//	(lambda {args} {code})
 
-	else if (iToken == CLispParser::tkIdentifier && strEquals(dToken, SPECIAL_LAMBDA))
+	else if (iToken == CLispParser::tkIdentifier && strEquals(sToken, SPECIAL_LAMBDA))
 		return CompileSpecialFormLambda(iBlock);
 
 	//	(list ...)
 
-	else if (iToken == CLispParser::tkIdentifier && strEquals(dToken, SPECIAL_LIST))
+	else if (iToken == CLispParser::tkIdentifier && strEquals(sToken, SPECIAL_LIST))
 		return CompileSpecialFormListOp(iBlock, opMakeArray);
 
 	//	(map {list} {options} {var} {expr})
 
-	else if (iToken == CLispParser::tkIdentifier && strEquals(dToken, SPECIAL_MAP))
+	else if (iToken == CLispParser::tkIdentifier && strEquals(sToken, SPECIAL_MAP))
 		return CompileSpecialFormMap(iBlock);
 
 	//	(not expr)
 
-	else if (iToken == CLispParser::tkIdentifier && strEquals(dToken, SPECIAL_NOT))
+	else if (iToken == CLispParser::tkIdentifier && strEquals(sToken, SPECIAL_NOT))
 		return CompileSpecialFormNot(iBlock);
 
 	//	(or {expr} ...)
 
-	else if (iToken == CLispParser::tkIdentifier && strEquals(dToken, SPECIAL_OR))
+	else if (iToken == CLispParser::tkIdentifier && strEquals(sToken, SPECIAL_OR))
 		return CompileSpecialFormOr(iBlock);
 
 	//	(quote ...)
 
-	else if (iToken == CLispParser::tkIdentifier && strEquals(dToken, SPECIAL_QUOTE))
+	else if (iToken == CLispParser::tkIdentifier && strEquals(sToken, SPECIAL_QUOTE))
 		return CompileSpecialFormQuote(iBlock);
 
 	//	(set@ {var} {key} {expr})
 
-	else if (iToken == CLispParser::tkIdentifier && strEquals(dToken, SPECIAL_SET_AT))
+	else if (iToken == CLispParser::tkIdentifier && strEquals(sToken, SPECIAL_SET_AT))
 		return CompileSpecialFormSetAt(iBlock);
 
 	//	(set! {var} {expr})
 
-	else if (iToken == CLispParser::tkIdentifier && strEquals(dToken, SPECIAL_SET_BANG))
+	else if (iToken == CLispParser::tkIdentifier && strEquals(sToken, SPECIAL_SET_BANG))
 		return CompileSpecialFormSetBang(iBlock);
 
 	//	(switch {cond} {then} [{cond} {then} ... [{else}]])
 
-	else if (iToken == CLispParser::tkIdentifier && strEquals(dToken, SPECIAL_SWITCH))
+	else if (iToken == CLispParser::tkIdentifier && strEquals(sToken, SPECIAL_SWITCH))
 		return CompileSpecialFormSwitch(iBlock);
 
 	//	(while {cond} {expr})
 
-	else if (iToken == CLispParser::tkIdentifier && strEquals(dToken, SPECIAL_WHILE))
+	else if (iToken == CLispParser::tkIdentifier && strEquals(sToken, SPECIAL_WHILE))
 		return CompileSpecialFormWhile(iBlock);
 
 	//	(+ ...)
 
-	else if (iToken == CLispParser::tkIdentifier && strEquals(dToken, SPECIAL_ADD))
+	else if (iToken == CLispParser::tkIdentifier && strEquals(sToken, SPECIAL_ADD))
 		return CompileSpecialFormListOp(iBlock, opAdd);
 
 	//	(/ ...)
 
-	else if (iToken == CLispParser::tkIdentifier && strEquals(dToken, SPECIAL_DIVIDE))
+	else if (iToken == CLispParser::tkIdentifier && strEquals(sToken, SPECIAL_DIVIDE))
 		return CompileSpecialFormListOp(iBlock, opDivide);
 
 	//	(* ...)
 
-	else if (iToken == CLispParser::tkIdentifier && strEquals(dToken, SPECIAL_MULTIPLY))
+	else if (iToken == CLispParser::tkIdentifier && strEquals(sToken, SPECIAL_MULTIPLY))
 		return CompileSpecialFormListOp(iBlock, opMultiply);
 
 	//	(- ...)
 
-	else if (iToken == CLispParser::tkIdentifier && strEquals(dToken, SPECIAL_SUBTRACT))
+	else if (iToken == CLispParser::tkIdentifier && strEquals(sToken, SPECIAL_SUBTRACT))
 		return CompileSpecialFormListOp(iBlock, opSubtract);
 
 	//	(= ...)
 
-	else if (iToken == CLispParser::tkIdentifier && strEquals(dToken, SPECIAL_IS_EQUAL))
-		return CompileSpecialFormListOp(iBlock, opIsEqual);
+	else if (iToken == CLispParser::tkIdentifier && strEquals(sToken, SPECIAL_IS_EQUAL))
+		return CompileSpecialFormListOp(iBlock, opIsEqualMulti);
 
 	//	(< ...)
 
-	else if (iToken == CLispParser::tkIdentifier && strEquals(dToken, SPECIAL_IS_LESS))
-		return CompileSpecialFormListOp(iBlock, opIsLess);
+	else if (iToken == CLispParser::tkIdentifier && strEquals(sToken, SPECIAL_IS_LESS))
+		return CompileSpecialFormListOp(iBlock, opIsLessMulti);
 
 	//	(> ...)
 
-	else if (iToken == CLispParser::tkIdentifier && strEquals(dToken, SPECIAL_IS_GREATER))
-		return CompileSpecialFormListOp(iBlock, opIsGreater);
+	else if (iToken == CLispParser::tkIdentifier && strEquals(sToken, SPECIAL_IS_GREATER))
+		return CompileSpecialFormListOp(iBlock, opIsGreaterMulti);
 
 	//	(<= ...)
 
-	else if (iToken == CLispParser::tkIdentifier && strEquals(dToken, SPECIAL_IS_LESS_OR_EQUAL))
-		return CompileSpecialFormListOp(iBlock, opIsLessOrEqual);
+	else if (iToken == CLispParser::tkIdentifier && strEquals(sToken, SPECIAL_IS_LESS_OR_EQUAL))
+		return CompileSpecialFormListOp(iBlock, opIsLessOrEqualMulti);
 
 	//	(>= ...)
 
-	else if (iToken == CLispParser::tkIdentifier && strEquals(dToken, SPECIAL_IS_GREATER_OR_EQUAL))
-		return CompileSpecialFormListOp(iBlock, opIsGreaterOrEqual);
+	else if (iToken == CLispParser::tkIdentifier && strEquals(sToken, SPECIAL_IS_GREATER_OR_EQUAL))
+		return CompileSpecialFormListOp(iBlock, opIsGreaterOrEqualMulti);
 
 	//	(!= ...)
 
-	else if (iToken == CLispParser::tkIdentifier && strEquals(dToken, SPECIAL_IS_NOT_EQUAL))
-		return CompileSpecialFormListOp(iBlock, opIsNotEqual);
+	else if (iToken == CLispParser::tkIdentifier && strEquals(sToken, SPECIAL_IS_NOT_EQUAL))
+		return CompileSpecialFormListOp(iBlock, opIsNotEqualMulti);
 
 	//	Otherwise, compile the first element as an expression
 
@@ -387,12 +388,12 @@ bool CLispCompiler::CompileIdentifier (int iBlock)
 
 	//	Check primitives
 
-	else if (strEquals(dToken, PRIMITIVE_INVOKE))
+	else if (strEquals(dToken.AsStringView(), PRIMITIVE_INVOKE))
 		m_pCode->WriteShortOpCode(iBlock, opMakePrimitive, (DWORD)CDatum::ECallType::Invoke);
 
 	//	Look for this argument in the local environment
 
-	else if (m_pCurrentEnv && m_pCurrentEnv->FindArgument(dToken, &iLevel, &iIndex))
+	else if (m_pCurrentEnv && m_pCurrentEnv->FindArgument(dToken.AsStringView(), &iLevel, &iIndex))
 		{
 		//	Encode the level and index
 
@@ -468,7 +469,7 @@ bool CLispCompiler::CompileLiteralExpression (int iBlock)
 
 			//	Optimize empty strings
 
-			else if (((const CString &)dToken).IsEmpty())
+			else if (dToken.AsStringView().IsEmpty())
 				m_pCode->WriteShortOpCode(iBlock, opPushStrNull);
 
 			//	Allocate a literal string in the code block
@@ -533,7 +534,7 @@ bool CLispCompiler::CompileLiteralExpression (int iBlock)
 			}
 
 		case CLispParser::tkError:
-			m_sError = m_Parser.ComposeError(dToken);
+			m_sError = m_Parser.ComposeError(dToken.AsStringView());
 			return false;
 
 		case CLispParser::tkEOF:
@@ -541,7 +542,7 @@ bool CLispCompiler::CompileLiteralExpression (int iBlock)
 			return false;
 
 		default:
-			m_sError = m_Parser.ComposeError(strPattern(ERR_UNEXPECTED_TOKEN, (const CString &)dToken));
+			m_sError = m_Parser.ComposeError(strPattern(ERR_UNEXPECTED_TOKEN, dToken.AsStringView()));
 			return false;
 		}
 	}
@@ -633,7 +634,7 @@ bool CLispCompiler::CompileLocalDef (int iBlock, int iVarPos, const CString &sVa
 
 	//	Add to environment
 
-	m_pCurrentEnv->SetElement((const CString &)dToken, CDatum());
+	m_pCurrentEnv->SetElement(dToken.AsStringView(), CDatum());
 
 	//	Define the variable
 
@@ -834,7 +835,7 @@ bool CLispCompiler::CompileSpecialFormBlock (int iBlock)
 
 				//	Add to environment
 
-				m_pCurrentEnv->SetElement((const CString &)dToken, CDatum());
+				m_pCurrentEnv->SetElement(dToken.AsStringView(), CDatum());
 
 				//	Compile the value of the variable
 
@@ -874,7 +875,7 @@ bool CLispCompiler::CompileSpecialFormBlock (int iBlock)
 				{
 				//	Add to environment
 
-				m_pCurrentEnv->SetElement((const CString &)dToken, CDatum());
+				m_pCurrentEnv->SetElement(dToken.AsStringView(), CDatum());
 
 				//	Push Nil since this variable has no value
 
@@ -955,7 +956,7 @@ bool CLispCompiler::CompileSpecialFormDefine (int iBlock)
 	CLispParser::ETokens iToken = m_Parser.ParseToken(&dToken);
 	if (iToken == CLispParser::tkError)
 		{
-		m_sError = m_Parser.ComposeError(dToken);
+		m_sError = m_Parser.ComposeError(dToken.AsStringView());
 		return false;
 		}
 	else if (iToken != CLispParser::tkIdentifier)
@@ -1058,7 +1059,7 @@ bool CLispCompiler::CompileSpecialFormEnum (int iBlock)
 
 	//	Less than?
 
-	m_pCode->WriteShortOpCode(iBlock, opIsLess, 2);
+	m_pCode->WriteShortOpCode(iBlock, opIsLessMulti, 2);
 
 	//	If not, then jump to the end
 	//	
@@ -1315,7 +1316,7 @@ bool CLispCompiler::CompileSpecialFormLambda (int iBlock)
 			{
 			//	Add to environment
 
-			m_pCurrentEnv->SetElement((const CString &)dToken, CDatum());
+			m_pCurrentEnv->SetElement(dToken.AsStringView(), CDatum());
 
 			//	Add a string block
 
@@ -1534,7 +1535,7 @@ bool CLispCompiler::CompileSpecialFormMap (int iBlock)
 
 	//	Less than?
 
-	m_pCode->WriteShortOpCode(iBlock, opIsLess, 2);
+	m_pCode->WriteShortOpCode(iBlock, opIsLessMulti, 2);
 
 	//	If not, then jump to the end
 	//	
@@ -1777,7 +1778,7 @@ bool CLispCompiler::CompileSpecialFormSetAt (int iBlock)
 
 	int iLevel;
 	int iIndex;
-	if (m_pCurrentEnv && m_pCurrentEnv->FindArgument(dVariable, &iLevel, &iIndex))
+	if (m_pCurrentEnv && m_pCurrentEnv->FindArgument(dVariable.AsStringView(), &iLevel, &iIndex))
 		{
 		//	Encode the level and index
 
@@ -1847,7 +1848,7 @@ bool CLispCompiler::CompileSpecialFormSetBang (int iBlock)
 
 	int iLevel;
 	int iIndex;
-	if (m_pCurrentEnv && m_pCurrentEnv->FindArgument(dVariable, &iLevel, &iIndex))
+	if (m_pCurrentEnv && m_pCurrentEnv->FindArgument(dVariable.AsStringView(), &iLevel, &iIndex))
 		{
 		//	Encode the level and index
 
@@ -2124,7 +2125,7 @@ bool CLispCompiler::CompileTerm (CCharStream *pStream, CHexeCodeIntermediate &Co
 			}
 
 		case CLispParser::tkError:
-			*retsError = dToken;
+			*retsError = dToken.AsStringView();
 			return false;
 
 		case CLispParser::tkEOF:
@@ -2136,7 +2137,7 @@ bool CLispCompiler::CompileTerm (CCharStream *pStream, CHexeCodeIntermediate &Co
 			return false;
 
 		default:
-			*retsError = strPattern(m_Parser.ComposeError(ERR_UNEXPECTED_TOKEN), (const CString &)dToken);
+			*retsError = strPattern(m_Parser.ComposeError(ERR_UNEXPECTED_TOKEN), dToken.AsStringView());
 			return false;
 		}
 
@@ -2187,7 +2188,7 @@ void CLispCompiler::ExitLocalEnvironment (void)
 	{
 	//	Restore the environment
 
-	m_dCurrentEnv = m_pCurrentEnv->GetParentEnv();
+	m_dCurrentEnv = m_pCurrentEnv->GetParentEnvClosure();
 	m_pCurrentEnv = CHexeLocalEnvironment::Upconvert(m_dCurrentEnv);
 	}
 
@@ -2201,7 +2202,7 @@ bool CLispCompiler::IsNilSymbol (CDatum dDatum)
 	//	Because we were too sloppy on Transcendence we do a
 	//	case-insenstive check
 
-	return strEquals(strToLower(dDatum), STR_NIL);
+	return strEquals(strToLower(dDatum.AsStringView()), STR_NIL);
 	}
 
 bool CLispCompiler::IsTrueSymbol (CDatum dDatum)
@@ -2214,5 +2215,5 @@ bool CLispCompiler::IsTrueSymbol (CDatum dDatum)
 	//	Because we were too sloppy on Transcendence we do a
 	//	case-insenstive check
 
-	return strEquals(strToLower(dDatum), STR_TRUE);
+	return strEquals(strToLower(dDatum.AsStringView()), STR_TRUE);
 	}

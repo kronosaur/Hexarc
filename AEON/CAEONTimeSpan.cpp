@@ -1,7 +1,7 @@
 //	CAEONTimeSpan.cpp
 //
 //	CAEONTimeSpan class
-//	Copyright (c) 2021 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2021 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -9,6 +9,51 @@ DECLARE_CONST_STRING(STR_MINUS,							"-");
 
 DECLARE_CONST_STRING(TYPENAME_TABLE,					"table");
 DECLARE_CONST_STRING(TYPENAME_TIME_SPAN,				"timeSpan");
+
+TDatumPropertyHandler<CAEONTimeSpan> CAEONTimeSpan::m_Properties = {
+	{
+		"datatype",
+		"%",
+		"Returns the type of the object.",
+		[](const CAEONTimeSpan &Obj, const CString &sProperty)
+			{
+			return Obj.GetDatatype();
+			},
+		NULL,
+		},
+	{
+		"days",
+		"i",
+		"Returns the total number of days (or fractions of a day).",
+		[](const CAEONTimeSpan &Obj, const CString &sProperty)
+			{
+			double rValue = (double)Obj.m_TimeSpan.Milliseconds64() / ((double)SECONDS_PER_DAY * 1000.0);
+			return CDatum(Obj.m_TimeSpan.IsNegative() ? -rValue : rValue);
+			},
+		NULL,
+		},
+	{
+		"milliseconds",
+		"i",
+		"Returns the total number of milliseconds.",
+		[](const CAEONTimeSpan &Obj, const CString &sProperty)
+			{
+			return CDatum(CIPInteger(Obj.m_TimeSpan.Milliseconds64(), Obj.m_TimeSpan.IsNegative()));
+			},
+		NULL,
+		},
+	{
+		"seconds",
+		"i",
+		"Returns the total number of seconds (or fractions of a second).",
+		[](const CAEONTimeSpan &Obj, const CString &sProperty)
+			{
+			double rValue = (double)Obj.m_TimeSpan.Milliseconds64() / (double)1000.0;
+			return CDatum(Obj.m_TimeSpan.IsNegative() ? -rValue : rValue);
+			},
+		NULL,
+		},
+	};
 
 CString CAEONTimeSpan::AsString (void) const
 
@@ -168,4 +213,56 @@ void CAEONTimeSpan::OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) c
 
 	iSave = m_TimeSpan.MillisecondsSinceMidnight();
 	Stream.Write(&iSave, sizeof(iSave));
+	}
+
+CDatum CAEONTimeSpan::DeserializeAEON (IByteStream& Stream, DWORD dwID, CAEONSerializedMap &Serialized)
+	{
+	CAEONTimeSpan* pValue = new CAEONTimeSpan;
+	CDatum dValue(pValue);
+
+	int iLoad = (int)Stream.ReadDWORD();
+	bool bNegative = (iLoad < 0);
+	int iDays = Abs(iLoad) - 1;
+
+	int iMilliseconds = (int)Stream.ReadDWORD();
+
+	pValue->m_TimeSpan = CTimeSpan(iDays, iMilliseconds, bNegative);
+	return dValue;
+	}
+
+void CAEONTimeSpan::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const
+
+//	Serialize
+//
+//	Serialize to the given format.
+
+	{
+	switch (iFormat)
+		{
+		case CDatum::EFormat::GridLang:
+			Stream.Write(strPattern("TimeSpan(%s)", CIPInteger(m_TimeSpan.Milliseconds64()).AsString()));
+			break;
+
+		default:
+			IComplexDatum::Serialize(iFormat, Stream);
+			break;
+		}
+	}
+
+void CAEONTimeSpan::SerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const
+	{
+	Stream.Write(CDatum::SERIALIZE_TYPE_TIME_SPAN);
+
+	//	We encode the sign in the days values, so we need to bias by 1.
+
+	int iSave = (m_TimeSpan.Days() + 1);
+	if (m_TimeSpan.IsNegative())
+		iSave = -iSave;
+
+	Stream.Write(iSave);
+
+	//	Write milliseconds
+
+	iSave = m_TimeSpan.MillisecondsSinceMidnight();
+	Stream.Write(iSave);
 	}

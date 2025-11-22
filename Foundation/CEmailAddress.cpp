@@ -1,7 +1,7 @@
 //	CEmailAddress.cpp
 //
 //	CEmailAddress class
-//	Copyright (c) 2022 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2022 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -59,7 +59,7 @@ bool CEmailAddress::Parse (const CString& sAddr, CEmailAddress* retAddr)
 
 	//	If we have an angle-bracket, then we need to parse a display name.
 
-	if (*pPos == '<' && *pStart != '\"')
+	if (*pPos == '<' && *pStart != '"')
 		{
 		//	Back up if we've got whitespace.
 
@@ -87,7 +87,7 @@ bool CEmailAddress::Parse (const CString& sAddr, CEmailAddress* retAddr)
 
 	//	If we have a quoted local part, then we need to parse
 
-	if (*pPos == '\"')
+	if (*pPos == '"')
 		{
 		pPos++;
 
@@ -107,7 +107,7 @@ bool CEmailAddress::Parse (const CString& sAddr, CEmailAddress* retAddr)
 				pPos++;
 				bBackslash = true;
 				}
-			else if (*pPos == '\"')
+			else if (*pPos == '"')
 				{
 				pPos++;
 				break;

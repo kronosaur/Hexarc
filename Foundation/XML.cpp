@@ -1,7 +1,7 @@
 //	XML.cpp
 //
 //	XML functions and classes
-//	Copyright (c) 2014 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2014 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -24,6 +24,8 @@ enum ParseCmdState
 	stateArgQuoted,
 	stateDone,
 	};
+
+static CXMLStore DefaultStore;
 
 void CreateXMLElementFromCommandLine (int argc, char *argv[], CXMLElement **retpElement)
 
@@ -55,7 +57,7 @@ void CreateXMLElementFromCommandLine (int argc, char *argv[], CXMLElement **retp
 //	The caller must free the resulting element
 
 	{
-	CXMLElement *pCmdLine = new CXMLElement(CString(argv[0]), NULL);
+	CXMLElement *pCmdLine = new CXMLElement(DefaultStore, CString(argv[0]), NULL);
 	if (pCmdLine == NULL)
 		throw CException(errOutOfMemory);
 
@@ -86,7 +88,7 @@ void CreateXMLElementFromCommandLine (int argc, char *argv[], CXMLElement **retp
 						pPos++;
 					else if (*pPos == '\0')
 						iState = stateDone;
-					else if (*pPos == '\"')
+					else if (*pPos == '"')
 						{
 						pPos++;
 						iState = stateArgQuoted;
@@ -145,14 +147,14 @@ void CreateXMLElementFromCommandLine (int argc, char *argv[], CXMLElement **retp
 
 				case stateParamQuoted:
 					{
-					if (*pPos == '\"' || *pPos == '\0')
+					if (*pPos == '"' || *pPos == '\0')
 						{
 						CString sParam(pStart, (pPos - pStart));
 						pCmdLine->AddAttribute(sToken, sParam);
 						bNoArgs = false;
 						iState = stateStart;
 
-						if (*pPos == '\"')
+						if (*pPos == '"')
 							pPos++;
 						}
 					else
@@ -162,7 +164,7 @@ void CreateXMLElementFromCommandLine (int argc, char *argv[], CXMLElement **retp
 
 				case stateParamStart:
 					{
-					if (*pPos == '\"')
+					if (*pPos == '"')
 						{
 						iState = stateParamQuoted;
 						pPos++;
@@ -188,7 +190,7 @@ void CreateXMLElementFromCommandLine (int argc, char *argv[], CXMLElement **retp
 						{
 						pCmdLine->AppendContent(CString(pStart, (pPos - pStart)));
 
-						CXMLElement *pBR = new CXMLElement(TAG_BR, NULL);
+						CXMLElement *pBR = new CXMLElement(DefaultStore, TAG_BR, NULL);
 						pCmdLine->AppendSubElement(pBR);
 
 						bNoArgs = false;
@@ -201,14 +203,14 @@ void CreateXMLElementFromCommandLine (int argc, char *argv[], CXMLElement **retp
 
 				case stateArgQuoted:
 					{
-					if (*pPos == '\"' || *pPos == '\0')
+					if (*pPos == '"' || *pPos == '\0')
 						{
 						pCmdLine->AppendContent(CString(pStart, (pPos - pStart)));
 
-						CXMLElement *pBR = new CXMLElement(TAG_BR, NULL);
+						CXMLElement *pBR = new CXMLElement(DefaultStore, TAG_BR, NULL);
 						pCmdLine->AppendSubElement(pBR);
 
-						if (*pPos == '\"')
+						if (*pPos == '"')
 							pPos++;
 
 						bNoArgs = false;
@@ -307,7 +309,7 @@ CString strToXMLText (const CString &sText)
 				iExtra += 3;		//	&gt
 				break;
 
-			case '\"':
+			case '"':
 				iExtra += 5;		//	&quot
 				break;
 
@@ -364,7 +366,7 @@ CString strToXMLText (const CString &sText)
 				*pDest++ = ';';
 				break;
 
-			case '\"':
+			case '"':
 				*pDest++ = '&';
 				*pDest++ = 'q';
 				*pDest++ = 'u';
@@ -396,6 +398,121 @@ CString strToXMLText (const CString &sText)
 					*pDest++ = pEscape[1];
 					*pDest++ = ';';
 					}
+				break;
+			}
+
+		pPos++;
+		}
+
+	//	Done!
+
+	*pDest = '\0';
+	return sResult;
+	}
+
+CString strToXMLTextUTF8 (CStringView sText)
+	{
+	CString sResult(sText.GetLength());
+	int iExtra = 0;
+
+	//	Optimistically assume that the text has no bad
+	//	characters, while also keeping track of the amount of space
+	//	that we would need for escape codes.
+
+	char *pDest = sResult.GetParsePointer();
+	const char *pPos = sText.GetParsePointer();
+	const char *pPosEnd = pPos + sText.GetLength();
+	while (pPos < pPosEnd)
+		{
+		switch (*pPos)
+			{
+			case '&':
+				iExtra += 4;		//	&amp
+				break;
+
+			case '<':
+				iExtra += 3;		//	&lt
+				break;
+
+			case '>':
+				iExtra += 3;		//	&gt
+				break;
+
+			case '"':
+				iExtra += 5;		//	&quot
+				break;
+
+			case '\'':
+				iExtra += 5;		//	apos
+				break;
+
+			default:
+				break;
+			}
+
+		*pDest++ = *pPos++;
+		}
+
+	//	Done?
+
+	if (iExtra == 0)
+		{
+		*pDest = '\0';
+		return sResult;
+		}
+
+	//	Need to escape
+
+	sResult = CString(sText.GetLength() + iExtra);
+	pDest = sResult.GetParsePointer();
+	pPos = sText.GetParsePointer();
+	pPosEnd = pPos + sText.GetLength();
+	while (pPos < pPosEnd)
+		{
+		switch (*pPos)
+			{
+			case '&':
+				*pDest++ = '&';
+				*pDest++ = 'a';
+				*pDest++ = 'm';
+				*pDest++ = 'p';
+				*pDest++ = ';';
+				break;
+
+			case '<':
+				*pDest++ = '&';
+				*pDest++ = 'l';
+				*pDest++ = 't';
+				*pDest++ = ';';
+				break;
+
+			case '>':
+				*pDest++ = '&';
+				*pDest++ = 'g';
+				*pDest++ = 't';
+				*pDest++ = ';';
+				break;
+
+			case '"':
+				*pDest++ = '&';
+				*pDest++ = 'q';
+				*pDest++ = 'u';
+				*pDest++ = 'o';
+				*pDest++ = 't';
+				*pDest++ = ';';
+				break;
+
+			case '\'':
+				*pDest++ = '&';
+				*pDest++ = 'a';
+				*pDest++ = 'p';
+				*pDest++ = 'o';
+				*pDest++ = 's';
+				*pDest++ = ';';
+				break;
+
+			default:
+				*pDest++ = *pPos;
 				break;
 			}
 

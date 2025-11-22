@@ -1,7 +1,7 @@
 //	CServicePermissions.cpp
 //
 //	CServicePermissions class
-//	Copyright (c) 2019 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2019 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -83,7 +83,7 @@ bool CServicePermissions::InitFromDatum (const CString &sPackageName, CDatum dDe
 
 		for (int i = 0; i < dDesc.GetCount(); i++)
 			{
-			const CString &sPackage = dDesc.GetElement(i);
+			CStringView sPackage = dDesc.GetElement(i);
 			if (sPackage.IsEmpty())
 				continue;
 
@@ -95,7 +95,7 @@ bool CServicePermissions::InitFromDatum (const CString &sPackageName, CDatum dDe
 
 	else
 		{
-		const CString &sValue = dDesc;
+		CStringView sValue = dDesc;
 		if (strEqualsNoCase(sValue, ACCESS_NONE))
 			m_iAccess = EServicePermission::accessNone;
 		else if (strEqualsNoCase(sValue, ACCESS_ALL))

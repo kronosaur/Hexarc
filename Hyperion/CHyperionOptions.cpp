@@ -1,7 +1,7 @@
 //	CHyperionOptions.cpp
 //
 //	CHyperionOptions class
-//	Copyright (c) 2018 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2018 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -67,7 +67,7 @@ bool CHyperionOptions::ParseBooleanValue (const CString &sOption, CDatum dValue,
 		*retbValue = false;
 	else if (dValue.GetBasicType() == CDatum::typeString)
 		{
-		const CString &sValue = dValue;
+		CStringView sValue = dValue;
 
 		if (strEqualsNoCase(sValue, VALUE_DISABLED)
 				|| strEqualsNoCase(sValue, VALUE_DISABLE))

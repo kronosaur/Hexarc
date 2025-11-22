@@ -1,7 +1,7 @@
 //	CVoronoiNavigator.cpp
 //
 //	CVoronoiNavigator class
-//	Copyright (c) 2014 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2014 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 

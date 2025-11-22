@@ -1,7 +1,7 @@
 //	CAEONLines.cpp
 //
 //	CAEONLines class
-//	Copyright (c) 2022 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2022 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -9,15 +9,90 @@ DECLARE_CONST_STRING(TYPENAME_TEXT_LINES,				"textLines");
 
 TDatumPropertyHandler<CAEONLines> CAEONLines::m_Properties = {
 	{
+		"datatype",
+		"%",
+		"Returns the type of the array.",
+		[](const CAEONLines& Obj, const CString &sProperty)
+			{
+			return Obj.GetDatatype();
+			},
+		NULL,
+		},
+	{
+		"dimensions",
+		"I",
+		"Returns number of dimensions in the tensor.",
+		[](const CAEONLines& Obj, const CString &sProperty)
+			{
+			return 1;
+			},
+		NULL,
+		},
+	{
+		"elementtype",
+		"%",
+		"Returns the element type of the array.",
+		[](const CAEONLines& Obj, const CString &sProperty)
+			{
+			return CAEONTypes::Get(IDatatype::STRING);
+			},
+		NULL,
+		},
+	{
+		"keytype",
+		"%",
+		"Returns the key type of the array.",
+		[](const CAEONLines& Obj, const CString &sProperty)
+			{
+			return CAEONTypes::Get(IDatatype::INTEGER);
+			},
+		NULL,
+		},
+	{
+		"keys",
+		"$ArrayOfInt32",
+		"Returns an array of valid indices.",
+		[](const CAEONLines& Obj, const CString &sProperty)
+			{
+			return CComplexArray::GetIndices(CDatum::raw_AsComplex(&Obj));
+			},
+		NULL,
+		},
+	{
 		"length",
+		"I",
 		"Returns the number of lines.",
-		[](const CAEONLines &Obj, const CString &sProperty)
+		[](const CAEONLines& Obj, const CString &sProperty)
+			{
+			return CDatum(Obj.GetCount());
+			},
+		NULL,
+		},
+	{
+		"shape",
+		"$ArrayOfInt32",
+		"Returns an array of sizes for each dimension.",
+		[](const CAEONLines& Obj, const CString &sProperty)
+			{
+			CDatum dResult(CDatum::typeArray);
+			dResult.Append(Obj.GetCount());
+			return dResult;
+			},
+		NULL,
+		},
+	{
+		"size",
+		"I",
+		"Returns the number of element in the array.",
+		[](const CAEONLines& Obj, const CString &sProperty)
 			{
 			return CDatum(Obj.GetCount());
 			},
 		NULL,
 		},
 	};
+
+TDatumMethodHandler<IComplexDatum> *CAEONLines::m_pMethodsExt = NULL;
 
 CAEONLines::CAEONLines (CDatum dValue)
 
@@ -50,7 +125,7 @@ void CAEONLines::Append (CDatum dDatum)
 
 			if (dElement.GetBasicType() == CDatum::typeString)
 				{
-				const CString& sValue = dElement;
+				CStringView sValue = dElement;
 				Lines.Insert(SplitBuffer(CBuffer(sValue)));
 				}
 			else
@@ -64,7 +139,7 @@ void CAEONLines::Append (CDatum dDatum)
 		}
 	else if (dDatum.GetBasicType() == CDatum::typeString)
 		{
-		const CString& sValue = dDatum;
+		CStringView sValue = dDatum;
 		Insert(SplitBuffer(CBuffer(sValue)));
 		}
 	else
@@ -109,7 +184,7 @@ void CAEONLines::ApplyDiff (const CAEONTextLinesDiff& Diff)
 #ifdef DEBUG_DIFF
 				printf("Insert at %d\n", iCurLine);
 #endif
-				m_Lines.Insert(Op.dParam, iCurLine);
+				m_Lines.Insert(Op.dParam.AsStringView(), iCurLine);
 				iCurLine++;
 				break;
 				}
@@ -143,7 +218,7 @@ CString CAEONLines::AsString (void) const
 		Buffer.Write(m_Lines[i]);
 		}
 
-	return CDatum(std::move(Buffer));
+	return CString(std::move(Buffer));
 	}
 
 size_t CAEONLines::CalcMemorySize (void) const
@@ -173,6 +248,9 @@ IComplexDatum *CAEONLines::Clone (CDatum::EClone iMode) const
 		case CDatum::EClone::CopyOnWrite:
 		case CDatum::EClone::DeepCopy:
 			return new CAEONLines(*this);
+
+		case CDatum::EClone::Isolate:
+			return NULL;
 
 		default:
 			throw CException(errFail);
@@ -266,6 +344,21 @@ bool CAEONLines::OnDeserialize (CDatum::EFormat iFormat, const CString &sTypenam
 	return true;
 	}
 
+CDatum CAEONLines::DeserializeAEON (IByteStream& Stream, DWORD dwID, CAEONSerializedMap &Serialized)
+	{
+	CAEONLines* pLines = new CAEONLines;
+	CDatum dValue(pLines);
+
+	int iCount = (int)Stream.ReadDWORD();
+	pLines->m_Seq = Stream.ReadDWORDLONG();
+
+	pLines->m_Lines.InsertEmpty(iCount);
+	for (int i = 0; i < iCount; i++)
+		pLines->m_Lines[i] = CString::Deserialize(Stream);
+
+	return dValue;
+	}
+
 void CAEONLines::OnModify ()
 
 //	OnModify
@@ -293,6 +386,43 @@ void CAEONLines::OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) cons
 		m_Lines[i].Serialize(Stream);
 	}
 
+void CAEONLines::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const
+	{
+	switch (iFormat)
+		{
+		case CDatum::EFormat::GridLang:
+			{
+			Stream.Write("[ ", 2);
+
+			for (int i = 0; i < m_Lines.GetCount(); i++)
+				{
+				if (i != 0)
+					Stream.Write(", ", 2);
+
+				CDatum::WriteGridLangString(Stream, m_Lines[i]);
+				}
+
+			Stream.Write(" ]", 2);
+			break;
+			}
+
+		default:
+			IComplexDatum::Serialize(iFormat, Stream);
+			break;
+		}
+	}
+
+void CAEONLines::SerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const
+	{
+	Stream.Write(CDatum::SERIALIZE_TYPE_TEXT_LINES);
+
+	Stream.Write(m_Lines.GetCount());
+	Stream.Write(m_Seq);
+
+	for (int i = 0; i < m_Lines.GetCount(); i++)
+		m_Lines[i].Serialize(Stream);
+	}
+
 void CAEONLines::SetElement (int iIndex, CDatum dDatum)
 
 //	SetElement
@@ -314,7 +444,7 @@ void CAEONLines::SetElement (int iIndex, CDatum dDatum)
 
 			if (dElement.GetBasicType() == CDatum::typeString)
 				{
-				const CString& sValue = dElement;
+				CStringView sValue = dElement;
 				Lines.Insert(SplitBuffer(CBuffer(sValue)));
 				}
 			else
@@ -327,7 +457,7 @@ void CAEONLines::SetElement (int iIndex, CDatum dDatum)
 		}
 	else if (dDatum.GetBasicType() == CDatum::typeString)
 		{
-		const CString& sValue = dDatum;
+		CStringView sValue = dDatum;
 		Lines = SplitBuffer(CBuffer(sValue));
 		}
 	else
@@ -361,6 +491,20 @@ void CAEONLines::SetElementAt (CDatum dIndex, CDatum dDatum)
 		SetElement(iIndex, dDatum);
 	else
 		{ }
+	}
+
+bool CAEONLines::SetLine (int iLine, CStringView sLine)
+
+//	SetLine
+//
+//	Sets the given line.
+
+	{
+	if (iLine < 0 || iLine >= m_Lines.GetCount())
+		return false;
+
+	m_Lines[iLine] = CString(sLine);
+	return true;
 	}
 
 TArray<CString> CAEONLines::SplitBuffer (const IMemoryBlock& Buffer)

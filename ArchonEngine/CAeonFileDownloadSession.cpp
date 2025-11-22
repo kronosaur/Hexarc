@@ -1,7 +1,7 @@
 //	CAeonFileDownloadSession.cpp
 //
 //	CAeonFileDownloadSession class
-//	Copyright (c) 2017 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2017 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -43,7 +43,7 @@ bool CAeonFileDownloadSession::OnProcessMessage (const SArchonMessage &Msg)
 
 	if (IsError(Msg))
 		{
-		SendMessageReplyError(Msg.sMsg, Msg.dPayload.GetElement(0));
+		SendMessageReplyError(Msg.sMsg, Msg.dPayload.GetElement(0).AsStringView());
 		return false;
 		}
 
@@ -80,7 +80,7 @@ bool CAeonFileDownloadSession::OnProcessMessage (const SArchonMessage &Msg)
 		else
 			m_dFileData = dData;
 
-		DWORD dwTotalRead = ((const CString &)m_dFileData).GetLength();
+		DWORD dwTotalRead = m_dFileData.AsStringView().GetLength();
 
 		//	Figure out how big the entire file is
 
@@ -90,7 +90,7 @@ bool CAeonFileDownloadSession::OnProcessMessage (const SArchonMessage &Msg)
 		//	a command to get more.
 
 		if (dwTotalRead < dwTotalSize)
-			return SendFileDownloadRequest(((const CString &)m_dFileData).GetLength());
+			return SendFileDownloadRequest(m_dFileData.AsStringView().GetLength());
 
 		//	Success!
 

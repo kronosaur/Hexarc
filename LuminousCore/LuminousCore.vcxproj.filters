@@ -13,6 +13,15 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Source Files\Scene2D">
+      <UniqueIdentifier>{8b7127db-cc7c-4dbe-8cb9-63bb373a6025}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Canvas">
+      <UniqueIdentifier>{d98bcbab-59c0-46aa-9c42-9ca8246d41e9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Scene3D">
+      <UniqueIdentifier>{9caa3321-4414-48fe-b010-d23cbf66b237}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -28,6 +37,24 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Include\LuminousAEON.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\LuminousCanvas.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\LuminousComponents.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\LuminousScene2D.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Obj2DImpl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\LuminousScene3D.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\LuminousAEONReanimator3D.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -47,9 +74,6 @@
     <ClCompile Include="CAEONLuminousCanvas.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CLuminousCanvasModel.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="CLuminousPath2D.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -65,17 +89,92 @@
     <ClCompile Include="CLuminousShadowStyle.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CLuminousCanvasResources.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="CAEONLuminousSprite.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CAEONLuminousBitmap.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CLuminousCanvasCtx.cpp">
+    <ClCompile Include="CLuminousFontStyle.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CLuminousTextAlign.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CLuminousColorTheme.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CLuminousCanvasCtx.cpp">
+      <Filter>Source Files\Canvas</Filter>
+    </ClCompile>
+    <ClCompile Include="CLuminousCanvasModel.cpp">
+      <Filter>Source Files\Canvas</Filter>
+    </ClCompile>
+    <ClCompile Include="CLuminousCanvasResources.cpp">
+      <Filter>Source Files\Canvas</Filter>
+    </ClCompile>
+    <ClCompile Include="CLuminousScene2D.cpp">
+      <Filter>Source Files\Scene2D</Filter>
+    </ClCompile>
+    <ClCompile Include="ILuminousObj2D.cpp">
+      <Filter>Source Files\Scene2D</Filter>
+    </ClCompile>
+    <ClCompile Include="CObj2DRectangle.cpp">
+      <Filter>Source Files\Scene2D</Filter>
+    </ClCompile>
+    <ClCompile Include="CAnimatorSet2D.cpp">
+      <Filter>Source Files\Scene2D</Filter>
+    </ClCompile>
+    <ClCompile Include="CBoolAnimator2D.cpp">
+      <Filter>Source Files\Scene2D</Filter>
+    </ClCompile>
+    <ClCompile Include="CColorAnimator2D.cpp">
+      <Filter>Source Files\Scene2D</Filter>
+    </ClCompile>
+    <ClCompile Include="CScalarAnimator2D.cpp">
+      <Filter>Source Files\Scene2D</Filter>
+    </ClCompile>
+    <ClCompile Include="CVectorAnimator2D.cpp">
+      <Filter>Source Files\Scene2D</Filter>
+    </ClCompile>
+    <ClCompile Include="CStringAnimator2D.cpp">
+      <Filter>Source Files\Scene2D</Filter>
+    </ClCompile>
+    <ClCompile Include="IAnimator2D.cpp">
+      <Filter>Source Files\Scene2D</Filter>
+    </ClCompile>
+    <ClCompile Include="CAnimatorSet3D.cpp">
+      <Filter>Source Files\Scene3D</Filter>
+    </ClCompile>
+    <ClCompile Include="CBoolAnimator3D.cpp">
+      <Filter>Source Files\Scene3D</Filter>
+    </ClCompile>
+    <ClCompile Include="CColorAnimator3D.cpp">
+      <Filter>Source Files\Scene3D</Filter>
+    </ClCompile>
+    <ClCompile Include="CLuminousScene3D.cpp">
+      <Filter>Source Files\Scene3D</Filter>
+    </ClCompile>
+    <ClCompile Include="CScalarAnimator3D.cpp">
+      <Filter>Source Files\Scene3D</Filter>
+    </ClCompile>
+    <ClCompile Include="CStringAnimator3D.cpp">
+      <Filter>Source Files\Scene3D</Filter>
+    </ClCompile>
+    <ClCompile Include="CVectorAnimator3D.cpp">
+      <Filter>Source Files\Scene3D</Filter>
+    </ClCompile>
+    <ClCompile Include="IAnimator3D.cpp">
+      <Filter>Source Files\Scene3D</Filter>
+    </ClCompile>
+    <ClCompile Include="ILuminousObj3D.cpp">
+      <Filter>Source Files\Scene3D</Filter>
+    </ClCompile>
+    <ClCompile Include="CAEONReanimator3D.cpp">
+      <Filter>Source Files\Scene3D</Filter>
+    </ClCompile>
+    <ClCompile Include="CAEONReanimator.cpp">
+      <Filter>Source Files\Scene2D</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

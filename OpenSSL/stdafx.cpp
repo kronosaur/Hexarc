@@ -7,6 +7,7 @@
 // TODO: reference any additional headers you need in STDAFX.H
 // and not in this file
 
-#pragma comment( lib, "libeay32.lib" )
-#pragma comment( lib, "ssleay32.lib" )
+#pragma comment( lib, "libcrypto.lib" )
+#pragma comment( lib, "libssl.lib" )
+#pragma comment( lib, "crypt32.lib" )
 

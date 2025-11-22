@@ -1,6 +1,6 @@
 AEON DATABASE
 
-Copyright (c) 2011-2017 Kronosaur Productions, LLC. All Rights Reserved.
+Copyright (c) 2011-2017 GridWhale Corporation. All Rights Reserved.
 
 AeonDB is a NoSQL, log-structured merge-tree database which supports
 key-value storage, blob file storage, and secondary indices. AeonDB

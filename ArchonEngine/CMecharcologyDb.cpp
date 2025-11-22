@@ -1,7 +1,7 @@
 //	CMecharcologyDb.cpp
 //
 //	CMecharcologyDb class
-//	Copyright (c) 2010 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2010 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -9,6 +9,7 @@ DECLARE_CONST_STRING(FIELD_ADDRESS,						"address");
 DECLARE_CONST_STRING(FIELD_ID,							"id");
 DECLARE_CONST_STRING(FIELD_FILESPEC,					"filespec");
 DECLARE_CONST_STRING(FIELD_NAME,						"name");
+DECLARE_CONST_STRING(FIELD_NODE_ID,						"nodeID");
 DECLARE_CONST_STRING(FIELD_STATUS,						"status");
 DECLARE_CONST_STRING(FIELD_VERSION,						"version");
 
@@ -35,7 +36,7 @@ DECLARE_CONST_STRING(ERR_DUPLICATE_MACHINE,				"Duplicate machine address.");
 DECLARE_CONST_STRING(ERR_CANT_JOIN,						"Unable to join another arcology.");
 DECLARE_CONST_STRING(ERR_CANT_LEAVE,					"Unable to leave arcology.");
 
-bool CMecharcologyDb::AddMachine (const CString &sDisplayName, const CString &sAddress, const CIPInteger &SecretKey, bool bCheckUpgrade, CString *retsError)
+bool CMecharcologyDb::AddMachine (CStringView sNodeID, CStringView sDisplayName, CStringView sAddress, const CIPInteger &SecretKey, bool bCheckUpgrade, CString *retsError)
 
 //	AddMachine
 //
@@ -44,12 +45,11 @@ bool CMecharcologyDb::AddMachine (const CString &sDisplayName, const CString &sA
 
 	{
 	CSmartLock Lock(m_cs);
-	int i;
 
 	//	Make sure we don't have a machine with the same address or the same
 	//	secret key.
 
-	for (i = 0; i < m_Machines.GetCount(); i++)
+	for (int i = 0; i < m_Machines.GetCount(); i++)
 		if (m_Machines[i].SecretKey == SecretKey
 				|| strEquals(m_Machines[i].sAddress, sAddress))
 			{
@@ -60,6 +60,7 @@ bool CMecharcologyDb::AddMachine (const CString &sDisplayName, const CString &sA
 	//	Add it
 
 	SMachineEntry *pMachine = m_Machines.Insert();
+	pMachine->sNodeID = sNodeID;
 	pMachine->iStatus = connectNone;
 	pMachine->sAddress = sAddress;
 	pMachine->sDisplayName = sDisplayName;
@@ -67,6 +68,53 @@ bool CMecharcologyDb::AddMachine (const CString &sDisplayName, const CString &sA
 	pMachine->bCheckUpgrade = bCheckUpgrade;
 
 	return true;
+	}
+
+CString CMecharcologyDb::AllocNodeID () const
+
+//	AllocNodeID
+//
+//	Generate a unique node ID.
+
+	{
+	CSmartLock Lock(m_cs);
+
+	//	We allocate node IDs starting at 2 (1 is always Arcology Prime).
+	DWORD dwID = 2;
+
+	while (true)
+		{
+		CString sNodeID = MakeNodeID(dwID);
+
+		bool bFound = false;
+		for (int i = 0; i < m_Machines.GetCount(); i++)
+			if (strEquals(m_Machines[i].sNodeID, MakeNodeID(dwID)))
+				{
+				bFound = true;
+				break;
+				}
+
+		if (!bFound)
+			return sNodeID;
+
+		dwID++;
+		}
+	}
+
+SMachineDesc CMecharcologyDb::AsMachineDesc (const SMachineEntry& Entry)
+
+//	AsMachineDesc
+//
+//	Convert to a machine description.
+
+	{
+	SMachineDesc Desc;
+	Desc.sNodeID = Entry.sNodeID;
+	Desc.sName = Entry.sName;
+	Desc.sAddress = Entry.sAddress;
+	Desc.Key = Entry.SecretKey;
+
+	return Desc;
 	}
 
 bool CMecharcologyDb::AuthenticateMachine (const CString &sAuthName, const CIPInteger &AuthKey)
@@ -150,6 +198,7 @@ void CMecharcologyDb::Boot (const SInit &Init)
 	if (!Init.sArcologyPrimeAddress.IsEmpty())
 		{
 		SMachineEntry *pPrime = m_Machines.Insert();
+		pPrime->sNodeID = ArcologyPrimeNodeID();
 		pPrime->sName = NULL_STR;	//	We don't know the machine name yet, we'll get it during AUTH
 		pPrime->iStatus = connectNone;
 		pPrime->sAddress = Init.sArcologyPrimeAddress;
@@ -160,9 +209,14 @@ void CMecharcologyDb::Boot (const SInit &Init)
 		//	message.
 
 		m_iArcologyPrime = 0;
+
+		//	We don't set up the NodeID until we connect.
 		}
 	else
+		{
 		m_iArcologyPrime = -1;
+		m_MachineDesc.sNodeID = ArcologyPrimeNodeID();
+		}
 	}
 
 bool CMecharcologyDb::CanRestartModule (const CString &sName) const
@@ -305,14 +359,13 @@ bool CMecharcologyDb::FindArcologyPrime (SMachineDesc *retDesc) const
 
 	{
 	CSmartLock Lock(m_cs);
+	if (!retDesc)
+		throw CException(errFail);
 
 	if (m_iArcologyPrime == -1)
 		return false;
 
-	retDesc->sAddress = m_Machines[m_iArcologyPrime].sAddress;
-	retDesc->sName = m_Machines[m_iArcologyPrime].sName;
-	retDesc->Key = m_Machines[m_iArcologyPrime].SecretKey;
-
+	*retDesc = AsMachineDesc(m_Machines[m_iArcologyPrime]);
 	return true;
 	}
 
@@ -372,17 +425,12 @@ bool CMecharcologyDb::FindMachineByAddress (const CString &sAddress, SMachineDes
 
 	{
 	CSmartLock Lock(m_cs);
-	int i;
 
-	for (i = 0; i < m_Machines.GetCount(); i++)
+	for (int i = 0; i < m_Machines.GetCount(); i++)
 		if (strEquals(sAddress, m_Machines[i].sAddress))
 			{
 			if (retDesc)
-				{
-				retDesc->sAddress = m_Machines[i].sAddress;
-				retDesc->sName = m_Machines[i].sName;
-				retDesc->Key = m_Machines[i].SecretKey;
-				}
+				*retDesc = AsMachineDesc(m_Machines[i]);
 
 			return true;
 			}
@@ -406,11 +454,28 @@ bool CMecharcologyDb::FindMachineByName (const CString &sName, SMachineDesc *ret
 		if (strEquals(sName, m_Machines[i].sName))
 			{
 			if (retDesc)
-				{
-				retDesc->sAddress = m_Machines[i].sAddress;
-				retDesc->sName = m_Machines[i].sName;
-				retDesc->Key = m_Machines[i].SecretKey;
-				}
+				*retDesc = AsMachineDesc(m_Machines[i]);
+
+			return true;
+			}
+
+	return false;
+	}
+
+bool CMecharcologyDb::FindMachineByNodeID (CStringView sNodeID, SMachineDesc* retDesc) const
+
+//	FindMachineByNodeID
+//
+//	Looks for the given machine by node ID.
+
+	{
+	CSmartLock Lock(m_cs);
+
+	for (int i = 0; i < m_Machines.GetCount(); i++)
+		if (strEquals(sNodeID, m_Machines[i].sNodeID))
+			{
+			if (retDesc)
+				*retDesc = AsMachineDesc(m_Machines[i]);
 
 			return true;
 			}
@@ -473,11 +538,7 @@ bool CMecharcologyDb::FindMachineByPartialName (const CString &sName, SMachineDe
 		return false;
 
 	if (retDesc)
-		{
-		retDesc->sAddress = m_Machines[iMatch].sAddress;
-		retDesc->sName = m_Machines[iMatch].sName;
-		retDesc->Key = m_Machines[iMatch].SecretKey;
-		}
+		*retDesc = AsMachineDesc(m_Machines[iMatch]);
 
 	return true;
 	}
@@ -564,7 +625,7 @@ bool CMecharcologyDb::GetMachine (const CString &sName, SMachineDesc *retDesc)
 	{
 	CSmartLock Lock(m_cs);
 
-	//	If sName is blank then we return the current machine
+	//	If sID is blank then we return the current machine
 
 	if (sName.IsEmpty())
 		{
@@ -580,11 +641,7 @@ bool CMecharcologyDb::GetMachine (const CString &sName, SMachineDesc *retDesc)
 		return false;
 
 	if (retDesc)
-		{
-		retDesc->sName = m_Machines[iMachine].sName;
-		retDesc->sAddress = m_Machines[iMachine].sAddress;
-		retDesc->Key = m_Machines[iMachine].SecretKey;
-		}
+		*retDesc = AsMachineDesc(m_Machines[iMachine]);
 
 	return true;
 	}
@@ -601,9 +658,8 @@ bool CMecharcologyDb::GetMachine (int iIndex, SMachineDesc *retDesc) const
 	if (iIndex < 0 || iIndex >= m_Machines.GetCount())
 		return false;
 
-	retDesc->sName = m_Machines[iIndex].sName;
-	retDesc->sAddress = m_Machines[iIndex].sAddress;
-	retDesc->Key = m_Machines[iIndex].SecretKey;
+	if (retDesc)
+		*retDesc = AsMachineDesc(m_Machines[iIndex]);
 
 	return true;
 	}
@@ -745,47 +801,47 @@ bool CMecharcologyDb::GetStatus (CDatum *retStatus)
 
 	{
 	CSmartLock Lock(m_cs);
-	int i;
 
-	CComplexArray *pList = new CComplexArray;
-	CDatum dList(pList);
+	CDatum dList(CDatum::typeArray);
 
 	//	Add Arcology Prime as the first
 
 	if (m_iArcologyPrime == -1)
 		{
-		CComplexStruct *pData = new CComplexStruct;
-		pData->SetElement(FIELD_ID, m_MachineDesc.sName);
-		pData->SetElement(FIELD_NAME, STR_ARCOLOGY_PRIME);
-		pData->SetElement(FIELD_ADDRESS, m_MachineDesc.sAddress);
-		pData->SetElement(FIELD_STATUS, STR_MACHINE_STATUS_ACTIVE);
-		dList.Append(CDatum(pData));
+		CDatum dData(CDatum::typeStruct);
+		dData.SetElement(FIELD_NODE_ID, ArcologyPrimeNodeID());
+		dData.SetElement(FIELD_ID, m_MachineDesc.sName);
+		dData.SetElement(FIELD_NAME, STR_ARCOLOGY_PRIME);
+		dData.SetElement(FIELD_ADDRESS, m_MachineDesc.sAddress);
+		dData.SetElement(FIELD_STATUS, STR_MACHINE_STATUS_ACTIVE);
+		dList.Append(dData);
 		}
 
 	//	Add all machines
 
-	for (i = 0; i < m_Machines.GetCount(); i++)
+	for (int i = 0; i < m_Machines.GetCount(); i++)
 		{
 		const SMachineEntry &Entry = m_Machines[i];
-		CComplexStruct *pData = new CComplexStruct;
+		CDatum dData(CDatum::typeStruct);
 
-		pData->SetElement(FIELD_ID, Entry.sName);
-		pData->SetElement(FIELD_NAME, Entry.sDisplayName);
-		pData->SetElement(FIELD_ADDRESS, Entry.sAddress);
+		dData.SetElement(FIELD_NODE_ID, Entry.sNodeID);
+		dData.SetElement(FIELD_ID, Entry.sName);
+		dData.SetElement(FIELD_NAME, Entry.sDisplayName);
+		dData.SetElement(FIELD_ADDRESS, Entry.sAddress);
 
 		switch (Entry.iStatus)
 			{
 			case connectActive:
-				pData->SetElement(FIELD_STATUS, STR_MACHINE_STATUS_ACTIVE);
+				dData.SetElement(FIELD_STATUS, STR_MACHINE_STATUS_ACTIVE);
 				break;
 
 			default:
-				pData->SetElement(FIELD_STATUS, STR_MACHINE_STATUS_UNKNOWN);
+				dData.SetElement(FIELD_STATUS, STR_MACHINE_STATUS_UNKNOWN);
 			}
 
 		//	Add to list
 
-		dList.Append(CDatum(pData));
+		dList.Append(dData);
 		}
 
 	//	Done
@@ -794,7 +850,7 @@ bool CMecharcologyDb::GetStatus (CDatum *retStatus)
 	return true;
 	}
 
-bool CMecharcologyDb::HasArcologyKey (void) const
+bool CMecharcologyDb::HasArcologyKey (CIPInteger* retsKey) const
 
 //	HasArcologyKey
 //
@@ -806,6 +862,7 @@ bool CMecharcologyDb::HasArcologyKey (void) const
 	//	If we're Arcology Prime, then we have a key
 
 	if (m_iArcologyPrime == -1)
+		//	We never get back a key because it depends on who we are talking to
 		return true;
 
 	//	Make sure we have a key
@@ -816,6 +873,8 @@ bool CMecharcologyDb::HasArcologyKey (void) const
 
 	//	Done
 
+	if (retsKey)
+		*retsKey = Prime.SecretKey;
 	return true;
 	}
 
@@ -982,7 +1041,12 @@ bool CMecharcologyDb::LoadModule (const CString &sFilespec, bool bDebug, CString
 	return true;
 	}
 
-bool CMecharcologyDb::OnCompleteAuth (const CString &sName)
+CString CMecharcologyDb::MakeNodeID (DWORD dwID)
+	{
+	return strPattern("Node-%01d", dwID);
+	}
+
+bool CMecharcologyDb::OnCompleteAuth (CStringView sName, CString& retsNodeID)
 
 //	OnCompleteAuth
 //
@@ -991,13 +1055,16 @@ bool CMecharcologyDb::OnCompleteAuth (const CString &sName)
 
 	{
 	CSmartLock Lock(m_cs);
-	int i;
 
 	//	Look for a machine by name
 
-	for (i = 0; i < m_Machines.GetCount(); i++)
+	for (int i = 0; i < m_Machines.GetCount(); i++)
 		if (strEquals(m_Machines[i].sName, sName))
 			{
+			//	Return the node ID
+
+			retsNodeID = m_Machines[i].sNodeID;
+
 			//	If we're still in connectAuth mode, then we return TRUE
 
 			if (m_Machines[i].iStatus == connectAuth)

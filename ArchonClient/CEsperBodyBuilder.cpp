@@ -1,7 +1,7 @@
 //	CEsperBodyBuilder.cpp
 //
 //	CEsperBodyBuilder class
-//	Copyright (c) 2015 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2015 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -12,8 +12,11 @@
 DECLARE_CONST_STRING(FIELD_BOUNDARY,					"boundary")
 DECLARE_CONST_STRING(FIELD_CONTENT_DISPOSITION,			"content-disposition")
 DECLARE_CONST_STRING(FIELD_CONTENT_TYPE,				"content-type")
+DECLARE_CONST_STRING(FIELD_DATA,						"data")
+DECLARE_CONST_STRING(FIELD_FILENAME,					"filename")
 DECLARE_CONST_STRING(FIELD_FORM_DATA,					"form-data")
 DECLARE_CONST_STRING(FIELD_NAME,						"name")
+DECLARE_CONST_STRING(FIELD_TYPE,						"type")
 
 DECLARE_CONST_STRING(MEDIA_TYPE_FORM_URL_ENCODED,		"application/x-www-form-urlencoded")
 DECLARE_CONST_STRING(MEDIA_TYPE_JSON,					"application/json")
@@ -168,15 +171,28 @@ bool CEsperBodyBuilder::CreateMedia (IMediaTypePtr *retpBody)
 	return true;
 	}
 
-bool CEsperBodyBuilder::CreateMultipartDatum (const CString &sPartType, char *pPos, char *pPosEnd, CDatum *retdData)
+bool CEsperBodyBuilder::CreateMultipartDatum (char *pPos, char *pPosEnd, CDatum *retdData) const
 
 //	CreateMultipartDatum
 //
 //	Creates a datum from a multipart type.
 
 	{
+	CDatum dData;
+
 	int iDataLen = (int)(pPosEnd - pPos);
-	if (strEquals(sPartType, MEDIA_TYPE_TEXT))
+	if (m_pPartContent)
+		{
+#ifdef DEBUG_BINARY_OBJECT
+		printf("Appending %d bytes to binary object.\n", iDatalen);
+		printf("Done with binary object.\n");
+#endif
+
+		CBuffer Buffer(pPos, iDataLen, false);
+		m_pPartContent->Append(Buffer);
+		dData = m_dPartContent;
+		}
+	else if (strEquals(m_sPartType, MEDIA_TYPE_TEXT))
 		{
 		//	If the data starts with { then assume that it is a JSON
 		//	encoded string. We need to do this because the current
@@ -185,9 +201,8 @@ bool CEsperBodyBuilder::CreateMultipartDatum (const CString &sPartType, char *pP
 
 		if (*pPos == '{')
 			{
-			CDatum dData;
 			CBuffer Buffer(pPos, iDataLen, false);
-			if (!CDatum::Deserialize(CDatum::EFormat::JSON, Buffer, retdData))
+			if (!CDatum::Deserialize(CDatum::EFormat::JSON, Buffer, &dData))
 				return false;
 			}
 
@@ -196,7 +211,7 @@ bool CEsperBodyBuilder::CreateMultipartDatum (const CString &sPartType, char *pP
 		else
 			{
 			CString Data(pPos, iDataLen);
-			if (!CDatum::CreateStringFromHandoff(Data, retdData))
+			if (!CDatum::CreateStringFromHandoff(Data, &dData))
 				return false;
 			}
 		}
@@ -205,14 +220,31 @@ bool CEsperBodyBuilder::CreateMultipartDatum (const CString &sPartType, char *pP
 		CBuffer Buffer(pPos, iDataLen, false);
 		CComplexBinaryFile *pBinaryBlob = new CComplexBinaryFile;
 		pBinaryBlob->Append(Buffer);
-		*retdData = CDatum(pBinaryBlob);
+		dData = CDatum(pBinaryBlob);
 		}
 	else
 		{
 		CBuffer Buffer(pPos, iDataLen, false);
-		if (!CDatum::CreateBinary(Buffer, iDataLen, retdData))
+		if (!CDatum::CreateBinary(Buffer, iDataLen, &dData))
 			return false;
 		}
+
+	//	If we have a filename, then we need to create a structure
+
+	if (!m_sPartFilename.IsEmpty())
+		{
+		CDatum dFileData(CDatum::typeStruct);
+		dFileData.SetElement(FIELD_FILENAME, m_sPartFilename);
+		dFileData.SetElement(FIELD_TYPE, m_sPartType);
+		dFileData.SetElement(FIELD_DATA, dData);
+		
+		*retdData = dFileData;
+		}
+
+	//	Otherwise, we just return what we have
+
+	else
+		*retdData = dData;
 
 	return true;
 	}
@@ -742,6 +774,9 @@ bool CEsperBodyBuilder::ProcessMultipartHeader (void)
 					m_iState = stateError;
 					return false;
 					}
+
+				if (!Fields.Find(FIELD_FILENAME, &m_sPartFilename))
+					m_sPartFilename = NULL_STR;
 				}
 			else if (strEquals(sField, FIELD_CONTENT_TYPE))
 				{
@@ -800,24 +835,11 @@ bool CEsperBodyBuilder::ProcessMultipartMoreContent (const void *pPos, int iLeng
 			//	Create a datum for the whole thing.
 
 			CDatum dData;
-			if (m_pPartContent)
+			if (!CreateMultipartDatum(m_PartContent.GetPointer(), pBoundary, &dData))
 				{
-#ifdef DEBUG_BINARY_OBJECT
-				printf("Appending %d bytes to binary object.\n", (int)(pBoundary - m_PartContent.GetPointer()));
-				printf("Done with binary object.\n");
-#endif
-				CBuffer Buffer(m_PartContent.GetPointer(), (int)(pBoundary - m_PartContent.GetPointer()), false);
-				m_pPartContent->Append(Buffer);
-				dData = m_dPartContent;
-				}
-			else
-				{
-				if (!CreateMultipartDatum(m_sPartType, m_PartContent.GetPointer(), pBoundary, &dData))
-					{
-					m_dBody = strPattern(ERR_INVALID_MULTIPART_DATA, dData.AsString());
-					m_iState = stateError;
-					return false;
-					}
+				m_dBody = strPattern(ERR_INVALID_MULTIPART_DATA, dData.AsString());
+				m_iState = stateError;
+				return false;
 				}
 
 			m_dBody.SetElement(m_sPartName, dData);
@@ -904,7 +926,7 @@ bool CEsperBodyBuilder::ProcessMultipartStartContent (void)
 		case resultFoundLastBoundary:
 			{
 			CDatum dData;
-			if (!CreateMultipartDatum(m_sPartType, pPos, pBoundary, &dData))
+			if (!CreateMultipartDatum(pPos, pBoundary, &dData))
 				{
 				m_dBody = strPattern(ERR_INVALID_MULTIPART_DATA, dData.AsString());
 				m_iState = stateError;

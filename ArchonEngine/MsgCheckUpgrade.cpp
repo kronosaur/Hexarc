@@ -1,7 +1,7 @@
 //	MsgCheckUpgrade.cpp
 //
 //	CExarchEngine class
-//	Copyright (c) 2020 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2020 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -350,7 +350,7 @@ bool CExarchCheckUpgrade::CalcUpgradeList (CDatum dData, CString *retsError)
 	for (int i = 0; i < dData.GetCount(); i++)
 		{
 		CDatum dFileDesc = dData.GetElement(i);
-		const CString &sAeonFilePath = dFileDesc.GetElement(FIELD_FILE_PATH);
+		CStringView sAeonFilePath = dFileDesc.GetElement(FIELD_FILE_PATH);
 
 		//	Parse the file path into the appropriate components.
 
@@ -401,7 +401,7 @@ bool CExarchCheckUpgrade::CalcUpgradeList (CDatum dData, CString *retsError)
 
 		CDatum dVersionInfo = dFileDesc.GetElement(FIELD_VERSION_INFO);
 		DWORDLONG dwAeonProductVersion = dVersionInfo.GetElement(FIELD_PRODUCT_VERSION_NUMBER);
-		CString sAeonVersion = dVersionInfo.GetElement(FIELD_PRODUCT_VERSION);
+		CStringView sAeonVersion = dVersionInfo.GetElement(FIELD_PRODUCT_VERSION);
 		DWORD dwAeonChecksum = dFileDesc.GetElement(FIELD_CHECKSUM);
 
 		//	If this is an executable, then check the version number.

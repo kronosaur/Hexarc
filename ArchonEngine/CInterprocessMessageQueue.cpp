@@ -1,13 +1,15 @@
 //	CInterprocessMessageQueue.cpp
 //
 //	CInterprocessMessageQueue class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
 #ifdef DEBUG
 //#define DEBUG_BLOCKS
 #endif
+
+//#define DEBUG_BLOB_PERF
 
 DECLARE_CONST_STRING(MSG_ARC_FILE_MSG,					"Arc.fileMsg")
 DECLARE_CONST_STRING(MSG_LOG_INFO,						"Log.info")
@@ -18,13 +20,17 @@ DECLARE_CONST_STRING(STR_PROTOCOL_AMP1_00,				"AMP/1.00")
 DECLARE_CONST_STRING(PATH_HEXARC_IPQ,					"HexarcIPQ")
 
 DECLARE_CONST_STRING(ERR_ENQUEUE_LARGE,					"IPMQ: Enqueing large payload: %s %s (%s bytes).")
+DECLARE_CONST_STRING(ERR_ENQUEUE_LARGE_MB,				"IPMQ: Enqueing large payload: %s %s (%s MB).")
 DECLARE_CONST_STRING(ERR_SERIALIZE_TIME_WARNING,		"IPMQ: Serialization complete.")
 DECLARE_CONST_STRING(ERR_FILE_TIME_WARNING,				"IPMQ: Wrote payload to temp file.")
+DECLARE_CONST_STRING(ERR_ENQUEUE_TIME_WARNING,			"IPMQ: Enqueing message.")
 
 static constexpr size_t SIZE_WARNING_THRESHOLD =		200 * 1024;
 static constexpr size_t DISK_QUEUE_THRESHOLD =			200 * 1024;
+static constexpr size_t ONE_GB =						1024 * 1024 * 1024;
 const int DEFAULT_ENTRY_SIZE =						4096;
 const int MAX_ENQUEUE_TRIES =						10;
+const int IO_BUFFER_SIZE =							1024 * 1024;
 
 DWORD CInterprocessMessageQueue::AllocEntry (int iSize)
 
@@ -378,7 +384,11 @@ bool CInterprocessMessageQueue::DecodeFileMsg (const SArchonMessage &Msg, SArcho
 	{
 	CFile TempFile;
 
-	if (!TempFile.Create(Msg.dPayload, CFile::FLAG_OPEN_READ_ONLY))
+#ifdef DEBUG_BLOB_PERF
+	printf("Deserializing from file.\n");
+#endif
+
+	if (!TempFile.Create(Msg.dPayload.AsStringView(), CFile::FLAG_OPEN_READ_ONLY))
 		return false;
 
 	bool bSuccess;
@@ -479,6 +489,10 @@ bool CInterprocessMessageQueue::DeserializeMessage (IByteStream &Stream, SArchon
 //	Deserialize from a stream
 
 	{
+#ifdef DEBUG_BLOB_PERF
+	DWORD dwStart = ::sysGetTickCount();
+#endif
+
 	//	We expect to read:
 	//
 	//	AMP/1.00 FWD {destAddr} {replyAddr} {ticket} {msg} {payload}
@@ -487,7 +501,7 @@ bool CInterprocessMessageQueue::DeserializeMessage (IByteStream &Stream, SArchon
 	if (!CDatum::Deserialize(CDatum::EFormat::AEONLocal, Stream, &Item))
 		return false;
 
-	if (!strEquals(Item, STR_PROTOCOL_AMP1_00))
+	if (!strEquals(Item.AsStringView(), STR_PROTOCOL_AMP1_00))
 		return false;
 
 	//	FWD
@@ -495,7 +509,7 @@ bool CInterprocessMessageQueue::DeserializeMessage (IByteStream &Stream, SArchon
 	if (!CDatum::Deserialize(CDatum::EFormat::AEONLocal, Stream, &Item))
 		return false;
 
-	if (!strEquals(Item, STR_FWD_COMMAND))
+	if (!strEquals(Item.AsStringView(), STR_FWD_COMMAND))
 		return false;
 
 	//	{destAddr}
@@ -503,14 +517,14 @@ bool CInterprocessMessageQueue::DeserializeMessage (IByteStream &Stream, SArchon
 	if (!CDatum::Deserialize(CDatum::EFormat::AEONLocal, Stream, &Item))
 		return false;
 
-	retEnv->sAddr = Item;
+	retEnv->sAddr = Item.AsStringView();
 
 	//	{replyAddr}
 
 	if (!CDatum::Deserialize(CDatum::EFormat::AEONLocal, Stream, &Item))
 		return false;
 
-	retEnv->Msg.sReplyAddr = Item;
+	retEnv->Msg.sReplyAddr = Item.AsStringView();
 
 	//	{ticket}
 
@@ -524,11 +538,17 @@ bool CInterprocessMessageQueue::DeserializeMessage (IByteStream &Stream, SArchon
 	if (!CDatum::Deserialize(CDatum::EFormat::AEONLocal, Stream, &Item))
 		return false;
 
-	retEnv->Msg.sMsg = Item;
+	retEnv->Msg.sMsg = Item.AsStringView();
+
+	//	Skip a space
+
+	char chSpace = Stream.ReadChar();
+	if (chSpace != ' ')
+		return false;
 
 	//	Payload
 
-	if (!CDatum::Deserialize(CDatum::EFormat::AEONLocal, Stream, &retEnv->Msg.dPayload))
+	if (!CDatum::Deserialize(CDatum::EFormat::AEONBinaryLocal, Stream, &retEnv->Msg.dPayload))
 		return false;
 
 	//	Done
@@ -571,24 +591,38 @@ bool CInterprocessMessageQueue::Enqueue (const SArchonEnvelope &Env, CString *re
 
 	size_t PayloadSize = Env.Msg.dPayload.CalcSerializeSize(CDatum::EFormat::AEONLocal);
 
+	//	Log it, if size is particularly large
+
+	if (PayloadSize > SIZE_WARNING_THRESHOLD)
+		{
+		if (PayloadSize > ONE_GB)
+			m_pProcess->Log(MSG_LOG_INFO, strPattern(ERR_ENQUEUE_LARGE_MB, Env.sAddr, Env.Msg.sMsg, strFormatInteger((int)(PayloadSize / (1024 * 1024)), -1, FORMAT_THOUSAND_SEPARATOR)));
+		else
+			m_pProcess->Log(MSG_LOG_INFO, strPattern(ERR_ENQUEUE_LARGE, Env.sAddr, Env.Msg.sMsg, strFormatInteger((int)PayloadSize, -1, FORMAT_THOUSAND_SEPARATOR)));
+		}
+
 	//	Serialize the payload into a buffer
 
 	CArchonTimer Timer;
 
-	CMemoryBuffer Buffer(4096 + (int)PayloadSize);
-	SerializeMessage(Env, Buffer);
+	//	If we fit in memory, then we serialize to memory
 
-	Timer.LogTime(m_pProcess, ERR_SERIALIZE_TIME_WARNING);
+	CBuffer Buffer;
+	if (PayloadSize < DISK_QUEUE_THRESHOLD)
+		{
+		Timer.Start();
 
-	//	Log it, if size is particularly large
+		CBuffer MemBuffer(4096 + (int)PayloadSize);
+		SerializeMessage(Env, MemBuffer);
 
-	if (Buffer.GetLength() > SIZE_WARNING_THRESHOLD)
-		m_pProcess->Log(MSG_LOG_INFO, strPattern(ERR_ENQUEUE_LARGE, Env.sAddr, Env.Msg.sMsg, strFormatInteger((int)PayloadSize, -1, FORMAT_THOUSAND_SEPARATOR)));
+		Timer.LogTime(m_pProcess, ERR_SERIALIZE_TIME_WARNING, 100);
 
-	//	If the buffer is very large then we store it as a temp file instead
-	//	(to save our limited memory).
+		Buffer = std::move(MemBuffer);
+		}
 
-	if (Buffer.GetLength() > DISK_QUEUE_THRESHOLD)
+	//	Otherwise, we serialize to a temp file (to save memory).
+
+	else
 		{
 		CString sFilespec;
 		CFile TempFile;
@@ -608,7 +642,10 @@ bool CInterprocessMessageQueue::Enqueue (const SArchonEnvelope &Env, CString *re
 
 		try
 			{
-			TempFile.Write(Buffer.GetPointer(), Buffer.GetLength());
+			CBufferedIO IOBuffer(TempFile, IO_BUFFER_SIZE);
+
+			SerializeMessage(Env, IOBuffer);
+			IOBuffer.Flush();
 			TempFile.Close();
 			}
 		catch (...)
@@ -626,13 +663,17 @@ bool CInterprocessMessageQueue::Enqueue (const SArchonEnvelope &Env, CString *re
 
 		//	Rewrite the buffer
 
-		Buffer.SetLength(0);
-		SerializeMessage(FileEnv, Buffer);
+		CBuffer MemBuffer(4096);
+		SerializeMessage(FileEnv, MemBuffer);
 
 		Timer.LogTime(m_pProcess, ERR_FILE_TIME_WARNING);
+
+		Buffer = std::move(MemBuffer);
 		}
 
 	//	Try enqueueing
+
+	Timer.Start();
 
 	int iTries = 0;
 	while (!Enqueue(Buffer, retsError))
@@ -645,10 +686,12 @@ bool CInterprocessMessageQueue::Enqueue (const SArchonEnvelope &Env, CString *re
 		::Sleep(30);
 		}
 
+	Timer.LogTime(m_pProcess, ERR_ENQUEUE_TIME_WARNING, 100);
+
 	return true;
 	}
 
-bool CInterprocessMessageQueue::Enqueue (CMemoryBuffer &Buffer, CString *retsError)
+bool CInterprocessMessageQueue::Enqueue (const IMemoryBlock& Buffer, CString *retsError)
 
 //	Enqueue
 //
@@ -893,7 +936,7 @@ void CInterprocessMessageQueue::SerializeMessage (const SArchonEnvelope &Env, IB
 	Item.Serialize(CDatum::EFormat::AEONLocal, Stream);
 	Stream.Write(" ", 1);
 
-	Env.Msg.dPayload.Serialize(CDatum::EFormat::AEONLocal, Stream);
+	Env.Msg.dPayload.Serialize(CDatum::EFormat::AEONBinaryLocal, Stream);
 
 #ifdef DEBUG_BLOB_PERF
 	DWORD dwTime = ::sysGetTicksElapsed(dwStart);

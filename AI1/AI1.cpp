@@ -206,6 +206,7 @@ CString ExecuteLispCommand (const CString &sInput)
 		{
 		case CHexeProcess::ERun::OK:
 		case CHexeProcess::ERun::Error:
+		case CHexeProcess::ERun::ForcedTerminate:
 			return dResult.AsString();
 
 		default:
@@ -229,7 +230,7 @@ int ExecuteScript (const SOptions &Options)
 
 	//	Get the server to connect to
 
-	CString sServer = dScript.GetElement(FIELD_SERVER);
+	CStringView sServer = dScript.GetElement(FIELD_SERVER);
 	if (sServer.IsEmpty())
 		sServer = Options.sServer;
 
@@ -348,7 +349,7 @@ CString ExecuteUpgrade (CSocket &theSocket, const CString &sCmd)
 	for (i = 0; i < dUpgradeDesc.GetCount(); i++)
 		{
 		CDatum dFileDesc = dUpgradeDesc.GetElement(i);
-		const CString &sFilename = dFileDesc.GetElement(FIELD_FILENAME);
+		CStringView sFilename = dFileDesc.GetElement(FIELD_FILENAME);
 		CString sFilespec = fileAppend(sRoot, sFilename);
 
 		CString sResult = UploadFile(theSocket, CMD_UPLOAD_UPGRADE, sFilename, sFilespec);
@@ -366,18 +367,18 @@ CString ExecuteUpload (CSocket &theSocket, const CString &sCmd)
 	
 	//	Get the filePath
 
-	if (*pPos == '\"')
+	if (*pPos == '"')
 		pPos++;
 
 	char *pStart = pPos;
-	while (*pPos != ' ' && *pPos != '\"' && *pPos != '\0')
+	while (*pPos != ' ' && *pPos != '"' && *pPos != '\0')
 		pPos++;
 
 	CString sFilePath(pStart, pPos - pStart);
 	if (*pPos != '\0')
 		pPos++;
 
-	if (*pPos == '\"')
+	if (*pPos == '"')
 		pPos++;
 
 	//	Skip whitespace
@@ -427,18 +428,18 @@ CString ExecuteUploadPackage (CSocket &theSocket, const CString &sCmd)
 	
 	//	Get the package name
 
-	if (*pPos == '\"')
+	if (*pPos == '"')
 		pPos++;
 
 	char *pStart = pPos;
-	while (*pPos != ' ' && *pPos != '\"' && *pPos != '\0')
+	while (*pPos != ' ' && *pPos != '"' && *pPos != '\0')
 		pPos++;
 
 	CString sPackageName(pStart, pPos - pStart);
 	if (*pPos != '\0')
 		pPos++;
 
-	if (*pPos == '\"')
+	if (*pPos == '"')
 		pPos++;
 
 	//	Skip whitespace
@@ -625,7 +626,7 @@ int AI1 (SOptions &Options)
 	if (!Options.bNoLogo)
 		{
 		printf("AI1 1.0\n");
-		printf("Copyright (c) 2011-2015 by Kronosaur Productions. All Rights Reserved.\n");
+		printf("Copyright (c) 2011-2023 by GridWhale Corporation. All Rights Reserved.\n");
 		printf("\n");
 		}
 

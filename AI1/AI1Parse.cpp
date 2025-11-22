@@ -1,7 +1,7 @@
 //	AI1Parse.cpp
 //
 //	Parse commands
-//	Copyright (c) 2017 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2017 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -155,7 +155,7 @@ CString ParseQuotedArg (char *pPos, char **retpPos)
 			pPos++;
 			if (*pPos == '\0')
 				break;
-			else if (*pPos == '\"')
+			else if (*pPos == '"')
 				Output.Write("\\\"", 2);
 			else
 				{

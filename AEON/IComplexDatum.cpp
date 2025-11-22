@@ -1,9 +1,43 @@
 //	IComplexDatum.cpp
 //
 //	IComplexDatum class
-//	Copyright (c) 2010 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2010 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
+#include <functional>
+#include <string_view>
+
+void IComplexDatum::AppendArray (CDatum dDatum)
+
+//	AppendArray
+//
+//	The default implementation appends to the end of the array.
+	{
+	GrowToFit(dDatum.GetCount());
+	for (int i = 0; i < dDatum.GetCount(); i++)
+		Append(dDatum.GetElement(i));
+	}
+
+CString IComplexDatum::AsAddress () const
+	{
+	return strPattern("%s %08x%08x", (LPCSTR)GetTypename(), (DWORD)((DWORD_PTR)this >> 32), (DWORD)(DWORD_PTR)this);
+	}
+
+CDatum IComplexDatum::AsStruct () const
+	{
+	CDatum dResult(CDatum::typeStruct);
+	dResult.GrowToFit(GetCount());
+	for (int i = 0; i < GetCount(); i++)
+		{
+		CString sKey = GetKey(i);
+		if (sKey.IsEmpty())
+			continue;
+
+		dResult.SetElement(sKey, GetElement(i));
+		}
+
+	return dResult;
+	}
 
 size_t IComplexDatum::CalcSerializeAsStructSize (CDatum::EFormat iFormat) const
 
@@ -154,12 +188,55 @@ bool IComplexDatum::DeserializeJSON (const CString &sTypename, const TArray<CDat
 
 	//	Default deserialization
 
-	CStringBuffer Buffer(Data[0]);
+	CStringBuffer Buffer(Data[0].AsStringView());
 	CBase64Decoder Decoder(&Buffer);
 	if (!OnDeserialize(CDatum::EFormat::JSON, sTypename, Decoder))
 		return false;
 
 	return true;
+	}
+
+bool IComplexDatum::EnumElements (DWORD dwFlags, std::function<bool(CDatum)> fn) const
+
+//	EnumElements
+//
+//	Default implementation.
+
+	{
+	if (IsNil() && !(dwFlags & CDatum::FLAG_ALLOW_NULLS))
+		return true;
+
+	else if (IsContainer())
+		{
+		if (dwFlags & CDatum::FLAG_RECURSIVE)
+			{
+			CRecursionGuard Guard(*this);
+			if (Guard.InRecursion())
+				return true;
+
+			for (int i = 0; i < GetCount(); i++)
+				{
+				if (!GetElement(i).EnumElements(dwFlags, fn))
+					return false;
+				}
+			}
+		else
+			{
+			for (int i = 0; i < GetCount(); i++)
+				{
+				CDatum dElement = GetElement(i);
+				if (dElement.IsIdenticalToNil() && !(dwFlags & CDatum::FLAG_ALLOW_NULLS))
+					continue;
+
+				if (!fn(dElement))
+					return false;
+				}
+			}
+
+		return true;
+		}
+	else
+		return fn(CDatum::raw_AsComplex(this));
 	}
 
 CDatum IComplexDatum::GetDatatype () const
@@ -187,6 +264,44 @@ CDatum IComplexDatum::GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) 
 		return GetElement(iIndex);
 	else
 		return GetElement(dIndex.AsString());
+	}
+
+size_t IComplexDatum::Hash () const
+
+//	Hash
+//
+//	Default implementation.
+
+	{
+	return std::hash<std::string_view>{}((LPCSTR)strToLower(AsString()));
+	}
+
+void IComplexDatum::InsertEmpty (int iCount)
+
+//	InsertEmpty
+//
+//	Default implementation.
+
+	{
+	GrowToFit(iCount);
+	for (int i = 0; i < iCount; i++)
+		Append(CDatum());
+	}
+
+CDatum IComplexDatum::IteratorGetKey (CDatum dIterator) const
+	{
+	if (HasKeys())
+		return GetKeyEx((int)dIterator);
+	else
+		return dIterator;
+	}
+
+CDatum IComplexDatum::IteratorGetValue (CAEONTypeSystem& TypeSystem, CDatum dIterator) const
+	{
+	if (HasKeys())
+		return GetElement((int)dIterator);
+	else
+		return GetElementAt(TypeSystem, dIterator);
 	}
 
 void IComplexDatum::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const
@@ -247,6 +362,10 @@ void IComplexDatum::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) con
 			break;
 			}
 
+		case CDatum::EFormat::GridLang:
+			SerializeAsStruct(iFormat, Stream);
+			break;
+
 		case CDatum::EFormat::JSON:
 			{
 			if (!(dwFlags & FLAG_SERIALIZE_NO_TYPENAME))
@@ -286,6 +405,95 @@ void IComplexDatum::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) con
 		}
 	}
 
+void IComplexDatum::SerializeAEONAsStruct (IByteStream& Stream, CAEONSerializedMap& Serialized) const
+
+//	SerializeAEONAsStruct
+//
+//	This is a helper function to serialize as a struct. Note that if this is 
+//	used then we will lose the original object (it will be deserialized as a
+//	pure struct).
+
+	{
+	//	See if we've already serialized this. If so, then we just write out the
+	//	reference.
+
+	if (!Serialized.WriteID(Stream, this, CDatum::SERIALIZE_TYPE_STRUCT))
+		return;
+
+	//	Now write out each member variable
+
+	Stream.Write(GetCount());
+	for (int i = 0; i < GetCount(); i++)
+		{
+		GetKey(i).Serialize(Stream);
+		GetElement(i).SerializeAEON(Stream, Serialized);
+		}
+	}
+
+CDatum IComplexDatum::DeserializeAEONAsExternal (IByteStream& Stream, DWORD dwID, CAEONSerializedMap &Serialized)
+
+//	DeserializeAEONAsExternal
+//
+//	Deserializes a datum class defined externally (above the AEON layer).
+
+	{
+	CString sTypename = CString::Deserialize(Stream);
+	DWORD dwStreamSize = Stream.ReadDWORD();
+
+	CDatum dValue;
+	IComplexFactory *pFactory;
+	if (!CDatum::FindExternalType(sTypename, &pFactory))
+		{
+		//	If the typename is not registered then we treat it as a foreign
+		//	type and just make sure that we can serialize it back.
+
+		CString sData((int)dwStreamSize);
+		Stream.Read(sData.GetPointer(), dwStreamSize);
+
+		dValue = CAEONForeign::Create(sTypename, std::move(sData));
+		}
+	else
+		{
+		IComplexDatum* pDatum = pFactory->Create();
+		dValue = CDatum(pDatum);
+
+		pDatum->DeserializeAEONExternal(Stream, Serialized);
+		}
+
+	Serialized.Add(dwID, dValue);
+	return dValue;
+	}
+
+void IComplexDatum::SerializeAEONAsExternal (IByteStream& Stream, CAEONSerializedMap& Serialized) const
+
+//	SerializeAEONAsExternal
+//
+//	Serializes as an datum class defined externally (above the AEON layer).
+//	Classes must implement:
+//
+//	DeserializeAEONExternal
+//	SerializeAEONExternal
+
+	{
+	//	See if we've already serialized this. If so, then we just write out the
+	//	reference.
+
+	if (!Serialized.WriteID(Stream, this, CDatum::SERIALIZE_TYPE_EXTERNAL))
+		return;
+
+	GetTypename().Serialize(Stream);
+
+	//	Serialize the object.
+
+	CBuffer Buffer;
+	SerializeAEONExternal(Buffer, Serialized);
+
+	//	Write out the buffer
+
+	Stream.Write(Buffer.GetLength());
+	Stream.Write(Buffer);
+	}
+
 void IComplexDatum::SerializeAsStruct (CDatum::EFormat iFormat, IByteStream &Stream) const
 
 //	SerializeAsStruct
@@ -323,6 +531,30 @@ void IComplexDatum::SerializeAsStruct (CDatum::EFormat iFormat, IByteStream &Str
 			break;
 			}
 
+		case CDatum::EFormat::GridLang:
+			{
+			CRecursionGuard Guard(*this);
+			if (Guard.InRecursion())
+				{
+				CDatum::WriteGridLangString(Stream, strPattern("ADDRESS: %s", AsAddress()));
+				break;
+				}
+
+			Stream.Write("[ ", 2);
+			for (int i = 0; i < GetCount(); i++)
+				{
+				if (i != 0)
+					Stream.Write(", ", 2);
+
+				CDatum::WriteGridLangIdentifier(Stream, GetKey(i));
+				Stream.WriteChar('=');
+
+				GetElement(i).Serialize(iFormat, Stream);
+				}
+			Stream.Write(" ]", 2);
+			break;
+			}
+
 		case CDatum::EFormat::JSON:
 			{
 			Stream.Write("{", 1);
@@ -330,7 +562,7 @@ void IComplexDatum::SerializeAsStruct (CDatum::EFormat iFormat, IByteStream &Str
 			for (int i = 0; i < GetCount(); i++)
 				{
 				if (i != 0)
-					Stream.Write(", ", 2);
+					Stream.Write(",", 1);
 
 				//	Write the key
 
@@ -339,7 +571,7 @@ void IComplexDatum::SerializeAsStruct (CDatum::EFormat iFormat, IByteStream &Str
 
 				//	Separator
 
-				Stream.Write(": ", 2);
+				Stream.Write(":", 1);
 
 				//	Write the value
 
@@ -380,7 +612,13 @@ CString IComplexDatum::StructAsString () const
 //	Returns a struct-type object as a string.
 
 	{
+	CRecursionGuard Guard(*this);
+	if (Guard.InRecursion())
+		return AsAddress();
+
 	CStringBuffer Output;
+
+	m_bMarked = true;
 
 	Output.Write("{", 1);
 
@@ -405,21 +643,42 @@ void IComplexDatum::WriteBinaryToStream (IByteStream &Stream, int iPos, int iLen
 //	WriteBinaryToStream
 	
 	{
-	const CString &sData = CastCString();
-	if (iPos >= sData.GetLength())
+	BYTE* pData = (BYTE*)GetBinaryData();
+	int iSize = GetBinarySize();
+	if (iPos >= iSize)
 		return;
 
 	if (pProgress)
 		pProgress->OnProgressStart();
 
 	if (iLength == -1)
-		iLength = Max(0, sData.GetLength() - iPos);
+		iLength = Max(0, iSize - iPos);
 	else
-		iLength = Min(iLength, sData.GetLength() - iPos);
+		iLength = Min(iLength, iSize - iPos);
 
-	Stream.Write(sData.GetPointer() + iPos, iLength); 
+	Stream.Write(pData + iPos, iLength); 
 
 	if (pProgress)
 		pProgress->OnProgressDone();
 	}
 
+void IComplexDatum::WriteBinaryToStream64 (IByteStream64 &Stream, DWORDLONG dwPos, DWORDLONG dwLength, IProgressEvents *pProgress) const
+	{
+	BYTE* pData = (BYTE*)GetBinaryData();
+	DWORDLONG dwSize = GetBinarySize64();
+	if (dwPos >= dwSize)
+		return;
+
+	if (pProgress)
+		pProgress->OnProgressStart();
+
+	if (dwLength == 0xffffffffffffffff)
+		dwLength = Max((DWORDLONG)0, dwSize - dwPos);
+	else
+		dwLength = Min(dwLength, dwSize - dwPos);
+
+	Stream.Write(pData + dwPos, dwLength);
+
+	if (pProgress)
+		pProgress->OnProgressDone();
+	}

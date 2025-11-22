@@ -1,7 +1,7 @@
 //	CSSLCert.cpp
 //
 //	CSSLCert class
-//	Copyright (c) 2017 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2017 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 

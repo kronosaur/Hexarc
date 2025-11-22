@@ -19,6 +19,12 @@
     <Filter Include="Source Files\TextLines">
       <UniqueIdentifier>{5a97a410-ddb4-47f7-82c2-1f5865825480}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Operators">
+      <UniqueIdentifier>{82b2016d-5cc7-4a8b-8658-6c64cccd14e3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Invoke">
+      <UniqueIdentifier>{53f595df-f78d-482c-ac3a-13733c0a7be7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AEONScript.cpp">
@@ -120,13 +126,13 @@
     <ClCompile Include="CAEONStore.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CDatatypeMatrix.cpp">
+    <ClCompile Include="CDatatypeTensor.cpp">
       <Filter>Source Files\Type System</Filter>
     </ClCompile>
     <ClCompile Include="CAEONTableIndex.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CAEONQuery.cpp">
+    <ClCompile Include="CAEONExpression.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CDatatypeEnum.cpp">
@@ -162,6 +168,162 @@
     <ClCompile Include="IAEONTextLines.cpp">
       <Filter>Source Files\TextLines</Filter>
     </ClCompile>
+    <ClCompile Include="CAEONObject.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CAEONForeign.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CDatatypeString.cpp">
+      <Filter>Source Files\Type System</Filter>
+    </ClCompile>
+    <ClCompile Include="CDatumFormat.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CAEONTableRowRef.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AEONMutations.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CAEONOp.cpp">
+      <Filter>Source Files\Operators</Filter>
+    </ClCompile>
+    <ClCompile Include="COpAdd.cpp">
+      <Filter>Source Files\Operators</Filter>
+    </ClCompile>
+    <ClCompile Include="COpConcatenate.cpp">
+      <Filter>Source Files\Operators</Filter>
+    </ClCompile>
+    <ClCompile Include="COpSubtract.cpp">
+      <Filter>Source Files\Operators</Filter>
+    </ClCompile>
+    <ClCompile Include="COpNegate.cpp">
+      <Filter>Source Files\Operators</Filter>
+    </ClCompile>
+    <ClCompile Include="COpMultiply.cpp">
+      <Filter>Source Files\Operators</Filter>
+    </ClCompile>
+    <ClCompile Include="COpDivide.cpp">
+      <Filter>Source Files\Operators</Filter>
+    </ClCompile>
+    <ClCompile Include="COpMod.cpp">
+      <Filter>Source Files\Operators</Filter>
+    </ClCompile>
+    <ClCompile Include="COpPower.cpp">
+      <Filter>Source Files\Operators</Filter>
+    </ClCompile>
+    <ClCompile Include="CDatatypeFunction.cpp">
+      <Filter>Source Files\Type System</Filter>
+    </ClCompile>
+    <ClCompile Include="Serialize.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CAEONSerializedMap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CDatatypeAEON.cpp">
+      <Filter>Source Files\Type System</Filter>
+    </ClCompile>
+    <ClCompile Include="CAEONVector3D.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CAEONDictionary.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CDatatypeNullable.cpp">
+      <Filter>Source Files\Type System</Filter>
+    </ClCompile>
+    <ClCompile Include="CDatatypeNull.cpp">
+      <Filter>Source Files\Type System</Filter>
+    </ClCompile>
+    <ClCompile Include="CAEONVectorString.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CDatatypeRange.cpp">
+      <Filter>Source Files\Type System</Filter>
+    </ClCompile>
+    <ClCompile Include="CAEONTensor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CAEONVectorNumber.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CComplexBinary64.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CDatumTableWrapper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CAEONRange.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CHexeLocalEnvironment.cpp">
+      <Filter>Source Files\Invoke</Filter>
+    </ClCompile>
+    <ClCompile Include="CHexeLocalEnvPointer.cpp">
+      <Filter>Source Files\Invoke</Filter>
+    </ClCompile>
+    <ClCompile Include="CHexeStackEnv.cpp">
+      <Filter>Source Files\Invoke</Filter>
+    </ClCompile>
+    <ClCompile Include="CDatumInterpret.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CAEONVectorFloat64.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CAEONArrayAlgorithm.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CAEONStringFormat.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="COpCompEqual.cpp">
+      <Filter>Source Files\Operators</Filter>
+    </ClCompile>
+    <ClCompile Include="COpCompGreaterThan.cpp">
+      <Filter>Source Files\Operators</Filter>
+    </ClCompile>
+    <ClCompile Include="COpCompGreaterThanOrEqual.cpp">
+      <Filter>Source Files\Operators</Filter>
+    </ClCompile>
+    <ClCompile Include="COpCompIdentical.cpp">
+      <Filter>Source Files\Operators</Filter>
+    </ClCompile>
+    <ClCompile Include="COpCompLessThan.cpp">
+      <Filter>Source Files\Operators</Filter>
+    </ClCompile>
+    <ClCompile Include="COpCompLessThanOrEqual.cpp">
+      <Filter>Source Files\Operators</Filter>
+    </ClCompile>
+    <ClCompile Include="COpCompNotEqual.cpp">
+      <Filter>Source Files\Operators</Filter>
+    </ClCompile>
+    <ClCompile Include="COpCompNotIdenticalTo.cpp">
+      <Filter>Source Files\Operators</Filter>
+    </ClCompile>
+    <ClCompile Include="CAEONMapColumnExpression.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CAEONTableGroupDefinition.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CAEONRowRefImpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CDatumStringTable.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CAEONExpressionParse.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CGridLangParser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GridLang.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Include\AEON.h">
@@ -194,13 +356,34 @@
     <ClInclude Include="..\Include\AEONInterfaces.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Include\AEONQuery.h">
+    <ClInclude Include="..\Include\AEONExpression.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="AEONTable.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="AEONLines.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\AEONOperators.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="OpsImpl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\AEONArrayImpl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\AEONInvoke.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\AEONAlgorithms.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\AEONInlines.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\GridLangParser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

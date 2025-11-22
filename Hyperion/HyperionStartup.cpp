@@ -1,7 +1,7 @@
 //	HyperionStartup.cpp
 //
 //	HypersionStartup
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 //
 //	START UP SEQUENCE
 //
@@ -201,7 +201,7 @@ bool CHyperionEngine::AddServicePackage (CDatum dFileDesc, CHexeProcess &Process
 //	connections until we call CHyperionEngine::LoadServices.
 
 	{
-	const CString &sFilePath = dFileDesc.GetElement(FIELD_FILE_PATH);
+	CStringView sFilePath = dFileDesc.GetElement(FIELD_FILE_PATH);
 	DWORD dwVersion = (DWORD)(int)dFileDesc.GetElement(FIELD_VERSION);
 
 	CString sError;
@@ -411,7 +411,7 @@ ErrorCodes CLoadServicesSession::LoadPackageDoc (CDatum dFileDesc, IByteStream &
 	int i;
 
 	m_dPackageFileDesc = dFileDesc;
-	const CString &sFilePath = dFileDesc.GetElement(FIELD_FILE_PATH);
+	CStringView sFilePath = dFileDesc.GetElement(FIELD_FILE_PATH);
 
 	//	Compute the package name. We need it here because we need to load the
 	//	include files.
@@ -535,7 +535,7 @@ bool CLoadServicesSession::OnProcessMessage (const SArchonMessage &Msg)
 			for (i = 0; i < Msg.dPayload.GetCount(); i++)
 				{
 				CHyperionPackageList::SPackageFileInfo *pInfo = ServiceList.Insert();
-				pInfo->sFilePath = Msg.dPayload.GetElement(i).GetElement(FIELD_FILE_PATH);
+				pInfo->sFilePath = Msg.dPayload.GetElement(i).GetElement(FIELD_FILE_PATH).AsStringView();
 				pInfo->dwVersion = (DWORD)(int)Msg.dPayload.GetElement(i).GetElement(FIELD_VERSION);
 				}
 
@@ -568,7 +568,7 @@ bool CLoadServicesSession::OnProcessMessage (const SArchonMessage &Msg)
 			//	If we have an error, then we skip this package but continue with others
 
 			if (IsError(Msg))
-				GetProcessCtx()->Log(MSG_LOG_ERROR, strPattern(ERR_LOADING_PACKAGE, m_PackageFiles[m_iPos], (const CString &)Msg.dPayload));
+				GetProcessCtx()->Log(MSG_LOG_ERROR, strPattern(ERR_LOADING_PACKAGE, m_PackageFiles[m_iPos], Msg.dPayload.AsStringView()));
 
 			//	Otherwise, load the package file
 
@@ -579,7 +579,7 @@ bool CLoadServicesSession::OnProcessMessage (const SArchonMessage &Msg)
 
 				//	Load the package document.
 
-				CBuffer Buffer((const CString &)dData);
+				CBuffer Buffer(dData.AsStringView());
 				ErrorCodes iResult = LoadPackageDoc(dFileDesc, Buffer);
 
 				//	If we succeeded, then nothing more to do, continue one to
@@ -617,7 +617,7 @@ bool CLoadServicesSession::OnProcessMessage (const SArchonMessage &Msg)
 
 			if (IsError(Msg))
 				{
-				GetProcessCtx()->Log(MSG_LOG_ERROR, strPattern(ERR_LOADING_FILE, m_IncludeFiles[m_iIncludePos], (const CString &)Msg.dPayload));
+				GetProcessCtx()->Log(MSG_LOG_ERROR, strPattern(ERR_LOADING_FILE, m_IncludeFiles[m_iIncludePos], Msg.dPayload.AsStringView()));
 				CleanUpTempPackageDoc();
 				return RequestNextPackage();
 				}
@@ -626,7 +626,7 @@ bool CLoadServicesSession::OnProcessMessage (const SArchonMessage &Msg)
 
 			CDatum dFileDesc = Msg.dPayload.GetElement(FIELD_FILE_DESC);
 			CDatum dData = Msg.dPayload.GetElement(FIELD_DATA);
-			CBuffer Buffer((const CString &)dData);
+			CBuffer Buffer(dData.AsStringView());
 
 			CHexeDocument IncludeDoc;
 			CString sError;
@@ -672,12 +672,12 @@ bool CLoadServicesSession::OnProcessMessage (const SArchonMessage &Msg)
 			//	If we got a different error, log it, but continue.
 
 			else if (IsError(Msg))
-				GetProcessCtx()->Log(MSG_LOG_ERROR, strPattern(ERR_CREATING_TABLE, (const CString &)m_TableDefs[m_iPos].GetElement(FIELD_NAME), Msg.dPayload.AsString()));
+				GetProcessCtx()->Log(MSG_LOG_ERROR, strPattern(ERR_CREATING_TABLE, m_TableDefs[m_iPos].GetElement(FIELD_NAME).AsStringView(), Msg.dPayload.AsString()));
 
 			//	Otherwise log the creation of the table
 
 			else
-				GetProcessCtx()->Log(MSG_LOG_INFO, strPattern(STR_TABLE_CREATED, (const CString &)m_TableDefs[m_iPos].GetElement(FIELD_NAME)));
+				GetProcessCtx()->Log(MSG_LOG_INFO, strPattern(STR_TABLE_CREATED, m_TableDefs[m_iPos].GetElement(FIELD_NAME).AsStringView()));
 
 			//	Next table
 

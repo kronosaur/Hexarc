@@ -1,9 +1,13 @@
 //	Win32Service.cpp
 //
 //	Implements functions required for a Win32 service
-//	Copyright (c) 2010 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2010 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
+#include <signal.h>
+
+DECLARE_CONST_STRING(ERR_ABORT,							"%s: abort() called.");
+DECLARE_CONST_STRING(ERR_UNHANDLED_EXCEPTION,			"Unhandled exception.");
 
 void PrintHelp (void);
 
@@ -16,6 +20,8 @@ int main (int argc, char **argv)
 //	Main program entrypoint.
 
 	{
+	CWin32Service::BootHandlers();
+
 	//	Create the service object.
 
 	g_pService = ::CreateWin32Service();
@@ -54,6 +60,17 @@ CWin32Service::CWin32Service (void) :
 //	CWin32Service constructor
 
 	{
+	}
+
+void CWin32Service::BootHandlers ()
+
+//	BootHandlers
+//
+//	Set various handlers.
+
+	{
+	::SetUnhandledExceptionFilter(ExceptionHandler);
+	signal(SIGABRT, AbortHandler);
 	}
 
 BOOL WINAPI CWin32Service::CtrlHandler (DWORD dwCtrlType)
@@ -105,6 +122,39 @@ void CWin32Service::DebugRun (void)
 	//	Done
 
 	m_bServiceDebugMode = false;
+	}
+
+void CWin32Service::AbortHandler (int sig)
+	{
+	//	Prevent recursion if abort() happens inside the handler
+
+	signal(SIGABRT, SIG_DFL);
+
+	//	Call the service
+
+	if (g_pService)
+		g_pService->OnCrash(strPattern(ERR_ABORT, sysGetCurrentThreadName()));
+
+	//	Flush CRT buffers _immediately_ (signal handlers are async-unsafe)
+
+	_flushall();
+
+	//	Re-raise default behaviour so external dump tools still trigger
+
+	abort();
+	}
+
+LONG CWin32Service::ExceptionHandler (PEXCEPTION_POINTERS ep)
+
+//	ExceptionHandler
+//
+//	Handle exceptions
+
+	{
+	if (g_pService)
+		g_pService->OnCrash(ERR_UNHANDLED_EXCEPTION);
+
+	return EXCEPTION_EXECUTE_HANDLER;
 	}
 
 void CWin32Service::Execute (int argc, char **argv)

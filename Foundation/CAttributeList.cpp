@@ -1,7 +1,7 @@
 //	CAttributeList.cpp
 //
 //	CAttributeList class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -105,7 +105,7 @@ void CAttributeList::GetAll (TArray<CString> *retAttribs) const
 		}
 	}
 
-void CAttributeList::Insert (const CString &sAttrib)
+void CAttributeList::Insert (CStringView sAttrib)
 
 //	Insert
 //

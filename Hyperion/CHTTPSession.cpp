@@ -1,7 +1,7 @@
 //	CHTTPSession.cpp
 //
 //	CHTTPSession class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 //
 //	SEE ALSO
 //
@@ -36,11 +36,14 @@ DECLARE_CONST_STRING(FIELD_UNMODIFIED,					"unmodified");
 DECLARE_CONST_STRING(FIELD_HTTP_URL,					"url");
 
 DECLARE_CONST_STRING(HEADER_CF_CONNECTING_IP,			"CF-Connecting-IP");
+DECLARE_CONST_STRING(HEADER_CF_CONNECTING_IPv6,			"CF-Connecting-IPv6");
 DECLARE_CONST_STRING(HEADER_CONNECTION,					"Connection");
 DECLARE_CONST_STRING(HEADER_DATE,						"Date");
 DECLARE_CONST_STRING(HEADER_IF_MODIFIED_SINCE,			"If-Modified-Since");
 DECLARE_CONST_STRING(HEADER_LAST_MODIFIED,				"Last-Modified");
 DECLARE_CONST_STRING(HEADER_SERVER,						"Server");
+
+DECLARE_CONST_STRING(IP_ADDRESS_NULL,					"0.0.0.0");
 
 DECLARE_CONST_STRING(MSG_AEON_FILE_DOWNLOAD,			"Aeon.fileDownload");
 DECLARE_CONST_STRING(MSG_AEON_FILE_DOWNLOAD_DESC,		"Aeon.fileDownloadDesc");
@@ -108,8 +111,20 @@ bool CHTTPSession::CalcRequestIP (const CHTTPMessage &Msg, CString *retsAddress)
 //	Returns TRUE if the address is different.
 
 	{
-	if (Msg.FindHeader(HEADER_CF_CONNECTING_IP, retsAddress))
+	CString sAddress;
+	if (Msg.FindHeader(HEADER_CF_CONNECTING_IP, &sAddress) && !strEquals(sAddress, IP_ADDRESS_NULL))
+		{
+		if (retsAddress)
+			*retsAddress = std::move(sAddress);
 		return true;
+		}
+
+	if (Msg.FindHeader(HEADER_CF_CONNECTING_IPv6, &sAddress))
+		{
+		if (retsAddress)
+			*retsAddress = std::move(sAddress);
+		return true;
+		}
 
 	//	If not CloudFlare, then nothing
 
@@ -477,7 +492,7 @@ bool CHTTPSession::ProcessStateWaitingForFileData (const SArchonMessage &Msg)
 		m_Ctx.dFileData = CDatum();
 		}
 
-	DWORD dwTotalRead = ((const CString &)dData).GetLength();
+	DWORD dwTotalRead = dData.AsStringView().GetLength();
 
 	//	Figure out how big the entire file is
 
@@ -490,7 +505,7 @@ bool CHTTPSession::ProcessStateWaitingForFileData (const SArchonMessage &Msg)
 		{
 		m_Ctx.dFileData = dData;
 
-		return SendReadFileRequest(m_Ctx, Msg, ((const CString &)m_Ctx.dFileData).GetLength());
+		return SendReadFileRequest(m_Ctx, Msg, m_Ctx.dFileData.AsStringView().GetLength());
 		}
 
 	//	Now that we have the file, process it
@@ -560,7 +575,7 @@ bool CHTTPSession::ProcessStateWaitingForRequest (const SArchonMessage &Msg)
 		//	Parse the message. If we get an error, then we reply with
 		//	a 400 error.
 
-		bool bSuccess = m_Ctx.Request.InitFromPartialBuffer(CStringBuffer((const CString &)dData), false, (bDebugHTTPParsing ? &DebugLog : NULL));
+		bool bSuccess = m_Ctx.Request.InitFromPartialBuffer(CStringBuffer(dData.AsStringView()), false, (bDebugHTTPParsing ? &DebugLog : NULL));
 
 		if (bDebugHTTPParsing)
 			{
@@ -572,7 +587,7 @@ bool CHTTPSession::ProcessStateWaitingForRequest (const SArchonMessage &Msg)
 			{
 #ifdef LOG_HTTP_SESSION
 			GetProcessCtx()->Log(MSG_LOG_INFO, strPattern("[%x] %s -> 400 Bad Request.", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetRequestDescription()));
-			GetProcessCtx()->Log(MSG_LOG_INFO, (const CString &)dData);
+			GetProcessCtx()->Log(MSG_LOG_INFO, dData.AsStringView());
 #endif
 			m_Ctx.Response.InitResponse(http_BAD_REQUEST, ERR_400_BAD_REQUEST);
 			return SendResponse(m_Ctx, Msg, FLAG_NO_ERROR_LOG);
@@ -788,7 +803,7 @@ bool CHTTPSession::ProcessFileResult (SHTTPRequestCtx &Ctx, CDatum dFileDesc, CD
 
 	//	First get the extension of the file
 
-	CString sExtension = strToLower(fileGetExtension(dFileDesc.GetElement(FIELD_FILE_PATH)));
+	CString sExtension = strToLower(fileGetExtension(dFileDesc.GetElement(FIELD_FILE_PATH).AsStringView()));
 
 	//	Handle it based on the extension
 
@@ -829,10 +844,10 @@ bool CHTTPSession::ProcessFileResult (SHTTPRequestCtx &Ctx, CDatum dFileDesc, CD
 
 			CString sMediaType = IMediaType::MediaTypeFromExtension(sExtension);
 			if (sMediaType.IsEmpty())
-				sMediaType = dFileDesc.GetElement(FIELD_TYPE);
+				sMediaType = dFileDesc.GetElement(FIELD_TYPE).AsStringView();
 
 			IMediaTypePtr pBody = IMediaTypePtr(new CRawMediaType);
-			pBody->DecodeFromBuffer(sMediaType, CStringBuffer(dFileData));
+			pBody->DecodeFromBuffer(sMediaType, CStringBuffer(dFileData.AsStringView()));
 
 			Ctx.Response.InitResponse(http_OK, STR_OK);
 			Ctx.Response.SetBody(pBody);
@@ -882,6 +897,14 @@ bool CHTTPSession::ProcessServiceResult (SHTTPRequestCtx &Ctx, const SArchonMess
 
 			case pstatFileDataReady:
 				return ProcessFileResult(m_Ctx, m_Ctx.dFileDesc, m_Ctx.dFileData, Msg);
+
+			case pstatUpgradeToWebSocket:
+				return SendRPCUpgradeWebSocket(m_Ctx);
+
+			case pstatUpgradeToWebSocketNoOp:
+				//	Done with session
+				m_pEngine->LogSessionState(strPattern("[%x:%x] websocket Upgrade: %s.", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)Ctx.RPCMsg.sMsg));
+				return false;
 
 			default:
 				//	ERROR: This should never happen.
@@ -1177,4 +1200,26 @@ bool CHTTPSession::SendRPC (SHTTPRequestCtx &Ctx)
 			DEFAULT_TIMEOUT);
 
 	return true;
+	}
+
+bool CHTTPSession::SendRPCUpgradeWebSocket (SHTTPRequestCtx &Ctx)
+
+//	SendRPCUpgradeWebSocket
+//
+//	Sends a message to Esper to upgrade the websocket.
+
+	{
+	//	Send the message. We don't wait for a response.
+
+	m_pEngine->LogSessionState(strPattern("[%x:%x] websocket Upgrade: %s.", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)Ctx.RPCMsg.sMsg));
+
+	GetProcessCtx()->SendMessageCommand(Ctx.sRPCAddr,
+			Ctx.RPCMsg.sMsg,
+			NULL_STR,
+			0,
+			Ctx.RPCMsg.dPayload);
+
+	//	Done with the session.
+
+	return false;
 	}

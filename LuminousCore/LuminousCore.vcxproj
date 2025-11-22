@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="DebugSAN|Win32">
+      <Configuration>DebugSAN</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugSAN|x64">
+      <Configuration>DebugSAN</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
       <Platform>Win32</Platform>
@@ -32,6 +40,12 @@
     <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugSAN|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
@@ -44,6 +58,13 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugSAN|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <EnableASAN>true</EnableASAN>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
@@ -60,10 +81,16 @@
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DebugSAN|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DebugSAN|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -71,6 +98,21 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+    </ClCompile>
+    <Link>
+      <SubSystem>
+      </SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugSAN|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
@@ -127,6 +169,29 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugSAN|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\Foundation\Include;..\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <SupportJustMyCode>false</SupportJustMyCode>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <ExceptionHandling>Async</ExceptionHandling>
+    </ClCompile>
+    <Link>
+      <SubSystem>
+      </SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -154,9 +219,15 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\Include\LuminousAEON.h" />
+    <ClInclude Include="..\include\LuminousAEONReanimator3D.h" />
+    <ClInclude Include="..\Include\LuminousCanvas.h" />
+    <ClInclude Include="..\Include\LuminousComponents.h" />
     <ClInclude Include="..\Include\LuminousCore.h" />
     <ClInclude Include="..\Include\LuminousHTMLCanvas.h" />
+    <ClInclude Include="..\Include\LuminousScene2D.h" />
+    <ClInclude Include="..\include\LuminousScene3D.h" />
     <ClInclude Include="GraphicsImpl.h" />
+    <ClInclude Include="Obj2DImpl.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
@@ -164,34 +235,60 @@
     <ClCompile Include="CAEONLuminousBitmap.cpp" />
     <ClCompile Include="CAEONLuminousCanvas.cpp" />
     <ClCompile Include="CAEONLuminousSprite.cpp" />
+    <ClCompile Include="CAEONReanimator.cpp" />
+    <ClCompile Include="CAEONReanimator3D.cpp" />
+    <ClCompile Include="CAnimatorSet2D.cpp" />
+    <ClCompile Include="CAnimatorSet3D.cpp" />
+    <ClCompile Include="CBoolAnimator2D.cpp" />
+    <ClCompile Include="CBoolAnimator3D.cpp" />
+    <ClCompile Include="CColorAnimator2D.cpp" />
+    <ClCompile Include="CColorAnimator3D.cpp" />
     <ClCompile Include="CHTMLCanvasRemote.cpp" />
     <ClCompile Include="CLuminousCanvasCtx.cpp" />
     <ClCompile Include="CLuminousCanvasModel.cpp" />
     <ClCompile Include="CLuminousCanvasResources.cpp" />
     <ClCompile Include="CLuminousColor.cpp" />
+    <ClCompile Include="CLuminousColorTheme.cpp" />
     <ClCompile Include="CLuminousFillStyle.cpp" />
+    <ClCompile Include="CLuminousFontStyle.cpp" />
     <ClCompile Include="CLuminousLineStyle.cpp" />
     <ClCompile Include="CLuminousPath2D.cpp" />
+    <ClCompile Include="CLuminousScene2D.cpp" />
+    <ClCompile Include="CLuminousScene3D.cpp" />
     <ClCompile Include="CLuminousShadowStyle.cpp" />
+    <ClCompile Include="CLuminousTextAlign.cpp" />
+    <ClCompile Include="CObj2DRectangle.cpp" />
+    <ClCompile Include="CScalarAnimator2D.cpp" />
+    <ClCompile Include="CScalarAnimator3D.cpp" />
+    <ClCompile Include="CStringAnimator2D.cpp" />
+    <ClCompile Include="CStringAnimator3D.cpp" />
+    <ClCompile Include="CVectorAnimator2D.cpp" />
+    <ClCompile Include="CVectorAnimator3D.cpp" />
+    <ClCompile Include="IAnimator2D.cpp" />
+    <ClCompile Include="IAnimator3D.cpp" />
+    <ClCompile Include="ILuminousObj2D.cpp" />
+    <ClCompile Include="ILuminousObj3D.cpp" />
     <ClCompile Include="LuminousCore.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugSAN|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugSAN|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Hexarc\AEON\AEON.vcxproj">
+    <ProjectReference Include="..\AEON\AEON.vcxproj">
       <Project>{d5b6db61-9bc4-4867-b814-7586a54cb0af}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\Hexarc\Foundation\Foundation.vcxproj">
+    <ProjectReference Include="..\Foundation\Foundation.vcxproj">
       <Project>{74057f42-7b59-48b9-8686-ef83d5c86bc1}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\Hexarc\Hexe\Hexe.vcxproj">
+    <ProjectReference Include="..\Hexe\Hexe.vcxproj">
       <Project>{3db942d0-788c-4320-b293-c155b0f32a2c}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\Hexarc\zlib-1.2.7\contrib\vstudio\vc10\zlibstat.vcxproj">
+    <ProjectReference Include="..\zlib-1.2.7\contrib\vstudio\vc10\zlibstat.vcxproj">
       <Project>{745dec58-ebb3-47a9-a9b8-4c6627c01bf8}</Project>
     </ProjectReference>
   </ItemGroup>

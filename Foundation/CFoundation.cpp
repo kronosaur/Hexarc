@@ -1,7 +1,7 @@
 //	CFoundation.cpp
 //
 //	CFoundation class
-//	Copyright (c) 2017 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2017 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -107,4 +107,63 @@ bool CFoundation::Startup (DWORD dwFlags, CString *retsError)
 
 	m_bInitialized = true;
 	return true;
+	}
+
+void CFoundation::DebugTest_TIDTable ()
+	{
+	int iMaxCount = 0;
+	TIDTable<DWORDLONG> IDTable;
+	TSortMap<DWORD, bool> IDsInUse;
+	for (int i = 0; i < 1000000; i++)
+		{
+		if (IDsInUse.GetCount() == 0 || mathRandom(1, 100) <= 50)
+			{
+			DWORD dwID;
+			DWORDLONG* pPayload = IDTable.Insert(&dwID);
+			*pPayload = dwID;
+
+			bool bNew;
+			IDsInUse.SetAt(dwID, true, &bNew);
+			if (!bNew)
+				{
+				printf("ERROR: Duplicate ID.\n");
+				throw CException(errFail);
+				}
+
+			if (IDsInUse.GetCount() > iMaxCount)
+				iMaxCount = IDsInUse.GetCount();
+			}
+		else
+			{
+			DWORD dwIDToDelete = IDsInUse.GetKey(mathRandom(0, IDsInUse.GetCount() - 1));
+			DWORDLONG dwPayload = IDTable.GetAt(dwIDToDelete);
+			if ((DWORD)dwPayload != dwIDToDelete)
+				throw CException(errFail);
+
+			IDTable.Delete(dwIDToDelete);
+			IDsInUse.DeleteAt(dwIDToDelete);
+			}
+
+		if (((i + 1) % 1000) == 0)
+			printf("%d\n", i + 1);
+		}
+
+	int iCount = 0;
+	SIDTableEnumerator i;
+	IDTable.Reset(i);
+	while (IDTable.HasMore(i))
+		{
+		DWORDLONG dwPayload = IDTable.GetNext(i);
+		if (!IDsInUse.GetAt((DWORD)dwPayload))
+			{
+			throw CException(errFail);
+			}
+
+		iCount++;
+		}
+
+	if (iCount != IDsInUse.GetCount())
+		throw CException(errFail);
+
+	printf("Done. Max count = %d\n", iMaxCount);
 	}

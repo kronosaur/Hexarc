@@ -1,7 +1,7 @@
 //	LuminousHTMLCanvas.h
 //
 //	Classes for rendering to HTML canvas.
-//	Copyright (c) 2022 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2022 GridWhale Corporation. All Rights Reserved.
 
 #pragma once
 
@@ -89,6 +89,8 @@ class CHTMLCanvasRemote
 			font =					500,
 			textAlign =				501,
 			textBaseline =			502,
+			fillText =				503,
+			strokeText =			504,
 
 			//	Image Drawing
 
@@ -112,12 +114,17 @@ class CHTMLCanvasRemote
 		static CDatum CmdFill ();
 		static CDatum CmdFillRect (double x, double y, double cxWidth, double cyHeight);
 		static CDatum CmdFillStyle (const CString &sStyle);
+		static CDatum CmdFillText (const CString& sText, double x, double y);
+		static CDatum CmdFont (const CString& sTypeface, double rSize, int iWeight, CLuminousFontStyle::EType iStyle);
 		static CDatum CmdLineTo (double x, double y);
 		static CDatum CmdLineWidth (double rWidth);
 		static CDatum CmdMoveTo (double x, double y);
 		static CDatum CmdSetResource (const CString& sName, CDatum dResource, SequenceNumber Seq);
 		static CDatum CmdStroke ();
 		static CDatum CmdStrokeStyle (const CString &sStyle);
+		static CDatum CmdStrokeText (const CString& sText, double x, double y);
+		static CDatum CmdTextAlign (CLuminousTextAlign::EAlign iAlign);
+		static CDatum CmdTextBaseline (CLuminousTextAlign::EBaseline iBaseline);
 
 		static ECommand GetCommand (CDatum dData);
 		static bool IsClearAll (CDatum dData);
@@ -126,7 +133,9 @@ class CHTMLCanvasRemote
 
 	private:
 
+		static void AccumulateHTMLCanvasCommands (const CLuminousTextAlign& Style, const CLuminousTextAlign& PrevStyle, CDatum dResult);
 		static void AccumulateHTMLCanvasCommands (const CLuminousFillStyle& Style, const CLuminousFillStyle& PrevStyle, CDatum dResult);
+		static void AccumulateHTMLCanvasCommands (const CLuminousFontStyle& Style, const CLuminousFontStyle& PrevStyle, CDatum dResult);
 		static void AccumulateHTMLCanvasCommands (const CLuminousLineStyle& Style, const CLuminousLineStyle& PrevStyle, CDatum dResult);
 		static void AccumulateHTMLCanvasCommands (const CLuminousPath2D& Path, CDatum dResult);
 		static void AccumulateHTMLCanvasCommands (const CLuminousShadowStyle& Style, const CLuminousShadowStyle& PrevStyle, CDatum dResult);

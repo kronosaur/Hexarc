@@ -1,7 +1,7 @@
 //	CExarchEngine.cpp
 //
 //	CExarchEngine class
-//	Copyright (c) 2020 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2020 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -447,7 +447,7 @@ bool CExarchUpgradeSession::ReadFileList (const CString &sConfigFilespec, CStrin
 		CDatum dFileDesc = dUpgradeDesc.GetElement(i);
 		SFileEntry *pNewEntry = m_Files.Insert();
 
-		pNewEntry->sFilename = dFileDesc.GetElement(FIELD_FILENAME);
+		pNewEntry->sFilename = dFileDesc.GetElement(FIELD_FILENAME).AsStringView();
 		pNewEntry->sFilespec = fileAppend(m_sUpgradeFolder, pNewEntry->sFilename);
 		pNewEntry->dwChecksum = (DWORD)(int)dFileDesc.GetElement(FIELD_CHECKSUM);
 
@@ -490,7 +490,7 @@ bool CExarchUpgradeSession::ReadFileList (const CString &sConfigFilespec, CStrin
 				}
 			}
 
-		pNewEntry->sPlatform = dFileDesc.GetElement(FIELD_PLATFORM);
+		pNewEntry->sPlatform = dFileDesc.GetElement(FIELD_PLATFORM).AsStringView();
 		if (pNewEntry->sPlatform.IsEmpty())
 			pNewEntry->sPlatform = PLATFORM_WIN10;
 		}

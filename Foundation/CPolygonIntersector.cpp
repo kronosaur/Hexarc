@@ -1,7 +1,7 @@
 //	CPolygonIntersector.cpp
 //
 //	CPolygonIntersector class
-//	Copyright (c) 2014 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2014 GridWhale Corporation. All Rights Reserved.
 //
 //	Based On:
 //	HIDDEN SURFACE REMOVAL USING POLYGON AREA SORTING

@@ -1,15 +1,18 @@
 //	CEventProcessingThread.cpp
 //
 //	CEventProcessingThread class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(ADDR_NULL,							"Arc.null")
+DECLARE_CONST_STRING(ADDR_NULL,							"Arc.null");
 
-DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error")
+DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error");
+
+DECLARE_CONST_STRING(STR_THREAD_NAME,					"EventProcessing");
 
 CEventProcessingThread::CEventProcessingThread (IArchonProcessCtx& ProcessCtx, CManualEvent &RunEvent, CManualEvent &PauseEvent, CManualEvent &QuitEvent) :
+		TThread(STR_THREAD_NAME),
 		m_ProcessCtx(ProcessCtx),
 		m_pRunEvent(&RunEvent),
 		m_pPauseEvent(&PauseEvent),

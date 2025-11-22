@@ -1,7 +1,7 @@
 //	CHTTPService.cpp
 //
 //	CHTTPService class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -26,6 +26,7 @@ DECLARE_CONST_STRING(PROTOCOL_TLS,						"tls")
 
 DECLARE_CONST_STRING(SERVICE_HEXCODE,					"hexcode")
 DECLARE_CONST_STRING(SERVICE_PROXY,						"proxy")
+DECLARE_CONST_STRING(SERVICE_WEB_SOCKET,				"webSocket")
 DECLARE_CONST_STRING(SERVICE_WWW,						"www")
 
 DECLARE_CONST_STRING(TLS_NONE,							"none")
@@ -64,12 +65,14 @@ bool CHTTPService::CreateServiceClass (CDatum dServiceDef, const CHexeDocument &
 	{
 	//	Figure out which service class to create
 
-	CString sService = dServiceDef.GetElement(FIELD_SERVICE);
+	CStringView sService = dServiceDef.GetElement(FIELD_SERVICE);
 	IHyperionService *pService;
 	if (strEquals(sService, SERVICE_HEXCODE))
 		pService = new CHexeCodeRPCService;
 	else if (strEquals(sService, SERVICE_PROXY))
 		pService = new CHTTPProxyService;
+	else if (strEquals(sService, SERVICE_WEB_SOCKET))
+		pService = new CWebSocketService;
 	else if (strEquals(sService, SERVICE_WWW))
 		pService = new CWWWService;
 	else
@@ -152,12 +155,21 @@ CString CHTTPService::MakePathCanonical (const CString &sPath)
 	if (pPos == pPosEnd)
 		return NULL_STR;
 
+	//	If we end with a star, then remove it
+
+	bool bRemoveStar = false;
+	if (pPosEnd[-1] == '*')
+		{
+		pPosEnd--;
+		bRemoveStar = true;
+		}
+
 	bool bAddForwardSlash = (*pPos != '/');
 	bool bAddTrailingSlash = (pPosEnd[-1] != '/');
-	if (!bAddForwardSlash && !bAddTrailingSlash)
+	if (!bAddForwardSlash && !bAddTrailingSlash && !bRemoveStar)
 		return sPath;
 
-	int iCopyLen = sPath.GetLength();
+	int iCopyLen = (int)(pPosEnd - pPos);
 
 	int iResultLen = iCopyLen
 			+ (bAddForwardSlash ? 1 : 0)
@@ -404,12 +416,12 @@ bool CHTTPService::OnInit (CDatum dServiceDef, const CHexeDocument &Package, CSt
 
 	//	Get some basic info
 
-	m_sService = dServiceDef.GetElement(FIELD_SERVICE);
-	m_sFormat = dServiceDef.GetElement(FIELD_FORMAT);
+	m_sService = dServiceDef.GetElement(FIELD_SERVICE).AsStringView();
+	m_sFormat = dServiceDef.GetElement(FIELD_FORMAT).AsStringView();
 
 	//	TLS
 
-	const CString &sTLS = dServiceDef.GetElement(FIELD_TLS);
+	CStringView sTLS = dServiceDef.GetElement(FIELD_TLS);
 	if (sTLS.IsEmpty() || strEqualsNoCase(sTLS, TLS_NONE))
 		m_iTLS = tlsNone;
 	else if (strEqualsNoCase(sTLS, TLS_OPTIONAL))
@@ -426,14 +438,14 @@ bool CHTTPService::OnInit (CDatum dServiceDef, const CHexeDocument &Package, CSt
 
 	CDatum dHosts = dServiceDef.GetElement(FIELD_HOSTS);
 	for (i = 0; i < dHosts.GetCount(); i++)
-		m_HostsToServe.Insert(dHosts.GetElement(i));
+		m_HostsToServe.Insert(dHosts.GetElement(i).AsStringView());
 
 	//	Get the paths that we serve
 
 	CDatum dPaths = dServiceDef.GetElement(FIELD_URL_PATHS);
 	for (i = 0; i < dPaths.GetCount(); i++)
 		{
-		CString sPath = MakePathCanonical(dPaths.GetElement(i));
+		CString sPath = MakePathCanonical(dPaths.GetElement(i).AsStringView());
 		if (!sPath.IsEmpty())
 			m_PathsToServe.Insert(sPath);
 
@@ -447,7 +459,7 @@ bool CHTTPService::OnInit (CDatum dServiceDef, const CHexeDocument &Package, CSt
 		{
 		CDatum dDesc = dRedirects.GetElement(i);
 
-		CString sPattern = dDesc.GetElement(FIELD_URL_PATH);
+		CStringView sPattern = dDesc.GetElement(FIELD_URL_PATH);
 		if (sPattern.IsEmpty())
 			continue;
 
@@ -479,7 +491,7 @@ bool CHTTPService::OnInit (CDatum dServiceDef, const CHexeDocument &Package, CSt
 		//	If the path has a leading '/' remove it. [We only accept paths
 		//	relative to the root.]
 
-		char *pPos = sPath.GetParsePointer();
+		const char *pPos = sPath.GetParsePointer();
 		if (*pPos == '/')
 			{
 			iPathStart++;
@@ -518,7 +530,7 @@ bool CHTTPService::OnInit (CDatum dServiceDef, const CHexeDocument &Package, CSt
 
 		//	If the redirect ends in '*' then remove it and set a flag
 
-		CString sRedirectPath = dDesc.GetElement(FIELD_REDIRECT);
+		CStringView sRedirectPath = dDesc.GetElement(FIELD_REDIRECT);
 
 		pPos = sRedirectPath.GetParsePointer();
 		if (pPos[sRedirectPath.GetLength() - 1] == '*')

@@ -1,7 +1,7 @@
 //	CDBValueArray.cpp
 //
 //	CDBValueArray class
-//	Copyright (c) 2019 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2019 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 #include "DBValueObjectImpl.h"

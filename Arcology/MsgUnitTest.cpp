@@ -1,7 +1,7 @@
 //	MsgUnitTest.cpp
 //
 //	Unit tests
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -801,7 +801,7 @@ bool CUnitTestSession::OnProcessMessage (const SArchonMessage &Msg)
 
 	CString sResponse;
 	if (Msg.dPayload.GetBasicType() == CDatum::typeString)
-		sResponse = Msg.dPayload;
+		sResponse = Msg.dPayload.AsStringView();
 	else if (Msg.dPayload.GetBasicType() == CDatum::typeIntegerIP)
 		sResponse = Msg.dPayload.AsString();
 	else
@@ -918,7 +918,7 @@ bool CUnitTestSession::OnStartSession (const SArchonMessage &Msg, DWORD dwTicket
 	//	If we have a single parameter and it is "debug" then 
 	//	we run all tests with no timeout
 
-	else if (Msg.dPayload.GetCount() == 1 && strEquals(Msg.dPayload.GetElement(0), STR_DEBUG))
+	else if (Msg.dPayload.GetCount() == 1 && strEquals(Msg.dPayload.GetElement(0).AsStringView(), STR_DEBUG))
 		{
 		for (i = 0; i < m_iTestMessageListCount; i++)
 			m_Messages.Insert(i);
@@ -933,7 +933,7 @@ bool CUnitTestSession::OnStartSession (const SArchonMessage &Msg, DWORD dwTicket
 		{
 		for (i = 0; i < Msg.dPayload.GetCount(); i++)
 			{
-			const CString &sUnitTest = Msg.dPayload.GetElement(i);
+			CStringView sUnitTest = Msg.dPayload.GetElement(i);
 
 			//	Add all the messages for this unit test
 

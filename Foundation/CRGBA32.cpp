@@ -1,12 +1,41 @@
 //	CRGBA32.cpp
 //
 //	CRGBA32 class
-//	Copyright (c) 2017 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2017 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
 CRGBA32::AlphaArray8 CRGBA32::g_Alpha8 [256];
 bool CRGBA32::m_bAlphaInitialized = CRGBA32::InitTables();
+
+TSortMap<CString, CRGBA32> CRGBA32::m_HTMLColors = std::initializer_list<std::pair<CString, CRGBA32>>({
+	{ "white",		CRGBA32(0xff, 0xff, 0xff) },
+	{ "silver",		CRGBA32(0xc0, 0xc0, 0xc0) },
+	{ "gray",		CRGBA32(0x80, 0x80, 0x80) },
+	{ "black",		CRGBA32(0x00, 0x00, 0x00) },
+	{ "red",		CRGBA32(0xff, 0x00, 0x00) },
+	{ "maroon",		CRGBA32(0x80, 0x00, 0x00) },
+	{ "yellow",		CRGBA32(0xff, 0xff, 0x00) },
+	{ "olive",		CRGBA32(0x80, 0x80, 0x00) },
+	{ "lime",		CRGBA32(0x00, 0xff, 0x00) },
+	{ "green",		CRGBA32(0x00, 0x80, 0x00) },
+	{ "aqua",		CRGBA32(0x00, 0xff, 0xff) },
+	{ "teal",		CRGBA32(0x00, 0x80, 0x80) },
+	{ "blue",		CRGBA32(0x00, 0x00, 0xff) },
+	{ "navy",		CRGBA32(0x00, 0x00, 0x80) },
+	{ "fuchsia",	CRGBA32(0xff, 0x00, 0xff) },
+	{ "purple",		CRGBA32(0x80, 0x00, 0x80) },
+});
+
+CString CRGBA32::AsARGBColor () const
+
+//	AsARGBColor
+//
+//	Returns AARRGGBB color as hex.
+
+	{
+	return strPattern("%02x%02x%02x%02x", GetAlpha(), GetRed(), GetGreen(), GetBlue());
+	}
 
 CString CRGBA32::AsHTMLColor () const
 
@@ -215,8 +244,8 @@ CRGBA32 CRGBA32::Parse (const CString &sValue, bool *retbFail)
 			return CRGBA32(0, 0, 0);
 			}
 
-		bool bHasAlpha = (*pPos == 'a' || *pPos == 'A');
-		if (bHasAlpha)
+		pPos++;
+		if (*pPos == 'a' || *pPos == 'A')
 			pPos++;
 
 		if (*pPos != '(')
@@ -226,32 +255,70 @@ CRGBA32 CRGBA32::Parse (const CString &sValue, bool *retbFail)
 			}
 
 		pPos++;
-		int iRed = strParseInt(pPos, 0, &pPos);
+		int iRed = Max(0, Min(strParseInt(pPos, 0, &pPos), 255));
 		while (*pPos == ' ') pPos++;
 		if (*pPos == ',')
 			pPos++;
 
-		int iGreen = strParseInt(pPos, 0, &pPos);
+		int iGreen = Max(0, Min(strParseInt(pPos, 0, &pPos), 255));
 		while (*pPos == ' ') pPos++;
 		if (*pPos == ',')
 			pPos++;
 
-		int iBlue = strParseInt(pPos, 0, &pPos);
+		int iBlue = Max(0, Min(strParseInt(pPos, 0, &pPos), 255));
+		while (*pPos == ' ') pPos++;
+
+		int iAlpha = 255;
+		if (*pPos == ',')
+			{
+			pPos++;
+
+			double rAlpha = strParseDouble(pPos, 1.0, &pPos);
+			if (rAlpha > 1.0)
+				iAlpha = Min((int)rAlpha, 255);
+			else
+				iAlpha = (int)(Max(0.0, rAlpha) * 255.0);
+			}
 
 		if (retbFail) *retbFail = false;
 
-		if (bHasAlpha)
+		return CRGBA32(iRed, iGreen, iBlue, iAlpha);
+		}
+	else if (strIsHexNumber(pPos, (int)(pPosEnd - pPos)))
+		{
+		if (pPosEnd - pPos >= 8)
 			{
-			while (*pPos == ' ') pPos++;
-			if (*pPos == ',')
-				pPos++;
+			DWORD dwHex = strParseIntOfBase(pPos, 16, 0);
+			if (retbFail) *retbFail = false;
 
-			int iAlpha = strParseInt(pPos, 0, &pPos);
+			return CRGBA32((dwHex >> 16) & 0xff, (dwHex >> 8) & 0xff, dwHex & 0xff, (dwHex >> 24) & 0xff);
+			}
+		else if (pPosEnd - pPos >= 6)
+			{
+			DWORD dwHex = strParseIntOfBase(pPos, 16, 0);
+			if (retbFail) *retbFail = false;
 
-			return CRGBA32(iRed, iGreen, iBlue, iAlpha);
+			return CRGBA32((dwHex >> 16) & 0xff, (dwHex >> 8) & 0xff, dwHex & 0xff);
 			}
 		else
-			return CRGBA32(iRed, iGreen, iBlue);
+			{
+			if (retbFail) *retbFail = true;
+			return CRGBA32(0, 0, 0);
+			}
+		}
+	else
+		{
+		if (retbFail) *retbFail = true;
+		return CRGBA32(0, 0, 0);
+		}
+	}
+
+CRGBA32 CRGBA32::ParseHTMLColor (const CString& sValue, bool* retbFail)
+	{
+	if (auto *pColor = m_HTMLColors.GetAt(strToLower(sValue)))
+		{
+		if (retbFail) *retbFail = false;
+		return *pColor;
 		}
 	else
 		{

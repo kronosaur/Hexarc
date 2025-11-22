@@ -1,7 +1,7 @@
 //	MsgWaitForView.cpp
 //
 //	CAeonEngine class
-//	Copyright (c) 2012 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2012 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 

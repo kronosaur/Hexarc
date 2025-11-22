@@ -1,7 +1,7 @@
 //	MsgPing.cpp
 //
 //	CExarchEngine class
-//	Copyright (c) 2020 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2020 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -57,7 +57,7 @@ void CExarchEngine::MsgPing (const SArchonMessage &Msg, const CHexeSecurityCtx *
 	{
 	TArray<CString> Addresses;
 
-	const CString &sMachineName = Msg.dPayload.GetElement(0);
+	CStringView sMachineName = Msg.dPayload.GetElement(0);
 	if (sMachineName.IsEmpty())
 		{
 		for (int i = 0; i < m_MecharcologyDb.GetMachineCount(); i++)
@@ -128,14 +128,14 @@ bool CPingSession::OnProcessMessage (const SArchonMessage &Msg)
 		//	LATER: For now we can't tell who returned the error, so we just 
 		//	abort the entire operation.
 
-		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, Msg.dPayload.GetElement(0));
+		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, Msg.dPayload.GetElement(0).AsStringView());
 		return false;
 		}
 	else if (strEquals(Msg.sMsg, MSG_REPLY_DATA))
 		{
 		CSmartLock Lock(m_cs);
 
-		const CString &sAddress = Msg.dPayload.GetElement(0);
+		CStringView sAddress = Msg.dPayload.GetElement(0);
 		SEntry *pEntry = m_Result.GetAt(sAddress);
 		if (pEntry && pEntry->dwPingTime == NO_RESULT)
 			{

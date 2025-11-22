@@ -1,6 +1,14 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="DebugSAN|Win32">
+      <Configuration>DebugSAN</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugSAN|x64">
+      <Configuration>DebugSAN</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="DebugSecondary|Win32">
       <Configuration>DebugSecondary</Configuration>
       <Platform>Win32</Platform>
@@ -50,10 +58,21 @@
     <CharacterSet>Unicode</CharacterSet>
     <PlatformToolset>v145</PlatformToolset>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugSAN|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
     <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugSAN|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+    <EnableASAN>true</EnableASAN>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugSecondary|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
@@ -77,7 +96,13 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DebugSAN|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DebugSAN|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DebugSecondary|Win32'" Label="PropertySheets">
@@ -90,8 +115,10 @@
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='DebugSAN|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='DebugSecondary|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(Configuration)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='DebugSAN|Win32'">$(Configuration)\</IntDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='DebugSecondary|Win32'">$(Configuration)\</IntDir>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(Configuration)\</IntDir>
@@ -110,7 +137,38 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugSAN|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>..\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <ExceptionHandling>Async</ExceptionHandling>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\Foundation\Include;..\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ExceptionHandling>Async</ExceptionHandling>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <ConformanceMode>true</ConformanceMode>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugSAN|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>$(ProjectDir)..\Foundation\Include;..\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -185,20 +243,35 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AEONMath.cpp" />
+    <ClCompile Include="AEONMutations.cpp" />
     <ClCompile Include="AEONScript.cpp" />
     <ClCompile Include="CAEONAnnotated.cpp" />
+    <ClCompile Include="CAEONArrayAlgorithm.cpp" />
+    <ClCompile Include="CAEONDictionary.cpp" />
     <ClCompile Include="CAEONError.cpp" />
+    <ClCompile Include="CAEONExpressionParse.cpp" />
     <ClCompile Include="CAEONFactoryList.cpp" />
+    <ClCompile Include="CAEONForeign.cpp" />
     <ClCompile Include="CAEONLibraryFunction.cpp" />
     <ClCompile Include="CAEONLines.cpp" />
+    <ClCompile Include="CAEONMapColumnExpression.cpp" />
     <ClCompile Include="CAEONNilImpl.cpp" />
+    <ClCompile Include="CAEONObject.cpp" />
+    <ClCompile Include="CAEONOp.cpp" />
     <ClCompile Include="CAEONPolygon2D.cpp" />
-    <ClCompile Include="CAEONQuery.cpp" />
+    <ClCompile Include="CAEONExpression.cpp" />
+    <ClCompile Include="CAEONRange.cpp" />
+    <ClCompile Include="CAEONRowRefImpl.cpp" />
+    <ClCompile Include="CAEONSerializedMap.cpp" />
     <ClCompile Include="CAEONStore.cpp" />
+    <ClCompile Include="CAEONStringFormat.cpp" />
     <ClCompile Include="CAEONStringImpl.cpp" />
     <ClCompile Include="CAEONTable.cpp" />
+    <ClCompile Include="CAEONTableGroupDefinition.cpp" />
     <ClCompile Include="CAEONTableIndex.cpp" />
     <ClCompile Include="CAEONTableRef.cpp" />
+    <ClCompile Include="CAEONTableRowRef.cpp" />
+    <ClCompile Include="CAEONTensor.cpp" />
     <ClCompile Include="CAEONTextLinesDiff.cpp" />
     <ClCompile Include="CAEONTextLinesSelection.cpp" />
     <ClCompile Include="CAEONTimeSpan.cpp" />
@@ -206,23 +279,59 @@
     <ClCompile Include="CAEONTypeSystem.cpp" />
     <ClCompile Include="CAEONVector.cpp" />
     <ClCompile Include="CAEONVector2D.cpp" />
+    <ClCompile Include="CAEONVector3D.cpp" />
+    <ClCompile Include="CAEONVectorFloat64.cpp" />
+    <ClCompile Include="CAEONVectorNumber.cpp" />
+    <ClCompile Include="CAEONVectorString.cpp" />
     <ClCompile Include="CComplexArray.cpp" />
     <ClCompile Include="CComplexBinary.cpp" />
+    <ClCompile Include="CComplexBinary64.cpp" />
     <ClCompile Include="CComplexBinaryFile.cpp" />
     <ClCompile Include="CComplexDatatype.cpp" />
     <ClCompile Include="CComplexDateTime.cpp" />
     <ClCompile Include="CComplexImage32.cpp" />
     <ClCompile Include="CComplexInteger.cpp" />
     <ClCompile Include="CComplexStruct.cpp" />
+    <ClCompile Include="CDatatypeAEON.cpp" />
     <ClCompile Include="CDatatypeArray.cpp" />
     <ClCompile Include="CDatatypeClass.cpp" />
     <ClCompile Include="CDatatypeEnum.cpp" />
+    <ClCompile Include="CDatatypeFunction.cpp" />
     <ClCompile Include="CDatatypeList.cpp" />
-    <ClCompile Include="CDatatypeMatrix.cpp" />
+    <ClCompile Include="CDatatypeTensor.cpp" />
+    <ClCompile Include="CDatatypeNull.cpp" />
+    <ClCompile Include="CDatatypeNullable.cpp" />
     <ClCompile Include="CDatatypeNumber.cpp" />
+    <ClCompile Include="CDatatypeRange.cpp" />
     <ClCompile Include="CDatatypeSchema.cpp" />
     <ClCompile Include="CDatatypeSimple.cpp" />
+    <ClCompile Include="CDatatypeString.cpp" />
     <ClCompile Include="CDatum.cpp" />
+    <ClCompile Include="CDatumFormat.cpp" />
+    <ClCompile Include="CDatumInterpret.cpp" />
+    <ClCompile Include="CDatumStringTable.cpp" />
+    <ClCompile Include="CDatumTableWrapper.cpp" />
+    <ClCompile Include="CGridLangParser.cpp" />
+    <ClCompile Include="CHexeLocalEnvironment.cpp" />
+    <ClCompile Include="CHexeLocalEnvPointer.cpp" />
+    <ClCompile Include="CHexeStackEnv.cpp" />
+    <ClCompile Include="COpAdd.cpp" />
+    <ClCompile Include="COpCompEqual.cpp" />
+    <ClCompile Include="COpCompGreaterThan.cpp" />
+    <ClCompile Include="COpCompIdentical.cpp" />
+    <ClCompile Include="COpCompLessThan.cpp" />
+    <ClCompile Include="COpCompLessThanOrEqual.cpp" />
+    <ClCompile Include="COpCompNotEqual.cpp" />
+    <ClCompile Include="COpCompNotIdenticalTo.cpp" />
+    <ClCompile Include="COpConcatenate.cpp" />
+    <ClCompile Include="COpDivide.cpp" />
+    <ClCompile Include="COpCompGreaterThanOrEqual.cpp" />
+    <ClCompile Include="COpMod.cpp" />
+    <ClCompile Include="COpMultiply.cpp" />
+    <ClCompile Include="COpNegate.cpp" />
+    <ClCompile Include="COpPower.cpp" />
+    <ClCompile Include="COpSubtract.cpp" />
+    <ClCompile Include="GridLang.cpp" />
     <ClCompile Include="HTTP.cpp" />
     <ClCompile Include="IAEONTable.cpp" />
     <ClCompile Include="IAEONTextLines.cpp" />
@@ -230,9 +339,12 @@
     <ClCompile Include="IDatatype.cpp" />
     <ClCompile Include="JSON.cpp" />
     <ClCompile Include="CNumberValue.cpp" />
+    <ClCompile Include="Serialize.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugSAN|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugSAN|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugSecondary|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugSecondary|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
@@ -242,20 +354,32 @@
   <ItemGroup>
     <ClInclude Include="..\Include\AEON.h" />
     <ClInclude Include="..\Include\AEONAllocator.h" />
+    <ClInclude Include="..\Include\AEONAlgorithms.h" />
+    <ClInclude Include="..\Include\AEONArrayImpl.h" />
+    <ClInclude Include="..\Include\AEONInlines.h" />
     <ClInclude Include="..\Include\AEONInterfaces.h" />
-    <ClInclude Include="..\Include\AEONQuery.h" />
+    <ClInclude Include="..\Include\AEONInvoke.h" />
+    <ClInclude Include="..\Include\AEONOperators.h" />
+    <ClInclude Include="..\Include\AEONExpression.h" />
     <ClInclude Include="..\Include\AEONTypeSystem.h" />
     <ClInclude Include="..\Include\AEONUtil.h" />
     <ClInclude Include="..\Include\AEONVector.h" />
+    <ClInclude Include="..\Include\GridLangParser.h" />
     <ClInclude Include="AEONImpl.h" />
     <ClInclude Include="AEONLines.h" />
     <ClInclude Include="AEONTable.h" />
     <ClInclude Include="DatatypeImpl.h" />
+    <ClInclude Include="OpsImpl.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="TAEONVector.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Notes.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Foundation\Foundation.vcxproj">
+      <Project>{74057f42-7b59-48b9-8686-ef83d5c86bc1}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

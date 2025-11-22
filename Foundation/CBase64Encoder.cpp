@@ -1,11 +1,11 @@
 //	CBase64Encoder.cpp
 //
 //	CBase64Encoder class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
-BYTE g_Table64[64] =
+const BYTE g_Table64[64] =
 	{	'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
 		'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
 		'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
@@ -15,13 +15,32 @@ BYTE g_Table64[64] =
 		'w', 'x', 'y', 'z', '0', '1', '2', '3',
 		'4', '5', '6', '7', '8', '9', '+', '/' };
 
+const BYTE g_Table64Url[64] =
+	{	'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+		'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+		'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+		'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
+		'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
+		'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
+		'w', 'x', 'y', 'z', '0', '1', '2', '3',
+		'4', '5', '6', '7', '8', '9', '-', '_' };
+
 CBase64Encoder::CBase64Encoder (IByteStream *pOutput, DWORD dwFlags) : 
 		m_pStream(pOutput),
-		m_iBufferLen(0)
+		m_iBufferLen(0),
+		m_dwFlags(dwFlags)
 
 //	CBase64Encoder constructor
 
 	{
+	if (dwFlags & FLAG_BASE64_URL)
+		{
+		m_pTable64 = g_Table64Url;
+		}
+	else
+		{
+		m_pTable64 = g_Table64;
+		}
 	}
 
 void CBase64Encoder::Close (void)
@@ -38,12 +57,20 @@ void CBase64Encoder::Close (void)
 		{
 		BYTE pOutput[4];
 
-		pOutput[0] = g_Table64[m_chBuffer[0] >> 2];
-		pOutput[1] = g_Table64[((m_chBuffer[0] & 0x03) << 4)];
-		pOutput[2] = '=';
-		pOutput[3] = '=';
+		pOutput[0] = m_pTable64[m_chBuffer[0] >> 2];
+		pOutput[1] = m_pTable64[((m_chBuffer[0] & 0x03) << 4)];
 
-		m_pStream->Write(pOutput, 4);
+		if (m_dwFlags & FLAG_BASE64_URL)
+			{
+			//	Base64url does not use padding
+			m_pStream->Write(pOutput, 2);
+			}
+		else
+			{
+			pOutput[2] = '=';
+			pOutput[3] = '=';
+			m_pStream->Write(pOutput, 4);
+			}
 
 		m_iBufferLen = 0;
 		}
@@ -51,12 +78,20 @@ void CBase64Encoder::Close (void)
 		{
 		BYTE pOutput[4];
 
-		pOutput[0] = g_Table64[m_chBuffer[0] >> 2];
-		pOutput[1] = g_Table64[((m_chBuffer[0] & 0x03) << 4) | (m_chBuffer[1] >> 4)];
-		pOutput[2] = g_Table64[((m_chBuffer[1] & 0x0f) << 2)];
-		pOutput[3] = '=';
+		pOutput[0] = m_pTable64[m_chBuffer[0] >> 2];
+		pOutput[1] = m_pTable64[((m_chBuffer[0] & 0x03) << 4) | (m_chBuffer[1] >> 4)];
+		pOutput[2] = m_pTable64[((m_chBuffer[1] & 0x0f) << 2)];
 
-		m_pStream->Write(pOutput, 4);
+		if (m_dwFlags & FLAG_BASE64_URL)
+			{
+			//	Base64url does not use padding
+			m_pStream->Write(pOutput, 3);
+			}
+		else
+			{
+			pOutput[3] = '=';
+			m_pStream->Write(pOutput, 4);
+			}
 
 		m_iBufferLen = 0;
 		}
@@ -137,10 +172,10 @@ int CBase64Encoder::WriteTriplet (void *pData)
 	BYTE *pInput = (BYTE *)pData;
 	BYTE pOutput[4];
 
-	pOutput[0] = g_Table64[pInput[0] >> 2];
-	pOutput[1] = g_Table64[((pInput[0] & 0x03) << 4) | (pInput[1] >> 4)];
-	pOutput[2] = g_Table64[((pInput[1] & 0x0f) << 2) | (pInput[2] >> 6)];
-	pOutput[3] = g_Table64[pInput[2] & 0x3f];
+	pOutput[0] = m_pTable64[pInput[0] >> 2];
+	pOutput[1] = m_pTable64[((pInput[0] & 0x03) << 4) | (pInput[1] >> 4)];
+	pOutput[2] = m_pTable64[((pInput[1] & 0x0f) << 2) | (pInput[2] >> 6)];
+	pOutput[3] = m_pTable64[pInput[2] & 0x3f];
 
 	int iWritten = m_pStream->Write(pOutput, 4);
 	return (iWritten == 4 ? 3 : 0);

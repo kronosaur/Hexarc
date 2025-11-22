@@ -1,7 +1,7 @@
 //	FoundationStreams64.h
 //
 //	Foundation header file
-//	Copyright (c) 2017 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2017 GridWhale Corporation. All Rights Reserved.
 //
 //	USAGE
 //
@@ -12,6 +12,15 @@
 class IByteStream64
 	{
 	public:
+
+		enum class EBOM
+			{
+			None = 0,
+
+			UTF16LE,				//	Little-endian
+			UTF16BE,				//	Big-endian
+			};
+
 		virtual ~IByteStream64 (void) { }
 
 		virtual DWORDLONG GetPos (void) = 0;
@@ -20,6 +29,7 @@ class IByteStream64
 		virtual DWORDLONG ReadTry (void *pData, DWORDLONG dwLength) = 0;
 		virtual void Seek (DWORDLONG dwPos, bool bFromEnd = false) = 0;
 		virtual void Write (const void *pData, DWORDLONG dwLength) = 0;
+		virtual void WriteStream (IByteStream& Stream, int iLength) { WriteStreamDefault(Stream, iLength); }
 
 		//	Helpers
 
@@ -36,23 +46,31 @@ class IByteStream64
 		void Write (IMemoryBlock &Block);
 
 		void WriteChar (char chChar, int iCount = 1);
+		void WriteStreamDefault (IByteStream &Stream, int iLength);
 		void WriteWithProgress (IByteStream &Stream, int iLength, IProgressEvents *pProgress);
 	};
 
 class IMemoryBlock64 : public IByteStream64
 	{
 	public:
+
 		IMemoryBlock64 (void) { }
 
 		virtual DWORDLONG GetLength (void) const = 0;
 		virtual char *GetPointer (void) const = 0;
 		virtual void SetLength (DWORDLONG dwLength) { }
+
+		//	Helpers
+
+		EBOM ReadBOM (DWORDLONG dwPos = 0) const;
 	};
 
 class CMemoryBlockImpl64 : public IMemoryBlock64
 	{
 	public:
 		CMemoryBlockImpl64 (void) : m_dwPos(0) { }
+
+		int Compare (const IMemoryBlock& Src) const;
 
 		//	IByteStream
 
@@ -72,6 +90,16 @@ class CMemoryBlockImpl64 : public IMemoryBlock64
 	};
 
 //	Implementations ------------------------------------------------------------
+
+class CNullStream64 : public CMemoryBlockImpl64
+	{
+	public:
+		//	IMemoryBlock virtuals
+		virtual DWORDLONG GetLength (void) const override { return 0; }
+		virtual char *GetPointer (void) const override { return (char *)""; }
+	};
+
+extern CNullStream64 NULL_STREAM64;
 
 class CBuffer64 : public CMemoryBlockImpl64
 	{
@@ -96,8 +124,10 @@ class CBuffer64 : public CMemoryBlockImpl64
 		CBuffer64 &operator= (const CBuffer64 &Src);
 		CBuffer64 &operator= (CBuffer64 &&Src) noexcept { TakeHandoff(Src); return *this; }
 
+		static CBuffer64 AsUTF8 (const IMemoryBlock64& Stream);
 		LPVOID GetHandoff (DWORDLONG *retdwAllocation = NULL);
 		DWORDLONG GetAllocSize (void) const { return Max(m_dwAllocation, m_dwLength); }
+		void GrowToFit (DWORDLONG dwNewLength);
 		void TakeHandoff (CBuffer64 &Src);
 		void TakeHandoff (void *pBuffer, DWORDLONG dwAllocLength);
 
@@ -108,7 +138,7 @@ class CBuffer64 : public CMemoryBlockImpl64
 
 	private:
 		static constexpr DWORDLONG MIN_ALLOC_INCREMENT =	4096;
-		static constexpr DWORDLONG MAX_ALLOC_INCREMENT = 	65536;
+		static constexpr DWORDLONG MAX_ALLOC_INCREMENT = 	100'000'000;
 
 		void Copy (const CBuffer64 &Src);
 		void Init (const void *pBuffer, size_t dwLength, bool bCopy);
@@ -120,3 +150,20 @@ class CBuffer64 : public CMemoryBlockImpl64
 		DWORDLONG m_dwAllocation = 0;
 	};
 
+class CMemoryBlockAdapter : public CMemoryBlockImpl
+	{
+	public:
+
+		CMemoryBlockAdapter (const IMemoryBlock64& Src) :
+				m_Src(Src)
+			{ }
+
+		//	IMemoryBlock
+
+		virtual int GetLength (void) const override { return (int)Min(m_Src.GetLength(), (DWORDLONG)MAXINT); }
+		virtual char* GetPointer (void) const override { return m_Src.GetPointer(); }
+
+	private:
+
+		const IMemoryBlock64& m_Src;
+	};

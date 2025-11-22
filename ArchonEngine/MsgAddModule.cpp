@@ -1,7 +1,7 @@
 //	MsgAddModule.cpp
 //
 //	CExarchEngine class
-//	Copyright (c) 2015 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2015 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -65,10 +65,10 @@ void CExarchEngine::MsgAddModule (const SArchonMessage &Msg, const CHexeSecurity
 
 	//	Get parameters
 
-	bool bHasMachineName = (Msg.dPayload.GetCount() >= 2 && !strEndsWith(strToLower(Msg.dPayload.GetElement(0)), STR_EXE_SUFFIX));
+	bool bHasMachineName = (Msg.dPayload.GetCount() >= 2 && !strEndsWith(strToLower(Msg.dPayload.GetElement(0).AsStringView()), STR_EXE_SUFFIX));
 	int iArg = 0;
-	CString sMachineName = (bHasMachineName ? (const CString &)Msg.dPayload.GetElement(iArg++) : NULL_STR);
-	CString sModuleFilePath = Msg.dPayload.GetElement(iArg++);
+	CString sMachineName = (bHasMachineName ? Msg.dPayload.GetElement(iArg++).AsString() : NULL_STR);
+	CStringView sModuleFilePath = Msg.dPayload.GetElement(iArg++);
 	CDatum dDebug = Msg.dPayload.GetElement(iArg++);
 
 	//	If we have a machine name, try to parse it in case the user gave us
@@ -106,7 +106,7 @@ void CExarchEngine::MsgAddModule (const SArchonMessage &Msg, const CHexeSecurity
 		//	Add the module
 
 		CString sModuleName;
-		if (!AddModule(sModuleFilePath, strEqualsNoCase(dDebug, FIELD_DEBUG), &sModuleName, &sError))
+		if (!AddModule(sModuleFilePath, strEqualsNoCase(dDebug.AsStringView(), FIELD_DEBUG), &sModuleName, &sError))
 			{
 			SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, sError, Msg);
 			return;
@@ -146,7 +146,7 @@ bool CAddModuleSession::OnProcessMessage (const SArchonMessage &Msg)
 			{
 			if (IsError(Msg))
 				{
-				SendMessageReplyError(Msg.sMsg, Msg.dPayload.GetElement(0));
+				SendMessageReplyError(Msg.sMsg, Msg.dPayload.GetElement(0).AsStringView());
 				return false;
 				}
 

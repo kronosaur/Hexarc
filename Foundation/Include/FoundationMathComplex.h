@@ -1,7 +1,7 @@
 //	FoundationMathComplex.h
 //
 //	Foundation header file
-//	Copyright (c) 2020 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2020 GridWhale Corporation. All Rights Reserved.
 //
 //	USAGE
 //

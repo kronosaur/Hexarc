@@ -1,7 +1,7 @@
 //	MsgRemoveMachine.cpp
 //
 //	CExarchEngine class
-//	Copyright (c) 2020 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2020 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -72,7 +72,7 @@ void CExarchEngine::MsgRemoveMachine (const SArchonMessage &Msg, const CHexeSecu
 
 	//	Find the machine
 
-	const CString &sInputName = Msg.dPayload.GetElement(0);
+	CStringView sInputName = Msg.dPayload.GetElement(0);
 	SMachineDesc MachineDesc;
 	if (!m_MecharcologyDb.FindMachineByPartialName(sInputName, &MachineDesc))
 		{
@@ -125,7 +125,7 @@ bool CRemoveMachineSession::OnProcessMessage (const SArchonMessage &Msg)
 			//	If we get an error, log it, but continue.
 
 			if (IsError(Msg))
-				GetProcessCtx()->Log(MSG_LOG_ERROR, strPattern("Error when asking %s to leave: %s", m_MachineToRemove.sName, Msg.dPayload.GetElement(0)));
+				GetProcessCtx()->Log(MSG_LOG_ERROR, strPattern("Error when asking %s to leave: %s", m_MachineToRemove.sName, Msg.dPayload.GetElement(0).AsString()));
 
 			SendMessageReply(MSG_OK);
 			return false;

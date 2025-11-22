@@ -1,7 +1,7 @@
 //	CAeonRowValue.cpp
 //
 //	CAeonRowValue class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 //
 //	The row is stored as follows
 //
@@ -156,18 +156,39 @@ bool CAeonRowValue::IsNil (void)
 
 //	IsNil
 //
-//	Returns TRUE if the value is nil
+//	Returns TRUE if the value is nil. This is meant to be a fast check where we
+//	don't do a full deserialize of the buffer.
 
 	{
 	SItemHeader *pValue = Get0DItem();
 
 	//	We expect the characters "nil"
 
-	if (pValue->dwSize != 3)
-		return false;
+	if (pValue->dwSize == 3)
+		{
+		char *pPos = (char *)(&pValue[1]);
+		return (pPos[0] == 'n' && pPos[1] == 'i' && pPos[2] == 'l');
+		}
 
-	char *pPos = (char *)(&pValue[1]);
-	return (pPos[0] == 'n' && pPos[1] == 'i' && pPos[2] == 'l');
+	//	Otherwise, it might be binary encoded.
+
+	else if (pValue->dwSize == 8)
+		{
+		const char* pPos = (const char*)(&pValue[1]);
+		if (pPos[0] != 'B' || pPos[1] != '0' || pPos[2] != '0' || pPos[3] != '1')
+			return false;
+
+		const DWORD* pCode = (const DWORD*)(&pPos[4]);
+		if (*pCode == CDatum::SERIALIZE_TYPE_NULL)
+			return true;
+		else
+			return false;
+		}
+
+	//	Otherwise, not nil
+
+	else
+		return false;
 	}
 
 void CAeonRowValue::Load (void)
@@ -248,8 +269,8 @@ void CAeonRowValue::SetValue (CDatum dValue)
 //	Sets the value of a 0D row
 
 	{
-	CMemoryBuffer Buffer(4096);
-	dValue.Serialize(CDatum::EFormat::AEONScript, Buffer);
+	CStringBuffer Buffer;
+	dValue.Serialize(CDatum::EFormat::AEONBinary, Buffer);
 
 	//	Allocate a new block
 

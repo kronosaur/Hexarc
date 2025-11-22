@@ -1,7 +1,7 @@
 //	CIOCPSocketOp.cpp
 //
 //	CIOCPSocketOp class
-//	Copyright (c) 2013 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2013 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 #include "IOCompletionPortImpl.h"
@@ -12,9 +12,9 @@ DECLARE_CONST_STRING(ERR_CANNOT_BIND,				"Unable to bind socket.");
 DECLARE_CONST_STRING(ERR_NOT_SUPPORTED,				"IO operation not supported.");
 DECLARE_CONST_STRING(ERR_FILE_ERROR,				"IO operation error: %d.");
 
-const int DEFAULT_BUFFER_SIZE =							16 * 1024;
+const int DEFAULT_BUFFER_SIZE =							160 * 1024;
 
-CIOCPSocket::CIOCPSocket (SOCKET hSocket) : IIOCPEntry(IOCP_SOCKET_OP),
+CIOCPSocket::CIOCPSocket (SOCKET hSocket) : IIOCPEntry(IOCP_SOCKET_OP, EOperation::connect),
 		m_hSocket(hSocket)
 
 //	CIOCPSocket constructor
@@ -28,7 +28,7 @@ CIOCPSocket::CIOCPSocket (SOCKET hSocket) : IIOCPEntry(IOCP_SOCKET_OP),
 #endif
 	}
 
-CIOCPSocket::CIOCPSocket (const CString &sAddress, DWORD dwPort) : IIOCPEntry(IOCP_SOCKET_OP),
+CIOCPSocket::CIOCPSocket (CStringView sAddress, DWORD dwPort) : IIOCPEntry(IOCP_SOCKET_OP),
 
 		//	Resolve the address and create a socket for the appropriate family
 		//	(either IPv4 or IPv6).
@@ -73,7 +73,7 @@ CIOCPSocket::~CIOCPSocket (void)
 		}
 	}
 
-bool CIOCPSocket::CreateConnection (const CString &sAddress, DWORD dwPort, OVERLAPPED &Overlapped, CString *retsError)
+bool CIOCPSocket::CreateConnection (CStringView sAddress, DWORD dwPort, OVERLAPPED& Overlapped, CString* retsError)
 
 //	CreateConnection
 //
@@ -178,6 +178,8 @@ bool CIOCPSocket::ResetSocket (void)
 
 	m_hSocket = NewSocket.Handoff();
 
+	OnResetConnection();
+
 	return true;
 	}
 
@@ -188,18 +190,18 @@ void CIOCPSocket::SetReadBufferLen (void)
 //	Sets the size of the buffer to the default read size.
 
 	{
-	if (m_Buffer.GetLength() < DEFAULT_BUFFER_SIZE)
-		m_Buffer.SetLength(DEFAULT_BUFFER_SIZE);
+	if (m_ReadBuffer.GetLength() < DEFAULT_BUFFER_SIZE)
+		m_ReadBuffer.SetLength(DEFAULT_BUFFER_SIZE);
 	}
 
-void CIOCPSocket::SetWriteBuffer (const CString &sData)
+void CIOCPSocket::SetWriteBuffer (CStringView sData)
 
 //	SetWriteBuffer
 //
 //	Sets up the buffer
 
 	{
-	m_Buffer.Seek(0);
-	m_Buffer.SetLength(0);
-	m_Buffer.Write(sData);
+	m_WriteBuffer.Seek(0);
+	m_WriteBuffer.SetLength(0);
+	m_WriteBuffer.Write(sData);
 	}

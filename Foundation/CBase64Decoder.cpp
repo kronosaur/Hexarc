@@ -1,7 +1,7 @@
 //	CBase64Decoder.cpp
 //
 //	CBase64Decoder class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -31,6 +31,14 @@ BYTE CBase64Decoder::CharToByte (char chChar)
 		return 62;
 	else if (chChar == '/')
 		return 63;
+
+	//	Base64url
+
+	else if (chChar == '-')
+		return 62;
+	else if (chChar == '_')
+		return 63;
+
 	else
 		return 0xff;
 	}
@@ -42,7 +50,18 @@ int CBase64Decoder::GetStreamLength (void)
 //	Returns the length of the (decoded) stream
 
 	{
-	return (m_pStream->GetStreamLength() / 4) * 3;
+	//	To calculate the length of the decoded stream we need to exclude any 
+	//	padding bytes at the end.
+
+	int iPos = m_pStream->GetPos();
+
+	int iLength = m_pStream->GetStreamLength();
+	m_pStream->Seek(2, true);
+	if (m_pStream->ReadChar() == '=') iLength--;
+	if (m_pStream->ReadChar() == '=') iLength--;
+	m_pStream->Seek(iPos);
+
+	return (iLength * 3) / 4;
 	}
 
 int CBase64Decoder::Read (void *pData, int iLength)

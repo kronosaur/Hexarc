@@ -1,7 +1,7 @@
 //	CSSLEnvelopeKey.cpp
 //
 //	CSSLEnvelopeKey class
-//	Copyright (c) 2017 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2017 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -54,46 +54,71 @@ void CSSLEnvelopeKey::Copy (const CSSLEnvelopeKey &Src)
 	}
 
 bool CSSLEnvelopeKey::Init (CString *retsError)
-
-//	Init
-//
-//	Creates a new public/private key pair
-
 	{
-	//	Make sure OpenSSL is initialized.
+	// Make sure OpenSSL is initialized.
 
 	if (!g_SSLGlobal.Init())
 		return false;
 
-	//	Create the key
+	// Create an EVP_PKEY_CTX to generate an RSA key.
+	// The "RSA" algorithm name is used in OpenSSL 3.0's "provided" APIs.
 
-    EVP_PKEY *pKey = EVP_PKEY_new();
-	if (pKey == NULL)
+	EVP_PKEY_CTX *pCtx = EVP_PKEY_CTX_new_from_name(nullptr, "RSA", nullptr);
+	if (!pCtx)
 		{
-		if (retsError) *retsError = ERR_OUT_OF_MEMORY;
+		if (retsError) *retsError = "Unable to create EVP_PKEY_CTX for RSA.";
 		return false;
 		}
 
-	//	Generate the RSA key and assign it.
-
-	RSA *pRSA = RSA_generate_key(2048, RSA_F4, NULL, NULL);
-	if (!EVP_PKEY_assign_RSA(pKey, pRSA))
+	// Initialize the context for key generation.
+	if (EVP_PKEY_keygen_init(pCtx) <= 0)
 		{
-        EVP_PKEY_free(pKey);
-		if (retsError) *retsError = ERR_CANT_GENERATE_RSA;
+		EVP_PKEY_CTX_free(pCtx);
+		if (retsError) *retsError = "EVP_PKEY_keygen_init failed.";
 		return false;
 		}
 
-	//	We store the result
+	// Set the RSA key length to 2048 bits.
+	if (EVP_PKEY_CTX_set_rsa_keygen_bits(pCtx, 2048) <= 0)
+		{
+		EVP_PKEY_CTX_free(pCtx);
+		if (retsError) *retsError = "Unable to set RSA key size to 2048.";
+		return false;
+		}
+
+	// OPTIONAL: If you need a custom public exponent (default is 65537),
+	// you could do:
+	//
+	// BIGNUM *bnE = BN_new();
+	// BN_set_word(bnE, RSA_F4);  // 65537
+	// if (EVP_PKEY_CTX_set_rsa_keygen_pubexp(pCtx, bnE) <= 0)
+	// {
+	//     BN_free(bnE);
+	//     EVP_PKEY_CTX_free(pCtx);
+	//     if (retsError) *retsError = "Unable to set RSA public exponent.";
+	//     return false;
+	// }
+	// BN_free(bnE);
+
+	// Generate the key into an EVP_PKEY object.
+	EVP_PKEY *pKey = nullptr;
+	if (EVP_PKEY_keygen(pCtx, &pKey) <= 0)
+		{
+		EVP_PKEY_CTX_free(pCtx);
+		if (retsError) *retsError = "EVP_PKEY_keygen failed.";
+		return false;
+		}
+
+	// pKey now holds a generated 2048-bit RSA key, 
+	// fully managed by EVP_PKEY. We can free the context.
+
+	EVP_PKEY_CTX_free(pCtx);
+
+	// Allocate the structure to hold our key
 
 	CleanUp();
-
-	//	Allocate the structure
-
 	m_pData = new SEKey;
-	m_pData->pKey = pKey;
-
-	//	Done
+	m_pData->pKey = pKey;      // Transfer ownership to our structure
 
 	return true;
 	}

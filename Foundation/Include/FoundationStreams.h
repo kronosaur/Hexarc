@@ -1,7 +1,7 @@
 //	FoundationStreams.h
 //
 //	Foundation header file
-//	Copyright (c) 2010 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2010 by GridWhale Corporation. All Rights Reserved.
 //
 //	USAGE
 //
@@ -15,19 +15,31 @@ class IProgressEvents;
 class IByteStream
 	{
 	public:
+
+		enum class EBOM
+			{
+			None = 0,
+
+			UTF16LE,				//	Little-endian
+			UTF16BE,				//	Big-endian
+			};
+
 		virtual ~IByteStream (void) { }
 
 		virtual int GetPos (void) = 0;
 		virtual int GetStreamLength (void) = 0;
+		virtual void GrowToFit (int iLength) { }
 		virtual int Read (void *pData, int iLength) = 0;
 		virtual void Seek (int iPos, bool bFromEnd = false) = 0;
 		virtual int Write (const void *pData, int iLength) = 0;
+		virtual int WriteStream (IByteStream& Stream, int iLength) { return WriteStreamDefault(Stream, iLength); }
 
 		//	Helpers
 
 		char ReadChar (void);
 		void ReadChecked (void *pData, int iLength) { if (Read(pData, iLength) != iLength) throw CException(errNotFound); }
 		int ReadInt () { int iValue; ReadChecked(&iValue, sizeof(int)); return iValue; }
+		double ReadDouble () { double rValue; ReadChecked(&rValue, sizeof(double)); return rValue; }
 		DWORD ReadDWORD () { DWORD dwValue; ReadChecked(&dwValue, sizeof(DWORD)); return dwValue; }
 		DWORDLONG ReadDWORDLONG () { DWORDLONG dwValue; ReadChecked(&dwValue, sizeof(DWORDLONG)); return dwValue; }
 		void SeekBackward (int iLength = 1) { Seek(GetPos() - iLength); }
@@ -36,20 +48,23 @@ class IByteStream
 		void Write (int iData) { this->WriteChecked(&iData, sizeof(int)); }
 		void Write (DWORD dwData) { this->WriteChecked(&dwData, sizeof(DWORD)); }
 		void Write (DWORDLONG dwData) { this->WriteChecked(&dwData, sizeof(DWORDLONG)); }
+		void Write (double rData) { this->WriteChecked(&rData, sizeof(double)); }
 		int Write (const CString &sString) { return this->Write((LPSTR)sString, sString.GetLength()); }
-		inline int Write (IMemoryBlock &Block);
+		inline int Write (const IMemoryBlock &Block);
 		int Write (const void *pData, DWORD iLength) { ASSERT(iLength < MAXINT); return this->Write(pData, (int)iLength); }
 		int Write (const void *pData, size_t iLength) { ASSERT(iLength < MAXINT); return this->Write(pData, (int)iLength); }
 		int Write (const void *pData, std::ptrdiff_t iLength) { ASSERT(iLength < MAXINT); return this->Write(pData, (int)iLength); }
-		int Write (IByteStream &Stream, int iLength);
+		int Write (IByteStream &Stream, int iLength) { return WriteStream(Stream, iLength); }
 		int WriteChar (char chChar, int iCount = 1);
+		int WriteStreamDefault (IByteStream &Stream, int iLength);
 		int WriteWithProgress (IByteStream &Stream, int iLength, IProgressEvents *pProgress);
 	};
 
 class IMemoryBlock : public IByteStream
 	{
 	public:
-		IMemoryBlock (void) : m_iPos(0) { }
+
+		IMemoryBlock (void) { }
 
 		virtual int GetLength (void) const = 0;
 		virtual char *GetPointer (void) const = 0;
@@ -57,30 +72,30 @@ class IMemoryBlock : public IByteStream
 
 		//	Helpers
 
+		EBOM ReadBOM (int iPos = 0) const;
 		bool ReadCSVRow (DWORD_PTR &iCurPos, TArray<CString> &Row);
-
-	private:
-		int m_iPos;
 	};
 
 class CMemoryBlockImpl : public IMemoryBlock
 	{
 	public:
-		CMemoryBlockImpl (void) : m_iPos(0) { }
+		CMemoryBlockImpl () { }
 
 		//	IByteStream
 		virtual int GetPos (void) override { return m_iPos; }
 		virtual int GetStreamLength (void) override { return GetLength(); }
+		virtual void GrowToFit (int iLength) override;
 		virtual int Read (void *pData, int iLength) override;
 		virtual void Seek (int iPos, bool bFromEnd = false) override;
 		virtual int Write (const void *pData, int iLength) override;
+		virtual int WriteStream (IByteStream& Stream, int iLength) override;
 
 		//	We want to inherit all the overloaded versions of Write.
 
 		using IByteStream::Write;
 
 	private:
-		int m_iPos;
+		int m_iPos = 0;
 	};
 
 //	Implementations ------------------------------------------------------------
@@ -116,8 +131,9 @@ class CBuffer : public CMemoryBlockImpl
 		virtual ~CBuffer (void);
 
 		CBuffer &operator= (const CBuffer &Src);
-		CBuffer &operator= (CBuffer &&Src) noexcept { TakeHandoff(Src); return *this; }
+		CBuffer &operator= (CBuffer &&Src) noexcept;
 
+		static CBuffer AsUTF8 (const IMemoryBlock& Stream);
 		LPVOID GetHandoff (int *retiAllocation = NULL);
 		int GetAllocSize (void) const { return max(m_iAllocation, m_iLength); }
 		void TakeHandoff (CBuffer &Src);
@@ -241,6 +257,7 @@ class CStringBuffer : public CMemoryBlockImpl
 		CStringBuffer (LPSTR pString) : m_pString(pString) { }
 		CStringBuffer (const CString &sString) : m_pString((LPSTR)sString) { }
 		CStringBuffer (CString &&Src) noexcept;
+		explicit CStringBuffer (int iSize);
 		~CStringBuffer (void) { CleanUp(); }
 
 		CStringBuffer &operator= (const CStringBuffer &Src) = delete;
@@ -333,6 +350,8 @@ class CBase64Decoder : public IByteStream
 class CBase64Encoder : public IByteStream
 	{
 	public:
+		static constexpr DWORD FLAG_BASE64_URL = 0x00000001;
+
 		CBase64Encoder (IByteStream *pOutput, DWORD dwFlags = 0);
 		CBase64Encoder (const CBase64Encoder &Src) = delete;
 		CBase64Encoder (CBase64Encoder &&Src) = delete;
@@ -358,10 +377,37 @@ class CBase64Encoder : public IByteStream
 	private:
 		int WriteTriplet (void *pData);
 
-		IByteStream *m_pStream;
+		IByteStream *m_pStream = NULL;
 
-		int m_iBufferLen;
-		BYTE m_chBuffer[3];
+		int m_iBufferLen = 0;
+		BYTE m_chBuffer[3] = { 0 };
+
+		DWORD m_dwFlags = 0;
+		const BYTE* m_pTable64 = NULL;
+	};
+
+class CHexDecoder : public IByteStream
+	{
+	public:
+		CHexDecoder (const IByteStream& Input, DWORD dwFlags = 0);
+
+		//	IByteStream
+
+		virtual int GetPos (void) override { return 0; }
+		virtual int GetStreamLength (void) override;
+		virtual int Read (void *pData, int iLength) override;
+		virtual void Seek (int iPos, bool bFromEnd = false) override { }
+		virtual int Write (const void *pData, int iLength) override { return 0; }
+
+		//	We want to inherit all the overloaded versions of Write.
+
+		using IByteStream::Write;
+
+	private:
+
+		int CharToValue (char chChar) { return (chChar >= '0' && chChar <= '9' ? chChar - '0' : (chChar >= 'a' && chChar <= 'f' ? chChar - 'a' + 10 : (chChar >= 'A' && chChar <= 'F' ? chChar - 'A' + 10 : -1))); }
+
+		IByteStream &m_Stream;
 	};
 
 //	Other ----------------------------------------------------------------------
@@ -393,4 +439,4 @@ class CCharStream
 
 //	Inlines --------------------------------------------------------------------
 
-inline int IByteStream::Write (IMemoryBlock &Block) { return this->Write(Block.GetPointer(), Block.GetLength()); }
+inline int IByteStream::Write (const IMemoryBlock &Block) { return this->Write(Block.GetPointer(), Block.GetLength()); }

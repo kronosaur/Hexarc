@@ -1,7 +1,7 @@
 //	FoundationTime.h
 //
 //	Foundation header file
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 //
 //	USAGE
 //
@@ -20,6 +20,7 @@ class CDateTime
 			{
 			Now,						//	Now (GMT)
 			Today,
+			Tomorrow,
 			BeginningOfTime,
 
 			LocalNow,					//	Now in local time
@@ -100,6 +101,7 @@ class CDateTime
 		int Month (void) const { return m_Time.wMonth; }
 		int Day (void) const { return m_Time.wDay; }
 		int Hour (void) const { return m_Time.wHour; }
+		int Hour12 (void) const;
 		int Minute (void) const { return m_Time.wMinute; }
 		int Second (void) const { return m_Time.wSecond; }
 		int Millisecond (void) const { return m_Time.wMilliseconds; }
@@ -108,6 +110,7 @@ class CDateTime
 		void SetMillisecond (int iMillisecond) { m_Time.wMilliseconds = iMillisecond; }
 		void SetTime (int iHour, int iMinute, int iSecond, int iMillisecond = 0);
 
+		CString AsString () const { return Format(formatISO8601); }
 		DWORDLONG AsTick () const;
 		SYSTEMTIME AsSYSTEMTIME () const { return m_Time; }
 		int Age (const CDateTime &Today = CDateTime(Today), int *retiMonths = NULL, int *retiDays = NULL) const;
@@ -115,31 +118,48 @@ class CDateTime
 		CDateTime AsUTC (void) const;
 		int Compare (const CDateTime &Src) const;
 		int DayOfWeek (void) const;
+		CString DayOfWeekLong () const;
+		CString DayOfWeekShort () const;
+		CDateTime DaysAdded (int iDays) const;
 		int DaysSince1AD (void) const;
 		CString Format (const CString &sFormat) const;
 		CString Format (DateFormats iDateFormat, TimeFormats iTimeFormat) const;
 		CString Format (StandardFormats iFormat) const;
 		CString FormatIMF (void) const;
+		WORD GetDOSDate () const;
+		WORD GetDOSTime () const;
 		bool HasDate (void) const { return m_Time.wDay != 1 || m_Time.wMonth != 1 || m_Time.wYear != 1; }
 		bool HasTime (void) const { return m_Time.wHour || m_Time.wMinute || m_Time.wSecond || m_Time.wMilliseconds; }
+		CDateTime HoursAdded (int iHours) const;
 		bool IsValid (void) const { return HasDate() || HasTime(); }
 		int MillisecondsSinceMidnight (void) const;
+		CDateTime MinutesAdded (int iMinutes) const;
+		CDateTime MonthsAdded (int iMonths) const;
+		CString MonthLong () const;
+		CString MonthShort () const;
+		CDateTime SecondsAdded (int iSeconds) const;
+		CDateTime YearsAdded (int iYears) const;
 
+		static int CalcYear (int iValue);
+		static int GetCurrentYear ();
 		static int GetDaysInMonth (int iMonth, int iYear = 0);
 		static bool IsValidDate (int iDay, int iMonth, int iYear);
 		static bool IsValidTime (int iHour, int iMinute, int iSecond, int iMillisecond = 0);
+		static bool ParseMonthIMF (const CString &sValue, int *retiMonth = NULL, bool bFullNameOK = false);
 
 	private:
+
 		static bool ParseAuto (const char *pPos, const char *pPosEnd, StandardFormats iFormat, CDateTime *retResult);
 		static bool ParseDigits (const char *&ioPos, const char *pPosEnd, int *retiValue, int iDefault = -1, int *retiDigitsParsed = NULL);
 		static bool ParseFixedDigits (char **iopPos, char *pPosEnd, int iCount, int *retiValue, int iDefault = -1);
 		static CDateTime ParseIMF (char *pPos, char *pPosEnd);
 		static bool ParseISO8601 (char *pPos, char *pPosEnd, CDateTime *retResult);
-		static bool ParseMonthIMF (const CString &sValue, int *retiMonth = NULL, bool bFullNameOK = false);
 		static bool ParseTime (const char *pPos, const char *pPosEnd, CDateTime &retResult);
 		static CString ParseToken (const char *&pPos);
 
 		SYSTEMTIME m_Time;
+
+		static int m_iCurrentYear;
 	};
 
 inline int KeyCompare (const CDateTime &Key1, const CDateTime &Key2) { return Key1.Compare(Key2); }
@@ -153,6 +173,7 @@ class CTimeSpan
 		CTimeSpan (int iDays, int iMilliseconds, bool bNegative = false);
 		CTimeSpan (DWORD dwDays, DWORD dwMilliseconds, bool bNegative = false);
 		CTimeSpan (const CTimeSpan &Src, bool bNegative);
+		CTimeSpan (const CIPInteger& Src);
 
 		bool operator== (const CTimeSpan &Other) const 
 			{ return (m_Days == Other.m_Days) && (m_Milliseconds == Other.m_Milliseconds) && (m_bNegative == Other.m_bNegative); }
@@ -179,6 +200,9 @@ class CTimeSpan
 		CString Format (const CString &sFormat) const;
 
 		static CTimeSpan Add (const CTimeSpan &A, const CTimeSpan &B);
+		static CTimeSpan Divide (const CTimeSpan &A, double rValue);
+		static CTimeSpan Mod (const CTimeSpan &A, double rValue);
+		static CTimeSpan Multiply (const CTimeSpan &A, double rMultiplier);
 		static CTimeSpan Subtract (const CTimeSpan &A, const CTimeSpan &B);
 
 	private:
@@ -187,6 +211,70 @@ class CTimeSpan
 		bool m_bNegative = false;
 
 		static const CTimeSpan m_Null;
+	};
+
+class CDateTimeParser
+	{
+	public:
+
+		enum class EDateOrder
+			{
+			Unknown,
+
+			DMY,
+			MDY,
+			YMD,
+			};
+
+		enum class EImpute
+			{
+			None,
+
+			Default,					//	Use default date
+			First,						//	First day in period (either month or year)
+			Last,						//	Last day in period (either month or year)
+			Null,						//	Null date
+			};
+
+		enum class ENumericSystem
+			{
+			None,
+
+			Excel1900,
+			Unix,
+			UnixMS,
+			UnixSeconds,
+			};
+
+		struct SImputeDesc
+			{
+			EImpute iType = EImpute::None;
+			CDateTime Default;
+			};
+
+		struct SOptions
+			{
+			EDateOrder iDateOrder = EDateOrder::Unknown;
+			int iCentury = 0;			//	E.g., 2000 for 21st century
+			ENumericSystem iNumericSystem = ENumericSystem::None;
+
+			SImputeDesc DayMissing;
+			SImputeDesc MonthMissing;
+			SImputeDesc YearMissing;
+			};
+
+		static CDateTime FromExcel (double rValue);
+
+		static bool Parse (double rValue, const SOptions& Options, CDateTime* retResult);
+		static bool Parse (CStringView sText, const SOptions& Options, CDateTime* retResult) { return Parse(sText.GetParsePointer(), sText.GetParsePointer() + sText.GetLength(), Options, retResult); }
+		static bool Parse (const char* pPos, const char* pPosEnd, const SOptions& Options, CDateTime* retResult);
+
+		static LONGLONG ToUnixTimeMS (const CDateTime& DateTime);
+
+	private:
+
+		static int CalcYear (int iValue, const SOptions& Options);
+
 	};
 
 inline int KeyCompare (const CTimeSpan &Key1, const CTimeSpan &Key2) { return Key1.Compare(Key2); }

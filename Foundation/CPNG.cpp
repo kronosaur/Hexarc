@@ -1,10 +1,10 @@
 //	CPNG.cpp
 //
 //	CPNG class
-//	Copyright (c) 2018 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2018 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
-#include "lodepng\lodepng.h"
+#include "lodepng/lodepng.h"
 
 bool CPNG::Load (IMemoryBlock &Data, CRGBA32Image &Image, CString *retsError)
 

@@ -111,6 +111,9 @@
     <ClCompile Include="CServicePermissions.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CWebSocketService.cpp">
+      <Filter>Source Files\HTTP</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="HexeMarkup.h">

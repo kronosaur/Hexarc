@@ -1,7 +1,7 @@
 //	FoundationCounters.h
 //
 //	Foundation header file
-//	Copyright (c) 2017 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2017 GridWhale Corporation. All Rights Reserved.
 //
 //	USAGE
 //

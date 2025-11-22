@@ -1,7 +1,7 @@
 //	CMnemosynth.cpp
 //
 //	CMnemosynth class
-//	Copyright (c) 2010 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2010 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -763,7 +763,7 @@ void CMnemosynthDb::IncorporateDelta (CDatum dPayload)
 
 	//	Make sure the endpoint exists
 
-	SEndpoint *pEndpoint = GetOrAddEndpoint(dEndpoint, dwProcessID);
+	SEndpoint *pEndpoint = GetOrAddEndpoint(dEndpoint.AsStringView(), dwProcessID);
 
 	MnemosynthSequence dwOriginalSeq = pEndpoint->dwSeqRecv;
 	MnemosynthSequence dwMaxSeq = dwOriginalSeq;
@@ -781,8 +781,8 @@ void CMnemosynthDb::IncorporateDelta (CDatum dPayload)
 			if (dwSeq > dwMaxSeq)
 				dwMaxSeq = dwSeq;
 
-			const CString &sCollection = dCollections.GetElement((int)dEntry.GetElement(0));
-			const CString &sKey = dEntry.GetElement(1);
+			CStringView sCollection = dCollections.GetElement((int)dEntry.GetElement(0));
+			CStringView sKey = dEntry.GetElement(1);
 			CDatum dValue = dEntry.GetElement(2);
 
 			//	If we're not CentralModule and we get a deletion, then delete

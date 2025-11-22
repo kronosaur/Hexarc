@@ -1,7 +1,7 @@
 //	CArchonLogOutput.cpp
 //
 //	CArchonLogOutput class
-//	Copyright (c) 2021 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2021 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 

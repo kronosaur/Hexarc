@@ -1,7 +1,7 @@
 //	OpenSSLUtil.h
 //
 //	OpenSSL Classes and Utilities
-//	Copyright (c) 2013 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2013 by GridWhale Corporation. All Rights Reserved.
 //
 //	USAGE
 //
@@ -302,7 +302,11 @@ class CSSLAsyncEngine
 			resConnect,						//	Not yet connected. Call Connect.
 			resSendData,					//	Call ProcessSendData to get data to send
 			resReceiveData,					//	Call ProcessReceiveData to give data to engine
-			resReady,						//	Ready to send or receive data (call Send or Receive)
+
+			resReadyConnect,
+			resReadyRead,
+			resReadyWrite,
+			resReadyIdle,
 			};
 
 		struct SConnectionStatus
@@ -315,7 +319,7 @@ class CSSLAsyncEngine
 			CString sMAC;					//	"MD5", "SHA1"
 			};
 
-		CSSLAsyncEngine (CSSLCtx *pSSLCtx = NULL);
+		CSSLAsyncEngine (CSSLCtx *pSSLCtx = NULL, CIODiagnostics& Diag = m_NullDiagnostics);
 		CSSLAsyncEngine (const CSSLAsyncEngine& Src) = delete;
 		CSSLAsyncEngine (CSSLAsyncEngine&& Src) noexcept = delete;
 		~CSSLAsyncEngine (void);
@@ -325,7 +329,12 @@ class CSSLAsyncEngine
 
 		void Accept (void);
 		void Connect (void);
-		inline const IMemoryBlock &GetBuffer (void) const { return m_Buffer; }
+#ifdef DEBUG
+		CString DebugGetBufferState () const;
+#endif
+		const IMemoryBlock &GetBuffer (void) const { return m_Buffer; }
+		CString GetBufferHandoff () const { return CString(std::move(m_Buffer)); }
+		CIODiagnostics& GetDiagnostics (void) const { return m_Diagnostics; }
 		int GetInternalState (void) const { return (int)m_iState; }
 		void Send (IMemoryBlock &Data);
 		void SetDebugLog (bool bValue = true) { m_bDebugLog = bValue; }
@@ -339,7 +348,10 @@ class CSSLAsyncEngine
 
 		bool GetConnectionStatus (SConnectionStatus *retStatus) const;
 
+		static CSSLAsyncEngine& GetThis (const void* pSSL);
+
 	private:
+
 		enum EStates
 			{
 			stateNone,
@@ -347,8 +359,7 @@ class CSSLAsyncEngine
 
 			stateAccepting,					//	Accepting from a client
 			stateConnecting,				//	Connect to server
-			stateWriting,					//	Writing data
-			stateReading,					//	Reading data
+			stateWorking,					//	Reading or writing data
 			stateReady,
 			};
 
@@ -357,10 +368,13 @@ class CSSLAsyncEngine
 #else
 		void DebugLog (const CString& sLine) const { }
 #endif
+		CString GetSSLError () const;
 		bool Init (bool bAsServer, CString *retsError);
 
 		CString m_sHostname;
 		EStates m_iState = stateNone;
+		bool m_bReading = false;
+		bool m_bWriting = false;
 		CSSLCtx *m_pSSLCtx = NULL;			//	SSL_CTX object
 		OpenSSL_SSLPtr m_pSSL = NULL;		//	SSL session object
 		OpenSSL_BIOPtr m_pInput = NULL;		//	SSL reads from this object
@@ -369,7 +383,12 @@ class CSSLAsyncEngine
 		bool m_bDebugLog = false;
 		bool m_bReadRetried = false;
 
-		CBuffer m_Buffer;
+		CStringBuffer m_Buffer;
+
+		CIODiagnostics& m_Diagnostics;
+
+		static int m_SSLCtxIndex;
+		static CIODiagnostics m_NullDiagnostics;
 	};
 
 class CSSLSocketStream : public IByteStream

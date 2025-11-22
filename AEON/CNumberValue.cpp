@@ -1,44 +1,9 @@
 //	CNumberValue.cpp
 //
 //	CNumberValue class
-//	Copyright (c) 2011 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2011 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
-
-const int CNumberValue::MAX_BASE_FOR_EXP[MAX_EXP_FOR_INT32 + 1] = 
-	{
-		0,					//	x^0
-		0,					//	x^1
-		46340,				//	x^2
-		1290,				//	x^3
-		215,				//	x^4
-		73,					//	x^5
-		35,					//	x^6
-		21,					//	x^7
-		14, 				//	x^8
-		10, 				//	x^9
-		8, 					//	x^10
-		7, 					//	x^11
-		5, 					//	x^12
-		5, 					//	x^13
-		4, 					//	x^14
-		4, 					//	x^15
-		3, 					//	x^16
-		3, 					//	x^17
-		3, 					//	x^18
-		3, 					//	x^19
-		2, 					//	x^20
-		2, 					//	x^21
-		2, 					//	x^22
-		2, 					//	x^23
-		2, 					//	x^24
-		2, 					//	x^25
-		2, 					//	x^26
-		2, 					//	x^27
-		2, 					//	x^28
-		2, 					//	x^29
-		2, 					//	x^30
-	};
 
 //	CNumberValue ---------------------------------------------------------------
 
@@ -179,6 +144,32 @@ CIPInteger CNumberValue::AsIPInteger () const
 		}
 	}
 
+void CNumberValue::Ceil ()
+	{
+	switch (m_iType)
+		{
+		case CDatum::typeDouble:
+			SetDouble(ceil(GetDouble()));
+			break;
+
+		case CDatum::typeInteger32:
+		case CDatum::typeInteger64:
+		case CDatum::typeIntegerIP:
+			break;
+
+		case CDatum::typeTimeSpan:
+			SetNaN();
+			break;
+
+		case CDatum::typeNaN:
+			SetNaN();
+			break;
+
+		default:
+			break;
+		}
+	}
+
 int CNumberValue::Compare (const CNumberValue &Value) const
 	{
 	switch (m_iType)
@@ -191,7 +182,13 @@ int CNumberValue::Compare (const CNumberValue &Value) const
 					return KeyCompare(GetInteger(), Value.GetInteger());
 
 				case CDatum::typeInteger64:
-					return KeyCompare((DWORDLONG)GetInteger(), Value.GetInteger64());
+					{
+					int iLeft = GetInteger();
+					if (iLeft < 0)
+						return -1;	//	DWORDLONG is always positive
+					else
+						return KeyCompare((DWORDLONG)iLeft, Value.GetInteger64());
+					}
 
 				case CDatum::typeDouble:
 					return KeyCompare((double)GetInteger(), Value.GetDouble());
@@ -209,7 +206,13 @@ int CNumberValue::Compare (const CNumberValue &Value) const
 			switch (Value.m_iType)
 				{
 				case CDatum::typeInteger32:
-					return KeyCompare(GetInteger64(), (DWORDLONG)Value.GetInteger());
+					{
+					int iRight = Value.GetInteger();
+					if (iRight < 0)
+						return 1;	//	DWORDLONG is always positive
+					else
+						return KeyCompare(GetInteger64(), (DWORDLONG)iRight);
+					}
 
 				case CDatum::typeInteger64:
 					return KeyCompare(GetInteger64(), Value.GetInteger64());
@@ -627,6 +630,32 @@ bool CNumberValue::DivideReversed (CDatum dValue)
 	return true;
 	}
 
+void CNumberValue::Floor ()
+	{
+	switch (m_iType)
+		{
+		case CDatum::typeDouble:
+			SetDouble(floor(GetDouble()));
+			break;
+
+		case CDatum::typeInteger32:
+		case CDatum::typeInteger64:
+		case CDatum::typeIntegerIP:
+			break;
+
+		case CDatum::typeTimeSpan:
+			SetNaN();
+			break;
+
+		case CDatum::typeNaN:
+			SetNaN();
+			break;
+
+		default:
+			break;
+		}
+	}
+
 CDatum CNumberValue::GetDatum (void)
 
 //	CNumberValue
@@ -1037,70 +1066,85 @@ void CNumberValue::Multiply (CDatum dValue)
 		}
 	}
 
-void CNumberValue::Power (CDatum dValue)
+void CNumberValue::Round ()
 
-//	Power
+//	Round
 //
-//	Raise number to the given power.
+//	Round a number
 
 	{
-	CNumberValue Exp(dValue);
-	Upconvert(Exp);
-
 	switch (m_iType)
 		{
+		case CDatum::typeDouble:
+			{
+			double rValue = round(GetDouble());
+			if (rValue <= INT_MAX && rValue >= INT_MIN)
+				SetInteger((int)rValue);
+			else
+				SetIPInteger(CIPInteger(rValue));
+			break;
+			}
+
+		case CDatum::typeInteger32:
+		case CDatum::typeIntegerIP:
+		case CDatum::typeTimeSpan:
+			break;
+
 		case CDatum::typeNaN:
 			SetNaN();
 			break;
 
+		default:
+			break;
+		}
+	}
+
+void CNumberValue::Sign ()
+
+//	Sign
+//
+//	Return the sign of the value.
+
+	{
+	switch (m_iType)
+		{
 		case CDatum::typeInteger32:
-			{
-			int iExp = Exp.GetInteger();
-			int iBase = GetInteger();
-
-			if (iExp == 0)
-				SetInteger(1);
-
-			else if (iExp < 0)
-				SetDouble(pow((double)iBase, (double)iExp));
-
-			else if (iExp == 1)
-				{ }
-
-			else if (iExp <= MAX_EXP_FOR_INT32 && iBase <= MAX_BASE_FOR_EXP[iExp])
-				{
-				//	LATER: Do an integer algorithm.
-				SetInteger((int)pow((double)iBase, (double)iExp));
-				}
-			else
-				{
-				CIPInteger IPBase(iBase);
-				CIPInteger IPExp(iExp);
-				SetIPInteger(IPBase.Power(IPExp));
-				}
-
+			SetInteger(::Sign(GetInteger()));
 			break;
-			}
-
-		case CDatum::typeInteger64:
-		case CDatum::typeIntegerIP:
-			{
-			CIPInteger IPBase(AsIPInteger());
-			CIPInteger IPExp(Exp.AsIPInteger());
-			SetIPInteger(IPBase.Power(IPExp));
-			break;
-			}
 
 		case CDatum::typeDouble:
-			SetDouble(pow(GetDouble(), Exp.GetDouble()));
+			SetInteger((int)::Sign(GetDouble()));
 			break;
 
+		case CDatum::typeIntegerIP:
+			{
+			const CIPInteger &X = GetIPInteger();
+			if (X.IsZero())
+				SetInteger(0);
+			else if (X.IsNegative())
+				SetInteger(-1);
+			else
+				SetInteger(1);
+			break;
+			}
+
 		case CDatum::typeTimeSpan:
+			{
+			const CTimeSpan &X = GetTimeSpan();
+			if (X.Milliseconds64() == 0)
+				SetInteger(0);
+			else if (X.IsNegative())
+				SetInteger(-1);
+			else
+				SetInteger(1);
+			break;
+			}
+
+		case CDatum::typeNaN:
 			SetNaN();
 			break;
 
 		default:
-			SetNil();
 			break;
 		}
 	}

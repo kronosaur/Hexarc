@@ -1,7 +1,7 @@
 //	CFile.cpp
 //
 //	CFile class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -221,11 +221,24 @@ int CFile::Read (void *pData, int iLength)
 	if (iLength == 0)
 		return 0;
 
-	DWORD dwBytesRead;
-	if (!::ReadFile(m_hFile, pData, iLength, &dwBytesRead, NULL) || (dwBytesRead != (DWORD)iLength))
-		throw CFileException(errDisk, m_sFilespec, ::GetLastError(), strPattern(ERR_READ, m_sFilespec, ::GetLastError()));
+	if (pData)
+		{
+		DWORD dwBytesRead;
+		if (!::ReadFile(m_hFile, pData, iLength, &dwBytesRead, NULL) || (dwBytesRead != (DWORD)iLength))
+			throw CFileException(errDisk, m_sFilespec, ::GetLastError(), strPattern(ERR_READ, m_sFilespec, ::GetLastError()));
 
-	return dwBytesRead;
+		return dwBytesRead;
+		}
+
+	//	If we don't want to read, we just advance.
+
+	else
+		{
+		if (::SetFilePointer(m_hFile, iLength, NULL, FILE_CURRENT) == INVALID_SET_FILE_POINTER)
+			throw CFileException(errDisk, m_sFilespec, ::GetLastError(), strPattern(ERR_SEEK, m_sFilespec, ::GetLastError()));
+
+		return iLength;
+		}
 	}
 
 void CFile::Seek (int iPos, bool bFromEnd)

@@ -1,7 +1,7 @@
 //	MsgSignData.cpp
 //
 //	MsgSignData
-//	Copyright (c) 2012 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2012 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -40,7 +40,7 @@ void CCryptosaurEngine::MsgSignData (const SArchonMessage &Msg, const CHexeSecur
 //	Cryptosaur.signData {keyName} {data}
 
 	{
-	CString sKeyName = Msg.dPayload.GetElement(0);
+	CStringView sKeyName = Msg.dPayload.GetElement(0);
 	CDatum dData = Msg.dPayload.GetElement(1);
 
 	//	Make sure that the keyname is appropriate to the security context
@@ -90,7 +90,7 @@ void CSignDataSession::OnSuccess (void)
 
 	//	Since we were successful, store the key in our store
 
-	m_pEngine->InsertKey((const CString &)GetKeyPath(), Key);
+	m_pEngine->InsertKey(GetKeyPath().AsStringView(), Key);
 
 	//	Sign the data
 

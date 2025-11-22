@@ -1,7 +1,7 @@
 //	CEsperInterface.cpp
 //
 //	CEsperInterface class
-//	Copyright (c) 2013 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2013 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -111,8 +111,8 @@ bool CEsperInterface::ConvertBodyToDatum (const CHTTPMessage &Message, CDatum *r
 	else if (strEquals(sMediaType, MEDIA_TYPE_MULTIPART_FORM))
 		{
 		CBuffer Buffer(pBody->GetMediaBuffer());
-		CEsperMultipartParser Parser(pBody->GetMediaType(), Buffer);
-		if (!Parser.ParseAsDatum(retdBody))
+		CHTTPMultipartParser Parser(pBody->GetMediaType(), Buffer);
+		if (!Parser.ParseAsDatum(*retdBody))
 			{
 			*retdBody = ERR_UNABLE_TO_PARSE_MULTIPART;
 			return false;
@@ -157,7 +157,7 @@ bool CEsperInterface::ConvertFormURLEncodedToDatum (const CString &sText, CDatum
 	int iState = stateStart;
 	int iOldState;
 
-	CMemoryBuffer Token;
+	CStringBuffer Token;
 	CString sFieldName;
 
 	while (iState != stateDone)
@@ -192,8 +192,8 @@ bool CEsperInterface::ConvertFormURLEncodedToDatum (const CString &sText, CDatum
 					iState = stateDone;
 				else if (*pPos == '=')
 					{
-					sFieldName = CString(Token.GetPointer(), Token.GetLength());
-					Token.SetLength(0);
+					sFieldName = CString(std::move(Token));
+//					Token.SetLength(0);
 					iState = stateFieldValue;
 					}
 				else if (*pPos == '+')
@@ -211,8 +211,8 @@ bool CEsperInterface::ConvertFormURLEncodedToDatum (const CString &sText, CDatum
 				if (pPos == pPosEnd
 						|| *pPos == '&')
 					{
-					pResult->SetElement(sFieldName, CString(Token.GetPointer(), Token.GetLength()));
-					Token.SetLength(0);
+					pResult->SetElement(sFieldName, CString(std::move(Token)));
+					//Token.SetLength(0);
 					iState = ((pPos == pPosEnd) ? stateDone : stateStart);
 					}
 				else if (*pPos == '+')
@@ -282,7 +282,7 @@ CDatum CEsperInterface::ConvertHeadersToDatum (const CHTTPMessage &Message)
 		//	NOTE: CHTTPMessage always converts headers to lowercase for ease of
 		//	compare, since the HTTP spec says header names are case-insensitive.
 
-		const CString &sOriginalData = pResult->GetElement(sHeader);
+		CStringView sOriginalData = pResult->GetElement(sHeader);
 		if (!sOriginalData.IsEmpty())
 			pResult->SetElement(sHeader, strPattern("%s, %s", sOriginalData, sValue));
 		

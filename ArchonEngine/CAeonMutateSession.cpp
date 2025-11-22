@@ -1,7 +1,7 @@
 //	CAeonMutateSession.cpp
 //
 //	CAeonMutateSession class
-//	Copyright (c) 2012 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2012 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -47,7 +47,7 @@ bool CAeonMutateSession::OnProcessMessage (const SArchonMessage &Msg)
 
 	if (IsError(Msg))
 		{
-		SendMessageReplyError(Msg.sMsg, Msg.dPayload.GetElement(0));
+		SendMessageReplyError(Msg.sMsg, Msg.dPayload.GetElement(0).AsStringView());
 		return false;
 		}
 

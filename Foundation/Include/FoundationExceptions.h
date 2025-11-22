@@ -1,7 +1,7 @@
 //	FoundationExceptions.h
 //
 //	Foundation header file
-//	Copyright (c) 2010 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2010 by GridWhale Corporation. All Rights Reserved.
 //
 //	USAGE
 //
@@ -41,6 +41,7 @@ enum ErrorCodes
 	errBadProtocol,
 	errPortNotFound,
 	errConnectionLost,
+	errCrashTrace,					//	Trace error (m_sErrorInfo is function name)
 
 	errProgrammerError,				//	m_sErrorInfo may have extra data
 	errUnknownError,				//	No extra info available
@@ -49,17 +50,30 @@ enum ErrorCodes
 class CException
 	{
 	public:
-		CException (ErrorCodes Code) : m_Code(Code), m_dwErrorInfo(0) { }
-		CException (ErrorCodes Code, const CString &sErrorString) : m_Code(Code), m_dwErrorInfo(0), m_sErrorString(sErrorString) { }
+		CException (ErrorCodes Code) : m_Code(Code)
+			{
+			switch (Code)
+				{
+				case errCrashTrace:
+					m_sErrorString = CString(__FUNCTION__);
+					break;
+
+				default:
+					m_sErrorString = strPattern("Exception %d in %s", (int)Code, CString(__FUNCTION__));
+					break;
+				}
+			}
+
+		CException (ErrorCodes Code, const CString &sErrorString) : m_Code(Code), m_sErrorString(sErrorString) { }
 		CException (ErrorCodes Code, DWORD dwErrorInfo, const CString &sErrorString) : m_Code(Code), m_dwErrorInfo(dwErrorInfo), m_sErrorString(sErrorString) { }
 
-		inline ErrorCodes GetCode (void) const { return m_Code; }
-		inline DWORD GetErrorInfo (void) const { return m_dwErrorInfo; }
-		inline const CString &GetErrorString (void) const { return m_sErrorString; }
+		ErrorCodes GetCode (void) const { return m_Code; }
+		DWORD GetErrorInfo (void) const { return m_dwErrorInfo; }
+		const CString &GetErrorString (void) const { return m_sErrorString; }
 
 	private:
-		ErrorCodes m_Code;
-		DWORD m_dwErrorInfo;
+		ErrorCodes m_Code = errUnknownError;
+		DWORD m_dwErrorInfo = 0;
 		CString m_sErrorString;
 	};
 
@@ -75,3 +89,7 @@ class CFileException : public CException
 	private:
 		CString m_sFilespec;
 	};
+
+#define DEBUG_TRY					try {
+#define DEBUG_CATCH					} catch (CException e) { throw CException(errCrashTrace, strPattern("%s\n%s", (e.GetErrorString().IsEmpty() ? CString("EXCEPTION") : e.GetErrorString()), CString(__FUNCTION__))); } catch (...) { throw CException(errCrashTrace, strPattern("Exception in %s", CString(__FUNCTION__))); }
+

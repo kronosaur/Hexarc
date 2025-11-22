@@ -1,14 +1,19 @@
 //	CHexeProcess.cpp
 //
 //	CHexeProcess class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
+static constexpr DWORD PROGRAM_LIMITS_VERSION = 1;
+
 DECLARE_CONST_STRING(FIELD_ABORT_TIME,					"abortTime");
 DECLARE_CONST_STRING(FIELD_ADD_CONCATENATES_STRINGS,	"addConcatenatesStrings");
+DECLARE_CONST_STRING(FIELD_AEON_TYPES,					"AEONTypes");
 DECLARE_CONST_STRING(FIELD_LIBRARIES,					"libraries");
+DECLARE_CONST_STRING(FIELD_LIMITS,						"limits");
 DECLARE_CONST_STRING(FIELD_MAX_EXECUTION_TIME,			"maxExecutionTime");
+DECLARE_CONST_STRING(FIELD_STACK_LEVEL,					"stackLevel");
 DECLARE_CONST_STRING(FIELD_TYPES,						"types");
 
 DECLARE_CONST_STRING(LIBRARY_CORE,						"core");
@@ -23,12 +28,39 @@ DECLARE_CONST_STRING(ERR_HEXE_CODE_EXPECTED,			"Unable to execute term: %s.");
 DECLARE_CONST_STRING(ERR_UNKNOWN,						"Unknown error.");
 DECLARE_CONST_STRING(ERR_CANT_NEST_EVENT_HANDLER,		"Unable to invoke event handler while inside an event handler.");
 DECLARE_CONST_STRING(ERR_INVALID_EVENT_HANDLER,			"Invalid event handler: not a function.");
+DECLARE_CONST_STRING(ERR_EXCEEDED_ARRAY_LIMITS,			"Arrays cannot have more than %s elements.");
 
-CHexeProcess::CHexeProcess (void)
+IHexeVMHost CHexeProcess::DefaultHost;
+
+CHexeProcess::CHexeProcess (IHexeVMHost& Host) :
+		m_Host(Host)
 
 //	CHexeProcess constructor
 
 	{
+	InitInstructionTable();
+	}
+
+CDatum CHexeProcess::AsDatum (const SLimits& Limits)
+
+//	AsDatum
+//
+//	Persist to datum.
+
+	{
+	//	We store compute limits as a single array (for efficiency). The first
+	//	element in the array is a version number, so that we can upgrade the
+	//	format in the future.
+
+	CDatum dLimits(CDatum::typeArray);
+	dLimits.Append(PROGRAM_LIMITS_VERSION);
+	dLimits.Append(Limits.iMaxArrayLen);
+	dLimits.Append(Limits.iMaxExecutionTimeSec);
+	dLimits.Append(Limits.iMaxStackDepth);
+	dLimits.Append(Limits.iMaxStringSize);
+	dLimits.Append(Limits.iMaxBufferSize);
+
+	return dLimits;
 	}
 
 void CHexeProcess::CreateFunctionCall (int iArgCount, CDatum *retdExpression)
@@ -62,7 +94,7 @@ void CHexeProcess::DefineGlobal (const CString &sIdentifier, CDatum dValue)
 	InitGlobalEnv();
 
 	if (!sIdentifier.IsEmpty())
-		m_pCurGlobalEnv->SetAt(sIdentifier, dValue);
+		m_Env.GetGlobalEnv().SetAt(sIdentifier, dValue);
 	}
 
 void CHexeProcess::DeleteAll (void)
@@ -78,14 +110,10 @@ void CHexeProcess::DeleteAll (void)
 	m_dCodeBank = CDatum();
 	m_pCodeBank = NULL;
 	m_CallStack.DeleteAll();
+	m_Env.Init(CDatum(new CHexeGlobalEnvironment));
+	m_GlobalEnvCache.DeleteAll();
 
-	m_pCurGlobalEnv = new CHexeGlobalEnvironment;
-	m_dCurGlobalEnv = CDatum(m_pCurGlobalEnv);
 	m_Libraries.DeleteAll();
-
-	m_dLocalEnv = CDatum();
-	m_pLocalEnv = NULL;
-	m_LocalEnvStack.DeleteAll();
 	}
 
 bool CHexeProcess::FindGlobalDef (const CString &sIdentifier, CDatum *retdValue)
@@ -105,7 +133,14 @@ bool CHexeProcess::FindGlobalDef (const CString &sIdentifier, CDatum *retdValue)
 	if (pEnv == NULL)
 		return false;
 
-	return pEnv->Find(sIdentifier, retdValue);
+	DWORD dwID;
+	if (!pEnv->FindSymbol(sIdentifier, &dwID))
+		return false;
+
+	if (retdValue)
+		*retdValue = pEnv->GetAt(dwID);
+
+	return true;
 	}
 
 void CHexeProcess::GetCurrentSecurityCtx (CHexeSecurityCtx *retCtx)
@@ -116,7 +151,7 @@ void CHexeProcess::GetCurrentSecurityCtx (CHexeSecurityCtx *retCtx)
 //	user security.
 
 	{
-	m_pCurGlobalEnv->GetServiceSecurity(retCtx);
+	m_Env.GetGlobalEnv().GetServiceSecurity(retCtx);
 	m_UserSecurity.GetUserSecurity(retCtx);
 	}
 
@@ -132,6 +167,23 @@ CDatum CHexeProcess::GetCurrentSecurityCtx (void)
 	return Ctx.AsDatum();
 	}
 
+CString CHexeProcess::GetErrorMsg (EErrorMsg iError) const
+
+//	GetErrorMsg
+//
+//	Returns the given error message.
+
+	{
+	switch (iError)
+		{
+		case EErrorMsg::ArrayLimit:
+			return strPattern(ERR_EXCEEDED_ARRAY_LIMITS, ::strFormatInteger(GetLimits().iMaxArrayLen, -1, FORMAT_THOUSAND_SEPARATOR));
+
+		default:
+			throw CException(errFail);
+		}
+	}
+
 CDatum CHexeProcess::GetStringFromDataBlock (int iID)
 
 //	GetStringFromDataBlock
@@ -140,6 +192,20 @@ CDatum CHexeProcess::GetStringFromDataBlock (int iID)
 
 	{
 	return m_pCodeBank->GetDatumFromID(iID);
+	}
+
+CDatum CHexeProcess::GetVMInfo () const
+
+//	GetVMInfo
+//
+//	Returns VM status.
+
+	{
+	CDatum dResult(CDatum::typeStruct);
+	dResult.SetElement(FIELD_STACK_LEVEL, m_Stack.GetCount());
+	dResult.SetElement(FIELD_AEON_TYPES, CAEONTypes::GetCount());
+
+	return dResult;
 	}
 
 bool CHexeProcess::InitFrom (const CHexeProcess &Process, CString *retsError)
@@ -157,7 +223,7 @@ bool CHexeProcess::InitFrom (const CHexeProcess &Process, CString *retsError)
 	CHexeGlobalEnvironment *pSrcGlobalEnv = CHexeGlobalEnvironment::Upconvert(Process.m_dGlobalEnv);
 	if (pSrcGlobalEnv)
 		{
-		CHexeGlobalEnvironment *pGlobalEnv = new CHexeGlobalEnvironment(pSrcGlobalEnv);
+		CHexeGlobalEnvironment *pGlobalEnv = new CHexeGlobalEnvironment(*pSrcGlobalEnv);
 		m_dGlobalEnv = CDatum(pGlobalEnv);
 		}
 
@@ -179,17 +245,54 @@ bool CHexeProcess::InitFrom (CDatum dSerialized, CString *retsError)
 	CDatum dLibraries = dSerialized.GetElement(FIELD_LIBRARIES);
 	for (int i = 0; i < dLibraries.GetCount(); i++)
 		{
-		if (!LoadLibrary(dLibraries.GetElement(i), retsError))
+		if (!LoadLibrary(dLibraries.GetElement(i).AsStringView(), retsError))
 			return false;
 		}
 
-	m_dwMaxExecutionTime = dSerialized.GetElement(FIELD_MAX_EXECUTION_TIME);
-	m_dwAbortTime = dSerialized.GetElement(FIELD_ABORT_TIME);
+	m_Limits = InitLimitsFromDatum(dSerialized.GetElement(FIELD_LIMITS));
 	m_bAddConcatenatesStrings = !dSerialized.GetElement(FIELD_ADD_CONCATENATES_STRINGS).IsNil();
+
+	//	If we have maxExecutionTime, then this is a backwards compatible process.
+
+	CDatum dMaxExecutionTime = dSerialized.GetElement(FIELD_MAX_EXECUTION_TIME);
+	if (!dMaxExecutionTime.IsNil())
+		{
+		m_Limits.iMaxExecutionTimeSec = ((int)dMaxExecutionTime) / 1000;
+		}
+
+	//	If we have an abort time, then we convert to an absolute time.
+
+	DWORDLONG dwNow = sysGetTickCount64();
+	DWORDLONG dwAbortTime = dSerialized.GetElement(FIELD_ABORT_TIME);
+	if (dwAbortTime > 0)
+		m_dwAbortTime = dwNow + dwAbortTime;
 
 	//	Success!
 
 	return true;
+	}
+
+IInvokeCtx::SLimits CHexeProcess::InitLimitsFromDatum (CDatum dData)
+
+//	InitFromDatum
+//
+//	Intialize limits structure from datum.
+
+	{
+	IInvokeCtx::SLimits Limits;
+
+	if (!dData.IsNil())
+		{
+		Limits.iMaxArrayLen = dData.GetElement(1);
+		Limits.iMaxExecutionTimeSec = dData.GetElement(2);
+		Limits.iMaxStackDepth = dData.GetElement(3);
+		Limits.iMaxStringSize = dData.GetElement(4);
+		Limits.iMaxBufferSize = dData.GetElement(5);
+		if (Limits.iMaxBufferSize == 0)
+			Limits.iMaxBufferSize = 100'000'000;	//	Default for backwards compatibility
+		}
+
+	return Limits;
 	}
 
 void CHexeProcess::InitGlobalEnv (CHexeGlobalEnvironment **retpGlobalEnv)
@@ -204,8 +307,8 @@ void CHexeProcess::InitGlobalEnv (CHexeGlobalEnvironment **retpGlobalEnv)
 		CHexeGlobalEnvironment *pGlobalEnv = new CHexeGlobalEnvironment;
 		m_dGlobalEnv = CDatum(pGlobalEnv);
 
-		m_pCurGlobalEnv = pGlobalEnv;
-		m_dCurGlobalEnv = m_dGlobalEnv;
+		m_Env.SetGlobalEnv(m_dGlobalEnv, pGlobalEnv);
+		m_GlobalEnvCache.DeleteAll();
 
 		if (retpGlobalEnv)
 			*retpGlobalEnv = pGlobalEnv;
@@ -299,7 +402,8 @@ bool CHexeProcess::LoadHexeDefinitions (const TArray<CDatum> &Definitions, CStri
 				break;
 
 			case ERun::Error:
-				*retsError = dResult;
+			case ERun::ForcedTerminate:
+				*retsError = dResult.AsStringView();
 				return false;
 
 			case ERun::AsyncRequest:
@@ -340,7 +444,7 @@ bool CHexeProcess::LoadLibrary (const CString &sName, CString *retsError)
 		CDatum dFunction;
 		const CString &sFunction = g_HexeLibrarian.GetEntry(dwLibraryID, i, &dFunction);
 
-		m_pCurGlobalEnv->SetAt(sFunction, dFunction);
+		m_Env.GetGlobalEnv().SetAt(sFunction, dFunction);
 		}
 
 	return true;
@@ -377,12 +481,7 @@ void CHexeProcess::Mark (void)
 	m_Types.Mark();
 
 	m_dGlobalEnv.Mark();
-	m_dCurGlobalEnv.Mark();
-
-	m_dLocalEnv.Mark();
-	m_LocalEnvStack.Mark();
-
-//	m_dSecurityCtx.Mark();
+	m_Env.Mark();
 	}
 
 CHexeProcess::ERun CHexeProcess::Run (const CString &sExpression, CDatum *retdResult)
@@ -480,6 +579,15 @@ CHexeProcess::ERun CHexeProcess::RunContinues (CDatum dAsyncResult, CDatum *retR
 		return ERun::Error;
 		}
 
+	//	If in an event handler, then we're done.
+
+	if (m_iEventHandlerLevel == -1)
+		{
+		*retResult = dAsyncResult;
+		m_iEventHandlerLevel = 0;
+		return ERun::EventHandlerDone;
+		}
+
 	//	Push the result on the stack
 
 	m_Stack.Push(dAsyncResult);
@@ -553,67 +661,122 @@ CHexeProcess::ERun CHexeProcess::RunEventHandler (CDatum dFunc, const TArray<CDa
 
 	CDatum dNewCodeBank;
 	DWORD *pNewIP;
-	if (dFunc.GetCallInfo(&dNewCodeBank, &pNewIP) != CDatum::ECallType::Call)
+	CDatum::ECallType iFuncType = dFunc.GetCallInfo(&dNewCodeBank, &pNewIP);
+	switch (iFuncType)
 		{
-		retResult = CDatum::CreateError(ERR_INVALID_EVENT_HANDLER);
-		return ERun::Error;
+		case CDatum::ECallType::Call:
+		case CDatum::ECallType::CachedCall:
+			{
+			//	This in the call stack so that we know what to do when we return.
+
+			m_CallStack.PushSysCall(m_dExpression, m_dCodeBank, m_pIP, m_dExpression, TYPE_EVENT_HANDLER_CALL, 0);
+
+			//	Set up environment
+
+			m_Env.PushNewFrame();
+
+			for (int i = 0; i < Args.GetCount(); i++)
+				m_Env.GetLocalEnv().SetArgumentValue(0, i, Args[i]);
+
+			//	Make the call
+
+			m_dExpression = dFunc;
+			SetCodeBank(dNewCodeBank);
+
+			m_pIP = pNewIP;
+
+			//	Remember that we're in an event handler.
+
+			m_iEventHandlerLevel++;
+
+			//	Progress
+
+			if (m_pComputeProgress)
+				m_pComputeProgress->OnStart();
+
+			//	Run
+
+			ERun iRun;
+			try
+				{
+				iRun = Execute(&retResult);
+				}
+			catch (...)
+				{
+				retResult = strPattern(ERR_COMPUTE_CRASH);
+				return ERun::Error;
+				}
+
+			if (m_pComputeProgress)
+				m_pComputeProgress->OnStop();
+
+			return iRun;
+			}
+
+		case CDatum::ECallType::Library:
+			{
+			//	Set up environment
+
+			m_Env.PushNewFrame();
+
+			for (int i = 0; i < Args.GetCount(); i++)
+				m_Env.GetLocalEnv().SetArgumentValue(0, i, Args[i]);
+
+			//	Make the call
+
+			DWORDLONG dwStart = ::sysGetTickCount64();
+
+			SAEONInvokeResult Result;
+			CDatum::InvokeResult iResult = dFunc.Invoke(this, m_Env.GetLocalEnv(), m_UserSecurity.GetExecutionRights(), Result);
+
+			m_dwLibraryTime += ::sysGetTickCount64() - dwStart;
+
+			//	Remember that we're in an event handler.
+
+			m_iEventHandlerLevel = -1;	//	-1 means a library call
+
+			if (iResult != CDatum::InvokeResult::ok)
+				return ExecuteHandleInvokeResult(iResult, dFunc, Result, &retResult, FLAG_NO_ADVANCE);
+
+			//	Restore the environment
+
+			m_Env.PopFrame();
+
+			//	Done
+
+			m_iEventHandlerLevel = 0;
+			retResult = Result.dResult;
+			return ERun::EventHandlerDone;
+			}
+
+		default:
+			retResult = CDatum::CreateError(ERR_INVALID_EVENT_HANDLER);
+			return ERun::Error;
 		}
+	}
 
-	//	Encode everything we need to save into the code bank
-	//	datum (we unpack it in opReturn).
+CHexeProcess::ERun CHexeProcess::RunEntryPoint (CStringView sEntryPoint, const TArray<CDatum>& Args, CDatum& retResult)
 
-	CDatum dSpecial(CDatum::typeArray);
-	dSpecial.Append(TYPE_EVENT_HANDLER_CALL);
-	dSpecial.Append(m_dExpression);
-	dSpecial.Append(m_dCodeBank);
+//	RunEntryPoint
+//
+//	Runs the given function by name.
 
-	//	This in the call stack so that we know what to do when we return.
+	{
+	//	First we generate code to call the function
 
-	m_CallStack.Save(m_dExpression, dSpecial, m_pIP);
+	CDatum dExpression;
+	CHexeCode::CreateFunctionCall(sEntryPoint, Args.GetCount(), dExpression);
 
-	//	Set up environment
+	//	Set up the stack. The function goes first followed by the args
 
-	m_LocalEnvStack.Save(m_dCurGlobalEnv, m_pCurGlobalEnv, m_dLocalEnv, m_pLocalEnv);
-	m_pLocalEnv = new CHexeLocalEnvironment;
-	m_dLocalEnv = CDatum(m_pLocalEnv);
+	m_Stack.DeleteAll();
 
 	for (int i = 0; i < Args.GetCount(); i++)
-		m_pLocalEnv->SetArgumentValue(0, i, Args[i]);
+		m_Stack.Push(Args[i]);
 
-	//	Make the call
+	//	Now call the function
 
-	m_dExpression = dFunc;
-	m_dCodeBank = dNewCodeBank;
-	m_pCodeBank = CHexeCode::Upconvert(m_dCodeBank);
-
-	m_pIP = pNewIP;
-
-	//	Remember that we're in an event handler.
-
-	m_iEventHandlerLevel++;
-
-	//	Progress
-
-	if (m_pComputeProgress)
-		m_pComputeProgress->OnStart();
-
-	//	Run
-
-	ERun iRun;
-	try
-		{
-		iRun = Execute(&retResult);
-		}
-	catch (...)
-		{
-		retResult = strPattern(ERR_COMPUTE_CRASH);
-		return ERun::Error;
-		}
-
-	if (m_pComputeProgress)
-		m_pComputeProgress->OnStop();
-
-	return iRun;
+	return RunWithStack(dExpression, &retResult);
 	}
 
 CHexeProcess::ERun CHexeProcess::RunWithStack (CDatum dExpression, CDatum *retResult)
@@ -628,7 +791,7 @@ CHexeProcess::ERun CHexeProcess::RunWithStack (CDatum dExpression, CDatum *retRe
 
 	m_dExpression = dExpression;
 	m_CallStack.DeleteAll();
-	m_LocalEnvStack.DeleteAll();
+	m_Env.DeleteAll();
 
 	//	Initialize the instruction pointer
 
@@ -639,15 +802,15 @@ CHexeProcess::ERun CHexeProcess::RunWithStack (CDatum dExpression, CDatum *retRe
 		return ERun::Error;
 		}
 
-	m_pIP = pExpression->GetCode(&m_dCodeBank);
+	CDatum dCodeBank;
+	m_pIP = pExpression->GetCode(&dCodeBank);
 	if (m_pIP == NULL)
 		{
 		*retResult = strPattern(ERR_HEXE_CODE_EXPECTED, dExpression.AsString());
 		return ERun::Error;
 		}
 
-	m_pCodeBank = CHexeCode::Upconvert(m_dCodeBank);
-	if (m_pCodeBank == NULL)
+	if (!SetCodeBank(dCodeBank))
 		{
 		*retResult = strPattern(ERR_HEXE_CODE_EXPECTED, dExpression.AsString());
 		return ERun::Error;
@@ -656,11 +819,7 @@ CHexeProcess::ERun CHexeProcess::RunWithStack (CDatum dExpression, CDatum *retRe
 	//	Initialize the environment
 
 	InitGlobalEnv();
-	m_dCurGlobalEnv = m_dGlobalEnv;
-	m_pCurGlobalEnv = CHexeGlobalEnvironment::Upconvert(m_dGlobalEnv);
-
-	m_dLocalEnv = CDatum();
-	m_pLocalEnv = NULL;
+	m_Env.Init(m_dGlobalEnv);
 
 	//	Progress
 
@@ -703,14 +862,46 @@ CDatum CHexeProcess::Serialize () const
 
 	dResult.SetElement(FIELD_LIBRARIES, dLibraries);
 
-	dResult.SetElement(FIELD_MAX_EXECUTION_TIME, m_dwMaxExecutionTime);
-	dResult.SetElement(FIELD_ABORT_TIME, m_dwAbortTime);
+	dResult.SetElement(FIELD_LIMITS, AsDatum(m_Limits));
 	if (m_bAddConcatenatesStrings)
 		dResult.SetElement(FIELD_ADD_CONCATENATES_STRINGS, CDatum(true));
+
+	//	We serialize abort time as the number of milliseconds left in our 
+	//	execution quota.
+
+	if (m_dwAbortTime > 0)
+		{
+		//	NOTE: If for some reason we're past the abort time, then we just
+		//	serialize 1 second left.
+
+		DWORDLONG dwNow = ::sysGetTickCount64();
+		DWORDLONG dwTimeLeft = (m_dwAbortTime > dwNow ? m_dwAbortTime - dwNow : 1000);
+		dResult.SetElement(FIELD_ABORT_TIME, dwTimeLeft);
+		}
 
 	//	Done
 
 	return dResult;
+	}
+
+bool CHexeProcess::SetCodeBank (CDatum dCodeBank)
+
+//	SetCodeBank
+//
+//	Sets the new codebank
+
+	{
+	auto pCodeBank = CHexeCode::Upconvert(dCodeBank);
+	if (!pCodeBank)
+		return false;
+
+	if (pCodeBank != m_pCodeBank)
+		m_GlobalEnvCache.DeleteAll();
+
+	m_dCodeBank = dCodeBank;
+	m_pCodeBank = pCodeBank;
+
+	return true;
 	}
 
 void *CHexeProcess::SetLibraryCtx (const CString &sLibrary, void *pCtx)

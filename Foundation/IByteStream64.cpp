@@ -1,7 +1,7 @@
 //	IByteStream64.cpp
 //
 //	IByteStream64 class
-//	Copyright (c) 2017 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2017 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -147,6 +147,40 @@ void IByteStream64::WriteChar (char chChar, int iCount)
 				}
 			}
 		}
+	}
+
+void IByteStream64::WriteStreamDefault (IByteStream &Stream, int iLength)
+
+//	WriteStreamDefault
+//
+//	Writes from the given stream.
+
+	{
+	char *pBuffer = new char [BUFFER_SIZE];
+
+	try
+		{
+		int iLeftToWrite = iLength;
+
+		while (iLeftToWrite > 0)
+			{
+			int iWrite = Min((int)BUFFER_SIZE, iLeftToWrite);
+
+			Stream.Read(pBuffer, iWrite);
+			Write(pBuffer, iWrite);
+
+			iLeftToWrite -= iWrite;
+			}
+		}
+	catch (...)
+		{
+		delete [] pBuffer;
+		throw;
+		}
+
+	//	Done
+
+	delete [] pBuffer;
 	}
 
 void IByteStream64::WriteWithProgress (IByteStream &Stream, int iLength, IProgressEvents *pProgress)

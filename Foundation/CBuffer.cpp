@@ -1,7 +1,7 @@
 //	CBuffer.cpp
 //
 //	CBuffer class
-//	Copyright (c) 2010 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2010 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -54,6 +54,9 @@ CBuffer::CBuffer (CBuffer &&Src) noexcept
 
 	Src.m_pBuffer = NULL;
 	Src.m_bAllocated = false;
+	Src.m_iAllocation = 0;
+	Src.m_iLength = 0;
+	Src.Seek(0);
 	}
 
 CBuffer::~CBuffer (void)
@@ -76,6 +79,91 @@ CBuffer &CBuffer::operator= (const CBuffer &Src)
 	Copy(Src);
 
 	return *this;
+	}
+
+CBuffer& CBuffer::operator= (CBuffer &&Src) noexcept
+
+//	CBuffer move operator =
+
+	{
+	if (m_bAllocated)
+		delete [] m_pBuffer;
+
+	m_iLength = Src.m_iLength;
+	m_iAllocation = Src.m_iAllocation;
+	m_bAllocated = Src.m_bAllocated;
+	m_pBuffer = Src.m_pBuffer;
+
+	Src.m_pBuffer = NULL;
+	Src.m_bAllocated = false;
+	Src.m_iAllocation = 0;
+	Src.m_iLength = 0;
+	Src.Seek(0);
+
+	Seek(0);
+	return *this;
+	}
+
+CBuffer CBuffer::AsUTF8 (const IMemoryBlock& Stream)
+
+//	AsUTF8
+//
+//	If this buffer is a UTF-16 buffer, then we convert to UTF-8. Otherwise, we 
+//	return an empty buffer.
+
+	{
+	switch (Stream.ReadBOM())
+		{
+		case IByteStream::EBOM::UTF16LE:
+			{
+			//	Skip the BOM
+
+			const char* pStart = Stream.GetPointer() + 2;
+			int iLength = (Stream.GetLength() - 2) / sizeof(WORD);
+
+			CBuffer UTF8;
+
+			//	We optimistically assume that the UTF-8 buffer has 1 byte per 
+			//	character.
+
+			UTF8.m_iAllocation = iLength;
+			UTF8.m_iLength = UTF8.m_iAllocation;
+			UTF8.m_pBuffer = new char [UTF8.m_iAllocation];
+			UTF8.m_bAllocated = true;
+
+			int iResult = ::WideCharToMultiByte(CP_UTF8, 0, (LPCTSTR)pStart, iLength, UTF8.m_pBuffer, UTF8.m_iAllocation, NULL, NULL);
+
+			//	Deal with failure
+
+			if (iResult == 0)
+				{
+				if (::GetLastError() == ERROR_INSUFFICIENT_BUFFER)
+					{
+					//	Figure out how big the buffer should be and allocate appropriately
+					//	And redo the conversion.
+
+					int iNewBufferLen = ::WideCharToMultiByte(CP_UTF8, 0, (LPCTSTR)pStart, iLength, NULL, 0, NULL, NULL);
+					if (iNewBufferLen == 0)
+						return CBuffer();
+
+					delete [] UTF8.m_pBuffer;
+					UTF8.m_iAllocation = iNewBufferLen;
+					UTF8.m_iLength = UTF8.m_iAllocation;
+					UTF8.m_pBuffer = new char [iNewBufferLen];
+					iResult = ::WideCharToMultiByte(CP_UTF8, 0, (LPCTSTR)pStart, iLength, UTF8.m_pBuffer, UTF8.m_iAllocation, NULL, NULL);
+					}
+				else
+					{
+					return CBuffer();
+					}
+				}
+
+			return UTF8;
+			}
+		
+		default:
+			return CBuffer();
+		}
 	}
 
 void CBuffer::Copy (const CBuffer &Src)

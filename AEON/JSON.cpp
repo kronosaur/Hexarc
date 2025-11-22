@@ -1,7 +1,7 @@
 //	JSON.cpp
 //
 //	Methods for converting to/from JSON
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -36,11 +36,15 @@ class CJSONParser
 	};
 
 DECLARE_CONST_STRING(STR_AEON_SENTINEL,					"AEON2011:");
+DECLARE_CONST_STRING(TYPENAME_ENUM,						"enum");
+DECLARE_CONST_STRING(TYPENAME_HEXE_ERROR,				"hexeError")
 DECLARE_CONST_STRING(TYPENAME_IP_INTEGER,				"ipInteger");
 DECLARE_CONST_STRING(TYPENAME_TABLE_REF,				"tableRef");
 
 DECLARE_CONST_STRING(STR_INFINITY,						"\"Infinity\"");
 DECLARE_CONST_STRING(STR_NAN,							"[\"AEON2011:NaN\"]");
+
+DECLARE_CONST_STRING(ERR_INVALID_LITERAL,				"Invalid literal.");
 
 const int MAX_IN_MEMORY_SIZE =							4 * 1024 * 1024;
 
@@ -62,74 +66,78 @@ void CDatum::SerializeJSON (IByteStream &Stream) const
 //	Serializes to JSON
 
 	{
-	switch (m_dwData & AEON_TYPE_MASK)
+	switch (DecodeType(m_dwData))
 		{
-		case AEON_TYPE_STRING:
-			if (m_dwData == 0)
-				Stream.Write("null", 4);
-			else
-				{
-				Stream.Write("\"", 1);
-				raw_GetString().SerializeJSON(Stream);
-				Stream.Write("\"", 1);
-				}
+		case TYPE_NULL:
+			Stream.Write("null", 4);
 			break;
 
-		case AEON_TYPE_NUMBER:
-			switch (m_dwData & AEON_NUMBER_TYPE_MASK)
+		case TYPE_CONSTANTS:
+			{
+			switch (m_dwData)
 				{
-				case AEON_NUMBER_CONSTANT:
-					{
-					switch (m_dwData)
-						{
-						case CONST_NAN:
-							Stream.Write(STR_NAN);
-							break;
-							
-						case CONST_TRUE:
-							Stream.Write("true", 4);
-							break;
-
-						default:
-							ASSERT(false);
-						}
+				case VALUE_FALSE:
+					Stream.Write("false", 5);
 					break;
-					}
 
-				case AEON_NUMBER_INTEGER:
-					{
-					CString sInt = strFromInt((int)HIDWORD(m_dwData));
-					Stream.Write(sInt);
-					break;
-					}
-
-				case AEON_NUMBER_DOUBLE:
-					{
-					double rValue = raw_GetDouble();
-					if (isnan(rValue))
-						Stream.Write(STR_NAN);
-					else if (isinf(rValue))
-						Stream.Write(STR_INFINITY);
-					else
-						Stream.Write(strFromDouble(rValue));
-					break;
-					}
-
-				case AEON_NUMBER_ENUM:
-					SerializeEnum(EFormat::JSON, Stream);
+				case VALUE_TRUE:
+					Stream.Write("true", 4);
 					break;
 
 				default:
 					ASSERT(false);
+					break;
 				}
 			break;
+			}
 
-		case AEON_TYPE_COMPLEX:
-			raw_GetComplex()->Serialize(EFormat::JSON, Stream);
+		case TYPE_INT32:
+			{
+			CString sInt = strFromInt(DecodeInt32(m_dwData));
+			Stream.Write(sInt);
+			break;
+			}
+
+		case TYPE_ENUM:
+			SerializeEnum(EFormat::JSON, Stream);
+			break;
+
+		case TYPE_STRING:
+			{
+			Stream.Write("\"", 1);
+			DecodeString(m_dwData).SerializeJSON(Stream);
+			Stream.Write("\"", 1);
+			break;
+			}
+
+		case TYPE_COMPLEX:
+			DecodeComplex(m_dwData).Serialize(EFormat::JSON, Stream);
+			break;
+
+		case TYPE_ROW_REF:
+			CAEONRowRefImpl::Serialize(m_dwData, EFormat::JSON, Stream);
+			break;
+
+		case TYPE_NAN:
+			Stream.Write(STR_NAN);
+			break;
+
+		case TYPE_INFINITY_N:
+		case TYPE_INFINITY_P:
+			Stream.Write(STR_NAN);
 			break;
 
 		default:
-			ASSERT(false);
+			{
+			double rValue = DecodeDouble(m_dwData);
+			if (isnan(rValue))
+				Stream.Write(STR_NAN);
+			else if (isinf(rValue))
+				Stream.Write(STR_INFINITY);
+			else
+				Stream.Write(strFromDouble(rValue));
+			break;
+			}
 		}
 	}
 
@@ -166,78 +174,97 @@ CJSONParser::ETokens CJSONParser::ParseArray (CDatum *retDatum)
 
 			if (pArray->GetCount() == 0 
 					&& dElement.GetBasicType() == CDatum::typeString 
-					&& strStartsWith(dElement, STR_AEON_SENTINEL))
+					&& strStartsWith(dElement.AsStringView(), STR_AEON_SENTINEL))
 				{
 				//	Get the typename
 
-				char *pPos = ((const CString &)dElement).GetParsePointer() + STR_AEON_SENTINEL.GetLength();
-				char *pStart = pPos;
+				const char *pPos = dElement.AsStringView().GetParsePointer() + STR_AEON_SENTINEL.GetLength();
+				const char *pStart = pPos;
 				while (*pPos != ':' && *pPos != '\0')
 					pPos++;
 
+				CString sTypename(pStart, pPos - pStart);
 				if (*pPos == ':')
 					{
-					CString sTypename(pStart, pPos - pStart);
+					//	We no longer need the array because we will return a 
+					//	complex datum (or an error).
+
+					delete pArray;
+
+					//	Next token
+
+					iToken = ParseToken(&dElement);
+
+					//	The remaining elements are the data. Load them into an 
+					//	array.
+
+					TArray<CDatum> Serialized;
+					while (iToken != tkCloseBracket)
+						{
+						//	Skip commas
+
+						if (iToken == tkComma)
+							;
+
+						//	Elements
+
+						else if (iToken == tkDatum)
+							{
+							//	Add the element
+
+							Serialized.Insert(dElement);
+							}
+
+						//	Error
+
+						else
+							return tkError;
+
+						//	Next
+
+						iToken = ParseToken(&dElement);
+						}
 
 					//	Lookup the typename and create the proper complex datum
 
 					IComplexDatum *pDatum = NULL;
-					if (strEquals(sTypename, TYPENAME_IP_INTEGER))
+					if (strEquals(sTypename, TYPENAME_HEXE_ERROR))
+						pDatum = new CAEONError;
+					else if (strEquals(sTypename, TYPENAME_IP_INTEGER))
 						pDatum = new CComplexInteger;
 					else if (strEquals(sTypename, TYPENAME_TABLE_REF))
 						pDatum = new CAEONTable;
+					else if (strEquals(sTypename, TYPENAME_ENUM))
+						{
+						if (Serialized.GetCount() != 2)
+							return tkError;
+
+						if (!CDatum::DeserializeEnumFromJSON(Serialized[0].AsStringView(), Serialized[1].AsStringView(), *retDatum))
+							return tkError;
+
+						return tkDatum;
+						}
 					else
 						{
 						IComplexFactory *pFactory;
 						if (CDatum::FindExternalType(sTypename, &pFactory))
 							pDatum = pFactory->Create();
+						else
+							{
+							if (Serialized.GetCount() > 0)
+								{
+								*retDatum = CDatum(new CAEONForeign(sTypename, Serialized[0]));
+								return tkDatum;
+								}
+							else
+								return tkError;
+							}
 						}
 
-					//	Deserialize
+					//	Now pass the serialized data to the complex datum
 
 					if (pDatum)
 						{
-						//	We no longer need the array because we will return a 
-						//	complex datum (or an error).
-
-						delete pArray;
-
-						//	Next token
-
-						iToken = ParseToken(&dElement);
-
-						//	The remaining elements are the data.
-
-						TArray<CDatum> Serialized;
-						while (iToken != tkCloseBracket)
-							{
-							//	Skip commas
-
-							if (iToken == tkComma)
-								;
-
-							//	Elements
-
-							else if (iToken == tkDatum)
-								{
-								//	Add the element
-
-								Serialized.Insert(dElement);
-								}
-
-							//	Error
-
-							else
-								{
-								delete pDatum;
-								return tkError;
-								}
-
-							//	Next
-
-							iToken = ParseToken(&dElement);
-							}
-
 						//	Let the base class deserialize
 
 						if (!pDatum->DeserializeJSON(sTypename, Serialized))
@@ -251,6 +278,8 @@ CJSONParser::ETokens CJSONParser::ParseArray (CDatum *retDatum)
 						*retDatum = CDatum(pDatum);
 						return tkDatum;
 						}
+					else
+						return tkError;
 					}
 				}
 
@@ -338,7 +367,7 @@ CJSONParser::ETokens CJSONParser::ParseLiteral (CDatum *retDatum)
 					if (m_chChar == 'e')
 						{
 						m_chChar = ReadChar();
-						*retDatum = CDatum();
+						*retDatum = CDatum(false);
 						return tkDatum;
 						}
 					}
@@ -384,6 +413,7 @@ CJSONParser::ETokens CJSONParser::ParseLiteral (CDatum *retDatum)
 
 	//	Error
 
+	*retDatum = strPattern(ERR_INVALID_LITERAL);
 	return tkError;
 	}
 
@@ -518,7 +548,7 @@ CJSONParser::ETokens CJSONParser::ParseString (CDatum *retDatum)
 //	Parse a JSON string
 
 	{
-	CMemoryBuffer Stream(4096);
+	CStringBuffer Stream;
 	CComplexBinaryFile *pBigData = NULL;
 
 	//	Skip the open quote
@@ -527,14 +557,14 @@ CJSONParser::ETokens CJSONParser::ParseString (CDatum *retDatum)
 
 	//	Keep looping
 
-	while (m_chChar != '\"' && m_chChar != '\0')
+	while (m_chChar != '"' && m_chChar != '\0')
 		{
 		if (m_chChar == '\\')
 			{
 			m_chChar = ReadChar();
 			switch (m_chChar)
 				{
-				case '\"':
+				case '"':
 					Stream.Write("\"", 1);
 					break;
 
@@ -634,7 +664,7 @@ CJSONParser::ETokens CJSONParser::ParseString (CDatum *retDatum)
 		*retDatum = CDatum(pBigData);
 		}
 	else
-		*retDatum = CDatum(CString(Stream.GetPointer(), Stream.GetLength()));
+		*retDatum = CDatum(std::move(Stream));
 
 	return tkDatum;
 	}
@@ -688,7 +718,7 @@ CJSONParser::ETokens CJSONParser::ParseStruct (CDatum *retDatum)
 
 			//	Add
 
-			pStruct->SetElement(dElement, dValue);
+			pStruct->SetElement(dElement.AsStringView(), dValue);
 			}
 		else
 			{
@@ -749,7 +779,7 @@ CJSONParser::ETokens CJSONParser::ParseToken (CDatum *retDatum)
 			m_chChar = ReadChar();
 			return tkComma;
 
-		case '\"':
+		case '"':
 			return ParseString(retDatum);
 
 		default:

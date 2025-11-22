@@ -1,7 +1,7 @@
 //	FoundationStreams.h
 //
 //	Foundation header file
-//	Copyright (c) 2019 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2019 by GridWhale Corporation. All Rights Reserved.
 //
 //	USAGE
 //

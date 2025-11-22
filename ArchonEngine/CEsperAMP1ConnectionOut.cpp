@@ -1,7 +1,7 @@
 //	CEsperAMP1ConnectionOut.cpp
 //
 //	CEsperAMP1ConnectionOut class
-//	Copyright (c) 2015 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2015 by GridWhale Corporation. All Rights Reserved.
 //
 //	See CEsperAMP1ConnectionIn for a description of the AMP1 protocol.
 
@@ -155,26 +155,15 @@ bool CEsperAMP1ConnectionOut::BeginAMP1Request (const SArchonMessage &Msg, const
 	return true;
 	}
 
-void CEsperAMP1ConnectionOut::ClearBusy (void)
+void CEsperAMP1ConnectionOut::DeleteConnection ()
 
-//	SetBusy
+//	DeleteConnection
 //
-//	Clears the busy mode flag. Callers must guarantee synchronization (e.g., via manager lock).
+//	Delete the connection.
 
 	{
-	if (IsDeleted())
-		return;
-
-	switch (m_iState)
-		{
-		case stateConnectedBusy:
-			m_iState = stateConnected;
-			break;
-
-		case stateDisconnectedBusy:
-			m_iState = stateDisconnected;
-			break;
-		}
+	m_iState = stateDisconnected;
+	SetMarkedForDelete();
 	}
 
 CDatum CEsperAMP1ConnectionOut::GetProperty (const CString &sProperty) const
@@ -190,7 +179,7 @@ CDatum CEsperAMP1ConnectionOut::GetProperty (const CString &sProperty) const
 		return CDatum();
 	}
 
-void CEsperAMP1ConnectionOut::OnSocketOperationComplete (EOperations iOp, DWORD dwBytesTransferred)
+void CEsperAMP1ConnectionOut::OnSocketOperationComplete (EOperation iOp, DWORD dwBytesTransferred)
 
 //	OnSocketOperationComplete
 //
@@ -236,7 +225,7 @@ void CEsperAMP1ConnectionOut::OnSocketOperationComplete (EOperations iOp, DWORD 
 		case stateWaitForAuthResponse:
 			{
 #ifdef DEBUG_SOCKET_OPS
-			m_Manager.LogTrace(strPattern("[%x] Received %d bytes.", CEsperInterface::ConnectionToFriendlyID(GetID()), GetBuffer()->GetLength()));
+			m_Manager.LogTrace(strPattern("[%x] Received %d bytes.", CEsperInterface::ConnectionToFriendlyID(GetID()), GetReadBuffer()->GetLength()));
 #endif
 			//	Now send the actual request
 
@@ -258,7 +247,7 @@ void CEsperAMP1ConnectionOut::OnSocketOperationComplete (EOperations iOp, DWORD 
 		case stateWaitForResponse:
 			{
 #ifdef DEBUG_SOCKET_OPS
-			m_Manager.LogTrace(strPattern("[%x] Received %d bytes.", CEsperInterface::ConnectionToFriendlyID(GetID()), GetBuffer()->GetLength()));
+			m_Manager.LogTrace(strPattern("[%x] Received %d bytes.", CEsperInterface::ConnectionToFriendlyID(GetID()), GetReadBuffer()->GetLength()));
 #endif
 			//	Process message
 			//	LATER: Parse the response and see if it's an error.
@@ -268,13 +257,13 @@ void CEsperAMP1ConnectionOut::OnSocketOperationComplete (EOperations iOp, DWORD 
 			m_Manager.SendMessageReply(MSG_OK, CDatum(), m_Msg);
 
 			if (m_bDeleteWhenDone)
-				m_Manager.DeleteConnection(CDatum(GetID()));
+				DeleteConnection();
 			break;
 			}
 		}
 	}
 
-void CEsperAMP1ConnectionOut::OnSocketOperationFailed (EOperations iOp)
+void CEsperAMP1ConnectionOut::OnSocketOperationFailed (EOperation iOp, CStringView sError)
 
 //	OnSocketOperationFailed
 //
@@ -294,7 +283,7 @@ void CEsperAMP1ConnectionOut::OnSocketOperationFailed (EOperations iOp)
 			m_Manager.LogTrace(strPattern("[%x] Disconnect on failure", CEsperInterface::ConnectionToFriendlyID(CDatum(GetID()))));
 			m_sLastResult = ERR_LOST_CONNECTION;
 			m_Manager.SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, ERR_LOST_CONNECTION, m_Msg);
-			m_Manager.DeleteConnection(CDatum(GetID()));
+			DeleteConnection();
 			break;
 		}
 	}
@@ -435,7 +424,7 @@ bool CEsperAMP1ConnectionOut::OpTransmissionFailed (const CString &sError)
 #ifdef DEBUG_SOCKET_OPS
 		m_Manager.LogTrace(strPattern("[%x] Deleting connection.", CEsperInterface::ConnectionToFriendlyID(CDatum(GetID()))));
 #endif
-		m_Manager.DeleteConnection(CDatum(GetID()));
+		DeleteConnection();
 		return false;
 		}
 	}
@@ -536,7 +525,7 @@ bool CEsperAMP1ConnectionOut::SerializeAMP1Request (const CString &sCommand, CDa
 	return true;
 	}
 
-bool CEsperAMP1ConnectionOut::SetBusy (void)
+bool CEsperAMP1ConnectionOut::SetBusy (EOperation iOperation)
 
 //	SetBusy
 //

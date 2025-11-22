@@ -5,6 +5,7 @@
 
 #include "stdafx.h"
 
+#if 0
 CReaderWriterSemaphore::CReaderWriterSemaphore (int iMaxReaders) :
 		m_iMaxReaders(iMaxReaders)
 
@@ -60,3 +61,4 @@ void CReaderWriterSemaphore::UnlockWriter (void)
 	{
 	::ReleaseSemaphore(m_hSem, m_iMaxReaders, NULL);
 	}
+#endif

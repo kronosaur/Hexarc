@@ -1,7 +1,7 @@
 //	CMessageQueue.cpp
 //
 //	CMessageQueue class
-//	Copyright (c) 2010 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2010 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -54,8 +54,10 @@ void CMessageQueue::Mark (void)
 //	Mark all AEON data in use
 
 	{
-	int i;
+	DEBUG_TRY
 
-	for (i = 0; i < m_Queue.GetCount(); i++)
+	for (int i = 0; i < m_Queue.GetCount(); i++)
 		m_Queue[i].dPayload.Mark();
+
+	DEBUG_CATCH
 	}

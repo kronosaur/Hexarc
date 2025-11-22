@@ -1,7 +1,7 @@
 //	CCircularBuffer.cpp
 //
 //	CCircularBuffer class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 //
 //	m_iReadPos points to the character to read next
 //	m_iWritePos points to the location to write next

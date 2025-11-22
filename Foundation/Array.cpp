@@ -1,7 +1,7 @@
 //	Array.cpp
 //
 //	Array functions and classes
-//	Copyright (c) 2010 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2010 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -236,7 +236,7 @@ bool CArrayBase::Resize (int iNewSize, bool bPreserve, int iAllocQuantum)
 		{
 		//	Allocate a new block
 
-		int iNewAllocSize = AlignUp(iNewSize, iAllocQuantum);
+		int iNewAllocSize = Max(AlignUp(iNewSize, iAllocQuantum), 2 * GetSize());
 		Realloc(iNewAllocSize, bPreserve);
 
 		return true;

@@ -1,7 +1,7 @@
 //	HyperionServiceImpl.h
 //
 //	Hyperion Service Implementation
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #pragma once
 
@@ -76,7 +76,7 @@ class CAI1Service : public IHyperionService
 
 	protected:
 		//	IHyperionService
-		virtual CHyperionSession *OnCreateSessionObject (CHyperionEngine *pEngine, const CString &sListener, const CString &sProtocol, const CString &sSocket, const CString &sNetAddress) override { return new CAI1Session(pEngine, sListener, sSocket, sNetAddress); }
+		virtual CHyperionSession *OnCreateSessionObject (CHyperionEngine *pEngine, const CString &sListener, const CString &sProtocol, CDatum dSocket, const CString &sNetAddress) override { return new CAI1Session(pEngine, sListener, dSocket, sNetAddress); }
 		virtual bool OnInit (CDatum dServiceDef, const CHexeDocument &Package, CString *retsError) override;
 		virtual void OnInitProcess (CHexeProcess &Process) override { Process.InitFrom(m_ProcessTemplate); }
 		virtual bool OnIsListener (void) const override { return true; }
@@ -120,7 +120,9 @@ enum EHTTPProcessingStatus
 	pstatRPCReady,							//	Ctx.sRPCAddr and Ctx.RPCMsg initialized
 	pstatFilePathReady,						//	Ctx.sFilePath is a filepath to response
 	pstatFileDataReady,						//	Ctx.dFileData and Ctx.dFileDesc are valid
-	pstatFileError,							
+	pstatFileError,							//	Error getting file
+	pstatUpgradeToWebSocket,				//	Upgrade to web socket
+	pstatUpgradeToWebSocketNoOp,			//	Service already upgrades; done with session
 	};
 
 struct SHTTPRequestCtx
@@ -232,6 +234,7 @@ class CHTTPSession : public CHyperionSession
 		bool SendResponse (SHTTPRequestCtx &Ctx, const SArchonMessage &Msg, DWORD dwFlags = 0);
 		bool SendResponseChunk (const SArchonMessage &Msg, CHTTPMessage &Response);
 		bool SendRPC (SHTTPRequestCtx &Ctx);
+		bool SendRPCUpgradeWebSocket (SHTTPRequestCtx &Ctx);
 
 		State m_iState = State::unknown;		//	State of session
 		SHTTPRequestCtx m_Ctx;					//	Processing context
@@ -269,7 +272,7 @@ class CHTTPService : public IHyperionService
 			};
 
 		//	IHyperionService
-		virtual CHyperionSession *OnCreateSessionObject (CHyperionEngine *pEngine, const CString &sListener, const CString &sProtocol, const CString &sSocket, const CString &sNetAddress) override { return new CHTTPSession(pEngine, sListener, sProtocol, sSocket, sNetAddress); }
+		virtual CHyperionSession *OnCreateSessionObject (CHyperionEngine *pEngine, const CString &sListener, const CString &sProtocol, CDatum dSocket, const CString &sNetAddress) override { return new CHTTPSession(pEngine, sListener, sProtocol, dSocket, sNetAddress); }
 		virtual void OnGetListeners (TArray<SListenerDesc> &Listeners) const override;
 		virtual bool OnInit (CDatum dServiceDef, const CHexeDocument &Package, CString *retsError) override;
 		virtual bool OnIsListener (void) const override { return true; }
@@ -350,6 +353,24 @@ class CHTTPProxyService : public CHTTPService
 		DWORD m_dwDestPort;
 	};
 
+class CWebSocketService : public CHTTPService
+	{
+	protected:
+
+		//	CHTTPService
+
+		virtual bool OnHandleRequest (SHTTPRequestCtx &Ctx) override;
+		virtual bool OnHandleRPCResult (SHTTPRequestCtx &Ctx, const SArchonMessage &RPCResult) override;
+		virtual bool OnHTTPInit (CDatum dServiceDef, const CHexeDocument &Package, CString *retsError) override;
+
+	private:
+
+		CString GetAPI () const;
+
+		CString m_sConnectMsg;
+		TArray<CString> m_APIs;
+	};
+
 class CWWWService : public CHTTPService
 	{
 	protected:
@@ -370,6 +391,7 @@ class CWWWService : public CHTTPService
 
 		CHexeProcess m_ProcessTemplate;
 		TArray<CDatum> m_HexeDefinitions;
+		bool m_bSingleFile = false;
 	};
 
 //	Miscellaneous --------------------------------------------------------------

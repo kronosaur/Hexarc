@@ -1,7 +1,7 @@
 //	MsgFileDownload.cpp
 //
 //	Hyperion.fileDownload
-//	Copyright (c) 2018 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2018 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -86,7 +86,7 @@ void CHyperionEngine::MsgFileDownload (const SArchonMessage &Msg, const CHexeSec
 
 	//	Get parameters
 
-	CString sFilePath = Msg.dPayload.GetElement(0);
+	CStringView sFilePath = Msg.dPayload.GetElement(0);
 	CDatum dFileDownloadDesc = Msg.dPayload.GetElement(1);
 	if (sFilePath.IsEmpty())
 		{
@@ -98,7 +98,7 @@ void CHyperionEngine::MsgFileDownload (const SArchonMessage &Msg, const CHexeSec
 
 	CString sTable;
 	CString sFilespec;
-	if (!CAeonInterface::ParseTableFilePath(Msg.dPayload.GetElement(0), &sTable, &sFilespec, &sError))
+	if (!CAeonInterface::ParseTableFilePath(Msg.dPayload.GetElement(0).AsStringView(), &sTable, &sFilespec, &sError))
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_PARSING_FILE_PATH, sError), Msg);
 		return;
@@ -189,7 +189,7 @@ bool CFileDownloadSession::ParseSingleTransform (CDatum dTrans, TArray<STransfor
 
 	//	Parse the type
 
-	const CString &sType = dTrans.GetElement(FIELD_TYPE);
+	CStringView sType = dTrans.GetElement(FIELD_TYPE);
 	if (strEquals(sType, TYPE_RESIZE))
 		NewTrans.iType = transResize;
 	else
@@ -262,7 +262,7 @@ bool CFileDownloadSession::ProcessResize (CDatum dFileDesc, CDatum dData, int cx
 //	Resize an image file.
 
 	{
-	const CString &sFilePath = dFileDesc.GetElement(FIELD_FILE_PATH);
+	CStringView sFilePath = dFileDesc.GetElement(FIELD_FILE_PATH);
 
 	//	Check inputs
 
@@ -284,7 +284,7 @@ bool CFileDownloadSession::ProcessResize (CDatum dFileDesc, CDatum dData, int cx
 	//	Load the image
 
 	CRGBA32Image Image;
-	CBuffer ImageData((const CString &)dData);
+	CBuffer ImageData(dData.AsStringView());
 	if (!CImageLoader::Load(ImageData, iFormat, Image, retsError))
 		return false;
 

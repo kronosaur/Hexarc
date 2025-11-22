@@ -1,7 +1,7 @@
 //	FoundationHashMaps.h
 //
 //	Foundation header file
-//	Copyright (c) 2017 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2017 by GridWhale Corporation. All Rights Reserved.
 //
 //	USAGE
 //
@@ -144,7 +144,7 @@ template <class KEY, class VALUE, class HASH = THash<KEY>> class THashMap
 					return NULL;
 				else if (pExtra == ONE_ENTRY)
 					{
-					if (KeyCompare(Key, KeyArg) == 0)
+					if (CKeyCompare::Compare(Key, KeyArg) == 0)
 						return &Value;
 					else
 						return NULL;
@@ -159,7 +159,7 @@ template <class KEY, class VALUE, class HASH = THash<KEY>> class THashMap
 					;
 				else if (pExtra == ONE_ENTRY)
 					{
-					if (KeyCompare(Key, KeyArg) == 0)
+					if (CKeyCompare::Compare(Key, KeyArg) == 0)
 						{
 						Key = KEY();
 						Value = VALUE();
@@ -182,7 +182,7 @@ template <class KEY, class VALUE, class HASH = THash<KEY>> class THashMap
 					}
 				else if (pExtra == ONE_ENTRY)
 					{
-					if (KeyCompare(Key, KeyArg) == 0)
+					if (CKeyCompare::Compare(Key, KeyArg) == 0)
 						{
 						if (retbInserted)
 							*retbInserted = false;

@@ -1,7 +1,7 @@
 //	ArchonSessionImpl.h
 //
 //	Session Implementations
-//	Copyright (c) 2012 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2012 by GridWhale Corporation. All Rights Reserved.
 //
 //	USAGE
 //

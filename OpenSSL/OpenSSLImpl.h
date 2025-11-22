@@ -1,12 +1,12 @@
 //	OpenSSLImpl.h
 //
 //	OpenSSL Classes and Utilities
-//	Copyright (c) 2013 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2013 by GridWhale Corporation. All Rights Reserved.
 
 #pragma once
 
-#include <openssl/ssl.h>
-#include <openssl/err.h>
+#include "openssl/ssl.h"
+#include "openssl/err.h"
 
 class CMemoryBIO
 	{

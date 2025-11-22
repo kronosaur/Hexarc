@@ -1,7 +1,7 @@
 //	CMessageDispatchSession.cpp
 //
 //	CMessageDispatchSession class
-//	Copyright (c) 2017 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2017 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -40,7 +40,7 @@ bool CMessageDispatchSession::OnProcessMessage (const SArchonMessage &Msg)
 			{
 			if (IsError(Msg))
 				{
-				SendMessageReplyError(Msg.sMsg, Msg.dPayload.GetElement(0));
+				SendMessageReplyError(Msg.sMsg, Msg.dPayload.GetElement(0).AsStringView());
 				return false;
 				}
 

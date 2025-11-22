@@ -1,7 +1,7 @@
 //	CMnemosynthEngine.cpp
 //
 //	CMnemosynthEngine class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -107,9 +107,9 @@ void CMnemosynthEngine::MsgRead (const SArchonMessage &Msg, const CHexeSecurityC
 //	Mnemosynth.read [{collection} [{key} [{module}]]]
 
 	{
-	const CString &sCollection = Msg.dPayload.GetElement(0);
-	const CString &sKey = Msg.dPayload.GetElement(1);
-	const CString &sModule = Msg.dPayload.GetElement(2);
+	CStringView sCollection = Msg.dPayload.GetElement(0);
+	CStringView sKey = Msg.dPayload.GetElement(1);
+	CStringView sModule = Msg.dPayload.GetElement(2);
 
 	//	If we have a module then redirect to the appropriate module.
 
@@ -180,7 +180,7 @@ void CMnemosynthEngine::NotifyOnArcologyUpdate (const CString &sAddress, DWORD d
 
 	//	Decode the payload
 
-	const CString &sReplyMsg = dPayload.GetElement(FIELD_REPLY_MSG);
+	CStringView sReplyMsg = dPayload.GetElement(FIELD_REPLY_MSG);
 	CDatum dWatermark = dPayload.GetElement(FIELD_WATERMARK);
 
 	//	Create a new notify entry
@@ -188,7 +188,7 @@ void CMnemosynthEngine::NotifyOnArcologyUpdate (const CString &sAddress, DWORD d
 	SArcologyCheckpoint *pEntry = m_ArcologyCheckpoints.Insert();
 	pEntry->dwID = m_dwNextID++;
 	pEntry->sAddress = sAddress;
-	pEntry->sMsg = (sReplyMsg.IsEmpty() ? MSG_MNEMOSYNTH_ON_ARCOLOGY_UPDATED : sReplyMsg);
+	pEntry->sMsg = (sReplyMsg.IsEmpty() ? MSG_MNEMOSYNTH_ON_ARCOLOGY_UPDATED : (const CString&)sReplyMsg);
 	pEntry->dwTicket = dwTicket;
 
 	//	Get the list of endpoints to send to.
@@ -246,14 +246,14 @@ void CMnemosynthEngine::NotifyOnEndpointUpdate (const CString &sAddress, DWORD d
 
 	//	Decode the payload
 
-	const CString &sReplyMsg = dPayload.GetElement(FIELD_REPLY_MSG);
+	CStringView sReplyMsg = dPayload.GetElement(FIELD_REPLY_MSG);
 	CDatum dWatermark = dPayload.GetElement(FIELD_WATERMARK);
 
 	//	Create a new notify entry
 
 	SLocalCheckpoint *pEntry = m_LocalCheckpoints.Insert();
 	pEntry->sAddress = sAddress;
-	pEntry->sMsg = (sReplyMsg.IsEmpty() ? MSG_MNEMOSYNTH_ON_ENDPOINT_UPDATED : sReplyMsg);
+	pEntry->sMsg = (sReplyMsg.IsEmpty() ? MSG_MNEMOSYNTH_ON_ENDPOINT_UPDATED : (const CString&)sReplyMsg);
 	pEntry->dwTicket = dwTicket;
 
 	//	Add all the endpoints to check
@@ -266,7 +266,7 @@ void CMnemosynthEngine::NotifyOnEndpointUpdate (const CString &sAddress, DWORD d
 		//	NOTE: It is OK if we can't find the endpoint yet. It just means
 		//	that we haven't gotten a replication.
 
-		const CString &sEndpoint = dEntry.GetElement(0);
+		CStringView sEndpoint = dEntry.GetElement(0);
 		DWORD dwEndpointID = m_pDb->GetEndpointID(sEndpoint);
 		MnemosynthSequence dwSeq = (MnemosynthSequence)dEntry.GetElement(1);
 

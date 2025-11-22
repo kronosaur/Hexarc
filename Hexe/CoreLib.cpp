@@ -1,11 +1,11 @@
 //	CoreLib.cpp
 //
 //	Core Library
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
-bool coreDateTime (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinueCtx, CDatum *retdResult);
+bool coreDateTime (IInvokeCtx *pCtx, DWORD dwData, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult);
 
 const DWORD DATETIME =									0;
 DECLARE_CONST_STRING(DATETIME_NAME,						"dateTime")
@@ -22,11 +22,11 @@ DECLARE_CONST_STRING(DATETIME_SPAN_NAME,				"dateTimeSpan")
 DECLARE_CONST_STRING(DATETIME_SPAN_ARGS,				"*")
 DECLARE_CONST_STRING(DATETIME_SPAN_HELP,				"(dateTimeSpan dateTime1 dateTime2) -> seconds from dt1 to dt2")
 
-bool coreLists (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinueCtx, CDatum *retdResult);
+bool coreLists (IInvokeCtx *pCtx, DWORD dwData, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult);
 
 const DWORD LIST_ITEM =									0;
 DECLARE_CONST_STRING(LIST_ITEM_NAME,					"@")
-DECLARE_CONST_STRING(LIST_ITEM_ARGS,					"li")
+DECLARE_CONST_STRING(LIST_ITEM_ARGS,					"*")
 DECLARE_CONST_STRING(LIST_ITEM_HELP,					"(@ list n) -> nth value in list")
 
 const DWORD LIST_APPEND =								1;
@@ -36,7 +36,7 @@ DECLARE_CONST_STRING(LIST_APPEND_HELP,					"(append list ...) -> list")
 
 const DWORD LIST_COUNT =								2;
 DECLARE_CONST_STRING(LIST_COUNT_NAME,					"count")
-DECLARE_CONST_STRING(LIST_COUNT_ARGS,					"v")
+DECLARE_CONST_STRING(LIST_COUNT_ARGS,					"*")
 DECLARE_CONST_STRING(LIST_COUNT_HELP,					"(count list) -> elements in list")
 
 const DWORD LIST_GROUP =								3;
@@ -46,7 +46,7 @@ DECLARE_CONST_STRING(LIST_GROUP_HELP,					"(group list count) -> list of lists")
 
 const DWORD LIST_ITEM2 =								4;
 DECLARE_CONST_STRING(LIST_ITEM2_NAME,					"item")
-DECLARE_CONST_STRING(LIST_ITEM2_ARGS,					"li")
+DECLARE_CONST_STRING(LIST_ITEM2_ARGS,					"*")
 DECLARE_CONST_STRING(LIST_ITEM2_HELP,					"Same as @")
 
 const DWORD LIST_LIST =									5;
@@ -74,114 +74,114 @@ DECLARE_CONST_STRING(LIST_STRUCT_NAME,					"struct")
 DECLARE_CONST_STRING(LIST_STRUCT_ARGS,					"*")
 DECLARE_CONST_STRING(LIST_STRUCT_HELP,					"(struct ...) -> struct")
 
-bool coreMath (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinueCtx, CDatum *retdResult);
+bool coreMath (IInvokeCtx *pCtx, DWORD dwData, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult);
 
 const DWORD MATH_ABS =									0;
 DECLARE_CONST_STRING(MATH_ABS_NAME,						"abs")
-DECLARE_CONST_STRING(MATH_ABS_ARGS,						"v")
+DECLARE_CONST_STRING(MATH_ABS_ARGS,						"*")
 DECLARE_CONST_STRING(MATH_ABS_HELP,						"(abs x) -> result")
 
 const DWORD MATH_ACOS =									1;
 DECLARE_CONST_STRING(MATH_ACOS_NAME,					"acos")
-DECLARE_CONST_STRING(MATH_ACOS_ARGS,					"v")
+DECLARE_CONST_STRING(MATH_ACOS_ARGS,					"*")
 DECLARE_CONST_STRING(MATH_ACOS_HELP,					"(acos x) -> result")
 
 const DWORD MATH_ASIN =									2;
 DECLARE_CONST_STRING(MATH_ASIN_NAME,					"asin")
-DECLARE_CONST_STRING(MATH_ASIN_ARGS,					"v")
+DECLARE_CONST_STRING(MATH_ASIN_ARGS,					"*")
 DECLARE_CONST_STRING(MATH_ASIN_HELP,					"(asin x) -> result")
 
 const DWORD MATH_ATAN =									3;
 DECLARE_CONST_STRING(MATH_ATAN_NAME,					"atan")
-DECLARE_CONST_STRING(MATH_ATAN_ARGS,					"v")
+DECLARE_CONST_STRING(MATH_ATAN_ARGS,					"*")
 DECLARE_CONST_STRING(MATH_ATAN_HELP,					"(atan x) -> result")
 
 const DWORD MATH_ATAN2 =								4;
 DECLARE_CONST_STRING(MATH_ATAN2_NAME,					"atan2")
-DECLARE_CONST_STRING(MATH_ATAN2_ARGS,					"v")
+DECLARE_CONST_STRING(MATH_ATAN2_ARGS,					"*")
 DECLARE_CONST_STRING(MATH_ATAN2_HELP,					"(atan2 y x) -> result")
 
 const DWORD MATH_CEIL =									5;
 DECLARE_CONST_STRING(MATH_CEIL_NAME,					"ceil")
-DECLARE_CONST_STRING(MATH_CEIL_ARGS,					"v")
+DECLARE_CONST_STRING(MATH_CEIL_ARGS,					"*")
 DECLARE_CONST_STRING(MATH_CEIL_HELP,					"(ceil x) -> result")
 
 const DWORD MATH_COS =									6;
 DECLARE_CONST_STRING(MATH_COS_NAME,						"cos")
-DECLARE_CONST_STRING(MATH_COS_ARGS,						"v")
+DECLARE_CONST_STRING(MATH_COS_ARGS,						"*")
 DECLARE_CONST_STRING(MATH_COS_HELP,						"(cos x) -> result")
 
 const DWORD MATH_EXP =									7;
 DECLARE_CONST_STRING(MATH_EXP_NAME,						"exp")
-DECLARE_CONST_STRING(MATH_EXP_ARGS,						"v")
+DECLARE_CONST_STRING(MATH_EXP_ARGS,						"*")
 DECLARE_CONST_STRING(MATH_EXP_HELP,						"(exp x) -> result")
 
 const DWORD MATH_FLOOR =								8;
 DECLARE_CONST_STRING(MATH_FLOOR_NAME,					"floor")
-DECLARE_CONST_STRING(MATH_FLOOR_ARGS,					"v")
+DECLARE_CONST_STRING(MATH_FLOOR_ARGS,					"*")
 DECLARE_CONST_STRING(MATH_FLOOR_HELP,					"(floor x) -> result")
 
 const DWORD MATH_DIGEST =								9;
 DECLARE_CONST_STRING(MATH_DIGEST_NAME,					"mathDigest")
-DECLARE_CONST_STRING(MATH_DIGEST_ARGS,					"v")
+DECLARE_CONST_STRING(MATH_DIGEST_ARGS,					"*")
 DECLARE_CONST_STRING(MATH_DIGEST_HELP,					"(mathDigest value) -> SHA1 digest")
 
 const DWORD MATH_INTIP_TO_INT32 =						10;
 DECLARE_CONST_STRING(MATH_INTIP_TO_INT32_NAME,			"mathIntIPToByteList")
-DECLARE_CONST_STRING(MATH_INTIP_TO_INT32_ARGS,			"v")
+DECLARE_CONST_STRING(MATH_INTIP_TO_INT32_ARGS,			"*")
 DECLARE_CONST_STRING(MATH_INTIP_TO_INT32_HELP,			"(mathIntIPToByteList intIP) -> list of 8-bit ints (big-endian)")
 
 const DWORD MATH_LOG =									11;
 DECLARE_CONST_STRING(MATH_LOG_NAME,						"log")
-DECLARE_CONST_STRING(MATH_LOG_ARGS,						"v")
+DECLARE_CONST_STRING(MATH_LOG_ARGS,						"*")
 DECLARE_CONST_STRING(MATH_LOG_HELP,						"(log x) -> result")
 
 const DWORD MATH_MAX =									12;
 DECLARE_CONST_STRING(MATH_MAX_NAME,						"max")
-DECLARE_CONST_STRING(MATH_MAX_ARGS,						"v")
+DECLARE_CONST_STRING(MATH_MAX_ARGS,						"*")
 DECLARE_CONST_STRING(MATH_MAX_HELP,						"(max x ...) -> result")
 
 const DWORD MATH_MIN =									13;
 DECLARE_CONST_STRING(MATH_MIN_NAME,						"min")
-DECLARE_CONST_STRING(MATH_MIN_ARGS,						"v")
+DECLARE_CONST_STRING(MATH_MIN_ARGS,						"*")
 DECLARE_CONST_STRING(MATH_MIN_HELP,						"(min x ...) -> result")
 
 const DWORD MATH_MOD =									14;
 DECLARE_CONST_STRING(MATH_MOD_NAME,						"mod")
-DECLARE_CONST_STRING(MATH_MOD_ARGS,						"v")
+DECLARE_CONST_STRING(MATH_MOD_ARGS,						"*")
 DECLARE_CONST_STRING(MATH_MOD_HELP,						"(mod x y) -> result")
 
 const DWORD MATH_POW =									15;
 DECLARE_CONST_STRING(MATH_POW_NAME,						"pow")
-DECLARE_CONST_STRING(MATH_POW_ARGS,						"v")
+DECLARE_CONST_STRING(MATH_POW_ARGS,						"*")
 DECLARE_CONST_STRING(MATH_POW_HELP,						"(pow x y) -> result")
 
 const DWORD MATH_RANDOM =								16;
 DECLARE_CONST_STRING(MATH_RANDOM_NAME,					"random")
-DECLARE_CONST_STRING(MATH_RANDOM_ARGS,					"v")
+DECLARE_CONST_STRING(MATH_RANDOM_ARGS,					"*")
 DECLARE_CONST_STRING(MATH_RANDOM_HELP,					"(random) -> 0 to 1.0")
 
 const DWORD MATH_ROUND =								17;
 DECLARE_CONST_STRING(MATH_ROUND_NAME,					"round")
-DECLARE_CONST_STRING(MATH_ROUND_ARGS,					"v")
+DECLARE_CONST_STRING(MATH_ROUND_ARGS,					"*")
 DECLARE_CONST_STRING(MATH_ROUND_HELP,					"(round x) -> result")
 
 const DWORD MATH_SIN =									18;
 DECLARE_CONST_STRING(MATH_SIN_NAME,						"sin")
-DECLARE_CONST_STRING(MATH_SIN_ARGS,						"v")
+DECLARE_CONST_STRING(MATH_SIN_ARGS,						"*")
 DECLARE_CONST_STRING(MATH_SIN_HELP,						"(sin x) -> result")
 
 const DWORD MATH_SQRT =									19;
 DECLARE_CONST_STRING(MATH_SQRT_NAME,					"sqrt")
-DECLARE_CONST_STRING(MATH_SQRT_ARGS,					"v")
+DECLARE_CONST_STRING(MATH_SQRT_ARGS,					"*")
 DECLARE_CONST_STRING(MATH_SQRT_HELP,					"(sqrt x) -> result")
 
 const DWORD MATH_TAN =									20;
 DECLARE_CONST_STRING(MATH_TAN_NAME,						"tan")
-DECLARE_CONST_STRING(MATH_TAN_ARGS,						"v")
+DECLARE_CONST_STRING(MATH_TAN_ARGS,						"*")
 DECLARE_CONST_STRING(MATH_TAN_HELP,						"(tan x) -> result")
 
-bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinueCtx, CDatum *retdResult);
+bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult);
 
 const DWORD STR_ASCII =									0;
 DECLARE_CONST_STRING(STR_ASCII_NAME,					"ascii")
@@ -278,11 +278,11 @@ DECLARE_CONST_STRING(STR_URL_PARAM_NAME,				"urlParam")
 DECLARE_CONST_STRING(STR_URL_PARAM_ARGS,				"*")
 DECLARE_CONST_STRING(STR_URL_PARAM_HELP,				"(urlParam string) -> string")
 
-bool coreSystem (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinueCtx, CDatum *retdResult);
+bool coreSystem (IInvokeCtx *pCtx, DWORD dwData, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult);
 
 const DWORD SYS_TICKS =									0;
 DECLARE_CONST_STRING(SYS_TICKS_NAME,					"sysTicks")
-DECLARE_CONST_STRING(SYS_TICKS_ARGS,					"-")
+DECLARE_CONST_STRING(SYS_TICKS_ARGS,					"*")
 DECLARE_CONST_STRING(SYS_TICKS_HELP,					"(sysTicks) -> milliseconds")
 
 DECLARE_CONST_STRING(DATE_TIME_NOW,						"now")
@@ -312,6 +312,7 @@ DECLARE_CONST_STRING(MAKE_TYPE_SEQUENCE,				"sequence")
 DECLARE_CONST_STRING(TYPE_BINARY,						"binary")
 DECLARE_CONST_STRING(TYPE_DATE_TIME,					"dateTime")
 DECLARE_CONST_STRING(TYPE_ERROR,						"error")
+DECLARE_CONST_STRING(TYPE_FALSE,						"false")
 DECLARE_CONST_STRING(TYPE_FUNCTION,						"function")
 DECLARE_CONST_STRING(TYPE_IMAGE32,						"image32")
 DECLARE_CONST_STRING(TYPE_INT32,						"int32")
@@ -343,6 +344,7 @@ DECLARE_CONST_STRING(ERR_LIST_EXPECTED,					"List expected: %s.")
 DECLARE_CONST_STRING(ERR_START_CANNOT_BE_NEGATIVE,		"Splice start must be non-negative.")
 
 bool GetStrSplitFlags (CDatum dArg, DWORD *retdwFlags);
+CDatum MinMaxOfList (CHexeStackEnv& LocalEnv, int iMinMax);
 CDatum MinMaxOfList (CDatum dList, int iMinMax);
 void WriteDatumToCat (CStringBuffer &Output, CDatum dDatum);
 void WriteHTMLContent (CStringBuffer &Output, CDatum dDatum);
@@ -415,32 +417,32 @@ const int g_iCoreLibraryDefCount = SIZEOF_STATIC_ARRAY(g_CoreLibraryDef);
 
 //	Implementations ------------------------------------------------------------
 
-bool coreDateTime (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinueCtx, CDatum *retdResult)
+bool coreDateTime (IInvokeCtx *pCtx, DWORD dwData, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 	{
 	switch (dwData)
 		{
 		case DATETIME:
 			{
-			const CString &sArg = dLocalEnv.GetElement(0);
+			CStringView sArg = LocalEnv.GetArgument(0);
 
 			//	If already a datetime, nothing to do
 
-			if (dLocalEnv.GetElement(0).GetBasicType() == CDatum::typeDateTime)
-				*retdResult = dLocalEnv.GetElement(0);
+			if (LocalEnv.GetArgument(0).GetBasicType() == CDatum::typeDateTime)
+				retResult.dResult = LocalEnv.GetArgument(0);
 
 			//	Handle some special constants
 
 			else if (strEquals(sArg, DATE_TIME_NOW))
-				*retdResult = CDatum(CDateTime(CDateTime::Now));
+				retResult.dResult = CDatum(CDateTime(CDateTime::Now));
 
 			//	If a string, convert to date time
 
-			else if (dLocalEnv.GetElement(0).GetBasicType() == CDatum::typeString)
-				*retdResult = CDatum(CDatum::typeDateTime, sArg);
+			else if (LocalEnv.GetArgument(0).GetBasicType() == CDatum::typeString)
+				retResult.dResult = CDatum(CDatum::typeDateTime, sArg);
 
 			else
 				{
-				CHexeError::Create(NULL_STR, strPattern(ERR_INVALID_PARAMETER, sArg), retdResult);
+				CHexeError::Create(NULL_STR, strPattern(ERR_INVALID_PARAMETER, sArg), &retResult.dResult);
 				return false;
 				}
 
@@ -458,34 +460,34 @@ bool coreDateTime (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCon
 			//	shortDateOnly
 			//	shortDateTime
 
-			CDateTime DateTime = dLocalEnv.GetElement(0).AsDateTime();
-			const CString &sFormat = strToLower(dLocalEnv.GetElement(1));
+			CDateTime DateTime = LocalEnv.GetArgument(0).AsDateTime();
+			CString sFormat = strToLower(LocalEnv.GetArgument(1).AsStringView());
 
 			if (!DateTime.IsValid())
 				{
-				*retdResult = CDatum();
+				retResult.dResult = CDatum();
 				return true;
 				}
 
 			//	Format
 
 			if (strEquals(sFormat, FORMAT_DATE_TIME))
-				*retdResult = CDatum(DateTime.Format(CDateTime::dfLong, CDateTime::tfLong));
+				retResult.dResult = CDatum(DateTime.Format(CDateTime::dfLong, CDateTime::tfLong));
 			else if (strEquals(sFormat, FORMAT_DATE_ONLY))
-				*retdResult = CDatum(DateTime.Format(CDateTime::dfLong, CDateTime::tfNone));
+				retResult.dResult = CDatum(DateTime.Format(CDateTime::dfLong, CDateTime::tfNone));
 			else if (strEquals(sFormat, FORMAT_INTERNET))
-				*retdResult = CDatum(DateTime.FormatIMF());
+				retResult.dResult = CDatum(DateTime.FormatIMF());
 			else if (strEquals(sFormat, FORMAT_RELATIVE))
-				*retdResult = CDatum(DateTime.Format(CDateTime::dfRelative, CDateTime::tfNone));
+				retResult.dResult = CDatum(DateTime.Format(CDateTime::dfRelative, CDateTime::tfNone));
 			else if (strEquals(sFormat, FORMAT_SHORT_DATE_ONLY))
-				*retdResult = CDatum(DateTime.Format(CDateTime::dfShort, CDateTime::tfNone));
+				retResult.dResult = CDatum(DateTime.Format(CDateTime::dfShort, CDateTime::tfNone));
 			else if (strEquals(sFormat, FORMAT_SHORT_DATE_TIME))
-				*retdResult = CDatum(DateTime.Format(CDateTime::dfShort, CDateTime::tfShort));
+				retResult.dResult = CDatum(DateTime.Format(CDateTime::dfShort, CDateTime::tfShort));
 			else if (strEquals(sFormat, FORMAT_SHORT_DATE_TIME24))
-				*retdResult = CDatum(DateTime.Format(CDateTime::dfShort, CDateTime::tfShort24));
+				retResult.dResult = CDatum(DateTime.Format(CDateTime::dfShort, CDateTime::tfShort24));
 			else
 				{
-				CHexeError::Create(NULL_STR, strPattern(ERR_INVALID_DATETIME_FORMAT, sFormat), retdResult);
+				CHexeError::Create(NULL_STR, strPattern(ERR_INVALID_DATETIME_FORMAT, sFormat), &retResult.dResult);
 				return false;
 				}
 
@@ -497,19 +499,19 @@ bool coreDateTime (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCon
 			//	If the second parameter is a number, then we generate a date
 			//	from a date and offset.
 
-			if (dLocalEnv.GetElement(1).IsNumber())
+			if (LocalEnv.GetArgument(1).IsNumber())
 				{
-				CDateTime DT1 = dLocalEnv.GetElement(0).AsDateTime();
+				CDateTime DT1 = LocalEnv.GetArgument(0).AsDateTime();
 				if (!DT1.IsValid())
 					{
-					*retdResult = CDatum();
+					retResult.dResult = CDatum();
 					return true;
 					}
 
 				//	Generate a timespan of the appropriate length
 
 				CTimeSpan Offset;
-				CDatum dOffset = dLocalEnv.GetElement(1);
+				CDatum dOffset = LocalEnv.GetArgument(1);
 				bool bAdd;
 				switch (dOffset.GetBasicType())
 					{
@@ -549,7 +551,7 @@ bool coreDateTime (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCon
 
 					default:
 						{
-						*retdResult = CDatum();
+						retResult.dResult = CDatum();
 						return true;
 						}
 					}
@@ -557,9 +559,9 @@ bool coreDateTime (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCon
 				//	Add to timedate and return it
 
 				if (bAdd)
-					*retdResult = CDatum(timeAddTime(DT1, Offset));
+					retResult.dResult = CDatum(timeAddTime(DT1, Offset));
 				else
-					*retdResult = CDatum(timeSubtractTime(DT1, Offset));
+					retResult.dResult = CDatum(timeSubtractTime(DT1, Offset));
 
 				return true;
 				}
@@ -569,12 +571,12 @@ bool coreDateTime (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCon
 
 			else
 				{
-				CDateTime DT1 = dLocalEnv.GetElement(0).AsDateTime();
-				CDateTime DT2 = dLocalEnv.GetElement(1).AsDateTime();
+				CDateTime DT1 = LocalEnv.GetArgument(0).AsDateTime();
+				CDateTime DT2 = LocalEnv.GetArgument(1).AsDateTime();
 
 				if (!DT1.IsValid() || !DT2.IsValid())
 					{
-					*retdResult = CDatum();
+					retResult.dResult = CDatum();
 					return true;
 					}
 
@@ -597,12 +599,12 @@ bool coreDateTime (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCon
 					if (bNegative)
 						SpanIP = -SpanIP;
 
-					CDatum::CreateIPInteger(SpanIP, retdResult);
+					CDatum::CreateIPInteger(SpanIP, &retResult.dResult);
 					}
 				else if (bNegative)
-					*retdResult = CDatum(-Span.Seconds());
+					retResult.dResult = CDatum(-Span.Seconds());
 				else
-					*retdResult = CDatum(Span.Seconds());
+					retResult.dResult = CDatum(Span.Seconds());
 
 				return true;
 				}
@@ -614,7 +616,7 @@ bool coreDateTime (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCon
 		}
 	}
 
-bool coreLists (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinueCtx, CDatum *retdResult)
+bool coreLists (IInvokeCtx *pCtx, DWORD dwData, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 	{
 	int i, j;
 
@@ -622,16 +624,16 @@ bool coreLists (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContin
 		{
 		case LIST_APPEND:
 			{
-			if (dLocalEnv.GetCount() == 0)
+			if (LocalEnv.GetCount() == 0)
 				{
-				*retdResult = CDatum();
+				retResult.dResult = CDatum();
 				return true;
 				}
 
-			CComplexArray *pResult = new CComplexArray(dLocalEnv.GetElement(0));
-			for (i = 1; i < dLocalEnv.GetCount(); i++)
+			CComplexArray *pResult = new CComplexArray(LocalEnv.GetArgument(0));
+			for (i = 1; i < LocalEnv.GetCount(); i++)
 				{
-				CDatum dValue = dLocalEnv.GetElement(i);
+				CDatum dValue = LocalEnv.GetArgument(i);
 				if (dValue.GetBasicType() == CDatum::typeArray)
 					{
 					for (j = 0; j < dValue.GetCount(); j++)
@@ -644,28 +646,28 @@ bool coreLists (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContin
 			if (pResult->GetCount() == 0)
 				{
 				delete pResult;
-				*retdResult = CDatum();
+				retResult.dResult = CDatum();
 				}
 			else
-				*retdResult = CDatum(pResult);
+				retResult.dResult = CDatum(pResult);
 
 			return true;
 			}
 
 		case LIST_COUNT:
 			{
-			*retdResult = CDatum(dLocalEnv.GetElement(0).GetCount());
+			retResult.dResult = CDatum(LocalEnv.GetArgument(0).GetCount());
 			return true;
 			}
 
 		case LIST_GROUP:
 			{
-			CDatum dList = dLocalEnv.GetElement(0);
-			int iGroupSize = dLocalEnv.GetElement(1);
+			CDatum dList = LocalEnv.GetArgument(0);
+			int iGroupSize = LocalEnv.GetArgument(1);
 
 			if (iGroupSize <= 1)
 				{
-				*retdResult = dList;
+				retResult.dResult = dList;
 				return true;
 				}
 
@@ -682,15 +684,15 @@ bool coreLists (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContin
 				pList->Insert(CDatum(pGroup));
 				}
 
-			*retdResult = CDatum(pList);
+			retResult.dResult = CDatum(pList);
 			return true;
 			}
 
 		case LIST_ITEM:
 		case LIST_ITEM2:
 			{
-			CDatum dList = dLocalEnv.GetElement(0);
-			CDatum dIndex = dLocalEnv.GetElement(1);
+			CDatum dList = LocalEnv.GetArgument(0);
+			CDatum dIndex = LocalEnv.GetArgument(1);
 
 			//	LATER: If we have a structure with integers as keys, this code
 			//	will fail (because it will try to treat the structure as an
@@ -700,7 +702,7 @@ bool coreLists (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContin
 			switch (dIndex.GetBasicType())
 				{
 				case CDatum::typeString:
-					*retdResult = dList.GetElement(pCtx, (const CString &)dIndex);
+					retResult.dResult = dList.GetElement(pCtx, dIndex.AsStringView());
 					break;
 
 				default:
@@ -709,10 +711,10 @@ bool coreLists (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContin
 					if (iIndex < 0)
 						{
 						iIndex += dList.GetCount();
-						*retdResult = (iIndex >= 0 ? dList.GetElement(pCtx, iIndex) : CDatum());
+						retResult.dResult = (iIndex >= 0 ? dList.GetElement(pCtx, iIndex) : CDatum());
 						}
 					else
-						*retdResult = dList.GetElement(pCtx, iIndex);
+						retResult.dResult = dList.GetElement(pCtx, iIndex);
 					}
 				}
 
@@ -722,44 +724,44 @@ bool coreLists (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContin
 		case LIST_LIST:
 			{
 			CComplexArray *pList = new CComplexArray;
-			for (i = 0; i < dLocalEnv.GetCount(); i++)
-				pList->Insert(dLocalEnv.GetElement(i));
-			*retdResult = CDatum(pList);
+			for (i = 0; i < LocalEnv.GetCount(); i++)
+				pList->Insert(LocalEnv.GetArgument(i));
+			retResult.dResult = CDatum(pList);
 			return true;
 			}
 
 		case LIST_MAKE:
 			{
-			const CString &sType = dLocalEnv.GetElement(0);
+			CStringView sType = LocalEnv.GetArgument(0);
 
 			if (strEquals(sType, MAKE_TYPE_CODE32))
 				{
-				int iDigits = dLocalEnv.GetElement(1);
+				int iDigits = LocalEnv.GetArgument(1);
 				if (iDigits <= 0 || iDigits > 1000000)
 					iDigits = 8;
 
-				*retdResult = cryptoRandomCode(iDigits);
+				retResult.dResult = cryptoRandomCode(iDigits);
 				}
 			else if (strEquals(sType, MAKE_TYPE_CODE_BLOCK32))
 				{
-				int iDigits = dLocalEnv.GetElement(1);
+				int iDigits = LocalEnv.GetArgument(1);
 				if (iDigits <= 0 || iDigits > 1000000)
 					iDigits = 8;
 
-				*retdResult = cryptoRandomCodeBlock(iDigits);
+				retResult.dResult = cryptoRandomCodeBlock(iDigits);
 				}
 			else if (strEquals(sType, MAKE_TYPE_SEQUENCE))
 				{
-				if (dLocalEnv.GetCount() < 2)
+				if (LocalEnv.GetCount() < 2)
 					{
-					*retdResult = CDatum();
+					retResult.dResult = CDatum();
 					return true;
 					}
 
-				int iStart = dLocalEnv.GetElement(1);
+				int iStart = LocalEnv.GetArgument(1);
 				int iEnd;
-				if (dLocalEnv.GetCount() > 2)
-					iEnd = dLocalEnv.GetElement(2);
+				if (LocalEnv.GetCount() > 2)
+					iEnd = LocalEnv.GetArgument(2);
 				else
 					{
 					iEnd = iStart;
@@ -769,8 +771,8 @@ bool coreLists (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContin
 				//	Figure out increment
 
 				int iInc;
-				if (dLocalEnv.GetCount() > 3)
-					iInc = dLocalEnv.GetElement(3);
+				if (LocalEnv.GetCount() > 3)
+					iInc = LocalEnv.GetArgument(3);
 				else
 					{
 					if (iStart <= iEnd)
@@ -781,7 +783,7 @@ bool coreLists (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContin
 
 				if (iInc == 0)
 					{
-					*retdResult = CDatum();
+					retResult.dResult = CDatum();
 					return true;
 					}
 
@@ -809,11 +811,11 @@ bool coreLists (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContin
 
 				//	Done
 
-				*retdResult = CDatum(pList);
+				retResult.dResult = CDatum(pList);
 				}
 			else
 				{
-				CHexeError::Create(NULL_STR, strPattern(ERR_UNKNOWN_MAKE_TYPE, dLocalEnv.GetElement(0).AsString()), retdResult);
+				CHexeError::Create(NULL_STR, strPattern(ERR_UNKNOWN_MAKE_TYPE, LocalEnv.GetArgument(0).AsString()), &retResult.dResult);
 				return false;
 				}
 
@@ -822,28 +824,28 @@ bool coreLists (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContin
 
 		case LIST_SLICE:
 			{
-			CDatum dList = dLocalEnv.GetElement(0);
-			int iStart = dLocalEnv.GetElement(1);
-			int iCount = (dLocalEnv.GetElement(2).IsNil() ? -1 : (int)dLocalEnv.GetElement(2));
+			CDatum dList = LocalEnv.GetArgument(0);
+			int iStart = LocalEnv.GetArgument(1);
+			int iCount = (LocalEnv.GetArgument(2).IsNil() ? -1 : (int)LocalEnv.GetArgument(2));
 
 			if (dList.IsNil())
 				{
-				*retdResult = CDatum();
+				retResult.dResult = CDatum();
 				return true;
 				}
 			else if (dList.GetBasicType() != CDatum::typeArray)
 				{
-				CHexeError::Create(NULL_STR, strPattern(ERR_LIST_EXPECTED, dList.AsString()), retdResult);
+				CHexeError::Create(NULL_STR, strPattern(ERR_LIST_EXPECTED, dList.AsString()), &retResult.dResult);
 				return false;
 				}
 			else if (iStart >= dList.GetCount() || iCount == 0)
 				{
-				*retdResult = CDatum();
+				retResult.dResult = CDatum();
 				return true;
 				}
 			else if (iStart < 0)
 				{
-				CHexeError::Create(NULL_STR, ERR_START_CANNOT_BE_NEGATIVE, retdResult);
+				CHexeError::Create(NULL_STR, ERR_START_CANNOT_BE_NEGATIVE, &retResult.dResult);
 				return false;
 				}
 			else
@@ -851,12 +853,12 @@ bool coreLists (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContin
 				if (iCount < 0)
 					iCount = dList.GetCount() - iStart;
 
-				*retdResult = CDatum(CDatum::typeArray);
-				retdResult->GrowToFit(iCount);
+				retResult.dResult = CDatum(CDatum::typeArray);
+				retResult.dResult.GrowToFit(iCount);
 
 				int iEnd = Min(iStart + iCount, dList.GetCount());
 				for (int i = iStart; i < iEnd; i++)
-					retdResult->Append(dList.GetElement(i));
+					retResult.dResult.Append(dList.GetElement(i));
 
 				return true;
 				}
@@ -871,11 +873,11 @@ bool coreLists (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContin
 				CSortFunctionProcessor *pProcessor = CSortFunctionProcessor::Upconvert(dContinueCtx);
 				if (pProcessor == NULL)
 					{
-					CHexeError::Create(NULL_STR, ERR_INVALID_CONTINUE_CTX, retdResult);
+					CHexeError::Create(NULL_STR, ERR_INVALID_CONTINUE_CTX, &retResult.dResult);
 					return false;
 					}
 
-				return pProcessor->ProcessContinues(dContinueCtx, dLocalEnv, retdResult);
+				return pProcessor->ProcessContinues(dContinueCtx, dContinueResult, &retResult.dResult);
 				}
 
 			//	Otherwise start the sorting
@@ -884,12 +886,12 @@ bool coreLists (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContin
 				{
 				//	Create a new processor to handle this
 
-				CSortFunctionProcessor *pProcessor = new CSortFunctionProcessor(dLocalEnv.GetElement(0), dLocalEnv.GetElement(1));
+				CSortFunctionProcessor *pProcessor = new CSortFunctionProcessor(LocalEnv.GetArgument(0), LocalEnv.GetArgument(1));
 				CDatum dProcessor(pProcessor);
 
 				//	Invoke it.
 
-				return pProcessor->Process(dProcessor, retdResult);
+				return pProcessor->Process(dProcessor, &retResult.dResult);
 				}
 			}
 
@@ -898,10 +900,10 @@ bool coreLists (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContin
 			CComplexStruct *pStruct = new CComplexStruct;
 
 			i = 0;
-			while (i < dLocalEnv.GetCount())
+			while (i < LocalEnv.GetCount())
 				{
-				CDatum dClause = dLocalEnv.GetElement(i);
-				const CString &sKey = dClause;
+				CDatum dClause = LocalEnv.GetArgument(i);
+				CStringView sKey = dClause;
 
 				//	If the value is nil, then skip it. This allows us to have
 				//	conditional key/value pairs.
@@ -916,8 +918,8 @@ bool coreLists (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContin
 					{
 					i++;
 
-					if (i < dLocalEnv.GetCount())
-						pStruct->SetElement(sKey, dLocalEnv.GetElement(i));
+					if (i < LocalEnv.GetCount())
+						pStruct->SetElement(sKey, LocalEnv.GetArgument(i));
 
 					i++;
 					}
@@ -940,10 +942,10 @@ bool coreLists (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContin
 
 				else if (dClause.GetCount() == 2)
 					{
-					const CString &sKey = dClause.GetElement(0);
+					CStringView sKey = dClause.GetElement(0);
 					if (sKey.IsEmpty())
 						{
-						CHexeError::Create(NULL_STR, strPattern(ERR_KEY_EXPECTED, dClause.GetElement(0).AsString()), retdResult);
+						CHexeError::Create(NULL_STR, strPattern(ERR_KEY_EXPECTED, dClause.GetElement(0).AsString()), &retResult.dResult);
 						return false;
 						}
 
@@ -956,14 +958,14 @@ bool coreLists (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContin
 
 				else
 					{
-					CHexeError::Create(NULL_STR, strPattern(ERR_KEY_VALUE_EXPECTED, dClause.AsString()), retdResult);
+					CHexeError::Create(NULL_STR, strPattern(ERR_KEY_VALUE_EXPECTED, dClause.AsString()), &retResult.dResult);
 					return false;
 					}
 				}
 
 			//	Done
 
-			*retdResult = CDatum(pStruct);
+			retResult.dResult = CDatum(pStruct);
 			return true;
 			}
 
@@ -973,7 +975,7 @@ bool coreLists (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContin
 		}
 	}
 
-bool coreMath (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinueCtx, CDatum *retdResult)
+bool coreMath (IInvokeCtx *pCtx, DWORD dwData, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 	{
 	int i;
 
@@ -982,17 +984,17 @@ bool coreMath (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinu
 		case MATH_ABS:
 			{
 			int iValue;
-			CDatum dValue = dLocalEnv.GetElement(0);
+			CDatum dValue = LocalEnv.GetArgument(0);
 			switch (dValue.GetNumberType(&iValue))
 				{
 				case CDatum::typeInteger32:
-					*retdResult = (iValue < 0 ? CDatum(-iValue) : dValue);
+					retResult.dResult = (iValue < 0 ? CDatum(-iValue) : dValue);
 					return true;
 
 				case CDatum::typeDouble:
 					{
 					double rValue = (double)dValue;
-					*retdResult = (rValue < 0.0 ? CDatum(-rValue) : dValue);
+					retResult.dResult = (rValue < 0.0 ? CDatum(-rValue) : dValue);
 					return true;
 					}
 
@@ -1000,9 +1002,9 @@ bool coreMath (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinu
 					{
 					const CIPInteger &Value = (const CIPInteger &)dValue;
 					if (Value.IsNegative())
-						CDatum::CreateIPInteger(-Value, retdResult);
+						CDatum::CreateIPInteger(-Value, &retResult.dResult);
 					else
-						*retdResult = dValue;
+						retResult.dResult = dValue;
 					return true;
 					}
 
@@ -1010,64 +1012,63 @@ bool coreMath (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinu
 					{
 					const CTimeSpan &Value = (const CTimeSpan &)dValue;
 					if (Value.IsNegative())
-						*retdResult = CDatum(CTimeSpan(Value, false));
+						retResult.dResult = CDatum(CTimeSpan(Value, false));
 					else
-						*retdResult = dValue;
+						retResult.dResult = dValue;
 					return true;
 					}
 
 				default:
-					*retdResult = dValue;
+					retResult.dResult = dValue;
 					return true;
 				}
 			}
 
 		case MATH_ACOS:
-			*retdResult = CDatum(acos((double)dLocalEnv.GetElement(0)));
+			retResult.dResult = CDatum(acos((double)LocalEnv.GetArgument(0)));
 			return true;
 
 		case MATH_ASIN:
-			*retdResult = CDatum(asin((double)dLocalEnv.GetElement(0)));
+			retResult.dResult = CDatum(asin((double)LocalEnv.GetArgument(0)));
 			return true;
 
 		case MATH_ATAN:
-			*retdResult = CDatum(atan((double)dLocalEnv.GetElement(0)));
+			retResult.dResult = CDatum(atan((double)LocalEnv.GetArgument(0)));
 			return true;
 
 		case MATH_ATAN2:
 			{
-			double rY = dLocalEnv.GetElement(0);
-			double rX = dLocalEnv.GetElement(1);
+			double rY = LocalEnv.GetArgument(0);
+			double rX = LocalEnv.GetArgument(1);
 
-			*retdResult = CDatum(atan2(rY, rX));
+			retResult.dResult = CDatum(atan2(rY, rX));
 			return true;
 			}
 
 		case MATH_CEIL:
-			*retdResult = CDatum(ceil((double)dLocalEnv.GetElement(0)));
+			retResult.dResult = CDatum(ceil((double)LocalEnv.GetArgument(0)));
 			return true;
 
 		case MATH_COS:
-			*retdResult = CDatum(cos((double)dLocalEnv.GetElement(0)));
+			retResult.dResult = CDatum(cos((double)LocalEnv.GetArgument(0)));
 			return true;
 
 		case MATH_DIGEST:
 			{
-			CDatum dData = dLocalEnv.GetElement(0);
+			CDatum dData = LocalEnv.GetArgument(0);
 			int iDataSize;
 
 			//	Digest
 
 			if (dData.IsMemoryBlock())
 				{
-				//	Cast to a string (this works best for binary and string types)
+				//	Treat as a memory block
 
-				const CString &sValue = dData;
-				CStringBuffer Buffer(sValue);
+				CBuffer Buffer = dData.AsMemoryBlock();
 
 				CIPInteger Hash;
 				cryptoCreateDigest(Buffer, &Hash);
-				CDatum::CreateIPIntegerFromHandoff(Hash, retdResult);
+				CDatum::CreateIPIntegerFromHandoff(Hash, &retResult.dResult);
 				return true;
 				}
 
@@ -1094,7 +1095,7 @@ bool coreMath (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinu
 
 				CIPInteger Hash;
 				SHA1.CalcDigest(&Hash);
-				CDatum::CreateIPIntegerFromHandoff(Hash, retdResult);
+				CDatum::CreateIPIntegerFromHandoff(Hash, &retResult.dResult);
 
 				return true;
 				}
@@ -1103,27 +1104,27 @@ bool coreMath (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinu
 
 			else
 				{
-				*retdResult = CDatum();
+				retResult.dResult = CDatum();
 				return true;
 				}
 			}
 
 		case MATH_EXP:
-			*retdResult = CDatum(exp((double)dLocalEnv.GetElement(0)));
+			retResult.dResult = CDatum(exp((double)LocalEnv.GetArgument(0)));
 			return true;
 
 		case MATH_FLOOR:
-			*retdResult = CDatum(floor((double)dLocalEnv.GetElement(0)));
+			retResult.dResult = CDatum(floor((double)LocalEnv.GetArgument(0)));
 			return true;
 
 		case MATH_INTIP_TO_INT32:
 			{
-			const CIPInteger &IntIP = dLocalEnv.GetElement(0);
+			const CIPInteger &IntIP = LocalEnv.GetArgument(0);
 			TArray<BYTE> Bytes;
 			int iCount = IntIP.AsByteArray(&Bytes);
 			if (iCount == 0)
 				{
-				*retdResult = CDatum();
+				retResult.dResult = CDatum();
 				return true;
 				}
 
@@ -1133,61 +1134,61 @@ bool coreMath (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinu
 			for (i = 0; i < iCount; i++)
 				pArray->SetElement(i, CDatum((int)Bytes[i]));
 
-			*retdResult = CDatum(pArray);
+			retResult.dResult = CDatum(pArray);
 			return true;
 			}
 
 		case MATH_LOG:
-			*retdResult = CDatum(log((double)dLocalEnv.GetElement(0)));
+			retResult.dResult = CDatum(log((double)LocalEnv.GetArgument(0)));
 			return true;
 
 		case MATH_MAX:
-			*retdResult = MinMaxOfList(dLocalEnv, 1);
+			retResult.dResult = MinMaxOfList(LocalEnv, 1);
 			return true;
 
 		case MATH_MIN:
-			*retdResult = MinMaxOfList(dLocalEnv, -1);
+			retResult.dResult = MinMaxOfList(LocalEnv, -1);
 			return true;
 
 		case MATH_MOD:
-			switch (dLocalEnv.GetCount())
+			switch (LocalEnv.GetCount())
 				{
 				case 0:
 				case 1:
-					CHexeError::Create(NULL_STR, strPattern(ERR_INSUFFICIENT_PARAMS, MATH_MOD_NAME), retdResult);
+					CHexeError::Create(NULL_STR, strPattern(ERR_INSUFFICIENT_PARAMS, MATH_MOD_NAME), &retResult.dResult);
 					return false;
 
 				case 2:
 					{
-					CNumberValue Dividend(dLocalEnv.GetElement(0));
-					if (!Dividend.Mod(dLocalEnv.GetElement(1)))
+					CNumberValue Dividend(LocalEnv.GetArgument(0));
+					if (!Dividend.Mod(LocalEnv.GetArgument(1)))
 						{
-						CHexeError::Create(NULL_STR, ERR_DIVISION_BY_ZERO, retdResult);
+						CHexeError::Create(NULL_STR, ERR_DIVISION_BY_ZERO, &retResult.dResult);
 						return false;
 						}
 
-					*retdResult = Dividend.GetDatum();
+					retResult.dResult = Dividend.GetDatum();
 					break;
 					}
 
 				default:
 					{
-					if (strEquals(dLocalEnv.GetElement(0), FLAG_DEGREES)
-							|| strEquals(dLocalEnv.GetElement(0), FLAG_RADIANS)
-							|| strEquals(dLocalEnv.GetElement(0), FLAG_CLOCK))
+					if (strEquals(LocalEnv.GetArgument(0).AsStringView(), FLAG_DEGREES)
+							|| strEquals(LocalEnv.GetArgument(0).AsStringView(), FLAG_RADIANS)
+							|| strEquals(LocalEnv.GetArgument(0).AsStringView(), FLAG_CLOCK))
 						{
-						CNumberValue Dividend(dLocalEnv.GetElement(1));
-						if (!Dividend.ModClock(dLocalEnv.GetElement(2)))
+						CNumberValue Dividend(LocalEnv.GetArgument(1));
+						if (!Dividend.ModClock(LocalEnv.GetArgument(2)))
 							{
-							CHexeError::Create(NULL_STR, ERR_DIVISION_BY_ZERO, retdResult);
+							CHexeError::Create(NULL_STR, ERR_DIVISION_BY_ZERO, &retResult.dResult);
 							return false;
 							}
 
-						*retdResult = Dividend.GetDatum();
+						retResult.dResult = Dividend.GetDatum();
 						}
 					else
 						{
-						CHexeError::Create(NULL_STR, strPattern(ERR_INVALID_MOD_OPTION, dLocalEnv.GetElement(0).AsString()), retdResult);
+						CHexeError::Create(NULL_STR, strPattern(ERR_INVALID_MOD_OPTION, LocalEnv.GetArgument(0).AsString()), &retResult.dResult);
 						return false;
 						}
 					break;
@@ -1198,20 +1199,20 @@ bool coreMath (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinu
 
 		case MATH_POW:
 			{
-			double rX = dLocalEnv.GetElement(0);
-			double rY = dLocalEnv.GetElement(1);
+			double rX = LocalEnv.GetArgument(0);
+			double rY = LocalEnv.GetArgument(1);
 
-			*retdResult = CDatum(pow(rX, rY));
+			retResult.dResult = CDatum(pow(rX, rY));
 			return true;
 			}
 
 		case MATH_RANDOM:
-			switch (dLocalEnv.GetCount())
+			switch (LocalEnv.GetCount())
 				{
 				//	(random) -> 0 to 1.0 (real)
 
 				case 0:
-					*retdResult = CDatum(mathRandomDouble());
+					retResult.dResult = CDatum(mathRandomDouble());
 					break;
 
 				//	(random x) -> 0 to x-1 (integer)
@@ -1219,18 +1220,18 @@ bool coreMath (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinu
 
 				case 1:
 					{
-					CDatum dArg = dLocalEnv.GetElement(0);
+					CDatum dArg = LocalEnv.GetArgument(0);
 					if (dArg.IsNumber())
-						*retdResult = CDatum(mathRandom(0, (int)dArg - 1));
+						retResult.dResult = CDatum(mathRandom(0, (int)dArg - 1));
 					else
-						*retdResult = dArg.GetElement(mathRandom(0, dArg.GetCount() - 1));
+						retResult.dResult = dArg.GetElement(mathRandom(0, dArg.GetCount() - 1));
 					break;
 					}
 
 				//	(random x y) -> x to y (integer)
 
 				default:
-					*retdResult = CDatum(mathRandom((int)dLocalEnv.GetElement(0), (int)dLocalEnv.GetElement(1)));
+					retResult.dResult = CDatum(mathRandom((int)LocalEnv.GetArgument(0), (int)LocalEnv.GetArgument(1)));
 					break;
 				}
 
@@ -1238,26 +1239,26 @@ bool coreMath (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinu
 
 		case MATH_ROUND:
 			{
-			double rX = dLocalEnv.GetElement(0);
+			double rX = LocalEnv.GetArgument(0);
 
 			if (rX >= 0.0)
-				*retdResult = CDatum(floor(rX + 0.5));
+				retResult.dResult = CDatum(floor(rX + 0.5));
 			else
-				*retdResult = CDatum(ceil(rX - 0.5));
+				retResult.dResult = CDatum(ceil(rX - 0.5));
 
 			return true;
 			}
 
 		case MATH_SIN:
-			*retdResult = CDatum(sin((double)dLocalEnv.GetElement(0)));
+			retResult.dResult = CDatum(sin((double)LocalEnv.GetArgument(0)));
 			return true;
 
 		case MATH_SQRT:
-			*retdResult = CDatum(sqrt((double)dLocalEnv.GetElement(0)));
+			retResult.dResult = CDatum(sqrt((double)LocalEnv.GetArgument(0)));
 			return true;
 
 		case MATH_TAN:
-			*retdResult = CDatum(tan((double)dLocalEnv.GetElement(0)));
+			retResult.dResult = CDatum(tan((double)LocalEnv.GetArgument(0)));
 			return true;
 
 		default:
@@ -1266,7 +1267,7 @@ bool coreMath (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinu
 		}
 	}
 
-bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinueCtx, CDatum *retdResult)
+bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 	{
 	int i;
 
@@ -1274,12 +1275,12 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 		{
 		case STR_ASCII:
 			{
-			CDatum dInput = dLocalEnv.GetElement(0);
+			CDatum dInput = LocalEnv.GetArgument(0);
 			
 			//	If nil then we return nil
 
 			if (dInput.IsNil())
-				*retdResult = CDatum();
+				retResult.dResult = CDatum();
 
 			//	If a single number then we return the character with that ASCII
 			//	value.
@@ -1289,12 +1290,12 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 				int iValue = (int)dInput;
 				if (iValue < 0 || iValue > 255)
 					{
-					CHexeError::Create(NULL_STR, strPattern(ERR_INVALID_ASCII, dInput.AsString()), retdResult);
+					CHexeError::Create(NULL_STR, strPattern(ERR_INVALID_ASCII, dInput.AsString()), &retResult.dResult);
 					return false;
 					}
 
 				char chChar = (char)(BYTE)iValue;
-				*retdResult = CDatum(CString(&chChar, 1));
+				retResult.dResult = CDatum(CString(&chChar, 1));
 				}
 
 			//	If a single string then convert to an array of ASCII values.
@@ -1303,7 +1304,7 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 				{
 				CString sChars = dInput.AsString();
 				if (sChars.GetLength() == 1)
-					*retdResult = CDatum((int)(BYTE)(*sChars.GetParsePointer()));
+					retResult.dResult = CDatum((int)(BYTE)(*sChars.GetParsePointer()));
 				else
 					{
 					char *pPos = sChars.GetParsePointer();
@@ -1313,7 +1314,7 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 					while (pPos < pPosEnd)
 						pResult->Insert(CDatum((int)(BYTE)*pPos++));
 					
-					*retdResult = CDatum(pResult);
+					retResult.dResult = CDatum(pResult);
 					}
 				}
 
@@ -1333,7 +1334,7 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 						*pResult++ = '?';
 					}
 
-				*retdResult = CDatum(sResult);
+				retResult.dResult = CDatum(sResult);
 				}
 
 			//	Otherwise we expect an array of strings and we convert all the
@@ -1345,15 +1346,15 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 
 				for (i = 0; i < dInput.GetCount(); i++)
 					{
-					const CString &sChars = dInput.GetElement(i);
-					char *pPos = sChars.GetParsePointer();
-					char *pPosEnd = pPos + sChars.GetLength();
+					CStringView sChars = dInput.GetElement(i);
+					const char *pPos = sChars.GetParsePointer();
+					const char *pPosEnd = pPos + sChars.GetLength();
 
 					while (pPos < pPosEnd)
 						pResult->Insert(CDatum((int)(BYTE)*pPos++));
 					}
 
-				*retdResult = CDatum(pResult);
+				retResult.dResult = CDatum(pResult);
 				}
 
 			return true;
@@ -1363,57 +1364,57 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 			{
 			CStringBuffer Buffer;
 
-			for (i = 0; i < dLocalEnv.GetCount(); i++)
-				WriteDatumToCat(Buffer, dLocalEnv.GetElement(i));
+			for (i = 0; i < LocalEnv.GetCount(); i++)
+				WriteDatumToCat(Buffer, LocalEnv.GetArgument(i));
 
 			if (Buffer.GetLength() > 0)
-				CDatum::CreateStringFromHandoff(Buffer, retdResult);
+				CDatum::CreateStringFromHandoff(Buffer, &retResult.dResult);
 			else
-				*retdResult = CDatum();
+				retResult.dResult = CDatum();
 			return true;
 			}
 
 		case STR_CLEAN:
 			{
-			const CString &sString = dLocalEnv.GetElement(0);
+			CStringView sString = LocalEnv.GetArgument(0);
 			CString sClean = strClean(sString);
 
 			if (!sClean.IsEmpty())
-				*retdResult = CDatum(sClean);
+				retResult.dResult = CDatum(sClean);
 			else
-				*retdResult = CDatum();
+				retResult.dResult = CDatum();
 
 			return true;
 			}
 
 		case STR_CONVERT_TO:
 			{
-			const CString &sType = dLocalEnv.GetElement(0);
+			CStringView sType = LocalEnv.GetArgument(0);
 
 			if (strEquals(sType, TYPE_INT32))
-				*retdResult = (int)dLocalEnv.GetElement(1);
+				retResult.dResult = (int)LocalEnv.GetArgument(1);
 			else if (strEquals(sType, TYPE_INT64))
-				*retdResult = (DWORDLONG)dLocalEnv.GetElement(1);
+				retResult.dResult = (DWORDLONG)LocalEnv.GetArgument(1);
 			else if (strEquals(sType, TYPE_REAL))
-				*retdResult = (double)dLocalEnv.GetElement(1);
+				retResult.dResult = (double)LocalEnv.GetArgument(1);
 			else if (strEquals(sType, TYPE_STRING))
-				*retdResult = dLocalEnv.GetElement(1).AsString();
+				retResult.dResult = LocalEnv.GetArgument(1).AsString();
 			else
-				*retdResult = CDatum();
+				retResult.dResult = CDatum();
 
 			return true;
 			}
 
 		case STR_FIND:
 			{
-			CDatum dTarget = dLocalEnv.GetElement(0);
-			CDatum dToFind = dLocalEnv.GetElement(1);
+			CDatum dTarget = LocalEnv.GetArgument(0);
+			CDatum dToFind = LocalEnv.GetArgument(1);
 
 			//	If this is a string then do a string search
 
 			int iIndex;
 			if (dTarget.GetBasicType() == CDatum::typeString)
-				iIndex = strFind(strToLower(dTarget), strToLower(dToFind.AsString()));
+				iIndex = strFind(strToLower(dTarget.AsStringView()), strToLower(dToFind.AsString()));
 
 			//	Otherwise, we do an array search
 
@@ -1432,9 +1433,9 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 			//	Result
 
 			if (iIndex != -1)
-				*retdResult = CDatum(iIndex);
+				retResult.dResult = CDatum(iIndex);
 			else
-				*retdResult = CDatum();
+				retResult.dResult = CDatum();
 
 			return true;
 			}
@@ -1444,18 +1445,18 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 			//	If we only have one parameter, then we try to format it as best 
 			//	we can.
 
-			if (dLocalEnv.GetCount() == 1)
+			if (LocalEnv.GetCount() == 1)
 				{
-				CDatum dValue = dLocalEnv.GetElement(0);
+				CDatum dValue = LocalEnv.GetArgument(0);
 
 				switch (dValue.GetBasicType())
 					{
 					case CDatum::typeInteger32:
-						*retdResult = CDatum(strFormatInteger(dValue, -1, FORMAT_THOUSAND_SEPARATOR));
+						retResult.dResult = CDatum(strFormatInteger(dValue, -1, FORMAT_THOUSAND_SEPARATOR));
 						break;
 
 					default:
-						*retdResult = CDatum(dValue.AsString());
+						retResult.dResult = CDatum(dValue.AsString());
 						break;
 					}
 				}
@@ -1463,14 +1464,14 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 			//	Otherwise, we use the format
 
 			else
-				*retdResult = CDatum(CHexeTextMarkup::FormatString(dLocalEnv));
+				retResult.dResult = CDatum(CHexeTextMarkup::FormatString(LocalEnv));
 
 			return true;
 			}
 
 		case STR_FROM_ARS:
 			{
-			CDatum dValue = dLocalEnv.GetElement(0);
+			CDatum dValue = LocalEnv.GetArgument(0);
 			CString sError;
 
 			//	Load as a HexeDocument. We create a brand new process to store
@@ -1479,50 +1480,50 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 			CHexeProcess Process;
 			if (!Process.LoadStandardLibraries(&sError))
 				{
-				*retdResult = sError;
+				retResult.dResult = sError;
 				return false;
 				}
 
-			CBuffer Buffer((const CString &)dValue);
+			CBuffer Buffer(dValue.AsStringView());
 			CHexeDocument ScenarioDoc;
 			if (!ScenarioDoc.InitFromStream(Buffer, Process, &sError))
 				{
-				*retdResult = sError;
+				retResult.dResult = sError;
 				return false;
 				}
 
 			//	Now convert the document into a datum
 
-			*retdResult = ScenarioDoc.AsDatum();
+			retResult.dResult = ScenarioDoc.AsDatum();
 			return true;
 			}
 
 		case STR_HEX:
 			{
-			CDatum dValue = dLocalEnv.GetElement(0);
+			CDatum dValue = LocalEnv.GetArgument(0);
 
 			switch (dValue.GetBasicType())
 				{
 				case CDatum::typeInteger32:
 					{
-					int iSize = dLocalEnv.GetElement(1);
+					int iSize = LocalEnv.GetArgument(1);
 
 					if (iSize > 0 && iSize < 100)
-						*retdResult = strPattern(strPattern("%%0%dx", iSize), (int)dValue);
+						retResult.dResult = strPattern(strPattern("%%0%dx", iSize), (int)dValue);
 					else
-						*retdResult = strPattern("%x", (int)dValue);
+						retResult.dResult = strPattern("%x", (int)dValue);
 					return true;
 					}
 
 				case CDatum::typeString:
 					{
-					const CString &sValue = dValue;
+					CStringView sValue = dValue;
 
 					bool bFailed;
-					*retdResult = strParseIntOfBase(sValue.GetParsePointer(), 16, 0, NULL, &bFailed);
+					retResult.dResult = strParseIntOfBase(sValue.GetParsePointer(), 16, 0, NULL, &bFailed);
 					if (bFailed)
 						{
-						CHexeError::Create(NULL_STR, strPattern(ERR_CANT_DEHEXIFY, dValue.AsString()), retdResult);
+						CHexeError::Create(NULL_STR, strPattern(ERR_CANT_DEHEXIFY, dValue.AsString()), &retResult.dResult);
 						return false;
 						}
 					
@@ -1530,7 +1531,7 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 					}
 
 				default:
-					CHexeError::Create(NULL_STR, strPattern(ERR_CANT_HEXIFY, dValue.AsString()), retdResult);
+					CHexeError::Create(NULL_STR, strPattern(ERR_CANT_HEXIFY, dValue.AsString()), &retResult.dResult);
 					return false;
 				}
 			}
@@ -1544,21 +1545,21 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 				CHexeTextFunctionProcessor *pProcessor = CHexeTextFunctionProcessor::Upconvert(dContinueCtx);
 				if (pProcessor == NULL)
 					{
-					CHexeError::Create(NULL_STR, ERR_INVALID_CONTINUE_CTX, retdResult);
+					CHexeError::Create(NULL_STR, ERR_INVALID_CONTINUE_CTX, &retResult.dResult);
 					return false;
 					}
 
-				return pProcessor->ProcessContinues(dContinueCtx, dLocalEnv, retdResult);
+				return pProcessor->ProcessContinues(dContinueCtx, dContinueResult, &retResult.dResult);
 				}
 
 			//	One parameter means that we just escape the text so that it can
 			//	be inside an HTML element.
 
-			else if (dLocalEnv.GetCount() == 1)
+			else if (LocalEnv.GetCount() == 1)
 				{
 				CStringBuffer Buffer;
-				CHexeTextMarkup::WriteHTMLContent(dLocalEnv.GetElement(0), Buffer);
-				CDatum::CreateStringFromHandoff(Buffer, retdResult);
+				CHexeTextMarkup::WriteHTMLContent(LocalEnv.GetArgument(0), Buffer);
+				CDatum::CreateStringFromHandoff(Buffer, &retResult.dResult);
 				return true;
 				}
 
@@ -1566,21 +1567,21 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 			//	then this is the old-style HTML escape, in which the second
 			//	argument is a structure of replaceable text fragments.
 
-			else if (dLocalEnv.GetCount() == 2
-						&& dLocalEnv.GetElement(1).GetBasicType() == CDatum::typeStruct)
+			else if (LocalEnv.GetCount() == 2
+						&& LocalEnv.GetArgument(1).GetBasicType() == CDatum::typeStruct)
 				{
-				const CString &sTemplate = dLocalEnv.GetElement(0);
-				CDatum dStruct = dLocalEnv.GetElement(1);
+				CStringView sTemplate = LocalEnv.GetArgument(0);
+				CDatum dStruct = LocalEnv.GetArgument(1);
 
 				CStringBuffer Buffer;
 				CString sError;
 				if (!CHexeTextMarkup::EscapeHTML(CStringBuffer(sTemplate), dStruct, Buffer, &sError))
 					{
-					CHexeError::Create(NULL_STR, sError, retdResult);
+					CHexeError::Create(NULL_STR, sError, &retResult.dResult);
 					return false;
 					}
 
-				CDatum::CreateStringFromHandoff(Buffer, retdResult);
+				CDatum::CreateStringFromHandoff(Buffer, &retResult.dResult);
 				return true;
 				}
 
@@ -1594,26 +1595,27 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 				{
 				//	Create a new processor to handle this
 
-				CHexeTextFunctionProcessor *pProcessor = new CHexeTextFunctionProcessor(dLocalEnv.GetElement(0), dLocalEnv.GetElement(1), dLocalEnv.GetElement(2));
+				CStringView sFormat = LocalEnv.GetArgument(1);
+				CHexeTextFunctionProcessor *pProcessor = new CHexeTextFunctionProcessor(LocalEnv.GetArgument(0), sFormat, LocalEnv.GetArgument(2));
 				CDatum dProcessor(pProcessor);
 
 				//	Invoke it.
 
-				return pProcessor->Process(dProcessor, retdResult);
+				return pProcessor->Process(dProcessor, &retResult.dResult);
 				}
 			}
 
 		case STR_JOIN:
 			{
 			CStringBuffer Buffer;
-			CDatum dList = dLocalEnv.GetElement(0);
+			CDatum dList = LocalEnv.GetArgument(0);
 			if (dList.GetCount() == 0)
 				{
-				*retdResult = CDatum();
+				retResult.dResult = CDatum();
 				return true;
 				}
 
-			CString sSeparator = dLocalEnv.GetElement(1).AsString();
+			CString sSeparator = LocalEnv.GetArgument(1).AsString();
 
 			for (i = 0; i < dList.GetCount(); i++)
 				{
@@ -1625,23 +1627,23 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 				Buffer.Write(dItem.AsString());
 				}
 
-			CDatum::CreateStringFromHandoff(Buffer, retdResult);
+			CDatum::CreateStringFromHandoff(Buffer, &retResult.dResult);
 			return true;
 			}
 
 		case STR_LENGTH:
 			{
-			CDatum dValue = dLocalEnv.GetElement(0);
+			CDatum dValue = LocalEnv.GetArgument(0);
 
 			switch (dValue.GetBasicType())
 				{
 				case CDatum::typeString:
 				case CDatum::typeBinary:
-					*retdResult = CDatum(((const CString &)dValue).GetLength());
+					retResult.dResult = CDatum(dValue.AsStringView().GetLength());
 					break;
 
 				default:
-					*retdResult = CDatum(dValue.GetCount());
+					retResult.dResult = CDatum(dValue.GetCount());
 				}
 
 			return true;
@@ -1649,11 +1651,11 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 
 		case STR_LOWERCASE:
 			{
-			CString sString = dLocalEnv.GetElement(0).AsString();
+			CString sString = LocalEnv.GetArgument(0).AsString();
 			if (sString.IsEmpty())
-				*retdResult = CDatum();
+				retResult.dResult = CDatum();
 			else
-				*retdResult = strToLower(sString);
+				retResult.dResult = strToLower(sString);
 			return true;
 			}
 
@@ -1661,7 +1663,7 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 			{
 			//	The first argument is always the string to split.
 
-			CString sString = dLocalEnv.GetElement(0).AsString();
+			CString sString = LocalEnv.GetArgument(0).AsString();
 
 			DWORD dwFlags = SSP_FLAG_NO_EMPTY_ITEMS;
 			int iMaxCount = -1;
@@ -1669,7 +1671,7 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 
 			//	Rest of the arguments depend on count
 
-			switch (dLocalEnv.GetCount())
+			switch (LocalEnv.GetCount())
 				{
 				case 1:
 					//	Just take defaults
@@ -1677,7 +1679,7 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 
 				case 2:
 					{
-					CDatum dArg2 = dLocalEnv.GetElement(1);
+					CDatum dArg2 = LocalEnv.GetArgument(1);
 
 					//	If this is a number then it is max items
 
@@ -1692,15 +1694,15 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 					//	Otherwise, it is separators
 
 					else
-						sSeparators = dArg2;
+						sSeparators = dArg2.AsStringView();
 
 					break;
 					}
 
 				case 3:
 					{
-					CDatum dArg2 = dLocalEnv.GetElement(1);
-					CDatum dArg3 = dLocalEnv.GetElement(2);
+					CDatum dArg2 = LocalEnv.GetArgument(1);
+					CDatum dArg3 = LocalEnv.GetArgument(2);
 
 					//	If this is a number then it is max items and the 
 					//	following arg is flags.
@@ -1716,7 +1718,7 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 
 					else
 						{
-						sSeparators = dArg2;
+						sSeparators = dArg2.AsStringView();
 
 						//	If the third arg is a number then it is max items
 
@@ -1734,9 +1736,9 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 					}
 
 				default:
-					sSeparators = dLocalEnv.GetElement(1);
-					iMaxCount = (dLocalEnv.GetElement(2).IsNil() ? -1 : Max(-1, (int)dLocalEnv.GetElement(2)));
-					GetStrSplitFlags(dLocalEnv.GetElement(3), &dwFlags);
+					sSeparators = LocalEnv.GetArgument(1).AsStringView();
+					iMaxCount = (LocalEnv.GetArgument(2).IsNil() ? -1 : Max(-1, (int)LocalEnv.GetArgument(2)));
+					GetStrSplitFlags(LocalEnv.GetArgument(3), &dwFlags);
 					break;
 				}
 
@@ -1748,13 +1750,13 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 			//	Convert to a datum
 
 			if (Result.GetCount() == 0)
-				*retdResult = CDatum();
+				retResult.dResult = CDatum();
 			else
 				{
 				CComplexArray *pResult = new CComplexArray;
 				for (i = 0; i < Result.GetCount(); i++)
 					pResult->Insert(CDatum(Result[i]));
-				*retdResult = CDatum(pResult);
+				retResult.dResult = CDatum(pResult);
 				}
 
 			return true;
@@ -1762,84 +1764,88 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 
 		case STR_SUBSTRING:
 			{
-			int iStart = Max(0, (int)dLocalEnv.GetElement(1));
-			CDatum dCount = dLocalEnv.GetElement(2);
+			int iStart = Max(0, (int)LocalEnv.GetArgument(1));
+			CDatum dCount = LocalEnv.GetArgument(2);
 			int iCount = (dCount.IsNil() ? -1 : Max(0, (int)dCount));
 
-			CString sResult = strSubString(dLocalEnv.GetElement(0).AsString(), iStart, iCount);
+			CString sResult = strSubString(LocalEnv.GetArgument(0).AsString(), iStart, iCount);
 			if (sResult.IsEmpty())
-				*retdResult = CDatum();
+				retResult.dResult = CDatum();
 			else
-				*retdResult = sResult;
+				retResult.dResult = sResult;
 			return true;
 			}
 
 		case STR_TO_JSON:
-			*retdResult = dLocalEnv.GetElement(0).SerializeToString(CDatum::EFormat::JSON);
+			retResult.dResult = LocalEnv.GetArgument(0).SerializeToString(CDatum::EFormat::JSON);
 			return true;
 
 		case STR_TYPE_OF:
-			if (dLocalEnv.GetElement(0).IsError())
-				*retdResult = TYPE_ERROR;
+			if (LocalEnv.GetArgument(0).IsError())
+				retResult.dResult = TYPE_ERROR;
 			else
 				{
-				switch (dLocalEnv.GetElement(0).GetBasicType())
+				switch (LocalEnv.GetArgument(0).GetBasicType())
 					{
 					case CDatum::typeNil:
-						*retdResult = TYPE_NIL;
+						retResult.dResult = TYPE_NIL;
+						break;
+
+					case CDatum::typeFalse:
+						retResult.dResult = TYPE_FALSE;
 						break;
 
 					case CDatum::typeTrue:
-						*retdResult = TYPE_TRUE;
+						retResult.dResult = TYPE_TRUE;
 						break;
 
 					case CDatum::typeInteger32:
-						*retdResult = TYPE_INT32;
+						retResult.dResult = TYPE_INT32;
 						break;
 
 					case CDatum::typeString:
-						*retdResult = TYPE_STRING;
+						retResult.dResult = TYPE_STRING;
 						break;
 
 					case CDatum::typeArray:
-						*retdResult = TYPE_LIST;
+						retResult.dResult = TYPE_LIST;
 						break;
 
 					case CDatum::typeDouble:
-						*retdResult = TYPE_REAL;
+						retResult.dResult = TYPE_REAL;
 						break;
 
 					case CDatum::typeStruct:
-						*retdResult = TYPE_STRUCT;
+						retResult.dResult = TYPE_STRUCT;
 						break;
 
 					case CDatum::typeDateTime:
-						*retdResult = TYPE_DATE_TIME;
+						retResult.dResult = TYPE_DATE_TIME;
 						break;
 
 					case CDatum::typeIntegerIP:
-						*retdResult = TYPE_INT_IP;
+						retResult.dResult = TYPE_INT_IP;
 						break;
 
 					case CDatum::typeInteger64:
-						*retdResult = TYPE_INT64;
+						retResult.dResult = TYPE_INT64;
 						break;
 
 					case CDatum::typeBinary:
-						*retdResult = TYPE_BINARY;
+						retResult.dResult = TYPE_BINARY;
 						break;
 
 					case CDatum::typeImage32:
-						*retdResult = TYPE_IMAGE32;
+						retResult.dResult = TYPE_IMAGE32;
 						break;
 
 					default:
 						{
-						const CString &sTypename = dLocalEnv.GetElement(0).GetTypename();
+						CStringView sTypename = LocalEnv.GetArgument(0).GetTypename();
 						if (strEquals(sTypename, TYPENAME_HEXE_FUNCTION))
-							*retdResult = TYPE_FUNCTION;
+							retResult.dResult = TYPE_FUNCTION;
 						else
-							*retdResult = CDatum();
+							retResult.dResult = CDatum();
 						}
 					}
 				}
@@ -1847,23 +1853,23 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 
 		case STR_UPPERCASE:
 			{
-			CString sString = dLocalEnv.GetElement(0).AsString();
+			CString sString = LocalEnv.GetArgument(0).AsString();
 			if (sString.IsEmpty())
-				*retdResult = CDatum();
+				retResult.dResult = CDatum();
 			else
-				*retdResult = strToUpper(sString);
+				retResult.dResult = strToUpper(sString);
 			return true;
 			}
 
 		case STR_URL_DECODE:
 			{
-			*retdResult = urlDecode(dLocalEnv.GetElement(0).AsString());
+			retResult.dResult = urlDecode(LocalEnv.GetArgument(0).AsString());
 			return true;
 			}
 
 		case STR_URL_PARAM:
 			{
-			*retdResult = urlEncodeParam(dLocalEnv.GetElement(0).AsString());
+			retResult.dResult = urlEncodeParam(LocalEnv.GetArgument(0).AsString());
 			return true;
 			}
 
@@ -1873,12 +1879,12 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 		}
 	}
 
-bool coreSystem (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinueCtx, CDatum *retdResult)
+bool coreSystem (IInvokeCtx *pCtx, DWORD dwData, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 	{
 	switch (dwData)
 		{
 		case SYS_TICKS:
-			*retdResult = CDatum((int)sysGetTickCount());
+			retResult.dResult = CDatum((int)sysGetTickCount());
 			return true;
 
 		default:
@@ -1899,7 +1905,7 @@ bool GetStrSplitFlags (CDatum dArg, DWORD *retdwFlags)
 	DWORD dwFlags = SSP_FLAG_NO_EMPTY_ITEMS;
 	for (i = 0; i < dArg.GetCount(); i++)
 		{
-		const CString &sFlag = dArg.GetElement(i);
+		CStringView sFlag = dArg.GetElement(i);
 		if (strEquals(sFlag, FLAG_INCLUDE_BLANKS))
 			dwFlags &= ~SSP_FLAG_NO_EMPTY_ITEMS;
 		else if (strEquals(sFlag, FLAG_WHITESPACE))
@@ -1918,6 +1924,31 @@ bool GetStrSplitFlags (CDatum dArg, DWORD *retdwFlags)
 	return true;
 	}
 
+CDatum MinMaxOfList (CHexeStackEnv& LocalEnv, int iMinMax)
+	{
+	if (LocalEnv.GetCount() == 0)
+		return CDatum();
+	else
+		{
+		CDatum dResult = LocalEnv.GetArgument(0);
+		if (dResult.GetBasicType() == CDatum::typeArray)
+			dResult = MinMaxOfList(dResult, iMinMax);
+
+		for (int i = 1; i < LocalEnv.GetCount(); i++)
+			{
+			CDatum dElement = LocalEnv.GetArgument(i);
+			if (dElement.GetBasicType() == CDatum::typeArray)
+				dElement = MinMaxOfList(dElement, iMinMax);
+
+			int iCompare = CDatum::Compare(dElement, dResult);
+			if (iCompare == iMinMax)
+				dResult = dElement;
+			}
+
+		return dResult;
+		}
+	}
+
 CDatum MinMaxOfList (CDatum dList, int iMinMax)
 
 //	MinMaxOfList
@@ -1926,6 +1957,7 @@ CDatum MinMaxOfList (CDatum dList, int iMinMax)
 //
 //	iMinMax =  1: Max element in list
 //	iMinMax = -1: Min element in list
+
 	{
 	int i;
 

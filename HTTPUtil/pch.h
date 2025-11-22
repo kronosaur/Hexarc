@@ -9,5 +9,6 @@
 
 #include "HTTPUtil.h"
 #include "Utilities.h"
+#include "AEONObjects.h"
 
 #endif //PCH_H

@@ -1,7 +1,7 @@
 //	FoundationFileIO.h
 //
 //	Foundation header file
-//	Copyright (c) 2010 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2010 by GridWhale Corporation. All Rights Reserved.
 //
 //	USAGE
 //
@@ -96,6 +96,57 @@ class CFileBuffer : public CMemoryBlockImpl
 		int m_iCurrentSize;
 
 		char *m_pBlock;
+	};
+
+class CFile64 : public IByteStream64
+	{
+	public:
+
+		enum Flags
+			{
+			FLAG_CREATE_ALWAYS =	0x00000001,		//	Always creates a new file
+			FLAG_OPEN_READ_ONLY =	0x00000002,		//	Open read-only
+			FLAG_CREATE_NEW =		0x00000004,		//	Open for read-write but only if new
+			FLAG_ALLOW_DELETE =		0x00000008,		//	Allow others to delete file while open
+			FLAG_OPEN_ALWAYS =		0x00000010,		//	Create the file if it doesn't exist
+			FLAG_WRITE_THROUGH =	0x00000020,		//	Do not cache writes
+			FLAG_ALLOW_WRITE =		0x00000040,		//	Allow others to write to the file while open
+
+			//	If no flags are specified, we open read-write
+			};
+
+		CFile64 () : m_hFile(INVALID_HANDLE_VALUE) { }
+		~CFile64 ();
+
+		void Close ();
+		bool Create (CStringView sFilespec, DWORD dwFlags, CString *retsError = NULL);
+		bool Flush ();
+		inline CStringView GetFilespec (void) const { return m_sFilespec; }
+		CDateTime GetModifiedTime (void);
+		DWORDLONG GetSize (void);
+		inline bool IsOpen (void) const { return m_hFile != INVALID_HANDLE_VALUE; }
+		bool Lock (DWORDLONG dwPos, DWORDLONG dwLength, int iTimeout = 0);
+		bool SetLength (DWORDLONG dwLength);
+		bool SetModifiedTime (const CDateTime &ModifiedOn);
+		void Unlock (DWORDLONG dwPos, DWORDLONG dwLength);
+
+		//	IByteStream64 virtuals
+		virtual DWORDLONG GetPos () override;
+		virtual DWORDLONG GetStreamLength (void) override;
+		virtual DWORDLONG ReadTry (void *pData, DWORDLONG dwLength) override;
+		virtual void Seek (DWORDLONG dwPos, bool bFromEnd = false) override;
+		virtual void Write (const void *pData, DWORDLONG dwLength) override;
+
+		static CString TranslateError (DWORD dwError);
+
+		//	We want to inherit all the overloaded versions of Write.
+
+		using IByteStream64::Write;
+
+	private:
+
+		CString m_sFilespec;
+		HANDLE m_hFile;
 	};
 
 class CFileBuffer64 : public CMemoryBlockImpl64
@@ -235,6 +286,7 @@ CString fileGetWorkingDirectory (void);
 bool fileIsAbsolute (const CString &sFilespec);
 bool fileIsDotted (const CString &sFilespec);
 bool fileIsFilename (const CString &sFilespec);
+bool fileIsFolder (const CString &sFilespec);
 bool fileIsPathEqual (const CString &sFilespec1, const CString &sFilespec2);
 bool fileIsWildcard (const CString &sFilespec);
 bool fileMove (const CString &sSourceFilespec, const CString &sDestFilespec);

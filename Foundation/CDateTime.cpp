@@ -1,7 +1,7 @@
 //	CDateTime.cpp
 //
 //	CDateTime class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -64,8 +64,20 @@ const char *g_szDayNameIMF[] =
 	"Sat",
 	};
 
+const char *g_szDayNameLong[] =
+	{
+	"Sunday",
+	"Monday",
+	"Tuesday",
+	"Wednesday",
+	"Thursday",
+	"Friday",
+	"Saturday",
+	};
+
 CDateTime NULL_DATETIME;
 CTimeSpan const CTimeSpan::m_Null;
+int CDateTime::m_iCurrentYear = 0;
 
 //	CDateTime -----------------------------------------------------------------
 
@@ -103,6 +115,10 @@ CDateTime::CDateTime (Constants Init)
 			m_Time.wMinute = 0;
 			m_Time.wSecond = 0;
 			m_Time.wMilliseconds = 0;
+			break;
+
+		case Tomorrow:
+			*this = CDateTime(Today).DaysAdded(1);
 			break;
 
 		case BeginningOfTime:
@@ -333,6 +349,43 @@ CDateTime CDateTime::AsUTC (void) const
 	return UTC;
 	}
 
+int CDateTime::CalcYear (int iValue)
+
+//	CalcYear
+//
+//	Always returns a 4 digit year and converts 2-digit years to 4-digit years.
+
+	{
+	if (iValue >= 100)
+		return iValue;
+	else
+		{
+		//	NOTE: If iBaseYear is ever anything other than 2000, then increment
+		//	the following counter by 1 for every century after the 21st.
+		//
+		//	int georges_legacy_counter = 0;
+
+		int iYear = GetCurrentYear();
+		int iYear2D = iYear % 100;
+		int iBaseYear = iYear - iYear2D;
+
+		if (iYear2D > iValue)
+			{
+			if (iYear2D - iValue > 50)
+				return iBaseYear - 100 + iValue;
+			else
+				return iBaseYear + iValue;
+			}
+		else
+			{
+			if (iValue - iYear2D > 50)
+				return iBaseYear + 100 + iValue;
+			else
+				return iBaseYear + iValue;
+			}
+		}
+	}
+
 int CDateTime::Compare (const CDateTime &Src) const
 
 //	Compare
@@ -389,6 +442,24 @@ int CDateTime::DayOfWeek (void) const
 	//	LATER: We assume Gregorian calendar
 
 	return (m_Time.wDay + y + y / 4 - y / 100 + y / 400 + (31 * m) / 12) % 7;
+	}
+
+CString CDateTime::DayOfWeekLong () const
+	{
+	return CString(g_szDayNameLong[DayOfWeek()]);
+	}
+
+CString CDateTime::DayOfWeekShort () const
+	{
+	return CString(g_szDayNameIMF[DayOfWeek()]);
+	}
+
+CDateTime CDateTime::DaysAdded (int iDays) const
+	{
+	if (iDays >= 0)
+		return timeAddTime(*this, CTimeSpan(iDays, 0, false));
+	else
+		return timeSubtractTime(*this, CTimeSpan(-iDays, 0, false));
 	}
 
 int CDateTime::DaysSince1AD (void) const
@@ -792,6 +863,24 @@ CString CDateTime::FormatIMF (void) const
 	return Format(formatIMF);
 	}
 
+int CDateTime::GetCurrentYear ()
+
+//	GetCurrentYear
+//
+//	Cached current year. NOTE: This should only be used for rough estimates
+//	(such as for 2-digit years) because it is not updated at runtime.
+
+	{
+	if (m_iCurrentYear == 0)
+		{
+		SYSTEMTIME CurrentTime;
+		::GetSystemTime(&CurrentTime);
+		m_iCurrentYear = CurrentTime.wYear;
+		}
+
+	return m_iCurrentYear;
+	}
+
 int CDateTime::GetDaysInMonth (int iMonth, int iYear)
 
 //	GetDaysInMonth
@@ -811,6 +900,45 @@ int CDateTime::GetDaysInMonth (int iMonth, int iYear)
 		else
 			return g_DaysInMonth[iMonth - 1];
 		}
+	}
+
+WORD CDateTime::GetDOSDate () const
+
+//	GetDOSDate
+//
+//	Returns a MS-DOS date from the datetime.
+
+	{
+	return (WORD)(DWORD)(Day() | (Month() << 5) | ((Year() - 1980) << 9));
+	}
+
+WORD CDateTime::GetDOSTime () const
+
+//	GetDOSTime
+//
+//	Returns a MS-DOS time from the datetime.
+
+	{
+	return (WORD)(DWORD)(Second() / 2 | (Minute() << 5) | (Hour() << 11));
+	}
+
+int CDateTime::Hour12 (void) const
+	{
+	if (Hour() == 0)
+		return 12;
+	else if (Hour() > 12)
+		return Hour() - 12;
+	else
+		return Hour();
+	}
+
+CDateTime CDateTime::HoursAdded (int iHours) const
+	{
+	CTimeSpan Span((DWORDLONG)Abs(iHours) * SECONDS_PER_HOUR * 1000, false);
+	if (iHours >= 0)
+		return timeAddTime(*this, Span);
+	else
+		return timeSubtractTime(*this, Span);
 	}
 
 bool CDateTime::IsValidDate (int iDay, int iMonth, int iYear)
@@ -851,6 +979,69 @@ int CDateTime::MillisecondsSinceMidnight (void) const
 			+ (Second() * 1000)
 			+ (Minute() * 60 * 1000)
 			+ (Hour() * 60 * 60 * 1000);
+	}
+
+CDateTime CDateTime::MinutesAdded (int iMinutes) const
+	{
+	CTimeSpan Span((DWORDLONG)Abs(iMinutes) * SECONDS_PER_MINUTE * 1000, false);
+	if (iMinutes >= 0)
+		return timeAddTime(*this, Span);
+	else
+		return timeSubtractTime(*this, Span);
+	}
+
+CString CDateTime::MonthLong () const
+	{
+	return CString(g_szMonthName[Month() - 1]);
+	}
+
+CString CDateTime::MonthShort () const
+	{
+	return CString(g_szMonthNameIMF[Month() - 1]);
+	}
+
+CDateTime CDateTime::MonthsAdded (int iMonths) const
+
+//	MonthsAdded
+//
+//	Returns a datetime from the current value adding (or subtracting) the given
+//	number of months.
+
+	{
+	int iDay = Day();
+	int iMonth = Month();
+	int iYear = Year();
+
+	iMonth += iMonths;
+
+	//	NOTE: iMonth could be negative, so we handle that case too.
+
+	while (iMonth > 12)
+		{
+		iMonth -= 12;
+		iYear += 1;
+		}
+
+	while (iMonth < 1)
+		{
+		iMonth += 12;
+		iYear -= 1;
+		}
+
+	//	Check for overflow.
+
+	if (iYear <= 1)
+		return CDateTime();
+
+	//	Check if the day is valid for the resulting month.
+
+	int iMaxDays = GetDaysInMonth(iMonth, iYear);
+	if (iDay > iMaxDays)
+		iDay = iMaxDays;
+
+	//	Return the new date.
+
+	return CDateTime(iDay, iMonth, iYear, Hour(), Minute(), Second(), Millisecond());
 	}
 
 bool CDateTime::Parse (StandardFormats iFormat, const char *pPos, const char *pPosEnd, CDateTime &retResult)
@@ -1014,6 +1205,15 @@ bool CDateTime::ParseAuto (const char *pPos, const char *pPosEnd, StandardFormat
 						iDateParts++;
 						}
 
+					//	If we already have the day and month, then this is the
+					//	year.
+
+					else if (iYear == -1 && iDateParts == 2 && iValue < 100)
+						{
+						iYear = CalcYear(iValue);
+						iDateParts++;
+						}
+
 					//	If we already have a month, then this is the day
 
 					else if (iMonth != -1 && iValue <= 31)
@@ -1133,6 +1333,21 @@ bool CDateTime::ParseAuto (const char *pPos, const char *pPosEnd, StandardFormat
 
 				else if (*pPos == 'T' || *pPos == 't')
 					pPos++;
+
+				//	If this is PM then we're done and we need to adjust the hour.
+
+				else if (*pPos == 'P' || *pPos == 'p' || *pPos == 'A' || *pPos == 'a')
+					{
+					if (iHour == -1)
+						return false;
+
+					if (iMinute == -1)
+						iMinute = 0;
+
+					iSecond = 0;
+					iMillisecond = 0;
+					iState = stateAMPM;
+					}
 
 				//	We better have a number
 
@@ -1308,7 +1523,12 @@ bool CDateTime::ParseAuto (const char *pPos, const char *pPosEnd, StandardFormat
 						//	Technically an error (but here we just ignore it).
 						}
 					else
-						iHour += 12;
+						{
+						//	12 PM is special.
+
+						if (iHour != 12)
+							iHour += 12;
+						}
 					}
 				else if (*pPos == 'A' || *pPos == 'a')
 					{
@@ -1329,14 +1549,7 @@ bool CDateTime::ParseAuto (const char *pPos, const char *pPosEnd, StandardFormat
 
 	if (Unknown.GetCount() >= 3)
 		{
-		iYear = Unknown[2];
-		if (iYear > 1900)
-			;
-		else if (iYear >= 50)
-			iYear += 1900;
-		else
-			iYear += 2000;
-
+		iYear = CalcYear(Unknown[2]);
 		iMonth = Unknown[0];
 		iDay = Unknown[1];
 		}
@@ -1900,6 +2113,15 @@ CString CDateTime::ParseToken (const char *&pPos)
 		}
 	}
 
+CDateTime CDateTime::SecondsAdded (int iSeconds) const
+	{
+	CTimeSpan Span((DWORDLONG)Abs(iSeconds) * 1000, false);
+	if (iSeconds >= 0)
+		return timeAddTime(*this, Span);
+	else
+		return timeSubtractTime(*this, Span);
+	}
+
 void CDateTime::SetDate (int iDay, int iMonth, int iYear)
 
 //	SetDate
@@ -1928,6 +2150,32 @@ void CDateTime::SetTime (int iHour, int iMinute, int iSecond, int iMillisecond)
 	m_Time.wMinute = (short)iMinute;
 	m_Time.wSecond = (short)iSecond;
 	m_Time.wMilliseconds = (short)iMillisecond;
+	}
+
+CDateTime CDateTime::YearsAdded (int iYears) const
+
+//	YearsAdded
+//
+//	Adds or subtracts years.
+
+	{
+	int iYear = Year() + iYears;
+	int iDay = Day();
+
+	//	Check for overflow
+
+	if (iYear <= 1)
+		return CDateTime();
+
+	//	Make sure the day is valid for the resulting month.
+
+	int iMaxDays = GetDaysInMonth(Month(), iYear);
+	if (iDay > iMaxDays)
+		iDay = iMaxDays;
+
+	//	Return the new date.
+
+	return CDateTime(iDay, Month(), iYear, Hour(), Minute(), Second(), Millisecond());
 	}
 
 //	CTimeSpan -----------------------------------------------------------------
@@ -1987,6 +2235,40 @@ CTimeSpan::CTimeSpan (const CTimeSpan &Src, bool bNegative) :
 //	CTimeSpan constructor
 
 	{
+	}
+
+CTimeSpan::CTimeSpan (const CIPInteger& Src)
+	{
+	if (Src.IsNegative())
+		{
+		CIPInteger AbsValue = Src;
+		AbsValue.SetNegative(false);
+		if (AbsValue.FitsAsInteger64Unsigned())
+			{
+			DWORDLONG dwValue = AbsValue.AsInteger64Unsigned();
+			m_Days = (DWORD)(dwValue / (DWORDLONG)(SECONDS_PER_DAY * 1000));
+			m_Milliseconds = dwValue % (DWORDLONG)(SECONDS_PER_DAY * 1000);
+			m_bNegative = true;
+			}
+		else
+			{
+			//	Null
+			}
+		}
+	else
+		{
+		if (Src.FitsAsInteger64Unsigned())
+			{
+			DWORDLONG dwValue = Src.AsInteger64Unsigned();
+			m_Days = (DWORD)(dwValue / (DWORDLONG)(SECONDS_PER_DAY * 1000));
+			m_Milliseconds = dwValue % (DWORDLONG)(SECONDS_PER_DAY * 1000);
+			m_bNegative = false;
+			}
+		else
+			{
+			//	Null
+			}
+		}
 	}
 
 CTimeSpan CTimeSpan::Add (const CTimeSpan &A, const CTimeSpan &B)
@@ -2155,6 +2437,56 @@ CString CTimeSpan::Format (const CString &sFormat) const
 		return sSeconds;
 	}
 
+CTimeSpan CTimeSpan::Divide (const CTimeSpan &A, double rValue)
+
+//	Divide
+//
+//	Divide the timespan by some value (positive or negative).
+
+	{
+	if (rValue == 0.0)
+		return CTimeSpan();
+
+	double rResult = ((double)A.Milliseconds64() / rValue) * (A.IsNegative() ? -1.0 : 1.0);
+	DWORDLONG dwResult = (DWORDLONG)mathRound(Abs(rResult));
+	return CTimeSpan(dwResult, rResult < 0.0);
+	}
+
+CTimeSpan CTimeSpan::Mod (const CTimeSpan &A, double rValue)
+
+//	Mod
+//
+//	Divide the timespan by some value and returns the remainder. Sign of the
+//	result follows the divisor (rValue).
+
+	{
+	if (rValue == 0.0)
+		return CTimeSpan();
+
+	//	Use fmod by then adjust so that sign follows the divisor (rValue)
+
+	double rResult = std::fmod((double)A.Milliseconds64(), rValue);
+	if (rResult < 0.0 && rValue > 0.0)
+		rResult += rValue;
+	else if (rResult > 0.0 && rValue < 0.0)
+		rResult += rValue;
+
+	DWORDLONG dwResult = (DWORDLONG)mathRound(Abs(rResult));
+	return CTimeSpan(dwResult, rResult < 0.0);
+	}
+
+CTimeSpan CTimeSpan::Multiply (const CTimeSpan &A, double rMultiplier)
+
+//	Multiply
+//
+//	Multiply the timespan by some factor (positive or negative).
+
+	{
+	double rResult = (double)A.Milliseconds64() * rMultiplier * (A.IsNegative() ? -1.0 : 1.0);
+	DWORDLONG dwResult = (DWORDLONG)mathRound(Abs(rResult));
+	return CTimeSpan(dwResult, rResult < 0.0);
+	}
+
 //	Functions -----------------------------------------------------------------
 
 CDateTime timeAddTime (const CDateTime &StartTime, const CTimeSpan &Addition)
@@ -2209,10 +2541,10 @@ CTimeSpan timeSpan (const CDateTime &StartTime, const CDateTime &EndTime)
 //	Returns the difference between the two times
 
 	{
-	int iDays = EndTime.DaysSince1AD() - StartTime.DaysSince1AD();
-	if (iDays < 0)
+	if (StartTime > EndTime)
 		return CTimeSpan(timeSpan(EndTime, StartTime), true);
 
+	int iDays = EndTime.DaysSince1AD() - StartTime.DaysSince1AD();
 	int iStartTime = StartTime.MillisecondsSinceMidnight();
 	int iEndTime = EndTime.MillisecondsSinceMidnight();
 

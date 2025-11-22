@@ -1,7 +1,7 @@
 //	CHexeEngine.cpp
 //
 //	CHexeEngine class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -55,8 +55,8 @@ void CHexeEngine::MsgHTTP (const SArchonMessage &Msg, const CHexeSecurityCtx *pS
 //	Hexe.http {method} {URL} {headers} {body} {options}
 
 	{
-	const CString &sMethod = Msg.dPayload.GetElement(0);
-	const CString &sURL = Msg.dPayload.GetElement(1);
+	CStringView sMethod = Msg.dPayload.GetElement(0);
+	CStringView sURL = Msg.dPayload.GetElement(1);
 	CDatum dHeaders = Msg.dPayload.GetElement(2);
 	CDatum dBody = Msg.dPayload.GetElement(3);
 	CDatum dOptions = Msg.dPayload.GetElement(4);

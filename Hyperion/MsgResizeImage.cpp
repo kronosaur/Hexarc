@@ -1,7 +1,7 @@
 //	MsgResizeImage.cpp
 //
 //	Hyperion.resizeImage
-//	Copyright (c) 2017 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2017 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -70,7 +70,7 @@ void CHyperionEngine::MsgResizeImage (const SArchonMessage &Msg, const CHexeSecu
 	{
 	//	Get parameters
 
-	CString sFilePath = Msg.dPayload.GetElement(0);
+	CStringView sFilePath = Msg.dPayload.GetElement(0);
 	if (sFilePath.IsEmpty())
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, ERR_BAD_PARAMS, Msg);
@@ -101,7 +101,7 @@ CImageLoader::EFormats CResizeImageSession::CalcFormat (const CString& sFilePath
 //	Calculates the image format based on the fileDesc and/or extension.
 
 	{
-	CString sFormat = dFileDesc.GetElement(FIELD_TYPE);
+	CStringView sFormat = dFileDesc.GetElement(FIELD_TYPE);
 	if (sFormat.IsEmpty())
 		sFormat = sFilePath;
 
@@ -149,7 +149,7 @@ void CResizeImageSession::OnFileDownloaded (CDatum dFileDesc, CDatum dData)
 
 	CRGBA32Image FullSizeImage;
 	CString sError;
-	CBuffer Buffer((const CString &)dData);
+	CBuffer Buffer(dData.AsStringView());
 	if (!CJPEG::Load(Buffer, FullSizeImage, &sError))
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_CANT_LOAD_JPEG, fileGetFilename(GetFilePath()), sError));

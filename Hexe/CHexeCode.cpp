@@ -1,7 +1,7 @@
 //	CHexeCode.cpp
 //
 //	CHexeCode class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 //
 //	FORMAT
 //
@@ -86,7 +86,7 @@ void CHexeCode::Create (const CHexeCodeIntermediate &Intermediate, int iEntryPoi
 
 		if (dSource.GetBasicType() == CDatum::typeString)
 			{
-			sSource = dSource;
+			sSource = dSource.AsStringView();
 			iBlockType = EBlockType::String;
 			}
 
@@ -95,7 +95,7 @@ void CHexeCode::Create (const CHexeCodeIntermediate &Intermediate, int iEntryPoi
 		else
 			{
 			CStringBuffer Stream;
-			dSource.Serialize(CDatum::EFormat::AEONScript, Stream);
+			dSource.Serialize(CDatum::EFormat::AEONBinary, Stream);
 			sSource.TakeHandoff(Stream);
 			iBlockType = EBlockType::Datum;
 			}
@@ -146,6 +146,8 @@ void CHexeCode::Create (const CHexeCodeIntermediate &Intermediate, int iEntryPoi
 				*pPos = MakeOpCode(pInfo->dwOpCode, pCodeObj->m_CodeOffsets[GetOperand(*pPos)]);
 			else if (pInfo->iOperand == operandStringOffset || pInfo->iOperand == operandDatumOffset)
 				*pPos = MakeOpCode(pInfo->dwOpCode, pCodeObj->m_DataOffsets[GetOperand(*pPos)]);
+			else if (pInfo->dwOpCode == opCallLib)
+				pPos[1] = pCodeObj->m_DataOffsets[pPos[1]];
 
 			//	Next op code
 
@@ -182,6 +184,43 @@ CDatum CHexeCode::CreateDatum (int iID) const
 
 		return dDatum;
 		}
+	}
+
+void CHexeCode::CreateFunctionCall (CStringView sFunction, int iArgCount, CDatum& retdEntryPoint)
+
+//	CreateFunctionCall
+//
+//	Creates a CHexeCode block that makes a function call to the given function,
+//	but assumes the args are already on the stack.
+
+	{
+	CHexeCodeIntermediate CodeBlocks;
+	int iBlock = CodeBlocks.CreateCodeBlock();
+
+	//	Create the environment (the args are on the stack and are popped into
+	//	the environment).
+
+	CodeBlocks.WriteShortOpCode(iBlock, opMakeEnv, iArgCount);
+
+	//	Compile the function name (which must be a global function)
+
+	int iSymbol = CodeBlocks.CreateDatumBlock(sFunction);
+
+	//	Add the lookup opcode
+
+	CodeBlocks.WriteShortOpCode(iBlock, opPushGlobal, iSymbol);
+
+	//	Call
+
+	CodeBlocks.WriteShortOpCode(iBlock, opCall);
+
+	//	Done
+
+	CodeBlocks.WriteShortOpCode(iBlock, opHalt);
+
+	//	Now create the function
+
+	Create(CodeBlocks, iBlock, &retdEntryPoint);
 	}
 
 void CHexeCode::CreateFunctionCall (const CString &sFunction, const TArray<CDatum> &Args, CDatum *retdEntryPoint)
@@ -401,6 +440,36 @@ bool CHexeCode::OnDeserialize (CDatum::EFormat iFormat, const CString &sTypename
 	return true;
 	}
 
+void CHexeCode::DeserializeAEONExternal (IByteStream& Stream, CAEONSerializedMap &Serialized)
+	{
+	DWORD dwVersion = Stream.ReadDWORD();
+
+	//	Read code block
+
+	int iLength = (int)Stream.ReadDWORD();
+	m_Code.SetLength(iLength);
+	Stream.Read(m_Code.GetPointer(), m_Code.GetLength());
+	Stream.Read(NULL, AlignUp(iLength, (int)sizeof(DWORD)) - iLength);
+
+	//	Read code offsets
+
+	iLength = (int)Stream.ReadDWORD();
+	m_CodeOffsets.InsertEmpty(iLength);
+	Stream.Read(&m_CodeOffsets[0], iLength * sizeof(DWORD));
+
+	//	Read data offsets
+
+	iLength = (int)Stream.ReadDWORD();
+	m_DataOffsets.InsertEmpty(iLength);
+	Stream.Read(&m_DataOffsets[0], iLength * sizeof(DWORD));
+
+	//	Initialize the cache.
+
+	m_DataCache.InsertEmpty(m_DataOffsets.GetCount());
+	for (int i = 0; i < m_DataOffsets.GetCount(); i++)
+		m_DataCache[i] = CreateDatum(i);
+	}
+
 void CHexeCode::OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const
 
 //	OnSerialize
@@ -438,4 +507,25 @@ void CHexeCode::OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const
 	Stream.Write(&dwLength, sizeof(DWORD));
 	if (dwLength)
 		Stream.Write(&m_DataOffsets[0], dwLength * sizeof(DWORD));
+	}
+
+void CHexeCode::SerializeAEONExternal (IByteStream& Stream, CAEONSerializedMap &Serialized) const
+	{
+	Stream.Write(VERSION);
+	
+	//	Code block.
+
+	Stream.Write(m_Code.GetLength());
+	Stream.Write(m_Code.GetPointer(), m_Code.GetLength());
+	Stream.Write("    ", AlignUp(m_Code.GetLength(), (int)sizeof(DWORD)) - m_Code.GetLength());
+
+	//	Write the code offsets
+
+	Stream.Write(m_CodeOffsets.GetCount());
+	Stream.Write(&m_CodeOffsets[0], m_CodeOffsets.GetCount() * sizeof(DWORD));
+
+	//	Write the data offsets
+
+	Stream.Write(m_DataOffsets.GetCount());
+	Stream.Write(&m_DataOffsets[0], m_DataOffsets.GetCount() * sizeof(DWORD));
 	}

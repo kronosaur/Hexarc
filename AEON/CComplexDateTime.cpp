@@ -1,7 +1,7 @@
 //	CComplexDateTime.cpp
 //
 //	CComplexDateTime class
-//	Copyright (c) 2010 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2010 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -14,6 +14,121 @@ DECLARE_CONST_STRING(DATETIME_SECOND,					"second");
 DECLARE_CONST_STRING(DATETIME_MILLISECOND,				"millisecond");
 
 DECLARE_CONST_STRING(TYPENAME_DATETIME,					"dateTime");
+
+TDatumPropertyHandler<CComplexDateTime> CComplexDateTime::m_Properties = {
+	{
+		"date",
+		"d",
+		"Returns the date portion of the timeDate.",
+		[](const CComplexDateTime &Obj, const CString &sProperty)
+			{
+			return CDatum(CDateTime(Obj.m_DateTime.Day(), Obj.m_DateTime.Month(), Obj.m_DateTime.Year()));
+			},
+		NULL,
+		},
+	{
+		"day",
+		"I",
+		"Returns the day of the month 1-31.",
+		[](const CComplexDateTime &Obj, const CString &sProperty)
+			{
+			return Obj.m_DateTime.Day();
+			},
+		NULL,
+		},
+	{
+		"dayOfWeek",
+		"$DayOfWeek",
+		"Returns the day of the the week of this date.",
+		[](const CComplexDateTime &Obj, const CString &sProperty)
+			{
+			return CDatum::CreateEnum(Obj.m_DateTime.DayOfWeek(), CAEONTypes::Get(IDatatype::DAY_OF_WEEK_ENUM));
+			},
+		NULL,
+		},
+	{
+		"days",
+		"i",
+		"Returns the number of days since 1 AD.",
+		[](const CComplexDateTime &Obj, const CString &sProperty)
+			{
+			return Obj.m_DateTime.DaysSince1AD();
+			},
+		NULL,
+		},
+	{
+		"hour",
+		"I",
+		"Returns the hour (0-23).",
+		[](const CComplexDateTime &Obj, const CString &sProperty)
+			{
+			return Obj.m_DateTime.Hour();
+			},
+		NULL,
+		},
+	{
+		"millisecond",
+		"I",
+		"Returns the milliseconds (0-999).",
+		[](const CComplexDateTime &Obj, const CString &sProperty)
+			{
+			return Obj.m_DateTime.Millisecond();
+			},
+		NULL,
+		},
+	{
+		"minute",
+		"I",
+		"Returns the minute (0-59).",
+		[](const CComplexDateTime &Obj, const CString &sProperty)
+			{
+			return Obj.m_DateTime.Minute();
+			},
+		NULL,
+		},
+	{
+		"month",
+		"I",
+		"Returns the month (1-12).",
+		[](const CComplexDateTime &Obj, const CString &sProperty)
+			{
+			return Obj.m_DateTime.Month();
+			},
+		NULL,
+		},
+	{
+		"second",
+		"I",
+		"Returns the seconds (0-59).",
+		[](const CComplexDateTime &Obj, const CString &sProperty)
+			{
+			return Obj.m_DateTime.Second();
+			},
+		NULL,
+		},
+	{
+		"time",
+		"m",
+		"Returns the TimeSpan since midnight.",
+		[](const CComplexDateTime &Obj, const CString &sProperty)
+			{
+			return CDatum(CTimeSpan(Obj.m_DateTime.MillisecondsSinceMidnight()));
+			},
+		NULL,
+		},
+	{
+		"year",
+		"I",
+		"Returns the year.",
+		[](const CComplexDateTime &Obj, const CString &sProperty)
+			{
+			return Obj.m_DateTime.Year();
+			},
+		NULL,
+		},
+	};
+
+TDatumMethodHandler<IComplexDatum> *CComplexDateTime::m_pMethodsExt = NULL;
 
 CString CComplexDateTime::AsString (void) const
 
@@ -241,6 +356,19 @@ void CComplexDateTime::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) 
 			break;
 			}
 
+		case CDatum::EFormat::GridLang:
+			{
+			Stream.Write(strPattern("DateTime(\"%d-%02d-%02dT%02d:%02d:%02d.%03d\")",
+					m_DateTime.Year(),
+					m_DateTime.Month(),
+					m_DateTime.Day(),
+					m_DateTime.Hour(),
+					m_DateTime.Minute(),
+					m_DateTime.Second(),
+					m_DateTime.Millisecond()));
+			break;
+			}
+
 		case CDatum::EFormat::JSON:
 			{
 			CString sDate = strPattern("\"%d-%02d-%02dT%02d:%02d:%02d.%03d\"",
@@ -260,4 +388,19 @@ void CComplexDateTime::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) 
 			IComplexDatum::Serialize(iFormat, Stream);
 			break;
 		}
+	}
+
+CDatum CComplexDateTime::DeserializeAEON (IByteStream& Stream, DWORD dwID, CAEONSerializedMap &Serialized)
+	{
+	CComplexDateTime* pDatum = new CComplexDateTime;
+	CDatum dValue(pDatum);
+	Stream.Read(&pDatum->m_DateTime, sizeof(m_DateTime));
+	return dValue;
+	}
+
+void CComplexDateTime::SerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const
+	{
+	Stream.Write(CDatum::SERIALIZE_TYPE_DATE_TIME);
+
+	Stream.Write(&m_DateTime, sizeof(m_DateTime));
 	}

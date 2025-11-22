@@ -51,6 +51,9 @@
     <ClCompile Include="MsgCreateAuthToken.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="MsgDeleteUser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Include\Cryptosaur.h">

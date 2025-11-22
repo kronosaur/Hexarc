@@ -1,14 +1,14 @@
 //	AI1Lib.cpp
 //
 //	AI1 HexeLisp library
-//	Copyright (c) 2015 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2015 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 #include "Hexe.h"
 
 DECLARE_CONST_STRING(LIBRARY_AI1,						"ai1")
 
-bool ai1Misc (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinueCtx, CDatum *retdResult);
+bool ai1Misc (IInvokeCtx *pCtx, DWORD dwData, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult);
 
 const DWORD AI1_PRINT =									0;
 DECLARE_CONST_STRING(AI1_PRINT_NAME,					"print")
@@ -40,7 +40,7 @@ void RegisterAI1Library (void)
 		}
 	}
 
-bool ai1Misc (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinueCtx, CDatum *retdResult)
+bool ai1Misc (IInvokeCtx *pCtx, DWORD dwData, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 	{
 	int i;
 
@@ -49,22 +49,22 @@ bool ai1Misc (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinue
 		case AI1_PRINT:
 			{
 			CStringBuffer Result;
-			for (i = 0; i < dLocalEnv.GetCount(); i++)
-				Result.Write(dLocalEnv.GetElement(i).AsString());
+			for (i = 0; i < LocalEnv.GetCount(); i++)
+				Result.Write(LocalEnv.GetArgument(i).AsString());
 
 			printf("%s\n", Result.GetPointer());
-			*retdResult = CDatum(true);
+			retResult.dResult = CDatum(true);
 			return true;
 			}
 
 		case AI1_READ_FILE:
 			{
-			CString sFilespec = dLocalEnv.GetElement(0).AsString();
+			CString sFilespec = LocalEnv.GetArgument(0).AsString();
 
 			CString sError;
-			if (!CDatum::CreateFromFile(sFilespec, CDatum::EFormat::TextUTF8, retdResult, &sError))
+			if (!CDatum::CreateFromFile(sFilespec, CDatum::EFormat::TextUTF8, &retResult.dResult, &sError))
 				{
-				CHexeError::Create(NULL_STR, sError, retdResult);
+				CHexeError::Create(NULL_STR, sError, &retResult.dResult);
 				return false;
 				}
 

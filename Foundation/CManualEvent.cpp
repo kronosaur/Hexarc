@@ -1,7 +1,7 @@
 //	CManualEvent.cpp
 //
 //	CManualEvent class
-//	Copyright (c) 2010 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2010 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 

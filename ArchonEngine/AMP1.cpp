@@ -1,7 +1,7 @@
 //	AMP1.cpp
 //
 //	CExarchEngine class
-//	Copyright (c) 2015 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2015 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -20,6 +20,7 @@ DECLARE_CONST_STRING(FIELD_ARCOLOGY_PRIME_KEY,			"arcologyPrimeKey");
 DECLARE_CONST_STRING(FIELD_AUTH_KEY,					"authKey");
 DECLARE_CONST_STRING(FIELD_AUTH_NAME,					"authName");
 DECLARE_CONST_STRING(FIELD_HOST_ADDRESS,				"hostAddress");
+DECLARE_CONST_STRING(FIELD_NODE_ID,						"nodeID");
 DECLARE_CONST_STRING(FIELD_STATUS,						"status");
 
 DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply");
@@ -34,10 +35,14 @@ DECLARE_CONST_STRING(MSG_OK,							"OK");
 DECLARE_CONST_STRING(MNEMO_ARC_MACHINES,				"Arc.machines");
 
 DECLARE_CONST_STRING(MNEMO_STATUS_RUNNING,				"running");
+DECLARE_CONST_STRING(MNEMO_STATUS_STOPPED,				"stopped");
 
 DECLARE_CONST_STRING(STR_ANONYMOUS_PING,				"Received unauthenticated ping.");
 DECLARE_CONST_STRING(STR_PING,							"Ping from arcology machine: %s.");
 DECLARE_CONST_STRING(STR_AMP1_SEND_DISPATCH,			"Dispatching %s to %s from %s.");
+DECLARE_CONST_STRING(STR_CONNECTED_TO_SERVER,			"Connected to Arcology Prime.");
+DECLARE_CONST_STRING(STR_CLIENT_CONNECTED,				"[%s]: Connected successfully.");
+DECLARE_CONST_STRING(STR_CLIENT_DISCONNECTED,			"[%s]: Disconnected.");
 
 DECLARE_CONST_STRING(ERR_INVALID_JOIN,					"Arcology Prime cannot join another arcology.");
 DECLARE_CONST_STRING(ERR_INVALID_LEAVE,					"Arcology Prime cannot leave the arcology.");
@@ -50,6 +55,90 @@ DECLARE_CONST_STRING(ERR_CANT_SEND,						"Unable to send to address: %s.");
 DECLARE_CONST_STRING(ERR_CANT_SEND_AMP1_COMMAND,		"Unable to send AMP1 command to %s.");
 DECLARE_CONST_STRING(ERR_CANT_WRITE_CONFIG_FILE,		"Unable to write configuration file.");
 DECLARE_CONST_STRING(ERR_UNKNOWN_AMP1_COMMAND,			"Unknown AMP1 command: %s.");
+DECLARE_CONST_STRING(ERR_AMP1_ERROR,					"AMP1 ERROR: %s.");
+
+void CExarchEngine::OnAMP1ClientConnected (CStringView sNodeID)
+	{
+	CSmartLock Lock(m_cs);
+	if (m_bInGC)
+		{
+		m_AMP1Queue.OnAMP1ClientConnected(sNodeID);
+		return;
+		}
+	Lock.Unlock();
+
+	Log(MSG_LOG_INFO, strPattern(STR_CLIENT_CONNECTED, sNodeID));
+	}
+
+void CExarchEngine::OnAMP1ClientDisconnected (CStringView sNodeID)
+	{
+	CSmartLock Lock(m_cs);
+	if (m_bInGC)
+		{
+		m_AMP1Queue.OnAMP1ClientDisconnected(sNodeID);
+		return;
+		}
+
+	Log(MSG_LOG_INFO, strPattern(STR_CLIENT_DISCONNECTED, sNodeID));
+
+	//	When a machine disconnects, we need to update our mnemosynth database
+
+	SMachineDesc Desc;
+	if (!m_MecharcologyDb.FindMachineByNodeID(sNodeID, &Desc))
+		return;
+
+	CDatum dMachineInfo(CDatum::typeStruct);
+	dMachineInfo.SetElement(FIELD_NODE_ID, sNodeID);
+	dMachineInfo.SetElement(FIELD_HOST_ADDRESS, NULL_STR);
+	dMachineInfo.SetElement(FIELD_STATUS, MNEMO_STATUS_STOPPED);
+
+	MnemosynthWrite(MNEMO_ARC_MACHINES, 
+			Desc.sName, 
+			dMachineInfo);
+	}
+
+void CExarchEngine::OnAMP1ConnectedToServer ()
+	{
+	CSmartLock Lock(m_cs);
+	if (m_bInGC)
+		{
+		m_AMP1Queue.OnAMP1ConnectedToServer();
+		return;
+		}
+	Lock.Unlock();
+
+	LogBlackBox(STR_CONNECTED_TO_SERVER);
+	}
+
+void CExarchEngine::OnAMP1FatalError (CStringView sError)
+	{
+	CSmartLock Lock(m_cs);
+	if (m_bInGC)
+		{
+		m_AMP1Queue.OnAMP1FatalError(sError);
+		return;
+		}
+	Lock.Unlock();
+
+	if (IsArcologyPrime())
+		Log(MSG_LOG_ERROR, strPattern(ERR_AMP1_ERROR, sError));
+
+	//	If we're a secondary machine, we just log to the local log file since
+	//	we can't reach Arcology Prime.
+
+	else
+		LogBlackBox(strPattern(ERR_AMP1_ERROR, sError));
+	}
+
+void CExarchEngine::OnAMP1Message (CStringView sNodeID, CStringView sMsg, CBuffer&& retData)
+	{
+	CSmartLock Lock(m_cs);
+	if (m_bInGC)
+		{
+		m_AMP1Queue.OnAMP1Message(sNodeID, sMsg, std::move(retData));
+		return;
+		}
+	}
 
 void CExarchEngine::MsgEsperOnAMP1 (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)
 
@@ -62,10 +151,10 @@ void CExarchEngine::MsgEsperOnAMP1 (const SArchonMessage &Msg, const CHexeSecuri
 //	message.
 
 	{
-	CString sCommand = Msg.dPayload.GetElement(0);
+	CStringView sCommand = Msg.dPayload.GetElement(0);
 	CDatum dData = Msg.dPayload.GetElement(1);
 	CDatum dConnection = Msg.dPayload.GetElement(2);
-	CString sAuthName = Msg.dPayload.GetElement(3);
+	CStringView sAuthName = Msg.dPayload.GetElement(3);
 
 #ifdef DEBUG_AMP1
 	printf("[AMP1] Received %s from %s.\n", (LPSTR)sCommand, (LPSTR)sAuthName);
@@ -148,7 +237,7 @@ void CExarchEngine::MsgSendToMachine (const SArchonMessage &Msg, const CHexeSecu
 //	Exarch.sendToMachine {machineName} {address} {msg} {ticket} {replyAddr} {payload} {sendingMachine} {noLog}
 
 	{
-	CString sMachineName = Msg.dPayload.GetElement(0);
+	CStringView sMachineName = Msg.dPayload.GetElement(0);
 	CDatum dNoLog = Msg.dPayload.GetElement(7);
 
 	if (!SendAMP1Command(sMachineName, AMP1_SEND, Msg.dPayload))
@@ -173,10 +262,16 @@ void CExarchEngine::AMP1Auth (CDatum dData, CDatum dConnection)
 //	A machine is giving us their secret key to authenticate.
 
 	{
-	CString sName = dData.GetElement(FIELD_AUTH_NAME);
+	CStringView sName = dData.GetElement(FIELD_AUTH_NAME);
 
-	if (m_MecharcologyDb.OnCompleteAuth(sName))
-		OnMachineConnection(sName);
+	//	By the time we get here, Esper has already validated the key, so we just
+	//	need to complete the authentication process. We remember the machine 
+	//	name that was used to authenticate. We get back a nodeID so that we can
+	//	update our Mnemosynth entry.
+
+	CString sNodeID;
+	if (m_MecharcologyDb.OnCompleteAuth(sName, sNodeID))
+		OnMachineConnection(sNodeID, sName);
 	}
 
 void CExarchEngine::AMP1Join (CDatum dData)
@@ -200,7 +295,7 @@ void CExarchEngine::AMP1Join (CDatum dData)
 
 	//	Add the machine (with its secret key) to the arcology.
 
-	CString sPrimeName = dData.GetElement(FIELD_AUTH_NAME);
+	CStringView sPrimeName = dData.GetElement(FIELD_AUTH_NAME);
 	CIPInteger PrimeKey = dData.GetElement(FIELD_AUTH_KEY);
 
 	CString sError;
@@ -334,15 +429,15 @@ void CExarchEngine::AMP1Send (CDatum dData)
 	{
 	//	See CIntermachinePort.cpp for parameters
 
-	CString sAddr = dData.GetElement(1);
+	CStringView sAddr = dData.GetElement(1);
 	SArchonMessage Msg;
-	Msg.sMsg = dData.GetElement(2);
+	Msg.sMsg = dData.GetElement(2).AsStringView();
 	Msg.dwTicket = dData.GetElement(3);
-	Msg.sReplyAddr = dData.GetElement(4);
+	Msg.sReplyAddr = dData.GetElement(4).AsStringView();
 	Msg.dPayload = dData.GetElement(5);
 	CDatum dNoLog = dData.GetElement(7);
 
-#ifdef DEBUG
+#ifdef DEBUG_AMP1
 	if (dNoLog.IsNil())
 		Log(MSG_LOG_DEBUG, strPattern(STR_AMP1_SEND_DISPATCH, Msg.sMsg, sAddr, dData.GetElement(6).AsString()));
 #endif

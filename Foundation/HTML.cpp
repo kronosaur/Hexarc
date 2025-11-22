@@ -1,7 +1,7 @@
 //	HTML.cpp
 //
 //	HTML utilities
-//	Copyright (c) 2012 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2012 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -43,7 +43,7 @@ void htmlWriteAttributeValue (const CString &sText, IByteStream &Output)
 
 			Output.Write("&amp;", 5);
 			}
-		else if (*pPos == '\"')
+		else if (*pPos == '"')
 			{
 			Output.Write(pStart, pPos - pStart);
 			pPos++;
@@ -87,7 +87,7 @@ CString htmlWriteAttributeValue (const CString &sText)
 	return Output;
 	}
 
-void htmlWriteText (char *pPos, char *pPosEnd, IByteStream &Output)
+void htmlWriteText (const char* pPos, const char* pPosEnd, IByteStream& Output)
 
 //	htmlWriteText
 //
@@ -97,7 +97,7 @@ void htmlWriteText (char *pPos, char *pPosEnd, IByteStream &Output)
 //	attribute values, use htmlWriteAttributeValue
 
 	{
-	char *pStart = pPos;
+	const char *pStart = pPos;
 
 	while (pPos < pPosEnd)
 		{
@@ -152,7 +152,7 @@ void htmlWriteText (char *pPos, char *pPosEnd, IByteStream &Output)
 	Output.Write(pStart, (int)(pPos - pStart));
 	}
 
-void htmlWriteText (const CString &sText, IByteStream &Output)
+void htmlWriteText (const CString& sText, IByteStream& Output)
 
 //	htmlWriteText
 //
@@ -162,8 +162,8 @@ void htmlWriteText (const CString &sText, IByteStream &Output)
 //	attribute values, use htmlWriteAttributeValue
 
 	{
-	char *pPos = sText.GetParsePointer();
-	char *pPosEnd = pPos + sText.GetLength();
+	const char *pPos = sText.GetParsePointer();
+	const char *pPosEnd = pPos + sText.GetLength();
 	htmlWriteText(pPos, pPosEnd, Output);
 	}
 

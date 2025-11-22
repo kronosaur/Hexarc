@@ -1,20 +1,23 @@
 //	CInterprocessMessageThread.cpp
 //
 //	CInterprocessMessageThread class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
 const int DEFAULT_PROCESSING_CHUNK =					10;
 const int MAX_QUEUE_SIZE =								256;
 
-DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error")
+DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error");
 
-DECLARE_CONST_STRING(ERR_CANT_DESERIALIZE,				"Unable to deserialize message: %s.")
-DECLARE_CONST_STRING(ERR_CANT_BIND,						"Unable to bind to address: %s.")
-DECLARE_CONST_STRING(ERR_DESERIALIZE_TIME_WARNING,		"Deserialized message.")
+DECLARE_CONST_STRING(STR_THREAD_NAME,					"InterprocessMessage");
+
+DECLARE_CONST_STRING(ERR_CANT_DESERIALIZE,				"Unable to deserialize message: %s.");
+DECLARE_CONST_STRING(ERR_CANT_BIND,						"Unable to bind to address: %s.");
+DECLARE_CONST_STRING(ERR_DESERIALIZE_TIME_WARNING,		"Deserialized message.");
 
 CInterprocessMessageThread::CInterprocessMessageThread (void) :
+		TThread(STR_THREAD_NAME),
 		m_pProcess(NULL),
 		m_iProcessingChunk(DEFAULT_PROCESSING_CHUNK),
 		m_pRunEvent(NULL),

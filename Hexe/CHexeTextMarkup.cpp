@@ -1,7 +1,7 @@
 //	CHexeTextMarkup.cpp
 //
 //	CHexeTextMarkup class
-//	Copyright (c) 2013 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2013 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -115,7 +115,7 @@ bool CHexeTextMarkup::EscapeHTML (const IMemoryBlock &Template, CDatum dStruct, 
 	return true;
 	}
 
-CString CHexeTextMarkup::FormatString (CDatum dArgList)
+CString CHexeTextMarkup::FormatString (CHexeStackEnv& LocalEnv)
 
 //	FormatString
 //
@@ -124,13 +124,13 @@ CString CHexeTextMarkup::FormatString (CDatum dArgList)
 	{
 	//	Must have at least one value.
 
-	if (dArgList.GetCount() < 1)
+	if (LocalEnv.GetCount() < 1)
 		return NULL_STR;
 
 	//	First parameter is a printf style pattern
 
 	int iArg = 0;
-	const CString &sPattern = dArgList.GetElement(iArg++);
+	CStringView sPattern = LocalEnv.GetArgument(iArg++);
 
 	//	Compose
 
@@ -187,7 +187,7 @@ CString CHexeTextMarkup::FormatString (CDatum dArgList)
 
 			if (*pPos == 's')
 				{
-				CDatum dArg = dArgList.GetElement(iArg++);
+				CDatum dArg = LocalEnv.GetArgument(iArg++);
 
 				Stream.Write(dArg.AsString());
 
@@ -195,7 +195,7 @@ CString CHexeTextMarkup::FormatString (CDatum dArgList)
 				}
 			else if (*pPos == 'd' || *pPos == 'D')
 				{
-				CDatum dArg = dArgList.GetElement(iArg++);
+				CDatum dArg = LocalEnv.GetArgument(iArg++);
 				int iValue = (int)dArg;
 				CString sNew;
 
@@ -235,7 +235,7 @@ CString CHexeTextMarkup::FormatString (CDatum dArgList)
 				}
 			else if (*pPos == 'x' || *pPos == 'X')
 				{
-				CDatum dArg = dArgList.GetElement(iArg++);
+				CDatum dArg = LocalEnv.GetArgument(iArg++);
 				DWORD dwValue = (DWORD)dArg;
 				CString sNew;
 
@@ -255,7 +255,7 @@ CString CHexeTextMarkup::FormatString (CDatum dArgList)
 				}
 			else if (*pPos == 'f' || *pPos == 'F')
 				{
-				CDatum dArg = dArgList.GetElement(iArg++);
+				CDatum dArg = LocalEnv.GetArgument(iArg++);
 				double rValue = (double)dArg;
 
 				CString sNew(_CVTBUFSIZE);
@@ -306,7 +306,7 @@ CString CHexeTextMarkup::FormatString (CDatum dArgList)
 				}
 			else if (*pPos == 'c')
 				{
-				CDatum dArg = dArgList.GetElement(iArg++);
+				CDatum dArg = LocalEnv.GetArgument(iArg++);
 				char chChar = (char)(int)dArg;
 				Stream.Write(&chChar, 1);
 
@@ -348,7 +348,7 @@ void CHexeTextMarkup::WriteHTMLContent (CDatum dValue, IByteStream &Output)
 	{
 	int i;
 
-	if (dValue.GetBasicType() == CDatum::typeArray)
+	if (dValue.GetBasicType() == CDatum::typeArray || dValue.GetBasicType() == CDatum::typeTensor)
 		{
 		for (i = 0; i < dValue.GetCount(); i++)
 			WriteHTMLContent(dValue.GetElement(i), Output);

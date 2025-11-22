@@ -1,7 +1,7 @@
 //	CAI1Session.cpp
 //
 //	CAI1Session class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 //
 //	IMPLEMENTATION NOTES
 //
@@ -408,7 +408,7 @@ bool CAI1Session::ProcessCommand (const CString &sCommand, CDatum dPayload)
 
 	if (strEquals(sCommand, CMD_CONNECT))
 		{
-		const CString &sInterface = dPayload.GetElement(0);
+		CStringView sInterface = dPayload.GetElement(0);
 
 		//	If we don't have an admin, then refuse the connection, unless this
 		//	is a well-known interface that knows how to deal with arcology
@@ -486,7 +486,7 @@ bool CAI1Session::ProcessCommand (const CString &sCommand, CDatum dPayload)
 		//	Cryptosaur will not include this info. If we get an error later
 		//	we can revert this.
 
-		m_SecurityCtx.SetUsername(dPayload.GetElement(0));
+		m_SecurityCtx.SetUsername(dPayload.GetElement(0).AsStringView());
 		m_SecurityCtx.InsertUserRight(RIGHT_ARC_ADMIN);
 
 		//	Generate an RPC call to Cryptosaur, but remember our state so that
@@ -570,7 +570,7 @@ bool CAI1Session::ProcessRPC (const SArchonMessage &RPCMsg)
 		if (IsError(RPCMsg))
 			{
 			m_SecurityCtx.SetAnonymous();
-			return SendReplyError(RPCMsg.dPayload);
+			return SendReplyError(RPCMsg.dPayload.AsStringView());
 			}
 
 		//	If we succeed then we have successfully connected to the arcology
@@ -595,11 +595,11 @@ bool CAI1Session::ProcessRPC (const SArchonMessage &RPCMsg)
 		//	Otherwise, if we got a different error, we cannot continue
 
 		else if (IsError(RPCMsg))
-			return SendReplyError(RPCMsg.dPayload);
+			return SendReplyError(RPCMsg.dPayload.AsStringView());
 
 		//	Set our user credentials
 
-		m_SecurityCtx.SetUsername(RPCMsg.dPayload.GetElement(FIELD_USERNAME));
+		m_SecurityCtx.SetUsername(RPCMsg.dPayload.GetElement(FIELD_USERNAME).AsStringView());
 		m_SecurityCtx.SetUserRights(RPCMsg.dPayload.GetElement(FIELD_RIGHTS));
 
 		//	See if we have sufficient rights to connect to this interface. If
@@ -645,17 +645,18 @@ bool CAI1Session::ProcessRunResult (CHexeProcess::ERun iRun, CDatum dRunResult)
 
 		case CHexeProcess::ERun::AsyncRequest:
 			{
-			const CString &sAddr = dRunResult.GetElement(0);
+			CStringView sAddr = dRunResult.GetElement(0);
 
 			SArchonMessage Msg;
-			Msg.sMsg = dRunResult.GetElement(1);
+			Msg.sMsg = dRunResult.GetElement(1).AsStringView();
 			Msg.dPayload = dRunResult.GetElement(2);
 
 			return SendRPC(sAddr, Msg);
 			}
 
 		case CHexeProcess::ERun::Error:
-			return SendReplyError(dRunResult);
+		case CHexeProcess::ERun::ForcedTerminate:
+			return SendReplyError(dRunResult.AsStringView());
 
 		default:
 			//	Can't happen

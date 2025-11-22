@@ -1,9 +1,11 @@
 //	CHTTPUtil.cpp
 //
 //	CHTTPUtil Class
-//	Copyright (c) 2022 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2022 GridWhale Corporation. All Rights Reserved.
 
 #include "pch.h"
+
+DECLARE_CONST_STRING(DATUM_TYPENAME_XML_ELEMENT,		"xmlElement");
 
 DECLARE_CONST_STRING(FIELD_DATA,						"data");
 DECLARE_CONST_STRING(FIELD_HEADERS,						"headers");
@@ -25,6 +27,9 @@ DECLARE_CONST_STRING(METHOD_GET,						"GET");
 
 DECLARE_CONST_STRING(PROTOCOL_HTTPS,					"https");
 
+DECLARE_CONST_STRING(TYPENAME_URL,						"URLType");
+DECLARE_CONST_STRING(TYPENAME_XML_ELEMENT,				"XMLElementType");
+
 DECLARE_CONST_STRING(ERR_UNABLE_TO_PARSE_MULTIPART,		"Error parsing MIME multipart/form-data.")
 DECLARE_CONST_STRING(ERR_UNABLE_TO_PARSE_JSON,			"Error parsing JSON.");
 DECLARE_CONST_STRING(ERR_UNABLE_TO_PARSE_FORM_URL_ENCODED,	"Error parsing form URL encoded.");
@@ -34,6 +39,31 @@ DECLARE_CONST_STRING(ERR_UNABLE_TO_SEND,				"Unable to send data to %s; connecti
 DECLARE_CONST_STRING(ERR_UNABLE_TO_CONNECT,				"Unable to connect to server at %s.");
 DECLARE_CONST_STRING(ERR_INVALID_PORT,					"Unable to determine port from URL: %s.");
 DECLARE_CONST_STRING(ERR_INVALID_URL,					"Invalid URL: %s.");
+
+bool CHTTPUtil::m_bAEONRegistered = false;
+DWORD CHTTPUtil::URL_TYPE = 0;
+DWORD CHTTPUtil::XML_ELEMENT_TYPE = 0;
+
+bool CHTTPUtil::Boot ()
+
+//	Boot
+//
+//	Register AEON types.
+
+	{
+	if (!m_bAEONRegistered)
+		{
+		CAEONURL::RegisterFactory();
+		CAEONXMLElement::RegisterFactory();
+
+		URL_TYPE = CAEONTypes::AddCoreSimple(TYPENAME_URL, CDatatypeList(), false);
+		XML_ELEMENT_TYPE = CAEONTypes::AddCoreAEON(TYPENAME_XML_ELEMENT, CDatatypeList(), DATUM_TYPENAME_XML_ELEMENT, CAEONXMLElement::GetMembers());
+
+		m_bAEONRegistered = true;
+		}
+
+	return true;
+	}
 
 bool CHTTPUtil::ConvertBodyToDatum (const CHTTPMessage &Message, CDatum &retdBody)
 
@@ -130,7 +160,7 @@ bool CHTTPUtil::ConvertFormURLEncodedToDatum (const CString &sText, CDatum &retd
 	EState iState = EState::Start;
 	EState iOldState;
 
-	CMemoryBuffer Token;
+	CStringBuffer Token;
 	CString sFieldName;
 
 	while (iState != EState::Done)
@@ -253,7 +283,7 @@ CDatum CHTTPUtil::ConvertHeadersToDatum (const CHTTPMessage &Message)
 		//	NOTE: CHTTPMessage always converts headers to lowercase for ease of
 		//	compare, since the HTTP spec says header names are case-insensitive.
 
-		const CString &sOriginalData = dResult.GetElement(sHeader);
+		CStringView sOriginalData = dResult.GetElement(sHeader);
 		if (!sOriginalData.IsEmpty())
 			dResult.SetElement(sHeader, strPattern("%s, %s", sOriginalData, sValue));
 		
@@ -269,6 +299,26 @@ CDatum CHTTPUtil::ConvertHeadersToDatum (const CHTTPMessage &Message)
 		return dResult;
 	else
 		return CDatum();
+	}
+
+CDatum CHTTPUtil::CreateURL (const CString& sURL, CDatum dComponents)
+
+//	CreateURL
+//
+//	Creates an URL object.
+
+	{
+	return CAEONURL::Create(sURL, dComponents);
+	}
+
+CDatum CHTTPUtil::CreateXMLElement (const IMemoryBlock& FileData)
+
+//	CreateXMLElement
+//
+//	Creates an XML element from a file.
+
+	{
+	return CAEONXMLElement::Create(FileData);
 	}
 
 CDatum CHTTPUtil::DecodeResponse (const CHTTPMessage &Response)
@@ -323,7 +373,7 @@ CHTTPMessage CHTTPUtil::EncodeRequest (const CString &sMethod, const CString &sH
 	bool bFoundHost = false;
 	for (int i = 0; i < dHeaders.GetCount(); i++)
 		{
-		Request.AddHeader(dHeaders.GetKey(i), (const CString &)dHeaders.GetElement(i));
+		Request.AddHeader(dHeaders.GetKey(i), dHeaders.GetElement(i).AsStringView());
 		if (strEquals(strToLower(dHeaders.GetKey(i)), HEADER_HOST))
 			bFoundHost = true;
 		}

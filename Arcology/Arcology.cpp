@@ -4,18 +4,19 @@
 #include "stdafx.h"
 #include "LuminousAEON.h"
 
-DECLARE_CONST_STRING(CMDLINE_ARCOLOGY,					"arcology")
-DECLARE_CONST_STRING(CMDLINE_CONFIG,					"config")
-DECLARE_CONST_STRING(CMDLINE_HEXARC_PORT,				"hexarcPort")
+DECLARE_CONST_STRING(CMDLINE_ARCOLOGY,					"arcology");
+DECLARE_CONST_STRING(CMDLINE_CONFIG,					"config");
+DECLARE_CONST_STRING(CMDLINE_HEXARC_PORT,				"hexarcPort");
 
 class CArcologyService : public CWin32Service
 	{
 	public:
-		virtual void GetInfo (SWin32ServiceInfo *retInfo);
-		virtual void OnRun (void);
-		virtual void OnStart (const TArray<CString> &Params);
-		virtual void OnStop (void);
-		virtual void OnWaitForStop (void);
+		virtual void GetInfo (SWin32ServiceInfo *retInfo) override;
+		virtual void OnCrash (CStringView sError) override;
+		virtual void OnRun () override;
+		virtual void OnStart (const TArray<CString> &Params) override;
+		virtual void OnStop () override;
+		virtual void OnWaitForStop () override;
 
 	private:
 		struct SOptions
@@ -40,6 +41,11 @@ void CArcologyService::GetInfo (SWin32ServiceInfo *retInfo)
 	retInfo->sServiceID = "HexarcService";
 	retInfo->sServiceName = "Hexarc";
 	retInfo->sServiceDesc = "Implements a Hexarc arcology.";
+	}
+
+void CArcologyService::OnCrash (CStringView sError)
+	{
+	m_Process.UnhandledException(sError);
 	}
 
 void CArcologyService::OnRun (void)
@@ -203,17 +209,17 @@ void CArcologyService::ParseOptions (const TArray<CString> &Params, SOptions *re
 
 			//	See if we have quotes
 
-			if (*pPos == '\"')
+			if (*pPos == '"')
 				{
 				pPos++;
 
 				pStart = pPos;
-				while (*pPos != '\"' && *pPos != '\0')
+				while (*pPos != '"' && *pPos != '\0')
 					pPos++;
 
 				sParam = CString(pStart, pPos - pStart);
 
-				if (*pPos == '\"')
+				if (*pPos == '"')
 					pPos++;
 				}
 

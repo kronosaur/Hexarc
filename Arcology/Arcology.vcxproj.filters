@@ -80,5 +80,6 @@
     <None Include="PortsAndMessages.txt" />
     <None Include="..\.gitignore" />
     <None Include="..\README.md" />
+    <None Include="..\AGENTS.md" />
   </ItemGroup>
 </Project>

@@ -1,7 +1,7 @@
 //	Unicode.cpp
 //
 //	Unicode functions
-//	Copyright (c) 2010 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2010 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 #include "UnicodeTables.h"
@@ -30,6 +30,33 @@ static WORD g_UppercaseTable1F[256];
 static WORD g_UppercaseTable24[256];
 static WORD g_UppercaseTableFF[256];
 static bool g_bCaseTablesInitialized = false;
+
+CStringView::ECharClass CStringView::GetCharClass (UTF32 dwCodePoint)
+
+//	GetCharClass
+//
+//	Returns the character class of the given code point.
+
+	{
+	if (dwCodePoint == 0x009 || dwCodePoint == 0x000A || dwCodePoint == 0x000D || dwCodePoint == 0x0020)
+		return ECharClass::Whitespace;
+	else if (dwCodePoint < 0x0020)
+		return ECharClass::NonPrintable;
+	else if (dwCodePoint < 0x007F)
+		return ECharClass::Normal;
+	else if (dwCodePoint <= 0x00A0)
+		return ECharClass::NonPrintable;
+	else if (dwCodePoint == 0x1680 || dwCodePoint == 0x2028 || dwCodePoint == 0x2029 || dwCodePoint == 0x202F || dwCodePoint == 0x205F || dwCodePoint == 0x3000)
+		return ECharClass::Whitespace;
+	else if (dwCodePoint >= 0x2000 && dwCodePoint <= 0x200A)
+		return ECharClass::Whitespace;
+	else if (dwCodePoint == 0xFEFF)
+		return ECharClass::NonPrintable;
+	else if (dwCodePoint == 0)
+		return ECharClass::Null;
+	else
+		return ECharClass::Normal;
+	}
 
 CString strEncodeUTF8Char (UTF32 dwCodePoint)
 
@@ -254,6 +281,49 @@ bool strIsPrintableChar (UTF32 dwCodePoint)
 
 		default:
 			return true;
+		}
+	}
+
+bool strIsWhitespaceChar (UTF32 dwCodePoint)
+
+//	strIsWhitespaceChar
+//
+//	Returns TRUE if this is a whitespace character.
+
+	{
+	switch (dwCodePoint)
+		{
+		case 0x0009:	//	TAB
+		case 0x000A:	//	LF
+		case 0x000B:	//	Rare
+		case 0x000C:	//	Rare
+		case 0x000D:	//	CR
+		case 0x0020:	//	SPACE
+		case 0x0085:	//	NEXT LINE (NEL)
+		case 0x00A0:	//	NO-BREAK SPACE (NBSP)
+		case 0x1680:	//	OGHAM SPACE MARK
+		case 0x180E:	//	MONGOLIAN VOWEL SEPARATOR (deprecated as whitespace since Unicode 6.3)
+		case 0x2000:	//	EN SPACE
+		case 0x2001:	//	EM SPACE
+		case 0x2002:	//	THIN SPACE
+		case 0x2003:	//	HAIR SPACE
+		case 0x2004:	//	Zero Width Space
+		case 0x2005:	//	Zero Width Non-Joiner
+		case 0x2006:	//	Zero Width Joiner
+		case 0x2007:	//	Line Separator
+		case 0x2008:	//	Paragraph Separator
+		case 0x2009:	//	Space Separator
+		case 0x200A:	//	Narrow No-Break Space
+		case 0x2028:	//	LINE SEPARATOR
+		case 0x2029:	//	PARAGRAPH SEPARATOR
+		case 0x202F:	//	NARROW NO-BREAK SPACE
+		case 0x205F:	//	MEDIUM MATHEMATICAL SPACE
+		case 0x3000:	//	IDEOGRAPHIC SPACE
+		case 0xFEFF:	//	Zero Width No-Break Space (BOM)
+			return true;
+
+		default:
+			return false;
 		}
 	}
 

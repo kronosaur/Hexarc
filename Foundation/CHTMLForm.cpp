@@ -1,7 +1,7 @@
 //	CHTMLForm.cpp
 //
 //	CHTMLFOrm class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 //
 //	The encoding is as follows:
 //

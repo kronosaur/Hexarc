@@ -1,9 +1,39 @@
 //	CMemoryBlockImpl64.cpp
 //
 //	CMemoryBlockImpl64 class
-//	Copyright (c) 2017 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2017 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
+
+int CMemoryBlockImpl64::Compare (const IMemoryBlock& Src) const
+
+//	Compare
+//
+//	0 if Key1 == Key2
+//	1 if Key1 > Key2
+//	-1 if Key1 < Key2
+
+	{
+	if (GetLength() > (DWORDLONG)(DWORD)Src.GetLength())
+		return 1;
+	else if (GetLength() < (DWORDLONG)(DWORD)Src.GetLength())
+		return -1;
+	else
+		{
+		const BYTE* pSrc = (const BYTE*)Src.GetPointer();
+		const BYTE* pDest = (const BYTE*)GetPointer();
+
+		for (DWORDLONG i = 0; i < GetLength(); i++)
+			{
+			if (pDest[i] > pSrc[i])
+				return 1;
+			else if (pDest[i] < pSrc[i])
+				return -1;
+			}
+
+		return 0;
+		}
+	}
 
 char CMemoryBlockImpl64::ReadChar (void)
 

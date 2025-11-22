@@ -1,7 +1,7 @@
 //	CLuminousPath2D.cpp
 //
 //	CLuminousPath2D Class
-//	Copyright (c) 2022 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2022 GridWhale Corporation. All Rights Reserved.
 
 #include "pch.h"
 

@@ -1,7 +1,7 @@
 //	CAEONVector2D.cpp
 //
 //	CAEONVector2D class
-//	Copyright (c) 2014 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2014 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -13,11 +13,94 @@ DECLARE_CONST_STRING(TYPENAME_VECTOR_2D,				"vector2D");
 
 const CString &CAEONVector2D::StaticGetTypename (void) { return TYPENAME_VECTOR_2D; }
 
+TDatumPropertyHandler<CAEONVector2D> CAEONVector2D::m_Properties = {
+	{
+		"length",
+		"I",
+		"Returns the length of the vector.",
+		[](const CAEONVector2D& Obj, const CString &sProperty)
+			{
+			return CDatum(Obj.m_vVector.Length());
+			},
+		NULL,
+		},
+	{
+		"size",
+		"I",
+		"Returns the number of elements in the vector.",
+		[](const CAEONVector2D& Obj, const CString &sProperty)
+			{
+			return CDatum(2);
+			},
+		NULL,
+		},
+	{
+		"unit",
+		"$Vector2DOfFloat64",
+		"Returns the a unit vector in the same direction.",
+		[](const CAEONVector2D& Obj, const CString &sProperty)
+			{
+			return CDatum(Obj.m_vVector / Obj.m_vVector.Length());
+			},
+		NULL,
+		},
+	{
+		"x",
+		"f",
+		"Returns the x element.",
+		[](const CAEONVector2D& Obj, const CString &sProperty)
+			{
+			return CDatum(Obj.m_vVector.X());
+			},
+		NULL,
+		},
+	{
+		"y",
+		"f",
+		"Returns the y element.",
+		[](const CAEONVector2D& Obj, const CString &sProperty)
+			{
+			return CDatum(Obj.m_vVector.Y());
+			},
+		NULL,
+		},
+	};
+
+TDatumMethodHandler<CAEONVector2D> CAEONVector2D::m_Methods = {
+	{
+		"cross",
+		"V2:v=V2",
+		".cross(v) -> cross product",
+		0,
+		[](CAEONVector2D& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
+			{
+			retResult.dResult = CDatum(Obj.m_vVector.Cross(LocalEnv.GetArgument(1)));
+			return true;
+			},
+		},
+	{
+		"dot",
+		"F:v=V2",
+		".dot(v) -> dot product",
+		0,
+		[](CAEONVector2D& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
+			{
+			retResult.dResult = CDatum(Obj.m_vVector.Dot(LocalEnv.GetArgument(1)));
+			return true;
+			},
+		},
+	};
+
 CAEONVector2D::CAEONVector2D (const CVector2D &vVector) : m_vVector(vVector)
 
 //	CAEONVector2D constructor
 
 	{
+	}
+
+CString CAEONVector2D::AsString () const
+	{
+	return strPattern("[%s, %s]", strFromDouble(m_vVector.X()), strFromDouble(m_vVector.Y()));
 	}
 
 CDatum CAEONVector2D::GetElement (int iIndex) const
@@ -115,4 +198,23 @@ void CAEONVector2D::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruc
 	{
 	pStruct->SetElement(FIELD_X, m_vVector.X());
 	pStruct->SetElement(FIELD_Y, m_vVector.Y());
+	}
+
+CDatum CAEONVector2D::DeserializeAEON (IByteStream& Stream, DWORD dwID, CAEONSerializedMap &Serialized)
+	{
+	CAEONVector2D* pValue = new CAEONVector2D;
+	CDatum dValue(pValue);
+
+	pValue->m_vVector.SetX(Stream.ReadDouble());
+	pValue->m_vVector.SetY(Stream.ReadDouble());
+
+	return dValue;
+	}
+
+void CAEONVector2D::SerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const
+	{
+	Stream.Write(CDatum::SERIALIZE_TYPE_VECTOR_2D);
+
+	Stream.Write(m_vVector.X());
+	Stream.Write(m_vVector.Y());
 	}

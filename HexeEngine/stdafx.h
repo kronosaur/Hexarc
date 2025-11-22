@@ -1,7 +1,7 @@
 //	HexEngine
 //
 //	Hexe compute engine
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #pragma once
 

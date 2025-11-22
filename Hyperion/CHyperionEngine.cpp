@@ -1,7 +1,7 @@
 //	CHyperionEngine.cpp
 //
 //	CHyperionEngine class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -144,7 +144,7 @@ void CHyperionEngine::FatalError (const SArchonMessage &Msg)
 //	Received an error from one of our dependencies (e.g., Aeon)
 
 	{
-	Log(MSG_LOG_ERROR, strPattern(ERR_UNABLE_TO_CONTINUE, Msg.dPayload));
+	Log(MSG_LOG_ERROR, strPattern(ERR_UNABLE_TO_CONTINUE, Msg.dPayload.AsString()));
 	}
 
 bool CHyperionEngine::FindAI1Service (const CString &sListener, const CString &sInterface, CAI1Service **retpService)
@@ -505,7 +505,7 @@ void CHyperionEngine::MsgSetOption (const SArchonMessage &Msg, const CHexeSecuri
 //	Sets an option for the engine.
 
 	{
-	const CString &sOption = Msg.dPayload.GetElement(0);
+	CStringView sOption = Msg.dPayload.GetElement(0);
 	CDatum dValue = Msg.dPayload.GetElement(1);
 
 	//	Must be admin service
@@ -532,7 +532,7 @@ void CHyperionEngine::MsgSetTaskRunOn (const SArchonMessage &Msg, const CHexeSec
 //	Hyperion.setTaskRunOn {taskName} [{dateTime}]
 
 	{
-	const CString &sTaskName = Msg.dPayload.GetElement(0);
+	CStringView sTaskName = Msg.dPayload.GetElement(0);
 	CDateTime RunOn = Msg.dPayload.GetElement(1).AsDateTime();
 	if (!RunOn.IsValid())
 		RunOn = CDateTime(CDateTime::Now);
@@ -554,7 +554,7 @@ void CHyperionEngine::MsgStopTask (const SArchonMessage &Msg, const CHexeSecurit
 //	Hyperion.stopTask {taskName}
 
 	{
-	const CString &sTaskName = Msg.dPayload.GetElement(0);
+	CStringView sTaskName = Msg.dPayload.GetElement(0);
 
 	CString sError;
 	if (!m_Scheduler.SetSignalStop(sTaskName, &sError))
@@ -632,7 +632,7 @@ void CHyperionEngine::SignalListener (const CString &sName, EListenerStatus iDes
 
 //	SignalListener
 //
-//	Requests the listener to enter the desired state. If sName is NULL_STR then 
+//	Requests the listener to enter the desired state. If sID is NULL_STR then 
 //	all listeners are affected.
 
 	{

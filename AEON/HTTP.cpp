@@ -1,7 +1,7 @@
 //	HTTP.cpp
 //
 //	Methods for handling HTTP messages, etc.
-//	Copyright (c) 2012 Kronosaur Productions, LLC . All Rights Reserved.
+//	Copyright (c) 2012 GridWhale Corporation . All Rights Reserved.
 
 #include "stdafx.h"
 

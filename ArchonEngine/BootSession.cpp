@@ -1,7 +1,7 @@
 //	CExarchEngine.cpp
 //
 //	CExarchEngine class
-//	Copyright (c) 2020 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2020 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 

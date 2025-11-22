@@ -1,7 +1,7 @@
 //	CHexeMarkupParser.cpp
 //
 //	CHexeMarkupParser class
-//	Copyright (c) 2012 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2012 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -13,7 +13,7 @@ DECLARE_CONST_STRING(ERR_UNEXPECTED_CLOSE_ANGLE_BRACKET,	"Unexpected character: 
 DECLARE_CONST_STRING(ERR_UNEXPECTED_OPEN_ANGLE_BRACKET,	"Unexpected character: '<'.")
 DECLARE_CONST_STRING(ERR_UNEXPECTED_EOS,				"Unexpected end of stream.")
 
-void CHexeMarkupParser::Init (char *pPos, int iLength)
+void CHexeMarkupParser::Init (const char *pPos, int iLength)
 
 //	Init
 //

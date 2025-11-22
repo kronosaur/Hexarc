@@ -1,7 +1,7 @@
 //	TImageDraw.h
 //
 //	Template for drawing various shapes.
-//	Copyright (c) 2019 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2019 GridWhale Corporation. All Rights Reserved.
 
 #pragma once
 

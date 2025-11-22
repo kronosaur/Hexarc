@@ -1,7 +1,7 @@
 //	CCryptoDigest.cpp
 //
 //	CCryptoDigest class
-//	Copyright (c) 2015 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2015 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 

@@ -1,7 +1,7 @@
 //	FoundationMath.h
 //
 //	Foundation header file
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 //
 //	USAGE
 //
@@ -12,6 +12,7 @@
 //	Math functions
 
 int mathDoubleToIntStochastic (double rValue);
+double mathLog (double rX, double rBase = 10.0);
 DWORD mathRandom (void);
 int mathRandom (int iFrom, int iTo);
 double mathRandom (double rFrom, double rTo);
@@ -47,7 +48,7 @@ class CIPInteger
 		CIPInteger (const CIPInteger &Src);
 		CIPInteger (CIPInteger &&Src) noexcept;
 		CIPInteger (int iSrc);
-		CIPInteger (DWORDLONG ilSrc);
+		CIPInteger (DWORDLONG ilSrc, bool bNegative = false);
 		CIPInteger (LONGLONG ilSrc);
 		CIPInteger (double rSrc);
 		~CIPInteger (void);
@@ -78,11 +79,12 @@ class CIPInteger
 		CIPInteger &operator<<= (size_t iBits);
 		CIPInteger operator << (size_t iBits) const;
 
+		CString AsBase64 () const;
 		int AsByteArray (TArray<BYTE> *retValue) const;
 		double AsDouble () const;
 		int AsInteger32Signed (void) const;
 		DWORDLONG AsInteger64Unsigned (void) const;
-		CString AsString (void) const;
+		CString AsString (bool bOmitSign = false) const;
 		int Compare (const CIPInteger &Src) const;
 		static bool Deserialize (IByteStream &Stream, CIPInteger *retpValue);
 		bool DivideMod (const CIPInteger &Divisor, CIPInteger &retQuotient, CIPInteger &retRemainder) const;
@@ -98,11 +100,15 @@ class CIPInteger
 		bool IsZero () const;
 		CIPInteger Power (const CIPInteger &Exp) const;
 		bool Serialize (IByteStream &Stream) const;
+		void SetNegative (bool bNegative = true) { m_bNegative = bNegative; }
 		void TakeHandoff (CIPInteger &Src);
 		void WriteBytes (IByteStream &Stream) const;
 
 	private:
+
 		CIPInteger (void *Value, bool bNegative) : m_Value(Value), m_bNegative(bNegative) { }
+
+		static bool InitFromStringDouble (const char* pPos, const char* pPosEnd, CIPInteger& retResult);
 
 		void *m_Value = NULL;
 		bool m_bNegative = false;
@@ -115,6 +121,24 @@ inline int KeyCompare (const CIPInteger &Key1, const CIPInteger &Key2) { return 
 extern CIPInteger NULL_IPINTEGER;
 
 //	Statistics -----------------------------------------------------------------
+
+class CStatistics
+	{
+	public:
+
+		static double ErrorFunction (double x);
+		static double ExponentialCDF (double x, double lambda);
+		static double ExponentialInverse (double x, double lambda);
+		static double ExponentialPDF (double x, double lambda);
+		static double FDistCDF (double x, double df1, double df2);
+		static double FDistInverse (double x, double df1, double df2);
+		static double FDistPDF (double x, double df1, double df2);
+		static double NormalCDF (double x);
+		static double NormalPDF (double x);
+		static double TDistCDF (double x, double df);
+		static double TDistInverse (double x, double df);
+		static double TDistPDF (double x, double df);
+	};
 
 template <class VALUE> class TStatistics
 	{

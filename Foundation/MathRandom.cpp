@@ -1,7 +1,7 @@
 //	MathRandom.cpp
 //
 //	Math functions and classes
-//	Copyright (c) 2012 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2012 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 #include <Math.h>
@@ -29,6 +29,19 @@ int mathDoubleToIntStochastic (double rValue)
 		return (int)rInt + 1;
 	else
 		return (int)rInt;
+	}
+
+double mathLog (double rX, double rBase)
+
+//	mathLog
+//
+//	Returns the logarithm of X in the given base.
+
+	{
+	if (rX == 0.0 || rBase <= 1.0)
+		return 0.0;
+	else
+		return log(rX) / log(rBase);
 	}
 
 DWORD mathRandom (void)

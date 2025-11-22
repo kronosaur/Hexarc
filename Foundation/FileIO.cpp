@@ -1,7 +1,7 @@
 //	FileIO.cpp
 //
 //	File IO functions
-//	Copyright (c) 2010 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2010 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -952,6 +952,17 @@ bool fileIsFilename (const CString &sFilespec)
 		pPos--;
 
 	return (pPos >= pStart && *pPos == '.');
+	}
+
+bool fileIsFolder (const CString &sFilespec)
+
+//	fileIsFolder
+//
+//	Returns TRUE if the given filespec is a folder.
+
+	{
+	DWORD dwResult = ::GetFileAttributes(CString16(sFilespec));
+	return ((dwResult != 0xffffffff) && (dwResult & FILE_ATTRIBUTE_DIRECTORY));
 	}
 
 bool fileIsPathEqual (const CString &sFilespec1, const CString &sFilespec2)

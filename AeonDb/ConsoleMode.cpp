@@ -1,30 +1,36 @@
 //	ConsoleMode.cpp
 //
 //	CAeonEngine class
-//	Copyright (c) 2018 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2018 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
 DECLARE_CONST_STRING(CMD_CREATE_TABLE,					"createtable")
+DECLARE_CONST_STRING(CMD_DIAG,							"diag")
 DECLARE_CONST_STRING(CMD_HELP,							"help")
 DECLARE_CONST_STRING(CMD_GET_ROWS,						"getrows")
 DECLARE_CONST_STRING(CMD_IMPORT_TABLE,					"importtable")
 DECLARE_CONST_STRING(CMD_LIST_TABLES,					"listtables")
+DECLARE_CONST_STRING(CMD_MERGE,							"merge")
 
 DECLARE_CONST_STRING(FIELD_KEY_TYPE,					"keyType")
 DECLARE_CONST_STRING(FIELD_NAME,						"name")
 DECLARE_CONST_STRING(FIELD_X,							"x")
 
 DECLARE_CONST_STRING(HELP_CREATE_TABLE,					"createTable {tableDesc}")
+DECLARE_CONST_STRING(HELP_DIAG,							"diag {tableDesc}")
 DECLARE_CONST_STRING(HELP_GET_ROWS,						"getRows {tableName} {key} {count}")
 DECLARE_CONST_STRING(HELP_IMPORT_TABLE,					"importTable {tableName} {CSV filespec}")
+DECLARE_CONST_STRING(HELP_MERGE,						"merge {srcTable} {destTable}")
 
 DECLARE_CONST_STRING(PATH_AEON_FOLDER,					"AeonDB")
 
 DECLARE_CONST_STRING(STR_HELP,							"createTable {tableDesc}\n"
+														"diag {tableName}\n"
 														"getRows {tableName} {key} {count}\n"
 														"importTable {tableName} {CSV filespec}\n"
 														"listTables\n"
+														"merge {srcTable} {destTable}\n"
 														"quit\n"
 														)
 
@@ -68,12 +74,34 @@ CString CAeonEngine::ConsoleCommand (const CString &sCmd, const TArray<CDatum> &
 
 		return strPattern(STR_TABLE_CREATED, pTable->GetName());
 		}
+	else if (strEquals(sCmd, CMD_DIAG))
+		{
+		if (Args.GetCount() < 1)
+			return HELP_DIAG;
+
+		CStringView sTable = Args[0];
+
+		CAeonTable *pTable;
+		if (!FindTable(sTable, &pTable))
+			return strPattern(ERR_UNKNOWN_TABLE, sTable);
+
+		DWORD dwFlags = 0;
+
+		//	Ask the table
+
+		TArray<CString> Log;
+		CString sError;
+		if (!pTable->Diagnostics(dwFlags, Log, &sError))
+			return sError;
+
+		return Log.Join(CString("\n"));
+		}
 	else if (strEquals(sCmd, CMD_GET_ROWS))
 		{
 		if (Args.GetCount() < 3)
 			return HELP_GET_ROWS;
 
-		CString sTable = Args[0];
+		CStringView sTable = Args[0];
 
 		CAeonTable *pTable;
 		if (!FindTable(sTable, &pTable))
@@ -127,8 +155,8 @@ CString CAeonEngine::ConsoleCommand (const CString &sCmd, const TArray<CDatum> &
 		if (Args.GetCount() < 2)
 			return HELP_IMPORT_TABLE;
 
-		CString sTableName = Args[0];
-		CString sFilespec = Args[1];
+		CStringView sTableName = Args[0];
+		CStringView sFilespec = Args[1];
 
 		if (sTableName.IsEmpty() || sFilespec.IsEmpty())
 			return HELP_IMPORT_TABLE;
@@ -210,6 +238,28 @@ CString CAeonEngine::ConsoleCommand (const CString &sCmd, const TArray<CDatum> &
 			}
 
 		return CString::CreateFromHandoff(Output);
+		}
+	else if (strEquals(sCmd, CMD_MERGE))
+		{
+		if (Args.GetCount() < 2)
+			return HELP_MERGE;
+
+		CStringView sSrcTable = Args[1];
+		CStringView sDestTable = Args[0];
+
+		CAeonTable *pSrcTable;
+		if (!FindTable(sSrcTable, &pSrcTable))
+			return strPattern(ERR_UNKNOWN_TABLE, sSrcTable);
+
+		CAeonTable *pDestTable;
+		if (!FindTable(sDestTable, &pDestTable))
+			return strPattern(ERR_UNKNOWN_TABLE, sDestTable);
+
+		CString sError;
+		if (pDestTable->Merge(*pSrcTable, &sError) != AEONERR_OK)
+			return sError;
+
+		return CString("OK");
 		}
 	else
 		return NULL_STR;

@@ -1,21 +1,22 @@
 //	Compression.cpp
 //
 //	Compression functions and classes
-//	Copyright (c) 2013 by Kronosaur Production, LLC. All Rights Reserved.
+//	Copyright (c) 2013 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
 #define ZLIB_WINAPI
-#include "..\zlib-1.2.7\zlib.h"
+#include "../zlib-1.2.7/zlib.h"
 
 const DWORD BUFFER_SIZE =					1024 * 1024;
 
-void Deflate (IMemoryBlock &Data, ECompressionTypes iType, IMemoryBlock *retBuffer);
-void NullCopy (IMemoryBlock &Data, IMemoryBlock *retBuffer);
-void NullCopy (IMemoryBlock &Data, IByteStream &Result);
+void Deflate (const IMemoryBlock &Data, ECompressionTypes iType, IMemoryBlock *retBuffer);
+void Inflate (const IMemoryBlock &Data, ECompressionTypes iType, IByteStream64 &Output);
+void NullCopy (const IMemoryBlock &Data, IMemoryBlock *retBuffer);
+void NullCopy (const IMemoryBlock &Data, IByteStream &Result);
 void NullCopy (IByteStream &Data, IByteStream &Result);
 
-void compCompress (IMemoryBlock &Data, ECompressionTypes iType, IMemoryBlock *retBuffer)
+void compCompress (const IMemoryBlock &Data, ECompressionTypes iType, IMemoryBlock *retBuffer)
 
 //	compCompress
 //
@@ -29,6 +30,7 @@ void compCompress (IMemoryBlock &Data, ECompressionTypes iType, IMemoryBlock *re
 			break;
 
 		case compressionGzip:
+		case compressionZipFile:
 		case compressionZlib:
 			Deflate(Data, iType, retBuffer);
 			break;
@@ -38,15 +40,54 @@ void compCompress (IMemoryBlock &Data, ECompressionTypes iType, IMemoryBlock *re
 		}
 	}
 
-void Deflate (IMemoryBlock &Data, ECompressionTypes iType, IMemoryBlock *retBuffer)
+void compDecompress (const IMemoryBlock &Data, ECompressionTypes iType, IByteStream64 &Output)
+
+//	compDecompress
+//
+//	Decompresses Data into result buffer.
+
 	{
+	switch (iType)
+		{
+		case compressionNone:
+			Output.Write(Data.GetPointer(), Data.GetLength());
+			break;
+
+		case compressionGzip:
+		case compressionZipFile:
+		case compressionZlib:
+			Inflate(Data, iType, Output);
+			break;
+
+		default:
+			throw CException(errFail);
+		}
+	}
+
+void Deflate (const IMemoryBlock &Data, ECompressionTypes iType, IMemoryBlock *retBuffer)
+	{
+	DWORD dwSourceLeft = Data.GetLength();
+	BYTE *pSource = (BYTE *)Data.GetPointer();
+
 	//	Initialize library
 
 	z_stream zcpr;
 	utlMemSet(&zcpr, sizeof(zcpr));
 
+	//	The entire source is available
+
+	zcpr.next_in = pSource;
+	zcpr.avail_in = dwSourceLeft;
+
 	if (iType == compressionZlib)
 		deflateInit(&zcpr, Z_DEFAULT_COMPRESSION);
+	else if (iType == compressionZipFile)
+		deflateInit2(&zcpr,
+				Z_DEFAULT_COMPRESSION,
+				Z_DEFLATED,
+				-MAX_WBITS,	//	No header
+				8,			//	Memory-use level 0-9 (8 is a good default)
+				Z_DEFAULT_STRATEGY);
 	else if (iType == compressionGzip)
 		deflateInit2(&zcpr,
 				Z_DEFAULT_COMPRESSION,
@@ -62,17 +103,9 @@ void Deflate (IMemoryBlock &Data, ECompressionTypes iType, IMemoryBlock *retBuff
 
 	//	Compress
 
-	DWORD dwSourceLeft = Data.GetLength();
-	BYTE *pSource = (BYTE *)Data.GetPointer();
-
-	DWORD dwDestBufferSize = Min(dwSourceLeft, BUFFER_SIZE);
+	DWORD dwDestBufferSize = Min(Max((DWORD)100, dwSourceLeft), BUFFER_SIZE);
 	retBuffer->SetLength(dwDestBufferSize);
 	BYTE *pDest = (BYTE *)retBuffer->GetPointer();
-
-	//	The entire source is available
-
-	zcpr.next_in = pSource;
-	zcpr.avail_in = dwSourceLeft;
 
 	int ret;
 	while (true)
@@ -115,13 +148,98 @@ void Deflate (IMemoryBlock &Data, ECompressionTypes iType, IMemoryBlock *retBuff
 	deflateEnd(&zcpr);
 	}
 
-void NullCopy (IMemoryBlock &Data, IMemoryBlock *retBuffer)
+void Inflate (const IMemoryBlock &Data, ECompressionTypes iType, IByteStream64 &Output)
+	{
+	//	Initialize library
+
+	z_stream zcpr;
+	utlMemSet(&zcpr, sizeof(zcpr), '\0');
+
+	if (iType == compressionZlib)
+		inflateInit(&zcpr);
+	else if (iType == compressionGzip)
+		inflateInit2(&zcpr,
+				0x1f);		//	Bit 0x10 means gzip header
+	else if (iType == compressionZipFile)
+		inflateInit2(&zcpr, -MAX_WBITS);
+	else
+		throw CException(errFail);
+
+	//	Allocate a buffer to compress to
+
+	BYTE *pBuffer = new BYTE [BUFFER_SIZE];
+
+	//	Compress
+
+	DWORD dwSourceLeft = Data.GetLength();
+	BYTE *pSource = (BYTE *)Data.GetPointer();
+
+	//	The entire source is available
+
+	zcpr.next_in = pSource;
+	zcpr.avail_in = dwSourceLeft;
+
+	int ret;
+	int iWritten = 0;
+
+	while (true)
+		{
+		zcpr.next_out = pBuffer;
+		zcpr.avail_out = BUFFER_SIZE;
+
+		ret = inflate(&zcpr, Z_FINISH);
+
+		//	If error, then fail
+
+		if (ret == Z_STREAM_ERROR || ret == Z_MEM_ERROR || ret == Z_DATA_ERROR
+				|| (ret == Z_BUF_ERROR && zcpr.avail_in == 0))
+			{
+			inflateEnd(&zcpr);
+			delete [] pBuffer;
+			throw CException(errFail);
+			}
+
+		//	Write out the compressed data
+
+		int iChunk = zcpr.total_out - iWritten;
+		iWritten += iChunk;
+
+		try
+			{
+			Output.Write(pBuffer, iChunk);
+			}
+		catch (...)
+			{
+			inflateEnd(&zcpr);
+			delete [] pBuffer;
+			throw CException(errFail);
+			}
+
+		//	If we need more output buffer, then continue
+
+		if (ret == Z_BUF_ERROR
+				|| (ret == Z_OK && zcpr.avail_out == 0))
+			continue;
+
+		//	Otherwise, we're done.
+
+		else
+			break;
+		}
+
+	//	Done
+
+	inflateEnd(&zcpr);
+	delete [] pBuffer;
+	}
+
+void NullCopy (const IMemoryBlock &Data, IMemoryBlock *retBuffer)
 	{
 	retBuffer->SetLength(Data.GetLength());
 	utlMemCopy(Data.GetPointer(), retBuffer->GetPointer(), Data.GetLength());
 	}
 
-void NullCopy (IMemoryBlock &Data, IByteStream &Result)
+void NullCopy (const IMemoryBlock &Data, IByteStream &Result)
 	{
 	Result.Write(Data.GetPointer(), Data.GetLength());
 	}

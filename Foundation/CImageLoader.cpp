@@ -1,7 +1,7 @@
 //	CImageLoader.cpp
 //
 //	CImageLoader class
-//	Copyright (c) 2018 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2018 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 

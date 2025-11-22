@@ -1,7 +1,7 @@
 //	CAEONTextLinesDiff.cpp
 //
 //	CAEONTextLinesDiff class
-//	Copyright (c) 2022 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2022 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -16,7 +16,7 @@ CAEONTextLinesDiff::CAEONTextLinesDiff (CDatum dDiff)
 		CDatum dEntry = dDiff.GetElement(i);
 		CDatum dType = dEntry.GetElement(0);
 		CDatum dParam = dEntry.GetElement(1);
-		char chType = *((const CString&)dType).GetParsePointer();
+		char chType = *(dType.AsStringView()).GetParsePointer();
 
 		switch (chType)
 			{

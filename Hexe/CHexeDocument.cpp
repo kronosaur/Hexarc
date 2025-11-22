@@ -1,7 +1,7 @@
 //	CHexeDocument.cpp
 //
 //	CHexeDocument class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -247,7 +247,7 @@ bool CHexeDocument::InitFromData (CDatum dData, CHexeProcess &Process, CString *
 //	Initializes from a datum
 
 	{
-	CBuffer Buffer((const CString &)dData);
+	CBuffer Buffer(dData.AsStringView());
 	return InitFromStream(Buffer, Process, retsError);
 	}
 
@@ -401,7 +401,7 @@ bool CHexeDocument::IsValidIdentifier (const CString &sIdentifier)
 			case '[':
 			case ']':
 			case '\'':
-			case '\"':
+			case '"':
 			case '`':
 			case ',':
 			case ';':
@@ -475,7 +475,7 @@ bool CHexeDocument::ParseAEONDef (CCharStream *pStream, CHexeProcess &Process, C
 
 	CDatum dToken;
 	CAEONScriptParser::ETokens iToken = Parser.ParseToken(&dToken);
-	CString sTokenLC = strToLower(dToken);
+	CString sTokenLC = strToLower(dToken.AsStringView());
 
 	//	Check for error
 
@@ -502,13 +502,13 @@ bool CHexeDocument::ParseAEONDef (CCharStream *pStream, CHexeProcess &Process, C
 		//	Get the type
 
 		iToken = Parser.ParseToken(&dToken);
-		if (iToken != CAEONScriptParser::tkDatum || dToken.GetBasicType() != CDatum::typeString || !IsValidIdentifier(dToken))
+		if (iToken != CAEONScriptParser::tkDatum || dToken.GetBasicType() != CDatum::typeString || !IsValidIdentifier(dToken.AsStringView()))
 			{
-			*retsError = strPattern(ERR_TYPE_EXPECTED, (const CString &)dToken);
+			*retsError = strPattern(ERR_TYPE_EXPECTED, dToken.AsStringView());
 			return false;
 			}
 
-		*retsType = dToken;
+		*retsType = dToken.AsStringView();
 
 		//	Parse the rest
 
@@ -524,7 +524,7 @@ bool CHexeDocument::ParseAEONDef (CCharStream *pStream, CHexeProcess &Process, C
 		iToken = Parser.ParseToken(&dToken);
 		if (iToken != CAEONScriptParser::tkDatum || dToken.GetBasicType() != CDatum::typeString)
 			{
-			*retsError = strPattern(ERR_INCLUDE_NAME_EXPECTED, (const CString &)dToken);
+			*retsError = strPattern(ERR_INCLUDE_NAME_EXPECTED, dToken.AsStringView());
 			return false;
 			}
 
@@ -532,21 +532,21 @@ bool CHexeDocument::ParseAEONDef (CCharStream *pStream, CHexeProcess &Process, C
 
 		CString sName;
 		CString sType;
-		if (strEquals(dToken, KEYWORD_MESSAGES))
+		if (strEquals(dToken.AsStringView(), KEYWORD_MESSAGES))
 			{
 			iToken = Parser.ParseToken(&dToken);
 			if (iToken != CAEONScriptParser::tkDatum || dToken.GetBasicType() != CDatum::typeString)
 				{
-				*retsError = strPattern(ERR_INCLUDE_NAME_EXPECTED, (const CString &)dToken);
+				*retsError = strPattern(ERR_INCLUDE_NAME_EXPECTED, dToken.AsStringView());
 				return false;
 				}
 
-			sName = dToken;
+			sName = dToken.AsStringView();
 			sType = TYPE_INCLUDE_MESSAGES;
 			}
 		else
 			{
-			sName = dToken;
+			sName = dToken.AsStringView();
 			sType = TYPE_INCLUDE;
 			}
 
@@ -561,7 +561,7 @@ bool CHexeDocument::ParseAEONDef (CCharStream *pStream, CHexeProcess &Process, C
 
 	//	var NAME = EXPRESSION
 
-	else if (strEquals(dToken, KEYWORD_VAR))
+	else if (strEquals(dToken.AsStringView(), KEYWORD_VAR))
 		{
 		//	LATER
 		}
@@ -572,13 +572,13 @@ bool CHexeDocument::ParseAEONDef (CCharStream *pStream, CHexeProcess &Process, C
 		{
 		//	Get the type
 
-		if (dToken.GetBasicType() != CDatum::typeString || !IsValidIdentifier(dToken))
+		if (dToken.GetBasicType() != CDatum::typeString || !IsValidIdentifier(dToken.AsStringView()))
 			{
-			*retsError = strPattern(ERR_TYPE_EXPECTED, (const CString &)dToken);
+			*retsError = strPattern(ERR_TYPE_EXPECTED, dToken.AsStringView());
 			return false;
 			}
 
-		*retsType = dToken;
+		*retsType = dToken.AsStringView();
 
 		//	Parse the rest
 
@@ -690,13 +690,13 @@ bool CHexeDocument::ParseDefine (CAEONScriptParser &Parser, CHexeProcess &Proces
 
 	CDatum dToken;
 	CAEONScriptParser::ETokens iToken = Parser.ParseToken(&dToken);
-	if (iToken != CAEONScriptParser::tkDatum || dToken.GetBasicType() != CDatum::typeString || !IsValidIdentifier(dToken))
+	if (iToken != CAEONScriptParser::tkDatum || dToken.GetBasicType() != CDatum::typeString || !IsValidIdentifier(dToken.AsStringView()))
 		{
-		*retsError = strPattern(ERR_NAME_EXPECTED, (const CString &)dToken);
+		*retsError = strPattern(ERR_NAME_EXPECTED, dToken.AsStringView());
 		return false;
 		}
 
-	*retsName = dToken;
+	*retsName = dToken.AsStringView();
 
 	//	Get the data
 
@@ -724,7 +724,7 @@ bool CHexeDocument::ParseDefine (CAEONScriptParser &Parser, CHexeProcess &Proces
 			if (iToken != CAEONScriptParser::tkDatum || CHexeFunction::Upconvert(dCode) == NULL)
 				{
 				if (dCode.IsError())
-					*retsError = dCode;
+					*retsError = dCode.AsStringView();
 				else
 					*retsError = ERR_CODE_EXPECTED;
 				return false;

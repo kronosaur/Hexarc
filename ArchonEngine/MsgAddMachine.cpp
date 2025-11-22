@@ -1,7 +1,7 @@
 //	MsgAddMachine.cpp
 //
 //	CExarchEngine class
-//	Copyright (c) 2015 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2015 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -72,7 +72,7 @@ void CExarchEngine::MsgAddMachine (const SArchonMessage &Msg, const CHexeSecurit
 
 	//	Get some data
 
-	CString sFullAddress = Msg.dPayload.GetElement(0);
+	CStringView sFullAddress = Msg.dPayload.GetElement(0);
 
 	//	See if we already have machine at this address. If we do, then we just
 	//	resend the secret key to it.
@@ -96,7 +96,8 @@ void CExarchEngine::MsgAddMachine (const SArchonMessage &Msg, const CHexeSecurit
 	//	Add the machine (with its secret key) to the arcology.
 
 	CString sError;
-	if (!m_MecharcologyDb.AddMachine(sDisplayName, sFullAddress, SecretKey, true, &sError))
+	CString sNodeID = m_MecharcologyDb.AllocNodeID();
+	if (!m_MecharcologyDb.AddMachine(sNodeID, sDisplayName, sFullAddress, SecretKey, true, &sError))
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, sError, Msg);
 		return;
@@ -156,7 +157,7 @@ bool CAddMachineSession::OnProcessMessage (const SArchonMessage &Msg)
 			{
 			if (IsError(Msg))
 				{
-				SendMessageReplyError(Msg.sMsg, Msg.dPayload.GetElement(0));
+				SendMessageReplyError(Msg.sMsg, Msg.dPayload.GetElement(0).AsStringView());
 				return false;
 				}
 

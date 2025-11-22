@@ -195,6 +195,18 @@
     <ClCompile Include="CArchonLogOutput.cpp">
       <Filter>Source Files\Utilities</Filter>
     </ClCompile>
+    <ClCompile Include="CEsperTLSConnectionImpl.cpp">
+      <Filter>Source Files\Esper</Filter>
+    </ClCompile>
+    <ClCompile Include="CEsperWSSConnectionIn.cpp">
+      <Filter>Source Files\Esper</Filter>
+    </ClCompile>
+    <ClCompile Include="CAMP1CommunicatorServer.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="CAMP1Queue.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Include\ArchonEngine.h">
@@ -234,6 +246,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Include\ArchonPromiseSessionImpl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="EsperTLSImpl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

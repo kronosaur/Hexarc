@@ -1,7 +1,7 @@
 //	CAeonSegment.cpp
 //
 //	CAeonSegment class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 //
 //	A segment file looks like this: (SSegmentHeader)
 //
@@ -230,6 +230,7 @@ bool CAeonSegment::Create (DWORD dwViewID, const CTableDimensions &Dims, SEQUENC
 
 	{
 	int i;
+	bool bCheckRowOrder = ((dwFlags & CREATE_OPTION_DEBUG_ORDER) ? true : false);
 
 	//	Make sure we have at least one row
 
@@ -279,7 +280,7 @@ bool CAeonSegment::Create (DWORD dwViewID, const CTableDimensions &Dims, SEQUENC
 
 	utlMemSet(m_pHeader, sizeof(SSegmentHeader), 0);
 	m_pHeader->dwSignature = INPROGRESS_SIGNATURE;
-	m_pHeader->dwFlags = dwFlags;
+	m_pHeader->dwFlags = dwFlags & FLAG_MASK;
 
 	try
 		{
@@ -367,6 +368,20 @@ bool CAeonSegment::Create (DWORD dwViewID, const CTableDimensions &Dims, SEQUENC
 
 			if (bLastBlock && dwRowsLeft == 1)
 				sLastKey = Rows.GetKey();
+
+			//	If this key is before the first key in the block, then something
+			//	went wrong. Maybe one of the segments is out of order somehow.
+
+			if (bCheckRowOrder && CRowKey::Compare(m_Dims, CRowKey(m_Dims, Rows.GetKey()), CRowKey(m_Dims, pBlock->sKey)) > 0)
+				{
+				delete m_pHeader;
+				m_pHeader = NULL;
+				SegFile.Close();
+				fileDelete(m_sFilespec);
+
+				if (retsError) *retsError = strPattern("Rows are out of order in segment: %s", m_sFilespec);
+				return false;
+				}
 
 			//	Sometimes we need the RowID
 

@@ -1,7 +1,7 @@
 //	MsgCreateAuthToken.cpp
 //
 //	Cryptosaur.createAuthToken
-//	Copyright (c) 2022 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2022 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -133,7 +133,7 @@ void CCryptosaurEngine::MsgCreateAuthToken (const SArchonMessage &Msg, const CHe
 //		Cryptosaur.validateAuthToken
 
 	{
-	const CString &sUsername = Msg.dPayload.GetElement(0);
+	CStringView sUsername = Msg.dPayload.GetElement(0);
 	CDatum dAuthDesc = Msg.dPayload.GetElement(1);
 
 	if (sUsername.IsEmpty() || dAuthDesc.IsNil())
@@ -155,7 +155,7 @@ void CCryptosaurEngine::MsgCreateAuthToken (const SArchonMessage &Msg, const CHe
 	//	have the proper format.
 
 	if (sScope.IsEmpty())
-		sScope = ValidateSandbox(dAuthDesc.GetElement(FIELD_SCOPE));
+		sScope = ValidateSandbox(dAuthDesc.GetElement(FIELD_SCOPE).AsStringView());
 
 	//	Scope is required.
 
@@ -174,7 +174,7 @@ bool CCreateAuthTokenSession::OnStartSession (const SArchonMessage &Msg, DWORD d
 	{
 	//	If we have an authority, then this is a delegated auth.
 
-	m_sAuthority = strToLower(m_dAuthDesc.GetElement(FIELD_AUTHORITY));
+	m_sAuthority = strToLower(m_dAuthDesc.GetElement(FIELD_AUTHORITY).AsStringView());
 	if (!m_sAuthority.IsEmpty())
 		{
 		//	LATER: Move to a function.
@@ -247,7 +247,7 @@ bool CCreateAuthTokenSession::OnProcessMessage (const SArchonMessage &Msg)
 				
 				//	Get info from the account
 
-				m_sUsername = dUserInfo.GetElement(FIELD_USERNAME);
+				m_sUsername = dUserInfo.GetElement(FIELD_USERNAME).AsStringView();
 				m_dwTokenID = dAuthDesc.GetElement(FIELD_TOKEN_ID);
 
 				//	Sign in

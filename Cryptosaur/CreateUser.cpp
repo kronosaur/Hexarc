@@ -1,7 +1,7 @@
 //	CreateUser.cpp
 //
 //	User creation routines
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -71,7 +71,7 @@ void CCryptosaurEngine::MsgCreateAdmin (const SArchonMessage &Msg, const CHexeSe
 
 	//	Get some parameters
 
-	const CString &sUsername = Msg.dPayload.GetElement(0);
+	CStringView sUsername = Msg.dPayload.GetElement(0);
 	CDatum dAuthDesc = Msg.dPayload.GetElement(1);
 
 	//	Make sure the username is valid
@@ -121,7 +121,7 @@ void CCryptosaurEngine::MsgCreateUser (const SArchonMessage &Msg, const CHexeSec
 
 	//	Get some parameters
 
-	const CString &sUsername = Msg.dPayload.GetElement(0);
+	CStringView sUsername = Msg.dPayload.GetElement(0);
 	CDatum dAuthDesc = Msg.dPayload.GetElement(1);
 	CDatum dUserContact = Msg.dPayload.GetElement(2);
 	CDatum dRights = Msg.dPayload.GetElement(3);
@@ -149,7 +149,7 @@ void CCryptosaurEngine::MsgCreateUser (const SArchonMessage &Msg, const CHexeSec
 		pAuthDesc->SetElement(FIELD_ACTUAL, CDatum(true));
 
 		CIPInteger Credentials;
-		CCryptosaurInterface::CreateCredentials(sUsername, dAuthDesc.GetElement(FIELD_PASSWORD), &Credentials);
+		CCryptosaurInterface::CreateCredentials(sUsername, dAuthDesc.GetElement(FIELD_PASSWORD).AsStringView(), &Credentials);
 
 		CDatum dCredentials;
 		CDatum::CreateIPIntegerFromHandoff(Credentials, &dCredentials);
@@ -212,7 +212,7 @@ bool CCreateUserSession::OnProcessMessage (const SArchonMessage &Msg)
 
 	else if (IsError(Msg))
 		{
-		SendMessageReplyError(Msg.sMsg, Msg.dPayload.GetElement(0));
+		SendMessageReplyError(Msg.sMsg, Msg.dPayload.GetElement(0).AsStringView());
 		return false;
 		}
 
@@ -254,7 +254,7 @@ bool CCreateUserSession::OnStartSession (const SArchonMessage &Msg, DWORD dwTick
 	//	Get the username out of the record. We save it because we may need it
 	//	later to report errors.
 
-	m_sUsername = m_dUserRecord.GetElement(FIELD_USERNAME);
+	m_sUsername = m_dUserRecord.GetElement(FIELD_USERNAME).AsStringView();
 
 	//	Send an Aeon message to insert the user record
 

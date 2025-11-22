@@ -1,7 +1,7 @@
 //	CIntermachinePort.cpp
 //
 //	CIntermachinePort class
-//	Copyright (c) 2015 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2015 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -40,7 +40,7 @@ bool CIntermachinePort::SendMessage (const SArchonMessage &Msg)
 //	Sends a message to this foreign port
 
 	{
-#ifdef DEBUG
+#ifdef DEBUG_INTERMACHINE_PORT
 	if (!strStartsWith(Msg.sMsg, MSG_LOG_PREFIX))
 		m_pProcess->Log(MSG_LOG_DEBUG, strPattern("Sending %s to %s.", Msg.sMsg, m_sAddr));
 #endif

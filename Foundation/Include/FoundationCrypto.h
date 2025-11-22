@@ -1,7 +1,7 @@
 //	FoundationCrypto.h
 //
 //	Foundation header file
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 //
 //	USAGE
 //
@@ -50,10 +50,12 @@ class CCryptoDigest
 		SHA_CTX m_Ctx;
 	};
 
+CStringBuffer cryptoBLAKE2 (const IMemoryBlock& Data, int iPos = 0, int iLength = -1);
 void cryptoCreateDigest (IMemoryBlock &Data, CIPInteger *retd);
 void cryptoCreateMAC (IMemoryBlock &Data, const CIPInteger &Key, CIPInteger *retMAC);
 void cryptoRandom (int iCount, CIPInteger *retx);
 CString cryptoRandomCode (int iChars, DWORD dwFlags = 0);
+CString cryptoRandomCode29 (int iChars, DWORD dwFlags = 0);
 CString cryptoRandomCodeBlock (int iChars);
 CString cryptoRandomUserPassword (int iChars, DWORD dwFlags = (CRYPTOPASS_MIXED_CASE | CRYPTOPASS_NUMBERS));
 

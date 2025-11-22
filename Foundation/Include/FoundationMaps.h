@@ -1,7 +1,7 @@
 //	FoundationMaps.h
 //
 //	Foundation header file
-//	Copyright (c) 2017 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2017 by GridWhale Corporation. All Rights Reserved.
 //
 //	USAGE
 //
@@ -10,25 +10,61 @@
 #pragma once
 
 #include <functional>
+#include <initializer_list>
+#include <type_traits>
+#include <utility>
 
 //	Maps
 
 const DWORD NULL_ATOM = 0xffffffff;
 
-template <class KEY, class VALUE> class TSortMap
+template <typename KEY>
+class CKeyCompare
 	{
 	public:
-		TSortMap (ESortOptions iOrder = AscendingSort) : m_iOrder(iOrder), m_Free(0) { }
+		static int Compare (const KEY& key1, const KEY& key2) { return ::KeyCompare(key1, key2); }
+	};
+
+template <typename KEY>
+class CKeyCompareEquivalent
+	{
+	public:
+		static int Compare (const KEY& key1, const KEY& key2) { return ::KeyCompare(key1, key2); }
+	};
+
+template <typename KEY, typename VALUE, typename COMPARE> class TSortMap
+	{
+	public:
+		TSortMap (ESortOptions iOrder = AscendingSort) : m_iOrder(iOrder) { }
+		TSortMap (const std::initializer_list<std::pair<KEY, VALUE>> &Src, ESortOptions iOrder = AscendingSort) : m_iOrder(iOrder)
+			{
+			GrowToFit(Src.size());
+			for (auto Entry : Src)
+				{
+				SetAt(Entry.first, Entry.second);
+				}
+			}
+
+		TSortMap (const TSortMap& Src) = default;
+		TSortMap (TSortMap&& Src) noexcept = default;
 
 		VALUE &operator [] (int iIndex) const { return GetValue(iIndex); }
 
-		TSortMap<KEY, VALUE> &operator= (const TSortMap<KEY, VALUE> &Obj)
+		TSortMap& operator= (const TSortMap& Obj) = default;
+		TSortMap& operator= (TSortMap&& Src) noexcept = default;
+
+		void AppendSortedIfUnique (const KEY &newKey, const VALUE &newValue)
 			{
-			m_iOrder = Obj.m_iOrder;
-			m_Index = Obj.m_Index;
-			m_Array = Obj.m_Array;
-			m_Free = Obj.m_Free;
-			return *this;
+			if (m_Index.GetCount() == 0 || CKeyCompare<KEY>::Compare(newKey, GetKey(m_Index.GetCount() - 1)) != 0)
+				InsertSorted(newKey, newValue);
+			}
+
+		void AppendOrReplaceSorted (const KEY &newKey, const VALUE &newValue)
+			{
+			if (m_Index.GetCount() == 0 || CKeyCompare<KEY>::Compare(newKey, GetKey(m_Index.GetCount() - 1)) != 0)
+				InsertSorted(newKey, newValue);
+			else
+				m_Array[m_Index[m_Index.GetCount() - 1]].theValue = newValue;
 			}
 
 		void Delete (int iIndex)
@@ -41,7 +77,7 @@ template <class KEY, class VALUE> class TSortMap
 			//	because it would move the indices of other entries)
 
 			m_Array[iPos].theValue = VALUE();
-			m_Free.EnqueueAndGrow(iPos);
+			m_Free.Insert(iPos);
 			}
 
 		void DeleteAll (void)
@@ -51,11 +87,38 @@ template <class KEY, class VALUE> class TSortMap
 			m_Free.DeleteAll();
 			}
 
-		void DeleteAt (const KEY &key)
+		bool DeleteAt (const KEY &key)
 			{
 			int iPos;
 			if (FindPos(key, &iPos))
+				{
 				Delete(iPos);
+				return true;
+				}
+			else
+				return false;
+			}
+
+		void Exclude (const TSortMap<KEY, VALUE, COMPARE> &Src)
+			{
+			//	Walk through both lists in order and remove.
+
+			int iSrcPos = 0;
+			int iDestPos = 0;
+
+			while (iSrcPos < Src.GetCount() && iDestPos < GetCount())
+				{
+				int iCompare = COMPARE::Compare(Src.GetKey(iSrcPos), GetKey(iDestPos));
+				if (iCompare == 0)
+					{
+					Delete(iDestPos);
+					iSrcPos++;
+					}
+				else if (iCompare < 0)
+					iSrcPos++;
+				else
+					iDestPos++;
+				}
 			}
 
 		bool Find (const KEY &key, VALUE *retpValue = NULL) const
@@ -86,19 +149,19 @@ template <class KEY, class VALUE> class TSortMap
 					return false;
 					}
 
-				int iCompare = m_iOrder * ::KeyCompare(key, GetKey(iTry));
+				int iCompare = m_iOrder * COMPARE::Compare(key, GetKey(iTry));
 				if (iCompare == 0)
 					{
 					if (retiPos)
 						*retiPos = iTry;
 					return true;
 					}
-				else if (iCompare == -1)
+				else if (iCompare < 0)
 					{
 					iMin = iTry + 1;
 					iTry = iMin + (iMax - iMin) / 2;
 					}
-				else if (iCompare == 1)
+				else if (iCompare > 0)
 					{
 					iMax = iTry;
 					iTry = iMin + (iMax - iMin) / 2;
@@ -134,14 +197,7 @@ template <class KEY, class VALUE> class TSortMap
 
 		void GrowToFit (int iCount)
 			{
-			int i;
-
-			int iPos = m_Array.GetCount();
-			m_Array.InsertEmpty(iCount);
-			m_Free.GrowToFit(iCount);
-			for (i = 0; i < iCount; i++)
-				m_Free.Enqueue(iPos + i);
-
+			m_Array.GrowToFit(iCount);
 			m_Index.GrowToFit(iCount);
 			}
 
@@ -164,7 +220,13 @@ template <class KEY, class VALUE> class TSortMap
 			*pNewValue = newValue;
 			}
 
-		void Insert (const TSortMap<KEY, VALUE> &Src)
+		void Insert (const KEY &newKey, VALUE &&newValue)
+			{
+			VALUE *pNewValue = atom_Insert(newKey);
+			*pNewValue = std::move(newValue);
+			}
+
+		void Insert (const TSortMap& Src)
 			{
 			int i;
 
@@ -186,7 +248,7 @@ template <class KEY, class VALUE> class TSortMap
 			pEntry->theValue = newValue;
 			}
 
-		void Merge (const TSortMap<KEY, VALUE> &Src, std::function<void(VALUE &, const VALUE &)> fnReplace = DefaultReplace)
+		void Merge (const TSortMap& Src, std::function<void(VALUE &, const VALUE &)> fnReplace = DefaultReplace)
 			{
 			//	For now this only works if we have the same sort order
 
@@ -210,7 +272,6 @@ template <class KEY, class VALUE> class TSortMap
 
 					//	Advance
 
-					iDestPos++;
 					iSrcPos++;
 					}
 
@@ -218,7 +279,7 @@ template <class KEY, class VALUE> class TSortMap
 
 				else
 					{
-					int iCompare = m_iOrder * ::KeyCompare(Src.GetKey(iSrcPos), GetKey(iDestPos));
+					int iCompare = m_iOrder * COMPARE::Compare(Src.GetKey(iSrcPos), GetKey(iDestPos));
 
 					//	If the same key then we replace
 
@@ -235,13 +296,12 @@ template <class KEY, class VALUE> class TSortMap
 					//	If the source is less than dest then we insert at this
 					//	position.
 
-					else if (iCompare == 1)
+					else if (iCompare > 0)
 						{
 						InsertSorted(Src.GetKey(iSrcPos), Src.GetValue(iSrcPos), iDestPos);
 
 						//	Advance
 
-						iDestPos++;
 						iSrcPos++;
 						}
 
@@ -307,7 +367,7 @@ template <class KEY, class VALUE> class TSortMap
 			pValue->TakeHandoff(value);
 			}
 
-		void TakeHandoff (TSortMap<KEY, VALUE> &Src)
+		void TakeHandoff (TSortMap& Src)
 			{
 			m_iOrder = Src.m_iOrder;
 			m_Index.TakeHandoff(Src.m_Index);
@@ -331,7 +391,7 @@ template <class KEY, class VALUE> class TSortMap
 					//	Add the array slot to the free list
 
 					m_Array[dwAtom].theValue = VALUE();
-					m_Free.EnqueueAndGrow(dwAtom);
+					m_Free.Insert(dwAtom);
 					break;
 					}
 			}
@@ -399,6 +459,65 @@ template <class KEY, class VALUE> class TSortMap
 			return true;
 			}
 
+		//	CString/CStringSlice specialization
+
+		template <typename T = KEY>
+		typename std::enable_if<std::is_same<T, CString>::value, bool>::type
+		FindPos (CStringSlice key, int *retiPos = NULL) const
+			{
+			int iCount = m_Index.GetCount();
+			int iMin = 0;
+			int iMax = iCount;
+			int iTry = iMax / 2;
+
+			LPCSTR pKey = key.GetPointer();
+			int iKeyLen = key.GetLength();
+
+			while (true)
+				{
+				if (iMax <= iMin)
+					{
+					if (retiPos)
+						*retiPos = iMin;
+					return false;
+					}
+
+				const CString &DestKey = GetKey(iTry);
+				CStringView DestView = DestKey.AsView();
+				LPCSTR pDest = DestView;
+				int iCompare = m_iOrder * ::KeyCompare(pKey, iKeyLen, pDest, DestView.GetLength());
+				if (iCompare == 0)
+					{
+					if (retiPos)
+						*retiPos = iTry;
+					return true;
+					}
+				else if (iCompare < 0)
+					{
+					iMin = iTry + 1;
+					iTry = iMin + (iMax - iMin) / 2;
+					}
+				else if (iCompare > 0)
+					{
+					iMax = iTry;
+					iTry = iMin + (iMax - iMin) / 2;
+					}
+				}
+
+			return false;
+			}
+
+		template <typename T = KEY>
+		typename std::enable_if<std::is_same<T, CString>::value, VALUE *>::type
+		GetAt (CStringSlice key) const
+			{
+			int iPos;
+			if (!FindPos(key, &iPos))
+				return NULL;
+
+			return &m_Array[m_Index[iPos]].theValue;
+			}
+
 	private:
 		struct SEntry
 			{
@@ -443,8 +562,8 @@ template <class KEY, class VALUE> class TSortMap
 				}
 			else
 				{
-				int iFreePos = m_Free.Head();
-				m_Free.Dequeue();
+				int iFreePos = m_Free[m_Free.GetCount() - 1];
+				m_Free.Delete(m_Free.GetCount() - 1);
 
 				*retiPos = iFreePos;
 				pEntry = &m_Array[iFreePos];
@@ -455,7 +574,7 @@ template <class KEY, class VALUE> class TSortMap
 		ESortOptions m_iOrder;
 		TArray<int> m_Index;
 		TArray<SEntry> m_Array;
-		TQueue<int> m_Free;
+		TArray<int> m_Free;
 	};
 
 template <class VALUE> class TAtomTable
@@ -612,12 +731,26 @@ template <class VALUE> class TIDTable
 			return (i.iPos != -1);
 			}
 
+		DWORD Insert (const VALUE &Value)
+			{
+			DWORD dwID;
+			*Insert(&dwID) = Value;
+			return dwID;
+			}
+
+		DWORD Insert (VALUE &&Value)
+			{
+			DWORD dwID;
+			*Insert(&dwID) = std::move(Value);
+			return dwID;
+			}
+
 		void Insert (const VALUE &Value, DWORD *retdwID)
 			{
 			*Insert(retdwID) = Value;
 			}
 
-		VALUE *Insert (DWORD *retdwID)
+		VALUE *Insert (DWORD *retdwID = NULL)
 			{
 			DWORD dwID;
 			int iIndex;
@@ -652,7 +785,7 @@ template <class VALUE> class TIDTable
 		bool IsValid (DWORD dwID) const
 			{
 			int iIndex = GetIndex(dwID);
-			return (iIndex >= 0 && iIndex < m_Array.GetCount() && m_Array[iIndex].dwID == dwID);
+			return (iIndex >= 0 && iIndex < m_Array.GetCount() && m_Array[iIndex].dwID == dwID && dwID != 0);
 			}
 
 		DWORD MakeCustomID (void)
@@ -698,16 +831,15 @@ template <class VALUE> class TIDTable
 
 		VALUE &SetAt (DWORD dwID)
 			{
-			int i;
 			int iCount = m_Array.GetCount();
 			int iIndex = GetIndex(dwID);
 
 			if (iIndex >= iCount)
 				{
-				int iExtra = dwID - iCount;
+				int iExtra = iIndex - iCount;
 				m_Array.InsertEmpty(iExtra + 1);
 
-				for (i = 0; i < iExtra; i++)
+				for (int i = 0; i < iExtra; i++)
 					{
 					m_Array[iCount + i].dwID = 0;
 					m_Free.Insert(MakeID(iCount + i, 1));
@@ -741,87 +873,6 @@ template <class VALUE> class TIDTable
 		TArray<DWORD> m_Free;
 		int m_iCustomID = 1;
 	};
-
-#if 0
-template <class VALUE> class TIDArray
-	{
-	public:
-		~TIDArray (void) { }
-
-		VALUE &operator [] (int iIndex) const { return GetAt((DWORD)iIndex); }
-
-		void Delete (DWORD dwID)
-			{
-			m_Array[dwID] = VALUE();
-			m_Free.Insert(dwID);
-			}
-
-		void DeleteAll (void)
-			{
-			m_Array.DeleteAll();
-			m_Free.DeleteAll();
-			}
-
-		VALUE &GetAt (DWORD dwID) const { return m_Array[dwID]; }
-
-		int GetCount (void) const { return m_Array.GetCount(); }
-
-		void Insert (const VALUE &Value, DWORD *retdwID = NULL)
-			{
-			int iIndex;
-
-			//	If there is a free entry, use that
-
-			int iLastFree = m_Free.GetCount() - 1;
-			if (iLastFree >= 0)
-				{
-				iIndex = m_Free[iLastFree];
-				m_Array[iIndex] = Value;
-				m_Free.Delete(iLastFree);
-				}
-
-			//	Otherwise, allocate a new entry
-
-			else
-				{
-				iIndex = m_Array.GetCount();
-				m_Array.Insert(Value);
-				}
-
-			if (retdwID)
-				*retdwID = (DWORD)iIndex;
-			}
-
-		void InsertEmpty (int iCount = 1)
-			{
-			int i;
-
-			int iIndex = m_Array.GetCount();
-			m_Array.InsertEmpty(iCount);
-
-			for (i = 0; i < iCount; i++)
-				m_Free.Insert(iIndex++);
-			}
-
-		bool IsValid (DWORD dwID)
-			{
-			int i;
-
-			if ((int)dwID >= m_Array.GetCount())
-				return false;
-
-			for (i = 0; i < m_Free.GetCount(); i++)
-				if ((DWORD)m_Free[i] == dwID)
-					return false;
-
-			return true;
-			}
-
-	private:
-		TArray<VALUE> m_Array;
-		TArray<int> m_Free;
-	};
-#endif
 
 template <class VALUE> class TObjArray
 	{
@@ -900,3 +951,37 @@ template <class VALUE> class TObjArray
 		TArray<int> m_Free;
 	};
 
+class CSymbolTable
+	{
+	public:
+
+		DWORD Atomize (CStringView sSymbol);
+		DWORD Atomize (CStringSlice sSymbol);
+		DWORD FindSymbol (const CString& sSymbol) const;
+		const CString& Symbol (DWORD dwAtom) const { if (dwAtom == 0) return NULL_STR; else return m_Array[Atom2Index(dwAtom)]; }
+
+	private:
+
+		bool FindPos (LPCSTR pSymbol, int iSymbolLen, int *retiPos = NULL) const;
+		bool FindPos (const CString& sSymbol, int *retiPos = NULL) const { return FindPos(sSymbol.GetPointer(), sSymbol.GetLength(), retiPos); }
+		const CString& GetKey (int iIndex) const { return m_Array[m_Index[iIndex]]; }
+
+		static int Atom2Index (DWORD dwAtom) { return ((int)dwAtom) - 1; }
+		static DWORD Index2Atom (int iIndex) { return (DWORD)(iIndex + 1); }
+
+		TArray<int> m_Index;
+		TArray<CString> m_Array;
+	};
+
+template <class VALUE>
+inline void TArray<VALUE>::Delete (const TSortMap<int, bool>& SortedIndices)
+	{
+	//	We delete in reverse order.
+
+	for (int i = SortedIndices.GetCount() - 1; i >= 0; i--)
+		{
+		int iToDelete = SortedIndices.GetKey(i);
+		if (iToDelete >= 0 && iToDelete < GetCount())
+			Delete(iToDelete);
+		}
+	}

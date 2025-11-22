@@ -1,7 +1,7 @@
 //	ArchonClient.h
 //
 //	Functions and classes for interacting with archons
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #pragma once
 
@@ -38,7 +38,7 @@ class CAI1Stream
 		bool HasMore (bool *retbOverflow = NULL);
 		inline void Mark (void) { m_dCachedPayload.Mark(); }
 
-		inline void ReadFromEsper (CDatum dData) { m_Buffer.Write((const CString &)dData); }
+		inline void ReadFromEsper (CDatum dData) { m_Buffer.Write(dData.AsStringView()); }
 		void ReadFromSocket (CSocket &theSocket);
 		static void WriteToEsper (const CString &sCommand, CDatum dPayload, CDatum *retdData);
 
@@ -49,6 +49,31 @@ class CAI1Stream
 
 		CString m_sCachedCommand;
 		CDatum m_dCachedPayload;
+	};
+
+//	CAMP1Protocol
+
+class CAMP1Protocol
+	{
+	public:
+
+		static constexpr int MAX_COMMAND_LENGTH = 64;
+		static constexpr int MAX_HEADER_LENGTH
+			= 8							//	AMP/1.00
+			+ 1							//	space
+			+ MAX_COMMAND_LENGTH		//	command
+			+ 1							//	space
+			+ 20						//	data length
+			+ 2;						//	CRLF
+
+		static bool GetHeader (const IMemoryBlock& Data, CString* retsCommand = NULL, DWORD* retdwDataLen = NULL, const char** retpPartialData = NULL, DWORD* retdwPartialDataLen = NULL);
+		static CString MakeAUTH0Message (CStringView sMachineName, const CIPInteger& SecretKey);
+		static CString MakeMessage (CStringView sMsg, const IMemoryBlock& Data = CBuffer());
+
+	private:
+
+		static bool ParseHeaderWord (const char* pPos, const char* pPosEnd, CString* retsWord = NULL, const char** retpPos = NULL);
+
 	};
 
 //	Crypto Helpers -------------------------------------------------------------
@@ -135,7 +160,7 @@ class CEsperBodyBuilder : public IMediaTypeBuilder
 			resultFoundLastBoundary,
 			};
 
-		bool CreateMultipartDatum (const CString &sPartType, char *pPos, char *pPosEnd, CDatum *retdData);
+		bool CreateMultipartDatum (char *pPos, char *pPosEnd, CDatum *retdData) const;
 		EParseResults FindMultipartBoundary (char *pPos, char *pPosEnd, char **retpBoundaryStart, CString *retsPartialBoundary = NULL) const;
 		EParseResults ParseMultipartHeader (CString *retsField, CString *retsValue);
 		EParseResults ParseMultipartBoundary (void);
@@ -157,6 +182,7 @@ class CEsperBodyBuilder : public IMediaTypeBuilder
 		CString m_sBoundary;
 		CString m_sPartType;
 		CString m_sPartName;
+		CString m_sPartFilename;
 		CMemoryBuffer m_PartContent;
 		CString m_sPartialBoundary;
 		CComplexBinaryFile *m_pPartContent;
@@ -169,26 +195,6 @@ class CEsperBodyBuilder : public IMediaTypeBuilder
 	};
 
 typedef TSharedPtr<CEsperBodyBuilder> CEsperBodyBuilderPtr;
-
-class CEsperMultipartParser
-	{
-	public:
-		CEsperMultipartParser (const CString &sMediaType, IMemoryBlock &Block) : 
-				m_sMediaType(sMediaType),
-				m_Block(Block),
-				m_pResult(NULL)
-			{ }
-		~CEsperMultipartParser (void);
-
-		bool ParseAsDatum (CDatum *retdBody);
-
-	private:
-		bool ParseToBoundary (const char *pPos, const char *pPosEnd, const CString &sBoundary, const CString &sPartType, CDatum *retdData, const char **retpPos) const;
-
-		CString m_sMediaType;
-		IMemoryBlock &m_Block;
-		CComplexStruct *m_pResult;
-	};
 
 //	Transpace Helpers ----------------------------------------------------------
 

@@ -1,7 +1,7 @@
 //	MsgServiceMsg.cpp
 //
 //	Hyperion.serviceMsg
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -70,8 +70,8 @@ void CHyperionEngine::MsgServiceMsg (const SArchonMessage &Msg, const CHexeSecur
 //	Hyperion.serviceMsg {service} {msg} {payload}
 
 	{
-	CString sService = Msg.dPayload.GetElement(0);
-	CString sMsg = Msg.dPayload.GetElement(1);
+	CStringView sService = Msg.dPayload.GetElement(0);
+	CStringView sMsg = Msg.dPayload.GetElement(1);
 	CDatum dPayload = Msg.dPayload.GetElement(2);
 
 	//	Find the service that can handle this message
@@ -95,8 +95,8 @@ void CHyperionEngine::MsgServiceMsgSandboxed (const SArchonMessage &Msg, const C
 //	Hyperion.serviceMsgSandboxed {service} {msg} {payload}
 
 	{
-	CString sService = Msg.dPayload.GetElement(0);
-	CString sMsg = Msg.dPayload.GetElement(1);
+	CStringView sService = Msg.dPayload.GetElement(0);
+	CStringView sMsg = Msg.dPayload.GetElement(1);
 	CDatum dPayload = Msg.dPayload.GetElement(2);
 
 	//	Find the service that can handle this message
@@ -156,18 +156,18 @@ bool CHexarcMsgSession::ComposeResponse (CHexeProcess::ERun iRun, CDatum dResult
 				ISessionHandler::SendMessageReply(MSG_OK, dResult);
 
 			else if (dResult.GetCount() == 2)
-				ISessionHandler::SendMessageReply(dResult.GetElement(0), dResult.GetElement(1));
+				ISessionHandler::SendMessageReply(dResult.GetElement(0).AsStringView(), dResult.GetElement(1));
 
 			else if (dResult.GetCount() == 4)
 				{
-				const CString &sCmd = dResult.GetElement(0);
+				CStringView sCmd = dResult.GetElement(0);
 
 				//	Redirect command
 
 				if (strEquals(sCmd, CMD_REDIRECT))
 					{
-					const CString &sAddress = dResult.GetElement(1);
-					const CString &sMsg = dResult.GetElement(2);
+					CStringView sAddress = dResult.GetElement(1);
+					CStringView sMsg = dResult.GetElement(2);
 					CDatum dPayload = dResult.GetElement(3);
 					const CString &sReplyAddr = GetOriginalMsg().sReplyAddr;
 					DWORD dwTicket = GetOriginalMsg().dwTicket;
@@ -219,8 +219,8 @@ bool CHexarcMsgSession::ComposeResponse (CHexeProcess::ERun iRun, CDatum dResult
 
 		case CHexeProcess::ERun::AsyncRequest:
 			{
-			const CString &sAddr = dResult.GetElement(0);
-			CString sMsg = dResult.GetElement(1);
+			CStringView sAddr = dResult.GetElement(0);
+			CStringView sMsg = dResult.GetElement(1);
 			CDatum dPayload = dResult.GetElement(2);
 
 			//	Send the message
@@ -237,8 +237,9 @@ bool CHexarcMsgSession::ComposeResponse (CHexeProcess::ERun iRun, CDatum dResult
 			}
 
 		case CHexeProcess::ERun::Error:
+		case CHexeProcess::ERun::ForcedTerminate:
 			{
-			ISessionHandler::SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, dResult);
+			ISessionHandler::SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, dResult.AsStringView());
 			return false;
 			}
 

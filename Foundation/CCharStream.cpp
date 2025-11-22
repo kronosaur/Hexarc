@@ -1,7 +1,7 @@
 //	CCharStream.cpp
 //
 //	CCharStream class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -72,14 +72,14 @@ bool CCharStream::ParseQuotedString (DWORD dwFlags, CString *retsString)
 
 	//	Keep looping
 
-	while (m_chChar != '\"' && m_chChar != '\0')
+	while (m_chChar != '"' && m_chChar != '\0')
 		{
 		if (m_chChar == '\\')
 			{
 			ReadChar();
 			switch (m_chChar)
 				{
-				case '\"':
+				case '"':
 					String.Write("\"", 1);
 					break;
 

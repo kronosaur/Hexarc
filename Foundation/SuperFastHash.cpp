@@ -3,7 +3,7 @@
 //	Based on Paul Hsieh's hash function:
 //	http://wwww.azillionmonkeys.com/qed/hash.html
 //
-//	Copyright (c) 2017 by Kronosaur Productions. All Rights Reserved.
+//	Copyright (c) 2017 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 

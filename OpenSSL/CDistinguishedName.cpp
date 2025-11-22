@@ -1,7 +1,7 @@
 //	CDistinguishedName.cpp
 //
 //	CDistinguishedName class
-//	Copyright (c) 2017 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2017 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -190,7 +190,7 @@ CString CDistinguishedName::EncodeValue (const CString &sValue)
 			{
 			case ',':
 			case '+':
-			case '\"':
+			case '"':
 			case '\\':
 			case '<':
 			case '>':
@@ -225,7 +225,7 @@ CString CDistinguishedName::EncodeValue (const CString &sValue)
 			{
 			case ',':
 			case '+':
-			case '\"':
+			case '"':
 			case '\\':
 			case '<':
 			case '>':

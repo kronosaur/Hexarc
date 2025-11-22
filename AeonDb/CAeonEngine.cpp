@@ -1,7 +1,7 @@
 //	CAeonEngine.cpp
 //
 //	CAeonEngine class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -35,6 +35,7 @@ DECLARE_CONST_STRING(MSG_MNEMOSYNTH_ON_MODIFIED,		"Mnemosynth.onModified")
 DECLARE_CONST_STRING(MSG_REPLY_DATA,					"Reply.data")
 
 DECLARE_CONST_STRING(OPTION_INCLUDE_KEY,				"includeKey")
+DECLARE_CONST_STRING(OPTION_NEAREST,					"nearest")
 DECLARE_CONST_STRING(OPTION_NO_KEY,						"noKey")
 
 DECLARE_CONST_STRING(FILESPEC_TABLE_DIR_FILTER,			"*")
@@ -43,12 +44,15 @@ DECLARE_CONST_STRING(FIELD_ADDRESS,						"address")
 DECLARE_CONST_STRING(FIELD_BACKUP_VOLUMES,				"backupVolumes")
 DECLARE_CONST_STRING(FIELD_COLLECTIONS,					"collections")
 DECLARE_CONST_STRING(FIELD_DATA,						"data")
+DECLARE_CONST_STRING(FIELD_DIAGNOSTICS,					"diagnostics")
 DECLARE_CONST_STRING(FIELD_ENTRIES,						"entries")
 DECLARE_CONST_STRING(FIELD_FILE_DESC,					"fileDesc")
 DECLARE_CONST_STRING(FIELD_FILE_PATH,					"filePath")
+DECLARE_CONST_STRING(FIELD_FILESPEC,					"filespec")
 DECLARE_CONST_STRING(FIELD_IF_MODIFIED_AFTER,			"ifModifiedAfter")
 DECLARE_CONST_STRING(FIELD_KEY_TYPE,					"keyType")
 DECLARE_CONST_STRING(FIELD_NAME,						"name")
+DECLARE_CONST_STRING(FIELD_NO_MODIFIED_TIME_UPDATE,		"noModifiedTimeUpdate")
 DECLARE_CONST_STRING(FIELD_PARTIAL_MAX_SIZE,			"partialMaxSize")
 DECLARE_CONST_STRING(FIELD_PARTIAL_POS,					"partialPos")
 DECLARE_CONST_STRING(FIELD_PRIMARY_KEY,					"primaryKey");
@@ -105,6 +109,7 @@ DECLARE_CONST_STRING(MSG_AEON_FLUSH_DB,					"Aeon.flushDb")
 DECLARE_CONST_STRING(MSG_AEON_GET_KEY_RANGE,			"Aeon.getKeyRange")
 DECLARE_CONST_STRING(MSG_AEON_GET_MORE_ROWS,			"Aeon.getMoreRows")
 DECLARE_CONST_STRING(MSG_AEON_GET_ROWS,					"Aeon.getRows")
+DECLARE_CONST_STRING(MSG_AEON_GET_ROWS_FROM_LIST,		"Aeon.getRowsFromList")
 DECLARE_CONST_STRING(MSG_AEON_GET_TABLES,				"Aeon.getTables")
 DECLARE_CONST_STRING(MSG_AEON_GET_DATA,					"Aeon.getValue")
 DECLARE_CONST_STRING(MSG_AEON_GET_VIEW_INFO,			"Aeon.getViewInfo")
@@ -164,6 +169,9 @@ CAeonEngine::SMessageHandler CAeonEngine::m_MsgHandlerList[] =
 
 		//	Aeon.getRows {tableAndView} {Key} {count}
 		{	MSG_AEON_GET_ROWS,					&CAeonEngine::MsgGetRows },
+
+		//	Aeon.getRowsFromList {tableAndView} {KeyList} {options}
+		{	MSG_AEON_GET_ROWS_FROM_LIST,		&CAeonEngine::MsgGetRowsFromList },
 
 		//	Aeon.getTables
 		{	MSG_AEON_GET_TABLES,				&CAeonEngine::MsgGetTables },
@@ -246,7 +254,7 @@ bool CAeonEngine::CreateTable (CDatum dDesc, CAeonTable **retpTable, bool *retbE
 
 	//	Check to see if this is a valid name
 
-	const CString &sName = dDesc.GetElement(FIELD_NAME);
+	CStringView sName = dDesc.GetElement(FIELD_NAME);
 	if (!CAeonTable::ValidateTableName(sName))
 		{
 		if (retsError)
@@ -438,7 +446,7 @@ void CAeonEngine::MsgCreateTable (const SArchonMessage &Msg, const CHexeSecurity
 	//	Get the table desc and table name
 
 	CDatum dTableDesc = Msg.dPayload.GetElement(0);
-	const CString &sTable = dTableDesc.GetElement(FIELD_NAME);
+	CStringView sTable = dTableDesc.GetElement(FIELD_NAME);
 
 	//	Make sure we are allowed access to this table
 
@@ -507,7 +515,7 @@ void CAeonEngine::MsgDeleteTable (const SArchonMessage &Msg, const CHexeSecurity
 	{
 	//	Parameters
 
-	const CString &sTable = Msg.dPayload.GetElement(0);
+	CStringView sTable = Msg.dPayload.GetElement(0);
 
 	//	Make sure we are allowed access to this table
 
@@ -561,7 +569,7 @@ void CAeonEngine::MsgFileDirectory (const SArchonMessage &Msg, const CHexeSecuri
 
 	CString sTable;
 	CString sFilePath;
-	if (!CAeonTable::ParseFilePath(Msg.dPayload.GetElement(0), &sTable, &sFilePath, &sError))
+	if (!CAeonTable::ParseFilePath(Msg.dPayload.GetElement(0).AsStringView(), &sTable, &sFilePath, &sError))
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(STR_ERROR_PARSING_FILE_PATH, sError), Msg);
 		return;
@@ -617,7 +625,7 @@ void CAeonEngine::MsgFileDownload (const SArchonMessage &Msg, const CHexeSecurit
 
 	CString sTable;
 	CString sFilePath;
-	if (!CAeonTable::ParseFilePath(Msg.dPayload.GetElement(0), &sTable, &sFilePath, &sError))
+	if (!CAeonTable::ParseFilePath(Msg.dPayload.GetElement(0).AsStringView(), &sTable, &sFilePath, &sError))
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(STR_ERROR_PARSING_FILE_PATH, sError), Msg);
 		return;
@@ -690,13 +698,14 @@ void CAeonEngine::MsgFileGetDesc (const SArchonMessage &Msg, const CHexeSecurity
 	//	Options
 
 	CDatum dOptions = Msg.dPayload.GetElement(1);
-	bool bIncludeStoragePath = !dOptions.GetElement(FIELD_STORAGE_PATH).IsNil();
+	bool bDiagnostics = !dOptions.GetElement(FIELD_DIAGNOSTICS).IsNil();
+	bool bIncludeStoragePath = !dOptions.GetElement(FIELD_STORAGE_PATH).IsNil() || bDiagnostics;
 
 	//	Get the filePath
 
 	CString sTable;
 	CString sFilePath;
-	if (!CAeonTable::ParseFilePath(Msg.dPayload.GetElement(0), &sTable, &sFilePath, &sError))
+	if (!CAeonTable::ParseFilePath(Msg.dPayload.GetElement(0).AsStringView(), &sTable, &sFilePath, &sError))
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(STR_ERROR_PARSING_FILE_PATH, sError), Msg);
 		return;
@@ -728,6 +737,10 @@ void CAeonEngine::MsgFileGetDesc (const SArchonMessage &Msg, const CHexeSecurity
 	//	Prepare the descriptor for return
 
 	CDatum dNewFileDesc = CAeonTable::PrepareFileDesc(sTable, sFilePath, dFileDesc, (bIncludeStoragePath ? CAeonTable::FLAG_STORAGE_PATH : 0));
+	if (bDiagnostics)
+		{
+		dNewFileDesc.SetElement(FIELD_FILESPEC, pTable->GetFilespec(dFileDesc.GetElement(FIELD_STORAGE_PATH).AsStringView()));
+		}
 
 	//	Done
 
@@ -739,6 +752,11 @@ void CAeonEngine::MsgFileUpdateDesc (const SArchonMessage &Msg, const CHexeSecur
 //	MsgFileUpdateDesc
 //
 //	Aeon.fileUpdateDesc {filePath} {fileDesc} [{options}]
+//
+//	options:
+//
+//		noModifiedTimeUpdate: Do not update modified time
+//		storagePath: Include storage path
 
 	{
 	CString sError;
@@ -749,12 +767,13 @@ void CAeonEngine::MsgFileUpdateDesc (const SArchonMessage &Msg, const CHexeSecur
 
 	CDatum dOptions = Msg.dPayload.GetElement(2);
 	bool bIncludeStoragePath = !dOptions.GetElement(FIELD_STORAGE_PATH).IsNil();
+	bool bNoModifiedOnUpdate = !dOptions.GetElement(FIELD_NO_MODIFIED_TIME_UPDATE).IsNil();
 
 	//	Get the filePath
 
 	CString sTable;
 	CString sFilePath;
-	if (!CAeonTable::ParseFilePath(Msg.dPayload.GetElement(0), &sTable, &sFilePath, &sError))
+	if (!CAeonTable::ParseFilePath(Msg.dPayload.GetElement(0).AsStringView(), &sTable, &sFilePath, &sError))
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(STR_ERROR_PARSING_FILE_PATH, sError), Msg);
 		return;
@@ -777,9 +796,10 @@ void CAeonEngine::MsgFileUpdateDesc (const SArchonMessage &Msg, const CHexeSecur
 	//	Set the descriptor and return the new verson.
 
 	CDatum dNewFileDesc;
-	if (!pTable->UpdateFileDesc(sFilePath, dFileDesc, &dNewFileDesc))
+	DWORD dwUpdateFlags = (bNoModifiedOnUpdate ? CAeonTable::FLAG_NO_MODIFIED_ON : 0);
+	if (!pTable->UpdateFileDesc(sFilePath, dFileDesc, dwUpdateFlags, &dNewFileDesc))
 		{
-		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, dNewFileDesc, Msg);
+		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, dNewFileDesc.AsStringView(), Msg);
 		return;
 		}
 
@@ -817,7 +837,7 @@ void CAeonEngine::MsgFileUpload (const SArchonMessage &Msg, const CHexeSecurityC
 
 	if (!dKeyGen.IsNil())
 		{
-		if (!CAeonTable::ParseFilePath(dFilePath, &sTable, &sFilePath, &sError))
+		if (!CAeonTable::ParseFilePath(dFilePath.AsStringView(), &sTable, &sFilePath, &sError))
 			{
 			SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(STR_ERROR_PARSING_FILE_PATH, sError), Msg);
 			return;
@@ -825,7 +845,7 @@ void CAeonEngine::MsgFileUpload (const SArchonMessage &Msg, const CHexeSecurityC
 		}
 	else
 		{
-		if (!CAeonTable::ParseFilePathForCreate(dFilePath, &sTable, &sFilePath, &sError))
+		if (!CAeonTable::ParseFilePathForCreate(dFilePath.AsStringView(), &sTable, &sFilePath, &sError))
 			{
 			SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(STR_ERROR_PARSING_FILE_PATH, sError), Msg);
 			return;
@@ -973,7 +993,7 @@ void CAeonEngine::MsgGetKeyRange (const SArchonMessage &Msg, const CHexeSecurity
 //	Aeon.getKeyRange {tableName} {count} [{startingKey}]
 
 	{
-	CString sTable = Msg.dPayload.GetElement(0);
+	CStringView sTable = Msg.dPayload.GetElement(0);
 
 	//	Make sure we are allowed access to this table
 
@@ -1030,10 +1050,12 @@ void CAeonEngine::MsgGetRows (const SArchonMessage &Msg, const CHexeSecurityCtx 
 	CDatum dOptions = Msg.dPayload.GetElement(3);
 	for (i = 0; i < dOptions.GetCount(); i++)
 		{
-		if (strEquals(dOptions.GetElement(i), OPTION_INCLUDE_KEY))
+		if (strEquals(dOptions.GetElement(i).AsStringView(), OPTION_INCLUDE_KEY))
 			dwFlags |= CAeonTable::FLAG_INCLUDE_KEY;
-		else if (strEquals(dOptions.GetElement(i), OPTION_NO_KEY))
+		else if (strEquals(dOptions.GetElement(i).AsStringView(), OPTION_NO_KEY))
 			dwFlags |= CAeonTable::FLAG_NO_KEY;
+		else if (strEquals(dOptions.GetElement(i).AsStringView(), OPTION_NEAREST))
+			dwFlags |= CAeonTable::FLAG_NEAREST;
 		else
 			{
 			SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_INVALID_GET_ROWS_OPTION, Msg.sMsg, dOptions.GetElement(i).AsString()), Msg);
@@ -1046,6 +1068,56 @@ void CAeonEngine::MsgGetRows (const SArchonMessage &Msg, const CHexeSecurityCtx 
 	CDatum dResult;
 	CString sError;
 	if (!pTable->GetRows(dwViewID, Msg.dPayload.GetElement(1), iRowCount, Limits, dwFlags, &dResult, &sError))
+		{
+		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, sError, Msg);
+		return;
+		}
+
+	//	Done
+
+	SendMessageReply(MSG_REPLY_DATA, dResult, Msg);
+	}
+
+void CAeonEngine::MsgGetRowsFromList (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)
+
+//	MsgGetRowsFromList
+//
+//	Aeon.getRowsFromList {tableAndView} {keyList} {options}
+
+	{
+	CDatum dTableAndView = Msg.dPayload.GetElement(0);
+	CDatum dKeyList = Msg.dPayload.GetElement(1);
+	CDatum dOptions = Msg.dPayload.GetElement(2);
+
+	//	Get the table
+
+	CAeonTable *pTable;
+	DWORD dwViewID;
+	if (!ParseTableAndView(Msg, pSecurityCtx, dTableAndView, &pTable, &dwViewID))
+		return;
+
+	//	Set up flags and options
+
+	DWORD dwFlags = 0;
+	for (int i = 0; i < dOptions.GetCount(); i++)
+		{
+		if (strEquals(dOptions.GetElement(i).AsStringView(), OPTION_INCLUDE_KEY))
+			dwFlags |= CAeonTable::FLAG_INCLUDE_KEY;
+		else if (strEquals(dOptions.GetElement(i).AsStringView(), OPTION_NO_KEY))
+			dwFlags |= CAeonTable::FLAG_NO_KEY;
+		else
+			{
+			SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_INVALID_GET_ROWS_OPTION, Msg.sMsg, dOptions.GetElement(i).AsString()), Msg);
+			return;
+			}
+		}
+
+	//	Get the rows
+
+	CDatum dResult;
+	CString sError;
+
+	if (!pTable->GetRowsFromList(dwViewID, dKeyList, dwFlags, dResult, &sError))
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, sError, Msg);
 		return;
@@ -1112,7 +1184,7 @@ void CAeonEngine::MsgGetViewInfo (const SArchonMessage &Msg, const CHexeSecurity
 	CDatum dResult;
 	if (!pTable->DebugDumpView(dwViewID, &dResult))
 		{
-		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, dResult, Msg);
+		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, dResult.AsStringView(), Msg);
 		return;
 		}
 
@@ -1161,7 +1233,7 @@ void CAeonEngine::MsgInsert (const SArchonMessage &Msg, const CHexeSecurityCtx *
 //	{rowPath} is an array with as many elements as the table dimensions
 
 	{
-	const CString &sTable = Msg.dPayload.GetElement(0);
+	CStringView sTable = Msg.dPayload.GetElement(0);
 	CDatum dRowPath = Msg.dPayload.GetElement(1);
 	CDatum dData = Msg.dPayload.GetElement(2);
 
@@ -1213,7 +1285,7 @@ void CAeonEngine::MsgInsertNew (const SArchonMessage &Msg, const CHexeSecurityCt
 	{
 	AEONERR error;
 
-	const CString &sTable = Msg.dPayload.GetElement(0);
+	CStringView sTable = Msg.dPayload.GetElement(0);
 	CDatum dRowPath = Msg.dPayload.GetElement(1);
 	CDatum dData = Msg.dPayload.GetElement(2);
 
@@ -1266,7 +1338,7 @@ void CAeonEngine::MsgMutate (const SArchonMessage &Msg, const CHexeSecurityCtx *
 	{
 	AEONERR error;
 
-	const CString &sTable = Msg.dPayload.GetElement(0);
+	CStringView sTable = Msg.dPayload.GetElement(0);
 	CDatum dRowPath = Msg.dPayload.GetElement(1);
 	CDatum dData = Msg.dPayload.GetElement(2);
 	CDatum dMutateDesc = Msg.dPayload.GetElement(3);
@@ -1330,7 +1402,7 @@ void CAeonEngine::MsgRecoverTableTest (const SArchonMessage &Msg, const CHexeSec
 
 	//	Get the table
 
-	const CString &sTable = Msg.dPayload.GetElement(0);
+	CStringView sTable = Msg.dPayload.GetElement(0);
 
 	//	If the table doesn't exist, then we can't continue
 
@@ -1438,7 +1510,7 @@ void CAeonEngine::MsgOnMnemosynthModified (const SArchonMessage &Msg, const CHex
 		{
 		CDatum dEntry = dEntries.GetElement(i);
 
-		const CString &sCollection = dCollections.GetElement((int)dEntry.GetElement(0));
+		CStringView sCollection = dCollections.GetElement((int)dEntry.GetElement(0));
 		if (strEquals(sCollection, MNEMO_ARC_STORAGE))
 			bStorageChanged = true;
 		}
@@ -1506,8 +1578,8 @@ void CAeonEngine::MsgTranspaceDownload (const SArchonMessage &Msg, const CHexeSe
 
 	{
 	CString sError;
-	CString sAddress = Msg.dPayload.GetElement(0);
-	CString sOriginalAddress = Msg.dPayload.GetElement(1);
+	CStringView sAddress = Msg.dPayload.GetElement(0);
+	CStringView sOriginalAddress = Msg.dPayload.GetElement(1);
 	CDatum dFileDownloadDesc = Msg.dPayload.GetElement(2);
 
 	//	Parse the address to get the path

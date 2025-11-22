@@ -1,7 +1,7 @@
 //	CAeonTable.cpp
 //
 //	CAeonTable class
-//	Copyright (c) 2018 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2018 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -26,6 +26,7 @@ DECLARE_CONST_STRING(ERR_SEGMENT_BACKUP_FAILED,			"Unable to create backup for n
 DECLARE_CONST_STRING(ERR_CANT_DELETE_FILE,				"Unable to delete file: %s.");
 DECLARE_CONST_STRING(ERR_UPDATE_VIEW_ABORTED,			"Unable to update view %s in table %s.");
 DECLARE_CONST_STRING(ERR_DELETING_EXTRA_SEGMENT_FILE,	"Table %s: Deleting extraneous segment file: %s.");
+DECLARE_CONST_STRING(ERR_SEGMENT_MERGE_FAILED,			"Failed merging segments %s and %s: %s.");
 
 bool CAeonTable::HousekeepingBackup (CSmartLock &Lock)
 
@@ -166,11 +167,12 @@ bool CAeonTable::HousekeepingMergeSegments (CSmartLock &Lock)
 			DWORD dwSegFlags = 0;
 			dwSegFlags |= (i == 0 ? CAeonSegment::FLAG_HAS_ROW_ID : 0);
 			dwSegFlags |= (i != 0 ? CAeonSegment::FLAG_SECONDARY_VIEW : 0);
+			dwSegFlags |= CAeonSegment::CREATE_OPTION_DEBUG_ORDER;
 
 			CAeonSegment *pNewSeg = new CAeonSegment;
 			if (!pNewSeg->Create(m_Views[i].GetID(), m_Views[i].GetDimensions(), NewSeq, Rows, sFilespec, dwSegFlags, &sError))
 				{
-				m_pProcess->Log(MSG_LOG_ERROR, sError);
+				m_pProcess->Log(MSG_LOG_ERROR, strPattern(ERR_SEGMENT_MERGE_FAILED, pSeg1->GetFilespec(), pSeg2->GetFilespec(), sError));
 				pNewSeg->Release();
 				break;	//	Stop looping over views.
 				}

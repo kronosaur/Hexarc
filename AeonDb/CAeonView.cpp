@@ -1,7 +1,7 @@
 //	CAeonView.cpp
 //
 //	CAeonView class
-//	Copyright (c) 2012 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2012 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -165,6 +165,7 @@ CDatum CAeonView::ComputeColumns (CHexeProcess &Process, CDatum dRowData)
 			}
 
 		case CHexeProcess::ERun::Error:
+		case CHexeProcess::ERun::ForcedTerminate:
 			{
 			CDatum dNewRowData(new CComplexStruct(dRowData));
 			dNewRowData.SetElement(FIELD_ERROR, strPattern("ERROR: %s", dResult.AsString()));
@@ -313,7 +314,7 @@ void CAeonView::CreateSecondaryData (const CTableDimensions &PrimaryDims, const 
 					CDatum dValue = dFullData.GetElement(j);
 
 					if (!dValue.IsNil())
-						pData->SetElement(dKey, dValue);
+						pData->SetElement(dKey.AsStringView(), dValue);
 					}
 				}
 
@@ -368,6 +369,7 @@ bool CAeonView::CreateSecondaryKeys (CHexeProcess &Process, const CTableDimensio
 					break;
 
 				case CHexeProcess::ERun::Error:
+				case CHexeProcess::ERun::ForcedTerminate:
 					dValue = CDatum(strPattern("(%s)", dValue.AsString()));
 					break;
 
@@ -380,7 +382,7 @@ bool CAeonView::CreateSecondaryKeys (CHexeProcess &Process, const CTableDimensio
 
 		else
 			{
-			const CString &sKeyDesc = dKeyDesc;
+			CStringView sKeyDesc = dKeyDesc;
 			if (strStartsWith(sKeyDesc, FIELD_PRIMARY_KEY_PREFIX))
 				{
 				CString sKeyPart = strSubString(sKeyDesc, FIELD_PRIMARY_KEY_PREFIX.GetLength());
@@ -403,7 +405,7 @@ bool CAeonView::CreateSecondaryKeys (CHexeProcess &Process, const CTableDimensio
 					}
 				}
 			else
-				dValue = dData.GetElement((const CString &)dKeyDesc);
+				dValue = dData.GetElement(dKeyDesc.AsStringView());
 			}
 
 		//	We don't support Nil keys, so we have to replace these with a
@@ -739,7 +741,7 @@ bool CAeonView::InitAsSecondaryView (CDatum dDesc, CHexeProcess &Process, const 
 
 	//	Get the name
 
-	m_sName = dDesc.GetElement(FIELD_NAME);
+	m_sName = dDesc.GetElement(FIELD_NAME).AsStringView();
 
 	m_bUsesListKeys = false;
 
@@ -816,7 +818,7 @@ bool CAeonView::InitAsSecondaryView (CDatum dDesc, CHexeProcess &Process, const 
 	CDatum dColumns = dDesc.GetElement(FIELD_COLUMNS);
 	for (i = 0; i < dColumns.GetCount(); i++)
 		{
-		const CString &sCol = dColumns.GetElement(i);
+		CStringView sCol = dColumns.GetElement(i);
 		if (!sCol.IsEmpty())
 			m_Columns.Insert(sCol);
 		}

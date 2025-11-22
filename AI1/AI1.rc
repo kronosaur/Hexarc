@@ -70,7 +70,7 @@ BEGIN
             VALUE "FileDescription", "AI1"
             VALUE "FileVersion", "1.1.84.0"
             VALUE "InternalName", "AI1"
-            VALUE "LegalCopyright", "Copyright © 2011-2021 by Kronosaur Productions LLC. All Rights Reserved."
+            VALUE "LegalCopyright", "Copyright © 2011-2023 GridWhale Corporation. All Rights Reserved."
             VALUE "OriginalFilename", "AI1"
             VALUE "ProductName", "Hexarc"
             VALUE "ProductVersion", "v.84"

@@ -1,15 +1,18 @@
 //	CHTTPMultipartParser.cpp
 //
 //	CHTTPMultipartParser Class
-//	Copyright (c) 2022 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2022 GridWhale Corporation. All Rights Reserved.
 
 #include "pch.h"
 
 DECLARE_CONST_STRING(FIELD_BOUNDARY,					"boundary")
 DECLARE_CONST_STRING(FIELD_CONTENT_DISPOSITION,			"content-disposition")
 DECLARE_CONST_STRING(FIELD_CONTENT_TYPE,				"content-type")
+DECLARE_CONST_STRING(FIELD_DATA,						"data")
+DECLARE_CONST_STRING(FIELD_FILENAME,					"filename")
 DECLARE_CONST_STRING(FIELD_FORM_DATA,					"form-data")
 DECLARE_CONST_STRING(FIELD_NAME,						"name")
+DECLARE_CONST_STRING(FIELD_TYPE,						"type")
 
 DECLARE_CONST_STRING(MEDIA_MULTIPART_FORM,				"multipart/form-data")
 DECLARE_CONST_STRING(MEDIA_TYPE_TEXT,					"text/plain")
@@ -18,7 +21,7 @@ const int MAX_IN_MEMORY_SIZE =							4 * 1024 * 1024;
 
 CHTTPMultipartParser::~CHTTPMultipartParser (void)
 
-//	CEsperMultipartParser destructor
+//	CHTTPMultipartParser destructor
 
 	{
 	if (m_pResult)
@@ -104,6 +107,7 @@ bool CHTTPMultipartParser::ParseAsDatum (CDatum &retdBody)
 
 		CString sPartName;
 		CString sPartType;
+		CString sFilename;
 		while (true)
 			{
 			bool bDone;
@@ -130,6 +134,9 @@ bool CHTTPMultipartParser::ParseAsDatum (CDatum &retdBody)
 
 				if (!Fields.Find(FIELD_NAME, &sPartName))
 					return false;
+
+				if (!Fields.Find(FIELD_FILENAME, &sFilename))
+					sFilename = NULL_STR;
 				}
 			else if (strEquals(sField, FIELD_CONTENT_TYPE))
 				{
@@ -150,6 +157,19 @@ bool CHTTPMultipartParser::ParseAsDatum (CDatum &retdBody)
 		CDatum dData;
 		if (!ParseToBoundary(pPos, pPosEnd, sBoundary, sPartType, dData, &pPos))
 			return false;
+
+		//	If we have a filename then we assume this is a file and compose a
+		//	complex structure to hold both the filename and the data.
+
+		if (!sFilename.IsEmpty())
+			{
+			CDatum dFile(CDatum::typeStruct);
+			dFile.SetElement(FIELD_FILENAME, sFilename);
+			dFile.SetElement(FIELD_TYPE, sPartType);
+			dFile.SetElement(FIELD_DATA, dData);
+
+			dData = dFile;
+			}
 
 		//	Add to the structure
 

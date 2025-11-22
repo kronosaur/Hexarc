@@ -1,7 +1,7 @@
 //	CMachineStorage.cpp
 //
 //	CMachineStorage class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -272,14 +272,14 @@ bool CMachineStorage::Reinit (IArchonProcessCtx *pProcess, TArray<CString> *retV
 
 			//	Make sure the volume is online
 
-			const CString &sStatus = dVolumeDesc.GetElement(FIELD_STATUS);
+			CStringView sStatus = dVolumeDesc.GetElement(FIELD_STATUS);
 			if (!strEquals(sStatus, STATUS_ONLINE))
 				continue;
 
 			//	Get volume data
 
-			const CString &sVolumeName = dVolumeDesc.GetElement(FIELD_VOLUME_NAME);
-			const CString &sPath = dVolumeDesc.GetElement(FIELD_LOCAL_PATH);
+			CStringView sVolumeName = dVolumeDesc.GetElement(FIELD_VOLUME_NAME);
+			CStringView sPath = dVolumeDesc.GetElement(FIELD_LOCAL_PATH);
 
 			//	Add a path for the engine directory
 

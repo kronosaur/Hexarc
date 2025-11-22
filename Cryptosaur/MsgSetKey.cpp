@@ -1,7 +1,7 @@
 //	MsgSetKey.cpp
 //
 //	MsgSetKey
-//	Copyright (c) 2020 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2020 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -52,7 +52,7 @@ void CCryptosaurEngine::MsgSetKey (const SArchonMessage &Msg, const CHexeSecurit
 //	Cryptosaur.setKey {id} {data}
 
 	{
-	CString sID = Msg.dPayload.GetElement(0);
+	CStringView sID = Msg.dPayload.GetElement(0);
 	CDatum dData = Msg.dPayload.GetElement(1);
 
 	//	We support an explicit list of keys
@@ -84,7 +84,7 @@ void CSetKeySession::OnSuccess (void)
 	{
 	//	Since we were successful, store the key in our store
 
-	m_pEngine->InsertKey((const CString &)GetKeyPath(), GetData());
+	m_pEngine->InsertKey(GetKeyPath().AsStringView(), GetData());
 
 	//	Return the key that we just stored to the user
 

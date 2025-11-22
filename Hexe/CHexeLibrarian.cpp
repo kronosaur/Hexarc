@@ -1,7 +1,7 @@
 //	CHexeLibrarian.cpp
 //
 //	CHexeLibrarian class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -29,12 +29,12 @@ CDatum CHexeLibrarian::CreateFunction (const SFunctionDef &Def)
 	pFunc->SetArgList(CString(Def.pArgList));
 	pFunc->SetHelp(CString(Def.pHelp));
 	pFunc->SetFunction(Def.pfFunc, Def.dwData);
-	pFunc->SetExecutionRights(Def.dwExecutionRights);
+	pFunc->SetExecFlags(Def.dwExecFlags);
 
 	return CDatum(pFunc);
 	}
 
-CDatum CHexeLibrarian::FindFunction (const CString &sLibrary, const CString &sFunction) const
+CDatum CHexeLibrarian::FindFunction (CStringView sLibrary, CStringView sFunction) const
 
 //	FindFunction
 //
@@ -49,10 +49,10 @@ CDatum CHexeLibrarian::FindFunction (const CString &sLibrary, const CString &sFu
 	if (!pFunc)
 		return CDatum();
 
-	return *pFunc;
+	return m_Functions[*pFunc];
 	}
 
-bool CHexeLibrarian::FindLibrary (const CString &sName, DWORD *retdwLibraryID) const
+bool CHexeLibrarian::FindLibrary (CStringView sName, DWORD* retdwLibraryID) const
 
 //	FindLibrary
 //
@@ -71,7 +71,7 @@ bool CHexeLibrarian::FindLibrary (const CString &sName, DWORD *retdwLibraryID) c
 	return true;
 	}
 
-const CString &CHexeLibrarian::GetEntry (DWORD dwLibrary, int iIndex, CDatum *retdFunction)
+CStringView CHexeLibrarian::GetEntry (DWORD dwLibrary, int iIndex, CDatum* retdFunction)
 
 //	GetEntry
 //
@@ -80,10 +80,10 @@ const CString &CHexeLibrarian::GetEntry (DWORD dwLibrary, int iIndex, CDatum *re
 	{
 	ASSERT((int)dwLibrary >= 0 && (int)dwLibrary < m_Catalog.GetCount());
 
-	SLibrary *pLibrary = &m_Catalog[dwLibrary];
+	SLibrary* pLibrary = &m_Catalog[dwLibrary];
 
 	if (retdFunction)
-		*retdFunction = pLibrary->Functions[iIndex];
+		*retdFunction = m_Functions[pLibrary->Functions[iIndex]];
 
 	return pLibrary->Functions.GetKey(iIndex);
 	}
@@ -97,11 +97,11 @@ int CHexeLibrarian::GetEntryCount (DWORD dwLibrary)
 	{
 	ASSERT((int)dwLibrary >= 0 && (int)dwLibrary < m_Catalog.GetCount());
 
-	SLibrary *pLibrary = &m_Catalog[dwLibrary];
+	SLibrary* pLibrary = &m_Catalog[dwLibrary];
 	return pLibrary->Functions.GetCount();
 	}
 
-const CHexeLibrarian::SLibrary *CHexeLibrarian::GetLibrary (const CString &sName) const
+const CHexeLibrarian::SLibrary *CHexeLibrarian::GetLibrary (CStringView sName) const
 
 //	GetLibrary
 //
@@ -111,7 +111,7 @@ const CHexeLibrarian::SLibrary *CHexeLibrarian::GetLibrary (const CString &sName
 	return m_Catalog.GetAt(sName);
 	}
 
-CHexeLibrarian::SLibrary *CHexeLibrarian::GetLibrary (const CString &sName)
+CHexeLibrarian::SLibrary* CHexeLibrarian::GetLibrary (CStringView sName)
 
 //	GetLibrary
 //
@@ -137,14 +137,8 @@ void CHexeLibrarian::Mark (void)
 //	Mark data in use
 
 	{
-	int i, j;
-
-	for (i = 0; i < m_Catalog.GetCount(); i++)
-		{
-		SLibrary *pLibrary = &m_Catalog[i];
-		for (j = 0; j < pLibrary->Functions.GetCount(); j++)
-			pLibrary->Functions[j].Mark();
-		}
+	for (int i = 0; i < m_Functions.GetCount(); i++)
+		m_Functions[i].Mark();
 	}
 
 void CHexeLibrarian::RegisterCoreLibraries (void)
@@ -158,23 +152,24 @@ void CHexeLibrarian::RegisterCoreLibraries (void)
 	RegisterLibrary(LIBRARY_CORE, g_iCoreVectorLibraryDefCount, g_CoreVectorLibraryDef);
 	}
 
-void CHexeLibrarian::RegisterLibrary (const CString &sName, int iCount, SLibraryFuncDef *pNewLibrary)
+void CHexeLibrarian::RegisterLibrary (CStringView sName, int iCount, const SLibraryFuncDef* pNewLibrary)
 
 //	RegisterLibrary
 //
 //	Registers an external library
 
 	{
-	int i;
-
 	SLibrary *pLibrary = GetLibrary(sName);
 
-	for (i = 0; i < iCount; i++)
+	for (int i = 0; i < iCount; i++)
 		{
 		CDatum dFunc;
 		CHexeLibraryFunction::Create(pNewLibrary[i], &dFunc);
 
-		pLibrary->Functions.SetAt(pNewLibrary[i].sName, dFunc);
+		int iID = m_Functions.GetCount();
+		m_Functions.Insert(dFunc);
+
+		pLibrary->Functions.SetAt(pNewLibrary[i].sName, iID);
 		}
 	}
 
@@ -245,51 +240,40 @@ void CHexe::Mark (void)
 	g_HexeLibrarian.Mark();
 	}
 
-bool CHexe::RunFunctionWithCtx (CDatum dFunc, CDatum dArgs, CDatum dCtx, CDatum &retdResult)
+bool CHexe::RunFunction (CDatum dFunc, TArray<CDatum>&& Args, CDatum dContext, SAEONInvokeResult& retResult)
 
-//	RunFunctionWithCtx
+//	RunFunction
 //
 //	Composes a response from a library function to call an function with 
 //	arguments.
 
 	{
-	CDatum dResult(CDatum::typeArray);
-	dResult.Append(dFunc);
-	dResult.Append(dArgs);
-	dResult.Append(dCtx);
-
-	retdResult = dResult;
+	retResult.iResult = CDatum::InvokeResult::functionCall;
+	retResult.dResult = dFunc;
+	retResult.Args = std::move(Args);
+	retResult.dContext = dContext;
 
 	//	FALSE means special result.
 
 	return false;
 	}
 
-bool CHexe::RunFunction1ArgWithCtx (CDatum dFunc, CDatum dArg, CDatum dCtx, CDatum &retdResult)
-
-//	RunFunction1ArgWithCtx
-//
-//	Composes a response from a library function to call an function with 
-//	arguments.
-
+bool CHexe::RunFunction1Arg (CDatum dFunc, CDatum dArg, CDatum dContext, SAEONInvokeResult& retResult)
 	{
-	CDatum dArgs(CDatum::typeArray);
-	dArgs.Append(dArg);
+	TArray<CDatum> Args;
+	Args.InsertEmpty(1);
+	Args[0] = dArg;
 
-	return RunFunctionWithCtx(dFunc, dArgs, dCtx, retdResult);
+	return RunFunction(dFunc, std::move(Args), dContext, retResult);
 	}
 
-bool CHexe::RunFunction2ArgWithCtx(CDatum dFunc, CDatum dArg1, CDatum dArg2, CDatum dCtx, CDatum& retdResult)
-
-//	RunFunction1ArgWithCtx
-//
-//	Composes a response from a library function to call an function with 
-//	arguments.
-
+bool CHexe::RunFunction2Args (CDatum dFunc, CDatum dArg1, CDatum dArg2, CDatum dContext, SAEONInvokeResult& retResult)
 	{
-	CDatum dArgs(CDatum::typeArray);
-	dArgs.Append(dArg1);
-	dArgs.Append(dArg2);
+	TArray<CDatum> Args;
+	Args.InsertEmpty(2);
+	Args[0] = dArg1;
+	Args[1] = dArg2;
 
-	return RunFunctionWithCtx(dFunc, dArgs, dCtx, retdResult);
+	return RunFunction(dFunc, std::move(Args), dContext, retResult);
 	}
+

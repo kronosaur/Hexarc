@@ -1,7 +1,7 @@
 //	CAEONTableRef.cpp
 //
 //	CAEONTableRef classes
-//	Copyright (c) 2022 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2022 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -18,17 +18,78 @@ DECLARE_CONST_STRING(ERR_NOT_A_TABLE,					"Not a table.");
 TDatumPropertyHandler<CAEONTableRef> CAEONTableRef::m_Properties = {
 	{
 		"columns",
+		"$ArrayOfString",
 		"Returns an array of all column IDs.",
 		[](const CAEONTableRef &Obj, const CString &sProperty)
 			{
 			CDatum dResult(CDatum::typeArray);
 
-			const IDatatype &Schema = Obj.m_dSchema;
+			const IDatatype &Schema = Obj.GetSchema();
 			for (int i = 0; i < Schema.GetMemberCount(); i++)
 				{
 				auto ColumnDesc = Schema.GetMember(i);
 
-				dResult.Append(ColumnDesc.sName);
+				dResult.Append(ColumnDesc.sID);
+				}
+
+			return dResult;
+			},
+		NULL,
+		},
+	{
+		"datatype",
+		"%",
+		"Returns the type of the table.",
+		[](const CAEONTableRef& Obj, const CString &sProperty)
+			{
+			return Obj.GetDatatype();
+			},
+		NULL,
+		},
+	{
+		"elementtype",
+		"%",
+		"Returns the schema type of the table.",
+		[](const CAEONTableRef& Obj, const CString &sProperty)
+			{
+			return ((const IDatatype&)Obj.GetDatatype()).GetElementType();
+			},
+		NULL,
+		},
+	{
+		"keytype",
+		"%",
+		"Returns the type of the table key.",
+		[](const CAEONTableRef& Obj, const CString &sProperty)
+			{
+			return ((const IDatatype&)Obj.GetDatatype()).GetKeyType();
+			},
+		NULL,
+		},
+	{
+		"keys",
+		"a",
+		"Returns an array of keys.",
+		[](const CAEONTableRef &Obj, const CString &sProperty)
+			{
+			const IAEONTable* pTable = Obj.m_dTable.GetTableInterface();
+			if (!pTable)
+				return CDatum();
+
+			CDatum dResult(CDatum::typeArray);
+			dResult.GrowToFit(Obj.GetRowCount());
+
+			if (Obj.m_bAllRows)
+				{
+				for (int i = 0; i < Obj.GetRowCount(); i++)
+					dResult.Append(pTable->GetRowID(i));
+				}
+			else
+				{
+				Obj.InitSourceRow();
+
+				for (int i = 0; i < Obj.GetRowCount(); i++)
+					dResult.Append(pTable->GetRowID(Obj.m_SourceRow[i]));
 				}
 
 			return dResult;
@@ -37,6 +98,7 @@ TDatumPropertyHandler<CAEONTableRef> CAEONTableRef::m_Properties = {
 		},
 	{
 		"length",
+		"I",
 		"Returns the number of rows in the table.",
 		[](const CAEONTableRef &Obj, const CString &sProperty)
 			{
@@ -44,9 +106,86 @@ TDatumPropertyHandler<CAEONTableRef> CAEONTableRef::m_Properties = {
 			},
 		NULL,
 		},
+	{
+		"nextID",
+		"i",
+		"The nextID to use for the table.",
+		[](const CAEONTableRef &Obj, const CString &sProperty)
+			{
+			const IAEONTable* pTable = Obj.m_dTable.GetTableInterface();
+			if (!pTable)
+				return CDatum();
+
+			//	NOTE: We preincrement in MakeID, so we need to add 1 here.
+			return CDatum(pTable->GetNextID() + 1);
+			},
+		[](CAEONTableRef &Obj, const CString &sProperty, CDatum dValue, CString *retsError)
+			{
+			IAEONTable* pTable = Obj.m_dTable.GetTableInterface();
+			if (!pTable)
+				return false;
+
+			pTable->SetNextID((DWORDLONG)dValue - 1);
+			return true;
+			},
+		},
 	};
 
 TDatumMethodHandler<IComplexDatum> *CAEONTableRef::m_pMethodsExt = NULL;
+
+IAEONTable::EResult CAEONTableRef::AppendEmptyRow (int iCount)
+	{
+	Materialize();
+	IAEONTable* pTable = m_dTable.GetTableInterface();
+	if (!pTable)
+		return IAEONTable::EResult::NotATable;
+
+	return pTable->AppendEmptyRow(iCount);
+	}
+
+IAEONTable::EResult CAEONTableRef::AppendRow (CDatum dRow, int* retiRow)
+	{
+	Materialize();
+	IAEONTable* pTable = m_dTable.GetTableInterface();
+	if (!pTable)
+		return IAEONTable::EResult::NotATable;
+
+	return pTable->AppendRow(dRow, retiRow);
+	}
+
+IAEONTable::EResult CAEONTableRef::AppendTable (CDatum dTable)
+	{
+	Materialize();
+	IAEONTable* pTable = m_dTable.GetTableInterface();
+	if (!pTable)
+		return IAEONTable::EResult::NotATable;
+
+	auto iError = pTable->AppendTable(dTable);
+	if (iError != EResult::OK)
+		return iError;
+
+	ApplyDatatype(m_dTable.GetDatatype());
+	return EResult::OK;
+	}
+
+void CAEONTableRef::ApplyDatatype (CDatum dDatatype)
+
+//	ApplyDatatype
+//
+//	Take the given datatype.
+
+	{
+	m_dDatatype = dDatatype;
+	const IDatatype& Datatype = dDatatype;
+	const IDatatype& Schema = Datatype.GetElementType();
+
+	//	All columns
+
+	m_Cols.DeleteAll();
+	m_Cols.InsertEmpty(Schema.GetMemberCount());
+	for (int i = 0; i < m_Cols.GetCount(); i++)
+		m_Cols[i] = i;
+	}
 
 CString CAEONTableRef::AsString (void) const
 
@@ -55,11 +194,15 @@ CString CAEONTableRef::AsString (void) const
 //	Represent as a string
 
 	{
+	CRecursionGuard Guard(*this);
+	if (Guard.InRecursion())
+		return AsAddress();
+
 	CStringBuffer Buffer;
 
 	//	Output header
 
-	const IDatatype &Schema = m_dSchema;
+	const IDatatype &Schema = GetSchema();
 	for (int i = 0; i < Schema.GetMemberCount(); i++)
 		{
 		auto ColumnDesc = Schema.GetMember(i);
@@ -67,7 +210,7 @@ CString CAEONTableRef::AsString (void) const
 		if (i != 0)
 			Buffer.WriteChar('\t');
 
-		Buffer.Write(ColumnDesc.sName);
+		Buffer.Write(ColumnDesc.sID);
 		}
 
 	Buffer.WriteChar('\n');
@@ -101,6 +244,107 @@ size_t CAEONTableRef::CalcMemorySize (void) const
 	return 0;
 	}
 
+IComplexDatum* CAEONTableRef::Clone (CDatum::EClone iMode) const
+
+//	Clone
+//
+//	We always clone as a real table.
+
+	{
+	switch (iMode)
+		{
+		case CDatum::EClone::CopyOnWrite:
+			return NULL;
+
+		default:
+			{
+			//	Create columns.
+
+			TArray<CDatum> Columns = IAEONTable::CreateColumns(GetSchema(), NULL, GetCount());
+			for (int iCol = 0; iCol < GetColCount(); iCol++)
+				{
+				CDatum dCol = Columns[iCol];
+				for (int iRow = 0; iRow < GetCount(); iRow++)
+					dCol.Append(GetFieldValue(iRow, iCol));
+				}
+
+			//	Create the new table with these columns.
+
+			CAEONTable* pClone = new CAEONTable(GetSchema(), std::move(Columns));
+			pClone->SetGroups(m_GroupDef);
+			pClone->SetGroupIndex(CAEONTableGroupIndex(m_GroupIndex));
+
+			return pClone;
+			}
+		}
+	}
+
+CDatum CAEONTableRef::CombineSubset (SSubset& ioSubset) const
+
+//	CombineSubset
+//
+//	Takes the input subset, which is relative to us, and converts it so that it
+//	is relative to the underlying table.
+
+	{
+	const IAEONTable* pSrcTable = m_dTable.GetTableInterface();
+	if (!pSrcTable)
+		throw CException(errFail);
+
+	//	Map the columns. The input subset has column IDs relative to us, and we
+	//	convert them to column IDs in the original (source) table.
+
+	for (int i = 0; i < ioSubset.Cols.GetCount(); i++)
+		ioSubset.Cols[i] = m_Cols[ioSubset.Cols[i]];
+
+	//	If we have all rows, then ioSubset row numbers are the same as the 
+	//	source table, so nothing to do.
+
+	if (m_bAllRows)
+		{ }
+
+	//	If the subset wants all rows, then we give it our map.
+
+	else if (ioSubset.bAllRows)
+		{
+		ioSubset.bAllRows = false;
+		ioSubset.Rows = m_Rows;
+		}
+
+	//	Otherwise, we convert to the source rows
+
+	else
+		{
+		for (int i = 0; i < ioSubset.Rows.GetCount(); i++)
+			ioSubset.Rows[i] = m_Rows[ioSubset.Rows[i]];
+		}
+
+	//	If we have group indices, we need to map them to the source row.
+
+	if (!ioSubset.GroupIndex.IsEmpty() && !m_bAllRows)
+		{
+		TArray<TArray<int>> DestIndex;
+		DestIndex.InsertEmpty(ioSubset.GroupIndex.GetCount());
+
+		for (int iGroup = 0; iGroup < DestIndex.GetCount(); iGroup++)
+			{
+			//	This index refers to our row numbers. We need to convert them to
+			//	source row numbers.
+
+			const TArray<int>& Index = ioSubset.GroupIndex.GetGroupIndex(iGroup);
+			DestIndex[iGroup].InsertEmpty(Index.GetCount());
+			for (int i = 0; i < Index.GetCount(); i++)
+				DestIndex[iGroup][i] = m_Rows[Index[i]];
+			}
+
+		ioSubset.GroupIndex = CAEONTableGroupIndex(std::move(DestIndex));
+		}
+
+	//	Return the source table.
+
+	return m_dTable;
+	}
+
 bool CAEONTableRef::Create (CAEONTypeSystem& TypeSystem, CDatum dTable, SSubset&& Subset, CDatum& retdValue)
 
 //	Create
@@ -108,31 +352,119 @@ bool CAEONTableRef::Create (CAEONTypeSystem& TypeSystem, CDatum dTable, SSubset&
 //	Creates a new table reference.
 
 	{
-	if (dTable.GetBasicType() != CDatum::typeTable)
+	const IAEONTable* pInputTable = dTable.GetTableInterface();
+	if (!pInputTable)
 		{
 		retdValue = ERR_NOT_A_TABLE;
 		return false;
 		}
 
-	CDatum dSchema;
-	if (!CreateSchema(TypeSystem, dTable, Subset, dSchema))
+	//	Combine Subset to refer to the underlying table, if necessary, so that 
+	//	we optimze the case of a table reference to a table reference.
+
+	dTable = pInputTable->CombineSubset(Subset);
+
+	//	Init the datatype.
+
+	CDatum dDatatype;
+	if (!CreateTableDatatype(TypeSystem, dTable, Subset, dDatatype))
 		{
-		retdValue = dSchema;
+		retdValue = dDatatype;
 		return false;
 		}
 
 	CAEONTableRef *pNewTable = new CAEONTableRef;
 	pNewTable->m_dTable = dTable;
-	pNewTable->m_dSchema = dSchema;
+	pNewTable->m_dDatatype = dDatatype;
 	pNewTable->m_Cols = std::move(Subset.Cols);
+	pNewTable->m_bCopyOnWrite = true;
 
 	if (Subset.bAllRows)
 		pNewTable->m_bAllRows = true;
-	else
+	else if (Subset.Rows.GetCount() > 0)
 		pNewTable->m_Rows = std::move(Subset.Rows);
+
+	pNewTable->m_GroupDef = Subset.GroupDef;
+
+	//	If we have group indices, we need to map them to new table.
+
+	if (Subset.bAllRows)
+		pNewTable->m_GroupIndex = std::move(Subset.GroupIndex);
+
+	else if (!Subset.GroupIndex.IsEmpty())
+		{
+		pNewTable->InitSourceRow();
+
+		TArray<TArray<int>> NewIndex;
+		NewIndex.InsertEmpty(Subset.GroupIndex.GetCount());
+
+		for (int iGroup = 0; iGroup < NewIndex.GetCount(); iGroup++)
+			{
+			const TArray<int>& SrcIndex = Subset.GroupIndex.GetGroupIndex(iGroup);
+			TArray<int>& DestIndex = NewIndex[iGroup];
+			DestIndex.InsertEmpty(SrcIndex.GetCount());
+
+			for (int i = 0; i < SrcIndex.GetCount(); i++)
+				{
+				DestIndex[i] = pNewTable->m_SourceRow[SrcIndex[i]];
+				}
+			}
+
+		pNewTable->m_GroupIndex = CAEONTableGroupIndex(std::move(NewIndex));
+		}
 
 	retdValue = CDatum(pNewTable);
 	return true;
+	}
+
+IAEONTable::EResult CAEONTableRef::DeleteAllRows ()
+	{
+	Materialize();
+	IAEONTable* pTable = m_dTable.GetTableInterface();
+	if (!pTable)
+		return IAEONTable::EResult::NotATable;
+
+	return pTable->DeleteAllRows();
+	}
+
+IAEONTable::EResult CAEONTableRef::DeleteCol (int iCol)
+
+//	DeleteCol
+//
+//	Deletes the given column.
+
+	{
+	if (iCol < 0 || iCol >= m_Cols.GetCount())
+		return IAEONTable::EResult::InvalidParam;
+
+	Materialize();
+	IAEONTable* pTable = m_dTable.GetTableInterface();
+	if (!pTable)
+		return IAEONTable::EResult::NotATable;
+
+	//	We need to create a new schema.
+
+	CDatum dNewSchema;
+	if (!DeleteColumnFromSchema(GetSchema(), iCol, dNewSchema))
+		return EResult::InvalidParam;
+
+	m_dDatatype = CAEONTypeSystem::CreateAnonymousTable(NULL_STR, dNewSchema);
+
+	//	Remove the column
+
+	m_Cols.Delete(iCol);
+
+	return EResult::OK;
+	}
+
+IAEONTable::EResult CAEONTableRef::DeleteRowByID (CDatum dKey)
+	{
+	Materialize();
+	IAEONTable* pTable = m_dTable.GetTableInterface();
+	if (!pTable)
+		return IAEONTable::EResult::NotATable;
+
+	return pTable->DeleteRowByID(dKey);
 	}
 
 bool CAEONTableRef::FindCol (const CString &sName, int *retiCol) const
@@ -142,10 +474,10 @@ bool CAEONTableRef::FindCol (const CString &sName, int *retiCol) const
 //	Find column.
 
 	{
-	const IDatatype &Schema = m_dSchema;
+	const IDatatype &Schema = GetSchema();
 	for (int i = 0; i < Schema.GetMemberCount(); i++)
 		{
-		if (strEqualsNoCase(sName, Schema.GetMember(i).sName))
+		if (strEqualsNoCase(sName, Schema.GetMember(i).sID))
 			{
 			if (retiCol)
 				*retiCol = i;
@@ -155,6 +487,114 @@ bool CAEONTableRef::FindCol (const CString &sName, int *retiCol) const
 		}
 
 	return false;
+	}
+
+bool CAEONTableRef::FindRowByID (CDatum dValue, int *retiRow) const
+
+//	FindRowByID
+//
+//	Looks for a row that matches the given ID. If found, we return true and
+//	optionally return the row.
+
+	{
+	//	Look for the row in the underlying table.
+
+	const IAEONTable* pTable = m_dTable.GetTableInterface();
+	if (!pTable)
+		return false;
+
+	int iRow;
+	if (!pTable->FindRowByID(dValue, &iRow))
+		return false;
+
+	if (m_bAllRows)
+		{
+		if (retiRow)
+			*retiRow = iRow;
+		}
+	else
+		{
+		InitSourceRow();
+
+		if (iRow < 0 || iRow >= m_SourceRow.GetCount())
+			return false;
+
+		if (m_SourceRow[iRow] == -1)
+			return false;
+
+		if (retiRow)
+			*retiRow = m_SourceRow[iRow];
+		}
+
+	return true;
+	}
+
+bool CAEONTableRef::FindRowByID2 (CDatum dKey1, CDatum dKey2, int* retiRow) const
+	{
+	//	Look for the row in the underlying table.
+
+	const IAEONTable* pTable = m_dTable.GetTableInterface();
+	if (!pTable)
+		return false;
+
+	int iRow;
+	if (!pTable->FindRowByID2(dKey1, dKey2, &iRow))
+		return false;
+
+	if (m_bAllRows)
+		{
+		if (retiRow)
+			*retiRow = iRow;
+		}
+	else
+		{
+		InitSourceRow();
+
+		if (iRow < 0 || iRow >= m_SourceRow.GetCount())
+			return false;
+
+		if (m_SourceRow[iRow] == -1)
+			return false;
+
+		if (retiRow)
+			*retiRow = m_SourceRow[iRow];
+		}
+
+	return true;
+	}
+
+bool CAEONTableRef::FindRowByID3 (CDatum dKey1, CDatum dKey2, CDatum dKey3, int* retiRow) const
+	{
+	//	Look for the row in the underlying table.
+
+	const IAEONTable* pTable = m_dTable.GetTableInterface();
+	if (!pTable)
+		return false;
+
+	int iRow;
+	if (!pTable->FindRowByID3(dKey1, dKey2, dKey3, &iRow))
+		return false;
+
+	if (m_bAllRows)
+		{
+		if (retiRow)
+			*retiRow = iRow;
+		}
+	else
+		{
+		InitSourceRow();
+
+		if (iRow < 0 || iRow >= m_SourceRow.GetCount())
+			return false;
+
+		if (m_SourceRow[iRow] == -1)
+			return false;
+
+		if (retiRow)
+			*retiRow = m_SourceRow[iRow];
+		}
+
+	return true;
 	}
 
 CDatum CAEONTableRef::GetCol (CAEONTypeSystem& TypeSystem, CDatum dColName) const
@@ -173,6 +613,19 @@ CDatum CAEONTableRef::GetCol (CAEONTypeSystem& TypeSystem, CDatum dColName) cons
 		{
 		if (iIndex >= 0 && iIndex < m_Cols.GetCount())
 			return GetColRef(iIndex);
+		else
+			return CDatum();
+		}
+	else if (const CAEONExpression* pExpr = dColName.GetQueryInterface())
+		{
+		const CAEONExpression::SNode& Node = pExpr->GetRootNode();
+		if (Node.iOp == CAEONExpression::EOp::Column)
+			{
+			if (!FindCol(pExpr->GetColumnID(Node.iDataID), &iIndex))
+				return CDatum();
+
+			return GetColRef(iIndex);
+			}
 		else
 			return CDatum();
 		}
@@ -226,11 +679,11 @@ CString CAEONTableRef::GetColName (int iCol) const
 //	Returns the name of the column.
 
 	{
-	const IDatatype &Schema = m_dSchema;
+	const IDatatype &Schema = GetSchema();
 	if (iCol < 0 || iCol >= Schema.GetMemberCount())
 		throw CException(errFail);
 
-	return Schema.GetMember(iCol).sName;
+	return Schema.GetMember(iCol).sID;
 	}
 
 CDatum CAEONTableRef::GetColRef (int iCol) const
@@ -280,25 +733,6 @@ CDatum CAEONTableRef::GetDataSlice (int iFirstRow, int iRowCount) const
 	return dResult;
 	}
 
-CDatum CAEONTableRef::GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) const
-
-//	GetElementAt
-//
-//	Handles array subscript
-
-	{
-	int iIndex;
-
-	if (dIndex.IsNil())
-		return CDatum();
-	else if (dIndex.IsNumberInt32(&iIndex))
-		return GetElement(iIndex);
-	else if (FindCol(dIndex.AsString(), &iIndex))
-		return GetColRef(iIndex);
-	else
-		return CDatum();
-	}
-
 CDatum CAEONTableRef::GetFieldValue (int iRow, int iCol) const
 
 //	GetFieldValue
@@ -309,7 +743,7 @@ CDatum CAEONTableRef::GetFieldValue (int iRow, int iCol) const
 	if (iCol < 0 || iCol >= m_Cols.GetCount())
 		return CDatum();
 
-	IAEONTable *pTable = const_cast<CDatum&>(m_dTable).GetTableInterface();
+	const IAEONTable *pTable = m_dTable.GetTableInterface();
 	if (!pTable)
 		return CDatum();
 
@@ -326,6 +760,58 @@ CDatum CAEONTableRef::GetFieldValue (int iRow, int iCol) const
 		}
 	}
 
+CDatum CAEONTableRef::GetKeyEx (int iIndex) const
+
+//	GetKeyEx
+//
+//	Returns the key for the given row.
+
+	{
+	if (m_bAllRows)
+		return m_dTable.GetKeyEx(iIndex);
+	else if (iIndex >= 0 && iIndex < m_Rows.GetCount())
+		return m_dTable.GetKeyEx(m_Rows[iIndex]);
+	else
+		return CDatum();
+	}
+
+CDatum CAEONTableRef::GetKeyFromRow (CDatum dTable, CDatum dRow) const
+	{
+	const IAEONTable *pTable = m_dTable.GetTableInterface();
+	if (!pTable)
+		return CDatum();
+
+	return pTable->GetKeyFromRow(m_dTable, dRow);
+	}
+
+IAEONTable::EKeyType CAEONTableRef::GetKeyType () const
+
+//	GetKeyType
+//
+//	Returns the key type of the table.
+
+	{
+	const IAEONTable *pTable = m_dTable.GetTableInterface();
+	if (!pTable)
+		return EKeyType::None;
+
+	return pTable->GetKeyType();
+	}
+
+SequenceNumber CAEONTableRef::GetNextID () const
+
+//	GetNextID
+//
+//	Gets the next ID to allocate.
+
+	{
+	const IAEONTable* pTable = m_dTable.GetTableInterface();
+	if (!pTable)
+		return 0;
+
+	return pTable->GetNextID();
+	}
+
 CDatum CAEONTableRef::GetRow (int iRow) const
 
 //	GetRow
@@ -336,17 +822,20 @@ CDatum CAEONTableRef::GetRow (int iRow) const
 	if (iRow < 0 || iRow >= GetRowCount())
 		return CDatum();
 
-	CDatum dRow(CDatum::typeStruct);
-
-	const IDatatype &Schema = m_dSchema;
-	for (int i = 0; i < Schema.GetMemberCount(); i++)
+	if (m_dwTableID == 0xffffffff)
 		{
-		auto ColumnDesc = Schema.GetMember(i);
+		m_dwTableID = CAEONStore::AllocTableID(CDatum::raw_AsComplex(this));
 
-		dRow.SetElement(ColumnDesc.sName, GetFieldValue(iRow, i));
+		//	If table allocation fails for some reason we fallback to an allocated
+		//	object.
+
+		if (m_dwTableID == 0xffffffff)
+			return CDatum(new CAEONTableRowRef(CDatum::raw_AsComplex(this), iRow));
 		}
 
-	return dRow;
+	//	Otherwise, we create a row reference.
+
+	return CDatum::CreateRowRef(m_dwTableID, iRow);
 	}
 
 int CAEONTableRef::GetRowCount () const
@@ -362,6 +851,42 @@ int CAEONTableRef::GetRowCount () const
 		return m_Rows.GetCount();
 	}
 
+CDatum CAEONTableRef::GetRowID (int iRow) const
+
+//	GetRowID
+//
+//	Returns the rowID for indexed tables.
+
+	{
+	const IAEONTable* pTable = m_dTable.GetTableInterface();
+	if (!pTable)
+		return CDatum();
+
+	if (m_bAllRows)
+		return pTable->GetRowID(iRow);
+	else
+		{
+		if (iRow < 0 || iRow >= m_Rows.GetCount())
+			return CDatum();
+
+		return pTable->GetRowID(m_Rows[iRow]);
+		}
+	}
+
+SequenceNumber CAEONTableRef::GetSeq () const
+
+//	GetSeq
+//
+//	Get the sequence number.
+
+	{
+	const IAEONTable* pTable = m_dTable.GetTableInterface();
+	if (!pTable)
+		return 0;
+
+	return pTable->GetSeq();
+	}
+
 const CString &CAEONTableRef::GetTypename (void) const
 
 //	GetTypename
@@ -372,15 +897,77 @@ const CString &CAEONTableRef::GetTypename (void) const
 	return TYPENAME_TABLE_REF;
 	}
 
-bool CAEONTableRef::IsSameSchema (CDatum dSchema) const
+bool CAEONTableRef::HasKeys () const
+
+//	HasKeys
+//
+//	Returns TRUE if this is an indexed table.
+
+	{
+	return m_dTable.HasKeys();
+	}
+
+void CAEONTableRef::InitSourceRow () const
+
+//	InitSourceRow
+//
+//	Initializes the source row map.
+
+	{
+	CSmartLock Lock(m_cs);
+
+	if (m_bSourceRowValid || m_bAllRows)
+		return;
+
+	m_SourceRow.InsertEmpty(m_dTable.GetCount());
+	::utlMemSet(&m_SourceRow[0], m_dTable.GetCount() * sizeof(int), (char)0xff);
+
+	for (int i = 0; i < m_Rows.GetCount(); i++)
+		m_SourceRow[m_Rows[i]] = i;
+
+	m_bSourceRowValid = true;
+	}
+
+IAEONTable::EResult CAEONTableRef::InsertColumn (const CString& sName, CDatum dType, CDatum dValues, int iPos, int *retiCol)
+	{
+	Materialize();
+	IAEONTable* pTable = m_dTable.GetTableInterface();
+	if (!pTable)
+		return IAEONTable::EResult::NotATable;
+
+	auto iError = pTable->InsertColumn(sName, dType, dValues, iPos, retiCol);
+	if (iError != EResult::OK)
+		return iError;
+
+	ApplyDatatype(m_dTable.GetDatatype());
+	return EResult::OK;
+	}
+
+void CAEONTableRef::InvalidateKeys ()
+	{
+	IAEONTable* pTable = m_dTable.GetTableInterface();
+	if (!pTable)
+		return;
+
+	pTable->InvalidateKeys();
+
+	CSmartLock Lock(m_cs);
+	m_GroupIndex.DeleteAll();
+	}
+
+bool CAEONTableRef::IsSameSchema (CDatum dDatatype) const
 
 //	IsSameSchema
 //
 //	Returns TRUE if the given schema has the exact same columns.
 
 	{
-	const IDatatype &Schema = m_dSchema;
-	const IDatatype &TestSchema = dSchema;
+	const IDatatype& Schema = GetSchema();
+	const IDatatype& Datatype = dDatatype;
+	if (Datatype.GetClass() != IDatatype::ECategory::Table)
+		return false;
+
+	const IDatatype& TestSchema = Datatype.GetElementType();
 	if (TestSchema.GetClass() != IDatatype::ECategory::Schema)
 		return false;
 
@@ -392,14 +979,57 @@ bool CAEONTableRef::IsSameSchema (CDatum dSchema) const
 		IDatatype::SMemberDesc Member = Schema.GetMember(i);
 
 		CDatum dTestType;
-		if (!CAEONTable::IsValidMemberType(TestSchema.HasMember(Member.sName, &dTestType)))
+		if (!CAEONTable::IsValidMemberType(TestSchema.HasMember(Member.sID, &dTestType)))
 			return false;
 
-		if (!Member.dType.IsEqual(dTestType))
+		if (!Member.dType.OpIsEqual(dTestType))
 			return false;
 		}
 
 	return true;
+	}
+
+SequenceNumber CAEONTableRef::MakeID ()
+
+//	MakeID
+//
+//	Makes a unique ID.
+
+	{
+	Materialize();
+
+	IAEONTable* pTable = m_dTable.GetTableInterface();
+	if (!pTable)
+		return 0;
+
+	return pTable->MakeID();
+	}
+
+void CAEONTableRef::Materialize ()
+
+//	Materialize
+//
+//	If we've got the copy-on-write flag, we need to make a copy before mutating.
+
+	{
+	if (!m_bCopyOnWrite)
+		return;
+
+	//	Make a copy of just our portion.
+
+	m_dTable = CDatum(Clone(CDatum::EClone::DeepCopy));
+	ApplyDatatype(m_dTable.GetDatatype());
+
+	//	All rows
+
+	m_Rows.DeleteAll();
+	m_SourceRow.DeleteAll();
+	m_bAllRows = true;
+	m_bSourceRowValid = false;
+
+	//	Now we own the table.
+
+	m_bCopyOnWrite = false;
 	}
 
 size_t CAEONTableRef::OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const
@@ -432,7 +1062,7 @@ void CAEONTableRef::OnMarked (void)
 
 	{
 	m_dTable.Mark();
-	m_dSchema.Mark();
+	m_dDatatype.Mark();
 	}
 
 void CAEONTableRef::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const
@@ -445,9 +1075,9 @@ void CAEONTableRef::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruc
 //	table.
 
 	{
-	const IDatatype &Schema = m_dSchema;
+	const IDatatype &Schema = GetSchema();
 
-	pStruct->SetElement(FIELD_DATATYPE, m_dSchema);
+	pStruct->SetElement(FIELD_DATATYPE, m_dDatatype);
 	pStruct->SetElement(FIELD_ROWS, GetRowCount());
 
 	CDatum dCols(CDatum::typeArray);
@@ -456,7 +1086,7 @@ void CAEONTableRef::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruc
 		CDatum dColDef(CDatum::CDatum::typeStruct);
 		auto ColumnDef = Schema.GetMember(i);
 		
-		dColDef.SetElement(FIELD_NAME, ColumnDef.sName);
+		dColDef.SetElement(FIELD_NAME, ColumnDef.sID);
 		if (i < m_Cols.GetCount())
 			{
 			dColDef.SetElement(FIELD_VALUES, GetColRef(i));
@@ -466,6 +1096,36 @@ void CAEONTableRef::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruc
 		}
 
 	pStruct->SetElement(FIELD_COLUMNS, dCols);
+	}
+
+bool CAEONTableRef::OpContains (CDatum dValue) const
+	{
+	return FindRowByID(dValue);
+	}
+
+void CAEONTableRef::SerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const
+	{
+	//	See if we've already serialized this. If so, then we just write out the
+	//	reference.
+
+	if (!Serialized.WriteID(Stream, this, CDatum::SERIALIZE_TYPE_TABLE_V2))
+		return;
+
+	//	Write out the basic info
+
+	m_dDatatype.SerializeAEON(Stream, Serialized);
+	Stream.Write(GetRowCount());
+	Stream.Write(GetSeq());
+
+	//	Write out any group definitions
+
+	m_GroupDef.SerializeAEON(Stream, Serialized);
+
+	//	Write out each column.
+
+	Stream.Write(GetColCount());
+	for (int i = 0; i < GetColCount(); i++)
+		GetCol(i).SerializeAEON(Stream, Serialized);
 	}
 
 void CAEONTableRef::ResolveDatatypes (const CAEONTypeSystem &TypeSystem)
@@ -478,7 +1138,23 @@ void CAEONTableRef::ResolveDatatypes (const CAEONTypeSystem &TypeSystem)
 	//	If this schema is already registered with the type system, then use 
 	//	its copy. This is helpful when we've serialized/deserialized a table.
 
-	m_dSchema = TypeSystem.ResolveType(m_dSchema);
+	m_dDatatype = TypeSystem.ResolveType(m_dDatatype);
+	}
+
+IAEONTable::EResult CAEONTableRef::SetColumn (int iCol, IDatatype::SMemberDesc& ColDesc, CDatum dValues)
+	{
+	Materialize();
+
+	IAEONTable* pTable = m_dTable.GetTableInterface();
+	if (!pTable)
+		return IAEONTable::EResult::NotATable;
+
+	auto iError = pTable->SetColumn(iCol, ColDesc, dValues);
+	if (iError != EResult::OK)
+		return iError;
+
+	ApplyDatatype(m_dTable.GetDatatype());
+	return EResult::OK;
 	}
 
 void CAEONTableRef::SetElement (int iIndex, CDatum dDatum)
@@ -488,15 +1164,17 @@ void CAEONTableRef::SetElement (int iIndex, CDatum dDatum)
 //	Sets the nth record with the given struct data.
 
 	{
+	Materialize();
+
 	if (iIndex < 0 || iIndex >= GetRowCount())
 		return;
 
-	const IDatatype &Schema = m_dSchema;
+	const IDatatype &Schema = GetSchema();
 	for (int i = 0; i < Schema.GetMemberCount(); i++)
 		{
 		auto ColumnDesc = Schema.GetMember(i);
 
-		CDatum dValue = dDatum.GetElement(ColumnDesc.sName);
+		CDatum dValue = dDatum.GetElement(ColumnDesc.sID);
 		SetFieldValue(iIndex, i, dValue);
 		}
 	}
@@ -508,51 +1186,22 @@ void CAEONTableRef::SetElementAt (CDatum dIndex, CDatum dDatum)
 //	Sets a row or a column
 
 	{
-	int iIndex;
+	Materialize();
 
-	if (dIndex.IsNil())
-		{ }
-	else if (dIndex.IsNumberInt32(&iIndex))
-		SetElement(iIndex, dDatum);
-	else if (FindCol(dIndex.AsString(), &iIndex))
-		{
-		if (dDatum.GetCount() <= GetRowCount())
-			{
-			for (int i = 0; i < dDatum.GetCount(); i++)
-				SetFieldValue(i, iIndex, dDatum.GetElement(i));
+	m_dTable.SetElementAt(dIndex, dDatum);
+	ApplyDatatype(m_dTable.GetDatatype());
+	}
 
-			for (int i = dDatum.GetCount(); i < GetRowCount(); i++)
-				SetFieldValue(i, iIndex, CDatum());
-			}
-		else
-			{
-			int iCurRowCount = GetRowCount();
-			int iExtraRows = dDatum.GetCount() - iCurRowCount;
+void CAEONTableRef::SetElementAt2DA (CDatum dIndex1, CDatum dIndex2, CDatum dValue)
+	{
+	Materialize();
+	m_dTable.SetElementAt2DA(dIndex1, dIndex2, dValue);
+	}
 
-			for (int i = 0; i < iCurRowCount; i++)
-				SetFieldValue(i, iIndex, dDatum.GetElement(i));
-
-			CString sColName = GetColName(iIndex);
-
-			//	Add extra rows to the underlying table.
-
-			int iFirstNewRow = m_dTable.GetCount();
-			for (int i = 0; i < iExtraRows; i++)
-				{
-				CDatum dRow(CDatum::typeStruct);
-				dRow.SetElement(sColName, dDatum.GetElement(iCurRowCount + i));
-				}
-
-			//	Now add reference rows.
-
-			if (!m_bAllRows)
-				{
-				m_Rows.GrowToFit(iExtraRows);
-				for (int i = 0; i < iExtraRows; i++)
-					m_Rows.Insert(iFirstNewRow + i);
-				}
-			}
-		}
+void CAEONTableRef::SetElementAt3DA (CDatum dIndex1, CDatum dIndex2, CDatum dIndex3, CDatum dValue)
+	{
+	Materialize();
+	m_dTable.SetElementAt3DA(dIndex1, dIndex2, dIndex3, dValue);
 	}
 
 bool CAEONTableRef::SetFieldValue (int iRow, int iCol, CDatum dValue)
@@ -562,24 +1211,42 @@ bool CAEONTableRef::SetFieldValue (int iRow, int iCol, CDatum dValue)
 //	Sets the field value.
 
 	{
+	Materialize();
+
 	if (iCol < 0 || iCol >= m_Cols.GetCount())
 		return false;
 
-	IAEONTable *pTable = const_cast<CDatum&>(m_dTable).GetTableInterface();
+	IAEONTable *pTable = m_dTable.GetTableInterface();
 	if (!pTable)
 		return false;
 
-	if (m_bAllRows)
-		{
-		return pTable->SetFieldValue(iRow, m_Cols[iCol], dValue);
-		}
-	else
-		{
-		if (iRow < 0 || iRow >= m_Rows.GetCount())
-			return false;
+	ASSERT(m_bAllRows);
+	return pTable->SetFieldValue(iRow, m_Cols[iCol], dValue);
+	}
 
-		return pTable->SetFieldValue(m_Rows[iRow], m_Cols[iCol], dValue);
-		}
+IAEONTable::EResult CAEONTableRef::SetNextID (SequenceNumber NextID)
+
+//	SetNextID
+//
+//	Sets the next ID.
+
+	{
+	Materialize();
+
+	IAEONTable* pTable = m_dTable.GetTableInterface();
+	if (!pTable)
+		return EResult::NotATable;
+
+	return pTable->SetNextID(NextID);
+	}
+
+void CAEONTableRef::SetReadOnly (bool bValue)
+	{
+	IAEONTable *pTable = m_dTable.GetTableInterface();
+	if (!pTable)
+		return;
+
+	pTable->SetReadOnly(bValue);
 	}
 
 IAEONTable::EResult CAEONTableRef::SetRow (int iRow, CDatum dRow)
@@ -589,40 +1256,30 @@ IAEONTable::EResult CAEONTableRef::SetRow (int iRow, CDatum dRow)
 //	Sets the given row.
 
 	{
-	IAEONTable *pTable = const_cast<CDatum&>(m_dTable).GetTableInterface();
+	Materialize();
+	IAEONTable *pTable = m_dTable.GetTableInterface();
 	if (!pTable)
 		return EResult::NotATable;
 
-	int iRowActual;
-	if (m_bAllRows)
-		iRowActual = iRow;
-	else
-		{
-		if (iRow < 0 || iRow >= m_Rows.GetCount())
-			return EResult::InvalidParam;
-
-		iRowActual = m_Rows[iRow];
-		}
-
-	const IDatatype &Schema = m_dSchema;
-	for (int i = 0; i < Schema.GetMemberCount(); i++)
-		{
-		auto ColumnDesc = Schema.GetMember(i);
-
-		CDatum dValue = dRow.GetElement(ColumnDesc.sName);
-
-		//	Make sure we're not trying to add ourselves.
-
-		TArray<IComplexDatum *> Checked1;
-		TArray<IComplexDatum *> Checked2;
-		if (dValue.Contains(CDatum::raw_AsComplex(this), Checked1) || dValue.Contains(m_Cols[i], Checked2))
-			dValue = CDatum();
-
-		//	Add it
-
-		pTable->SetFieldValue(iRowActual, m_Cols[i], dValue);
-		}
-
-	return EResult::OK;
+	return pTable->SetRow(iRow, dRow);
 	}
 
+IAEONTable::EResult CAEONTableRef::SetRowByID (CDatum dKey, CDatum dRow, int *retiRow)
+	{
+	Materialize();
+	IAEONTable* pTable = m_dTable.GetTableInterface();
+	if (!pTable)
+		return IAEONTable::EResult::NotATable;
+
+	return pTable->SetRowByID(dKey, dRow, retiRow);
+	}
+
+void CAEONTableRef::SetSeq (SequenceNumber Seq)
+	{
+	Materialize();
+	IAEONTable* pTable = m_dTable.GetTableInterface();
+	if (!pTable)
+		return;
+
+	pTable->SetSeq(Seq);
+	}

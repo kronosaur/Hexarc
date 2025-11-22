@@ -1,67 +1,67 @@
 //	CoreLibVector.cpp
 //
 //	Core Library
-//	Copyright (c) 2014 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2014 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
-bool corePolygon (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinueCtx, CDatum *retdResult);
+bool corePolygon (IInvokeCtx *pCtx, DWORD dwData, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult);
 
 const DWORD POLY_ADD =									0;
 DECLARE_CONST_STRING(POLY_ADD_NAME,						"polyAdd")
-DECLARE_CONST_STRING(POLY_ADD_ARGS,						"v")
+DECLARE_CONST_STRING(POLY_ADD_ARGS,						"*")
 DECLARE_CONST_STRING(POLY_ADD_HELP,						"(polyAdd poly1 poly2) -> polygon-array")
 
 const DWORD POLY_INTERSECT =							1;
 DECLARE_CONST_STRING(POLY_INTERSECT_NAME,				"polyIntersect")
-DECLARE_CONST_STRING(POLY_INTERSECT_ARGS,				"v")
+DECLARE_CONST_STRING(POLY_INTERSECT_ARGS,				"*")
 DECLARE_CONST_STRING(POLY_INTERSECT_HELP,				"(polyIntersect srcPoly clipPoly) -> polygon-array")
 
 const DWORD POLY_SUBTRACT =								2;
 DECLARE_CONST_STRING(POLY_SUBTRACT_NAME,				"polySubtract")
-DECLARE_CONST_STRING(POLY_SUBTRACT_ARGS,				"v")
+DECLARE_CONST_STRING(POLY_SUBTRACT_ARGS,				"*")
 DECLARE_CONST_STRING(POLY_SUBTRACT_HELP,				"(polySubtract srcPoly clipPoly) -> polygon-array")
 
-bool coreVector (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinueCtx, CDatum *retdResult);
+bool coreVector (IInvokeCtx *pCtx, DWORD dwData, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult);
 
 const DWORD VECTOR_ADD =								0;
 DECLARE_CONST_STRING(VECTOR_ADD_NAME,					"vec+")
-DECLARE_CONST_STRING(VECTOR_ADD_ARGS,					"v")
+DECLARE_CONST_STRING(VECTOR_ADD_ARGS,					"*")
 DECLARE_CONST_STRING(VECTOR_ADD_HELP,					"(vec+ vector ...) -> vector")
 
 const DWORD VECTOR_SUBTRACT =							1;
 DECLARE_CONST_STRING(VECTOR_SUBTRACT_NAME,				"vec-")
-DECLARE_CONST_STRING(VECTOR_SUBTRACT_ARGS,				"v")
+DECLARE_CONST_STRING(VECTOR_SUBTRACT_ARGS,				"*")
 DECLARE_CONST_STRING(VECTOR_SUBTRACT_HELP,				"(vec- vector ...) -> vector")
 
 const DWORD VECTOR_SCALE_MULT =							2;
 DECLARE_CONST_STRING(VECTOR_SCALE_MULT_NAME,			"vec*")
-DECLARE_CONST_STRING(VECTOR_SCALE_MULT_ARGS,			"v")
+DECLARE_CONST_STRING(VECTOR_SCALE_MULT_ARGS,			"*")
 DECLARE_CONST_STRING(VECTOR_SCALE_MULT_HELP,			"(vec* vector scalar) -> vector")
 
 const DWORD VECTOR_SCALE_DIV =							3;
 DECLARE_CONST_STRING(VECTOR_SCALE_DIV_NAME,				"vec/")
-DECLARE_CONST_STRING(VECTOR_SCALE_DIV_ARGS,				"v")
+DECLARE_CONST_STRING(VECTOR_SCALE_DIV_ARGS,				"*")
 DECLARE_CONST_STRING(VECTOR_SCALE_DIV_HELP,				"(vec/ vector scalar) -> vector")
 
 const DWORD VECTOR_ROTATE =								4;
 DECLARE_CONST_STRING(VECTOR_ROTATE_NAME,				"vecRotate")
-DECLARE_CONST_STRING(VECTOR_ROTATE_ARGS,				"v")
+DECLARE_CONST_STRING(VECTOR_ROTATE_ARGS,				"*")
 DECLARE_CONST_STRING(VECTOR_ROTATE_HELP,				"(vecRotate vector angle) -> vector")
 
 const DWORD VECTOR_TO_POLAR =							5;
 DECLARE_CONST_STRING(VECTOR_TO_POLAR_NAME,				"vecToPolar")
-DECLARE_CONST_STRING(VECTOR_TO_POLAR_ARGS,				"v")
+DECLARE_CONST_STRING(VECTOR_TO_POLAR_ARGS,				"*")
 DECLARE_CONST_STRING(VECTOR_TO_POLAR_HELP,				"(vecToPolar vector) -> polar-vector")
 
 const DWORD VECTOR_TO_UNIT =							6;
 DECLARE_CONST_STRING(VECTOR_TO_UNIT_NAME,				"vecToUnit")
-DECLARE_CONST_STRING(VECTOR_TO_UNIT_ARGS,				"v")
+DECLARE_CONST_STRING(VECTOR_TO_UNIT_ARGS,				"*")
 DECLARE_CONST_STRING(VECTOR_TO_UNIT_HELP,				"(vecToUnit vector) -> unit-vector")
 
 const DWORD VECTOR_TO_XY =								7;
 DECLARE_CONST_STRING(VECTOR_TO_XY_NAME,					"vecToXY")
-DECLARE_CONST_STRING(VECTOR_TO_XY_ARGS,					"v")
+DECLARE_CONST_STRING(VECTOR_TO_XY_ARGS,					"*")
 DECLARE_CONST_STRING(VECTOR_TO_XY_HELP,					"(vecToXY polar-vector) -> vector")
 
 DECLARE_CONST_STRING(FIELD_HOLES,						"holes")
@@ -90,7 +90,7 @@ SLibraryFuncDef g_CoreVectorLibraryDef[] =
 
 const int g_iCoreVectorLibraryDefCount = SIZEOF_STATIC_ARRAY(g_CoreVectorLibraryDef);
 
-bool corePolygon (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinueCtx, CDatum *retdResult)
+bool corePolygon (IInvokeCtx *pCtx, DWORD dwData, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 	{
 	int i;
 
@@ -100,12 +100,12 @@ bool corePolygon (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 			{
 			CPolygon2D TempSrc;
 			const CPolygon2D *pSrc;
-			if (!HexeGetPolygon2DArg(dLocalEnv.GetElement(0), &pSrc, &TempSrc, retdResult))
+			if (!HexeGetPolygon2DArg(LocalEnv.GetArgument(0), &pSrc, &TempSrc, &retResult.dResult))
 				return false;
 
 			CPolygon2D TempClip;
 			const CPolygon2D *pClip;
-			if (!HexeGetPolygon2DArg(dLocalEnv.GetElement(1), &pClip, &TempClip, retdResult))
+			if (!HexeGetPolygon2DArg(LocalEnv.GetArgument(1), &pClip, &TempClip, &retResult.dResult))
 				return false;
 
 			CPolygon2D Result;
@@ -119,9 +119,9 @@ bool corePolygon (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 					{
 					CComplexArray *pArray = new CComplexArray;
 					pArray->GrowToFit(2);
-					pArray->Append(dLocalEnv.GetElement(0));
-					pArray->Append(dLocalEnv.GetElement(1));
-					*retdResult = CDatum(pArray);
+					pArray->Append(LocalEnv.GetArgument(0));
+					pArray->Append(LocalEnv.GetArgument(1));
+					retResult.dResult = CDatum(pArray);
 					break;
 					}
 
@@ -132,7 +132,7 @@ bool corePolygon (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 					CComplexArray *pArray = new CComplexArray;
 					pArray->GrowToFit(1);
 					pArray->Append(CAEONPolygon2D::CreateFromHandoff(Result));
-					*retdResult = CDatum(pArray);
+					retResult.dResult = CDatum(pArray);
 					}
 				}
 
@@ -143,12 +143,12 @@ bool corePolygon (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 			{
 			CPolygon2D TempSrc;
 			const CPolygon2D *pSrc;
-			if (!HexeGetPolygon2DArg(dLocalEnv.GetElement(0), &pSrc, &TempSrc, retdResult))
+			if (!HexeGetPolygon2DArg(LocalEnv.GetArgument(0), &pSrc, &TempSrc, &retResult.dResult))
 				return false;
 
 			CPolygon2D TempClip;
 			const CPolygon2D *pClip;
-			if (!HexeGetPolygon2DArg(dLocalEnv.GetElement(1), &pClip, &TempClip, retdResult))
+			if (!HexeGetPolygon2DArg(LocalEnv.GetArgument(1), &pClip, &TempClip, &retResult.dResult))
 				return false;
 
 			TArray<CPolygon2D> Result;
@@ -157,7 +157,7 @@ bool corePolygon (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 			switch (iResult)
 				{
 				case CPolygon2D::resultEmpty:
-					*retdResult = CDatum();
+					retResult.dResult = CDatum();
 					break;
 
 				default:
@@ -166,7 +166,7 @@ bool corePolygon (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 					pArray->GrowToFit(Result.GetCount());
 					for (i = 0; i < Result.GetCount(); i++)
 						pArray->Append(CAEONPolygon2D::CreateFromHandoff(Result[i]));
-					*retdResult = CDatum(pArray);
+					retResult.dResult = CDatum(pArray);
 					}
 				}
 
@@ -177,12 +177,12 @@ bool corePolygon (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 			{
 			CPolygon2D TempSrc;
 			const CPolygon2D *pSrc;
-			if (!HexeGetPolygon2DArg(dLocalEnv.GetElement(0), &pSrc, &TempSrc, retdResult))
+			if (!HexeGetPolygon2DArg(LocalEnv.GetArgument(0), &pSrc, &TempSrc, &retResult.dResult))
 				return false;
 
 			CPolygon2D TempClip;
 			const CPolygon2D *pClip;
-			if (!HexeGetPolygon2DArg(dLocalEnv.GetElement(1), &pClip, &TempClip, retdResult))
+			if (!HexeGetPolygon2DArg(LocalEnv.GetArgument(1), &pClip, &TempClip, &retResult.dResult))
 				return false;
 
 			TArray<CPolygon2D> Result;
@@ -191,7 +191,7 @@ bool corePolygon (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 			switch (iResult)
 				{
 				case CPolygon2D::resultEmpty:
-					*retdResult = CDatum();
+					retResult.dResult = CDatum();
 					break;
 
 				default:
@@ -200,7 +200,7 @@ bool corePolygon (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 					pArray->GrowToFit(Result.GetCount());
 					for (i = 0; i < Result.GetCount(); i++)
 						pArray->Append(CAEONPolygon2D::CreateFromHandoff(Result[i]));
-					*retdResult = CDatum(pArray);
+					retResult.dResult = CDatum(pArray);
 					}
 				}
 
@@ -213,7 +213,7 @@ bool corePolygon (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dCont
 		}
 	}
 
-bool coreVector (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dContinueCtx, CDatum *retdResult)
+bool coreVector (IInvokeCtx *pCtx, DWORD dwData, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 	{
 	switch (dwData)
 		{
@@ -221,15 +221,15 @@ bool coreVector (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dConti
 			{
 			int iArg = 0;
 			CVector2D vVector;
-			if (!HexeGetVector2DArg(dLocalEnv, &iArg, &vVector, retdResult))
+			if (!HexeGetVector2DArg(LocalEnv, &iArg, &vVector, &retResult.dResult))
 				return false;
 
 			//	Keep adding vectors
 
-			while (iArg < dLocalEnv.GetCount())
+			while (iArg < LocalEnv.GetCount())
 				{
 				CVector2D vArg;
-				if (!HexeGetVector2DArg(dLocalEnv, &iArg, &vArg, retdResult))
+				if (!HexeGetVector2DArg(LocalEnv, &iArg, &vArg, &retResult.dResult))
 					return false;
 
 				vVector = vVector + vArg;
@@ -237,7 +237,7 @@ bool coreVector (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dConti
 
 			//	Done
 
-			*retdResult = CDatum(vVector);
+			retResult.dResult = CDatum(vVector);
 			return true;
 			}
 
@@ -245,15 +245,15 @@ bool coreVector (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dConti
 			{
 			int iArg = 0;
 			CVector2D vVector;
-			if (!HexeGetVector2DArg(dLocalEnv, &iArg, &vVector, retdResult))
+			if (!HexeGetVector2DArg(LocalEnv, &iArg, &vVector, &retResult.dResult))
 				return false;
 
 			//	Keep adding vectors
 
-			while (iArg < dLocalEnv.GetCount())
+			while (iArg < LocalEnv.GetCount())
 				{
 				CVector2D vArg;
-				if (!HexeGetVector2DArg(dLocalEnv, &iArg, &vArg, retdResult))
+				if (!HexeGetVector2DArg(LocalEnv, &iArg, &vArg, &retResult.dResult))
 					return false;
 
 				vVector = vVector - vArg;
@@ -261,14 +261,14 @@ bool coreVector (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dConti
 
 			//	Done
 
-			*retdResult = CDatum(vVector);
+			retResult.dResult = CDatum(vVector);
 			return true;
 			}
 
 		case VECTOR_SCALE_MULT:
 			{
-			CDatum dArg1 = dLocalEnv.GetElement(0);
-			CDatum dArg2 = dLocalEnv.GetElement(1);
+			CDatum dArg1 = LocalEnv.GetArgument(0);
+			CDatum dArg2 = LocalEnv.GetArgument(1);
 
 			//	If the first argument is a vector, then we expect the second to 
 			//	be a scalar. Otherwise, it's the reverse.
@@ -281,14 +281,14 @@ bool coreVector (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dConti
 
 			//	Done
 
-			*retdResult = CDatum(vVector);
+			retResult.dResult = CDatum(vVector);
 			return true;
 			}
 
 		case VECTOR_SCALE_DIV:
 			{
-			CDatum dArg1 = dLocalEnv.GetElement(0);
-			CDatum dArg2 = dLocalEnv.GetElement(1);
+			CDatum dArg1 = LocalEnv.GetArgument(0);
+			CDatum dArg2 = LocalEnv.GetArgument(1);
 
 			//	If the first argument is a vector, then we expect the second to 
 			//	be a scalar. Otherwise, it's the reverse.
@@ -310,13 +310,13 @@ bool coreVector (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dConti
 
 			if (rScalar == 0.0)
 				{
-				CHexeError::Create(NULL_STR, ERR_DIVIDE_BY_ZERO, retdResult);
+				CHexeError::Create(NULL_STR, ERR_DIVIDE_BY_ZERO, &retResult.dResult);
 				return false;
 				}
 
 			//	Done
 
-			*retdResult = CDatum(vVector / rScalar);
+			retResult.dResult = CDatum(vVector / rScalar);
 			return true;
 			}
 
@@ -324,12 +324,12 @@ bool coreVector (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dConti
 			{
 			int iArg = 0;
 			CVector2D vVector;
-			if (!HexeGetVector2DArg(dLocalEnv, &iArg, &vVector, retdResult))
+			if (!HexeGetVector2DArg(LocalEnv, &iArg, &vVector, &retResult.dResult))
 				return false;
 
-			double rAngle = dLocalEnv.GetElement(iArg++);
+			double rAngle = LocalEnv.GetArgument(iArg++);
 
-			*retdResult = CDatum(vVector.Rotation(rAngle));
+			retResult.dResult = CDatum(vVector.Rotation(rAngle));
 			return true;
 			}
 
@@ -337,10 +337,10 @@ bool coreVector (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dConti
 			{
 			int iArg = 0;
 			CVector2D vVector;
-			if (!HexeGetVector2DArg(dLocalEnv, &iArg, &vVector, retdResult))
+			if (!HexeGetVector2DArg(LocalEnv, &iArg, &vVector, &retResult.dResult))
 				return false;
 
-			*retdResult = CDatum(vVector.ToPolar());
+			retResult.dResult = CDatum(vVector.ToPolar());
 			return true;
 			}
 
@@ -348,10 +348,10 @@ bool coreVector (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dConti
 			{
 			int iArg = 0;
 			CVector2D vVector;
-			if (!HexeGetVector2DArg(dLocalEnv, &iArg, &vVector, retdResult))
+			if (!HexeGetVector2DArg(LocalEnv, &iArg, &vVector, &retResult.dResult))
 				return false;
 
-			*retdResult = CDatum(vVector.Unit());
+			retResult.dResult = CDatum(vVector.Unit());
 			return true;
 			}
 
@@ -359,10 +359,10 @@ bool coreVector (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dConti
 			{
 			int iArg = 0;
 			CVector2D vVector;
-			if (!HexeGetVector2DArg(dLocalEnv, &iArg, &vVector, retdResult))
+			if (!HexeGetVector2DArg(LocalEnv, &iArg, &vVector, &retResult.dResult))
 				return false;
 
-			*retdResult = CDatum(vVector.ToXY());
+			retResult.dResult = CDatum(vVector.ToXY());
 			return true;
 			}
 
@@ -374,7 +374,7 @@ bool coreVector (IInvokeCtx *pCtx, DWORD dwData, CDatum dLocalEnv, CDatum dConti
 
 //	Utilities -------------------------------------------------------------------
 
-bool HexeGetPolygon2DArg (CDatum dArg, const CPolygon2D **retpPolygon, CPolygon2D *retTempStore, CDatum *retdResult)
+bool HexeGetPolygon2DArg (CDatum dArg, const CPolygon2D **retpPolygon, CPolygon2D *retTempStore, CDatum* retdResult)
 	{
 	int i;
 
@@ -470,12 +470,12 @@ bool HexeGetPolygon2DArg (CDatum dArg, const CPolygon2D **retpPolygon, CPolygon2
 		}
 	}
 
-bool HexeGetVector2DArg (CDatum dArgList, int *ioArg, CVector2D *retVector, CDatum *retdResult)
+bool HexeGetVector2DArg (CHexeStackEnv& LocalEnv, int *ioArg, CVector2D *retVector, CDatum* retdResult)
 	{
 	//	Get the first argument. If this is an array then we expect it to be a
 	//	vector and we're done.
 
-	CDatum dArg = dArgList.GetElement((*ioArg)++);
+	CDatum dArg = LocalEnv.GetArgument((*ioArg)++);
 	if (dArg.IsNil())
 		{
 		*retVector = CVector2D(0.0, 0.0);
@@ -489,7 +489,7 @@ bool HexeGetVector2DArg (CDatum dArgList, int *ioArg, CVector2D *retVector, CDat
 
 	//	Otherwise we expect two numbers.
 
-	CDatum dArg2 = dArgList.GetElement((*ioArg)++);
+	CDatum dArg2 = LocalEnv.GetArgument((*ioArg)++);
 	*retVector = CVector2D((double)dArg, (double)dArg2);
 	return true;
 	}

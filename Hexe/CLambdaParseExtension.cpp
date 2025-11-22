@@ -1,7 +1,7 @@
 //	CLambdaParseExtension.cpp
 //
 //	CLambdaParseExtension class
-//	Copyright (c) 2012 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2012 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -63,6 +63,7 @@ bool CLambdaParseExtension::ParseAEONArray (CCharStream &Stream, CDatum *retDatu
 		{
 		case CHexeProcess::ERun::OK:
 		case CHexeProcess::ERun::Error:
+		case CHexeProcess::ERun::ForcedTerminate:
 			//	retDatum is properly initialized.
 			return true;
 

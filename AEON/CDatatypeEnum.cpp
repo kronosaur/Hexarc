@@ -1,27 +1,49 @@
 //	CDatatypeEnum.cpp
 //
 //	CDatatypeEnum class
-//	Copyright (c) 2022 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2022 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
 DECLARE_CONST_STRING(FIELD_DATATYPE,					"datatype");
 DECLARE_CONST_STRING(FIELD_DESCRIPTION,					"description");
-DECLARE_CONST_STRING(FIELD_KEY_COLUMN,					"keyColumn");
 DECLARE_CONST_STRING(FIELD_LABEL,						"label");
 DECLARE_CONST_STRING(FIELD_NAME,						"name");
 DECLARE_CONST_STRING(FIELD_ORDINAL,						"ordinal");
 
 DECLARE_CONST_STRING(ERR_DUPLICATE_MEMBER,				"Duplicate enum definition: %s.")
 
-bool CDatatypeEnum::OnAddMember (const CString &sName, EMemberType iType, CDatum dType, CString *retsError)
+bool CDatatypeEnum::IsEqual (const CDatatypeEnum& Other) const
+
+//	IsEqual
+//
+//	Returns TRUE if equal.
+
+	{
+	if (m_Entries.GetCount() != Other.m_Entries.GetCount())
+		return false;
+
+	for (int i = 0; i < m_Entries.GetCount(); i++)
+		{
+		auto OtherEntry = Other.m_Entries[i];
+		if (!strEquals(m_Entries[i].sID, OtherEntry.sID))
+			return false;
+
+		if (!strEquals(m_Entries[i].sLabel, OtherEntry.sLabel))
+			return false;
+		}
+
+	return true;
+	}
+
+bool CDatatypeEnum::OnAddMember (const SMemberDesc& Desc, CString *retsError)
 
 //	OnAddMember
 //
 //	Add a member.
 
 	{
-	if (iType != EMemberType::EnumValue)
+	if (Desc.iType != EMemberType::EnumValue)
 		throw CException(errFail);
 
 	int iIndex = m_Entries.GetCount();
@@ -33,10 +55,10 @@ bool CDatatypeEnum::OnAddMember (const CString &sName, EMemberType iType, CDatum
 	//	Make sure this name doesn't already exist
 
 	bool bNew;
-	m_EntriesByName.SetAt(strToLower(sName), iIndex, &bNew);
+	m_EntriesByName.SetAt(strToLower(Desc.sID), iIndex, &bNew);
 	if (!bNew)
 		{
-		if (retsError) *retsError = strPattern(ERR_DUPLICATE_MEMBER, sName);
+		if (retsError) *retsError = strPattern(ERR_DUPLICATE_MEMBER, Desc.sID);
 		return false;
 		}
 
@@ -45,12 +67,13 @@ bool CDatatypeEnum::OnAddMember (const CString &sName, EMemberType iType, CDatum
 	auto pEntry = m_Entries.Insert();
 
 	pEntry->iOrdinal = iOrdinal;
-	pEntry->sName = sName;
+	pEntry->sID = Desc.sID;
+	pEntry->sLabel = Desc.sLabel;	//	May be blank
 
 	return true;
 	}
 
-bool CDatatypeEnum::OnDeserialize (CDatum::EFormat iFormat, IByteStream &Stream)
+bool CDatatypeEnum::OnDeserialize (CDatum::EFormat iFormat, IByteStream &Stream, DWORD dwVersion)
 
 //	OnDeserialize
 //
@@ -66,10 +89,36 @@ bool CDatatypeEnum::OnDeserialize (CDatum::EFormat iFormat, IByteStream &Stream)
 		DWORD dwFlags;
 		Stream.Read(&dwFlags, sizeof(DWORD));
 
-		m_Entries[i].sName = CString::Deserialize(Stream);
+		m_Entries[i].sID = CString::Deserialize(Stream);
+
+		if (dwVersion >= 2)
+			m_Entries[i].sLabel = CString::Deserialize(Stream);
+
 		Stream.Read(&m_Entries[i].iOrdinal, sizeof(DWORD));
 
-		m_EntriesByName.SetAt(strToLower(m_Entries[i].sName), i);
+		m_EntriesByName.SetAt(strToLower(m_Entries[i].sID), i);
+		}
+
+	return true;
+	}
+
+bool CDatatypeEnum::OnDeserializeAEON (IByteStream& Stream, DWORD dwVerson, CAEONSerializedMap &Serialized)
+	{
+	DWORD dwCount = Stream.ReadDWORD();
+	m_Entries.InsertEmpty(dwCount);
+
+	for (int i = 0; i < m_Entries.GetCount(); i++)
+		{
+		DWORD dwFlags = Stream.ReadDWORD();
+
+		m_Entries[i].sID = CString::Deserialize(Stream);
+
+		if (dwVerson >= 2)
+			m_Entries[i].sLabel = CString::Deserialize(Stream);
+
+		m_Entries[i].iOrdinal = (int)Stream.ReadDWORD();
+
+		m_EntriesByName.SetAt(strToLower(m_Entries[i].sID), i);
 		}
 
 	return true;
@@ -85,23 +134,10 @@ bool CDatatypeEnum::OnEquals (const IDatatype &Src) const
 	if (Src.GetClass() != ECategory::Enum)
 		return false;
 
-	if (m_Entries.GetCount() != Src.GetMemberCount())
-		return false;
-
-	for (int i = 0; i < m_Entries.GetCount(); i++)
-		{
-		auto Other = Src.GetMember(i);
-		if (!strEquals(m_Entries[i].sName, Other.sName))
-			return false;
-
-		if (m_Entries[i].iOrdinal != Other.iOrdinal)
-			return false;
-		}
-
-	return true;
+	return IsEqual((const CDatatypeEnum&)Src);
 	}
 
-int CDatatypeEnum::OnFindMember (const CString &sName) const
+int CDatatypeEnum::OnFindMember (CStringView sName) const
 
 //	OnFindMember
 //
@@ -141,46 +177,14 @@ IDatatype::SMemberDesc CDatatypeEnum::OnGetMember (int iIndex) const
 	
 	return SMemberDesc({ 
 			EMemberType::EnumValue,
-			m_Entries[iIndex].sName,
+			m_Entries[iIndex].sID,
 			CDatum(),
-			m_Entries[iIndex].iOrdinal
+			m_Entries[iIndex].iOrdinal,
+			GetLabel(m_Entries[iIndex])
 		});
 	}
 
-CDatum CDatatypeEnum::OnGetMembersAsTable () const
-
-//	OnGetMembersAsTable
-//
-//	Returns a table describing all the members of the schema. The resulting 
-//	table has the following fields:
-//
-//	name (string): The name of the field/column.
-//	datatype (datatype): The datatype of the field.
-//	label (string): The human-readable name.
-//	description (string): A description.
-
-	{
-	CDatum dSchema = CAEONTypeSystem::GetCoreType(IDatatype::MEMBER_TABLE);
-	CDatum dResult = CDatum::CreateTable(dSchema);
-	dResult.GrowToFit(m_Entries.GetCount());
-
-	for (int i = 0; i < m_Entries.GetCount(); i++)
-		{
-		CDatum dRow(CDatum::typeStruct);
-		dRow.SetElement(FIELD_NAME, m_Entries[i].sName);
-		dRow.SetElement(FIELD_DATATYPE, CDatum());
-		dRow.SetElement(FIELD_LABEL, m_Entries[i].sName);
-		dRow.SetElement(FIELD_DESCRIPTION, CDatum());
-		dRow.SetElement(FIELD_KEY_COLUMN, CDatum());
-		dRow.SetElement(FIELD_ORDINAL, m_Entries[i].iOrdinal);
-
-		dResult.Append(dRow);
-		}
-
-	return dResult;
-	}
-
-IDatatype::EMemberType CDatatypeEnum::OnHasMember (const CString &sName, CDatum *retdType) const
+IDatatype::EMemberType CDatatypeEnum::OnHasMember (CStringView sName, CDatum* retdType, int* retiOrdinal) const
 
 //	Returns the member type.
 
@@ -194,26 +198,66 @@ IDatatype::EMemberType CDatatypeEnum::OnHasMember (const CString &sName, CDatum 
 	if (retdType)
 		*retdType = CDatum();
 
+	if (retiOrdinal)
+		*retiOrdinal = m_Entries[iIndex].iOrdinal;
+
 	return EMemberType::EnumValue;
 	}
 
-void CDatatypeEnum::OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const
+bool CDatatypeEnum::OnIsEnum (const TArray<IDatatype::SMemberDesc>& Values) const
 
-//	OnSerialize
+//	OnIsEnum
 //
-//	Serializes to a stream.
+//	Returns TRUE if we match the given enum.
 
 	{
-	DWORD dwCount = m_Entries.GetCount();
-	Stream.Write(&dwCount, sizeof(DWORD));
+	if (m_Entries.GetCount() != Values.GetCount())
+		return false;
 
 	for (int i = 0; i < m_Entries.GetCount(); i++)
 		{
+		auto& Entry = m_Entries[i];
+		auto& Value = Values[i];
+
+		if (!strEquals(Entry.sID, Value.sID))
+			return false;
+
+		if (!strEquals(Entry.sLabel, Value.sLabel))
+			return false;
+		}
+
+	return true;
+	}
+
+CDatum CDatatypeEnum::OnIteratorGetKey (CDatum dThisType, CDatum dIterator) const 
+	{
+	int iIndex = (int)dIterator;
+	if (iIndex < 0 || iIndex >= m_Entries.GetCount())
+		return CDatum();
+
+	return m_Entries[iIndex].iOrdinal;
+	}
+
+CDatum CDatatypeEnum::OnIteratorGetValue (CAEONTypeSystem& TypeSystem, CDatum dThisType, CDatum dIterator) const
+	{
+	int iIndex = (int)dIterator;
+	if (iIndex < 0 || iIndex >= m_Entries.GetCount())
+		return CDatum();
+
+	return CDatum::CreateEnum(m_Entries[iIndex].iOrdinal, dThisType);
+	}
+
+void CDatatypeEnum::OnSerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const
+	{
+	Stream.Write(m_Entries.GetCount());
+	for (int i = 0; i < m_Entries.GetCount(); i++)
+		{
 		DWORD dwFlags = 0;
-		Stream.Write(&dwFlags, sizeof(DWORD));
+		Stream.Write(dwFlags);
 
-		m_Entries[i].sName.Serialize(Stream);
+		m_Entries[i].sID.Serialize(Stream);
+		m_Entries[i].sLabel.Serialize(Stream);
 
-		Stream.Write(&m_Entries[i].iOrdinal, sizeof(DWORD));
+		Stream.Write(m_Entries[i].iOrdinal);
 		}
 	}

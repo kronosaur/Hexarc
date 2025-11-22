@@ -1,7 +1,7 @@
 //	HexeConsole.h
 //
 //	Hexe EXecution Environment
-//	Copyright (c) 2019 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2019 GridWhale Corporation. All Rights Reserved.
 //
 //	USAGE
 //

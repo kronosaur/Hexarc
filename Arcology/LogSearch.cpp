@@ -1,7 +1,7 @@
 //	LogSearch.cpp
 //
 //	Log search messages
-//	Copyright (c) 2017 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2017 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -60,7 +60,7 @@ void CDrHouseEngine::MsgCreateLogSearch (const SArchonMessage &Msg, const CHexeS
 		Options.After = timeSubtractTime(CDateTime(CDateTime::Now), CTimeSpan(Max(0, (int)dAfter), 0));
 	else if (dAfter.GetBasicType() == CDatum::typeString)
 		{
-		if (!CDateTime::Parse(CDateTime::formatAuto, dAfter, &Options.After))
+		if (!CDateTime::Parse(CDateTime::formatAuto, dAfter.AsStringView(), &Options.After))
 			{
 			SendMessageReply(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_BAD_DATE, dAfter.AsString()), Msg);
 			return;
@@ -74,7 +74,7 @@ void CDrHouseEngine::MsgCreateLogSearch (const SArchonMessage &Msg, const CHexeS
 		Options.After = timeSubtractTime(CDateTime(CDateTime::Now), CTimeSpan(Max(0, (int)dBefore), 0));
 	else if (dBefore.GetBasicType() == CDatum::typeString)
 		{
-		if (!CDateTime::Parse(CDateTime::formatAuto, dBefore, &Options.Before))
+		if (!CDateTime::Parse(CDateTime::formatAuto, dBefore.AsStringView(), &Options.Before))
 			{
 			SendMessageReply(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_BAD_DATE, dBefore.AsString()), Msg);
 			return;

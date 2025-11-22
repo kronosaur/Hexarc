@@ -1,7 +1,7 @@
 //	CHTTPMessage.cpp
 //
 //	CHTTPMessage class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -13,6 +13,7 @@ DECLARE_CONST_STRING(STR_HTTP_VERSION,					"HTTP/1.1")
 DECLARE_CONST_STRING(STR_RESPONSE_LINE,					"HTTP/1.1 %d %s\r\n")
 DECLARE_CONST_STRING(STR_CHUNK_CONS,					"%X\r\n")
 
+DECLARE_CONST_STRING(HEADER_AUTHORIZATION,				"authorization")
 DECLARE_CONST_STRING(HEADER_ACCEPT_ENCODING,			"accept-encoding")
 DECLARE_CONST_STRING(HEADER_CONTENT_ENCODING,			"content-encoding")
 DECLARE_CONST_STRING(HEADER_CONTENT_LENGTH,				"content-length")
@@ -26,6 +27,8 @@ DECLARE_CONST_STRING(ENCODING_GZIP,						"gzip")
 DECLARE_CONST_STRING(ENCODING_IDENTITY,					"identity")
 
 DECLARE_CONST_STRING(MEDIA_WWW_FORM_URL_ENCODED,		"application/x-www-form-urlencoded")
+
+DECLARE_CONST_STRING(ERR_DUMP_FAILED,					"Unable to write message to buffer.")
 
 CHTTPMessage::SStatusMessageEntry CHTTPMessage::m_StatusMessageTable[] = 
 	{
@@ -86,6 +89,19 @@ CHTTPMessage::CHTTPMessage (void) :
 	InitFromPartialBufferReset();
 	}
 
+void CHTTPMessage::AddAuthBasic (const CString &sUsername, const CString &sPassword)
+
+//	AddAuthBasic
+//
+//	Adds a basic authentication header
+
+	{
+	CString sAuth = strPattern("%s:%s", sUsername, sPassword);
+	CString sEncoded = sAuth.AsBase64();
+	
+	AddHeader(HEADER_AUTHORIZATION, strPattern("Basic %s", sEncoded));
+	}
+
 void CHTTPMessage::AddHeader (const CString &sField, const CString &sValue)
 
 //	AddHeader
@@ -109,6 +125,21 @@ void CHTTPMessage::AddHeader (const CString &sField, const CDateTime &Value)
 
 	{
 	AddHeader(sField, Value.FormatIMF());
+	}
+
+CString CHTTPMessage::DebugDump (void) const
+
+//	DebugDump
+//
+//	Dumps the message to a string.
+
+	{
+	CStringBuffer Output;
+
+	if (!WriteToBuffer(Output))
+		return ERR_DUMP_FAILED;
+
+	return CString(std::move(Output));
 	}
 
 CString CHTTPMessage::DebugGetInitState (void) const
@@ -1155,18 +1186,18 @@ bool CHTTPMessage::ParseHeaderValue (const CString &sValue, CString *retsValue, 
 			{
 			pPos++;
 
-			if (*pPos == '\"')
+			if (*pPos == '"')
 				{
 				pPos++;
 
 				pStart = pPos;
-				while (pPos < pPosEnd && *pPos != '\"')
+				while (pPos < pPosEnd && *pPos != '"')
 					pPos++;
 
 				if (retFields)
 					retFields->Insert(sField, CString(pStart, pPos - pStart));
 
-				if (pPos < pPosEnd && *pPos == '\"')
+				if (pPos < pPosEnd && *pPos == '"')
 					pPos++;
 				}
 			else

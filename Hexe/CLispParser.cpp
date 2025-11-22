@@ -1,7 +1,7 @@
 //	CLispParser.cpp
 //
 //	CLispParser class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -90,7 +90,7 @@ CLispParser::ETokens CLispParser::ParseIdentifier (CDatum *retdDatum)
 			&& chChar != '['
 			&& chChar != ']'
 			&& chChar != '\''
-			&& chChar != '\"'
+			&& chChar != '"'
 			&& chChar != '`'
 			&& chChar != ','
 			&& chChar != ';'
@@ -335,7 +335,7 @@ CLispParser::ETokens CLispParser::ParseIdentifier (CDatum *retdDatum)
 			&& chChar != '['
 			&& chChar != ']'
 			&& chChar != '\''
-			&& chChar != '\"'
+			&& chChar != '"'
 			&& chChar != '`'
 			&& chChar != ','
 			&& chChar != ';'
@@ -494,7 +494,7 @@ CLispParser::ETokens CLispParser::ParseStringLiteral (CDatum *retdDatum)
 
 //	ParseStringLiteral
 //
-//	m_chChar == '\"'
+//	m_chChar == '"'
 //	Parse until close quote.
 
 	{
@@ -655,7 +655,7 @@ CLispParser::ETokens CLispParser::ParseToken (CDatum *retdDatum)
 				break;
 				}
 
-			case '\"':
+			case '"':
 				m_iToken = ParseStringLiteral(&m_dToken);
 				bDone = true;
 				break;

@@ -1,7 +1,7 @@
 //	CDBValue.cpp
 //
 //	CDBValue class
-//	Copyright (c) 2018 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2018 GridWhale Corporation. All Rights Reserved.
 //
 //	CDBValue is a variant type that can store all basic types. It encodes a 
 //	value (if small enough) and allocates a pointer (if large). We use a 64-bit

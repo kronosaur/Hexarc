@@ -1,9 +1,45 @@
 //	CLuminousCanvasModel.cpp
 //
 //	CLuminousCanvasModel Class
-//	Copyright (c) 2022 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2022 GridWhale Corporation. All Rights Reserved.
 
 #include "pch.h"
+
+void CLuminousCanvasModel::Copy (const CLuminousCanvasModel& Src)
+	{
+	//	Copy all graphics
+
+	m_Graphics.GrowToFit(Src.m_Graphics.GetCount());
+	for (int i = 0; i < Src.m_Graphics.GetCount(); i++)
+		{
+		m_Graphics.SetAt(Src.m_Graphics.GetKey(i), Src.m_Graphics[i]->Clone());
+		}
+
+	//	Copy Z-order
+
+	m_ZOrder.GrowToFit(Src.m_ZOrder.GetCount());
+	for (int i = 0; i < Src.m_ZOrder.GetCount(); i++)
+		{
+		DWORD dwID = Src.m_ZOrder[i]->GetID();
+		auto ppEntry = m_Graphics.GetAt(dwID);
+		if (ppEntry && *ppEntry)
+			m_ZOrder.Insert(*ppEntry);
+		}
+
+	//	Copy by name
+
+	m_ByName.GrowToFit(Src.m_ByName.GetCount());
+	for (int i = 0; i < Src.m_ByName.GetCount(); i++)
+		{
+		CStringView sName = Src.m_ByName.GetKey(i);
+		DWORD dwID = Src.m_ByName[i]->GetID();
+		auto ppEntry = m_Graphics.GetAt(dwID);
+		if (ppEntry && *ppEntry)
+			m_ByName.SetAt(sName, *ppEntry);
+		}
+
+	m_dwNextID = Src.m_dwNextID;
+	}
 
 TUniquePtr<ILuminousGraphic> CLuminousCanvasModel::CreateBeginUpdate (const CString& sName)
 
@@ -57,6 +93,26 @@ TUniquePtr<ILuminousGraphic> CLuminousCanvasModel::CreateShape (const SShapeOpti
 	auto* pNewGraphic = new CShapeGraphic(0, sName);
 
 	pNewGraphic->SetPath(Options.Path);
+	pNewGraphic->SetFillStyle(Options.FillStyle);
+	pNewGraphic->SetLineStyle(Options.LineStyle);
+	pNewGraphic->SetShadowStyle(Options.ShadowStyle);
+
+	return TUniquePtr<ILuminousGraphic>(pNewGraphic);
+	}
+
+TUniquePtr<ILuminousGraphic> CLuminousCanvasModel::CreateText (const STextOptions& Options, const CString& sName)
+
+//	CreateText
+//
+//	Creates a text object.
+
+	{
+	auto* pNewGraphic = new CTextGraphic(0, sName);
+
+	pNewGraphic->SetText(Options.sText);
+	pNewGraphic->SetPos(Options.Pos);
+	pNewGraphic->SetFontStyle(Options.FontStyle);
+	pNewGraphic->SetAlignStyle(Options.AlignStyle);
 	pNewGraphic->SetFillStyle(Options.FillStyle);
 	pNewGraphic->SetLineStyle(Options.LineStyle);
 	pNewGraphic->SetShadowStyle(Options.ShadowStyle);

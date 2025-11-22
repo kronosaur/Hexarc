@@ -1,7 +1,7 @@
 //	CAEONPolygon2D.cpp
 //
 //	CAEONPolygon2D class
-//	Copyright (c) 2014 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2014 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -89,7 +89,7 @@ CDatum CAEONPolygon2D::HolesAsDatum (void) const
 	pArray->GrowToFit(m_Polygon.GetHoleCount());
 
 	for (i = 0; i < m_Polygon.GetHoleCount(); i++)
-		pArray->Append(new CAEONPolygon2D(m_Polygon.GetHole(i)));
+		pArray->Append(CDatum(new CAEONPolygon2D(m_Polygon.GetHole(i))));
 
 	return CDatum(pArray);
 	}
@@ -110,7 +110,7 @@ CDatum CAEONPolygon2D::OutlineAsDatum (void) const
 	pArray->GrowToFit(m_Polygon.GetVertexCount());
 
 	for (i = 0; i < m_Polygon.GetVertexCount(); i++)
-		pArray->Append(new CAEONVector2D(m_Polygon.GetVertex(i)));
+		pArray->Append(CDatum(new CAEONVector2D(m_Polygon.GetVertex(i))));
 
 	return CDatum(pArray);
 	}

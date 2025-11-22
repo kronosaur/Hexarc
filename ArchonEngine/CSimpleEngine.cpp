@@ -1,7 +1,7 @@
 //	CSimpleEngine.cpp
 //
 //	CSimpleEngine class
-//	Copyright (c) 2010 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2010 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -222,7 +222,7 @@ bool CSimpleEngine::IsSandboxMsg (const SArchonMessage &Msg, SArchonMessage *ret
 	if (!strEquals(Msg.sMsg, MSG_ARC_SANDBOX_MSG))
 		return false;
 
-	retMsg->sMsg = Msg.dPayload.GetElement(0);
+	retMsg->sMsg = Msg.dPayload.GetElement(0).AsStringView();
 	retMsg->sReplyAddr = Msg.sReplyAddr;
 	retMsg->dwTicket = Msg.dwTicket;
 	retMsg->dPayload = Msg.dPayload.GetElement(1);
@@ -507,6 +507,7 @@ void CSimpleEngine::WaitForPause (void)
 //	CSimpleProcessingThread ----------------------------------------------------
 
 CSimpleProcessingThread::CSimpleProcessingThread (CSimpleEngine *pEngine) :
+		TThread(strPattern("SimpleProcessing/%s", pEngine->GetName())),
 		m_pEngine(pEngine),
 		m_iProcessingChunk(DEFAULT_PROCESSING_CHUNK),
 		m_iState(processingUnknown),
@@ -620,6 +621,7 @@ void CSimpleProcessingThread::Run (void)
 //	CSimpleEventThread ---------------------------------------------------------
 
 CSimpleEventThread::CSimpleEventThread (CSimpleEngine *pEngine) :
+		TThread(strPattern("SimpleEvent/%s", pEngine->GetName())),
 		m_pEngine(pEngine)
 
 //	CSimpleEventThread constructor
@@ -680,6 +682,13 @@ void CSimpleEventThread::Run (void)
 				{
 				m_pEngine->ProcessTimedMessages();
 				}
+			}
+		catch (CException e)
+			{
+			if (++iCrashCount > MAX_CRASH_COUNT)
+				throw;
+
+			m_pEngine->GetProcessCtx()->Log(MSG_LOG_ERROR, strPattern("CRASH: %s", e.GetErrorString()));
 			}
 		catch (...)
 			{

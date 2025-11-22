@@ -1,7 +1,7 @@
 //	AI1.h
 //
 //	AI1 header
-//	Copyright (c) 2015 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2015 by GridWhale Corporation. All Rights Reserved.
 
 #pragma once
 

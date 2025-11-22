@@ -1,7 +1,7 @@
 //	CMsgProcessKeepAlive.cpp
 //
 //	CMsgProcessKeepAlive class
-//	Copyright (c) 2016 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2016 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 

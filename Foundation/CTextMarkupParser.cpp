@@ -1,7 +1,7 @@
 //	CTextMarkupParser.cpp
 //
 //	CTextMarkupParser Class
-//	Copyright (c) 2013 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2013 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -41,7 +41,7 @@ char CTextMarkupParser::GetTokenChar (void) const
 			return '\'';
 
 		case tokenDoubleQuote:
-			return '\"';
+			return '"';
 
 		case tokenSlash:
 			return '/';
@@ -1051,7 +1051,7 @@ CTextMarkupParser::ETokens CTextMarkupParser::TokenFromSpecialChar (char chChar)
 		case '\'':
 			return tokenSingleQuote;
 
-		case '\"':
+		case '"':
 			return tokenDoubleQuote;
 
 		case '/':

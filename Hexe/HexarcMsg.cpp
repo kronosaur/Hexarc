@@ -1,7 +1,7 @@
 //	HexarcMsg.cpp
 //
 //	HexarcMsg functions
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -64,6 +64,8 @@ DECLARE_CONST_STRING(MSG_ERROR_NOT_ALLOWED,				"Error.notAllowed")
 DECLARE_CONST_STRING(MSG_ERROR_UNKNOWN,					"Error.unknownMessage")
 DECLARE_CONST_STRING(MSG_ESPER_GET_USAGE_HISTORY,		"Esper.getUsageHistory")
 DECLARE_CONST_STRING(MSG_ESPER_HTTP,					"Esper.http")
+DECLARE_CONST_STRING(MSG_ESPER_SEND_WS_MESSAGE,			"Esper.sendWSMessage");
+DECLARE_CONST_STRING(MSG_ESPER_SET_OPTION,				"Esper.setOption");
 DECLARE_CONST_STRING(MSG_EXARCH_ADD_MACHINE,			"Exarch.addMachine")
 DECLARE_CONST_STRING(MSG_EXARCH_ADD_MODULE,				"Exarch.addModule")
 DECLARE_CONST_STRING(MSG_EXARCH_ADD_VOLUME,				"Exarch.addVolume")
@@ -155,6 +157,8 @@ CHexeProcess::SHexarcMsgInfo CHexeProcess::m_HexarcMsgInfo[] =
 
 		{	MSG_ESPER_GET_USAGE_HISTORY,	ADDR_ESPER_COMMAND,		0	},
 		{	MSG_ESPER_HTTP,					ADDR_ESPER_COMMAND,		0	},
+		{	MSG_ESPER_SEND_WS_MESSAGE,		ADDR_ESPER_COMMAND,		0	},
+		{	MSG_ESPER_SET_OPTION,			ADDR_ESPER_COMMAND,		0	},
 
 		{	MSG_EXARCH_ADD_MACHINE,			ADDR_EXARCH_COMMAND,		0	},
 		{	MSG_EXARCH_ADD_MODULE,			ADDR_EXARCH_COMMAND,		0	},
@@ -361,7 +365,7 @@ bool CHexeProcess::SendHexarcMessage (const CString &sMsg, CDatum dPayload, CDat
 	
 	//	Validate the security context
 
-	if (!(Ctx.GetExecutionRights() & CHexeSecurityCtx::EXEC_RIGHT_INVOKE))
+	if (!(Ctx.GetExecutionRights() & IInvokeCtx::EXEC_RIGHT_INVOKE))
 		{
 		*retdResult = CDatum::CreateError(ERR_CANNOT_INVOKE, MSG_ERROR_NOT_ALLOWED);
 		return false;

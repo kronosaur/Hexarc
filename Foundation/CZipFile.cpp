@@ -1,13 +1,13 @@
 //	CZipFile.cpp
 //
 //	CZipeFile class
-//	Copyright (c) 2021 Kronosaur Production, LLC. All Rights Reserved.
+//	Copyright (c) 2021 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
 #define ZLIB_WINAPI
-#include "..\zlib-1.2.7\zlib.h"
-#include "..\zlib-1.2.7\unzip.h"
+#include "../zlib-1.2.7/zlib.h"
+#include "../zlib-1.2.7/unzip.h"
 
 class CZipFile : public ICompressedFile
 	{

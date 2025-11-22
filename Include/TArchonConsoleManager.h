@@ -1,7 +1,7 @@
 //	TArchonConsoleManager.h
 //
 //	Archon helper classes
-//	Copyright (c) 2019 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2019 GridWhale Corporation. All Rights Reserved.
 //
 //	USAGE
 //

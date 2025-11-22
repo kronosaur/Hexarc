@@ -1,7 +1,7 @@
 //	ArcologyCommands.cpp
 //
 //	Runs commands on the arcology
-//	Copyright (c) 2017 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2017 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -196,7 +196,7 @@ bool HandleConnectResponse (CSocket &theSocket, const CString &sFirstCommand, CD
 
 		if (strEquals(sCommand, CMD_WELCOME))
 			{
-			*retsWelcome = dPayload.GetElement(0);
+			*retsWelcome = dPayload.GetElement(0).AsStringView();
 			return true;
 			}
 
@@ -295,7 +295,7 @@ bool HandleConnectResponse (CSocket &theSocket, const CString &sFirstCommand, CD
 
 		else if (strEquals(sCommand, CMD_ERROR))
 			{
-			printf("ERROR: %s\n", (LPSTR)(const CString &)dPayload.GetElement(0));
+			printf("ERROR: %s\n", (LPCSTR)dPayload.GetElement(0).AsStringView());
 			return false;
 			}
 

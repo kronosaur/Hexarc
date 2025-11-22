@@ -1,7 +1,7 @@
 //	FoundationGraphicsImage8.h
 //
 //	Foundation header file
-//	Copyright (c) 2018 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2018 GridWhale Corporation. All Rights Reserved.
 //
 //	USAGE
 //

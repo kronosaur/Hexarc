@@ -1,14 +1,14 @@
 //	CComplexInteger.cpp
 //
 //	CComplexInteger class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
 DECLARE_CONST_STRING(TYPENAME_IP_INTEGER,				"ipInteger")
 const CString &CComplexInteger::GetTypename (void) const { return TYPENAME_IP_INTEGER; }
 
-int CComplexInteger::AsArrayIndex () const
+int CComplexInteger::AsArrayIndex (int iArrayLen, bool* retbFromEnd) const
 
 //	AsArrayIndex
 //
@@ -16,7 +16,7 @@ int CComplexInteger::AsArrayIndex () const
 
 	{
 	if (m_Value.FitsAsInteger32Signed())
-		return m_Value.AsInteger32Signed();
+		return CDatum::CalcArrayIndex(m_Value.AsInteger32Signed(), iArrayLen, retbFromEnd);
 	else
 		return -1;
 	}
@@ -40,6 +40,24 @@ int CComplexInteger::CastInteger32 (void) const
 
 	{
 	return m_Value.AsInteger32Signed();
+	}
+
+CDatum CComplexInteger::DeserializeAEON (IByteStream& Stream, DWORD dwID, CAEONSerializedMap &Serialized)
+	{
+	CComplexInteger *pValue = new CComplexInteger;
+	CDatum dValue(pValue);
+
+	if (!CIPInteger::Deserialize(Stream, &pValue->m_Value))
+		return CDatum();
+
+	return dValue;
+	}
+
+void CComplexInteger::SerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const
+	{
+	//	No need for ID because we're a primitive (can't contain other objects).
+	Stream.Write(CDatum::SERIALIZE_TYPE_INTIP);
+	m_Value.Serialize(Stream);
 	}
 
 CDatum::Types CComplexInteger::GetNumberType (int *retiValue)
@@ -113,6 +131,7 @@ void CComplexInteger::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) c
 		{
 		case CDatum::EFormat::AEONScript:
 		case CDatum::EFormat::AEONLocal:
+		case CDatum::EFormat::GridLang:
 			Stream.Write(m_Value.AsString());
 			break;
 

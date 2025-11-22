@@ -1,7 +1,7 @@
 //	CEsperSimpleConnection.cpp
 //
 //	CEsperSimpleConnection class
-//	Copyright (c) 2013 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2013 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -46,7 +46,7 @@ void CEsperSimpleConnection::AccumulateStatus (CEsperConnection::SStatus *ioStat
 
 	//	Active?
 
-	if (sysGetTicksElapsed(GetCurrentOpStartTime()) <= ACTIVE_TIME_THRESHOLD)
+	if (sysGetTicksElapsed(GetLastActivityTime()) <= ACTIVE_TIME_THRESHOLD)
 		ioStatus->iActive++;
 	}
 
@@ -86,21 +86,7 @@ bool CEsperSimpleConnection::BeginWrite (const SArchonMessage &Msg, const CStrin
 	return IIOCPEntry::BeginWrite(sData, retsError);
 	}
 
-void CEsperSimpleConnection::ClearBusy (void)
-
-//	ClearBusy
-//
-//	Clears busy flag
-
-	{
-	if (m_iState != stateBusy
-			|| IsDeleted())
-		return;
-
-	m_iState = stateNone;
-	}
-
-void CEsperSimpleConnection::OnSocketOperationComplete (EOperations iOp, DWORD dwBytesTransferred)
+void CEsperSimpleConnection::OnSocketOperationComplete (EOperation iOp, DWORD dwBytesTransferred)
 
 //	OnSocketOperationComplete
 //
@@ -120,7 +106,8 @@ void CEsperSimpleConnection::OnSocketOperationComplete (EOperations iOp, DWORD d
 #ifdef DEBUG_SOCKET_OPS
 			m_Manager.LogTrace(strPattern("[%x] Read %d bytes", CEsperInterface::ConnectionToFriendlyID(GetID()), dwBytesTransferred));
 #endif
-			CString sData(GetBuffer()->GetPointer(), dwBytesTransferred);
+
+			CString sData(GetReadBuffer()->GetPointer(), dwBytesTransferred);
 			m_Manager.SendMessageReplyOnRead(CDatum(GetID()), sData, m_Msg);
 			Stats.IncStat(CEsperStats::statBytesRead, dwBytesTransferred);
 			break;
@@ -132,6 +119,7 @@ void CEsperSimpleConnection::OnSocketOperationComplete (EOperations iOp, DWORD d
 #ifdef DEBUG_SOCKET_OPS
 			m_Manager.LogTrace(strPattern("[%x] Wrote %d bytes", CEsperInterface::ConnectionToFriendlyID(GetID()), dwBytesTransferred));
 #endif
+
 			m_Manager.SendMessageReplyOnWrite(CDatum(GetID()), dwBytesTransferred, m_Msg);
 			Stats.IncStat(CEsperStats::statBytesWritten, dwBytesTransferred);
 			break;
@@ -141,7 +129,7 @@ void CEsperSimpleConnection::OnSocketOperationComplete (EOperations iOp, DWORD d
 		}
 	}
 
-void CEsperSimpleConnection::OnSocketOperationFailed (EOperations iOp)
+void CEsperSimpleConnection::OnSocketOperationFailed (EOperation iOp, CStringView sError)
 
 //	OnSocketOperationFailed
 //
@@ -155,7 +143,9 @@ void CEsperSimpleConnection::OnSocketOperationFailed (EOperations iOp)
 		case stateReplyOnWrite:
 			m_Manager.LogTrace(strPattern("[%x] Disconnect on failure", CEsperInterface::ConnectionToFriendlyID(CDatum(GetID()))));
 			m_Manager.SendMessageReplyDisconnect(m_Msg);
-			m_Manager.DeleteConnection(CDatum(GetID()));
+
+			m_iState = stateNone;
+			SetMarkedForDelete();
 			break;
 
 		default:
@@ -163,7 +153,7 @@ void CEsperSimpleConnection::OnSocketOperationFailed (EOperations iOp)
 		}
 	}
 
-bool CEsperSimpleConnection::SetBusy (void)
+bool CEsperSimpleConnection::SetBusy (EOperation iOperation)
 
 //	SetBusy
 //

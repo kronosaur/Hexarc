@@ -1,7 +1,7 @@
 //	CAeonTable.cpp
 //
 //	CAeonTable class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 //
 //	DIRECTORY STRUCTURE
 //
@@ -89,9 +89,10 @@ DECLARE_CONST_STRING(FIELD_KEY_SORT,					"keySort");
 DECLARE_CONST_STRING(FIELD_KEY_TYPE,					"keyType");
 DECLARE_CONST_STRING(FIELD_LAST_SAVE_ON,				"lastSaveOn");
 DECLARE_CONST_STRING(FIELD_LAST_UPDATE_ON,				"lastUpdateOn");
-DECLARE_CONST_STRING(FIELD_MODIFIED_BY,					"modifiedBy");
 DECLARE_CONST_STRING(FIELD_MODIFIED_ON,					"modifiedOn");
 DECLARE_CONST_STRING(FIELD_NAME,						"name");
+DECLARE_CONST_STRING(FIELD_NO_FILE_DATA_ERRORS,			"noFileDataErrors");
+DECLARE_CONST_STRING(FIELD_NO_MODIFIED_TIME_UPDATE,		"noModifiedTimeUpdate")
 DECLARE_CONST_STRING(FIELD_PARTIAL_MAX_SIZE,			"partialMaxSize")
 DECLARE_CONST_STRING(FIELD_PARTIAL_POS,					"partialPos");
 DECLARE_CONST_STRING(FIELD_PRIMARY_KEY,					"primaryKey");
@@ -119,6 +120,7 @@ DECLARE_CONST_STRING(KEY_TYPE_UTF8,						"utf8");
 DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error");
 DECLARE_CONST_STRING(MSG_LOG_INFO,						"Log.info");
 
+DECLARE_CONST_STRING(MUTATE_ADD,						"add");
 DECLARE_CONST_STRING(MUTATE_ADD_TO_SET,					"addToSet");
 DECLARE_CONST_STRING(MUTATE_APPEND,						"append");
 DECLARE_CONST_STRING(MUTATE_CODE_6_5,					"code6-5");
@@ -137,6 +139,7 @@ DECLARE_CONST_STRING(MUTATE_PREPEND,					"prepend");
 DECLARE_CONST_STRING(MUTATE_PRIMARY_KEY,				"primaryKey");
 DECLARE_CONST_STRING(MUTATE_REMOVE_FROM_SET,			"removeFromSet");
 DECLARE_CONST_STRING(MUTATE_ROW_ID,						"rowID");
+DECLARE_CONST_STRING(MUTATE_UNION,						"union");
 DECLARE_CONST_STRING(MUTATE_UPDATE_GREATER,				"updateGreater");
 DECLARE_CONST_STRING(MUTATE_UPDATE_GREATER_NO_ERROR,	"updateGreaterNoError");
 DECLARE_CONST_STRING(MUTATE_UPDATE_NIL,					"updateNil");
@@ -489,8 +492,8 @@ bool CAeonTable::Create (IArchonProcessCtx *pProcess, CMachineStorage *pStorage,
 
 	//	See if the caller specifies a primary and backup volume.
 
-	CString sPrimaryVolume = dDesc.GetElement(FIELD_PRIMARY_VOLUME);
-	CString sBackupVolume = dDesc.GetElement(FIELD_BACKUP_VOLUMES);
+	CStringView sPrimaryVolume = dDesc.GetElement(FIELD_PRIMARY_VOLUME);
+	CStringView sBackupVolume = dDesc.GetElement(FIELD_BACKUP_VOLUMES);
 
 	//	If not, pick a random volume for primary storage and backup storage
 	//	NOTE: We rely on the fact that our caller has locked the engine so we
@@ -610,7 +613,7 @@ bool CAeonTable::CreateCoreDirectories (const CString &sVolume, CDatum dDesc, CS
 
 	//	Get the table name
 
-	CString sName = dDesc.GetElement(FIELD_NAME);
+	CStringView sName = dDesc.GetElement(FIELD_NAME);
 	if (sName.IsEmpty())
 		{
 		*retsError = ERR_CANT_CREATE_WITH_NO_NAME;
@@ -687,7 +690,7 @@ bool CAeonTable::CreatePrimaryKey (const CTableDimensions &Dims, CDatum dMutateD
 
 	//	Use the RowID
 
-	if (dKeyDesc.IsNil() || strEquals(dKeyDesc, MUTATE_ROW_ID))
+	if (dKeyDesc.IsNil() || strEquals(dKeyDesc.AsStringView(), MUTATE_ROW_ID))
 		{
 		dKey = CDatum(RowID);
 
@@ -698,7 +701,7 @@ bool CAeonTable::CreatePrimaryKey (const CTableDimensions &Dims, CDatum dMutateD
 
 	//	Generate a unique character code
 
-	else if (strEquals(dKeyDesc, MUTATE_CODE_6_5))
+	else if (strEquals(dKeyDesc.AsStringView(), MUTATE_CODE_6_5))
 		{
 		//	Make sure the key is unique
 
@@ -713,7 +716,7 @@ bool CAeonTable::CreatePrimaryKey (const CTableDimensions &Dims, CDatum dMutateD
 		bAllowInt64 = false;
 		}
 
-	else if (strEquals(dKeyDesc, MUTATE_CODE_8))
+	else if (strEquals(dKeyDesc.AsStringView(), MUTATE_CODE_8))
 		{
 		//	Make sure the key is unique
 
@@ -728,7 +731,7 @@ bool CAeonTable::CreatePrimaryKey (const CTableDimensions &Dims, CDatum dMutateD
 		bAllowInt64 = false;
 		}
 
-	else if (strEquals(dKeyDesc, MUTATE_CODE_8_8_8))
+	else if (strEquals(dKeyDesc.AsStringView(), MUTATE_CODE_8_8_8))
 		{
 		//	Make sure the key is unique
 
@@ -955,7 +958,7 @@ bool CAeonTable::DiffDesc (CDatum dDesc, TArray<CDatum> *retNewViews, CString *r
 	for (i = 0; i < dSecondaryViews.GetCount(); i++)
 		{
 		CDatum dViewDesc = dSecondaryViews.GetElement(i);
-		const CString &sView = dViewDesc.GetElement(FIELD_NAME);
+		CStringView sView = dViewDesc.GetElement(FIELD_NAME);
 
 		//	If this view does not exist, add it to the list of new views.
 
@@ -976,16 +979,18 @@ bool CAeonTable::FileDirectory (const CString &sDirKey, CDatum dRequestedFields,
 //	Returns a list of files in the directory
 
 	{
+	CSmartLock Lock(m_cs);
+
 	int i;
 
 	//	Get the set of options
 
 	bool bRecursive = false;
-	bool bFilePathsOnly = (dRequestedFields.GetCount() == 1 && strEquals(dRequestedFields.GetElement(0), FIELD_FILE_PATH));
+	bool bFilePathsOnly = (dRequestedFields.GetCount() == 1 && strEquals(dRequestedFields.GetElement(0).AsStringView(), FIELD_FILE_PATH));
 
 	for (i = 0; i < dOptions.GetCount(); i++)
 		{
-		if (strEquals(dOptions.GetElement(i), OPTION_RECURSIVE))
+		if (strEquals(dOptions.GetElement(i).AsStringView(), OPTION_RECURSIVE))
 			bRecursive = true;
 		}
 
@@ -1073,7 +1078,7 @@ bool CAeonTable::FileDirectory (const CString &sDirKey, CDatum dRequestedFields,
 						{
 						for (i = 0; i < dFileDesc.GetCount(); i++)
 							{
-							const CString &sField = dFileDesc.GetKey(i);
+							CString sField = dFileDesc.GetKey(i);
 
 							if (!strEquals(sField, FIELD_FILE_PATH)
 									&& !strEquals(sField, FIELD_STORAGE_PATH))
@@ -1087,7 +1092,7 @@ bool CAeonTable::FileDirectory (const CString &sDirKey, CDatum dRequestedFields,
 						{
 						for (i = 0; i < dRequestedFields.GetCount(); i++)
 							{
-							const CString &sField = dRequestedFields.GetElement(i);
+							CStringView sField = dRequestedFields.GetElement(i);
 
 							if (!strEquals(sField, FIELD_FILE_PATH))
 								pNewFileDesc->SetElement(sField, dFileDesc.GetElement(sField));
@@ -1620,77 +1625,84 @@ bool CAeonTable::GetFileData (const CString &sFilePath, const SFileDataOptions &
 
 	//	Open the file
 
-	CString sFilespec = m_pStorage->CanonicalRelativeToMachine(m_sPrimaryVolume, dFileDesc.GetElement(FIELD_STORAGE_PATH));
+	CString sFilespec = m_pStorage->CanonicalRelativeToMachine(m_sPrimaryVolume, dFileDesc.GetElement(FIELD_STORAGE_PATH).AsStringView());
 
-	CFile theFile;
-	if (!theFile.Create(sFilespec, CFile::FLAG_OPEN_READ_ONLY))
-		{
-		*retsError = strPattern(ERR_UNABLE_TO_READ_STORAGE, sFilespec);
-		return false;
-		}
-
-	//	Seek to the right position
-
-	try
-		{
-		if (Options.iPos != 0)
-			theFile.Seek(Options.iPos);
-		}
-	catch (...)
-		{
-		if (retsError)
-			*retsError = strPattern(ERR_UNABLE_TO_READ_STORAGE, sFilespec);
-		return false;
-		}
-
-	//	Unlock because we're only protecting the connection between
-	//	the fileDesc and the file itself.
-
-	Lock.Unlock();
-
-	//	Read the file into a datum
+	//	We need to get the datatype and the actual file data.
 
 	CString sDataType;
 	CDatum dData;
-	switch (Options.iDataType)
-		{
-		case FileDataType::text:
-			{
-			int iDataRemaining = theFile.GetStreamLength() - theFile.GetPos();
-			int iBufferSize = (Options.iMaxSize < 0 ? iDataRemaining : Min(iDataRemaining, Options.iMaxSize));
-			if (iBufferSize > 0)
-				{
-				CStringBuffer Buffer;
-				Buffer.SetLength(iBufferSize);
-				theFile.Read(Buffer.GetPointer(), iBufferSize);
 
-				if (!CDatum::CreateStringFromHandoff(Buffer, &dData))
+	try
+		{
+		CFile theFile;
+		if (!theFile.Create(sFilespec, CFile::FLAG_OPEN_READ_ONLY))
+			throw CException(errFail);
+
+		//	Seek to the right position
+
+		if (Options.iPos != 0)
+			theFile.Seek(Options.iPos);
+
+		//	Unlock because we're only protecting the connection between
+		//	the fileDesc and the file itself.
+
+		Lock.Unlock();
+
+		//	Read the file into a datum
+
+		switch (Options.iDataType)
+			{
+			case FileDataType::text:
+				{
+				int iDataRemaining = theFile.GetStreamLength() - theFile.GetPos();
+				int iBufferSize = (Options.iMaxSize < 0 ? iDataRemaining : Min(iDataRemaining, Options.iMaxSize));
+				if (iBufferSize > 0)
 					{
-					if (retsError)
-						*retsError = strPattern(ERR_UNABLE_TO_READ_STORAGE, sFilespec);
-					return false;
+					CStringBuffer Buffer;
+					Buffer.SetLength(iBufferSize);
+					theFile.Read(Buffer.GetPointer(), iBufferSize);
+
+					if (!CDatum::CreateStringFromHandoff(Buffer, &dData))
+						throw CException(errFail);
 					}
+
+				sDataType = FILE_DATA_TYPE_TEXT;
+				break;
 				}
 
-			sDataType = FILE_DATA_TYPE_TEXT;
-			break;
+			default:
+				if (!CDatum::CreateBinary(theFile, Options.iMaxSize, &dData))
+					throw CException(errFail);
+
+				sDataType = FILE_DATA_TYPE_BINARY;
+				break;
 			}
 
-		default:
-			if (!CDatum::CreateBinary(theFile, Options.iMaxSize, &dData))
-				{
-				if (retsError)
-					*retsError = strPattern(ERR_UNABLE_TO_READ_STORAGE, sFilespec);
-				return false;
-				}
+		//	Close
 
-			sDataType = FILE_DATA_TYPE_BINARY;
-			break;
+		theFile.Close();
 		}
+	catch (...)
+		{
+		//	If we don't want file data errors, then just return nil. This happens
+		//	if there has been some corruption and we are trying to delete a file.
 
-	//	Close
+		if (Options.bNoFileDataErrors)
+			{
+			sDataType = FILE_DATA_TYPE_BINARY;
+			dData = CDatum();
 
-	theFile.Close();
+			//	Log the error, but continue.
+
+			m_pProcess->Log(MSG_LOG_ERROR, strPattern(ERR_UNABLE_TO_READ_STORAGE, sFilespec));
+			}
+		else
+			{
+			if (retsError)
+				*retsError = strPattern(ERR_UNABLE_TO_READ_STORAGE, sFilespec);
+			return false;
+			}
+		}
 
 	//	Return a fileDownloadDesc
 	//
@@ -1752,6 +1764,16 @@ bool CAeonTable::GetFileDesc (const CString &sFilePath, CDatum *retdFileDesc, CS
 	//	Done
 
 	return true;
+	}
+
+CString CAeonTable::GetFilespec (const CString& sStoragePath) const
+
+//	GetFilespec
+//
+//	Returns the filespect.
+
+	{
+	return m_pStorage->CanonicalRelativeToMachine(m_sPrimaryVolume, sStoragePath);
 	}
 
 bool CAeonTable::GetKeyRange (int iCount, CDatum *retdResult, CString *retsError)
@@ -1919,10 +1941,13 @@ bool CAeonTable::GetRows (DWORD dwViewID, CDatum dLastKey, int iRowCount, const 
 
 			if (!Sel.SelectKey(LastKey))
 				{
-				//	If not found, we return Nil
+				//	If not found, and we're looking for an exact match, we return Nil
 
-				*retdResult = CDatum();
-				return true;
+				if (!(dwFlags & FLAG_NEAREST))
+					{
+					*retdResult = CDatum();
+					return true;
+					}
 				}
 
 			//	Advance one, since we want the first row after the last key.
@@ -2008,6 +2033,151 @@ bool CAeonTable::GetRows (DWORD dwViewID, CDatum dLastKey, int iRowCount, const 
 			}
 
 		return GetRows(dwViewID, dLastKey, iRowCount, Limits, dwFlags, retdResult, retsError);
+		}
+
+	return true;
+	}
+
+bool CAeonTable::GetRowsFromList (DWORD dwViewID, CDatum dKeys, DWORD dwFlags, CDatum& retdResult, CString* retsError)
+
+//	GetRowsFromList
+//
+//	Returns rows based on a list of keys.
+
+	{
+	CSmartLock Lock(m_cs);
+
+	//	Make sure we have the primary volume
+
+	if (m_bPrimaryLost)
+		{
+		*retsError = strPattern(ERR_PRIMARY_OFFLINE, m_sName);
+		return false;
+		}
+
+	//	Some flags
+
+	CAeonView *pView = m_Views.GetAt(dwViewID);
+	if (pView == NULL)
+		{
+		*retsError = strPattern(ERR_UNKNOWN_VIEW_ID, dwViewID);
+		return false;
+		}
+
+	auto& Dims = pView->GetDimensions();
+
+	bool bIsSecondaryView = pView->IsSecondaryView();
+	bool bRecovery = false;
+	CString sDiskError;
+	try
+		{
+		CDatum dResult(CDatum::typeArray);
+
+		for (int i = 0; i < dKeys.GetCount(); i++)
+			{
+			CRowKey Path;
+			if (!CRowKey::ParseKey(pView->GetDimensions(), dKeys.GetElement(i), &Path, retsError))
+				{
+				continue;
+				}
+
+			//	If this is a primary view then we can get the data directly
+
+			CDatum dData;
+			if (!bIsSecondaryView)
+				{
+				if (!pView->GetData(Path, &dData, NULL, retsError))
+					return false;
+				}
+
+			//	Otherwise we need to search for it (because we don't know the last
+			//	column value, which is a rowID).
+
+			else
+				{
+				CRowIterator Sel;
+
+				//	Do not include nil (deleted) rows
+
+				Sel.SetIncludeNil(false);
+				if (!InitIterator(dwViewID, &Sel, NULL, retsError))
+					return false;
+
+				//	Select the path
+
+				if (!Sel.SelectKey(Path) || !Sel.HasMore())
+					{
+					//	If not found, we return Nil
+
+					dData = CDatum();
+					}
+
+				//	Otherwise, get the data
+
+				else
+					{
+					Sel.GetRow(NULL, &dData, NULL);
+					}
+				}
+
+			//	If we have the data, then add it to the result set.
+
+			if (!dData.IsNil())
+				{
+				if (dwFlags & FLAG_NO_KEY)
+					dResult.Append(dData);
+				else if (dwFlags & FLAG_INCLUDE_KEY)
+					{
+					CDatum dNewData = dData.Clone();
+					if (bIsSecondaryView)
+						dNewData.SetElement(FIELD_SECONDARY_KEY, Path.AsDatum(Dims));
+					else
+						dNewData.SetElement(FIELD_PRIMARY_KEY, Path.AsDatum(Dims));
+
+					dResult.Append(dNewData);
+					}
+				else
+					{
+					dResult.Append(Path.AsDatum(Dims));
+					dResult.Append(dData);
+					}
+				}
+			}
+
+		//	Done
+
+		retdResult = dResult;
+		return true;
+		}
+	catch (CFileException e)
+		{
+		bRecovery = true;
+		sDiskError = e.GetFilespec();
+		}
+	catch (CException e)
+		{
+		m_pProcess->Log(MSG_LOG_ERROR, strPattern(ERR_EXCEPTION, CString(__FUNCTION__), e.GetErrorString()));
+		*retsError = strPattern(ERR_UNKNOWN, m_sName);
+		return false;
+		}
+	catch (...)
+		{
+		m_pProcess->Log(MSG_LOG_ERROR, strPattern(ERR_CRASH, CString(__FUNCTION__)));
+		*retsError = strPattern(ERR_UNKNOWN, m_sName);
+		return false;
+		}
+
+	if (bRecovery)
+		{
+		m_pProcess->ReportVolumeFailure(sDiskError);
+
+		if (!RecoveryRestore())
+			{
+			*retsError = strPattern(ERR_PRIMARY_OFFLINE, m_sName);
+			return false;
+			}
+
+		return GetRowsFromList(dwViewID, dKeys, dwFlags, retdResult, retsError);
 		}
 
 	return true;
@@ -2231,7 +2401,7 @@ bool CAeonTable::Init (const CString &sTablePath, CDatum dDesc, CString *retsErr
 
 	//	Parse the table name
 
-	m_sName = dDesc.GetElement(FIELD_NAME);
+	m_sName = dDesc.GetElement(FIELD_NAME).AsStringView();
 	if (m_sName.IsEmpty())
 		{
 		*retsError = CString("Cannot create a table with no name.");
@@ -2243,17 +2413,17 @@ bool CAeonTable::Init (const CString &sTablePath, CDatum dDesc, CString *retsErr
 	//	NOTE: We cannot assume that the volume path is valid at this point. We 
 	//	need to use the table path passed in to this function.
 
-	m_sPrimaryVolume = dDesc.GetElement(FIELD_PRIMARY_VOLUME);
+	m_sPrimaryVolume = dDesc.GetElement(FIELD_PRIMARY_VOLUME).AsStringView();
 	if (m_sPrimaryVolume.IsEmpty())
 		m_bPrimaryLost = true;
 
-	m_sBackupVolume = dDesc.GetElement(FIELD_BACKUP_VOLUMES).GetElement(0);
+	m_sBackupVolume = dDesc.GetElement(FIELD_BACKUP_VOLUMES).GetElement(0).AsStringView();
 	if (m_sBackupVolume.IsEmpty())
 		m_bBackupLost = true;
 
 	//	Parse the table type
 
-	if (!ParseTableType(dDesc.GetElement(FIELD_TYPE), &m_iType, retsError))
+	if (!ParseTableType(dDesc.GetElement(FIELD_TYPE).AsStringView(), &m_iType, retsError))
 		return false;
 
 	//	The default view is special
@@ -2348,8 +2518,9 @@ bool CAeonTable::InitFromFileDownloadDesc (CDatum dFileDownloadDesc, SFileDataOp
 		}
 
 	retOptions.IfModifiedAfter = dFileDownloadDesc.GetElement(FIELD_IF_MODIFIED_AFTER);
+	retOptions.bNoFileDataErrors = dFileDownloadDesc.GetElement(FIELD_NO_FILE_DATA_ERRORS).AsBool();
 
-	const CString &sDataType = dFileDownloadDesc.GetElement(FIELD_DATA_TYPE);
+	CStringView sDataType = dFileDownloadDesc.GetElement(FIELD_DATA_TYPE);
 	if (sDataType.IsEmpty() || strEquals(sDataType, FILE_DATA_TYPE_BINARY))
 		retOptions.iDataType = FileDataType::binary;
 	else if (strEquals(sDataType, FILE_DATA_TYPE_TEXT))
@@ -2691,7 +2862,7 @@ AEONERR CAeonTable::Mutate (const CRowKey &Path, CDatum dData, CDatum dMutateDes
 		if (iMutate < dMutateDesc.GetCount())
 			{
 			sMutateField = dMutateDesc.GetKey(iMutate);
-			sOp = dMutateDesc.GetElement(iMutate);
+			sOp = dMutateDesc.GetElement(iMutate).AsStringView();
 			}
 
 		//	If we're out of mutate fields and data fields then we're done
@@ -2736,6 +2907,15 @@ AEONERR CAeonTable::Mutate (const CRowKey &Path, CDatum dData, CDatum dMutateDes
 
 		//	Now process the mutate operation
 
+		else if (strEquals(sOp, MUTATE_ADD))
+			{
+			CDatum dOriginal = pResult->GetElement(sField);
+			CNumberValue Number(dOriginal.IsNil() ? CDatum((int)0) : dOriginal);
+			if (!dValue.IsNil())
+				Number.Add(dValue);
+			pResult->SetElement(sField, Number.GetDatum());
+			}
+
 		else if (strEquals(sOp, MUTATE_ADD_TO_SET))
 			{
 			if (dValue.GetCount() > 0)
@@ -2760,7 +2940,7 @@ AEONERR CAeonTable::Mutate (const CRowKey &Path, CDatum dData, CDatum dMutateDes
 			if (dValue.GetCount() > 0)
 				{
 				CComplexArray *pNewArray = new CComplexArray(pResult->GetElement(sField));
-				if (dValue.GetBasicType() == CDatum::typeStruct)
+				if (dValue.IsStruct())
 					pNewArray->Insert(dValue);
 				else
 					{
@@ -2841,7 +3021,7 @@ AEONERR CAeonTable::Mutate (const CRowKey &Path, CDatum dData, CDatum dMutateDes
 			if (dValue.GetCount() > 0)
 				{
 				CComplexArray *pNewArray = new CComplexArray(pResult->GetElement(sField));
-				if (dValue.GetBasicType() == CDatum::typeStruct)
+				if (dValue.IsStruct())
 					pNewArray->Insert(dValue, 0);
 				else
 					{
@@ -2894,6 +3074,74 @@ AEONERR CAeonTable::Mutate (const CRowKey &Path, CDatum dData, CDatum dMutateDes
 
 				else
 					pResult->SetElement(sField, CDatum(RowID));
+				}
+			}
+
+		else if (strEquals(sOp, MUTATE_UNION))
+			{
+			CDatum dOriginalValue = pResult->GetElement(sField);
+
+			if (dValue.IsNil())
+				{ }
+
+			else if (dOriginalValue.IsNil())
+				pResult->SetElement(sField, dValue);
+
+			else if (dOriginalValue.GetBasicType() == CDatum::typeInteger32)
+				pResult->SetElement(sField, (DWORD)dValue | (DWORD)dOriginalValue);
+
+			else if (dOriginalValue.IsArray() && dValue.IsArray())
+				{
+				CDatum dNewArray = CDatum(CDatum::typeArray);
+				dNewArray.GrowToFit(dOriginalValue.GetCount());
+				for (int i = 0; i < dOriginalValue.GetCount(); i++)
+					dNewArray.Append(dOriginalValue.GetElement(i));
+
+				for (int i = 0; i < dValue.GetCount(); i++)
+					{
+					if (!dNewArray.Find(dValue.GetElement(i)))
+						dNewArray.Append(dValue.GetElement(i));
+					}
+
+				pResult->SetElement(sField, dNewArray);
+				}
+
+			else if (dOriginalValue.IsArray())
+				{
+				CDatum dNewArray = CDatum(CDatum::typeArray);
+				dNewArray.GrowToFit(dOriginalValue.GetCount());
+				for (int i = 0; i < dOriginalValue.GetCount(); i++)
+					dNewArray.Append(dOriginalValue.GetElement(i));
+				
+				if (!dNewArray.Find(dValue))
+					dNewArray.Append(dValue);
+				
+				pResult->SetElement(sField, dNewArray);
+				}
+
+			else if (dValue.IsArray())
+				{
+				CDatum dNewArray = CDatum(CDatum::typeArray);
+				dNewArray.GrowToFit(dValue.GetCount());
+				for (int i = 0; i < dValue.GetCount(); i++)
+					dNewArray.Append(dValue.GetElement(i));
+
+				if (!dNewArray.Find(dOriginalValue))
+					dNewArray.Append(dOriginalValue);
+
+				pResult->SetElement(sField, dNewArray);
+				}
+
+			else
+				{
+				CDatum dNewArray = CDatum(CDatum::typeArray);
+				dNewArray.GrowToFit(2);
+				dNewArray.Append(dOriginalValue);
+
+				if (!dNewArray.Find(dValue))
+					dNewArray.Append(dValue);
+
+				pResult->SetElement(sField, dNewArray);
 				}
 			}
 
@@ -3310,7 +3558,7 @@ bool CAeonTable::Open (IArchonProcessCtx *pProcess, CMachineStorage *pStorage, c
 		bSaveDesc = true;
 		}
 
-	//	Now the we have valid primary and secondary volumes, initialize upload sessions
+	//	Now that we have valid primary and secondary volumes, initialize upload sessions
 
 	m_UploadSessions.Init(m_pStorage, m_sName, m_sPrimaryVolume, m_sBackupVolume);
 		
@@ -3468,49 +3716,53 @@ bool CAeonTable::ParseDimensionDesc (CDatum dDimDesc, SDimensionDesc *retDimDesc
 		return false;
 		}
 
-	if (strEquals(dKeyType, KEY_TYPE_UTF8))
+	CStringView sKeyType = dKeyType;
+
+	if (strEquals(sKeyType, KEY_TYPE_UTF8))
 		{
 		retDimDesc->iKeyType = keyUTF8;
 		retDimDesc->iSort = AscendingSort;
 		}
-	else if (strEquals(dKeyType, KEY_TYPE_INT32))
+	else if (strEquals(sKeyType, KEY_TYPE_INT32))
 		{
 		retDimDesc->iKeyType = keyInt32;
 		retDimDesc->iSort = AscendingSort;
 		}
-	else if (strEquals(dKeyType, KEY_TYPE_INT64))
+	else if (strEquals(sKeyType, KEY_TYPE_INT64))
 		{
 		retDimDesc->iKeyType = keyInt64;
 		retDimDesc->iSort = AscendingSort;
 		}
-	else if (strEquals(dKeyType, KEY_TYPE_DATE_TIME))
+	else if (strEquals(sKeyType, KEY_TYPE_DATE_TIME))
 		{
 		retDimDesc->iKeyType = keyDatetime;
 		retDimDesc->iSort = DescendingSort;
 		}
-	else if (strEquals(dKeyType, KEY_TYPE_LIST_UTF8))
+	else if (strEquals(sKeyType, KEY_TYPE_LIST_UTF8))
 		{
 		retDimDesc->iKeyType = keyListUTF8;
 		retDimDesc->iSort = AscendingSort;
 		}
 	else
 		{
-		*retsError = strPattern("Unknown keyType: %s", (const CString &)dKeyType);
+		*retsError = strPattern("Unknown keyType: %s", sKeyType);
 		return false;
 		}
 
 	//	If we have a sort value, override the default above.
 
 	CDatum dKeySort = dDimDesc.GetElement(FIELD_KEY_SORT);
+	CStringView sKeySort = dKeySort;
+
 	if (!dKeySort.IsNil())
 		{
-		if (strEquals(dKeySort, KEY_SORT_DESCENDING))
+		if (strEquals(sKeySort, KEY_SORT_DESCENDING))
 			retDimDesc->iSort = DescendingSort;
-		else if (strEquals(dKeySort, KEY_SORT_ASCENDING))
+		else if (strEquals(sKeySort, KEY_SORT_ASCENDING))
 			retDimDesc->iSort = AscendingSort;
 		else
 			{
-			*retsError = strPattern("Unknown keySort: %s", (const CString &)dKeySort);
+			*retsError = strPattern("Unknown keySort: %s", sKeySort);
 			return false;
 			}
 		}
@@ -3755,7 +4007,7 @@ CDatum CAeonTable::PrepareFileDesc (const CString &sTable, const CString &sFileP
 
 	for (i = 0; i < dFileDesc.GetCount(); i++)
 		{
-		const CString &sField = dFileDesc.GetKey(i);
+		CString sField = dFileDesc.GetKey(i);
 
 		if (!strEquals(sField, FIELD_FILE_PATH)
 				&& (bIncludeStoragePath || !strEquals(sField, FIELD_STORAGE_PATH)))
@@ -4346,7 +4598,7 @@ void CAeonTable::SetDimensionDesc (CComplexStruct *pDesc, const SDimensionDesc &
 		}
 	}
 
-bool CAeonTable::UpdateFileDesc (const CString &sFilePath, CDatum dFileDesc, CDatum *retdResult)
+bool CAeonTable::UpdateFileDesc (const CString &sFilePath, CDatum dFileDesc, DWORD dwFlags, CDatum *retdResult)
 
 //	UpdateFileDesc
 //
@@ -4385,10 +4637,19 @@ bool CAeonTable::UpdateFileDesc (const CString &sFilePath, CDatum dFileDesc, CDa
 	CDatum dNewFileDesc(CDatum::typeStruct);
 	dNewFileDesc.Append(dFileDesc);
 	dNewFileDesc.SetElement(FIELD_FILE_PATH, dCurFileDesc.GetElement(FIELD_FILE_PATH));
-	dNewFileDesc.SetElement(FIELD_MODIFIED_ON, CDateTime(CDateTime::Now));
 	dNewFileDesc.SetElement(FIELD_SIZE, dCurFileDesc.GetElement(FIELD_SIZE));
 	dNewFileDesc.SetElement(FIELD_STORAGE_PATH, dCurFileDesc.GetElement(FIELD_STORAGE_PATH));
 	dNewFileDesc.SetElement(FIELD_VERSION, CDatum((int)(dwCurrentVersion + 1)));
+
+	if (!(dwFlags & FLAG_NO_MODIFIED_ON))
+		dNewFileDesc.SetElement(FIELD_MODIFIED_ON, CDateTime(CDateTime::Now));
+
+#ifdef DEBUG_MODIFIED_ON
+	if (dwFlags & FLAG_NO_MODIFIED_ON)
+		printf("%s: Using existing modifiedOn: %s\n", (LPCSTR)sFilePath, (LPCSTR)dNewFileDesc.GetElement(FIELD_MODIFIED_ON).AsString());
+	else
+		printf("%s: Using new modifiedOn\n", (LPCSTR)sFilePath);
+#endif
 
 	//	Write the data
 
@@ -4442,6 +4703,10 @@ AEONERR CAeonTable::UploadFile (CMsgProcessCtx &Ctx, const CString &sSessionID, 
 		return AEONERR_FAIL;
 		}
 
+	//	Options
+
+	bool bNoModifiedTimeUpdate = !dUploadDesc.GetElement(FIELD_NO_MODIFIED_TIME_UPDATE).IsNil();
+
 	//	Need the path and any existing file descriptor
 
 	CString sFilePath;
@@ -4474,7 +4739,7 @@ AEONERR CAeonTable::UploadFile (CMsgProcessCtx &Ctx, const CString &sSessionID, 
 
 	//	Otherwise, we need to generate a unique filePath
 
-	else if (strStartsWith(dKeyGen, MUTATE_CODE_8))
+	else if (strStartsWith(dKeyGen.AsStringView(), MUTATE_CODE_8))
 		{
 		//	Make sure the key is unique
 
@@ -4493,13 +4758,13 @@ AEONERR CAeonTable::UploadFile (CMsgProcessCtx &Ctx, const CString &sSessionID, 
 
 	else
 		{
-		if (retsError) *retsError = strPattern(ERR_INVALID_FILE_PATH_CODE, (const CString &)dKeyGen);
+		if (retsError) *retsError = strPattern(ERR_INVALID_FILE_PATH_CODE, dKeyGen.AsStringView());
 		return AEONERR_FAIL;
 		}
 
 	CString sCurrentFilespec;
 	if (!dCurrentFileDesc.IsNil())
-		sCurrentFilespec = m_pStorage->CanonicalRelativeToMachine(m_sPrimaryVolume, dCurrentFileDesc.GetElement(FIELD_STORAGE_PATH));
+		sCurrentFilespec = m_pStorage->CanonicalRelativeToMachine(m_sPrimaryVolume, dCurrentFileDesc.GetElement(FIELD_STORAGE_PATH).AsStringView());
 
 	//	If dUploadDesc and dData are empty then we are deleting the file.
 
@@ -4598,8 +4863,17 @@ AEONERR CAeonTable::UploadFile (CMsgProcessCtx &Ctx, const CString &sSessionID, 
 	dNewFileDesc.SetElement(FIELD_VERSION, CDatum((int)(dwCurrentVersion + 1)));
 	dNewFileDesc.SetElement(FIELD_FILE_PATH, sFilePath);
 	dNewFileDesc.SetElement(FIELD_STORAGE_PATH, m_pStorage->MachineToCanonicalRelative(Receipt.sFilespec));
-	dNewFileDesc.SetElement(FIELD_MODIFIED_ON, CDateTime(CDateTime::Now));
 	dNewFileDesc.SetElement(FIELD_SIZE, Receipt.iFileSize);
+
+	if (!bNoModifiedTimeUpdate)
+		dNewFileDesc.SetElement(FIELD_MODIFIED_ON, CDateTime(CDateTime::Now));
+
+#ifdef DEBUG_MODIFIED_ON
+	if (bNoModifiedTimeUpdate)
+		printf("%s: Using existing modifiedOn: %s\n", (LPCSTR)sFilePath, (LPCSTR)dNewFileDesc.GetElement(FIELD_MODIFIED_ON).AsString());
+	else
+		printf("%s: Using new modifiedOn\n", (LPCSTR)sFilePath);
+#endif
 
 	//	Write the data
 
@@ -4680,7 +4954,7 @@ bool CAeonTable::ValidateTableName (const CString &sName)
 			{
 			case ' ':
 			case '!':
-			case '\"':
+			case '"':
 			case '#':
 			case '$':
 			case '%':

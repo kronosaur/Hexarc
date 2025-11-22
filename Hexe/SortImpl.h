@@ -1,7 +1,7 @@
 //	SortImpl.h
 //
 //	Hexe header file
-//	Copyright (c) 2014 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2014 by GridWhale Corporation. All Rights Reserved.
 //
 //	USAGE
 //

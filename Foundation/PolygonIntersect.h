@@ -1,7 +1,7 @@
 //	PolygonIntersect.h
 //
 //	Classes used by Foundation
-//	Copyright (c) 2014 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2014 by GridWhale Corporation. All Rights Reserved.
 
 #pragma once
 

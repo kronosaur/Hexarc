@@ -1,7 +1,7 @@
 //	CHTMLCanvasRemote.cpp
 //
 //	CHTMLCanvasRemote Class
-//	Copyright (c) 2022 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2022 GridWhale Corporation. All Rights Reserved.
 //
 //	This class is used to encode/decode canvas drawing commands. In general we
 //	encode commands in an array, where the first element of the array is an 
@@ -13,6 +13,21 @@
 
 #include "pch.h"
 #include "LuminousHTMLCanvas.h"
+#include "LuminousAEON.h"
+
+void CHTMLCanvasRemote::AccumulateHTMLCanvasCommands (const CLuminousTextAlign& Style, const CLuminousTextAlign& PrevStyle, CDatum dResult)
+
+//	AccumulateHTMLCanvasCommands
+//
+//	Adds canvas commands to set text alignment.
+
+	{
+	if (Style.GetAlign() != PrevStyle.GetAlign())
+		dResult.Append(CmdTextAlign(Style.GetAlign()));
+
+	if (Style.GetBaseline() != PrevStyle.GetBaseline())
+		dResult.Append(CmdTextBaseline(Style.GetBaseline()));
+	}
 
 void CHTMLCanvasRemote::AccumulateHTMLCanvasCommands (const CLuminousFillStyle& Style, const CLuminousFillStyle& PrevStyle, CDatum dResult)
 
@@ -22,20 +37,22 @@ void CHTMLCanvasRemote::AccumulateHTMLCanvasCommands (const CLuminousFillStyle& 
 
 	{
 	auto& Color = Style.GetColor();
-	if (Color != PrevStyle.GetColor())
+	if (!Color.IsEmpty() && Color != PrevStyle.GetColor())
 		{
-		switch (Color.GetType())
-			{
-			case CLuminousColor::EType::None:
-				break;
+		dResult.Append(CmdFillStyle(CAEONLuminous::AsDatum(Color).AsStringView()));
+		}
+	}
 
-			case CLuminousColor::EType::Solid:
-				dResult.Append(CmdFillStyle(Color.GetSolidColor().AsHTMLColor()));
-				break;
+void CHTMLCanvasRemote::AccumulateHTMLCanvasCommands (const CLuminousFontStyle& Style, const CLuminousFontStyle& PrevStyle, CDatum dResult)
 
-			default:
-				throw CException(errFail);
-			}
+//	AccumuateHTMLCanvasCommands
+//
+//	Adds canvas commands to set font style.
+
+	{
+	if (Style != PrevStyle)
+		{
+		dResult.Append(CmdFont(Style.GetTypeface(), Style.GetSize(), Style.GetWeight(), Style.GetStyle()));
 		}
 	}
 
@@ -47,20 +64,9 @@ void CHTMLCanvasRemote::AccumulateHTMLCanvasCommands (const CLuminousLineStyle& 
 
 	{
 	auto& Color = Style.GetColor();
-	if (Color != PrevStyle.GetColor())
+	if (!Color.IsEmpty() && Color != PrevStyle.GetColor())
 		{
-		switch (Color.GetType())
-			{
-			case CLuminousColor::EType::None:
-				break;
-
-			case CLuminousColor::EType::Solid:
-				dResult.Append(CmdStrokeStyle(Color.GetSolidColor().AsHTMLColor()));
-				break;
-
-			default:
-				throw CException(errFail);
-			}
+		dResult.Append(CmdStrokeStyle(CAEONLuminous::AsDatum(Color).AsStringView()));
 		}
 
 	if (Style.GetLineCap() != PrevStyle.GetLineCap())
@@ -181,6 +187,11 @@ CDatum CHTMLCanvasRemote::CmdBeginPath ()
 	return CDatum((int)ECommand::beginPath);
 	}
 
+CDatum CHTMLCanvasRemote::CmdBeginUpdate ()
+	{
+	return CDatum((int)ECommand::beginUpdate);
+	}
+
 CDatum CHTMLCanvasRemote::CmdClearRect ()
 	{
 	return CDatum((int)ECommand::clearAll);
@@ -252,9 +263,24 @@ CDatum CHTMLCanvasRemote::CmdFillStyle (const CString &sStyle)
 	return dResult;
 	}
 
-CDatum CHTMLCanvasRemote::CmdBeginUpdate ()
+CDatum CHTMLCanvasRemote::CmdFillText (const CString& sText, double x, double y)
 	{
-	return CDatum((int)ECommand::beginUpdate);
+	CDatum dResult(CDatum::typeArray);
+	dResult.Append((int)ECommand::fillText);
+	dResult.Append(sText);
+	dResult.Append(x);
+	dResult.Append(y);
+
+	return dResult;
+	}
+
+CDatum CHTMLCanvasRemote::CmdFont (const CString& sTypeface, double rSize, int iWeight, CLuminousFontStyle::EType iStyle)
+	{
+	CDatum dResult(CDatum::typeArray);
+	dResult.Append((int)ECommand::font);
+	dResult.Append(strPattern("%s %d %dpx %s", CLuminousFontStyle::GetID(iStyle), iWeight, (int)rSize, sTypeface));
+
+	return dResult;
 	}
 
 CDatum CHTMLCanvasRemote::CmdLineTo (double x, double y)
@@ -308,6 +334,35 @@ CDatum CHTMLCanvasRemote::CmdStrokeStyle (const CString &sStyle)
 	CDatum dResult(CDatum::typeArray);
 	dResult.Append((int)ECommand::strokeStyle);
 	dResult.Append(sStyle);
+
+	return dResult;
+	}
+
+CDatum CHTMLCanvasRemote::CmdStrokeText (const CString& sText, double x, double y)
+	{
+	CDatum dResult(CDatum::typeArray);
+	dResult.Append((int)ECommand::strokeText);
+	dResult.Append(sText);
+	dResult.Append(x);
+	dResult.Append(y);
+
+	return dResult;
+	}
+
+CDatum CHTMLCanvasRemote::CmdTextAlign (CLuminousTextAlign::EAlign iAlign)
+	{
+	CDatum dResult(CDatum::typeArray);
+	dResult.Append((int)ECommand::textAlign);
+	dResult.Append(CLuminousTextAlign::GetAlignAsHTML(iAlign));
+
+	return dResult;
+	}
+
+CDatum CHTMLCanvasRemote::CmdTextBaseline (CLuminousTextAlign::EBaseline iBaseline)
+	{
+	CDatum dResult(CDatum::typeArray);
+	dResult.Append((int)ECommand::textBaseline);
+	dResult.Append(CLuminousTextAlign::GetBaselineAsHTML(iBaseline));
 
 	return dResult;
 	}
@@ -381,9 +436,19 @@ CDatum CHTMLCanvasRemote::RenderAsHTMLCanvasCommands (const CLuminousCanvasModel
 		if (Graphic.GetType() == ILuminousGraphic::EType::BeginUpdate)
 			{
 			if (Graphic.GetSeq() > Seq)
+				{
 				dResult.Append(CmdBeginUpdate());
+				}
 
 			iStart = 1;
+			}
+
+		//	If we're at Seq 0 then we always start with a BeginUpdate because we
+		//	want to replace the entire canvas.
+
+		else if (Seq == 0)
+			{
+			dResult.Append(CmdBeginUpdate());
 			}
 		}
 
@@ -401,7 +466,9 @@ CDatum CHTMLCanvasRemote::RenderAsHTMLCanvasCommands (const CLuminousCanvasModel
 	//	Output commands
 
 	CLuminousPath2D CurPath;
+	CLuminousTextAlign CurAlignStyle;
 	CLuminousFillStyle CurFillStyle;
+	CLuminousFontStyle CurFontStyle;
 	CLuminousLineStyle CurLineStyle;
 	CLuminousShadowStyle CurShadowStyle;
 
@@ -493,10 +560,75 @@ CDatum CHTMLCanvasRemote::RenderAsHTMLCanvasCommands (const CLuminousCanvasModel
 				//	No matter what, we remember the style, because we need
 				//	to know the state of the ctx for later graphics.
 
-				CurFillStyle = FillStyle;
-				CurLineStyle = LineStyle;
-				CurShadowStyle = ShadowStyle;
+				if (!FillStyle.IsEmpty())
+					CurFillStyle = FillStyle;
+
+				if (!LineStyle.IsEmpty())
+					CurLineStyle = LineStyle;
+
+				if (!ShadowStyle.IsEmpty())
+					CurShadowStyle = ShadowStyle;
+
 				CurPath = ShapePath;
+				break;
+				}
+
+			case ILuminousGraphic::EType::Text:
+				{
+				const CString& sText = Graphic.GetText();
+				if (sText.IsEmpty())
+					continue;
+
+				auto &AlignStyle = Graphic.GetAlignStyle();
+				auto &FontStyle = Graphic.GetFontStyle();
+				auto &FillStyle = Graphic.GetFillStyle();
+				auto &LineStyle = Graphic.GetLineStyle();
+				auto &ShadowStyle = Graphic.GetShadowStyle();
+
+				//	Generate
+
+				if (Graphic.GetSeq() > Seq)
+					{
+					//	Apply styles.
+
+					if (CurAlignStyle != AlignStyle)
+						AccumulateHTMLCanvasCommands(AlignStyle, CurAlignStyle, dResult);
+
+					if (CurFontStyle != FontStyle)
+						AccumulateHTMLCanvasCommands(FontStyle, CurFontStyle, dResult);
+
+					if (CurFillStyle != FillStyle)
+						AccumulateHTMLCanvasCommands(FillStyle, CurFillStyle, dResult);
+
+					if (CurLineStyle != LineStyle)
+						AccumulateHTMLCanvasCommands(LineStyle, CurLineStyle, dResult);
+
+					if (CurShadowStyle != ShadowStyle)
+						AccumulateHTMLCanvasCommands(ShadowStyle, CurShadowStyle, dResult);
+
+					//	Now fill and/or stroke
+
+					if (!FillStyle.IsEmpty())
+						dResult.Append(CmdFillText(Graphic.GetText(), Graphic.GetPos().X(), Graphic.GetPos().Y()));
+
+					if (!LineStyle.IsEmpty())
+						dResult.Append(CmdStrokeText(Graphic.GetText(), Graphic.GetPos().X(), Graphic.GetPos().Y()));
+					}
+
+				//	No matter what, we remember the style, because we need
+				//	to know the state of the ctx for later graphics.
+
+				CurAlignStyle = AlignStyle;
+				CurFontStyle = FontStyle;
+
+				if (!FillStyle.IsEmpty())
+					CurFillStyle = FillStyle;
+
+				if (!LineStyle.IsEmpty())
+					CurLineStyle = LineStyle;
+
+				if (!ShadowStyle.IsEmpty())
+					CurShadowStyle = ShadowStyle;
 				break;
 				}
 

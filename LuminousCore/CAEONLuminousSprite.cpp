@@ -1,7 +1,7 @@
 //	CAEONLuminousSprite.cpp
 //
 //	CAEONLuminousSprite Class
-//	Copyright (c) 2022 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2022 GridWhale Corporation. All Rights Reserved.
 
 #include "pch.h"
 #include "LuminousAEON.h"
@@ -13,6 +13,7 @@ DECLARE_CONST_STRING(TYPENAME_LUMINOUS_SPRITE,		"luminousSprite");
 TDatumPropertyHandler<CAEONLuminousSprite> CAEONLuminousSprite::m_Properties = {
 	{
 		"id",
+		"?",
 		"Returns the sprite ID.",
 		[](const CAEONLuminousSprite &Obj, const CString &sProperty)
 			{
@@ -22,6 +23,7 @@ TDatumPropertyHandler<CAEONLuminousSprite> CAEONLuminousSprite::m_Properties = {
 		},
 	{
 		"pos",
+		"?",
 		"Returns the sprite position.",
 		[](const CAEONLuminousSprite &Obj, const CString &sProperty)
 			{
@@ -35,16 +37,16 @@ TDatumMethodHandler<CAEONLuminousSprite> CAEONLuminousSprite::m_Methods = {
 	{
 		"moveTo",
 		"*",
-		".moveTo(pos) -> true/null",
+		".moveTo(pos) -> true/false",
 		0,
-		[](CAEONLuminousSprite& Obj, IInvokeCtx& Ctx, const CString& sMethod, CDatum dLocalEnv, CDatum dContinueCtx, CDatum& retdResult)
+		[](CAEONLuminousSprite& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
-			CDatum dArgs(CDatum::typeArray);
-			dArgs.Append(Obj.m_dCanvas);
-			dArgs.Append(Obj.m_dwID);
-			dArgs.Append(dLocalEnv.GetElement(0));
+			CHexeStackEnv Args;
+			Args.AppendArgumentValue(Obj.m_dCanvas);
+			Args.AppendArgumentValue(Obj.m_dwID);
+			Args.AppendArgumentValue(LocalEnv.GetArgument(0));
 
-			return Obj.m_dCanvas.InvokeMethodImpl(METHOD_SPRITE_MOVE_TO, Ctx, dArgs, retdResult);
+			return Obj.m_dCanvas.InvokeMethodImpl(METHOD_SPRITE_MOVE_TO, Ctx, Args, retResult);
 			},
 		},
 	};

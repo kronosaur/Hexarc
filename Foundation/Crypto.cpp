@@ -1,7 +1,7 @@
 //	Crypto.cpp
 //
 //	Crypto functions
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -9,6 +9,7 @@
 //	Capital Os and zeros have been removed to avoid confusion.
 char g_Alpha_set[] = "abcdefghijklmnopqrstuvwxyz";
 char g_AlphaCode24_set[] = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+char g_AlphaCode29_set[] = "BCDFGHJKLMNPQRSTVWXYZ23456789";
 char g_AlphaCode32_set[] = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 char g_AlphaMixed_set[] = "ABCDEFGHIJKLMNPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 char g_Numbers_set[] = "123456789";
@@ -75,6 +76,42 @@ CString cryptoRandomCode (int iChars, DWORD dwFlags)
 	int iSetSize = sizeof(g_AlphaCode32_set) - 1;
 
 	//	Now generate a password of the appropriate number of characters
+
+	CString sCode(iChars);
+	char *pPos = sCode.GetParsePointer();
+	char *pPosEnd = pPos + iChars;
+	while (pPos < pPosEnd)
+		{
+		unsigned int dwRnd;
+		rand_s(&dwRnd);
+		*pPos++ = pSet[dwRnd % iSetSize];
+		}
+
+	//	Done
+
+	return sCode;
+	}
+
+CString cryptoRandomCode29 (int iChars, DWORD dwFlags)
+
+//	cryptoRandomCode
+//
+//	Generates a random code of the given number of characters from the following
+//	set of 29 characters:
+//
+//	A-Z (except A, E, I, O, and U)
+//	2-9
+
+	{
+	if (iChars <= 0)
+		return NULL_STR;
+
+	//	Get the set
+
+	const char *pSet = g_AlphaCode29_set;
+	int iSetSize = sizeof(g_AlphaCode29_set) - 1;
+
+	//	Now generate a code of the appropriate number of characters
 
 	CString sCode(iChars);
 	char *pPos = sCode.GetParsePointer();

@@ -1,7 +1,7 @@
 //	FoundationThreads.h
 //
 //	Foundation header file
-//	Copyright (c) 2010 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2010 by GridWhale Corporation. All Rights Reserved.
 //
 //	USAGE
 //
@@ -81,8 +81,8 @@ class CWaitArray
 			pExtra->bCloseHandle = true;
 			return (iIndex == -1 ? m_Array.GetCount() - 1 : iIndex); 
 			}
-		bool WaitForAll (DWORD dwTimeout = INFINITE) { return (ConvertWaitResult(WaitForMultipleObjects(m_Array.GetCount(), &m_Array[0], TRUE, dwTimeout)) != OS_WAIT_TIMEOUT); }
-		int WaitForAny (DWORD dwTimeout = INFINITE) { return ConvertWaitResult(WaitForMultipleObjects(m_Array.GetCount(), &m_Array[0], FALSE, dwTimeout));	}
+		bool WaitForAll (DWORD dwTimeout = INFINITE) { if (m_Array.GetCount() == 0) return true; return (ConvertWaitResult(WaitForMultipleObjects(m_Array.GetCount(), &m_Array[0], TRUE, dwTimeout)) != OS_WAIT_TIMEOUT); }
+		int WaitForAny (DWORD dwTimeout = INFINITE) { if (m_Array.GetCount() == 0) return OS_WAIT_TIMEOUT; return ConvertWaitResult(WaitForMultipleObjects(m_Array.GetCount(), &m_Array[0], FALSE, dwTimeout));	}
 
 	private:
 		struct SExtra
@@ -104,6 +104,8 @@ class CWaitArray
 template <class CLASS> class TThread : public COSObject
 	{
 	public:
+		TThread (CStringView sName = CStringView()) : m_sName(sName) { }
+
 		DWORD GetID (void) const { return (IsStarted() ? ::GetThreadId(m_hHandle) : 0); }
 		bool IsStarted (void) const { return (m_hHandle != INVALID_HANDLE_VALUE); }
 
@@ -122,6 +124,8 @@ template <class CLASS> class TThread : public COSObject
 				m_hHandle = INVALID_HANDLE_VALUE;
 				throw CException(errFail);
 				}
+
+			::SetThreadDescription(m_hHandle, CString16(m_sName));
 			}
 
 	private:
@@ -134,6 +138,7 @@ template <class CLASS> class TThread : public COSObject
 			return 0;
 			}
 
+		CString m_sName;
 		DWORD m_dwThreadID = 0;
 	};
 
@@ -235,19 +240,8 @@ class CSemaphore : public COSObject
 		int m_iMaxCount = 0;
 	};
 
-class CReaderWriterSemaphore : private CSemaphore
-	{
-	public:
-		void Create (int iMaxCount) { CSemaphore::Create(NULL, iMaxCount); }
-		void Create (LPSTR sName, int iMaxCount) { CSemaphore::Create(sName, iMaxCount); }
-
-		void LockReader (void) { CSemaphore::Increment(1); }
-		void LockWriter (void) { CSemaphore::Increment(GetMaxCount()); }
-		void UnlockReader (void) { CSemaphore::Decrement(1); }
-		void UnlockWriter (void) { CSemaphore::Decrement(GetMaxCount()); }
-	};
-
 //	Functions
 
 inline DWORD sysGetCurrentProcessID (void) { return ::GetCurrentProcessId(); }
 inline DWORD sysGetCurrentThreadID (void) { return ::GetCurrentThreadId(); }
+CString sysGetCurrentThreadName ();

@@ -1,7 +1,7 @@
 //	CRowIterator.cpp
 //
 //	CRowIterator class
-//	Copyright (c) 2011 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2011 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -38,14 +38,12 @@ void CRowIterator::Advance (void)
 //	Advance to the next row
 
 	{
-	int i;
-
 	//	If we're starting at the beginning, initialize all the cursors
 	//	to point at the beginning
 
 	if (m_iEntryCursor == -1)
 		{
-		for (i = 0; i < m_Data.GetCount(); i++)
+		for (int i = 0; i < m_Data.GetCount(); i++)
 			{
 			SEntry *pEntry = &m_Data[i];
 			pEntry->iPosCursor = 0;
@@ -61,7 +59,7 @@ void CRowIterator::Advance (void)
 
 		//	Increment all entries that have this key
 
-		for (i = 0; i < m_Data.GetCount(); i++)
+		for (int i = 0; i < m_Data.GetCount(); i++)
 			{
 			SEntry *pEntry = &m_Data[i];
 
@@ -82,7 +80,7 @@ void CRowIterator::Advance (void)
 	int iBestEntry = -1;
 	CString *pBestKey = NULL;
 
-	for (i = 0; i < m_Data.GetCount(); i++)
+	for (int i = 0; i < m_Data.GetCount(); i++)
 		{
 		SEntry *pEntry = &m_Data[i];
 		if (!pEntry->sKey.IsEmpty()

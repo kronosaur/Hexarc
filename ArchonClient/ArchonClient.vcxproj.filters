@@ -36,10 +36,10 @@
     <ClCompile Include="CEsperInterface.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CEsperMultipartParser.cpp">
+    <ClCompile Include="CEsperBodyBuilder.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CEsperBodyBuilder.cpp">
+    <ClCompile Include="CAMP1Protocol.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

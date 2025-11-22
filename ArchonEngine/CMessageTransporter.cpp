@@ -1,7 +1,7 @@
 //	CMessageTransporter.cpp
 //
 //	CMessageTransporter class
-//	Copyright (c) 2010 by George Moromisato. All Rights Reserved.
+//	Copyright (c) 2010 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -146,39 +146,46 @@ CMessagePort *CMessageTransporter::Bind (const CString &sAddress)
 //	should not) free the result.
 
 	{
-	CSmartLock Lock(m_cs);
-
-	//	If we don't have this port, we create an empty one. It is always safe
-	//	to have an empty port because we try to Bind again at SendMessage time.
-
-	CMessagePort *pPort = NULL;
-	if (!m_Ports.Find(sAddress, &pPort))
+	try
 		{
-		pPort = new CMessagePort(*this, sAddress);
-		m_Ports.Insert(sAddress, pPort);
-		}
+		CSmartLock Lock(m_cs);
 
-	//	See if the port is valid. If so, then we can return it.
+		//	If we don't have this port, we create an empty one. It is always safe
+		//	to have an empty port because we try to Bind again at SendMessage time.
 
-	IArchonMessagePort *pRawPort = pPort->GetPort();
-	if (pRawPort 
-			&& pRawPort->IsValidForMnemosynthSequence(m_pProcess->GetMnemosynth().GetDbSeq()))
+		CMessagePort *pPort = NULL;
+		if (!m_Ports.Find(sAddress, &pPort))
+			{
+			pPort = new CMessagePort(*this, sAddress);
+			m_Ports.Insert(sAddress, pPort);
+			}
+
+		//	See if the port is valid. If so, then we can return it.
+
+		IArchonMessagePort *pRawPort = pPort->GetPort();
+		if (pRawPort 
+				&& pRawPort->IsValidForMnemosynthSequence(m_pProcess->GetMnemosynth().GetDbSeq()))
+			return pPort;
+
+		//	Otherwise we need to create a new port.
+
+		bool bFree;
+		pRawPort = BindRaw(sAddress, &bFree);
+
+		//	If we could not bind, then we fail.
+
+		if (pRawPort == NULL)
+			return NULL;
+
+		//	Otherwise, add our new port
+
+		pPort->SetPort(pRawPort);
 		return pPort;
-
-	//	Otherwise we need to create a new port.
-
-	bool bFree;
-	pRawPort = BindRaw(sAddress, &bFree);
-
-	//	If we could not bind, then we fail.
-
-	if (pRawPort == NULL)
+		}
+	catch (...)
+		{
 		return NULL;
-
-	//	Otherwise, add our new port
-
-	pPort->SetPort(pRawPort);
-	return pPort;
+		}
 	}
 
 IArchonMessagePort *CMessageTransporter::BindRaw (const CString &sAddress, bool *retbFree)
@@ -344,7 +351,7 @@ CString CMessageTransporter::GenerateMachineAddress (const CString &sMachineName
 		for (i = 0; i < Machines.GetCount(); i++)
 			{
 			CDatum dMachineInfo = m_pProcess->MnemosynthRead(MNEMO_ARC_MACHINES, Machines[i]);
-			const CString &sName = dMachineInfo.GetElement(FIELD_NAME);
+			CStringView sName = dMachineInfo.GetElement(FIELD_NAME);
 			if (strEqualsNoCase(sName, STR_ARCOLOGY_PRIME))
 				{
 				sCanonicalName = Machines[i];
@@ -456,10 +463,10 @@ TArray<CString> CMessageTransporter::GetArcologyPortAddresses (const CString &sP
 			for (int j = 0; j < dPortList.GetCount(); j++)
 				{
 				CDatum dPortMapping = dPortList.GetElement(j);
-				const CString &sPort = dPortMapping.GetElement(0);
+				CStringView sPort = dPortMapping.GetElement(0);
 				if (strEquals(sPort, sPortToFind))
 					{
-					const CString &sAddress = dPortMapping.GetElement(1);
+					CStringView sAddress = dPortMapping.GetElement(1);
 					Result.Insert(sAddress);
 					}
 				}
@@ -539,10 +546,10 @@ IArchonMessagePort *CMessageTransporter::CreateVirtualPortBinding (const CString
 			{
 			CDatum dPortMapping = dPortList.GetElement(j);
 
-			const CString &sPort = dPortMapping.GetElement(0);
+			CStringView sPort = dPortMapping.GetElement(0);
 			if (strEquals(sPort, sAddress))
 				{
-				const CString &sDestAddr = dPortMapping.GetElement(1);
+				CStringView sDestAddr = dPortMapping.GetElement(1);
 				DWORD dwFlags = (DWORD)(int)dPortMapping.GetElement(2);
 
 				//	If we always add the port, then add it

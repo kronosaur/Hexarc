@@ -1,7 +1,7 @@
 //	CEsperStats.cpp
 //
 //	CEsperStats class
-//	Copyright (c) 20173 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 20173 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 

@@ -1,7 +1,7 @@
 //	CSortFunctionProcessor.cpp
 //
 //	CSortFunctionProcessor class
-//	Copyright (c) 2014 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2014 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -69,9 +69,9 @@ bool CSortFunctionProcessor::Process (CDatum dSelf, CDatum *retResult)
 	//	Ascending or descending?
 
 	CDatum dSort = m_dParams.GetElement(FIELD_ORDER);
-	if (dSort.IsNil() || strEquals(dSort, FIELD_ASCENDING))
+	if (dSort.IsNil() || strEquals(dSort.AsStringView(), FIELD_ASCENDING))
 		m_iSort = AscendingSort;
-	else if (strEquals(dSort, FIELD_DESCENDING))
+	else if (strEquals(dSort.AsStringView(), FIELD_DESCENDING))
 		m_iSort = DescendingSort;
 	else
 		{

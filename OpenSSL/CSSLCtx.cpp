@@ -1,7 +1,7 @@
 //	CSSLCtx.cpp
 //
 //	CSSLCtx class
-//	Copyright (c) 2017 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2017 by GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
 
@@ -130,7 +130,7 @@ int CSSLCtx::OnServerNameIndication (OpenSSL_SSLPtr pSSL, int *ad, DWORD_PTR dwD
 	{
 	//	Get the server name
 
-    const char *servername = SSL_get_servername(COpenSSL::AsSSL(pSSL), TLSEXT_NAMETYPE_host_name);
+	const char *servername = SSL_get_servername(COpenSSL::AsSSL(pSSL), TLSEXT_NAMETYPE_host_name);
 	if (servername == NULL)
 		return SSL_TLSEXT_ERR_OK;
 
