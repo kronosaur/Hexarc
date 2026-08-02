@@ -1,0 +1,9 @@
+<Project>
+  <ItemDefinitionGroup Condition="'$(MSBuildProjectName)' == 'Hyperion'">
+    <ClCompile>
+      <PreprocessorDefinitions>
+        HYPERION_DISABLE_ARC_HOSTS=1;%(PreprocessorDefinitions)
+      </PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+</Project>
