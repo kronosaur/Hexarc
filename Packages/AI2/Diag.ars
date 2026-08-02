@@ -1,7 +1,7 @@
 //	Diag.ars
 //
 //	Hexarc Command Line Package
-//	Copyright (c) 2017 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2017 GridWhale Corporation. All Rights Reserved.
 
 /* -----------------------------------------------------------------------------
 	AI2.CONSOLE INTERFACE
@@ -30,12 +30,16 @@ function diag.option
 
 						"option:\n\n"
 
+						"Esper.logWebSocket\n"
 						"Hyperion.logHTTPParsing\n"
 						"Hyperion.logSessionState\n"
 						)
 
 				(= optionLC 'status)
 					(invoke 'Hyperion.getOptions)
+
+				(= (find optionLC "esper.") 0)
+					(invoke 'Esper.setOption option optionValue)
 
 				(= (find optionLC "hyperion.") 0)
 					(invoke 'Hyperion.setOption option optionValue)

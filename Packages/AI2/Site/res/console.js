@@ -1,7 +1,7 @@
 //	Console.js
 //
 //	Implements AI2 console.
-//	Copyright (c) 2012 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2012 GridWhale Corporation. All Rights Reserved.
 
 //	Main -----------------------------------------------------------------------
 

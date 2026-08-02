@@ -1,0 +1,235 @@
+diff --git a/build-scripts/config_common.cmake b/build-scripts/config_common.cmake
+index ee00203b..fb34abc9 100644
+--- a/build-scripts/config_common.cmake
++++ b/build-scripts/config_common.cmake
+@@ -769,6 +769,10 @@ if (WAMR_BUILD_INSTRUCTION_METERING EQUAL 1)
+   message ("     Instruction metering enabled")
+   add_definitions (-DWASM_ENABLE_INSTRUCTION_METERING=1)
+ endif ()
++if (WAMR_BUILD_GRIDWHALE_YIELD EQUAL 1)
++  message ("     GridWhale yield hooks enabled")
++  add_definitions (-DWASM_ENABLE_GRIDWHALE_YIELD=1)
++endif ()
+ if (WAMR_BUILD_EXTENDED_CONST_EXPR EQUAL 1)
+   message ("     Extended constant expression enabled")
+   add_definitions(-DWASM_ENABLE_EXTENDED_CONST_EXPR=1)
+diff --git a/core/config.h b/core/config.h
+index 31404deb..7b896003 100644
+--- a/core/config.h
++++ b/core/config.h
+@@ -732,6 +732,10 @@ unless used elsewhere */
+ #define WASM_ENABLE_INSTRUCTION_METERING 0
+ #endif
+ 
++#ifndef WASM_ENABLE_GRIDWHALE_YIELD
++#define WASM_ENABLE_GRIDWHALE_YIELD 0
++#endif
++
+ #ifndef WASM_ENABLE_EXTENDED_CONST_EXPR
+ #define WASM_ENABLE_EXTENDED_CONST_EXPR 0
+ #endif
+diff --git a/core/iwasm/common/wasm_exec_env.h b/core/iwasm/common/wasm_exec_env.h
+index 5d80312f..dced4b06 100644
+--- a/core/iwasm/common/wasm_exec_env.h
++++ b/core/iwasm/common/wasm_exec_env.h
+@@ -141,6 +141,13 @@ typedef struct WASMExecEnv {
+ 
+     void *user_data;
+ 
++#if WASM_ENABLE_GRIDWHALE_YIELD != 0
++    void (*yield_callback)(struct WASMExecEnv *exec_env, void *user_data);
++    void *yield_callback_user_data;
++    uint32 yield_check_interval;
++    uint32 yield_check_countdown;
++#endif
++
+     /* The boundary of native stack set by host embedder. It is used
+        if it is not NULL when calling wasm functions. */
+     uint8 *user_native_stack_boundary;
+@@ -184,6 +191,23 @@ typedef struct WASMExecEnv {
+ #define RECORD_STACK_USAGE(e, p) (void)0
+ #endif
+ 
++#if WASM_ENABLE_GRIDWHALE_YIELD != 0
++static inline void
++wasm_exec_env_check_yield(WASMExecEnv *exec_env)
++{
++    if (exec_env->yield_callback && exec_env->yield_check_interval > 0) {
++        if (exec_env->yield_check_countdown == 0)
++            exec_env->yield_check_countdown = exec_env->yield_check_interval;
++
++        if (--exec_env->yield_check_countdown == 0)
++            exec_env->yield_callback(exec_env, exec_env->yield_callback_user_data);
++    }
++}
++#define CHECK_GRIDWHALE_YIELD(exec_env) wasm_exec_env_check_yield(exec_env)
++#else
++#define CHECK_GRIDWHALE_YIELD(exec_env) (void)0
++#endif
++
+ WASMExecEnv *
+ wasm_exec_env_create_internal(struct WASMModuleInstanceCommon *module_inst,
+                               uint32 stack_size);
+diff --git a/core/iwasm/common/wasm_runtime_common.c b/core/iwasm/common/wasm_runtime_common.c
+index 6590684c..1e48050d 100644
+--- a/core/iwasm/common/wasm_runtime_common.c
++++ b/core/iwasm/common/wasm_runtime_common.c
+@@ -2455,6 +2455,35 @@ wasm_runtime_get_user_data(WASMExecEnv *exec_env)
+     return exec_env->user_data;
+ }
+ 
++void
++wasm_runtime_set_yield_callback(WASMExecEnv *exec_env,
++                                wasm_runtime_yield_callback_t callback,
++                                void *user_data)
++{
++#if WASM_ENABLE_GRIDWHALE_YIELD != 0
++    exec_env->yield_callback = callback;
++    exec_env->yield_callback_user_data = user_data;
++    exec_env->yield_check_countdown = exec_env->yield_check_interval;
++#else
++    (void)exec_env;
++    (void)callback;
++    (void)user_data;
++#endif
++}
++
++void
++wasm_runtime_set_yield_check_interval(WASMExecEnv *exec_env,
++                                      uint32 instruction_count)
++{
++#if WASM_ENABLE_GRIDWHALE_YIELD != 0
++    exec_env->yield_check_interval = instruction_count;
++    exec_env->yield_check_countdown = instruction_count;
++#else
++    (void)exec_env;
++    (void)instruction_count;
++#endif
++}
++
+ void
+ wasm_runtime_set_native_stack_boundary(WASMExecEnv *exec_env,
+                                        uint8 *native_stack_boundary)
+diff --git a/core/iwasm/include/wasm_export.h b/core/iwasm/include/wasm_export.h
+index 97ba2391..0d51148a 100644
+--- a/core/iwasm/include/wasm_export.h
++++ b/core/iwasm/include/wasm_export.h
+@@ -154,6 +154,9 @@ typedef struct wasm_section_t {
+ struct WASMExecEnv;
+ typedef struct WASMExecEnv *wasm_exec_env_t;
+ 
++typedef void (*wasm_runtime_yield_callback_t)(wasm_exec_env_t exec_env,
++                                              void *user_data);
++
+ struct WASMSharedHeap;
+ typedef struct WASMSharedHeap *wasm_shared_heap_t;
+ 
+@@ -1914,6 +1917,31 @@ wasm_runtime_set_user_data(wasm_exec_env_t exec_env, void *user_data);
+ WASM_RUNTIME_API_EXTERN void *
+ wasm_runtime_get_user_data(wasm_exec_env_t exec_env);
+ 
++/**
++ * Set a callback invoked periodically by the interpreter. The callback runs on
++ * the WASM execution thread and may block to let the embedder perform
++ * scheduling, GC, or termination checks.
++ *
++ * @param exec_env the execution environment
++ * @param callback the callback to invoke, or NULL to disable
++ * @param user_data opaque user data passed to the callback
++ */
++WASM_RUNTIME_API_EXTERN void
++wasm_runtime_set_yield_callback(wasm_exec_env_t exec_env,
++                                wasm_runtime_yield_callback_t callback,
++                                void *user_data);
++
++/**
++ * Set the interpreter yield check interval. A value of 0 disables periodic
++ * yield checks.
++ *
++ * @param exec_env the execution environment
++ * @param instruction_count number of interpreted operations between checks
++ */
++WASM_RUNTIME_API_EXTERN void
++wasm_runtime_set_yield_check_interval(wasm_exec_env_t exec_env,
++                                      uint32_t instruction_count);
++
+ /**
+  * Set native stack boundary to execution environment, if it is set,
+  * it will be used instead of getting the boundary with the platform
+diff --git a/core/iwasm/interpreter/wasm_interp_classic.c b/core/iwasm/interpreter/wasm_interp_classic.c
+index abde189e..9b086890 100644
+--- a/core/iwasm/interpreter/wasm_interp_classic.c
++++ b/core/iwasm/interpreter/wasm_interp_classic.c
+@@ -1473,7 +1473,11 @@ wasm_interp_call_func_import(WASMModuleInstance *module_inst,
+ #if WASM_ENABLE_LABELS_AS_VALUES != 0
+ 
+ #define HANDLE_OP(opcode) HANDLE_##opcode:
+-#define FETCH_OPCODE_AND_DISPATCH() goto *handle_table[*frame_ip++]
++#define FETCH_OPCODE_AND_DISPATCH()        \
++    do {                                   \
++        CHECK_GRIDWHALE_YIELD(exec_env);   \
++        goto *handle_table[*frame_ip++];   \
++    } while (0)
+ 
+ #if WASM_ENABLE_THREAD_MGR != 0 && WASM_ENABLE_DEBUG_INTERP != 0
+ #define HANDLE_OP_END()                                                       \
+@@ -1494,6 +1498,7 @@ wasm_interp_call_func_import(WASMModuleInstance *module_inst,
+             }                                                                 \
+             os_mutex_unlock(&exec_env->wait_lock);                            \
+         }                                                                     \
++        CHECK_GRIDWHALE_YIELD(exec_env);                                      \
+         CHECK_INSTRUCTION_LIMIT();                                            \
+         goto *handle_table[*frame_ip++];                                      \
+     } while (0)
+@@ -1523,10 +1528,12 @@ wasm_interp_call_func_import(WASMModuleInstance *module_inst,
+         }                                                                 \
+         os_mutex_unlock(&exec_env->wait_lock);                            \
+     }                                                                     \
++    CHECK_GRIDWHALE_YIELD(exec_env);                                      \
+     CHECK_INSTRUCTION_LIMIT();                                            \
+     continue;
+ #else
+ #define HANDLE_OP_END()        \
++    CHECK_GRIDWHALE_YIELD(exec_env); \
+     CHECK_INSTRUCTION_LIMIT(); \
+     continue;
+ #endif
+diff --git a/core/iwasm/interpreter/wasm_interp_fast.c b/core/iwasm/interpreter/wasm_interp_fast.c
+index 937a7fde..65b5e825 100644
+--- a/core/iwasm/interpreter/wasm_interp_fast.c
++++ b/core/iwasm/interpreter/wasm_interp_fast.c
+@@ -1438,6 +1438,7 @@ wasm_interp_dump_op_count()
+     do {                                               \
+         const void *p_label_addr = *(void **)frame_ip; \
+         frame_ip += sizeof(void *);                    \
++        CHECK_GRIDWHALE_YIELD(exec_env);               \
+         CHECK_INSTRUCTION_LIMIT();                     \
+         goto *p_label_addr;                            \
+     } while (0)
+@@ -1450,6 +1451,7 @@ wasm_interp_dump_op_count()
+         /* int32 relative offset was emitted in 64-bit target */          \
+         p_label_addr = label_base + (int32)LOAD_U32_WITH_2U16S(frame_ip); \
+         frame_ip += sizeof(int32);                                        \
++        CHECK_GRIDWHALE_YIELD(exec_env);                                  \
+         CHECK_INSTRUCTION_LIMIT();                                        \
+         goto *p_label_addr;                                               \
+     } while (0)
+@@ -1461,6 +1463,7 @@ wasm_interp_dump_op_count()
+         /* uint32 label address was emitted in 32-bit target */          \
+         p_label_addr = (void *)(uintptr_t)LOAD_U32_WITH_2U16S(frame_ip); \
+         frame_ip += sizeof(int32);                                       \
++        CHECK_GRIDWHALE_YIELD(exec_env);                                 \
+         CHECK_INSTRUCTION_LIMIT();                                       \
+         goto *p_label_addr;                                              \
+     } while (0)
+@@ -1471,7 +1474,9 @@ wasm_interp_dump_op_count()
+ #else /* else of WASM_ENABLE_LABELS_AS_VALUES */
+ 
+ #define HANDLE_OP(opcode) case opcode:
+-#define HANDLE_OP_END() continue
++#define HANDLE_OP_END()              \
++    CHECK_GRIDWHALE_YIELD(exec_env); \
++    continue
+ 
+ #endif /* end of WASM_ENABLE_LABELS_AS_VALUES */
+ 

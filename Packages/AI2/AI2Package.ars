@@ -1,7 +1,7 @@
 //	AI2Package.ars
 //
 //	Hexarc Command Line Package
-//	Copyright (c) 2012 by Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2012 by GridWhale Corporation. All Rights Reserved.
 
 Arc.package AI2
 	{
@@ -25,7 +25,7 @@ Arc.service AI2.web
 	protocol:	http
 	port:		80
 	tls:		required
-	hosts:		(ai2.dev.com ai2.benedict.com ai2.hexarc.com ai2.megathere.com localhost)
+	hosts:		(ai2.localhost ai2.gridwhale.net ai2.benedict.com ai2.exarch.com ai2.hexarc.com ai2.megathere.com ai2.visthera.com localhost)
 	urlPaths:	"/"
 	
 	service:	www
@@ -44,7 +44,7 @@ Arc.service AI2.api
 	protocol:	http
 	port:		80
 	tls:		required
-	hosts:		(ai2.dev.com ai2.benedict.com ai2.hexarc.com ai2.megathere.com localhost)
+	hosts:		(ai2.localhost ai2.gridwhale.net ai2.benedict.com ai2.exarch.com ai2.hexarc.com ai2.megathere.com ai2.visthera.com localhost)
 	urlPaths:	"/api/"
 	rights:		Arc.admin		//	Service requires Arc.admin rights
 	
@@ -436,6 +436,7 @@ function table.list
 						(map 
 							(list
 								(if (find (@ options 'fields) 'primaryKey) 'includeKey 'noKey)
+								(if (@ options 'nearest) 'nearest)
 								)
 							'excludeNil
 							theOption

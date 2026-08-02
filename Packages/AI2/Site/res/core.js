@@ -1,7 +1,7 @@
 //	core.js
 //
 //	Core functions and definitions.
-//	Copyright (c) 2012 Kronosaur Productions, LLC. All Rights Reserved.
+//	Copyright (c) 2012 GridWhale Corporation. All Rights Reserved.
 //
 //	VERSION
 //

@@ -1,9 +1,14 @@
+:root {
+	--typeface_Default: 'Trebuchet MS', sans-serif;
+	--typeface_Code: "Lucida Console", "Courier New", Courier, monospace;
+}
+
 p {
 	margin: 0;
 }
 
 .cmdEcho {
-	font-family: "Lucida Console", "Courier New", Courier, monospace;
+	font-family: var(--typeface_Code);
 	font-size: 10pt;
 	color: #133764;
 	margin-top: 8pt;
@@ -14,7 +19,7 @@ p {
 	margin-top: 16pt;
 	padding-top: 8pt;
 	
-	font-family: 'Trebuchet MS', sans-serif;
+	font-family: var(--typeface_Default);
 }
 
 .ctrlButton {
@@ -25,7 +30,7 @@ p {
 	background-color: #78a01b;
 	border: solid 2px #598000;
 	
-	font-family: 'Trebuchet MS', sans-serif;
+	font-family: var(--typeface_Default);
 	font-size: 16pt;
 	color: #eaf1f4;
 	
@@ -41,7 +46,7 @@ p {
 
 .ctrlLabel {
 	color: #000000;
-	font-family: 'Trebuchet MS', sans-serif;
+	font-family: var(--typeface_Default);
 	font-size: 10pt;
 }
 
@@ -67,7 +72,7 @@ p {
 	
 	background-color: #ffe88e;
 	
-	font-family: 'Trebuchet MS', sans-serif;
+	font-family: var(--typeface_Default);
 	font-size: 12pt;
 	color: #000000;
 	
@@ -95,7 +100,7 @@ p {
 	margin: 0;
 	padding: 0 24px 0 24px;	
 	
-	font-family: 'Trebuchet MS', sans-serif;
+	font-family: var(--typeface_Default);
 	font-size: 16pt;
 	color: #eaf1f4;
 	
@@ -115,7 +120,7 @@ p {
 }
 
 #accountControls {
-	font-family: 'Trebuchet MS', sans-serif;
+	font-family: var(--typeface_Default);
 	font-weight: bold;
 	font-size: 8pt;
 	color: white;
@@ -131,7 +136,7 @@ p {
 }
 
 #accountName {
-	font-family: 'Trebuchet MS', sans-serif;
+	font-family: var(--typeface_Default);
 	font-size: 12pt;
 	color: white;
 	
@@ -139,7 +144,7 @@ p {
 }
 
 #accountSignIn {
-	font-family: 'Trebuchet MS', sans-serif;
+	font-family: var(--typeface_Default);
 	font-size: 12pt;
 	color: white;
 
@@ -155,7 +160,7 @@ p {
 }
 
 #consoleOutput {
-	font-family: 'Trebuchet MS', sans-serif;
+	font-family: var(--typeface_Default);
 	font-size: 10pt;
 }
 
@@ -168,7 +173,7 @@ p {
 #consoleTitle {
 	float: right;
 	
-	font-family: 'Trebuchet MS', sans-serif;
+	font-family: var(--typeface_Default);
 	font-size: 14pt;
 	font-weight: bold;
 	color: #C0C0C0;
