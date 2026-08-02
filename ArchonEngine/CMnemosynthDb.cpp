@@ -793,7 +793,7 @@ void CMnemosynthDb::IncorporateDelta (CDatum dPayload)
 				{
 				DeleteEntry(sCollection, sKey);
 #ifdef DEBUG_MNEMOSYNTH
-				printf("Delete entry: %s/%s\n", (LPSTR)sCollection, (LPSTR)sKey);
+				printf("Delete entry: %s/%s\n", (LPCSTR)sCollection, (LPCSTR)sKey);
 #endif
 				}
 
@@ -807,7 +807,7 @@ void CMnemosynthDb::IncorporateDelta (CDatum dPayload)
 				pEntry->dwSequence = dwSeq;
 
 #ifdef DEBUG_MNEMOSYNTH
-				printf("Modify entry: %s/%s [owner = %s seq = %d]\n", (LPSTR)sCollection, (LPSTR)sKey, (LPSTR)pEndpoint->sName, dwSeq);
+				printf("Modify entry: %s/%s [owner = %s seq = %d]\n", (LPCSTR)sCollection, (LPCSTR)sKey, (LPSTR)pEndpoint->sName, dwSeq);
 #endif
 				}
 			}

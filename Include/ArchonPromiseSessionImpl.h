@@ -11,6 +11,10 @@
 
 #include <functional>
 
+DECLARE_CONST_STRING(STR_ARCHON_PROMISE_SESSION_IMPL_OK,	"OK");
+DECLARE_CONST_STRING(STR_ARCHON_PROMISE_SESSION_IMPL_LOG_ERROR,	"Log.error");
+DECLARE_CONST_STRING(STR_ARCHON_PROMISE_SESSION_IMPL_ERROR_UNABLE_TO_COMPLY,	"Error.unableToComply");
+
 template <class CTX> struct TArchonPromise
 	{
 	using ArchonPromise = TArchonPromise<CTX>;
@@ -86,14 +90,18 @@ template <class CTX = SDefaultSessionCtx> class TPromiseSession : public ISessio
 				));
 			}
 
-		void Then_AeonCreateTable (const CString &sTableName, const CString &sTableDesc, const CString &sReplyAddr)
+		void Then_AeonCreateTable (const CString &sTableName, const CString &sTableDesc, const CString &sPort = NULL_STR)
 			{
 			Then(TUniquePtr<ArchonPromise>(
 				new ArchonPromise({
 
 					//	Create table
+					//
+					//	NOTE: When capturing const CString& we make a copy of the string so
+					//	that it remains valid when the promise executes. Do not change to
+					//	capture by reference or to CStringView.
 
-					[sTableName, sTableDesc, sReplyAddr](auto &Session, auto &Ctx, const auto &Msg, auto &retReply) 
+					[sTableName, sTableDesc, sPort](auto &Session, auto &Ctx, const auto &Msg, auto &retReply)
 						{
 						static const CString ADDR_AEON_COMMAND("Aeon.command");
 						static const CString MSG_AEON_CREATE_TABLE("Aeon.createTable");
@@ -106,14 +114,17 @@ template <class CTX = SDefaultSessionCtx> class TPromiseSession : public ISessio
 						CDatum dPayload(CDatum::typeArray);
 						dPayload.Append(dTableDesc);
 
-						Session.SendMessageCommand(ADDR_AEON_COMMAND, MSG_AEON_CREATE_TABLE, Session.GenerateAddress(sReplyAddr), dPayload, MESSAGE_TIMEOUT);
+						if (sPort.IsEmpty())
+							Session.SendMessageCommand(ADDR_AEON_COMMAND, MSG_AEON_CREATE_TABLE, dPayload, MESSAGE_TIMEOUT);
+						else
+							Session.SendMessageCommand(ADDR_AEON_COMMAND, MSG_AEON_CREATE_TABLE, Session.GenerateAddress(sPort), dPayload, MESSAGE_TIMEOUT);
 
 						return EPromiseResult::WaitForResponse;
 						},
 
 					//	Handle reply from Aeon
 
-					[sTableName, sTableDesc, sReplyAddr](auto &Session, auto &Ctx, const auto &Msg, auto &retReply) 
+					[sTableName, sTableDesc, sPort](auto &Session, auto &Ctx, const auto &Msg, auto &retReply)
 						{
 						static const CString MSG_ERROR_ALREADY_EXISTS("Error.alreadyExists");
 						static const CString MSG_LOG_ERROR("Log.error");
@@ -148,14 +159,14 @@ template <class CTX = SDefaultSessionCtx> class TPromiseSession : public ISessio
 				})));
 			}
 
-		void Then_AeonGetValue (const CString &sTableName, CDatum dKey, const CString &sReplyAddr)
+		void Then_AeonGetValue (const CString &sTableName, CDatum dKey, const CString &sPort = NULL_STR)
 			{
 			Then(TUniquePtr<ArchonPromise>(
 				new ArchonPromise({
 
 					//	Aeon.getValue
 
-					[sTableName, dKey, sReplyAddr](auto &Session, auto &Ctx, const auto &Msg, auto &retReply) 
+					[sTableName, dKey, sPort](auto &Session, auto &Ctx, const auto &Msg, auto &retReply)
 						{
 						static const CString ADDR_AEON_COMMAND("Aeon.command");
 						static const CString MSG_AEON_GET_VALUE("Aeon.getValue");
@@ -165,7 +176,10 @@ template <class CTX = SDefaultSessionCtx> class TPromiseSession : public ISessio
 						dPayload.Append(sTableName);
 						dPayload.Append(dKey);
 
-						Session.SendMessageCommand(ADDR_AEON_COMMAND, MSG_AEON_GET_VALUE, Session.GenerateAddress(sReplyAddr), dPayload, MESSAGE_TIMEOUT);
+						if (sPort.IsEmpty())
+							Session.SendMessageCommand(ADDR_AEON_COMMAND, MSG_AEON_GET_VALUE, dPayload, MESSAGE_TIMEOUT);
+						else
+							Session.SendMessageCommand(ADDR_AEON_COMMAND, MSG_AEON_GET_VALUE, Session.GenerateAddress(sPort), dPayload, MESSAGE_TIMEOUT);
 
 						return EPromiseResult::WaitForResponse;
 						},
@@ -219,7 +233,7 @@ template <class CTX = SDefaultSessionCtx> class TPromiseSession : public ISessio
 			m_pCurrent = m_pCode;
 			if (!m_pCurrent || !m_pCurrent->fnStart)
 				{
-				SendMessageReply(CString("OK"));
+				SendMessageReply(STR_ARCHON_PROMISE_SESSION_IMPL_OK);
 				return false;
 				}
 
@@ -231,6 +245,10 @@ template <class CTX = SDefaultSessionCtx> class TPromiseSession : public ISessio
 				auto iResult = m_pCurrent->fnStart(*this, m_Ctx, Msg, Reply);
 
 				return HandleReply(iResult, Reply);
+				}
+			catch (CException e)
+				{
+				return ReturnCrashError(Msg, e);
 				}
 			catch (...)
 				{
@@ -248,6 +266,10 @@ template <class CTX = SDefaultSessionCtx> class TPromiseSession : public ISessio
 					auto iResult = m_pCurrent->fnProcess(*this, m_Ctx, Msg, Reply);
 
 					return HandleReply(iResult, Reply);
+					}
+				catch (CException e)
+					{
+					return ReturnCrashError(Msg, e);
 					}
 				catch (...)
 					{
@@ -277,6 +299,9 @@ template <class CTX = SDefaultSessionCtx> class TPromiseSession : public ISessio
 					return false;
 					}
 
+				case EPromiseResult::EndSessionNoReply:
+					return false;
+
 				//	Next
 
 				case EPromiseResult::OK:
@@ -294,6 +319,10 @@ template <class CTX = SDefaultSessionCtx> class TPromiseSession : public ISessio
 							auto iNextResult = m_pCurrent->fnStart(*this, m_Ctx, Reply, NextReply);
 
 							return HandleReply(iNextResult, NextReply);
+							}
+						catch (CException e)
+							{
+							return ReturnCrashError(Reply, e);
 							}
 						catch (...)
 							{
@@ -317,6 +346,10 @@ template <class CTX = SDefaultSessionCtx> class TPromiseSession : public ISessio
 							auto iNextResult = m_pCurrent->fnStart(*this, m_Ctx, Reply, NextReply);
 
 							return HandleReply(iNextResult, NextReply);
+							}
+						catch (CException e)
+							{
+							return ReturnCrashError(Reply, e);
 							}
 						catch (...)
 							{
@@ -342,7 +375,13 @@ template <class CTX = SDefaultSessionCtx> class TPromiseSession : public ISessio
 
 		bool ReturnCrashError (const SArchonMessage &Msg)
 			{
-			SendMessageReplyError(CString("Error.unableToComply"), strPattern("Crash in %s.", Msg.sMsg));
+			return ReturnCrashError(Msg, CException(errUnknownError));
+			}
+
+		bool ReturnCrashError (const SArchonMessage &Msg, const CException &e)
+			{
+			GetProcessCtx()->Log(STR_ARCHON_PROMISE_SESSION_IMPL_LOG_ERROR, strPattern("CRASH: TPromiseSession processing %s: %s", Msg.sMsg, e.GetErrorString()));
+			SendMessageReplyError(STR_ARCHON_PROMISE_SESSION_IMPL_ERROR_UNABLE_TO_COMPLY, strPattern("Crash in %s.", Msg.sMsg));
 			return false;
 			}
 

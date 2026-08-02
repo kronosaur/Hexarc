@@ -740,7 +740,7 @@ CAEONTensor::SSliceDesc CAEONTensor::CalcSlice (CDatum dIndex) const
 
 			else
 				{
-				Slice.dSliceType = CAEONTypes::CreateTensor(NULL_STR, m_dElementType, SliceDims);
+				Slice.dSliceType = CAEONTypes::CreateTensor(NULL_STR, m_dElementType, std::move(SliceDims));
 				Slice.SliceIndex.Insert(dIndex);
 				return Slice;
 				}
@@ -808,7 +808,7 @@ CAEONTensor::SSliceDesc CAEONTensor::CalcSlice (CDatum dIndex) const
 
 		else
 			{
-			Slice.dSliceType = CAEONTypes::CreateTensor(NULL_STR, m_dElementType, SliceDims);
+			Slice.dSliceType = CAEONTypes::CreateTensor(NULL_STR, m_dElementType, std::move(SliceDims));
 			Slice.SliceIndex = std::move(SliceIndex);
 			return Slice;
 			}
@@ -879,7 +879,7 @@ CAEONTensor::SSliceDesc CAEONTensor::CalcSlice2D (CDatum dIndex1, CDatum dIndex2
 
 		else
 			{
-			Slice.dSliceType = CAEONTypes::CreateTensor(NULL_STR, m_dElementType, SliceDims);
+			Slice.dSliceType = CAEONTypes::CreateTensor(NULL_STR, m_dElementType, std::move(SliceDims));
 			Slice.SliceIndex = std::move(SliceIndex);
 			return Slice;
 			}
@@ -958,7 +958,7 @@ CAEONTensor::SSliceDesc CAEONTensor::CalcSlice3D (CDatum dIndex1, CDatum dIndex2
 
 		else
 			{
-			Slice.dSliceType = CAEONTypes::CreateTensor(NULL_STR, m_dElementType, SliceDims);
+			Slice.dSliceType = CAEONTypes::CreateTensor(NULL_STR, m_dElementType, std::move(SliceDims));
 			Slice.SliceIndex = std::move(SliceIndex);
 			return Slice;
 			}
@@ -996,6 +996,16 @@ IComplexDatum* CAEONTensor::Clone (CDatum::EClone iMode) const
 	return pClone;
 	}
 
+CDatum CAEONTensor::Cleaned () const
+	{
+	CRecursionGuard Guard(*this);
+	if (Guard.InRecursion())
+		return CDatum::raw_AsComplex(this);
+
+	auto pClone = new CAEONTensor(*this);
+	pClone->m_dData = pClone->m_dData.Cleaned();
+	return CDatum(pClone);
+	}
 int CAEONTensor::CompareTensor (const TArray<SDimDesc>& Dims1, int iDataStart1, CDatum dData1, const TArray<SDimDesc>& Dims2, int iDataStart2, CDatum dData2, int iDim)
 
 //	CompareTensor
@@ -1156,7 +1166,7 @@ CDatum CAEONTensor::CreateNTensor (const TArray<int>& Dims, CDatum dElementType,
 
 	//	Create the tensor type.
 
-	CDatum dType = CAEONTypes::CreateTensor(NULL_STR, dElementType, DimTypes);
+	CDatum dType = CAEONTypes::CreateTensor(NULL_STR, dElementType, std::move(DimTypes));
 
 	//	And now create the tensor.
 
@@ -1726,7 +1736,7 @@ CDatum CAEONTensor::MathInvert () const
 	TArray<CDatum> AugDims;
 	AugDims.Insert(CAEONTypes::CreateInt32SubRange(NULL_STR, 0, iSize - 1));
 	AugDims.Insert(CAEONTypes::CreateInt32SubRange(NULL_STR, 0, 2 * iSize - 1));
-	CDatum dAugmentDatatype = CAEONTypes::CreateTensor(NULL_STR, m_dElementType, AugDims);
+	CDatum dAugmentDatatype = CAEONTypes::CreateTensor(NULL_STR, m_dElementType, std::move(AugDims));
 	CAEONTensor* pAugmented = new CAEONTensor(dAugmentDatatype);
 	CDatum dAugmented(pAugmented);
 
@@ -2361,7 +2371,7 @@ CDatum CAEONTensor::OpConcatenated (IInvokeCtx& Ctx, CDatum dSrc, int iAxis) con
 
 	//	Create the resulting tensor
 
-	CDatum dResultType = Ctx.GetTypeSystem().AddAnonymousTensor(m_dElementType, ResultDims);
+	CDatum dResultType = Ctx.GetTypeSystem().AddAnonymousTensor(m_dElementType, std::move(ResultDims));
 	CAEONTensor* pResult = new CAEONTensor(dResultType);
 
 	//	Copy the original tensor to the result.
@@ -2422,7 +2432,7 @@ CDatum CAEONTensor::OpConcatenatedMinus1 (IInvokeCtx& Ctx, CDatum dSrc, int iAxi
 
 	//	Create the resulting tensor
 
-	CDatum dResultType = Ctx.GetTypeSystem().AddAnonymousTensor(m_dElementType, ResultDims);
+	CDatum dResultType = Ctx.GetTypeSystem().AddAnonymousTensor(m_dElementType, std::move(ResultDims));
 	CAEONTensor* pResult = new CAEONTensor(dResultType);
 
 	//	Copy the original tensor to the result.
@@ -2688,6 +2698,7 @@ void CAEONTensor::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const
 			break;
 			}
 
+		case CDatum::EFormat::AEONJSON:
 		case CDatum::EFormat::JSON:
 			{
 			m_dData.Serialize(iFormat, Stream);

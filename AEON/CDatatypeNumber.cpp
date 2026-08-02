@@ -27,10 +27,26 @@ bool CDatatypeNumber::OnCanBeConstructedFrom (CDatum dType) const
 	if (SrcType.GetCoreType() == IDatatype::NUMBER)
 		return true;
 
-	//	If we're an integer, then we implicity convert from Integer
+	//	If we're an integer, then we implicitly convert from the abstract
+	//	Integer type.
 
 	if (!m_bFloat && SrcType.GetCoreType() == IDatatype::INTEGER)
 		return true;
+
+	//	Concrete integer widening is allowed, but we avoid narrowing IntIP to
+	//	32-bit integers.
+
+	if (!m_bFloat)
+		{
+		SNumberDesc SrcDesc = SrcType.GetNumberDesc();
+		if (SrcDesc.bNumber && !SrcDesc.bFloat)
+			{
+			if (GetCoreType() == IDatatype::INT_32 && SrcType.GetCoreType() == IDatatype::INT_IP)
+				return false;
+
+			return true;
+			}
+		}
 
 	//	If we're infinite precision and the source is an integer,
 	//	then we can convert.

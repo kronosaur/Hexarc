@@ -39,6 +39,20 @@ const int DEFAULT_ARRAY_GRANULARITY = 10;
 class CArrayBase
 	{
 	protected:
+		struct SHeader
+			{
+			HANDLE m_hHeap;				//	Heap on which block is allocated
+			int m_iSize;				//	Size of data portion (as seen by callers)
+			int m_iAllocSize;			//	Current size of block
+			int m_iGranularity;			//	Used by descendants to resize block
+			};
+
+	public:
+		static int JitHeaderOffsetSize ();
+		static int JitHeaderSize ();
+		static int JitOffsetBlock ();
+
+	protected:
 		CArrayBase (HANDLE hHeap, int iGranularity);
 		~CArrayBase (void);
 
@@ -54,15 +68,6 @@ class CArrayBase
 		bool Resize (int iNewSize, bool bPreserve, int iAllocQuantum);
 		void TakeHandoffBase (CArrayBase &Src);
 
-	protected:
-		struct SHeader
-			{
-			HANDLE m_hHeap;				//	Heap on which block is allocated
-			int m_iSize;				//	Size of data portion (as seen by callers)
-			int m_iAllocSize;			//	Current size of block
-			int m_iGranularity;			//	Used by descendants to resize block
-			};
-
 		CArrayBase (SHeader *pBlock) noexcept : m_pBlock(pBlock)
 			{ }
 
@@ -71,6 +76,10 @@ class CArrayBase
 
 		SHeader *m_pBlock;
 	};
+
+inline int CArrayBase::JitHeaderOffsetSize () { return (int)offsetof(SHeader, m_iSize); }
+inline int CArrayBase::JitHeaderSize () { return sizeof(SHeader); }
+inline int CArrayBase::JitOffsetBlock () { return (int)offsetof(CArrayBase, m_pBlock); }
 
 #pragma warning(disable:4291)			//	No need for a delete because we're placing object
 
@@ -112,6 +121,9 @@ template <class VALUE> class TArray : public CArrayBase
 
 		TArray<VALUE> &operator= (const TArray<VALUE> &Obj)
 			{
+			if (this == &Obj)
+				return *this;
+
 			DeleteAll();
 
 			CopyOptions(Obj);
@@ -127,10 +139,11 @@ template <class VALUE> class TArray : public CArrayBase
 
 		TArray<VALUE> &operator= (TArray<VALUE> &&Src) noexcept
 			{
-			DeleteAll();
+			if (this == &Src)
+				return *this;
 
-			m_pBlock = Src.m_pBlock;
-			Src.m_pBlock = NULL;
+			DeleteAll();
+			TakeHandoffBase(Src);
 
 			return *this;
 			}
@@ -684,6 +697,9 @@ template <class VALUE> class TQueue
 
 		TQueue<VALUE> &operator= (const TQueue<VALUE> &Obj)
 			{
+			if (this == &Obj)
+				return *this;
+
 			int i;
 
 			Init(Obj.GetCapacity());
@@ -699,6 +715,9 @@ template <class VALUE> class TQueue
 
 		TQueue<VALUE> &operator= (TQueue<VALUE> &&Src) noexcept
 			{
+			if (this == &Src)
+				return *this;
+
 			if (m_pArray)
 				delete [] m_pArray;
 
@@ -914,6 +933,9 @@ template <class VALUE> class TQueue
 
 		void TakeHandoff (TQueue<VALUE> &Src)
 			{
+			if (this == &Src)
+				return;
+
 			if (m_pArray)
 				delete [] m_pArray;
 
@@ -923,6 +945,9 @@ template <class VALUE> class TQueue
 			m_iTail = Src.m_iTail;
 
 			Src.m_pArray = NULL;
+			Src.m_iSize = 0;
+			Src.m_iHead = 0;
+			Src.m_iTail = 0;
 			}
 
 		bool TryEnqueue (const VALUE &Value)

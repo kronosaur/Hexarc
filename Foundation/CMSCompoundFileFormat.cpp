@@ -10,6 +10,8 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_CMSCOMPOUND_FILE_FORMAT_ROOT_ENTRY,	"Root Entry");
+
 void CMSCompoundFileFormat::AddStream (const CString &sName, IMemoryBlock &Data)
 
 //	AddStream
@@ -85,7 +87,7 @@ void CMSCompoundFileFormat::WriteDirectory (IByteStream &Stream, CFF_HEADER &Hea
 	//	First entry is always the root entry
 
 	CFF_DIRECTORY *pRoot = Directory.Insert();
-	SetName(*pRoot, CString("Root Entry"));
+	SetName(*pRoot, STR_CMSCOMPOUND_FILE_FORMAT_ROOT_ENTRY);
 	pRoot->byObjType = CFF_DIRECTORY::TYPE_ROOT;
 	pRoot->dwChildID = 1;
 	pRoot->dwStartSector = ENDOFCHAIN;

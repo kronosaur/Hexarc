@@ -5,6 +5,8 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_CESPER_LISTENER_THREAD_CRASH_ESPER_LISTENER_THREAD,	"CRASH: Esper listener thread.");
+
 DECLARE_CONST_STRING(ADDR_NULL,							"Arc.null");
 
 DECLARE_CONST_STRING(MSG_LOG_INFO,						"Log.info");
@@ -166,7 +168,7 @@ void CEsperListenerThread::Run (void)
 		}
 	catch (...)
 		{
-		m_pEngine->Log(MSG_LOG_ERROR, CString("CRASH: Esper listener thread."));
+		m_pEngine->Log(MSG_LOG_ERROR, STR_CESPER_LISTENER_THREAD_CRASH_ESPER_LISTENER_THREAD);
 		throw;
 		}
 	}

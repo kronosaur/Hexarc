@@ -14,6 +14,16 @@
 #include <Math.h>
 #include "PolygonIntersect.h"
 
+DECLARE_CONST_STRING(STR_CPOLYGON_INTERSECTOR_CLIP,	"Clip");
+DECLARE_CONST_STRING(STR_CPOLYGON_INTERSECTOR_SUBJECT,	"Subject");
+DECLARE_CONST_STRING(STR_CPOLYGON_INTERSECTOR_CLIP_FF72CC51,	"clip ");
+DECLARE_CONST_STRING(STR_CPOLYGON_INTERSECTOR_SUBJECT_C832C5C2,	"subject ");
+DECLARE_CONST_STRING(STR_CPOLYGON_INTERSECTOR_HOLE,	"hole ");
+DECLARE_CONST_STRING(STR_CPOLYGON_INTERSECTOR_OUTSIDE,	"outside ");
+DECLARE_CONST_STRING(STR_CPOLYGON_INTERSECTOR_INSIDE,	"inside ");
+DECLARE_CONST_STRING(STR_CPOLYGON_INTERSECTOR_VERTEX,	"vertex ");
+DECLARE_CONST_STRING(STR_CPOLYGON_INTERSECTOR_INTERSECT,	"intersect ");
+
 const double POINT_IDENTITY_EPSILON = 0.00001;
 const double POINT_IDENTITY_EPSILON2 = POINT_IDENTITY_EPSILON * POINT_IDENTITY_EPSILON;
 const double INTERSECT_EPSILON = 1e-10;
@@ -900,8 +910,8 @@ void CPolygonIntersector::InsertIntersections (SVertexInfo *pClip, SVertexInfo *
 #ifdef DEBUG_POLYGON_INTERSECT
 	if ((m_iIntersectCount % 2) != 0)
 		{
-		m_pCurClip->OutputPolygon(CString("Clip"));
-		m_pSubject->OutputPolygon(CString("Subject"));
+		m_pCurClip->OutputPolygon(STR_CPOLYGON_INTERSECTOR_CLIP);
+		m_pSubject->OutputPolygon(STR_CPOLYGON_INTERSECTOR_SUBJECT);
 		}
 #endif
 	}
@@ -1122,11 +1132,11 @@ void CPolygonIntersector::OutputVertexList (SVertexInfo *pPoly)
 	do
 		{
 		CString sType = strPattern("%s%s%s%s%s",
-				((pVert->dwFlags & flagClip) ? CString("clip ") : CString("subject ")),
-				((pVert->dwFlags & flagHole) ? CString("hole ") : NULL_STR),
-				((pVert->dwFlags & flagIntersection) ? ((pVert->dwFlags & flagOutside) ? CString("outside ") : CString("inside ")) : NULL_STR),
-				((pVert->dwFlags & flagOriginal) ? CString("vertex ") : NULL_STR),
-				((pVert->dwFlags & flagIntersection) ? CString("intersect ") : NULL_STR));
+				((pVert->dwFlags & flagClip) ? STR_CPOLYGON_INTERSECTOR_CLIP_FF72CC51 : STR_CPOLYGON_INTERSECTOR_SUBJECT_C832C5C2),
+				((pVert->dwFlags & flagHole) ? STR_CPOLYGON_INTERSECTOR_HOLE : NULL_STR),
+				((pVert->dwFlags & flagIntersection) ? ((pVert->dwFlags & flagOutside) ? STR_CPOLYGON_INTERSECTOR_OUTSIDE : STR_CPOLYGON_INTERSECTOR_INSIDE) : NULL_STR),
+				((pVert->dwFlags & flagOriginal) ? STR_CPOLYGON_INTERSECTOR_VERTEX : NULL_STR),
+				((pVert->dwFlags & flagIntersection) ? STR_CPOLYGON_INTERSECTOR_INTERSECT : NULL_STR));
 
 		printf("%p: [%.12f,%.12f] %s (%x) [%p <-]\n", pVert, pVert->vPos.X(), pVert->vPos.Y(), (LPSTR)sType, pVert->dwFlags, pVert->pPrev);
 
@@ -1405,8 +1415,8 @@ CPolygon2D::EOpResult CPolygonIntersector::Subtract (TArray<CPolygon2D> *retResu
 		if (NewSubjectList.GetCount() == 0)
 			{
 #ifdef DEBUG_SUBTRACT_BUG
-			m_pCurClip->OutputPolygon(CString("Clip"));
-			m_pSubject->OutputPolygon(CString("Subject"));
+			m_pCurClip->OutputPolygon(STR_CPOLYGON_INTERSECTOR_CLIP);
+			m_pSubject->OutputPolygon(STR_CPOLYGON_INTERSECTOR_SUBJECT);
 #endif
 			NewPolygons.DeleteAllAndFreeValues();
 			return CPolygon2D::resultEmpty;
@@ -1685,8 +1695,8 @@ void CPolygonIntersector::TraceOutline (SVertexInfo *pStart, EOpTypes iOp, TArra
 #ifdef DEBUG_POLYGON_INTERSECT
 		if (++iCount > 5 * (GetTotalVertexCount(*m_pSubject) + GetTotalVertexCount(*m_pCurClip)))
 			{
-			m_pCurClip->OutputPolygon(CString("Clip"));
-			m_pSubject->OutputPolygon(CString("Subject"));
+			m_pCurClip->OutputPolygon(STR_CPOLYGON_INTERSECTOR_CLIP);
+			m_pSubject->OutputPolygon(STR_CPOLYGON_INTERSECTOR_SUBJECT);
 			break;
 			}
 #endif

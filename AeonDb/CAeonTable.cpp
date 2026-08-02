@@ -60,6 +60,9 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_CAEON_TABLE_CANNOT_CREATE_A_TABLE_WITH_NO_NAME,	"Cannot create a table with no name.");
+DECLARE_CONST_STRING(STR_CAEON_TABLE_KEY_TYPE_REQUIRED_FOR_TABLE_DIMENSION,	"KeyType required for table dimension.");
+
 const int MAX_CHANGES_IN_MEMORY =						100;
 
 DECLARE_CONST_STRING(FILE_DATA_TYPE_BINARY,				"binary");
@@ -142,8 +145,12 @@ DECLARE_CONST_STRING(MUTATE_ROW_ID,						"rowID");
 DECLARE_CONST_STRING(MUTATE_UNION,						"union");
 DECLARE_CONST_STRING(MUTATE_UPDATE_GREATER,				"updateGreater");
 DECLARE_CONST_STRING(MUTATE_UPDATE_GREATER_NO_ERROR,	"updateGreaterNoError");
+DECLARE_CONST_STRING(MUTATE_UPDATE_MATCH,				"updateMatch");
+DECLARE_CONST_STRING(MUTATE_UPDATE_MATCH_NO_ERROR,		"updateMatchNoError");
 DECLARE_CONST_STRING(MUTATE_UPDATE_NIL,					"updateNil");
 DECLARE_CONST_STRING(MUTATE_UPDATE_NIL_NO_ERROR,		"updateNilNoError");
+DECLARE_CONST_STRING(MUTATE_UPDATE_NOT_NIL,				"updateNotNil");
+DECLARE_CONST_STRING(MUTATE_UPDATE_NOT_NIL_NO_ERROR,	"updateNotNilNoError");
 DECLARE_CONST_STRING(MUTATE_UPDATE_VERSION,				"updateVersion");
 DECLARE_CONST_STRING(MUTATE_UPDATE_VERSION_NO_ERROR,	"updateVersionNoError");
 DECLARE_CONST_STRING(MUTATE_WRITE,						"write");
@@ -231,8 +238,10 @@ DECLARE_CONST_STRING(ERR_VIEW_INSERT_FAILURE,			"Unable to insert row in view %s
 DECLARE_CONST_STRING(ERR_CANT_MOVE_TO_SCRAP,			"Unable to move old file to scrap: %s.");
 DECLARE_CONST_STRING(ERR_UPDATE_GREATER_OUT_OF_DATE,	"Unable to mutate row %s. Field %s value (%s) not greater than original (%s).");
 DECLARE_CONST_STRING(ERR_UPDATE_VERSION_OUT_OF_DATE,	"Unable to mutate row %s. Field %s value (%s) does not match original (%s).");
+DECLARE_CONST_STRING(ERR_UPDATE_MATCH,					"Unable to mutate row %s. Field %s value (%s) does not match original (%s).");
 DECLARE_CONST_STRING(ERR_CANNOT_CONSUME,				"Unable to mutate row %s. Field %s value (%s) insufficient.");
 DECLARE_CONST_STRING(ERR_UPDATE_NIL,					"Unable to mutate row %s. Field %s is not nil.");
+DECLARE_CONST_STRING(ERR_UPDATE_NOT_NIL,				"Unable to mutate row %s. Field %s is nil.");
 DECLARE_CONST_STRING(ERR_INVALID_FILE_PATH_CODE,		"Unknown filePath generation code: %s.");
 DECLARE_CONST_STRING(ERR_PARTIAL_POS_CANNOT_BE_NEGATIVE,"partialPos cannot be negative.");
 DECLARE_CONST_STRING(ERR_INVALID_FILE_DATA_TYPE,		"Invalid dataType: %s");
@@ -1508,9 +1517,8 @@ CDatum CAeonTable::GetDimensionPath (const CTableDimensions &Dims, const CString
 //	Returns a dimension path from a stored key
 
 	{
-	int i;
-	char *pPos = sKey.GetParsePointer();
-	char *pPosEnd = pPos + sKey.GetLength();
+	const char *pPos = sKey.GetParsePointer();
+	const char *pPosEnd = pPos + sKey.GetLength();
 
 	if (Dims.GetCount() == 1)
 		return GetDimensionPathElement(Dims[0].iKeyType, &pPos, pPosEnd);
@@ -1518,22 +1526,21 @@ CDatum CAeonTable::GetDimensionPath (const CTableDimensions &Dims, const CString
 		{
 		CComplexArray *pPath = new CComplexArray;
 		
-		for (i = 0; i < Dims.GetCount(); i++)
+		for (int i = 0; i < Dims.GetCount(); i++)
 			pPath->Insert(GetDimensionPathElement(Dims[i].iKeyType, &pPos, pPosEnd));
 
 		return CDatum(pPath);
 		}
 	}
 
-CDatum CAeonTable::GetDimensionPathElement (EKeyTypes iKeyType, char **iopPos, char *pPosEnd)
+CDatum CAeonTable::GetDimensionPathElement (EKeyTypes iKeyType, const char **iopPos, const char *pPosEnd)
 	{
 	switch (iKeyType)
 		{
 		case keyInt32:
 			if ((*iopPos) + sizeof(int) <= pPosEnd)
 				{
-				CDatum dKey(*(int *)(*iopPos));
-				(*iopPos) += sizeof(int);
+				CDatum dKey(ReadUnaligned<int>(*iopPos));
 
 				if ((*iopPos) < pPosEnd)
 					(*iopPos)++;
@@ -1546,8 +1553,7 @@ CDatum CAeonTable::GetDimensionPathElement (EKeyTypes iKeyType, char **iopPos, c
 		case keyInt64:
 			if ((*iopPos) + sizeof(DWORDLONG) <= pPosEnd)
 				{
-				CDatum dKey(*(DWORDLONG *)(*iopPos));
-				(*iopPos) += sizeof(DWORDLONG);
+				CDatum dKey(ReadUnaligned<DWORDLONG>(*iopPos));
 
 				if ((*iopPos) < pPosEnd)
 					(*iopPos)++;
@@ -1561,7 +1567,7 @@ CDatum CAeonTable::GetDimensionPathElement (EKeyTypes iKeyType, char **iopPos, c
 		case keyListUTF8:
 		case keyUTF8:
 			{
-			char *pStart = (*iopPos);
+			const char *pStart = (*iopPos);
 			while ((*iopPos) < pPosEnd && *(*iopPos) != '\0')
 				(*iopPos)++;
 
@@ -2378,10 +2384,22 @@ bool CAeonTable::Housekeeping (DWORD dwMaxMemoryUse)
 		return true;
 		}
 
-	//	Otherwise, merge segments
+	//	Before ordinary merges, do a one-shot pass to compact old tombstones
+	//	from the bottom segment of each view.
 
 	else
+		{
+#ifdef AEON_COMPACT_TOMBSTONES
+		bool bCompacted;
+		if (!HousekeepingCompactOldestTombstones(Lock, &bCompacted))
+			return false;
+
+		if (bCompacted)
+			return true;
+#endif
+
 		return HousekeepingMergeSegments(Lock);
+		}
 	}
 
 bool CAeonTable::Init (const CString &sTablePath, CDatum dDesc, CString *retsError)
@@ -2404,7 +2422,7 @@ bool CAeonTable::Init (const CString &sTablePath, CDatum dDesc, CString *retsErr
 	m_sName = dDesc.GetElement(FIELD_NAME).AsStringView();
 	if (m_sName.IsEmpty())
 		{
-		*retsError = CString("Cannot create a table with no name.");
+		*retsError = STR_CAEON_TABLE_CANNOT_CREATE_A_TABLE_WITH_NO_NAME;
 		return false;
 		}
 
@@ -3184,6 +3202,27 @@ AEONERR CAeonTable::Mutate (const CRowKey &Path, CDatum dData, CDatum dMutateDes
 				}
 			}
 
+		else if (strEquals(sOp, MUTATE_UPDATE_MATCH))
+			{
+			CDatum dCurrent = pResult->GetElement(sField);
+			if (!dCurrent.OpIsEqual(dValue))
+				{
+				*retsError = strPattern(ERR_UPDATE_MATCH, Path.AsDatum(PrimaryDims).AsString(), sField, dValue.AsString(), dCurrent.AsString());
+				return AEONERR_OUT_OF_DATE;
+				}
+			}
+
+		else if (strEquals(sOp, MUTATE_UPDATE_MATCH_NO_ERROR))
+			{
+			CDatum dCurrent = pResult->GetElement(sField);
+			if (!dCurrent.OpIsEqual(dValue))
+				{
+				if (retdResult)
+					*retdResult = CDatum();
+				return AEONERR_OK;
+				}
+			}
+
 		else if (strEquals(sOp, MUTATE_UPDATE_NIL))
 			{
 			if (!pResult->GetElement(sField).IsNil())
@@ -3198,6 +3237,29 @@ AEONERR CAeonTable::Mutate (const CRowKey &Path, CDatum dData, CDatum dMutateDes
 		else if (strEquals(sOp, MUTATE_UPDATE_NIL_NO_ERROR))
 			{
 			if (!pResult->GetElement(sField).IsNil())
+				{
+				if (retdResult)
+					*retdResult = CDatum();
+				return AEONERR_OK;
+				}
+
+			pResult->SetElement(sField, dValue);
+			}
+
+		else if (strEquals(sOp, MUTATE_UPDATE_NOT_NIL))
+			{
+			if (pResult->GetElement(sField).IsNil())
+				{
+				*retsError = strPattern(ERR_UPDATE_NOT_NIL, Path.AsDatum(PrimaryDims).AsString(), sField);
+				return AEONERR_OUT_OF_DATE;
+				}
+
+			pResult->SetElement(sField, dValue);
+			}
+
+		else if (strEquals(sOp, MUTATE_UPDATE_NOT_NIL_NO_ERROR))
+			{
+			if (pResult->GetElement(sField).IsNil())
 				{
 				if (retdResult)
 					*retdResult = CDatum();
@@ -3712,7 +3774,7 @@ bool CAeonTable::ParseDimensionDesc (CDatum dDimDesc, SDimensionDesc *retDimDesc
 	CDatum dKeyType = dDimDesc.GetElement(FIELD_KEY_TYPE);
 	if (dKeyType.IsNil())
 		{
-		*retsError = CString("KeyType required for table dimension.");
+		*retsError = STR_CAEON_TABLE_KEY_TYPE_REQUIRED_FOR_TABLE_DIMENSION;
 		return false;
 		}
 

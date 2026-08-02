@@ -5,6 +5,8 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_EXEC_SESSION_LATER,	"LATER");
+
 DECLARE_CONST_STRING(PORT_HEXE_COMMAND,					"Hexe.command");
 
 DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply");
@@ -85,7 +87,7 @@ bool CRunSession::HandleResult (CHexeProcess::ERun iRun, CDatum dResult)
 
 		default:
 			//	LATER:
-			SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, CString("LATER"));
+			SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, STR_EXEC_SESSION_LATER);
 			return false;
 		}
 	}

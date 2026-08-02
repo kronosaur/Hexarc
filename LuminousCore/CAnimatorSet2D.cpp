@@ -140,6 +140,23 @@ IAnimator2D& CAnimatorSet2D::GetAnimatorVector (Obj2DProp iProp, const CVector2D
 	return *pAnimator;
 	}
 
+IAnimator2D& CAnimatorSet2D::GetAnimatorVectorQueue (Obj2DProp iProp, const TArray<CVector2D>& InitialValue)
+	{
+	TUniquePtr<IAnimator2D>& pAnimator = *m_Animators.SetAt(iProp);
+
+	if (!pAnimator)
+		{
+		pAnimator.Set(new CVectorQueueAnimator2D(iProp));
+
+		IAnimator2D::SKeyframeDesc Desc;
+		Desc.iFrame = 0;
+		Desc.iType = IAnimator2D::Type::Constant;
+
+		pAnimator->AddKeyframeVectorQueue(Desc, InitialValue);
+		}
+
+	return *pAnimator;
+	}
 int CAnimatorSet2D::GetFrameCount () const
 
 //	GetFrameCount
@@ -156,6 +173,17 @@ int CAnimatorSet2D::GetFrameCount () const
 		}
 
 	return iMaxFrame;
+	}
+
+void CAnimatorSet2D::TrimAllBefore (int iFrame)
+
+//	TrimAllBefore
+//
+//	Trim old keyframes from all animators.
+
+	{
+	for (int i = 0; i < m_Animators.GetCount(); i++)
+		m_Animators[i]->TrimBefore(iFrame);
 	}
 
 bool CAnimatorSet2D::RemoveAnimation (Obj2DProp iProp)

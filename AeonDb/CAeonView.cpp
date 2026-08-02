@@ -206,6 +206,7 @@ void CAeonView::Copy (const CAeonView &Src) noexcept
 	m_bExcludeNil = Src.m_bExcludeNil;
 	m_bUsesListKeys = Src.m_bUsesListKeys;
 	m_bUpdateNeeded = Src.m_bUpdateNeeded;
+	m_bOldestTombstoneCleanupNeeded = Src.m_bOldestTombstoneCleanupNeeded;
 	}
 
 void CAeonView::CreatePermutedKeys (const TArray<CDatum> &KeyData, int iDim, const TArray<CDatum> &PrevKey, SEQUENCENUMBER RowID, TArray<CRowKey> *retKeys)
@@ -571,7 +572,37 @@ bool CAeonView::GetData (const CRowKey &Path, CDatum *retData, SEQUENCENUMBER *r
 	return true;
 	}
 
-bool CAeonView::GetSegmentsToMerge (CAeonSegment **retpSeg1, CAeonSegment **retpSeg2)
+bool CAeonView::GetOldestSegmentToCompactTombstones (CAeonSegment **retpSeg)
+
+//	GetOldestSegmentToCompactTombstones
+//
+//	Returns the oldest segment if it has tombstones that we can compact away.
+
+	{
+	if (!m_bOldestTombstoneCleanupNeeded)
+		return false;
+
+	if (m_Segments.GetCount() == 0)
+		{
+		m_bOldestTombstoneCleanupNeeded = false;
+		return false;
+		}
+
+	CAeonSegment *pOldestSeg = m_Segments[m_Segments.GetCount() - 1];
+	for (int i = 0; i < pOldestSeg->GetCount(); i++)
+		if (pOldestSeg->GetData(i).IsNil())
+			{
+			if (retpSeg)
+				*retpSeg = pOldestSeg;
+
+			return true;
+			}
+
+	m_bOldestTombstoneCleanupNeeded = false;
+	return false;
+	}
+
+bool CAeonView::GetSegmentsToMerge (CAeonSegment **retpSeg1, CAeonSegment **retpSeg2, bool *retbIncludesOldest)
 
 //	GetSegmentsToMerge
 //
@@ -591,9 +622,31 @@ bool CAeonView::GetSegmentsToMerge (CAeonSegment **retpSeg1, CAeonSegment **retp
 
 	CAeonSegment *pSeg1 = NULL;
 	CAeonSegment *pSeg2 = NULL;
+	bool bIncludesOldest = false;
+
+	//	If the oldest segment is no larger than the next oldest segment, merge
+	//	them, even if that reduces us to one segment. This keeps the bottom of
+	//	the stack compact without repeatedly merging tiny segments into a much
+	//	larger oldest segment.
+
+		{
+		DWORDLONG dwNextOldestSize = m_Segments[iSegCount - 2]->GetFileSize();
+		DWORDLONG dwOldestSize = m_Segments[iSegCount - 1]->GetFileSize();
+
+		if (dwOldestSize <= dwNextOldestSize
+				&& dwNextOldestSize + dwOldestSize <= GIGABYTE_DISK)
+			{
+			pSeg1 = m_Segments[iSegCount - 2];
+			pSeg2 = m_Segments[iSegCount - 1];
+			bIncludesOldest = true;
+			}
+		}
 
 	for (i = iSegCount - 2; i >= 0; i--)
 		{
+		if (pSeg1 && pSeg2)
+			break;
+
 		DWORDLONG dwSeg1Size = m_Segments[i]->GetFileSize();
 		DWORDLONG dwSeg2Size = m_Segments[i + 1]->GetFileSize();
 
@@ -615,19 +668,35 @@ bool CAeonView::GetSegmentsToMerge (CAeonSegment **retpSeg1, CAeonSegment **retp
 			{
 			pSeg1 = m_Segments[i];
 			pSeg2 = m_Segments[i + 1];
+			bIncludesOldest = (i + 1 == iSegCount - 1);
 			break;
 			}
 		}
 
 	//	If we did not find segments to merge and if we've got more than the
-	//	maximum number of segments, merge the first two.
+	//	maximum number of segments, merge the oldest pair that does not exceed
+	//	our hard size limit.
 
 	if (pSeg1 == NULL || pSeg2 == NULL)
 		{
 		if (iSegCount >= MIN_SEGMENTS_TO_MERGE)
 			{
-			pSeg1 = m_Segments[0];
-			pSeg2 = m_Segments[1];
+			for (i = iSegCount - 2; i >= 0; i--)
+				{
+				DWORDLONG dwSeg1Size = m_Segments[i]->GetFileSize();
+				DWORDLONG dwSeg2Size = m_Segments[i + 1]->GetFileSize();
+
+				if (dwSeg1Size + dwSeg2Size <= GIGABYTE_DISK)
+					{
+					pSeg1 = m_Segments[i];
+					pSeg2 = m_Segments[i + 1];
+					bIncludesOldest = (i + 1 == iSegCount - 1);
+					break;
+					}
+				}
+
+			if (pSeg1 == NULL || pSeg2 == NULL)
+				return false;
 			}
 		else
 			return false;
@@ -637,6 +706,8 @@ bool CAeonView::GetSegmentsToMerge (CAeonSegment **retpSeg1, CAeonSegment **retp
 
 	*retpSeg1 = pSeg1;
 	*retpSeg2 = pSeg2;
+	if (retbIncludesOldest)
+		*retbIncludesOldest = bIncludesOldest;
 
 	return true;
 	}
@@ -1032,6 +1103,28 @@ void CAeonView::Mark (void)
 	m_ComputedColumns.Mark();
 	}
 
+void CAeonView::SegmentCompactComplete (CAeonSegment *pOldSeg, CAeonSegment *pNewSeg)
+
+//	SegmentCompactComplete
+//
+//	Replace an old segment with a tombstone-compacted segment.
+
+	{
+	for (int i = 0; i < m_Segments.GetCount(); i++)
+		if (m_Segments[i] == pOldSeg)
+			{
+			pOldSeg->MarkForDelete();
+			pOldSeg->Release();
+			m_Segments.Delete(i);
+			break;
+			}
+
+	if (pNewSeg)
+		m_Segments.Insert(pNewSeg->GetSequence(), pNewSeg);
+
+	m_bOldestTombstoneCleanupNeeded = false;
+	}
+
 void CAeonView::SegmentMergeComplete (CAeonSegment *pSeg1, CAeonSegment *pSeg2, CAeonSegment *pNewSeg)
 
 //	SegmentMergeComplete
@@ -1061,9 +1154,10 @@ void CAeonView::SegmentMergeComplete (CAeonSegment *pSeg1, CAeonSegment *pSeg2, 
 			i--;
 			}
 
-	//	Add the new segment
+	//	Add the new segment (if any).
 
-	m_Segments.Insert(pNewSeg->GetSequence(), pNewSeg);
+	if (pNewSeg)
+		m_Segments.Insert(pNewSeg->GetSequence(), pNewSeg);
 	}
 
 void CAeonView::SegmentSaveComplete (CAeonSegment *pSeg)

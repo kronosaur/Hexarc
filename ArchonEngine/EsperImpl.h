@@ -11,7 +11,7 @@
 class CEsperAMP1ConnectionIn : public CEsperConnection
 	{
 	public:
-		CEsperAMP1ConnectionIn (CEsperConnectionManager &Manager, const CString &sClientAddr, SOCKET hSocket);
+		CEsperAMP1ConnectionIn (CEsperConnectionManager &Manager, const CString &sClientAddr, DWORD dwClientTicket, SOCKET hSocket);
 
 		//	CEsperConnection virtuals
 
@@ -41,10 +41,13 @@ class CEsperAMP1ConnectionIn : public CEsperConnection
 			};
 
 		void OpReadRequest (EStates iState);
+		void OpProcessHeaderBuffer (IMemoryBlock &Data);
 		void OpSendAMPMessage (const CString &sCommand, IMemoryBlock &Data);
+		void SaveBufferedInput (const char *pData, DWORD dwLen);
 
 		CEsperConnectionManager &m_Manager;
 		CString m_sClientAddr;
+		DWORD m_dwClientTicket = 0;
 
 		CString m_sMachineName;
 
@@ -66,11 +69,18 @@ class CEsperAMP1ConnectionOut : public CEsperConnection
 		virtual void AccumulateStatus (SStatus *ioStatus) override;
 		virtual bool BeginAMP1Request (const SArchonMessage &Msg, const SAMP1Request &Request, CString *retsError) override;
 		virtual const CString &GetHostConnection (void) override { return m_sHostConnection; }
+		virtual bool DisconnectAMP1WhenIdle () override;
 		virtual CDatum GetProperty (const CString &sProperty) const override;
 		virtual bool IsBusy () const override { return !IsDeleted() && m_iState != stateConnected && m_iState != stateDisconnected; }
 		virtual bool SetBusy (EOperation iOperation) override;
+		virtual bool SetBusyOrQueueAMP1Request (const SArchonMessage &Msg, const SAMP1Request &Request, bool& retbQueued, CString *retsError) override;
 
 	private:
+		struct SQueuedRequest
+			{
+			SArchonMessage Msg;
+			SAMP1Request Request;
+			};
 
 		enum EStates
 			{
@@ -99,10 +109,16 @@ class CEsperAMP1ConnectionOut : public CEsperConnection
 			{
 			DEBUG_TRY
 			m_Msg.dPayload.Mark();
+			for (int i = 0; i < m_Queue.GetCount(); i++)
+				{
+				m_Queue[i].Msg.dPayload.Mark();
+				m_Queue[i].Request.dData.Mark();
+				}
 			DEBUG_CATCH
 			}
 
 		void DeleteConnection ();
+		void FailQueuedRequests (const CString &sError);
 		bool OpConnect (bool bReconnect = false);
 		bool OpRead (EStates iNewState = stateWaitForResponse);
 		bool OpSendAuth (void);
@@ -110,6 +126,8 @@ class CEsperAMP1ConnectionOut : public CEsperConnection
 		bool OpTransmissionFailed (const CString &sError);
 		bool OpWrite (const CString &sData, EStates iNewState);
 		bool SerializeAMP1Request (const CString &sCommand, CDatum dData, CStringBuffer &Stream, CString *retsError);
+		bool StartAMP1Request (const SArchonMessage &Msg, const SAMP1Request &Request, CString *retsError);
+		bool StartNextQueuedRequest ();
 
 		//	Set at creation time
 
@@ -130,6 +148,10 @@ class CEsperAMP1ConnectionOut : public CEsperConnection
 		bool m_bReconnect = false;
 		bool m_bResetBuffer = false;
 		bool m_bDeleteWhenDone = false;
+		bool m_bReconnectBeforeNextRequest = false;
+
+		CCriticalSection m_cs;
+		TArray<SQueuedRequest> m_Queue;
 	};
 
 class CEsperHTTPOutConnection : public CEsperConnection

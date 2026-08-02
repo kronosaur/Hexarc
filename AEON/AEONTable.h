@@ -76,6 +76,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual EResult AppendEmptyRow (int iCount = 1) override;
 		virtual EResult AppendRow (CDatum dRow, int* retiRow = NULL) override;
 		virtual EResult AppendTable (CDatum dTable) override;
+		virtual bool ApplyDiff (CDatum dDiff, SApplyDiffResult& retResult, CString* retsError = NULL) override;
 		virtual CDatum CombineSubset (SSubset& ioSubset) const override { return CDatum::raw_AsComplex(this); }
 		virtual EResult DeleteAllRows () override;
 		virtual EResult DeleteCol (int iCol) override;
@@ -89,6 +90,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual int GetColCount () const override;
 		virtual CString GetColName (int iCol) const override;
 		virtual CDatum GetDataSlice (int iFirstRow, int iRowCount) const override;
+		virtual CDatum GetDiffSince (SequenceNumber BaseSeq) const override;
 		virtual CDatum GetFieldValue (int iRow, int iCol) const override;
 		virtual const CAEONTableGroupDefinition& GetGroups () const override { return m_GroupDef; }
 		virtual const CAEONTableGroupIndex& GetGroupIndex () const override { CSmartLock Lock(m_cs); return m_GroupIndex; }
@@ -101,6 +103,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual CDatum GetRowID (int iRow) const override;
 		virtual CDatum GetSchema () const override { return ((const IDatatype&)m_dDatatype).GetMember(0).dType; }
 		virtual SequenceNumber GetSeq () const override { return m_Seq; }
+		virtual CDatum GetChangeTrackingInfo () const override;
 		virtual EResult InsertColumn (const CString& sName, CDatum dType, CDatum dValues = CDatum(), int iPos = -1, int *retiCol = NULL) override;
 		virtual void InvalidateKeys () override { CSmartLock Lock(m_cs); m_pKeyIndex = NULL; m_GroupIndex.DeleteAll(); }
 		virtual bool IsSameSchema (CDatum dSchema) const override;
@@ -116,6 +119,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual EResult SetRowByID (CDatum dKey, CDatum dRow, int *retiRow = NULL) override;
 		virtual void SetSeq (SequenceNumber Seq) override { m_Seq = Seq; }
 		virtual CDatum Sort (const TArray<SSort>& Sort) const override { return IAEONTable::CreateSorted(CDatum::raw_AsComplex(this), Sort); }
+		virtual bool TrackChanges (CString* retsError = NULL) override;
 
 		//	IComplexDatum
 
@@ -123,6 +127,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		virtual CString AsString (void) const override;
 		virtual size_t CalcMemorySize (void) const override;
 		virtual IComplexDatum *Clone (CDatum::EClone iMode) const override;
+		virtual CDatum Cleaned () const override;
 		virtual void DeleteElement (int iIndex) override { DeleteRow(iIndex); }
 		virtual bool Find (CDatum dValue, int *retiIndex = NULL) const override { throw CException(errFail); }
 		virtual DWORD GetBasicDatatype () const override { return IDatatype::TABLE; }
@@ -170,6 +175,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		static bool CreateTableFromNil (CAEONTypeSystem& TypeSystem, CDatum& retdDatum);
 		static bool CreateTableFromStruct (CAEONTypeSystem &TypeSystem, CDatum dValue, CDatum &retdDatum);
 		static CDatum DeserializeAEON (IByteStream& Stream, DWORD dwID, CAEONSerializedMap &Serialized);
+		static CDatum DeserializeAEON_v3 (IByteStream& Stream, DWORD dwID, CAEONSerializedMap &Serialized);
 		static CDatum DeserializeAEON_v1 (IByteStream& Stream, DWORD dwID, CAEONSerializedMap &Serialized);
 		static int FindMethodByKey (const CString& sKey) { return (m_pMethodsExt ? m_pMethodsExt->FindMethod(sKey) : -1); }
 		static int FindPropertyByKey (const CString& sKey) { return m_Properties.FindProperty(sKey); }
@@ -195,23 +201,41 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		CAEONTable (const CAEONTable& Src) = default;
 		CAEONTable (CAEONTable&& Src) noexcept = default;
 
+		struct STombstone
+			{
+			CDatum dKey;
+			SequenceNumber Seq = 0;
+			};
+
 		EResult AppendColumn (CDatum dColumn);
 		EResult AppendRowArray (CDatum dRow, int* retiRow = NULL);
 		EResult AppendRowStruct (CDatum dRow, int* retiRow = NULL);
 		EResult AppendSlice (CDatum dSlice);
+		void AddTombstone (CDatum dKey, SequenceNumber Seq);
 		static CDatum CalcColumnDatatype (CDatum dValue);
+		void ClearChangeTracking ();
+		void ClearTombstoneForKey (CDatum dKey, SequenceNumber Seq);
 		void CloneContents (CDatum::EClone iMode);
+		CDatum ComposeChangeTracking () const;
+		CDatum ComposeDiffRow (int iRow, SequenceNumber Seq) const;
 		EResult DeleteRow (int iRow);
+		void DeleteRowSeq (int iRow);
 		std::shared_ptr<CAEONTableIndex> GetIndex () const;
+		bool LoadChangeTracking (CDatum dTracking);
 		EResult MergeArrayOfArrays (CDatum dArray);
 		EResult MergeArrayOfStructs (CDatum dArray);
 		EResult MergeStructOfColumns (CDatum dStruct);
 		EResult MergeTable (CDatum dTable);
 		bool OnModify ();
+		void ResetTrackedRows (SequenceNumber Seq);
+		void SerializeChangeTracking (IByteStream& Stream, CAEONSerializedMap& Serialized) const;
 		void SetIndex (const CAEONTableIndex& Index);
 		void SetIndex (CAEONTableIndex&& Index);
+		void SetRowSeq (int iRow, SequenceNumber Seq);
 		EResult SetRowFromColumnStruct (CDatum dCols, int iIndex, int *retiRow = NULL);
 		void SetSchema (CDatum dDatatype, bool bNoColCreate = false);
+		bool TrackRowDelete (CDatum dKey);
+		void TrackRowUpdate (int iRow);
 
 		int m_iRows = 0;
 		TArray<CDatum> m_Cols;
@@ -227,6 +251,11 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		SequenceNumber m_Seq = 0;
 		bool m_bCopyOnWrite = false;
 		bool m_bReadOnly = false;
+
+		bool m_bTrackChanges = false;
+		SequenceNumber m_MinDiffSeq = 0;
+		TArray<SequenceNumber> m_RowSeqs;
+		TArray<STombstone> m_Tombstones;
 
 		EKeyType m_iKeyType = EKeyType::None;
 		mutable CCriticalSection m_cs;	//	Protects m_pKeyIndex
@@ -300,6 +329,7 @@ class CAEONTableRef : public IComplexDatum, public IAEONTable
 		virtual CString AsString (void) const override;
 		virtual size_t CalcMemorySize (void) const override;
 		virtual IComplexDatum* Clone (CDatum::EClone iMode) const override;
+		virtual CDatum Cleaned () const override;
 		virtual bool Find (CDatum dValue, int* retiIndex = NULL) const override { throw CException(errFail); }
 		virtual DWORD GetBasicDatatype () const override { return IDatatype::TABLE; }
 		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeTable; }
@@ -435,4 +465,3 @@ class CAEONTableRowRef : public IComplexDatum
 		static TDatumPropertyHandler<CAEONTableRowRef> m_Properties;
 		static TDatumMethodHandler<CAEONTableRowRef> m_Methods;
 	};
-

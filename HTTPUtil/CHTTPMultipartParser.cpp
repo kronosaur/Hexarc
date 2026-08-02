@@ -293,7 +293,7 @@ bool CHTTPMultipartParser::ParseToBoundary (const char *pPos, const char *pPosEn
 			{
 			CBuffer Buffer(pStart, iDataLen, false);
 			CDatum dData;
-			if (!CDatum::Deserialize(CDatum::EFormat::JSON, Buffer, &retdData))
+			if (!CDatum::Deserialize(CDatum::EFormat::AEONJSON, Buffer, &retdData))
 				return false;
 			}
 

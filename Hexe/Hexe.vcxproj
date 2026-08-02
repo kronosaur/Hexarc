@@ -248,6 +248,7 @@
     <ClCompile Include="CDictionaryMapProcessor.cpp" />
     <ClCompile Include="CHexeCallStack.cpp" />
     <ClCompile Include="CHexeCode.cpp" />
+    <ClCompile Include="CHexeCodeX64.cpp" />
     <ClCompile Include="CHexeCodeHistogram.cpp" />
     <ClCompile Include="CHexeCodeIntermediate.cpp" />
     <ClCompile Include="CHexeColumnExpressionEval.cpp" />

@@ -10,6 +10,7 @@ DECLARE_CONST_STRING(ADDR_NULL,							"Arc.null")
 DECLARE_CONST_STRING(PORT_EXARCH_COMMAND,				"Exarch.command");
 
 DECLARE_CONST_STRING(FIELD_NAME,						"name");
+DECLARE_CONST_STRING(FIELD_STATUS,						"status");
 
 DECLARE_CONST_STRING(MNEMO_ARC_MACHINES,				"Arc.machines");
 DECLARE_CONST_STRING(MNEMO_ARC_PORTS,					"Arc.ports");
@@ -19,8 +20,53 @@ DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error");
 DECLARE_CONST_STRING(STR_ARCOLOGY_PRIME,				"ArcologyPrime");
 DECLARE_CONST_STRING(STR_LOCAL_SYMBOL,					"~");
 DECLARE_CONST_STRING(STR_LOCALHOST_MACHINE_NAME,		"localhost");
+DECLARE_CONST_STRING(STR_STATUS_RUNNING,				"running");
 
 DECLARE_CONST_STRING(ERR_CANT_BIND,						"Unable to bind to address: %s.");
+
+static bool HasAddressSeparator (const CString &sValue, char chSeparator)
+
+//	HasAddressSeparator
+//
+//	Returns TRUE if the value contains an address separator.
+
+	{
+	char *pPos = sValue.GetParsePointer();
+	while (*pPos != '\0')
+		{
+		if (*pPos == chSeparator)
+			return true;
+
+		pPos++;
+		}
+
+	return false;
+	}
+
+static bool IsValidPhysicalAddressParts (const CString &sProcess, const CString &sMachine)
+
+//	IsValidPhysicalAddressParts
+//
+//	Returns TRUE if the already-parsed address parts are well-formed.
+
+	{
+	if (HasAddressSeparator(sMachine, '@')
+			|| HasAddressSeparator(sMachine, '/')
+			|| HasAddressSeparator(sProcess, '@')
+			|| HasAddressSeparator(sProcess, '/'))
+		{
+		ASSERT(false);
+		return false;
+		}
+
+	return true;
+	}
+
+static bool IsMachineRunning (IArchonProcessCtx *pProcess, const CString &sMachineName)
+	{
+	CDatum dMachineInfo = pProcess->MnemosynthRead(MNEMO_ARC_MACHINES, sMachineName);
+	return strEquals(dMachineInfo.GetElement(FIELD_STATUS).AsStringView(), STR_STATUS_RUNNING);
+	}
 
 CMessageTransporter::~CMessageTransporter (void)
 
@@ -104,7 +150,7 @@ void CMessageTransporter::AddVirtualPort (const CString &sPort, const CString &s
 		}
 
 	ASSERT(!bVirtual);
-	if (bVirtual)
+	if (bVirtual || !IsValidPhysicalAddressParts(sProcess, sMachine))
 		return;
 
 	//	Get the list of addresses associated with this virtual port
@@ -205,7 +251,10 @@ IArchonMessagePort *CMessageTransporter::BindRaw (const CString &sAddress, bool 
 	CString sMachine;
 	bool bVirtual;
 	if (!ParseAddress(sAddress, &sPort, &sProcess, &sMachine, &bVirtual))
+		{
+		ASSERT(false);
 		return NULL;
+		}
 
 	//	If this is a virtual port, then we need to process it as such
 
@@ -214,6 +263,9 @@ IArchonMessagePort *CMessageTransporter::BindRaw (const CString &sAddress, bool 
 		*retbFree = true;
 		return CreateVirtualPortBinding(sAddress);
 		}
+
+	if (!IsValidPhysicalAddressParts(sProcess, sMachine))
+		return NULL;
 
 	//	If this is on a different machine, then we need to generate
 	//	a remote machine transporter.
@@ -311,7 +363,8 @@ CString CMessageTransporter::GenerateAddress (const CString &sPort, const CStrin
 //	Creates an address string
 
 	{
-	ASSERT(!sPort.IsEmpty());
+	if (sPort.IsEmpty() || sPort.Find('@') != -1 || sPort.Find('/') != -1)
+		throw CException(errFail, strPattern("Invalid port name: %s", sPort));
 
 	if (!sMachineName.IsEmpty())
 		{
@@ -426,6 +479,10 @@ TArray<CString> CMessageTransporter::GetArcologyPortAddresses (const CString &sP
 					&& IsLocalMachine(Machines[i]))
 				continue;
 
+			if (!IsLocalMachine(Machines[i])
+					&& !IsMachineRunning(m_pProcess, Machines[i]))
+				continue;
+
 			//	Empty module implies CentralModule.
 			Result.Insert(GenerateAddress(PORT_EXARCH_COMMAND, NULL_STR, Machines[i]));
 			}
@@ -450,6 +507,12 @@ TArray<CString> CMessageTransporter::GetArcologyPortAddresses (const CString &sP
 
 		for (int i = 0; i < Modules.GetCount(); i++)
 			{
+			CString sMachineName;
+			CMnemosynthDb::ParseEndpointName(Modules[i], &sMachineName);
+			if (!IsLocalMachine(sMachineName)
+					&& !IsMachineRunning(m_pProcess, sMachineName))
+				continue;
+
 			CDatum dPortList = m_pProcess->MnemosynthRead(MNEMO_ARC_PORTS, Modules[i]);
 
 			//	Skip, if we're excluding this machine.
@@ -552,6 +615,18 @@ IArchonMessagePort *CMessageTransporter::CreateVirtualPortBinding (const CString
 				CStringView sDestAddr = dPortMapping.GetElement(1);
 				DWORD dwFlags = (DWORD)(int)dPortMapping.GetElement(2);
 
+				//	Parse the address so we can filter stale foreign machines
+				//	before adding any candidate port.
+
+				CString sDestMachine;
+				CString sDestModule;
+				if (!ParseAddress(sDestAddr, NULL, &sDestModule, &sDestMachine))
+					continue;
+
+				if (!IsLocalMachine(sDestMachine)
+						&& !IsMachineRunning(m_pProcess, sDestMachine))
+					continue;
+
 				//	If we always add the port, then add it
 
 				if (dwFlags & FLAG_PORT_ALWAYS)
@@ -566,18 +641,11 @@ IArchonMessagePort *CMessageTransporter::CreateVirtualPortBinding (const CString
 				else if (dwFlags & FLAG_PORT_RANDOM)
 					RandomList.Insert(sDestAddr);
 
-				//	Otherwise, we need to parse the address to figure out how
+				//	Otherwise, we need to figure out how
 				//	close we are to the destination
 
 				else
 					{
-					//	Parse the address
-
-					CString sDestMachine;
-					CString sDestModule;
-					if (!ParseAddress(sDestAddr, NULL, &sDestModule, &sDestMachine))
-						continue;
-
 					//	Add some flags based on our relationship to the dest port
 
 					if (IsLocalMachine(sDestMachine))

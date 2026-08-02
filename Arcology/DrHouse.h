@@ -26,6 +26,7 @@ class CDrHouseEngine : public TSimpleEngine<CDrHouseEngine>
 
 	private:
 		//	Message processing
+		void MsgAMP1Test (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgCreateLogSearch (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgCreateTestTable (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgGetLogSearch (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);

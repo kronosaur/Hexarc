@@ -40,6 +40,7 @@ class CAEONGridConnection : public TExternalDatum<CAEONGridConnection>
 
 		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const override { return CalcMemorySize() + sizeof(DWORD); }
 		virtual bool OnDeserialize (CDatum::EFormat iFormat, const CString &sTypename, IByteStream &Stream) override;
+		virtual void OnMarked () override { m_dData.Mark(); }
 		virtual void OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
 
 	private:
@@ -65,6 +66,7 @@ class CAEONGridConnection : public TExternalDatum<CAEONGridConnection>
 		CString m_sDomain;					//	Domain for connection. Depending on the type,
 											//	this has different functions. E.g., for SendGrid,
 											//	this is the email domain of sender.
+		CDatum m_dData;						//	Scrubbed, connection-specific data.
 		
 		static TDatumPropertyHandler<CAEONGridConnection> m_Properties;
 		static TDatumMethodHandler<CAEONGridConnection> m_Methods;

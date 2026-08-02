@@ -15,12 +15,42 @@ const CString &CAEONVector2D::StaticGetTypename (void) { return TYPENAME_VECTOR_
 
 TDatumPropertyHandler<CAEONVector2D> CAEONVector2D::m_Properties = {
 	{
+		"angle",
+		"f",
+		"Returns the vector angle in radians.",
+		[](const CAEONVector2D& Obj, const CString &sProperty)
+			{
+			return CDatum(Obj.m_vVector.Polar());
+			},
+		NULL,
+		},
+	{
 		"length",
 		"I",
 		"Returns the length of the vector.",
 		[](const CAEONVector2D& Obj, const CString &sProperty)
 			{
 			return CDatum(Obj.m_vVector.Length());
+			},
+		NULL,
+		},
+	{
+		"length2",
+		"f",
+		"Returns the squared length of the vector.",
+		[](const CAEONVector2D& Obj, const CString &sProperty)
+			{
+			return CDatum(Obj.m_vVector.Length2());
+			},
+		NULL,
+		},
+	{
+		"polar",
+		"V2",
+		"Returns the vector in polar form as [angle, radius].",
+		[](const CAEONVector2D& Obj, const CString &sProperty)
+			{
+			return CDatum(CVector2D::ToPolar(Obj.m_vVector));
 			},
 		NULL,
 		},
@@ -36,11 +66,11 @@ TDatumPropertyHandler<CAEONVector2D> CAEONVector2D::m_Properties = {
 		},
 	{
 		"unit",
-		"$Vector2DOfFloat64",
+		"V2",
 		"Returns the a unit vector in the same direction.",
 		[](const CAEONVector2D& Obj, const CString &sProperty)
 			{
-			return CDatum(Obj.m_vVector / Obj.m_vVector.Length());
+			return CDatum(Obj.m_vVector.Unit());
 			},
 		NULL,
 		},
@@ -138,36 +168,19 @@ CDatum CAEONVector2D::GetElement (const CString &sKey) const
 		return CDatum();
 	}
 
-void CAEONVector2D::SetElement (int iIndex, CDatum dDatum)
+TArray<IDatatype::SMemberDesc> CAEONVector2D::GetMembers ()
 
-//	SetElement
+//	GetMembers
 //
-//	Sets element
+//	Returns a list of members.
 
 	{
-	switch (iIndex)
-		{
-		case 0:
-			m_vVector.SetX(dDatum);
-			break;
+	TArray<IDatatype::SMemberDesc> Members;
 
-		case 1:
-			m_vVector.SetY(dDatum);
-			break;
-		}
-	}
+	m_Properties.AccumulateMembers(Members);
+	m_Methods.AccumulateMembers(Members);
 
-void CAEONVector2D::SetElement (const CString &sKey, CDatum dDatum)
-
-//	SetElement
-//
-//	Sets element
-
-	{
-	if (strEquals(sKey, FIELD_X))
-		m_vVector.SetX(dDatum);
-	else if (strEquals(sKey, FIELD_Y))
-		m_vVector.SetY(dDatum);
+	return Members;
 	}
 
 size_t CAEONVector2D::OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const

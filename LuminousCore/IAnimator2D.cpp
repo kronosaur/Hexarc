@@ -12,6 +12,7 @@ DECLARE_CONST_STRING(TYPE_LINEAR,					"linear");
 TArray<bool> IAnimator2D::m_NullBool;
 TArray<CLuminousColor> IAnimator2D::m_NullColor;
 TArray<double> IAnimator2D::m_NullScalar;
+TArray<TArray<CVector2D>> IAnimator2D::m_NullVectorQueue;
 TArray<CString> IAnimator2D::m_NullString;
 TArray<CVector2D> IAnimator2D::m_NullVector;
 IAnimator2D::SKeyframeDesc IAnimator2D::m_NullKeyframe;
@@ -71,7 +72,11 @@ TUniquePtr<IAnimator2D> IAnimator2D::CreateFromStream (IByteStream& Stream)
 			pAnimator = TUniquePtr<IAnimator2D>(new CColorAnimator2D(iProp));
 			break;
 
-		case IMPL_SCALAR:
+		case IMPL_VECTOR_QUEUE:
+            pAnimator = TUniquePtr<IAnimator2D>(new CVectorQueueAnimator2D(iProp));
+            break;
+
+        case IMPL_SCALAR:
 			pAnimator = TUniquePtr<IAnimator2D>(new CScalarAnimator2D(iProp));
 			break;
 
@@ -122,7 +127,13 @@ DWORD IAnimator2D::GetImplID () const
 		case ObjPropType::Color:
 			return IMPL_COLOR;
 
-		case ObjPropType::Scalar:
+		case ObjPropType::VectorQueue:
+            return IMPL_VECTOR_QUEUE;
+
+		case ObjPropType::VectorList:
+			return IMPL_VECTOR_QUEUE;
+
+        case ObjPropType::Scalar:
 			return IMPL_SCALAR;
 
 		case ObjPropType::String:
@@ -134,6 +145,40 @@ DWORD IAnimator2D::GetImplID () const
 		default:
 			throw CException(errFail);
 		}
+	}
+
+void IAnimator2D::TrimBefore (int iFrame)
+
+//	TrimBefore
+//
+//	Removes old keyframes that are before iFrame, keeping the last
+//	keyframe before iFrame as the new starting point so there is always
+//	a defined value at the threshold.
+
+	{
+	if (m_Keyframes.GetCount() <= 1)
+		return;
+
+	//	Find the last keyframe index that is strictly before iFrame.
+
+	int iLastBefore = -1;
+	for (int i = 0; i < m_Keyframes.GetCount(); i++)
+		{
+		if (m_Keyframes[i].iFrame < iFrame)
+			iLastBefore = i;
+		else
+			break;
+		}
+
+	//	We keep the keyframe at iLastBefore (it becomes the new "initial"
+	//	keyframe). Delete indices 0 through iLastBefore - 1.
+
+	int iDeleteCount = iLastBefore;
+	if (iDeleteCount <= 0)
+		return;
+
+	OnTrimValues(0, iDeleteCount);
+	m_Keyframes.Delete(0, iDeleteCount);
 	}
 
 void IAnimator2D::Write (IByteStream& Stream) const

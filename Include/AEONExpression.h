@@ -79,6 +79,9 @@ class CAEONExpression : public IComplexDatum
 			Sign					= 57,
 			StdDev					= 58,
 			StdError				= 59,
+			NotIn					= 60,
+			Vector2D				= 61,
+			Vector3D				= 62,
 			};
 
 		struct SNode
@@ -106,6 +109,8 @@ class CAEONExpression : public IComplexDatum
 		static CDatum CreateZeroaryOp (EOp iOp);
 		static CDatum Parse (CStringView sExpr);
 
+		CDatum CalcEvalType (CDatum dSchema) const;
+		static CDatum CalcEvalType (const CAEONExpression& Expr, CDatum dSchema);
 		int GetColumnCount () const { return m_Columns.GetCount(); }
 		CStringView GetColumnID (int iColID) const { if (iColID < 0 || iColID >= m_Columns.GetCount()) throw CException(errFail); return m_Columns[iColID]; }
 		int GetLiteralCount () const { return m_Literals.GetCount(); }
@@ -178,11 +183,14 @@ class CAEONMapColumnExpression : public TExternalDatum<CAEONMapColumnExpression>
 		static CDatum Create (CDatum dType, CDatum dExpressions) { return CDatum(new CAEONMapColumnExpression(dType, dExpressions)); }
 		static CDatum CreateFromStruct (CDatum dStruct);
 		static CDatum CreateIdentity (CDatum dTable);
+		static CDatum CreateLinearFitOutput (CDatum dTable);
 		static CDatum CreateSummary (CDatum dTable, CStringView sColName, CDatum dColExpr);
 		static CDatum CreateWithGroups (CDatum dType, CDatum dExpressions, CDatum dTable);
 		static TArray<IDatatype::SMemberDesc> GetMembers (void);
 		static const CString& StaticGetTypename (void);
 
+		CDatum FindColExpression (CStringView sColID) const;
+		CDatum GetElementAsValue (CStringView sColID) const;
 		int GetColCount () const { return m_dExpressions.GetCount(); }
 		CDatum GetColExpression (int iIndex) const { return m_dExpressions.GetElement(iIndex); }
 		CDatum GetSchema () const { return m_dType; }

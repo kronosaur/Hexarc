@@ -19,6 +19,7 @@ DECLARE_CONST_STRING(STR_WEBSOCKET,						"websocket");
 DECLARE_CONST_STRING(WEB_SOCKET_GUID,					"258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
 
 DECLARE_CONST_STRING(ERR_INVALID_CONTINUATION,			"Parsed continuation frame without initial frame.");
+DECLARE_CONST_STRING(ERR_PAYLOAD_TOO_LARGE,			"WebSocket frame payload is too large.");
 
 void CWebSocketProtocol::AppendFrame (bool bFinal, EOpCode iOpCode, CString sData)
 
@@ -265,9 +266,15 @@ int CWebSocketProtocol::ParseFrame (const BYTE* pPos, const BYTE* pPosEnd)
 	else if (dwPayloadLength == 127)
 		{
 		DWORDLONG dwPayloadLength64 = (DWORDLONG)pPos[2] * 0x100000000000000 + (DWORDLONG)pPos[3] * 0x1000000000000 + (DWORDLONG)pPos[4] * 0x10000000000 + (DWORDLONG)pPos[5] * 0x100000000 + (DWORDLONG)pPos[6] * 0x1000000 + (DWORDLONG)pPos[7] * 0x10000 + (DWORDLONG)pPos[8] * 0x100 + (DWORDLONG)pPos[9];
-		if (dwPayloadLength64 > 0x80000000)
-			//	Not supported for now--break up into multiple frames
-			throw CException(errFail);
+		if (dwPayloadLength64 > 0x7fffffff)
+			{
+			//	Not supported for now--break up into multiple frames.
+			//	Report a protocol error instead of throwing or overflowing
+			//	when we later compare/cast the length to int.
+
+			AppendFrame(true, EOpCode::Error, ERR_PAYLOAD_TOO_LARGE);
+			return (int)(pPosEnd - pStart);
+			}
 
 		dwPayloadLength = (DWORD)dwPayloadLength64;
 		pPos += 2 + iBytesToRead;

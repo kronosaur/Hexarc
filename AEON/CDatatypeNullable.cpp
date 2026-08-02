@@ -5,6 +5,15 @@
 
 #include "stdafx.h"
 
+bool CDatatypeNullable::OnCanBeConstructedFrom (CDatum dType) const
+	{
+	const IDatatype& SrcType = dType;
+	if (SrcType.IsAny() || SrcType.IsNullType() || SrcType.IsA(*this))
+		return true;
+
+	return ((const IDatatype&)m_dVariantType).CanBeConstructedFrom(dType);
+	}
+
 bool CDatatypeNullable::OnDeserialize (CDatum::EFormat iFormat, IByteStream &Stream, DWORD dwVersion)
 	{
 	SetCoreType(Stream.ReadDWORD());

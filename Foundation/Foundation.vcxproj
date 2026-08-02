@@ -388,8 +388,10 @@
     <ClCompile Include="CStringBuffer.cpp" />
     <ClCompile Include="CStringFormat.cpp" />
     <ClCompile Include="CStringView.cpp" />
+    <ClCompile Include="StringEncoding.cpp" />
     <ClCompile Include="CSymbolTable.cpp" />
     <ClCompile Include="CTextMarkupParser.cpp" />
+    <ClCompile Include="CTimeSpan.cpp" />
     <ClCompile Include="CVoronoiNavigator.cpp" />
     <ClCompile Include="CVoronoiTessellation.cpp" />
     <ClCompile Include="CWebSocketProtocol.cpp" />

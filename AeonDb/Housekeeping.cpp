@@ -14,6 +14,8 @@ DECLARE_CONST_STRING(OP_UPDATING_VIEW,					"updating a view");
 
 DECLARE_CONST_STRING(STR_BACKING_UP,					"Table %s: Backing up to: %s.");
 DECLARE_CONST_STRING(STR_BACKUP_COMPLETE,				"Table %s: Backup complete.");
+DECLARE_CONST_STRING(STR_COMPACTING_OLD_TOMBSTONES,	"Table %s: Compacting old tombstones from view %x segment %s (%d rows).");
+DECLARE_CONST_STRING(STR_TOMBSTONE_COMPACT_COMPLETE,	"Table %s: Old tombstone compaction complete.");
 DECLARE_CONST_STRING(STR_MERGE_COMPLETE,				"Table %s: Segment merge complete.");
 DECLARE_CONST_STRING(STR_UPDATING_VIEW,					"Updating view %s in table %s.");
 DECLARE_CONST_STRING(STR_VIEW_UPDATED,					"View update complete: view %s in table %s.");
@@ -26,6 +28,7 @@ DECLARE_CONST_STRING(ERR_SEGMENT_BACKUP_FAILED,			"Unable to create backup for n
 DECLARE_CONST_STRING(ERR_CANT_DELETE_FILE,				"Unable to delete file: %s.");
 DECLARE_CONST_STRING(ERR_UPDATE_VIEW_ABORTED,			"Unable to update view %s in table %s.");
 DECLARE_CONST_STRING(ERR_DELETING_EXTRA_SEGMENT_FILE,	"Table %s: Deleting extraneous segment file: %s.");
+DECLARE_CONST_STRING(ERR_TOMBSTONE_COMPACT_FAILED,		"Failed compacting old tombstones from segment %s: %s.");
 DECLARE_CONST_STRING(ERR_SEGMENT_MERGE_FAILED,			"Failed merging segments %s and %s: %s.");
 
 bool CAeonTable::HousekeepingBackup (CSmartLock &Lock)
@@ -83,6 +86,98 @@ bool CAeonTable::HousekeepingBackup (CSmartLock &Lock)
 	return true;
 	}
 
+bool CAeonTable::HousekeepingCompactOldestTombstones (CSmartLock &Lock, bool *retbDone)
+
+//	HousekeepingCompactOldestTombstones
+//
+//	One-shot migration pass to remove tombstones from the oldest segment.
+
+	{
+	CString sError;
+
+	if (retbDone)
+		*retbDone = false;
+
+	m_iHousekeeping = stateCompactingTombstones;
+
+	for (int i = 0; i < m_Views.GetCount(); i++)
+		{
+		CAeonSegment *pOldSeg;
+		if (!m_Views[i].GetOldestSegmentToCompactTombstones(&pOldSeg))
+			continue;
+
+		CString sOldSegFile = m_pStorage->MachineToCanonicalRelative(pOldSeg->GetFilespec());
+
+		m_pProcess->Log(MSG_LOG_INFO, strPattern(STR_COMPACTING_OLD_TOMBSTONES, m_sName, m_Views.GetKey(i), sOldSegFile, pOldSeg->GetCount()));
+
+		CRowIterator Rows;
+		Rows.Init(m_Views[i].GetDimensions());
+		Rows.AddSegment(pOldSeg);
+		Rows.SetIncludeNil(false);
+		Rows.Reset();
+
+		CAeonSegment *pNewSeg = NULL;
+		CString sBackup;
+		bool bBackupFailed = false;
+
+		if (Rows.HasMore())
+			{
+			CString sFilespec = GetUniqueSegmentFilespec(&sBackup);
+
+			Lock.Unlock();
+
+			DWORD dwSegFlags = 0;
+			dwSegFlags |= (m_Views[i].HasRowID() ? CAeonSegment::FLAG_HAS_ROW_ID : 0);
+			dwSegFlags |= (m_Views[i].IsSecondaryView() ? CAeonSegment::FLAG_SECONDARY_VIEW : 0);
+			dwSegFlags |= CAeonSegment::CREATE_OPTION_DEBUG_ORDER;
+
+			pNewSeg = new CAeonSegment;
+			if (!pNewSeg->Create(m_Views[i].GetID(), m_Views[i].GetDimensions(), pOldSeg->GetSequence(), Rows, sFilespec, dwSegFlags, &sError))
+				{
+				m_pProcess->Log(MSG_LOG_ERROR, strPattern(ERR_TOMBSTONE_COMPACT_FAILED, pOldSeg->GetFilespec(), sError));
+				pNewSeg->Release();
+				Lock.Lock();
+				m_iHousekeeping = stateReady;
+				return false;
+				}
+
+			if (!m_bBackupLost)
+				{
+				if (!fileCopy(sFilespec, sBackup))
+					bBackupFailed = true;
+				}
+
+			Lock.Lock();
+			}
+
+		m_Views[i].SegmentCompactComplete(pOldSeg, pNewSeg);
+
+		if (bBackupFailed)
+			{
+			m_pProcess->Log(MSG_LOG_ERROR, strPattern(ERR_SEGMENT_BACKUP_FAILED, sBackup));
+
+			//	LATER:
+			}
+		else if (!m_bBackupLost)
+			{
+			CString sOldBackup = m_pStorage->CanonicalRelativeToMachine(m_sBackupVolume, sOldSegFile);
+			if (!fileDelete(sOldBackup))
+				m_pProcess->Log(MSG_LOG_ERROR, strPattern(ERR_CANT_DELETE_FILE, sOldBackup));
+			}
+
+		m_pProcess->Log(MSG_LOG_INFO, strPattern(STR_TOMBSTONE_COMPACT_COMPLETE, m_sName));
+		m_iHousekeeping = stateReady;
+
+		if (retbDone)
+			*retbDone = true;
+
+		return true;
+		}
+
+	m_iHousekeeping = stateReady;
+	return true;
+	}
+
 bool CAeonTable::HousekeepingMergeSegments (CSmartLock &Lock)
 
 //	HousekeepingMergeSegments
@@ -107,8 +202,9 @@ bool CAeonTable::HousekeepingMergeSegments (CSmartLock &Lock)
 		{
 		CAeonSegment *pSeg1;
 		CAeonSegment *pSeg2;
+		bool bIncludesOldest;
 
-		if (m_Views[i].GetSegmentsToMerge(&pSeg1, &pSeg2))
+		if (m_Views[i].GetSegmentsToMerge(&pSeg1, &pSeg2, &bIncludesOldest))
 			{
 			CString sSeg1File = m_pStorage->MachineToCanonicalRelative(pSeg1->GetFilespec());
 			CString sSeg2File = m_pStorage->MachineToCanonicalRelative(pSeg2->GetFilespec());
@@ -117,75 +213,90 @@ bool CAeonTable::HousekeepingMergeSegments (CSmartLock &Lock)
 
 			m_pProcess->Log(MSG_LOG_INFO, strPattern(ERR_MERGING_SEGMENTS, m_sName, sSeg1File, pSeg1->GetCount(), sSeg2File, pSeg2->GetCount()));
 
-			//	If the resulting segment is too big, then we can't do anything
-
-			DWORDLONG dwSeg1Size = pSeg1->GetFileSize();
-			DWORDLONG dwSeg2Size = pSeg2->GetFileSize();
-			if (dwSeg1Size + dwSeg2Size > GIGABYTE_DISK)
-				{
-				m_pProcess->Log(MSG_LOG_ERROR, strPattern(ERR_MERGE_TOO_BIG, sSeg1File, sSeg2File));
-				continue;	//	Loop to the next view.
-				}
-
-			//	See if we have enough disk space.
-
-			DWORDLONG dwAvailable;
-			fileGetDriveSpace(pSeg1->GetFilespec(), &dwAvailable);
-			if (dwAvailable < dwSeg1Size + dwSeg2Size)
-				{
-				m_pProcess->Log(MSG_LOG_ERROR, strPattern(ERR_NOT_ENOUGH_SPACE_TO_MERGE, sSeg1File, sSeg2File));
-				continue;	//	Loop to the next view.
-				}
-
 			//	Create an iterator that will traverse both segments in order.
+			//	If this merge includes the oldest segment, then we can safely
+			//	eliminate tombstones because there are no older rows to hide.
 
 			CRowIterator Rows;
 			Rows.Init(m_Views[i].GetDimensions());
 			Rows.AddSegment(pSeg1);
 			Rows.AddSegment(pSeg2);
 
-			//	Get the name of the new segment
+			if (bIncludesOldest)
+				Rows.SetIncludeNil(false);
 
+			Rows.Reset();
+
+			CAeonSegment *pNewSeg = NULL;
 			CString sBackup;
 			bool bBackupFailed = false;
 
-			CString sFilespec = GetUniqueSegmentFilespec(&sBackup);
+			//	If eliminating tombstones removed everything, then we can retire
+			//	the old segments without creating a replacement.
 
-			//	Get the new sequence number (we always use the first segment
-			//	because it is most recent).
-
-			SEQUENCENUMBER NewSeq = pSeg1->GetSequence();
-
-			//	Merge the segments. We do this outside the lock because no other
-			//	thread should try to merge segments (because of the flag) and
-			//	because existing segments are not modified.
-
-			Lock.Unlock();
-
-			//	Create the segment
-
-			DWORD dwSegFlags = 0;
-			dwSegFlags |= (i == 0 ? CAeonSegment::FLAG_HAS_ROW_ID : 0);
-			dwSegFlags |= (i != 0 ? CAeonSegment::FLAG_SECONDARY_VIEW : 0);
-			dwSegFlags |= CAeonSegment::CREATE_OPTION_DEBUG_ORDER;
-
-			CAeonSegment *pNewSeg = new CAeonSegment;
-			if (!pNewSeg->Create(m_Views[i].GetID(), m_Views[i].GetDimensions(), NewSeq, Rows, sFilespec, dwSegFlags, &sError))
+			if (Rows.HasMore())
 				{
-				m_pProcess->Log(MSG_LOG_ERROR, strPattern(ERR_SEGMENT_MERGE_FAILED, pSeg1->GetFilespec(), pSeg2->GetFilespec(), sError));
-				pNewSeg->Release();
-				break;	//	Stop looping over views.
+				//	If the resulting segment is too big, then we can't do anything
+
+				DWORDLONG dwSeg1Size = pSeg1->GetFileSize();
+				DWORDLONG dwSeg2Size = pSeg2->GetFileSize();
+				if (dwSeg1Size + dwSeg2Size > GIGABYTE_DISK)
+					{
+					m_pProcess->Log(MSG_LOG_ERROR, strPattern(ERR_MERGE_TOO_BIG, sSeg1File, sSeg2File));
+					continue;	//	Loop to the next view.
+					}
+
+				//	See if we have enough disk space.
+
+				DWORDLONG dwAvailable;
+				fileGetDriveSpace(pSeg1->GetFilespec(), &dwAvailable);
+				if (dwAvailable < dwSeg1Size + dwSeg2Size)
+					{
+					m_pProcess->Log(MSG_LOG_ERROR, strPattern(ERR_NOT_ENOUGH_SPACE_TO_MERGE, sSeg1File, sSeg2File));
+					continue;	//	Loop to the next view.
+					}
+
+				//	Get the name of the new segment
+
+				CString sFilespec = GetUniqueSegmentFilespec(&sBackup);
+
+				//	Get the new sequence number (we always use the first segment
+				//	because it is most recent).
+
+				SEQUENCENUMBER NewSeq = pSeg1->GetSequence();
+
+				//	Merge the segments. We do this outside the lock because no other
+				//	thread should try to merge segments (because of the flag) and
+				//	because existing segments are not modified.
+
+				Lock.Unlock();
+
+				//	Create the segment
+
+				DWORD dwSegFlags = 0;
+				dwSegFlags |= (i == 0 ? CAeonSegment::FLAG_HAS_ROW_ID : 0);
+				dwSegFlags |= (i != 0 ? CAeonSegment::FLAG_SECONDARY_VIEW : 0);
+				dwSegFlags |= CAeonSegment::CREATE_OPTION_DEBUG_ORDER;
+
+				pNewSeg = new CAeonSegment;
+				if (!pNewSeg->Create(m_Views[i].GetID(), m_Views[i].GetDimensions(), NewSeq, Rows, sFilespec, dwSegFlags, &sError))
+					{
+					m_pProcess->Log(MSG_LOG_ERROR, strPattern(ERR_SEGMENT_MERGE_FAILED, pSeg1->GetFilespec(), pSeg2->GetFilespec(), sError));
+					pNewSeg->Release();
+					Lock.Lock();
+					break;	//	Stop looping over views.
+					}
+
+				//	Make a backup
+
+				if (!m_bBackupLost)
+					{
+					if (!fileCopy(sFilespec, sBackup))
+						bBackupFailed = true;
+					}
+
+				Lock.Lock();
 				}
-
-			//	Make a backup
-
-			if (!m_bBackupLost)
-				{
-				if (!fileCopy(sFilespec, sBackup))
-					bBackupFailed = true;
-				}
-
-			Lock.Lock();
 
 			//	Replace the segments in the view's data structure
 

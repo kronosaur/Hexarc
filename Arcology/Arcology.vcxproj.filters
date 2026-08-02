@@ -19,6 +19,9 @@
     <Filter Include="Test Package Files">
       <UniqueIdentifier>{8d1af224-5869-400c-a726-27b07a77ed2c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Docs">
+      <UniqueIdentifier>{1bc094d3-87ac-4dbf-970c-8fdb9870834b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Arcology.cpp">
@@ -28,6 +31,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CDrHouseEngine.cpp">
+      <Filter>Source Files\DrHouse</Filter>
+    </ClCompile>
+    <ClCompile Include="MsgAMP1Test.cpp">
       <Filter>Source Files\DrHouse</Filter>
     </ClCompile>
     <ClCompile Include="MsgCreateTestTable.cpp">
@@ -76,10 +82,51 @@
       <Filter>Test Package Files</Filter>
     </None>
     <None Include="ArcologyPackage.ars" />
-    <None Include="Notes.txt" />
-    <None Include="PortsAndMessages.txt" />
     <None Include="..\.gitignore" />
-    <None Include="..\README.md" />
-    <None Include="..\AGENTS.md" />
+    <None Include="..\AGENTS.md">
+      <Filter>Docs</Filter>
+    </None>
+    <None Include="..\CLAUDE.md">
+      <Filter>Docs</Filter>
+    </None>
+    <None Include="Notes.txt">
+      <Filter>Docs</Filter>
+    </None>
+    <None Include="PortsAndMessages.txt">
+      <Filter>Docs</Filter>
+    </None>
+    <None Include="..\Docs\architecture.md">
+      <Filter>Docs</Filter>
+    </None>
+    <None Include="..\Docs\column-expressions.md">
+      <Filter>Docs</Filter>
+    </None>
+    <None Include="..\Docs\core-library.md">
+      <Filter>Docs</Filter>
+    </None>
+    <None Include="..\Docs\gridlang-compiler.md">
+      <Filter>Docs</Filter>
+    </None>
+    <None Include="..\Docs\gridlang-tables.md">
+      <Filter>Docs</Filter>
+    </None>
+    <None Include="..\Docs\cdatum.md">
+      <Filter>Docs</Filter>
+    </None>
+    <None Include="..\Docs\aeondb-diagnostics-notes.md">
+      <Filter>Docs</Filter>
+    </None>
+    <None Include="..\Docs\aeondb-overview.md">
+      <Filter>Docs</Filter>
+    </None>
+    <None Include="..\Docs\gridids.md">
+      <Filter>Docs</Filter>
+    </None>
+    <None Include="..\Docs\hyperion-http-state-machine.md">
+      <Filter>Docs</Filter>
+    </None>
+    <None Include="..\Docs\reanimator.md">
+      <Filter>Docs</Filter>
+    </None>
   </ItemGroup>
 </Project>

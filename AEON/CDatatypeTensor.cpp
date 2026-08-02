@@ -11,7 +11,7 @@ DECLARE_CONST_STRING(ERR_DIMENSION_COUNT_MISMATCH,		"Expected %d dimensions.");
 DECLARE_CONST_STRING(ERR_INVALID_DIM_TYPES,				"Expected dimension types: %s.");
 DECLARE_CONST_STRING(ERR_EXPECT_INTEGER_INDEX,			"Expected integer index.");
 
-CDatatypeTensor::CDatatypeTensor (const SCreate &Create) : IDatatype(Create.sFullyQualifiedName, Create.dwCoreType),
+CDatatypeTensor::CDatatypeTensor (const SCreate &Create) : IDatatype(Create.bBuiltIn, Create.sFullyQualifiedName, Create.dwCoreType),
 		m_dElementType(Create.dElementType)
 
 //	CDatatypeTensor constructor
@@ -31,7 +31,7 @@ CDatatypeTensor::CDatatypeTensor (const SCreate &Create) : IDatatype(Create.sFul
 	m_dSliceType = CalcSliceType(m_dElementType, m_Dims);
 	}
 
-CDatatypeTensor::CDatatypeTensor (CStringView sFullyQualifiedName, CDatum dElementType, int iRows, int iCols, DWORD dwCoreType) : IDatatype(sFullyQualifiedName, dwCoreType),
+CDatatypeTensor::CDatatypeTensor (bool bBuiltIn, CStringView sFullyQualifiedName, CDatum dElementType, int iRows, int iCols, DWORD dwCoreType) : IDatatype(bBuiltIn, sFullyQualifiedName, dwCoreType),
 		m_dElementType(dElementType)
 	{
 	InitDims(iRows, iCols);
@@ -51,7 +51,7 @@ CDatum CDatatypeTensor::CalcSliceType (CDatum dElementType, const TArray<SDimDes
 	for (int i = 1; i < Dims.GetCount(); i++)
 		DimTypes.Insert(Dims[i].dType);
 
-	return CAEONTypes::CreateTensor(NULL_STR, dElementType, DimTypes);
+	return CAEONTypes::CreateTensor(NULL_STR, dElementType, std::move(DimTypes));
 	}
 
 void CDatatypeTensor::InitDimFromType (int iOrdinal, CDatum dType, SDimDesc& retDim)
@@ -132,10 +132,45 @@ void CDatatypeTensor::InitDims (int iRows, int iCols)
 
 		TArray<CDatum> DimTypes;
 		DimTypes.Insert(m_Dims[1].dType);
-		m_dSliceType = CAEONTypes::CreateTensor(NULL_STR, m_dElementType, DimTypes);
+		m_dSliceType = CAEONTypes::CreateTensor(NULL_STR, m_dElementType, std::move(DimTypes));
 		}
 	else
 		throw CException(errFail);
+	}
+
+TArray<CDatum> CDatatypeTensor::MakeDimensions (int iRows, int iCols)
+	{
+	TArray<CDatum> Dims;
+
+	//	Dynamic 2D array
+
+	if (iRows == 0 || iCols == 0)
+		{
+		Dims.InsertEmpty(2);
+		Dims[0] = CAEONTypes::Get(IDatatype::INTEGER);
+		Dims[1] = CAEONTypes::Get(IDatatype::INTEGER);
+		}
+
+	//	1D array
+
+	else if (iRows == 1 && iCols > 1)
+		{
+		Dims.InsertEmpty(1);
+		Dims[0] = CAEONTypes::CreateInt32SubRange(NULL_STR, 0, iCols - 1);
+		}
+
+	//	2D array
+
+	else if (iRows > 1 && iCols > 1)
+		{
+		Dims.InsertEmpty(2);
+		Dims[0] = CAEONTypes::CreateInt32SubRange(NULL_STR, 0, iRows - 1);
+		Dims[1] = CAEONTypes::CreateInt32SubRange(NULL_STR, 0, iCols - 1);
+		}
+	else
+		throw CException(errFail);
+
+	return Dims;
 	}
 
 bool CDatatypeTensor::OnCanBeCalledWith (CDatum dThisType, const TArray<CDatum>& ArgTypes, const TArray<CDatum>& ArgLiteralTypes, CDatum* retdReturnType, CString* retsError) const
@@ -249,7 +284,7 @@ bool CDatatypeTensor::OnCanBeCalledWith (CDatum dThisType, const TArray<CDatum>&
 	else if (SliceDims.GetCount() > 0)
 		{
 		if (retdReturnType)
-			*retdReturnType = CAEONTypes::CreateTensor(NULL_STR, m_dElementType, SliceDims);
+			*retdReturnType = CAEONTypes::CreateTensor(NULL_STR, m_dElementType, std::move(SliceDims));
 		}
 	else
 		{
@@ -278,6 +313,9 @@ bool CDatatypeTensor::OnCanBeConstructedFrom (CDatum dType) const
 	if (OtherType.GetClass() != IDatatype::ECategory::Tensor
 			&& OtherType.GetClass() != IDatatype::ECategory::Array)
 		return false;
+
+	if (OtherType.GetClass() == IDatatype::ECategory::Array)
+		return true;
 
 	//	If our element types are not compatible, then we can't be constructed from it.
 

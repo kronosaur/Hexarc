@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Source Files">
@@ -92,6 +92,15 @@
     <ClCompile Include="CAEONLuminousSprite.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CAEONCircle2D.cpp">
+      <Filter>Source Files\Scene2D</Filter>
+    </ClCompile>
+    <ClCompile Include="CAEONRect2D.cpp">
+      <Filter>Source Files\Scene2D</Filter>
+    </ClCompile>
+    <ClCompile Include="CAEONLine2D.cpp">
+      <Filter>Source Files\Scene2D</Filter>
+    </ClCompile>
     <ClCompile Include="CAEONLuminousBitmap.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -119,7 +128,19 @@
     <ClCompile Include="ILuminousObj2D.cpp">
       <Filter>Source Files\Scene2D</Filter>
     </ClCompile>
+    <ClCompile Include="CObj2DCircle.cpp">
+      <Filter>Source Files\Scene2D</Filter>
+    </ClCompile>
     <ClCompile Include="CObj2DRectangle.cpp">
+      <Filter>Source Files\Scene2D</Filter>
+    </ClCompile>
+    <ClCompile Include="CObj2DLine.cpp">
+      <Filter>Source Files\Scene2D</Filter>
+    </ClCompile>
+    <ClCompile Include="CObj2DTrail.cpp">
+      <Filter>Source Files\Scene2D</Filter>
+    </ClCompile>
+    <ClCompile Include="CVectorQueueAnimator2D.cpp">
       <Filter>Source Files\Scene2D</Filter>
     </ClCompile>
     <ClCompile Include="CAnimatorSet2D.cpp">

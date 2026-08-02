@@ -38,6 +38,7 @@ DECLARE_CONST_STRING(ERR_INVALID_MSG,					"%s: Unhandled message: %s.")
 
 CSimpleEngine::CSimpleEngine (const CString &sName, int iInitialThreads) : 
 		m_sName(sName),
+		m_sCommandPort(strPattern("%s.command", sName)),
 		m_iInitialThreadCount(iInitialThreads),
 		m_Queue(DEFAULT_QUEUE_SIZE),
 		m_pTimedMessageThread(NULL),
@@ -179,7 +180,8 @@ bool CSimpleEngine::IsFileMsg (const SArchonMessage &Msg, CArchonMessageList *re
 	retList->DeleteAll();
 
 	SArchonMessage *pMsg = retList->Insert();
-	CInterprocessMessageQueue::DecodeFileMsg(Msg, pMsg);
+	bool bSuccess = CInterprocessMessageQueue::DecodeFileMsg(Msg, pMsg);
+
 	return true;
 	}
 

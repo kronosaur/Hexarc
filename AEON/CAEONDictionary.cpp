@@ -240,6 +240,24 @@ IComplexDatum *CAEONDictionary::Clone (CDatum::EClone iMode) const
 		}
 	}
 
+CDatum CAEONDictionary::Cleaned () const
+
+//	Cleaned
+//
+//	Returns a cleaned copy of this dictionary.
+
+	{
+	CRecursionGuard Guard(*this);
+	if (Guard.InRecursion())
+		return CDatum::raw_AsComplex(this);
+
+	auto pResult = new CAEONDictionary(m_dDatatype, m_Map);
+	for (int i = 0; i < pResult->m_Map.GetCount(); i++)
+		pResult->m_Map[i] = pResult->m_Map[i].Cleaned();
+
+	return CDatum(pResult);
+	}
+
 void CAEONDictionary::CloneContents ()
 
 //	CloneContents

@@ -111,13 +111,13 @@ class CAEONOp
 	public:
 
 		static CDatum Add (CDatum dLeft, CDatum dRight, IAEONOperatorCtx& Ctx = IAEONOperatorCtx::Default) { return m_Add.GetOp(dLeft.GetBasicDatatype(), dRight.GetBasicDatatype())(dLeft, dRight, Ctx); }
-		static CDatum CompEqual (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight) { return m_CompEqual.GetOp(dLeft.GetBasicDatatype(), dRight.GetBasicDatatype())(Ctx, dLeft, dRight); }
-		static CDatum CompGreaterThan (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight) { return m_CompGreaterThan.GetOp(dLeft.GetBasicDatatype(), dRight.GetBasicDatatype())(Ctx, dLeft, dRight); }
-		static CDatum CompGreaterThanOrEqual (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight) { return m_CompGreaterThanOrEqual.GetOp(dLeft.GetBasicDatatype(), dRight.GetBasicDatatype())(Ctx, dLeft, dRight); }
+		static CDatum CompEqual (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight) { return m_CompEqual.GetOp(dLeft.GetBasicDatatypeEx(), dRight.GetBasicDatatypeEx())(Ctx, dLeft, dRight); }
+		static CDatum CompGreaterThan (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight) { return m_CompGreaterThan.GetOp(dLeft.GetBasicDatatypeEx(), dRight.GetBasicDatatypeEx())(Ctx, dLeft, dRight); }
+		static CDatum CompGreaterThanOrEqual (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight) { return m_CompGreaterThanOrEqual.GetOp(dLeft.GetBasicDatatypeEx(), dRight.GetBasicDatatypeEx())(Ctx, dLeft, dRight); }
 		static CDatum CompIdentical (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight) { return m_CompIdentical.GetOp(dLeft.GetBasicDatatype(), dRight.GetBasicDatatype())(Ctx, dLeft, dRight); }
-		static CDatum CompLessThan (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight) { return m_CompLessThan.GetOp(dLeft.GetBasicDatatype(), dRight.GetBasicDatatype())(Ctx, dLeft, dRight); }
-		static CDatum CompLessThanOrEqual (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight) { return m_CompLessThanOrEqual.GetOp(dLeft.GetBasicDatatype(), dRight.GetBasicDatatype())(Ctx, dLeft, dRight); }
-		static CDatum CompNotEqual (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight) { return m_CompNotEqual.GetOp(dLeft.GetBasicDatatype(), dRight.GetBasicDatatype())(Ctx, dLeft, dRight); }
+		static CDatum CompLessThan (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight) { return m_CompLessThan.GetOp(dLeft.GetBasicDatatypeEx(), dRight.GetBasicDatatypeEx())(Ctx, dLeft, dRight); }
+		static CDatum CompLessThanOrEqual (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight) { return m_CompLessThanOrEqual.GetOp(dLeft.GetBasicDatatypeEx(), dRight.GetBasicDatatypeEx())(Ctx, dLeft, dRight); }
+		static CDatum CompNotEqual (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight) { return m_CompNotEqual.GetOp(dLeft.GetBasicDatatypeEx(), dRight.GetBasicDatatypeEx())(Ctx, dLeft, dRight); }
 		static CDatum CompNotIdentical (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight) { return m_CompNotIdentical.GetOp(dLeft.GetBasicDatatype(), dRight.GetBasicDatatype())(Ctx, dLeft, dRight); }
 		static CDatum Concatenate (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight) { return m_Concatenate.GetOp(dLeft.GetBasicDatatype(), dRight.GetBasicDatatype())(Ctx, dLeft, dRight); }
 		static CDatum Divide (CDatum dLeft, CDatum dRight, IAEONOperatorCtx& Ctx = IAEONOperatorCtx::Default) { return m_Divide.GetOp(dLeft.GetBasicDatatype(), dRight.GetBasicDatatype())(dLeft, dRight, Ctx); }
@@ -125,6 +125,7 @@ class CAEONOp
 		static CDatum Mod (CDatum dLeft, CDatum dRight, IAEONOperatorCtx& Ctx = IAEONOperatorCtx::Default) { return m_Mod.GetOp(dLeft.GetBasicDatatype(), dRight.GetBasicDatatype())(dLeft, dRight, Ctx); }
 		static CDatum Multiply (CDatum dLeft, CDatum dRight, IAEONOperatorCtx& Ctx = IAEONOperatorCtx::Default) { return m_Multiply.GetOp(dLeft.GetBasicDatatype(), dRight.GetBasicDatatype())(dLeft, dRight, Ctx); }
 		static CDatum Negate (CDatum dValue, IAEONOperatorCtx& Ctx = IAEONOperatorCtx::Default) { return m_Negate.GetOp(dValue.GetBasicDatatype())(dValue, Ctx); }
+		static CDatum NotIn (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
 		static CDatum Power (CDatum dLeft, CDatum dRight, IAEONOperatorCtx& Ctx = IAEONOperatorCtx::Default) { return m_Power.GetOp(dLeft.GetBasicDatatype(), dRight.GetBasicDatatype())(dLeft, dRight, Ctx); }
 		static CDatum Subtract (CDatum dLeft, CDatum dRight, IAEONOperatorCtx& Ctx = IAEONOperatorCtx::Default) { return m_Subtract.GetOp(dLeft.GetBasicDatatype(), dRight.GetBasicDatatype())(dLeft, dRight, Ctx); }
 

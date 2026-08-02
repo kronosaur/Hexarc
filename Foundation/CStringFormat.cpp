@@ -5,6 +5,8 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_CSTRING_FORMAT_VALUE_0F,	"%.0f");
+
 DECLARE_CONST_STRING(FORMAT_DEFAULT_LONG_DATE,			"d mmmm yyyy");
 DECLARE_CONST_STRING(FORMAT_BASE64,						"base64");
 DECLARE_CONST_STRING(FORMAT_BASE64_URL,					"base64Url");
@@ -26,6 +28,10 @@ DECLARE_CONST_STRING(STR_ONE_SECOND,					"1 second");
 DECLARE_CONST_STRING(STR_JUST_NOW,						"just now");
 
 DECLARE_CONST_STRING(ERR_UNKNOWN_FORMAT,				"Unknown format: %s.");
+
+static constexpr DWORDLONG MILLISECONDS_PER_MINUTE = 60 * 1000;
+static constexpr DWORDLONG MILLISECONDS_PER_HOUR = 60 * MILLISECONDS_PER_MINUTE;
+static constexpr DWORDLONG MILLISECONDS_PER_DAY = 24 * MILLISECONDS_PER_HOUR;
 
 const CStringFormat CStringFormat::Null;
 
@@ -93,7 +99,7 @@ CString CStringFormat::FormatDateTime (const CDateTime& Value) const
 //	MM: Minutes; leading zero for single-digit minutes.
 //	s: Seconds; no leading zero for single-digit seconds.
 //	ss: Seconds; leading zero for single-digit seconds.
-//	AM/PM: Use the 12-hour clock and display ‘AM’ or ‘PM’.
+//	AM/PM: Use the 12-hour clock and display ï¿½AMï¿½ or ï¿½PMï¿½.
 //	0: Tenths of a second; 1 digit.
 //	00: Hundredths of a second; 2 digits.
 //	000: Milliseconds; 3 digits.
@@ -463,7 +469,7 @@ CBuffer CStringFormat::FormatDoubleIntermediate (double rValue, const SNumberFor
 			}
 		else
 			{
-			sFormatString = CString("%.0f");
+			sFormatString = STR_CSTRING_FORMAT_VALUE_0F;
 			}
 		}
 	else
@@ -819,8 +825,106 @@ CString CStringFormat::FormatTimeSpan (const CTimeSpan& Value) const
 		}
 	else
 		{
-		//	We don't understand the format
-		return STR_ERROR;
+		CStringBuffer Buffer;
+		const char* pPos = m_sFormat.GetParsePointer();
+		DWORDLONG dwMSLeft = Value.Milliseconds64();
+
+		//	Negative
+
+		if (Value.IsNegative())
+			Buffer.WriteChar('-');
+
+		while (*pPos != '\0')
+			{
+			if (*pPos == 'd' || *pPos == 'D')
+				{
+				int iDays = (int)(dwMSLeft / MILLISECONDS_PER_DAY);
+				pPos++;
+				int iDigits = 1;
+				while (*pPos == 'd' || *pPos == 'D')
+					{
+					iDigits++;
+					pPos++;
+					}
+				
+				Buffer.Write(strPattern(strPattern("%%0%dd", iDigits), (int)iDays));
+				dwMSLeft -= iDays * MILLISECONDS_PER_DAY;
+				}
+			else if (*pPos == 'h' || *pPos == 'H')
+				{
+				int iHours = (int)(dwMSLeft / MILLISECONDS_PER_HOUR);
+				pPos++;
+				int iDigits = 1;
+				while (*pPos == 'h' || *pPos == 'H')
+					{
+					iDigits++;
+					pPos++;
+					}
+				
+				Buffer.Write(strPattern(strPattern("%%0%dd", iDigits), (int)iHours));
+				dwMSLeft -= iHours * MILLISECONDS_PER_HOUR;
+				}
+			else if (*pPos == 'm' || *pPos == 'M')
+				{
+				int iMinutes = (int)(dwMSLeft / MILLISECONDS_PER_MINUTE);
+				pPos++;
+				int iDigits = 1;
+				while (*pPos == 'm' || *pPos == 'M')
+					{
+					iDigits++;
+					pPos++;
+					}
+				
+				Buffer.Write(strPattern(strPattern("%%0%dd", iDigits), (int)iMinutes));
+				dwMSLeft -= iMinutes * MILLISECONDS_PER_MINUTE;
+				}
+			else if (*pPos == 's' || *pPos == 'S')
+				{
+				int iSeconds = (int)(dwMSLeft / 1000);
+				pPos++;
+				int iDigits = 1;
+				while (*pPos == 's' || *pPos == 'S')
+					{
+					iDigits++;
+					pPos++;
+					}
+				
+				Buffer.Write(strPattern(strPattern("%%0%dd", iDigits), (int)iSeconds));
+				dwMSLeft -= iSeconds * 1000;
+				}
+			else if (*pPos == '0')
+				{
+				pPos++;
+				int iDigits = 1;
+				while (*pPos == '0')
+					{
+					iDigits++;
+					pPos++;
+					}
+
+				if (iDigits >= 3)
+					{
+					Buffer.Write(strPattern("%03d", (int)(dwMSLeft % 1000)));
+					}
+				else if (iDigits == 2)
+					{
+					Buffer.Write(strPattern("%02d", (int)(((dwMSLeft + 5) / 10) % 100)));
+					}
+				else
+					{
+					Buffer.Write(strPattern("%d", (int)(((dwMSLeft + 50) / 100) % 10)));
+					}
+				
+				dwMSLeft = 0;
+				}
+			else
+				{
+				Buffer.WriteChar(*pPos);
+				pPos += 1;
+				}
+			}
+
+		return CString(std::move(Buffer));
 		}
 	}
 

@@ -19,7 +19,7 @@ CDatum CAEONArrayAlgorithm::Except (CDatum dArray, CDatum dExclude, CDatum dOpti
 	//	NOTE: We create a new array with the same element type. If dArray is a
 	//	tensor, then it will decay to a normal array, which is what we want.
 
-	CDatum dResult = CDatum::CreateArrayAsTypeOfElement(((const IDatatype&)dArray.GetDatatype()).GetElementType());
+	CDatum dResult = (dArray.GetBasicType() == CDatum::typeTextLines ? CDatum::CreateAsType(dArray.GetDatatype()) : CDatum::CreateArrayAsTypeOfElement(((const IDatatype&)dArray.GetDatatype()).GetElementType()));
 
 	if (dOptions.GetElement(FIELD_EXACT).AsBool())
 		{
@@ -76,7 +76,7 @@ CDatum CAEONArrayAlgorithm::Intersect (CDatum dArray, CDatum dIntersect, CDatum 
 	{
 	ASSERT(dArray.IsArray());
 
-	CDatum dResult = CDatum::CreateArrayAsTypeOfElement(((const IDatatype&)dArray.GetDatatype()).GetElementType());
+	CDatum dResult = (dArray.GetBasicType() == CDatum::typeTextLines ? CDatum::CreateAsType(dArray.GetDatatype()) : CDatum::CreateArrayAsTypeOfElement(((const IDatatype&)dArray.GetDatatype()).GetElementType()));
 
 	if (dOptions.GetElement(FIELD_EXACT).AsBool())
 		{
@@ -133,7 +133,7 @@ CDatum CAEONArrayAlgorithm::Union (CDatum dArray, CDatum dUnion, CDatum dOptions
 	{
 	ASSERT(dArray.IsArray());
 
-	CDatum dResult = CDatum::CreateArrayAsTypeOfElement(((const IDatatype&)dArray.GetDatatype()).GetElementType(), dArray);
+	CDatum dResult = (dArray.GetBasicType() == CDatum::typeTextLines ? CDatum::CreateAsType(dArray.GetDatatype(), dArray, true) : CDatum::CreateArrayAsTypeOfElement(((const IDatatype&)dArray.GetDatatype()).GetElementType(), dArray));
 
 	if (dOptions.GetElement(FIELD_EXACT).AsBool())
 		{

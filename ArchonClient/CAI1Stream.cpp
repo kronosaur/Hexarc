@@ -76,15 +76,16 @@ void CAI1Stream::ParseMessage (int iLength, CString *retsCommand, CDatum *retdPa
 //	Reads a message from the buffer
 
 	{
-	char *pLine = new char [iLength];
+	CBuffer Line(iLength);
+	char* pLine = Line.GetPointer();
 	m_Buffer.Read(pLine, iLength);
 
-	char *pPos = pLine;
-	char *pEndPos = pPos + iLength - STR_EOM_TOKEN.GetLength();
+	const char *pPos = pLine;
+	const char *pEndPos = pPos + iLength - STR_EOM_TOKEN.GetLength();
 
 	//	Look for the header
 
-	char *pStart = pPos;
+	const char *pStart = pPos;
 	while (pPos < pEndPos && *pPos != ' ')
 		pPos++;
 

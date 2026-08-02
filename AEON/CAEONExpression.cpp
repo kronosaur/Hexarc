@@ -5,6 +5,8 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_CAEONEXPRESSION_AEON_EXPRESSION,	"AEON Expression");
+
 DECLARE_CONST_STRING(FIELD_LEFT,						"left");
 DECLARE_CONST_STRING(FIELD_OP,							"op");
 DECLARE_CONST_STRING(FIELD_RIGHT,						"right");
@@ -50,6 +52,7 @@ DECLARE_CONST_STRING(OP_NEGATE,							"unary-");
 DECLARE_CONST_STRING(OP_NUMBER,							"Number");
 DECLARE_CONST_STRING(OP_NOT,							"!");
 DECLARE_CONST_STRING(OP_NOT_EQUAL_TO,					"!=");
+DECLARE_CONST_STRING(OP_NOT_IN,							"not in");
 DECLARE_CONST_STRING(OP_OR,								"||");
 DECLARE_CONST_STRING(OP_POWER,							"^");
 DECLARE_CONST_STRING(OP_REAL,							"Real");
@@ -63,6 +66,8 @@ DECLARE_CONST_STRING(OP_STRING,							"String");
 DECLARE_CONST_STRING(OP_SUBTRACT,						"-");
 DECLARE_CONST_STRING(OP_SUM,							"sum");
 DECLARE_CONST_STRING(OP_TIME_SPAN,						"TimeSpan");
+DECLARE_CONST_STRING(OP_VECTOR_2D,						"Vector2D");
+DECLARE_CONST_STRING(OP_VECTOR_3D,						"Vector3D");
 DECLARE_CONST_STRING(OP_TRUE,							"true");
 DECLARE_CONST_STRING(OP_UNIQUE_ARRAY,					"uniqueArray");
 DECLARE_CONST_STRING(OP_UNIQUE_COUNT,					"uniqueCount");
@@ -73,7 +78,189 @@ DECLARE_CONST_STRING(TYPENAME_EXPRESSION,				"aeonExpression");
 const CAEONExpression CAEONExpression::Null;
 const CAEONExpression::SNode CAEONExpression::m_NullNode;
 
+namespace
+	{
+	CDatum CalcColumnExpressionNodeEvalType (const CAEONExpression& Expr, const CAEONExpression::SNode& Node, CDatum dSchema);
+	CDatum GetAnyType () { return CAEONTypes::Get(IDatatype::ANY); }
+
+	CDatum CalcColumnExpressionArrayType (CDatum dElementType)
+		{
+		if (dElementType.IsNil())
+			return CAEONTypes::Get(IDatatype::ARRAY);
+		else
+			return CAEONTypes::CreateArray(NULL_STR, dElementType);
+		}
+
+	CDatum CalcColumnExpressionNodeEvalType (const CAEONExpression& Expr, const CAEONExpression::SNode& Node, CDatum dSchema)
+		{
+		auto CalcLeftType = [&] ()
+			{
+			return (Node.iLeft == -1 ? GetAnyType() : CalcColumnExpressionNodeEvalType(Expr, Expr.GetNode(Node.iLeft), dSchema));
+			};
+
+		auto CalcRightType = [&] ()
+			{
+			return (Node.iRight == -1 ? GetAnyType() : CalcColumnExpressionNodeEvalType(Expr, Expr.GetNode(Node.iRight), dSchema));
+			};
+
+		switch (Node.iOp)
+			{
+			case CAEONExpression::EOp::Abs:
+			case CAEONExpression::EOp::Ceil:
+			case CAEONExpression::EOp::Floor:
+			case CAEONExpression::EOp::Round:
+				return CalcLeftType();
+
+			case CAEONExpression::EOp::Add:
+				return CAEONOp::CalcAddType(CalcLeftType(), CalcRightType());
+
+			case CAEONExpression::EOp::And:
+				return CAEONOp::CalcLogicalAndType(CalcLeftType(), CalcRightType());
+
+			case CAEONExpression::EOp::All:
+			case CAEONExpression::EOp::Any:
+			case CAEONExpression::EOp::False:
+			case CAEONExpression::EOp::Not:
+			case CAEONExpression::EOp::True:
+				return CAEONTypes::Get(IDatatype::BOOL);
+
+			case CAEONExpression::EOp::Array:
+			case CAEONExpression::EOp::UniqueArray:
+				return CalcColumnExpressionArrayType(CalcLeftType());
+
+			case CAEONExpression::EOp::Average:
+			case CAEONExpression::EOp::StdDev:
+			case CAEONExpression::EOp::StdError:
+				return CAEONTypes::Get(IDatatype::FLOAT_64);
+
+			case CAEONExpression::EOp::Clean:
+			case CAEONExpression::EOp::Left:
+			case CAEONExpression::EOp::Lowercase:
+			case CAEONExpression::EOp::Right:
+			case CAEONExpression::EOp::Slice:
+			case CAEONExpression::EOp::String:
+			case CAEONExpression::EOp::Uppercase:
+				return CAEONTypes::Get(IDatatype::STRING);
+
+			case CAEONExpression::EOp::Column:
+				{
+				const IDatatype& Schema = dSchema;
+				int iMember = Schema.FindMember(Expr.GetColumnID(Node.iDataID));
+				if (iMember == -1)
+					return GetAnyType();
+
+				return Schema.GetMember(iMember).dType;
+				}
+
+			case CAEONExpression::EOp::Count:
+			case CAEONExpression::EOp::Find:
+			case CAEONExpression::EOp::Length:
+			case CAEONExpression::EOp::UniqueCount:
+				return CAEONTypes::Get(IDatatype::INT_32);
+
+			case CAEONExpression::EOp::DateTime:
+				return CAEONTypes::Get(IDatatype::DATE_TIME);
+
+			case CAEONExpression::EOp::Divide:
+				return CAEONOp::CalcDivideType(CalcLeftType(), CalcRightType());
+
+			case CAEONExpression::EOp::EqualTo:
+			case CAEONExpression::EOp::GreaterThan:
+			case CAEONExpression::EOp::GreaterThanOrEqualTo:
+			case CAEONExpression::EOp::LessThan:
+			case CAEONExpression::EOp::LessThanOrEqualTo:
+			case CAEONExpression::EOp::NotEqualTo:
+				return CAEONOp::CalcCompType(CalcLeftType(), CalcRightType());
+
+			case CAEONExpression::EOp::ErrorLiteral:
+				return CAEONTypes::Get(IDatatype::ERROR_T);
+
+			case CAEONExpression::EOp::First:
+			case CAEONExpression::EOp::Max:
+			case CAEONExpression::EOp::Median:
+			case CAEONExpression::EOp::Min:
+				return CalcLeftType();
+
+			case CAEONExpression::EOp::If:
+				return CAEONOp::CalcLogicalOrType(
+						(Node.iLeft == -1 ? GetAnyType() : CalcColumnExpressionNodeEvalType(Expr, Expr.GetNode(Node.iLeft), dSchema)),
+						(Node.iRight == -1 ? GetAnyType() : CalcColumnExpressionNodeEvalType(Expr, Expr.GetNode(Node.iRight), dSchema)));
+
+			case CAEONExpression::EOp::In:
+			case CAEONExpression::EOp::NotIn:
+				return CAEONOp::CalcInType(CalcLeftType(), CalcRightType());
+
+			case CAEONExpression::EOp::Integer:
+				return CAEONTypes::Get(IDatatype::INTEGER);
+
+			case CAEONExpression::EOp::Literal:
+				return Expr.GetLiteral(Node.iDataID).GetDatatype();
+
+			case CAEONExpression::EOp::Mod:
+				return CAEONOp::CalcModType(CalcLeftType(), CalcRightType());
+
+			case CAEONExpression::EOp::Multiply:
+				return CAEONOp::CalcMultiplyType(CalcLeftType(), CalcRightType());
+
+			case CAEONExpression::EOp::Negate:
+				return CAEONOp::CalcNegateType(CalcLeftType());
+
+			case CAEONExpression::EOp::Number:
+				return CAEONTypes::Get(IDatatype::NUMBER);
+
+			case CAEONExpression::EOp::Or:
+				return CAEONOp::CalcLogicalOrType(CalcLeftType(), CalcRightType());
+
+			case CAEONExpression::EOp::Power:
+				return CAEONOp::CalcPowerType(CalcLeftType(), CalcRightType());
+
+			case CAEONExpression::EOp::Real:
+				return CAEONTypes::Get(IDatatype::FLOAT_64);
+
+			case CAEONExpression::EOp::Sign:
+				return CAEONTypes::Get(IDatatype::INT_32);
+
+			case CAEONExpression::EOp::Subtract:
+				return CAEONOp::CalcSubtractType(CalcLeftType(), CalcRightType());
+
+			case CAEONExpression::EOp::Sum:
+				return CalcLeftType();
+
+			case CAEONExpression::EOp::TimeSpan:
+				return CAEONTypes::Get(IDatatype::TIME_SPAN);
+
+			case CAEONExpression::EOp::Vector2D:
+				return CAEONTypes::Get(IDatatype::VECTOR_2D_F64);
+
+			case CAEONExpression::EOp::Vector3D:
+				return CAEONTypes::Get(IDatatype::VECTOR_3D_F64);
+
+			case CAEONExpression::EOp::Deref:
+			case CAEONExpression::EOp::Member:
+			default:
+				return GetAnyType();
+			}
+		}
+	}
+
 const CString& CAEONExpression::GetTypename (void) const { return TYPENAME_EXPRESSION; }
+
+CDatum CAEONExpression::CalcEvalType (CDatum dSchema) const
+	{
+	return CalcEvalType(*this, dSchema);
+	}
+
+CDatum CAEONExpression::CalcEvalType (const CAEONExpression& Expr, CDatum dSchema)
+	{
+	if (Expr.IsEmpty())
+		return CAEONTypes::Get(IDatatype::ANY);
+
+	const IDatatype& Type = dSchema;
+	if (Type.GetClass() == IDatatype::ECategory::Table)
+		dSchema = Type.GetElementType();
+
+	return CalcColumnExpressionNodeEvalType(Expr, Expr.GetRootNode(), dSchema);
+	}
 	
 //	Constructors ---------------------------------------------------------------
 
@@ -500,6 +687,9 @@ CString CAEONExpression::AsID (EOp iOp)
 		case EOp::NotEqualTo:
 			return OP_NOT_EQUAL_TO;
 
+		case EOp::NotIn:
+			return OP_NOT_IN;
+
 		case EOp::Number:
 			return OP_NUMBER;
 
@@ -541,6 +731,12 @@ CString CAEONExpression::AsID (EOp iOp)
 
 		case EOp::TimeSpan:
 			return OP_TIME_SPAN;
+
+		case EOp::Vector2D:
+			return OP_VECTOR_2D;
+
+		case EOp::Vector3D:
+			return OP_VECTOR_3D;
 
 		case EOp::True:
 			return OP_TRUE;
@@ -646,6 +842,8 @@ CAEONExpression::EOp CAEONExpression::AsOp (const CString& sValue)
 		return EOp::Not;
 	else if (strEqualsNoCase(sValue, OP_NOT_EQUAL_TO))
 		return EOp::NotEqualTo;
+	else if (strEqualsNoCase(sValue, OP_NOT_IN))
+		return EOp::NotIn;
 	else if (strEqualsNoCase(sValue, OP_NUMBER))
 		return EOp::Number;
 	else if (strEqualsNoCase(sValue, OP_OR))
@@ -674,6 +872,10 @@ CAEONExpression::EOp CAEONExpression::AsOp (const CString& sValue)
 		return EOp::Sum;
 	else if (strEqualsNoCase(sValue, OP_TIME_SPAN))
 		return EOp::TimeSpan;
+	else if (strEqualsNoCase(sValue, OP_VECTOR_2D))
+		return EOp::Vector2D;
+	else if (strEqualsNoCase(sValue, OP_VECTOR_3D))
+		return EOp::Vector3D;
 	else if (strEqualsNoCase(sValue, OP_TRUE))
 		return EOp::True;
 	else if (strEqualsNoCase(sValue, OP_UNIQUE_ARRAY))
@@ -705,7 +907,7 @@ CString CAEONExpression::AsString (void) const
 
 			default:
 				//	LATER
-				return CString("AEON Expression");
+				return STR_CAEONEXPRESSION_AEON_EXPRESSION;
 			}
 		}
 	}
@@ -896,6 +1098,8 @@ bool CAEONExpression::NeedsParens (const SNode& Node)
 		case EOp::String:
 		case EOp::Sum:
 		case EOp::TimeSpan:
+		case EOp::Vector2D:
+		case EOp::Vector3D:
 		case EOp::True:
 		case EOp::UniqueArray:
 		case EOp::UniqueCount:
@@ -915,6 +1119,7 @@ bool CAEONExpression::NeedsParens (const SNode& Node)
 		case EOp::Mod:
 		case EOp::Multiply:
 		case EOp::NotEqualTo:
+		case EOp::NotIn:
 		case EOp::Or:
 		case EOp::Power:
 		case EOp::Subtract:
@@ -1003,6 +1208,10 @@ CAEONExpression::EOp CAEONExpression::ParseFunctionName (CStringView sSymbol)
 		return EOp::Sum;
 	else if (strEqualsNoCase(sSymbol, OP_TIME_SPAN))
 		return EOp::TimeSpan;
+	else if (strEqualsNoCase(sSymbol, OP_VECTOR_2D))
+		return EOp::Vector2D;
+	else if (strEqualsNoCase(sSymbol, OP_VECTOR_3D))
+		return EOp::Vector3D;
 	else if (strEqualsNoCase(sSymbol, OP_UNIQUE_ARRAY))
 		return EOp::UniqueArray;
 	else if (strEqualsNoCase(sSymbol, OP_UNIQUE_COUNT))
@@ -1314,6 +1523,10 @@ void CAEONExpression::SerializeGridLang (IByteStream &Stream, const SNode& Node)
 			SerializeGridLangBinaryOp(Stream, Node, OP_NOT_EQUAL_TO);
 			break;
 
+		case EOp::NotIn:
+			SerializeGridLangBinaryOp(Stream, Node, OP_NOT_IN);
+			break;
+
 		case EOp::Number:
 			SerializeGridLangFunction(Stream, Node, OP_NUMBER);
 			break;
@@ -1389,6 +1602,14 @@ void CAEONExpression::SerializeGridLang (IByteStream &Stream, const SNode& Node)
 			SerializeGridLangFunction(Stream, Node, OP_TIME_SPAN);
 			break;
 
+		case EOp::Vector2D:
+			SerializeGridLangFunction(Stream, Node, OP_VECTOR_2D);
+			break;
+
+		case EOp::Vector3D:
+			SerializeGridLangFunction(Stream, Node, OP_VECTOR_3D);
+			break;
+
 		case EOp::True:
 			Stream.Write(OP_TRUE);
 			break;
@@ -1447,6 +1668,11 @@ void CAEONExpression::SerializeGridLangFunction (IByteStream &Stream, const SNod
 		{
 		Stream.Write(", ", 2);
 		SerializeGridLang(Stream, GetNode(Node.iRight));
+		}
+	if (Node.iDataID != -1)
+		{
+		Stream.Write(", ", 2);
+		SerializeGridLang(Stream, GetNode(Node.iDataID));
 		}
 	Stream.WriteChar(')');
 	}

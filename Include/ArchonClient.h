@@ -6,8 +6,23 @@
 #pragma once
 
 #include "AEON.h"
+#include "AEONTypeSystem.h"
 
 //	Aeon Helpers ---------------------------------------------------------------
+
+class CArcRouteUtil
+	{
+	public:
+		static bool Boot ();
+		static CDatum CreateRouteTable (void);
+		static CDatum CreateHostTableDesc (void);
+
+		static DWORD ARC_HOST_SCHEMA;				//	Arc.hosts host binding rows
+		static DWORD ARC_ROUTE_SCHEMA;				//	Table of Hyperion HTTP route rows
+
+	private:
+		static bool m_bAEONRegistered;
+	};
 
 class CAeonInterface
 	{

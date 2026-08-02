@@ -5,15 +5,15 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(FIELD_INTERFACE,					"interface")
-DECLARE_CONST_STRING(FIELD_REQUIRED_RIGHTS,				"rightsRequired")
+DECLARE_CONST_STRING(FIELD_INTERFACE,					"interface");
+DECLARE_CONST_STRING(FIELD_REQUIRED_RIGHTS,				"rightsRequired");
 
-DECLARE_CONST_STRING(LIBRARY_SESSION,					"session")
+DECLARE_CONST_STRING(LIBRARY_SESSION,					"session");
 
-DECLARE_CONST_STRING(PROTOCOL_AI1,						"ai1")
+DECLARE_CONST_STRING(PROTOCOL_AI1,						"ai1");
 
-DECLARE_CONST_STRING(ERR_INVALID_INTERFACE,				"Invalid interface name.")
-DECLARE_CONST_STRING(ERR_INTERFACE_NOT_SANDBOXED,		"Interface name is not available in sandbox: %s.")
+DECLARE_CONST_STRING(ERR_INVALID_INTERFACE,				"Invalid interface name.");
+DECLARE_CONST_STRING(ERR_INTERFACE_NOT_SANDBOXED,		"Interface name is not available in sandbox: %s.");
 
 CAI1Service *CAI1Service::AsAI1Service (IHyperionService *pService)
 

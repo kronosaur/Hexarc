@@ -16,6 +16,17 @@ CHexeLocalEnvPointer::CHexeLocalEnvPointer (CDatum dEnv) :
 		throw CException(errFail);
 	}
 
+CHexeLocalEnvPointer::CHexeLocalEnvPointer (CDatum dEnv, CHexeLocalEnvironment *pEnv) :
+		m_dEnv(dEnv),
+		m_pEnv(pEnv)
+
+//	CHexeLocalEnvPointer constructor
+
+	{
+	if (!m_pEnv && !m_dEnv.IsIdenticalToNil())
+		throw CException(errFail);
+	}
+
 CHexeLocalEnvPointer::CHexeLocalEnvPointer (int iArgCount)
 
 //	CHexeLocalEnvPointer constructor

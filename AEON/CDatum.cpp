@@ -6,6 +6,7 @@
 #include "stdafx.h"
 #include <functional>
 #include <string_view>
+#include <bit>
 
 DECLARE_CONST_STRING(DATE_ORDER_DMY,					"DMY");
 DECLARE_CONST_STRING(DATE_ORDER_MDY,					"MDY");
@@ -19,6 +20,9 @@ DECLARE_CONST_STRING(FIELD_DEFAULT,						"default");
 DECLARE_CONST_STRING(FIELD_IMPUTE,						"impute");
 DECLARE_CONST_STRING(FIELD_MONTH_MISSING,				"monthMissing");
 DECLARE_CONST_STRING(FIELD_TYPE,						"type");
+DECLARE_CONST_STRING(FIELD_X,						"x");
+DECLARE_CONST_STRING(FIELD_Y,						"y");
+DECLARE_CONST_STRING(FIELD_Z,						"z");
 DECLARE_CONST_STRING(FIELD_YEAR_MISSING,				"yearMissing");
 
 DECLARE_CONST_STRING(FORMAT_EXCEL,						"excel");
@@ -166,7 +170,7 @@ CDatum::CDatum (Types iType)
 			break;
 
 		case typeClassInstance:
-			*this = CDatum(new CAEONObject(CAEONTypeSystem::GetCoreType(IDatatype::ANY)));
+			*this = CDatum(new CAEONObject(CAEONTypes::Get(IDatatype::ANY)));
 			break;
 
 		case typeNaN:
@@ -252,7 +256,7 @@ CDatum::CDatum (double rValue)
 //	CDatum constructor
 
 	{
-	DWORDLONG bits = *(DWORDLONG*)&rValue;	// Interpret the double as a 64-bit integer
+	DWORDLONG bits = std::bit_cast<DWORDLONG>(rValue);	// Interpret the double as a 64-bit integer
 	DWORDLONG exponent = (bits >> 52) & 0x7FF;
 	DWORDLONG fraction = bits & 0xFFFFFFFFFFFFF;
 
@@ -293,7 +297,7 @@ CDatum::CDatum (const CString &sString)
 
 	if (sString.IsEmpty())
 		{
-		m_dwData = VALUE_NULL;
+		m_dwData = VALUE_BLANK;
 		}
 
 	//	If this is a literal string, then we can just
@@ -319,7 +323,7 @@ CDatum::CDatum (const CString &sString)
 			m_dwData = EncodeString(pString);
 			}
 		else
-			m_dwData = VALUE_NULL;
+			m_dwData = VALUE_BLANK;
 		}
 	}
 
@@ -487,6 +491,9 @@ CDatum::operator int () const
 			{
 			switch (m_dwData)
 				{
+				case VALUE_BLANK:
+					return 0;
+
 				case VALUE_FALSE:
 					return 0;
 
@@ -536,6 +543,9 @@ CDatum::operator DWORD () const
 			{
 			switch (m_dwData)
 				{
+				case VALUE_BLANK:
+					return 0;
+
 				case VALUE_FALSE:
 					return 0;
 
@@ -585,6 +595,9 @@ CDatum::operator DWORDLONG () const
 			{
 			switch (m_dwData)
 				{
+				case VALUE_BLANK:
+					return 0;
+
 				case VALUE_FALSE:
 					return 0;
 
@@ -634,6 +647,9 @@ CDatum::operator double () const
 			{
 			switch (m_dwData)
 				{
+				case VALUE_BLANK:
+					return 0.0;
+
 				case VALUE_FALSE:
 					return 0.0;
 
@@ -686,7 +702,7 @@ CDatum::operator const IDatatype & () const
 			return DecodeComplex(m_dwData).CastIDatatype();
 
 		default:
-			return (const IDatatype &)CAEONTypeSystem::GetCoreType(IDatatype::ANY);
+			return (const IDatatype &)CAEONTypes::Get(IDatatype::ANY);
 		}
 	}
 
@@ -772,6 +788,9 @@ CDatum::operator CStringView () const
 			{
 			switch (m_dwData)
 				{
+				case VALUE_BLANK:
+					return CStringView();
+
 				case VALUE_FALSE:
 					return STR_FALSE;
 
@@ -911,6 +930,7 @@ int CDatum::AsArrayIndex (int iArrayLen, bool* retbFromEnd) const
 			{
 			switch (m_dwData)
 				{
+				case VALUE_BLANK:
 				case VALUE_FALSE:
 				case VALUE_TRUE:
 					return -1;
@@ -1211,6 +1231,9 @@ CIPInteger CDatum::AsIPInteger () const
 			{
 			switch (m_dwData)
 				{
+				case VALUE_BLANK:
+					return CIPInteger(0);
+
 				case VALUE_FALSE:
 					return CIPInteger(0);
 
@@ -1447,6 +1470,9 @@ CString CDatum::AsString (void) const
 			{
 			switch (m_dwData)
 				{
+				case VALUE_BLANK:
+					return NULL_STR;
+
 				case VALUE_FALSE:
 					return STR_FALSE;
 
@@ -1512,6 +1538,30 @@ TArray<CString> CDatum::AsStringArray (void) const
 		Result[i] = GetElement(i).AsString();
 
 	return Result;
+	}
+
+CString CDatum::AsStringBuffer () const
+
+//	AsStringBuffer
+//
+//	Returns a string buffer separated by newlines.
+
+	{
+	CStringBuffer Result;
+
+	for (int i = 0; i < GetCount(); i++)
+		{
+		if (i != 0)
+			Result.WriteChar('\n');
+
+		CDatum dLine = GetElement(i);
+		if (dLine.GetBasicType() == CDatum::typeString)
+			Result.Write(dLine.AsStringView());
+		else
+			Result.Write(dLine.AsString());
+		}
+
+	return CString(std::move(Result));
 	}
 
 CTimeSpan CDatum::AsTimeSpan () const
@@ -1678,6 +1728,7 @@ size_t CDatum::CalcSerializeSize (EFormat iFormat) const
 		case EFormat::AEONLocal:
 			return CalcSerializeSizeAEONScript(iFormat);
 
+		case EFormat::AEONJSON:
 		case EFormat::JSON:
 			ASSERT(false);	//	Not Yet Implemented
 			return 0;
@@ -1796,6 +1847,26 @@ CDatum CDatum::Clone (EClone iMode) const
 		}
 	}
 
+CDatum CDatum::Cleaned () const
+
+//	Cleaned
+//
+//	Returns a cleaned version of the datum.
+
+	{
+	switch (DecodeType(m_dwData))
+		{
+		case TYPE_STRING:
+			return CDatum(CStringView::FromCStringPtr(DecodeLPSTR(m_dwData)).Clean());
+
+		case TYPE_COMPLEX:
+			return DecodeComplex(m_dwData).Cleaned();
+
+		default:
+			return *this;
+		}
+	}
+
 int CDatum::CompareByType (Types iType1, Types iType2)
 	{
 	int iRank1 = m_COMPARE_RANK[iType1];
@@ -1868,7 +1939,9 @@ CDatum CDatum::CreateArrayAsType (CDatum dType, CDatum dValue)
 
 	{
 	const IDatatype& Type = dType;
-	if (Type.IsA(IDatatype::DICTIONARY))
+	if (Type.GetCoreType() == IDatatype::TEXT_LINES)
+		return CreateAsType(dType, dValue, true);
+	else if (Type.IsA(IDatatype::DICTIONARY))
 		return CDatum::CreateDictionary(dType, dValue);
 	else if (Type.GetClass() == IDatatype::ECategory::Tensor)
 		return CreateTensorAsType(dType, dValue);
@@ -1915,11 +1988,19 @@ CDatum CDatum::CreateArrayAsTypeOfElement (CDatum dElementType, CDatum dValue, C
 			dArray = CDatum::VectorOf(CDatum::typeString);
 			break;
 
+		case IDatatype::VECTOR_2D_F64:
+			dArray = CDatum::VectorOf(CDatum::typeVector2D);
+			break;
+
+		case IDatatype::VECTOR_3D_F64:
+			dArray = CDatum::VectorOf(CDatum::typeVector3D);
+			break;
+
 		//	For anything else, we create a generic typed array
 
 		default:
 			if (dArrayType.IsNil())
-				dArrayType = CAEONTypeSystem::CreateAnonymousArray(NULL_STR, dElementType);
+				dArrayType = CAEONTypes::CreateArray(NULL_STR, dElementType);
 
 			dArray = CDatum(new CAEONVectorTyped(dArrayType));
 			break;
@@ -1927,7 +2008,7 @@ CDatum CDatum::CreateArrayAsTypeOfElement (CDatum dElementType, CDatum dValue, C
 
 	//	Copy data
 
-	if (dValue.IsNil())
+	if (dValue.GetBasicType() == CDatum::typeNil)
 		{ }
 	else if (dValue.GetBasicType() == CDatum::typeTensor)
 		{
@@ -2044,6 +2125,105 @@ CDatum CDatum::CreateDateTime (CDatum dValue, CDatum dOptions)
 			return CDatum(Result);
 			}
 		}
+	}
+
+CDatum CDatum::CreateVector2D (CDatum dValue)
+	{
+	switch (dValue.GetBasicType())
+		{
+		case CDatum::typeVector2D:
+			return CDatum((const CVector2D&)dValue);
+
+		case CDatum::typeVector3D:
+			{
+			const CVector3D& v3 = (const CVector3D&)dValue;
+			return CDatum(CVector2D(v3.X(), v3.Y()));
+			}
+
+		case CDatum::typeInteger32:
+		case CDatum::typeInteger64:
+		case CDatum::typeIntegerIP:
+		case CDatum::typeDouble:
+			return CDatum(CVector2D::Null);
+
+		case CDatum::typeArray:
+		case CDatum::typeTensor:
+			{
+			if (dValue.GetCount() == 2)
+				return CDatum(CVector2D(dValue.GetElement(0), dValue.GetElement(1)));
+			else
+				return CDatum(CVector2D::Null);
+			}
+
+		case CDatum::typeStruct:
+			{
+			CDatum dX = dValue.GetElement(FIELD_X);
+			CDatum dY = dValue.GetElement(FIELD_Y);
+
+			if (dX.IsNil() || dY.IsNil())
+				return CDatum(CVector2D::Null);
+			else
+				return CDatum(CVector2D(dX, dY));
+			}
+
+		default:
+			return CDatum(CVector2D::Null);
+		}
+	}
+
+CDatum CDatum::CreateVector2D (CDatum dX, CDatum dY)
+	{
+	return CDatum(CVector2D(dX, dY));
+	}
+
+CDatum CDatum::CreateVector3D (CDatum dValue)
+	{
+	switch (dValue.GetBasicType())
+		{
+		case CDatum::typeVector2D:
+			{
+			const CVector2D& v2 = (const CVector2D&)dValue;
+			return CDatum(CVector3D(v2.X(), v2.Y(), 0.0));
+			}
+
+		case CDatum::typeVector3D:
+			return CDatum((const CVector3D&)dValue);
+
+		case CDatum::typeInteger32:
+		case CDatum::typeInteger64:
+		case CDatum::typeIntegerIP:
+		case CDatum::typeDouble:
+			return CDatum(CVector3D::Null);
+
+		case CDatum::typeArray:
+		case CDatum::typeTensor:
+			{
+			if (dValue.GetCount() == 3)
+				return CDatum(CVector3D(dValue.GetElement(0), dValue.GetElement(1), dValue.GetElement(2)));
+			else
+				return CDatum(CVector3D::Null);
+			}
+
+		case CDatum::typeStruct:
+			{
+			CDatum dX = dValue.GetElement(FIELD_X);
+			CDatum dY = dValue.GetElement(FIELD_Y);
+			CDatum dZ = dValue.GetElement(FIELD_Z);
+
+			if (dX.IsNil() || dY.IsNil() || dZ.IsNil())
+				return CDatum(CVector3D::Null);
+			else
+				return CDatum(CVector3D(dX, dY, dZ));
+			}
+
+		default:
+			return CDatum(CVector3D::Null);
+		}
+	}
+
+CDatum CDatum::CreateVector3D (CDatum dX, CDatum dY, CDatum dZ)
+	{
+	return CDatum(CVector3D(dX, dY, dZ));
 	}
 
 bool CDatum::ParseDateParseOptions (CDatum dOptions, CDateTimeParser::SOptions& retOptions)
@@ -2286,12 +2466,20 @@ CDatum CDatum::CreateAsType (CDatum dType, CDatum dValue, bool bConstruct)
 
 		case IDatatype::INT_64:
 		case IDatatype::UINT_64:
-		case IDatatype::INT_IP:
 			//	LATER: Need to clamp if 64-bit
 			if (dValue.GetBasicType() == CDatum::typeIntegerIP)
 				return dValue;
 			else
 				return CDatum(dValue.AsIPInteger());
+
+		case IDatatype::INT_IP:
+			{
+			CDatum dResult = dValue.AsInteger();
+			if (dResult.GetBasicType() == CDatum::typeIntegerIP)
+				return dResult;
+			else
+				return CDatum(dResult.AsIPInteger());
+			}
 
 		case IDatatype::INTEGER:
 		case IDatatype::SIGNED:
@@ -2310,6 +2498,12 @@ CDatum CDatum::CreateAsType (CDatum dType, CDatum dValue, bool bConstruct)
 				return dValue;
 			else
 				return CDatum(dValue.AsString());
+
+		case IDatatype::TEXT_LINES:
+			if (!bConstruct && dValue.GetBasicType() == CDatum::typeTextLines)
+				return dValue;
+			else
+				return CreateTextLines(dValue);
 
 		case IDatatype::STRUCT:
 			if (dValue.GetBasicType() == CDatum::typeStruct)
@@ -2528,6 +2722,22 @@ CDatum CDatum::CreateBinary (CBuffer64&& Buffer)
 		CComplexBinary64* pBinary = new CComplexBinary64;
 		pBinary->TakeHandoff(Buffer);
 		return CDatum(pBinary);
+		}
+	}
+
+CDatum CDatum::CreateBinary (void* pData, size_t iSize)
+	{
+	if (iSize < MAXINT32)
+		{
+		CComplexBinary *pBinary = new CComplexBinary((int)iSize);
+		pBinary->WriteAt(0, (const BYTE*)pData, (int)iSize);
+		return CDatum(pBinary);
+		}
+	else
+		{
+		CBuffer64 Buffer;
+		Buffer.Write((const BYTE*)pData, iSize);
+		return CreateBinary(std::move(Buffer));
 		}
 	}
 
@@ -2782,6 +2992,36 @@ CDatum CDatum::CreateNaN ()
 	return dResult;
 	}
 
+CDatum CDatum::CreateNumber (double rValue)
+
+//	CreateNumber
+//
+//	Creates either an integer or a double datum depending on the value.
+
+	{
+	if (isnan(rValue))
+		return raw_MakeDatum(VALUE_NAN);
+	else if (isinf(rValue))
+		return raw_MakeDatum(signbit(rValue) ? VALUE_INFINITY_N : VALUE_INFINITY_P);
+	else
+		{
+		double rIntPart = std::trunc(rValue);
+		if (rIntPart == rValue)
+			{
+			if (rIntPart >= INT32_MIN && rIntPart <= INT32_MAX)
+				return raw_MakeDatum(EncodeInt32((int32_t)rIntPart));
+			else
+				return CDatum(CIPInteger(rValue));
+			}
+		else
+			{
+			//	Raw bits
+			static_assert(sizeof(DWORDLONG) == sizeof(double));
+			return raw_MakeDatum(std::bit_cast<DWORDLONG>(rValue));
+			}
+		}
+	}
+
 CDatum CDatum::CreateObject (CDatum dType, CDatum dValue)
 
 //	CreateObject
@@ -2790,7 +3030,10 @@ CDatum CDatum::CreateObject (CDatum dType, CDatum dValue)
 
 	{
 	const IDatatype& Type = dType;
-	CDatum dObj = CDatum(new CAEONObject(dType));
+	if (Type.GetClass() == IDatatype::ECategory::Schema)
+		return CreateRecord(dType, dValue);
+
+	CDatum dObj(new CAEONObject(dType));
 
 	//	If the type definition doesn't have members, then could be a built-in
 	//	object, so just set the element from the data.
@@ -2832,7 +3075,47 @@ CDatum CDatum::CreateObjectEmpty (CDatum dType)
 //	member variables. Callers are responsible for setting them appropriately.
 
 	{
-	return CDatum(new CAEONObject(dType));
+	const IDatatype& Type = dType;
+	return (Type.GetClass() == IDatatype::ECategory::Schema ? CreateRecord(dType) : CDatum(new CAEONObject(dType)));
+	}
+
+CDatum CDatum::CreateRecord (CDatum dType)
+
+//	CreateRecord
+//
+//	Creates a schema record.
+
+	{
+	return CAEONStore::CreateRecord(dType);
+	}
+
+CDatum CDatum::CreateRecord (CDatum dType, const CDatum* pValues, int iCount)
+
+//	CreateRecord
+//
+//	Creates a schema record initialized from contiguous slot values.
+
+	{
+	return CAEONStore::CreateRecord(dType, pValues, iCount);
+	}
+
+CDatum CDatum::CreateRecord (CDatum dType, CDatum dValue)
+
+//	CreateRecord
+//
+//	Creates a schema record initialized from the given source value.
+
+	{
+	const IDatatype& Type = dType;
+	CDatum dObj = CreateRecord(dType);
+
+	for (int i = 0; i < Type.GetMemberCount(); i++)
+		{
+		IDatatype::SMemberDesc MemberDesc = Type.GetMember(i);
+		dObj.SetElement(MemberDesc.sID, dValue.GetElement(MemberDesc.sID));
+		}
+
+	return dObj;
 	}
 
 CDatum CDatum::CreateRange (CDatum dStart, CDatum dEnd, CDatum dStep)
@@ -2899,7 +3182,7 @@ CDatum CDatum::CreateString (CStringBuffer&& Buffer)
 		dResult.m_dwData = EncodeString(pString);
 		}
 	else
-		dResult.m_dwData = VALUE_NULL;
+		dResult.m_dwData = VALUE_BLANK;
 
 	//	Done
 
@@ -2916,7 +3199,7 @@ bool CDatum::CreateStringFromHandoff (CString &sString, CDatum *retDatum)
 	if (sString.IsLiteral())
 		{
 		if (sString.IsEmpty())
-			retDatum->m_dwData = VALUE_NULL;
+			retDatum->m_dwData = VALUE_BLANK;
 		else
 			retDatum->m_dwData = EncodeString((LPSTR)sString);
 		}
@@ -2935,7 +3218,7 @@ bool CDatum::CreateStringFromHandoff (CString &sString, CDatum *retDatum)
 			retDatum->m_dwData = EncodeString(pString);
 			}
 		else
-			retDatum->m_dwData = VALUE_NULL;
+			retDatum->m_dwData = VALUE_BLANK;
 		}
 
 	//	Done
@@ -2963,7 +3246,7 @@ bool CDatum::CreateStringFromHandoff (CStringBuffer &String, CDatum *retDatum)
 		retDatum->m_dwData = EncodeString(pString);
 		}
 	else
-		retDatum->m_dwData = VALUE_NULL;
+		retDatum->m_dwData = VALUE_BLANK;
 
 	//	Done
 
@@ -2980,7 +3263,7 @@ CDatum CDatum::CreateTable (CDatum dType, CDatum dValue)
 	const IDatatype &Schema = dType;
 	if (Schema.GetClass() == IDatatype::ECategory::Schema)
 		{
-		dType = CAEONTypeSystem::CreateAnonymousTable(NULL_STR, dType);
+		dType = CAEONTypes::CreateTable(NULL_STR, dType);
 		}
 	else if (Schema.GetClass() != IDatatype::ECategory::Table)
 		return CDatum();
@@ -3119,6 +3402,7 @@ bool CDatum::Deserialize (EFormat iFormat, IByteStream &Stream, IAEONParseExtens
 			case EFormat::Binary:
 				return CDatum::CreateBinary(Stream, Stream.GetStreamLength() - Stream.GetPos(), retDatum);
 
+			case EFormat::AEONJSON:
 			case EFormat::JSON:
 				return DeserializeJSON(Stream, retDatum);
 
@@ -3252,6 +3536,21 @@ bool CDatum::EnumElements (DWORD dwFlags, std::function<bool(CDatum)> fn) const
 				return fn(*this);
 			else
 				return true;
+
+		case TYPE_CONSTANTS:
+			{
+			switch (m_dwData)
+				{
+				case VALUE_BLANK:
+					if (dwFlags & FLAG_ALLOW_NULLS)
+						return fn(*this);
+					else
+						return true;
+
+				default:
+					return fn(*this);
+				}
+			}
 
 		case TYPE_COMPLEX:
 			return DecodeComplex(m_dwData).EnumElements(dwFlags, fn);
@@ -3435,6 +3734,9 @@ CString CDatum::Format (const CStringFormat& Format) const
 			{
 			switch (m_dwData)
 				{
+				case VALUE_BLANK:
+					return NULL_STR;
+
 				case VALUE_FALSE:
 					return STR_FALSE;
 
@@ -3552,6 +3854,9 @@ CDatum::Types CDatum::GetBasicType (void) const
 			{
 			switch (m_dwData)
 				{
+				case VALUE_BLANK:
+					return typeString;
+
 				case VALUE_FALSE:
 					return typeFalse;
 
@@ -3589,7 +3894,7 @@ CDatum::Types CDatum::GetBasicType (void) const
 			return typeNaN;
 
 		default:
-			return typeDouble;
+			return (IsIEEE754NaNBits(m_dwData) ? typeNaN : typeDouble);
 		}
 	}
 
@@ -3669,6 +3974,9 @@ CDatum CDatum::GetDatatype () const
 			{
 			switch (m_dwData)
 				{
+				case VALUE_BLANK:
+					return CAEONTypes::Get(IDatatype::STRING);
+
 				case VALUE_FALSE:
 				case VALUE_TRUE:
 					return CAEONTypes::Get(IDatatype::BOOL);
@@ -3719,6 +4027,54 @@ int CDatum::GetDimensions () const
 
 		default:
 			return 0;
+		}
+	}
+
+TArray<double>* CDatum::GetArrayOfDoubleInterface ()
+	{
+	switch (DecodeType(m_dwData))
+		{
+		case TYPE_COMPLEX:
+			return DecodeComplex(m_dwData).GetArrayOfDoubleInterface();
+
+		default:
+			return NULL;
+		}
+	}
+
+TArray<CDatum>* CDatum::GetArrayOfDatumInterface ()
+	{
+	switch (DecodeType(m_dwData))
+		{
+		case TYPE_COMPLEX:
+			return DecodeComplex(m_dwData).GetArrayOfDatumInterface();
+
+		default:
+			return NULL;
+		}
+	}
+
+TArray<int>* CDatum::GetArrayOfInt32Interface ()
+	{
+	switch (DecodeType(m_dwData))
+		{
+		case TYPE_COMPLEX:
+			return DecodeComplex(m_dwData).GetArrayOfInt32Interface();
+
+		default:
+			return NULL;
+		}
+	}
+
+TArray<CVector3D>* CDatum::GetArrayOfVector3DInterface ()
+	{
+	switch (DecodeType(m_dwData))
+		{
+		case TYPE_COMPLEX:
+			return DecodeComplex(m_dwData).GetArrayOfVector3DInterface();
+
+		default:
+			return NULL;
 		}
 	}
 
@@ -3868,7 +4224,7 @@ CDatum CDatum::GetUniqueValues (DWORD dwFlags) const
 			}
 		else
 			{
-			CDatum dResult(CDatum::typeArray);
+			CDatum dResult(GetBasicType() == typeTextLines ? CreateAsType(GetDatatype()) : CDatum(CDatum::typeArray));
 			dResult.GrowToFit(Unique.GetCount());
 			for (int i = 0; i < Unique.GetCount(); i++)
 				dResult.Append(Unique.GetKey(i));
@@ -3892,7 +4248,7 @@ CDatum CDatum::GetUniqueValues (DWORD dwFlags) const
 			}
 		else
 			{
-			CDatum dResult(CDatum::typeArray);
+			CDatum dResult(GetBasicType() == typeTextLines ? CreateAsType(GetDatatype()) : CDatum(CDatum::typeArray));
 			dResult.GrowToFit(Unique.GetCount());
 			for (int i = 0; i < Unique.GetCount(); i++)
 				dResult.Append(Unique.GetKey(i));
@@ -3936,6 +4292,9 @@ size_t CDatum::Hash () const
 			{
 			switch (m_dwData)
 				{
+				case VALUE_BLANK:
+					return 0;
+
 				case VALUE_FALSE:
 					return 0;
 
@@ -4302,14 +4661,14 @@ CDatum CDatum::GetElementAt (int iIndex) const
 	{
 	switch (DecodeType(m_dwData))
 		{
-		case TYPE_STRING:
-			{
-			CStringView sValue = DecodeString(m_dwData);
-			if (iIndex >= 0 && iIndex < sValue.GetLength())
-				return CString(sValue.GetParsePointer() + iIndex, 1);
+		case TYPE_CONSTANTS:
+			if (m_dwData == VALUE_BLANK)
+				return CAEONStringImpl::GetElementAt(NULL_STR, iIndex);
 			else
-				return CDatum();
-			}
+				return (iIndex == 0 ? *this : CDatum());
+
+		case TYPE_STRING:
+			return CAEONStringImpl::GetElementAt(DecodeString(m_dwData), iIndex);
 
 		case TYPE_COMPLEX:
 			{
@@ -4342,6 +4701,12 @@ CDatum CDatum::GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) const
 	{
 	switch (DecodeType(m_dwData))
 		{
+		case TYPE_CONSTANTS:
+			if (m_dwData == VALUE_BLANK)
+				return CAEONStringImpl::GetElementAt(NULL_STR, TypeSystem, dIndex);
+			else
+				return ((int)dIndex == 0 ? *this : CDatum());
+
 		case TYPE_STRING:
 			return CAEONStringImpl::GetElementAt(DecodeString(m_dwData), TypeSystem, dIndex);
 
@@ -4414,6 +4779,12 @@ int CDatum::GetElementAtCount () const
 	{
 	switch (DecodeType(m_dwData))
 		{
+		case TYPE_CONSTANTS:
+			if (m_dwData == VALUE_BLANK)
+				return 0;
+			else
+				return 1;
+
 		case TYPE_NULL:
 			return 0;
 
@@ -4445,10 +4816,11 @@ CDatum CDatum::GetElementsAtArray (CDatum dIndex) const
 
 	dIndex = CAEONTensor::ExpandIndexRange(dIndex);
 
-	//	NOTE: We always create an array preserving the element type.
+	//	NOTE: We always create an array preserving the element type. TextLines
+	//	is array-like, but preserves document semantics in array selections.
 
 	const IDatatype& Type = GetDatatype();
-	CDatum dResult = CreateArrayAsTypeOfElement(Type.GetElementType());
+	CDatum dResult = (GetBasicType() == typeTextLines ? CreateAsType(GetDatatype()) : CreateArrayAsTypeOfElement(Type.GetElementType()));
 	dResult.GrowToFit(dIndex.GetCount());
 
 	//	Loop over the index.
@@ -4478,10 +4850,11 @@ CDatum CDatum::GetElementsAtRange (CDatum dRange) const
 	int iEnd = pRange->GetEnd();
 	int iStep = pRange->GetStep();
 
-	//	NOTE: We always create an array preserving the element type.
+	//	NOTE: We always create an array preserving the element type. TextLines
+	//	is array-like, but preserves document semantics in array selections.
 
 	const IDatatype& Type = GetDatatype();
-	CDatum dResult = CreateArrayAsTypeOfElement(Type.GetElementType());
+	CDatum dResult = (GetBasicType() == typeTextLines ? CreateAsType(GetDatatype()) : CreateArrayAsTypeOfElement(Type.GetElementType()));
 	if (iStep > 0)
 		{
 		for (int i = iStart; i <= iEnd; i += iStep)
@@ -4576,6 +4949,12 @@ CDatum CDatum::GetMethod (const CString &sMethod) const
 		case TYPE_NULL:
 			return CAEONNilImpl::GetMethod(sMethod);
 
+		case TYPE_CONSTANTS:
+			if (m_dwData == VALUE_BLANK)
+				return CAEONStringImpl::GetMethod(sMethod);
+			else
+				return CDatum();
+
 		case TYPE_STRING:
 			return CAEONStringImpl::GetMethod(sMethod);
 			
@@ -4601,6 +4980,12 @@ void* CDatum::GetMethodThis ()
 		{
 		case TYPE_NULL:
 			return NULL;
+
+		case TYPE_CONSTANTS:
+			if (m_dwData == VALUE_BLANK)
+				return NULL_STR.GetParsePointer();
+			else
+				return NULL;
 
 		case TYPE_STRING:
 			return DecodeLPSTR(m_dwData);
@@ -4653,6 +5038,9 @@ CDatum::Types CDatum::GetNumberType (int *retiValue, CDatum *retdConverted) cons
 		case TYPE_CONSTANTS:
 			switch (m_dwData)
 				{
+				case VALUE_BLANK:
+					return typeNaN;
+
 				case VALUE_FALSE:
 					if (retiValue)
 						*retiValue = 0;
@@ -4718,6 +5106,12 @@ CDatum CDatum::GetProperty (const CString &sKey) const
 		{
 		case TYPE_NULL:
 			return CAEONNilImpl::GetProperty(sKey);
+
+		case TYPE_CONSTANTS:
+			if (m_dwData == VALUE_BLANK)
+				return CAEONStringImpl::GetProperty(NULL_STR, sKey);
+			else
+				return CDatum();
 
 		case TYPE_STRING:
 			return CAEONStringImpl::GetProperty(DecodeString(m_dwData), sKey);
@@ -4975,6 +5369,9 @@ const CString &CDatum::GetTypename (void) const
 			{
 			switch (m_dwData)
 				{
+				case VALUE_BLANK:
+					return TYPENAME_STRING;
+
 				case VALUE_FALSE:
 					return TYPENAME_FALSE;
 
@@ -5143,8 +5540,13 @@ CDatum CDatum::Join (CStringView sSeparator, CStringView sLastSeparator, DWORD d
 	TArray<CDatum> Values;
 	Values.GrowToFit(GetCount());
 
-	bool bSuccess = EnumElements(dwFlags, [&Values](CDatum dValue)
+	bool bSuccess = EnumElements(dwFlags, [&Values, dwFlags](CDatum dValue)
 		{
+		//	If we're skipping nulls, then also skip empty strings.
+
+		if (!(dwFlags & FLAG_ALLOW_NULLS) && (dValue.GetBasicType() == CDatum::typeString && dValue.IsNil()))
+			return true;
+
 		Values.Insert(dValue);
 		return true;
 		});
@@ -5425,7 +5827,7 @@ bool CDatum::IsEqualCompatible (CDatum dValue) const
 		}
 	}
 
-bool CDatum::IsError (void) const
+bool CDatum::IsError (CString* retsError) const
 
 //	IsError
 //
@@ -5435,7 +5837,7 @@ bool CDatum::IsError (void) const
 	switch (DecodeType(m_dwData))
 		{
 		case TYPE_COMPLEX:
-			return DecodeComplex(m_dwData).IsError();
+			return DecodeComplex(m_dwData).IsError(retsError);
 
 		default:
 			return false;
@@ -5458,6 +5860,7 @@ bool CDatum::IsNil (void) const
 			{
 			switch (m_dwData)
 				{
+				case VALUE_BLANK:
 				case VALUE_FALSE:
 					return true;
 
@@ -6253,12 +6656,6 @@ bool CDatum::OpIsEqual (CDatum dValue) const
 			case CDatum::typeStruct:
 				return dValue2.GetCount() == 0;
 
-			case CDatum::typeVector2D:
-				return (const CVector2D&)dValue2 == CVector2D::Null;
-
-			case CDatum::typeVector3D:
-				return (const CVector3D&)dValue2 == CVector3D::Null;
-
 			default:
 				return dValue2.IsNil();
 			}
@@ -6497,6 +6894,23 @@ bool CDatum::OpIsIdentical (CDatum dValue) const
 	else if (iType2 == CDatum::typeRowRef && IsStruct())
 		{
 		return CAEONRowRefImpl::OpIsIdentical(*this, dValue.m_dwData);
+		}
+
+	//	If both are numbers, use precision-safe numeric comparison.
+
+	else if (IsNumber()
+			&& dValue.IsNumber()
+			&& iType1 != CDatum::typeDouble
+			&& iType1 != CDatum::typeNaN
+			&& iType2 != CDatum::typeDouble
+			&& iType2 != CDatum::typeNaN)
+		{
+		CNumberValue Number1(*this);
+		CNumberValue Number2(dValue);
+
+		return (Number1.IsValidNumber()
+				&& Number2.IsValidNumber()
+				&& Number1.Compare(Number2) == 0);
 		}
 
 	else
@@ -6757,8 +7171,9 @@ void CDatum::Serialize (EFormat iFormat, IByteStream &Stream) const
 			SerializeGridLang(Stream);
 			break;
 
+		case EFormat::AEONJSON:
 		case EFormat::JSON:
-			SerializeJSON(Stream);
+			SerializeJSON(iFormat, Stream);
 			break;
 
 		default:
@@ -7019,6 +7434,7 @@ void CDatum::SetMethodsExt (EMethodExt iType, TDatumMethodHandler<IComplexDatum>
 
 		case EMethodExt::Struct:
 			CComplexStruct::SetMethodsExt(MethodsExt);
+			CAEONObject::SetMethodsExt(MethodsExt);
 			break;
 
 		case EMethodExt::Table:
@@ -7090,11 +7506,19 @@ CDatum CDatum::VectorOf (Types iType, CDatum dValues)
 			dVector = CDatum(new CAEONVectorString());
 			break;
 
+		case typeVector2D:
+			dVector = CDatum(new CAEONVectorVector2D());
+			break;
+
+		case typeVector3D:
+			dVector = CDatum(new CAEONVectorVector3D());
+			break;
+
 		default:
 			//	Not supported
 			throw CException(errFail);
 		}
-	
+
 	for (int i = 0; i < dValues.GetCount(); i++)
 		dVector.Append(dValues.GetElement(i));
 

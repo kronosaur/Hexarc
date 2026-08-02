@@ -10,6 +10,8 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_CDBFORMAT_XLS97_PIPE,	"|");
+
 DECLARE_CONST_STRING(FIELD_COLUMN_ORDER,					"columnOrder");
 DECLARE_CONST_STRING(FIELD_SHEET_BY,						"sheetBy");
 DECLARE_CONST_STRING(FIELD_SORT_ORDER,						"sortOrder");
@@ -388,7 +390,7 @@ CString CDBFormatXLS97::MakeSortKey (const TArray<int> &SortOrder, int iRow, con
 	for (int i = 0; i < SortOrder.GetCount(); i++)
 		{
 		if (i != 0)
-			sKey += CString("|");
+			sKey += STR_CDBFORMAT_XLS97_PIPE;
 
 		sKey += GetSortKey(m_Table.GetField(SortOrder[i], iRow));
 		}

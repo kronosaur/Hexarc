@@ -279,6 +279,21 @@ IComplexDatum* CAEONTableRef::Clone (CDatum::EClone iMode) const
 		}
 	}
 
+CDatum CAEONTableRef::Cleaned () const
+
+//	Cleaned
+//
+//	Returns a cleaned copy of this table reference.
+
+	{
+	CRecursionGuard Guard(*this);
+	if (Guard.InRecursion())
+		return CDatum::raw_AsComplex(this);
+
+	CDatum dClone(Clone(CDatum::EClone::ShallowCopy));
+	return dClone.Cleaned();
+	}
+
 CDatum CAEONTableRef::CombineSubset (SSubset& ioSubset) const
 
 //	CombineSubset
@@ -448,7 +463,7 @@ IAEONTable::EResult CAEONTableRef::DeleteCol (int iCol)
 	if (!DeleteColumnFromSchema(GetSchema(), iCol, dNewSchema))
 		return EResult::InvalidParam;
 
-	m_dDatatype = CAEONTypeSystem::CreateAnonymousTable(NULL_STR, dNewSchema);
+	m_dDatatype = CAEONTypes::CreateTable(NULL_STR, dNewSchema);
 
 	//	Remove the column
 
@@ -1077,7 +1092,9 @@ void CAEONTableRef::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruc
 	{
 	const IDatatype &Schema = GetSchema();
 
-	pStruct->SetElement(FIELD_DATATYPE, m_dDatatype);
+	if (iFormat != CDatum::EFormat::JSON)
+		pStruct->SetElement(FIELD_DATATYPE, m_dDatatype);
+
 	pStruct->SetElement(FIELD_ROWS, GetRowCount());
 
 	CDatum dCols(CDatum::typeArray);
@@ -1100,7 +1117,16 @@ void CAEONTableRef::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruc
 
 bool CAEONTableRef::OpContains (CDatum dValue) const
 	{
-	return FindRowByID(dValue);
+	if (HasKeys())
+		return FindRowByID(dValue);
+	else
+		{
+		int iRow;
+		if (!dValue.IsNumberInt32(&iRow))
+			return false;
+
+		return (iRow >= 0 && iRow < GetRowCount());
+		}
 	}
 
 void CAEONTableRef::SerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const

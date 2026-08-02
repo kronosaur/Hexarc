@@ -69,9 +69,19 @@ bool IHexeVMHost::Impl_ArrayMap (IInvokeCtx &Ctx, CHexeStackEnv& LocalEnv, CDatu
 			dProgressFn = LocalEnv.GetArgument(iArg++);
 			}
 
+		//	Compute the resulting array type based on the map function.
+
+		int iArgs;
+		CDatum dResultType = Impl_CalcArrayMapType(Ctx, dArray, dMapFunc, iArgs);
+		if (dResultType.IsError())
+			{
+			retResult.dResult = dResultType;
+			return false;
+			}
+
 		//	Create a new processor to handle this
 
-		CArrayMapProcessor *pProcessor = new CArrayMapProcessor(dArray, dOptions, dMapFunc);
+		CArrayMapProcessor *pProcessor = new CArrayMapProcessor(dArray, dOptions, dMapFunc, dResultType);
 		CDatum dProcessor(pProcessor);
 
 		//	Invoke it.
@@ -89,6 +99,33 @@ bool IHexeVMHost::Impl_ArrayMap (IInvokeCtx &Ctx, CHexeStackEnv& LocalEnv, CDatu
 
 		return pProcessor->ProcessContinues(dContinueCtx, dContinueResult, retResult);
 		}
+	}
+
+CDatum IHexeVMHost::Impl_CalcArrayMapType (IInvokeCtx &Ctx, CDatum dArray, CDatum dMapFunc, int& retiArgs)
+	{
+	CDatum dArrayType = dArray.GetDatatype();
+	CDatum dFuncType = dMapFunc.GetDatatype();
+	const IDatatype& FuncType = dFuncType;
+
+	CDatum dReturnType;
+	if (FuncType.CanBeCalledWithArgCount(dArrayType, 2, &dReturnType))
+		retiArgs = 2;
+	else
+		{
+		retiArgs = 1;
+		if (!FuncType.CanBeCalledWithArgCount(dArrayType, 1, &dReturnType))
+			dReturnType = CAEONTypes::Get(IDatatype::ANY);
+		}
+
+	if (((const IDatatype&)dReturnType).IsNullable())
+		dReturnType = ((const IDatatype&)dReturnType).GetVariantType();
+
+	CDatum dNewType = CAEONTypes::CreateArray(NULL_STR, dReturnType);
+	CDatum dExistingType = Ctx.GetTypeSystem().FindType(dNewType);
+	if (!dExistingType.IsNil())
+		dNewType = dExistingType;
+
+	return dNewType;
 	}
 
 CDatum IHexeVMHost::Impl_CalcDictionaryMapType (IInvokeCtx &Ctx, CDatum dDictionary, CDatum dMapFunc, int& retiArgs)
@@ -127,7 +164,7 @@ CDatum IHexeVMHost::Impl_CalcDictionaryMapType (IInvokeCtx &Ctx, CDatum dDiction
 
 	//	Create a dictionary type
 
-	CDatum dNewType = CAEONTypeSystem::CreateAnonymousDictionary(NULL_STR, dKeyType, dReturnType);
+	CDatum dNewType = CAEONTypes::CreateDictionary(NULL_STR, dKeyType, dReturnType);
 	CDatum dExistingType = Ctx.GetTypeSystem().FindType(dNewType);
 	if (!dExistingType.IsNil())
 		dNewType = dExistingType;

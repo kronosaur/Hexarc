@@ -5,6 +5,8 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_XMLPARSER_UNABLE_TO_PARSE_XML_FILE,	"Unable to parse XML file.");
+
 enum TokenTypes
 	{
 	tkEOF,						//	end of file
@@ -260,7 +262,7 @@ bool CXMLElement::ParseXML (const IMemoryBlock& Stream,
 	catch (...)
 		{
 		if (retsError)
-			*retsError = CString("Unable to parse XML file.");
+			*retsError = STR_XMLPARSER_UNABLE_TO_PARSE_XML_FILE;
 		return false;
 		}
 	}
@@ -612,7 +614,7 @@ bool ParseElement (ParserCtx *pCtx, CXMLElement **retpElement)
 
 			else if (pCtx->iToken == tkTagClose)
 				{
-				pElement->AppendContent(CString(">"));
+				pElement->AppendContent(ENTITY_GT_SUB);
 				}
 
 			//	Otherwise, append an element
@@ -1508,7 +1510,7 @@ TokenTypes ParseEntityToken (ParserCtx *pCtx)
 	bool bDone = false;
 	StateTypes iState = TextState;
 	const char* pStartRun = pCtx->pPos;
-	pCtx->sToken = CString("");
+	pCtx->sToken = NULL_STR;
 
 	//	Keep parsing until we're done
 

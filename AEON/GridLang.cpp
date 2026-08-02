@@ -24,6 +24,10 @@ void CDatum::SerializeGridLang (IByteStream &Stream) const
 			{
 			switch (m_dwData)
 				{
+				case VALUE_BLANK:
+					WriteGridLangString(Stream, NULL_STR);
+					break;
+
 				case VALUE_FALSE:
 					Stream.Write("false", 5);
 					break;

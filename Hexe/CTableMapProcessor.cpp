@@ -37,7 +37,7 @@ CDatum CTableMapProcessor::CreateSchemaFromStruct (CDatum dStruct)
 		auto pNewColumn = Columns.Insert();
 		pNewColumn->iType = IDatatype::EMemberType::InstanceVar;
 		pNewColumn->sID = dStruct.GetKey(i);
-		pNewColumn->dType = CAEONTypeSystem::GetCoreType(IDatatype::ANY);
+		pNewColumn->dType = CAEONTypes::Get(IDatatype::ANY);
 		}
 
 	//	Create a new schema.

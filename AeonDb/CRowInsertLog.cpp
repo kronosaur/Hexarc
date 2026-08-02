@@ -15,6 +15,18 @@ DECLARE_CONST_STRING(ERR_CRASH,							"Crash while inserting")
 const DWORD SIGNATURE =									'ROEA';		//	'AEOR' backwards because of little-endianness
 const DWORD CURRENT_VERSION =							1;
 
+static void TruncateRecoveryTail (CFile &File, int iPos)
+	{
+	try
+		{
+		File.SetLength(iPos);
+		File.Seek(iPos);
+		}
+	catch (...)
+		{
+		}
+	}
+
 bool CRowInsertLog::Create (const CString &sFilename)
 
 //	Create
@@ -187,6 +199,7 @@ bool CRowInsertLog::Recover (CAeonRowArray *pRows, int *retiRowCount, CString *r
 
 	//	Read it
 
+	int iLastGoodPos = m_File.GetPos();
 	while (m_File.GetPos() < iTotalSize)
 		{
 		try
@@ -202,8 +215,8 @@ bool CRowInsertLog::Recover (CAeonRowArray *pRows, int *retiRowCount, CString *r
 			CDatum dData;
 			if (!CDatum::Deserialize(CDatum::EFormat::AEONScript, m_File, &dData))
 				{
-				*retsError = ERR_CANT_PARSE;
-				return false;
+				TruncateRecoveryTail(m_File, iLastGoodPos);
+				break;
 				}
 
 			//	Skip terminator, if necessary
@@ -214,8 +227,8 @@ bool CRowInsertLog::Recover (CAeonRowArray *pRows, int *retiRowCount, CString *r
 				m_File.Read(&chTerm, 1);
 				if (chTerm != ' ')
 					{
-					*retsError = ERR_NO_TERMINATOR;
-					return false;
+					TruncateRecoveryTail(m_File, iLastGoodPos);
+					break;
 					}
 				}
 
@@ -233,11 +246,12 @@ bool CRowInsertLog::Recover (CAeonRowArray *pRows, int *retiRowCount, CString *r
 				}
 
 			iRowCount++;
+			iLastGoodPos = m_File.GetPos();
 			}
 		catch (...)
 			{
-			*retsError = ERR_CRASH_LOADING;
-			return false;
+			TruncateRecoveryTail(m_File, iLastGoodPos);
+			break;
 			}
 		}
 

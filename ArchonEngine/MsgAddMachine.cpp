@@ -16,6 +16,7 @@ DECLARE_CONST_STRING(FIELD_AUTH_NAME,					"authName")
 DECLARE_CONST_STRING(FIELD_NAME,						"name")
 DECLARE_CONST_STRING(FIELD_KEY,							"key")
 DECLARE_CONST_STRING(FIELD_MACHINES,					"machines")
+DECLARE_CONST_STRING(FIELD_NODE_ID,						"nodeID")
 
 DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply")
 DECLARE_CONST_STRING(MSG_ESPER_AMP1,					"Esper.amp1")
@@ -107,6 +108,7 @@ void CExarchEngine::MsgAddMachine (const SArchonMessage &Msg, const CHexeSecurit
 	//	to add it again.
 
 	CComplexStruct *pMachineEntry = new CComplexStruct;
+	pMachineEntry->SetElement(FIELD_NODE_ID, sNodeID);
 	pMachineEntry->SetElement(FIELD_NAME, sDisplayName);
 	pMachineEntry->SetElement(FIELD_ADDRESS, sFullAddress);
 	pMachineEntry->SetElement(FIELD_KEY, CDatum(SecretKey));

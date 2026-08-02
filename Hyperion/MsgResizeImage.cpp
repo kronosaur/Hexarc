@@ -9,6 +9,10 @@ DECLARE_CONST_STRING(FIELD_CROP_BOTTOM,					"cropBottom");
 DECLARE_CONST_STRING(FIELD_CROP_LEFT,					"cropLeft");
 DECLARE_CONST_STRING(FIELD_CROP_RIGHT,					"cropRight");
 DECLARE_CONST_STRING(FIELD_CROP_TOP,					"cropTop");
+DECLARE_CONST_STRING(FIELD_CROP_HEIGHT,					"cropHeight");
+DECLARE_CONST_STRING(FIELD_CROP_WIDTH,					"cropWidth");
+DECLARE_CONST_STRING(FIELD_CROP_X,						"cropX");
+DECLARE_CONST_STRING(FIELD_CROP_Y,						"cropY");
 DECLARE_CONST_STRING(FIELD_DATA,						"data");
 DECLARE_CONST_STRING(FIELD_FILE_DESC,					"fileDesc");
 DECLARE_CONST_STRING(FIELD_MODIFIED_ON,					"modifiedOn");
@@ -24,8 +28,10 @@ DECLARE_CONST_STRING(ERR_BAD_PARAMS,					"Invalid parameters.");
 DECLARE_CONST_STRING(ERR_UNKNOWN_IMAGE_FORMAT,			"%s: Unable to determine image format from extension.");
 DECLARE_CONST_STRING(ERR_UNSUPPORTED_IMAGE_FORMAT,		"%s: Unsupported image format.");
 DECLARE_CONST_STRING(ERR_CANT_LOAD_JPEG,				"%s: Unable to load JPEG: %s");
+DECLARE_CONST_STRING(ERR_CANT_LOAD_PNG,					"%s: Unable to load PNG: %s");
 DECLARE_CONST_STRING(ERR_CANT_RESIZE,					"%s: Unable to resize image.");
 DECLARE_CONST_STRING(ERR_CANT_SAVE_JPEG,				"%s: Unable to save JPEG image.");
+DECLARE_CONST_STRING(ERR_CANT_SAVE_PNG,					"%s: Unable to save PNG image.");
 
 static constexpr DWORD MAX_RESIZE_SIZE = 16384;
 
@@ -53,7 +59,7 @@ class CResizeImageSession : public CAeonFileDownloadSession
 		bool ResizeImage (const CRGBA32Image &Input, DWORD dwNewSize, const RECT &rcCrop, CRGBA32Image &retOutput);
 
 		CHyperionEngine &m_Engine;
-		DWORD m_dwNewSize;
+		DWORD m_dwNewSize;				//	0 = no resize
 		RECT m_rcCrop;
 		CString m_sCacheID;
 		CDatum m_dResult;
@@ -78,7 +84,7 @@ void CHyperionEngine::MsgResizeImage (const SArchonMessage &Msg, const CHexeSecu
 		}
 		
 	DWORD dwSize = (DWORD)Msg.dPayload.GetElement(1);
-	if (dwSize == 0 || dwSize > MAX_RESIZE_SIZE)
+	if (dwSize > MAX_RESIZE_SIZE)
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, ERR_BAD_PARAMS, Msg);
 		return;
@@ -101,7 +107,7 @@ CImageLoader::EFormats CResizeImageSession::CalcFormat (const CString& sFilePath
 //	Calculates the image format based on the fileDesc and/or extension.
 
 	{
-	CStringView sFormat = dFileDesc.GetElement(FIELD_TYPE);
+	CString sFormat = dFileDesc.GetElement(FIELD_TYPE).AsString();
 	if (sFormat.IsEmpty())
 		sFormat = sFilePath;
 
@@ -115,10 +121,34 @@ void CResizeImageSession::LoadOptions (CDatum dOptions)
 //	Loads options.
 
 	{
-	m_rcCrop.left = (int)dOptions.GetElement(FIELD_CROP_LEFT);
-	m_rcCrop.right = (int)dOptions.GetElement(FIELD_CROP_RIGHT);
-	m_rcCrop.top = (int)dOptions.GetElement(FIELD_CROP_TOP);
-	m_rcCrop.bottom = (int)dOptions.GetElement(FIELD_CROP_BOTTOM);
+	CDatum dValue;
+	if (dOptions.FindElement(FIELD_CROP_X, &dValue))
+		m_rcCrop.left = (int)dValue;
+	else if (dOptions.FindElement(FIELD_CROP_LEFT, &dValue))
+		m_rcCrop.left = (int)dValue;
+	else
+		m_rcCrop.left = 0;
+
+	if (dOptions.FindElement(FIELD_CROP_Y, &dValue))
+		m_rcCrop.top = (int)dValue;
+	else if (dOptions.FindElement(FIELD_CROP_TOP, &dValue))
+		m_rcCrop.top = (int)dValue;
+	else
+		m_rcCrop.top = 0;
+
+	if (dOptions.FindElement(FIELD_CROP_WIDTH, &dValue))
+		m_rcCrop.right = m_rcCrop.left + (int)dValue;
+	else if (dOptions.FindElement(FIELD_CROP_RIGHT, &dValue))
+		m_rcCrop.right = (int)dValue;
+	else
+		m_rcCrop.right = 0;
+
+	if (dOptions.FindElement(FIELD_CROP_HEIGHT, &dValue))
+		m_rcCrop.bottom = m_rcCrop.top + (int)dValue;
+	else if (dOptions.FindElement(FIELD_CROP_BOTTOM, &dValue))
+		m_rcCrop.bottom = (int)dValue;
+	else
+		m_rcCrop.bottom = 0;
 	}
 
 void CResizeImageSession::OnFileDownloaded (CDatum dFileDesc, CDatum dData)
@@ -132,7 +162,7 @@ void CResizeImageSession::OnFileDownloaded (CDatum dFileDesc, CDatum dData)
 	//	If we don't support the format, then we just send it out unchanged.
 
 	CImageLoader::EFormats iFormat = CalcFormat(GetFilePath(), dFileDesc);
-	if (iFormat != CImageLoader::formatJPEG)
+	if (iFormat != CImageLoader::formatJPEG && iFormat != CImageLoader::formatPNG)
 		{
 		CDatum dResult(CDatum::typeStruct);
 		dResult.SetElement(FIELD_FILE_DESC, dFileDesc);
@@ -150,10 +180,27 @@ void CResizeImageSession::OnFileDownloaded (CDatum dFileDesc, CDatum dData)
 	CRGBA32Image FullSizeImage;
 	CString sError;
 	CBuffer Buffer(dData.AsStringView());
-	if (!CJPEG::Load(Buffer, FullSizeImage, &sError))
+	switch (iFormat)
 		{
-		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_CANT_LOAD_JPEG, fileGetFilename(GetFilePath()), sError));
-		return;
+		case CImageLoader::formatJPEG:
+			if (!CJPEG::Load(Buffer, FullSizeImage, &sError))
+				{
+				SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_CANT_LOAD_JPEG, fileGetFilename(GetFilePath()), sError));
+				return;
+				}
+			break;
+
+		case CImageLoader::formatPNG:
+			if (!CPNG::Load(Buffer, FullSizeImage, &sError))
+				{
+				SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_CANT_LOAD_PNG, fileGetFilename(GetFilePath()), sError));
+				return;
+				}
+			break;
+
+		default:
+			SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_UNSUPPORTED_IMAGE_FORMAT, fileGetFilename(GetFilePath())));
+			return;
 		}
 
 	//	Resize the image
@@ -165,18 +212,35 @@ void CResizeImageSession::OnFileDownloaded (CDatum dFileDesc, CDatum dData)
 		return;
 		}
 
-	//	Save as JPEG
+	//	Save the image
 
-	CStringBuffer JPEGBuffer;
-	if (!CJPEG::Save(ResizedImage, JPEGBuffer, 80, &sError))
+	CStringBuffer SaveBuffer;
+	switch (iFormat)
 		{
-		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_CANT_SAVE_JPEG, fileGetFilename(GetFilePath()), sError));
-		return;
+		case CImageLoader::formatJPEG:
+			if (!CJPEG::Save(ResizedImage, SaveBuffer, 80, &sError))
+				{
+				SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_CANT_SAVE_JPEG, fileGetFilename(GetFilePath()), sError));
+				return;
+				}
+			break;
+
+		case CImageLoader::formatPNG:
+			if (!CPNG::Save(ResizedImage, SaveBuffer, &sError))
+				{
+				SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_CANT_SAVE_PNG, fileGetFilename(GetFilePath()), sError));
+				return;
+				}
+			break;
+
+		default:
+			SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_UNSUPPORTED_IMAGE_FORMAT, fileGetFilename(GetFilePath())));
+			return;
 		}
 
 	//	Now store as a datum
 
-	CDatum::CreateBinaryFromHandoff(JPEGBuffer, &dData);
+	CDatum::CreateBinaryFromHandoff(SaveBuffer, &dData);
 
 	//	Compose a fileDownloadDesc for the newly resized image.
 
@@ -222,10 +286,20 @@ bool CResizeImageSession::OnPrepareRequest (CString &sFilePath, SOptions &Option
 
 	//	Generate an ID for the generated file.
 
-	if (IsCropped())
-		m_sCacheID = strPattern("%s#size=%d;cropB=%d;cropL=%d;cropR=%d;cropT=%d", sFilePath, m_dwNewSize, m_rcCrop.bottom, m_rcCrop.left, m_rcCrop.right, m_rcCrop.top);
+	if (m_dwNewSize == 0)
+		{
+		if (IsCropped())
+			m_sCacheID = strPattern("%s#cropB=%d;cropL=%d;cropR=%d;cropT=%d", sFilePath, m_rcCrop.bottom, m_rcCrop.left, m_rcCrop.right, m_rcCrop.top);
+		else
+			m_sCacheID = strPattern("%s", sFilePath);
+		}
 	else
-		m_sCacheID = strPattern("%s#size=%d", sFilePath, m_dwNewSize);
+		{
+		if (IsCropped())
+			m_sCacheID = strPattern("%s#size=%d;cropB=%d;cropL=%d;cropR=%d;cropT=%d", sFilePath, m_dwNewSize, m_rcCrop.bottom, m_rcCrop.left, m_rcCrop.right, m_rcCrop.top);
+		else
+			m_sCacheID = strPattern("%s#size=%d", sFilePath, m_dwNewSize);
+		}
 
 	//	If we have it in the cache, then we need to see if the file has been 
 	//	changed since we cached it.
@@ -254,26 +328,41 @@ bool CResizeImageSession::ResizeImage (const CRGBA32Image &Input, DWORD dwNewSiz
 		int ySrc = rcCrop.top;
 		int cxOriginal = Input.GetWidth();
 		int cyOriginal = Input.GetHeight();
-		int cxSrc = cxOriginal - (rcCrop.left + rcCrop.right);
-		int cySrc = cyOriginal - (rcCrop.top + rcCrop.bottom);
+		int cxSrc = rcCrop.right == 0 ? cxOriginal : rcCrop.right - rcCrop.left;
+		int cySrc = rcCrop.bottom == 0 ? cyOriginal : rcCrop.bottom - rcCrop.top;
 
 		if (cxSrc <= 0 || cySrc <= 0)
 			return false;
 
-		int cxMaxWidth = dwNewSize;
-		int cyMaxHeight = dwNewSize;
+		//	If no new size then crop only.
 
-		double rScaleX = (double)cxMaxWidth / (double)cxSrc;
-		double rScaleY = (double)cyMaxHeight / (double)cySrc;
-		double rScale = Min(rScaleX, rScaleY);
+		if (dwNewSize == 0)
+			{
+			retOutput.Create(cxSrc, cySrc, CRGBA32Image::alphaNone);
+			CImageDraw::Copy(retOutput, 0, 0, Input, xSrc, ySrc, cxSrc, cySrc);
 
-		int cxNewWidth = Min(cxMaxWidth, (int)mathRound(rScale * cxSrc));
-		int cyNewHeight = Min(cyMaxHeight, (int)mathRound(rScale * cySrc));
+			return true;
+			}
 
-		retOutput.Create(cxNewWidth, cyNewHeight, CRGBA32Image::alphaNone);
-		CImageDraw::BltScaled(retOutput, 0, 0, cxNewWidth, cyNewHeight, Input, xSrc, ySrc, cxSrc, cySrc);
+		//	Resize
 
-		return true;
+		else
+			{
+			int cxMaxWidth = dwNewSize;
+			int cyMaxHeight = dwNewSize;
+
+			double rScaleX = (double)cxMaxWidth / (double)cxSrc;
+			double rScaleY = (double)cyMaxHeight / (double)cySrc;
+			double rScale = Min(rScaleX, rScaleY);
+
+			int cxNewWidth = Min(cxMaxWidth, (int)mathRound(rScale * cxSrc));
+			int cyNewHeight = Min(cyMaxHeight, (int)mathRound(rScale * cySrc));
+
+			retOutput.Create(cxNewWidth, cyNewHeight, CRGBA32Image::alphaNone);
+			CImageDraw::CopyScaled(retOutput, 0, 0, cxNewWidth, cyNewHeight, Input, xSrc, ySrc, cxSrc, cySrc);
+
+			return true;
+			}
 		}
 	catch (...)
 		{

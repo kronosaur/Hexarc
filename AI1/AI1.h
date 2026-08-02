@@ -30,6 +30,8 @@ struct SOptions
 	CString sSingleCommand;
 	CString sScriptFile;
 	CString sHexeDocument;
+	CString sUsername;
+	CString sPassword;
 	};
 
 bool ConnectToArcology (const CString &sInterface, SOptions &Options, CSocket *retSocket);

@@ -110,6 +110,8 @@ void CHexeProcess::DeleteAll (void)
 	m_dCodeBank = CDatum();
 	m_pCodeBank = NULL;
 	m_CallStack.DeleteAll();
+	m_EventHandlerStack.DeleteAll();
+	m_iFrameBase = -1;
 	m_Env.Init(CDatum(new CHexeGlobalEnvironment));
 	m_GlobalEnvCache.DeleteAll();
 
@@ -474,6 +476,8 @@ void CHexeProcess::Mark (void)
 //	Mark all data in use
 
 	{
+	DEBUG_TRY
+
 	m_Stack.Mark();
 	m_dExpression.Mark();
 	m_dCodeBank.Mark();
@@ -482,6 +486,8 @@ void CHexeProcess::Mark (void)
 
 	m_dGlobalEnv.Mark();
 	m_Env.Mark();
+
+	DEBUG_CATCH
 	}
 
 CHexeProcess::ERun CHexeProcess::Run (const CString &sExpression, CDatum *retdResult)
@@ -579,12 +585,16 @@ CHexeProcess::ERun CHexeProcess::RunContinues (CDatum dAsyncResult, CDatum *retR
 		return ERun::Error;
 		}
 
-	//	If in an event handler, then we're done.
+	//	If this result completes a directly invoked library event handler, then
+	//	we're done. We keep this state on a stack because an event handler can
+	//	open a modal dialog, allowing other event handlers to run while the
+	//	original handler is suspended.
 
-	if (m_iEventHandlerLevel == -1)
+	if (m_EventHandlerStack.GetCount() > 0
+			&& m_EventHandlerStack.GetAt(m_EventHandlerStack.GetCount() - 1) == EEventHandlerType::Library)
 		{
 		*retResult = dAsyncResult;
-		m_iEventHandlerLevel = 0;
+		m_EventHandlerStack.Delete(m_EventHandlerStack.GetCount() - 1);
 		return ERun::EventHandlerDone;
 		}
 
@@ -685,9 +695,14 @@ CHexeProcess::ERun CHexeProcess::RunEventHandler (CDatum dFunc, const TArray<CDa
 
 			m_pIP = pNewIP;
 
-			//	Remember that we're in an event handler.
+#ifdef DEBUG_COMPUTE_IP
+			if (!m_Host.GetProcessID().IsNil())
+				printf("[%s] CHexeProcess::RunEventHandler: IP = %08x\n", (LPCSTR)m_Host.GetProcessID().AsString(), (DWORD)(DWORD_PTR)m_pIP);
+#endif
 
-			m_iEventHandlerLevel++;
+			//	Remember that we're in a code event handler.
+
+			m_EventHandlerStack.Insert(EEventHandlerType::Code);
 
 			//	Progress
 
@@ -731,9 +746,11 @@ CHexeProcess::ERun CHexeProcess::RunEventHandler (CDatum dFunc, const TArray<CDa
 
 			m_dwLibraryTime += ::sysGetTickCount64() - dwStart;
 
-			//	Remember that we're in an event handler.
+			//	Remember that we're in a directly invoked library event handler.
+			//	This must not overwrite the state of an outer code handler that is
+			//	suspended inside a modal dialog.
 
-			m_iEventHandlerLevel = -1;	//	-1 means a library call
+			m_EventHandlerStack.Insert(EEventHandlerType::Library);
 
 			if (iResult != CDatum::InvokeResult::ok)
 				return ExecuteHandleInvokeResult(iResult, dFunc, Result, &retResult, FLAG_NO_ADVANCE);
@@ -744,7 +761,7 @@ CHexeProcess::ERun CHexeProcess::RunEventHandler (CDatum dFunc, const TArray<CDa
 
 			//	Done
 
-			m_iEventHandlerLevel = 0;
+			m_EventHandlerStack.Delete(m_EventHandlerStack.GetCount() - 1);
 			retResult = Result.dResult;
 			return ERun::EventHandlerDone;
 			}
@@ -791,6 +808,7 @@ CHexeProcess::ERun CHexeProcess::RunWithStack (CDatum dExpression, CDatum *retRe
 
 	m_dExpression = dExpression;
 	m_CallStack.DeleteAll();
+	m_EventHandlerStack.DeleteAll();
 	m_Env.DeleteAll();
 
 	//	Initialize the instruction pointer
@@ -809,6 +827,11 @@ CHexeProcess::ERun CHexeProcess::RunWithStack (CDatum dExpression, CDatum *retRe
 		*retResult = strPattern(ERR_HEXE_CODE_EXPECTED, dExpression.AsString());
 		return ERun::Error;
 		}
+
+#ifdef DEBUG_COMPUTE_IP
+	if (!m_Host.GetProcessID().IsNil())
+		printf("[%s] CHexeProcess::RunWithStack: IP = %08x\n", (LPCSTR)m_Host.GetProcessID().AsString(), (DWORD)(DWORD_PTR)m_pIP);
+#endif
 
 	if (!SetCodeBank(dCodeBank))
 		{

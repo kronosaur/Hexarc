@@ -131,6 +131,41 @@ CString urlEncodeParam (const CString &sValue)
 	return CString::CreateFromHandoff(Output);
 	}
 
+CString urlEncodePathSegment (const CString &sValue)
+
+//	urlEncodePathSegment
+//
+//	Encodes a single URL path segment. We encode "/" because the caller is
+//	responsible for composing path separators between segments.
+
+	{
+	CStringBuffer Output;
+
+	char *pPos = sValue.GetParsePointer();
+	char *pPosEnd = pPos + sValue.GetLength();
+	char *pStart = pPos;
+	while (pPos < pPosEnd)
+		{
+		if (strIsASCIIAlphaNumeric(pPos) || *pPos == '.' || *pPos == '-' || *pPos == '~' || *pPos == '_')
+			pPos++;
+		else
+			{
+			Output.Write(pStart, pPos - pStart);
+
+			Output.WriteChar('%');
+			Output.WriteChar(strEncodeHexDigit((BYTE)*pPos / 16));
+			Output.WriteChar(strEncodeHexDigit((BYTE)*pPos % 16));
+
+			pPos++;
+			pStart = pPos;
+			}
+		}
+
+	Output.Write(pStart, pPos - pStart);
+
+	return CString::CreateFromHandoff(Output);
+	}
+
 DWORD urlGetDefaultPort (const CString &sProtocol)
 
 //	urlGetDefaultPort

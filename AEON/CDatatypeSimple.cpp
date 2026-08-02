@@ -7,7 +7,6 @@
 
 DECLARE_CONST_STRING(ERR_EXPECT_INDEX,					"Expected index.");
 
-
 bool CDatatypeSimple::OnCanBeCalledWith (CDatum dThisType, const TArray<CDatum>& ArgTypes, const TArray<CDatum>& ArgLiteralTypes, CDatum* retdReturnType, CString* retsError) const
 	{
 	if (IsA(IDatatype::INDEXED))
@@ -25,6 +24,18 @@ bool CDatatypeSimple::OnCanBeCalledWith (CDatum dThisType, const TArray<CDatum>&
 		}
 	else
 		return false;
+	}
+
+bool CDatatypeSimple::OnCanBeConstructedFrom (CDatum dType) const
+	{
+	const IDatatype& Type = dType;
+	if (Type.IsAny() || Type.IsA(*this))
+		return true;
+
+	if (Type.IsA(m_ConstructFrom))
+		return true;
+
+	return false;
 	}
 
 bool CDatatypeSimple::OnDeserialize (CDatum::EFormat iFormat, IByteStream &Stream, DWORD dwVersion)

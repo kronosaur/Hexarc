@@ -9,6 +9,8 @@
 
 #pragma once
 
+DECLARE_CONST_STRING(STR_FOUNDATION_EXCEPTIONS_EXCEPTION,	"EXCEPTION");
+
 enum ErrorCodes
 	{
 	errNone,						//	No error
@@ -91,5 +93,5 @@ class CFileException : public CException
 	};
 
 #define DEBUG_TRY					try {
-#define DEBUG_CATCH					} catch (CException e) { throw CException(errCrashTrace, strPattern("%s\n%s", (e.GetErrorString().IsEmpty() ? CString("EXCEPTION") : e.GetErrorString()), CString(__FUNCTION__))); } catch (...) { throw CException(errCrashTrace, strPattern("Exception in %s", CString(__FUNCTION__))); }
+#define DEBUG_CATCH					} catch (CException e) { throw CException(errCrashTrace, strPattern("%s\n%s", (e.GetErrorString().IsEmpty() ? STR_FOUNDATION_EXCEPTIONS_EXCEPTION : e.GetErrorString()), CString(__FUNCTION__))); } catch (...) { throw CException(errCrashTrace, strPattern("Exception in %s", CString(__FUNCTION__))); }
 

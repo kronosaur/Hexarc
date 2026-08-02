@@ -5,6 +5,8 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_CEVENT_PROCESSING_THREAD_CRASH_IN_CEVENT_PROCESSING_THREAD,	"CRASH: In CEventProcessingThread.");
+
 DECLARE_CONST_STRING(ADDR_NULL,							"Arc.null");
 
 DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error");
@@ -147,7 +149,7 @@ void CEventProcessingThread::Run (void)
 			if (++iCrashCount > MAX_CRASH_COUNT)
 				throw;
 
-			m_ProcessCtx.Log(MSG_LOG_ERROR, CString("CRASH: In CEventProcessingThread."));
+			m_ProcessCtx.Log(MSG_LOG_ERROR, STR_CEVENT_PROCESSING_THREAD_CRASH_IN_CEVENT_PROCESSING_THREAD);
 			}
 		}
 	}

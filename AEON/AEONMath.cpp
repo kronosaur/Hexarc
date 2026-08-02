@@ -34,6 +34,7 @@ CDatum CDatum::MathAbs () const
 			{
 			switch (m_dwData)
 				{
+				case VALUE_BLANK:
 				case VALUE_FALSE:
 				case VALUE_TRUE:
 					return *this;
@@ -116,7 +117,16 @@ void CDatum::MathAccumulateStats (SStatsCtx& Stats) const
 			break;
 
 		case TYPE_CONSTANTS:
-			Stats.iNaNCount++;
+			switch (m_dwData)
+				{
+				case VALUE_BLANK:
+					Stats.iNullCount++;
+					break;
+
+				default:
+					Stats.iNaNCount++;
+					break;
+				}
 			break;
 
 		case TYPE_INT32:
@@ -172,6 +182,7 @@ CDatum CDatum::MathCeil () const
 			{
 			switch (m_dwData)
 				{
+				case VALUE_BLANK:
 				case VALUE_FALSE:
 				case VALUE_TRUE:
 					return *this;
@@ -227,6 +238,7 @@ CDatum CDatum::MathFloor () const
 			{
 			switch (m_dwData)
 				{
+				case VALUE_BLANK:
 				case VALUE_FALSE:
 				case VALUE_TRUE:
 					return *this;
@@ -332,6 +344,7 @@ CDatum CDatum::MathRound () const
 			{
 			switch (m_dwData)
 				{
+				case VALUE_BLANK:
 				case VALUE_FALSE:
 				case VALUE_TRUE:
 					return *this;
@@ -393,6 +406,9 @@ CDatum CDatum::MathSign () const
 			{
 			switch (m_dwData)
 				{
+				case VALUE_BLANK:
+					return CDatum(0);
+
 				case VALUE_FALSE:
 					return CDatum(0);
 
@@ -691,6 +707,7 @@ template<class FUNC> CDatum CDatum::MathArrayOp () const
 			{
 			switch (m_dwData)
 				{
+				case VALUE_BLANK:
 				case VALUE_FALSE:
 				case VALUE_TRUE:
 					return *this;

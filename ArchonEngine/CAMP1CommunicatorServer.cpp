@@ -18,6 +18,8 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_CAMP1_COMMUNICATOR_SERVER_CAMP1_COMMUNICATOR_SERVER_UNABLE_TO_ACCEPT_CONNECTION,	"CAMP1CommunicatorServer: Unable to accept connection.");
+
 DECLARE_CONST_STRING(AMP1_AUTH0,						"AUTH0");
 DECLARE_CONST_STRING(AMP1_AUTH_OK,						"AUTH_OK");
 DECLARE_CONST_STRING(AMP1_OK,							"OK");
@@ -201,7 +203,9 @@ bool CAMP1CommunicatorServer::ConnectToServer (CStringView sServerAddr, DWORD dw
 
 	if (lasterror == ERROR_IO_PENDING 
 			|| lasterror == 0)
-		{ }
+		{
+		return true;
+		}
 
 	//	If another error or 0 bytes read, then we fail
 
@@ -216,7 +220,7 @@ bool CAMP1CommunicatorServer::ConnectToServer (CStringView sServerAddr, DWORD dw
 
 	//	Wait for connection.
 
-	return false;
+	return true;
 	}
 
 void CAMP1CommunicatorServer::Disconnect (TSharedPtr<SConnectionInfo> pConnection)
@@ -279,6 +283,7 @@ void CAMP1CommunicatorServer::Disconnect (TSharedPtr<SConnectionInfo> pConnectio
 	//	In client mode we remember that we need to reconnect.
 
 	CString sNodeID;
+	CString sMachineName;
 	if (m_iState == EState::Client)
 		m_bConnected = false;
 	else
@@ -286,6 +291,7 @@ void CAMP1CommunicatorServer::Disconnect (TSharedPtr<SConnectionInfo> pConnectio
 		if (iClientID != -1)
 			{
 			sNodeID = m_Clients[iClientID].sNodeID;
+			sMachineName = m_Clients[iClientID].sMachineName;
 			m_Clients[iClientID].bConnected = false;
 			}
 		}
@@ -295,7 +301,7 @@ void CAMP1CommunicatorServer::Disconnect (TSharedPtr<SConnectionInfo> pConnectio
 	//	Notify events
 
 	if (m_pEvents && !sNodeID.IsEmpty())
-		m_pEvents->OnAMP1ClientDisconnected(sNodeID);
+		m_pEvents->OnAMP1ClientDisconnected(sNodeID, sMachineName);
 	}
 
 TSharedPtr<CAMP1CommunicatorServer::SConnectionInfo> CAMP1CommunicatorServer::FindConnectionByAddress (CStringView sServerAddr)
@@ -392,7 +398,7 @@ bool CAMP1CommunicatorServer::HandleAUTH0 (TSharedPtr<SConnectionInfo> pConnecti
 		//	Notify events
 
 		if (m_pEvents)
-			m_pEvents->OnAMP1ClientConnected(sNodeID);
+			m_pEvents->OnAMP1ClientConnected(sNodeID, sMachineName);
 
 		return true;
 		}
@@ -427,7 +433,7 @@ bool CAMP1CommunicatorServer::HandleAUTHOK (TSharedPtr<SConnectionInfo> pConnect
 	//	Notify events
 
 	if (m_pEvents)
-		m_pEvents->OnAMP1ConnectedToServer();
+		m_pEvents->OnAMP1ConnectedToServer(sMachineName);
 
 	return true;
 	}
@@ -833,7 +839,7 @@ void CAMP1CommunicatorServer::RunListener ()
 		if (!bSuccess)
 			{
 			if (m_pEvents)
-				m_pEvents->OnAMP1FatalError(CString("CAMP1CommunicatorServer: Unable to accept connection."));
+				m_pEvents->OnAMP1FatalError(STR_CAMP1_COMMUNICATOR_SERVER_CAMP1_COMMUNICATOR_SERVER_UNABLE_TO_ACCEPT_CONNECTION);
 
 			break;
 			}

@@ -5,10 +5,6 @@
 
 #pragma once
 
-#ifdef DEBUG
-#define ENABLE_AMP1_FABRIC
-#endif
-
 //	Arcology Membership --------------------------------------------------------
 
 struct SMachineDesc
@@ -33,6 +29,8 @@ class CMecharcologyDb
 	public:
 		struct SInit
 			{
+			bool bCreateModuleJob = false;
+
 			CString sMachineName;
 			CString sMachineHost;
 
@@ -43,6 +41,7 @@ class CMecharcologyDb
 			};
 
 		void Boot (const SInit &Init);
+		~CMecharcologyDb (void);
 		CDatum GetModuleList (void) const;
 		bool SetHostAddress (const CString &sName, const CString &sHostAddress);
 
@@ -65,13 +64,17 @@ class CMecharcologyDb
 		int GetMachineCount (void) const { return m_Machines.GetCount(); }
 		bool GetStatus (CDatum *retStatus);
 		bool HasArcologyKey (CIPInteger* retsKey = NULL) const;
+		bool HasModuleJob (void) const { return m_hModuleJob != NULL; }
 		bool IsArcologyPrime () const { return m_iArcologyPrime == -1; }
 		bool IsArcologyPrime (const CString &sName) const;
 		bool JoinArcology (const CString &sPrimeName, const CIPInteger &PrimeKey, CString *retsError);
 		bool LeaveArcology (CString *retsError);
 		static CString MakeNodeID (DWORD dwID);
+		static DWORD ParseNodeID (CStringView sNodeID);
 		static CString ArcologyPrimeNodeID () { return MakeNodeID(1); }
 		bool OnCompleteAuth (CStringView sName, CString& retsNodeID);
+		bool OnMachineConnected (CStringView sNodeID, CStringView sName);
+		bool OnMachineDisconnected (CStringView sNodeID, CString* retsName = NULL);
 		bool ProcessOldMachines (TArray<CString> &OldMachines);
 		bool SetArcologyKey (const CIPInteger &PrimeKey, CString *retsError);
 
@@ -91,6 +94,7 @@ class CMecharcologyDb
 		bool IsModuleRemoved (const CString &sName) const;
 		bool IsModuleRunning (const CString &sName) const;
 		bool LoadModule (const CString &sFilespec, bool bDebug, CString *retsName, CString *retsError);
+		int TerminateOrphanModules (CDatum dModuleList);
 		void OnMnemosynthUpdated (void);
 		void OnModuleStart (const CString &sName, MnemosynthSequence dwMnemosynthSeq, bool *retbAllComplete);
 		void OnModuleRestart (const CString &sName);
@@ -159,6 +163,7 @@ class CMecharcologyDb
 		TArray<SModuleEntry> m_Modules;			//	List of modules on this machine (0 is
 												//		CentralModule)
 		TArray<CString> m_OldMachines;			//	Stale machine names
+		HANDLE m_hModuleJob = NULL;				//	Debug-mode job for child module cleanup
 	};
 
 //	CSessionManager ------------------------------------------------------------
@@ -197,6 +202,8 @@ class CExarchEngine : public TSimpleEngine<CExarchEngine>,
 			CString sArcologyPrime;			//	If set, then we should connect to this arcology
 			CString sConfigFilename;		//	Name of config file (default to "Config.ars")
 			DWORD dwAMP1Port;				//	Port to listen to for AMP1 messages
+			bool bCreateModuleJob = false;	//	If TRUE, keep child modules in a kill-on-close job
+			bool bTerminateOrphanModules = true;	//	If TRUE, clean up stale module processes on startup
 			};
 
 		CExarchEngine (const SOptions &Options);
@@ -219,9 +226,9 @@ class CExarchEngine : public TSimpleEngine<CExarchEngine>,
 
 		//	IAMP1CommunicatorEvents
 
-		virtual void OnAMP1ClientConnected (CStringView sNodeID) override;
-		virtual void OnAMP1ClientDisconnected (CStringView sNodeID) override;
-		virtual void OnAMP1ConnectedToServer () override;
+		virtual void OnAMP1ClientConnected (CStringView sNodeID, CStringView sMachineName) override;
+		virtual void OnAMP1ClientDisconnected (CStringView sNodeID, CStringView sMachineName) override;
+		virtual void OnAMP1ConnectedToServer (CStringView sMachineName) override;
 		virtual void OnAMP1FatalError (CStringView sError) override;
 		virtual void OnAMP1Message (CStringView sNodeID, CStringView sMsg, CBuffer&& retData) override;
 
@@ -322,6 +329,8 @@ class CExarchEngine : public TSimpleEngine<CExarchEngine>,
 		CString m_sArcologyPrime;				//	Address for Arcology Prime machine (if NULL, then we are Arcology Prime)
 		CIPInteger m_ArcologyKey;				//	Key to use to communicate
 		DWORD m_dwAMP1Port = DEFAULT_AMP1_PORT;	//	Port on which we listen to AMP1 commands
+		bool m_bCreateModuleJob = false;		//	If TRUE, create a kill-on-close job for modules
+		bool m_bTerminateOrphanModules = true;	//	If TRUE, terminate stale module processes on startup
 
 		CDatum m_dMachineConfig;				//	Configuration for this machine
 		CMecharcologyDb m_MecharcologyDb;		//	Machine arcology database

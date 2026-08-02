@@ -93,16 +93,18 @@ void CSegmentBlockCache::LoadBlock (DWORD dwOffset, DWORD dwBlockSize, void **re
 
 		FreeUnloadedBlocks();
 
-		//	Allocate a block of sufficient size
+		//	Allocate a block of sufficient size (zero-initialize so that
+		//	if anything goes wrong, we get deterministic zeros instead of
+		//	random heap garbage).
 
-		void *pBlock = new char [dwBlockSize];
+		void *pBlock = new char [dwBlockSize]();
 
 		//	Load from disk
 
 		try
 			{
 			m_File.Seek(dwOffset);
-			DWORD dwBytesRead = m_File.Read(pBlock, dwBlockSize);
+			m_File.Read(pBlock, dwBlockSize);
 			}
 		catch (...)
 			{

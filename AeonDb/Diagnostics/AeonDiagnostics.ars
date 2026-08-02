@@ -1,0 +1,384 @@
+(
+	{
+		class:"correctness.row-lifecycle"
+		name:"basic insert/get/flush"
+		steps:(
+			{ msg:"Aeon.createTable" payload:({ name:"diag_basic" x:{ keyType:"utf8" } }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_basic" ("row1") { name:"Alice" count:1 }) expectMsg:"OK" }
+			{ msg:"Aeon.getValue" payload:("diag_basic" ("row1")) expectMsg:"Reply.data" expectPayload:{ count:1 name:"Alice" } }
+			{ msg:"Aeon.flushDb" payload:() expectMsg:"OK" }
+			{ msg:"Aeon.getValue" payload:("diag_basic" ("row1")) expectMsg:"Reply.data" expectPayload:{ count:1 name:"Alice" } }
+		)
+	}
+	{
+		class:"correctness.row-lifecycle"
+		name:"missing rows return nil"
+		steps:(
+			{ msg:"Aeon.createTable" payload:({ name:"diag_missing" x:{ keyType:"utf8" } }) expectMsg:"OK" }
+			{ msg:"Aeon.getValue" payload:("diag_missing" ("absent")) expectMsg:"Reply.data" expectPayloadNil:true }
+		)
+	}
+	{
+		class:"correctness.row-lifecycle"
+		name:"insert overwrites existing row"
+		steps:(
+			{ msg:"Aeon.createTable" payload:({ name:"diag_overwrite" x:{ keyType:"utf8" } }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_overwrite" ("row1") { value:1 old:"yes" }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_overwrite" ("row1") { value:2 }) expectMsg:"OK" }
+			{ msg:"Aeon.getValue" payload:("diag_overwrite" ("row1")) expectMsg:"Reply.data" expectPayload:{ value:2 } }
+		)
+	}
+	{
+		class:"correctness.table-lifecycle"
+		name:"duplicate table create is rejected"
+		steps:(
+			{ msg:"Aeon.createTable" payload:({ name:"diag_duplicate_table" x:{ keyType:"utf8" } }) expectMsg:"OK" }
+			{ msg:"Aeon.createTable" payload:({ name:"diag_duplicate_table" x:{ keyType:"utf8" } }) expectMsg:"Error.alreadyExists" }
+		)
+	}
+	{
+		class:"correctness.row-lifecycle"
+		name:"insertNew rejects existing row"
+		steps:(
+			{ msg:"Aeon.createTable" payload:({ name:"diag_insert_new" x:{ keyType:"utf8" } }) expectMsg:"OK" }
+			{ msg:"Aeon.insertNew" payload:("diag_insert_new" ("row1") { value:1 }) expectMsg:"OK" }
+			{ msg:"Aeon.insertNew" payload:("diag_insert_new" ("row1") { value:2 }) expectMsg:"Error.alreadyExists" }
+			{ msg:"Aeon.getValue" payload:("diag_insert_new" ("row1")) expectMsg:"Reply.data" expectPayload:{ value:1 } }
+		)
+	}
+	{
+		class:"correctness.mutation"
+		name:"mutate updateVersion"
+		steps:(
+			{ msg:"Aeon.createTable" payload:({ name:"diag_mutate" x:{ keyType:"utf8" } }) expectMsg:"OK" }
+			{ msg:"Aeon.mutate" payload:("diag_mutate" ("row1") { name:"Ada" } { version:"updateVersion" }) expectMsg:"Reply.data" expectPayload:{ name:"Ada" version:1 } }
+			{ msg:"Aeon.mutate" payload:("diag_mutate" ("row1") { version:0 } { version:"updateVersion" }) expectMsg:"Error.outOfDate" }
+			{ msg:"Aeon.mutate" payload:("diag_mutate" ("row1") { version:1 } { version:"updateVersion" }) expectMsg:"Reply.data" expectPayload:{ name:"Ada" version:2 } }
+		)
+	}
+	{
+		class:"correctness.mutation"
+		name:"mutate field operations"
+		steps:(
+			{ msg:"Aeon.createTable" payload:({ name:"diag_mutate_fields" x:{ keyType:"utf8" } }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_mutate_fields" ("row1") { count:1 obsolete:"remove" tags:("red") }) expectMsg:"OK" }
+			{ msg:"Aeon.mutate" payload:("diag_mutate_fields" ("row1") { count:4 tags:("blue" "red") } { count:"increment" obsolete:"delete" tags:"addToSet" }) expectMsg:"Reply.data" expectPayload:{ count:5 tags:("red" "blue") } }
+			{ msg:"Aeon.getValue" payload:("diag_mutate_fields" ("row1")) expectMsg:"Reply.data" expectPayload:{ count:5 tags:("red" "blue") } }
+		)
+	}
+	{
+		class:"correctness.mutation"
+		name:"mutate array and numeric operations"
+		steps:(
+			{ msg:"Aeon.createTable" payload:({ name:"diag_mutate_arrays" x:{ keyType:"utf8" } }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_mutate_arrays" ("row1") { flags:1 list:("middle") maxValue:10 minValue:10 preserve:"first" quota:5 set:("red" "blue") }) expectMsg:"OK" }
+			{ msg:"Aeon.mutate" payload:("diag_mutate_arrays" ("row1") { flags:2 list:("tail") maxValue:12 minValue:7 preserve:"second" quota:3 set:("blue" "green") } { flags:"union" list:"append" maxValue:"max" minValue:"min" preserve:"writeNew" quota:"consume" set:"union" }) expectMsg:"Reply.data" expectPayload:{ flags:3 list:("middle" "tail") maxValue:12 minValue:7 preserve:"first" quota:2 set:("red" "blue" "green") } }
+			{ msg:"Aeon.mutate" payload:("diag_mutate_arrays" ("row1") { list:("head") set:("red") } { list:"prepend" set:"removeFromSet" }) expectMsg:"Reply.data" expectPayload:{ flags:3 list:("head" "middle" "tail") maxValue:12 minValue:7 preserve:"first" quota:2 set:("blue" "green") } }
+			{ msg:"Aeon.mutate" payload:("diag_mutate_arrays" ("row1") { quota:3 } { quota:"consume" }) expectMsg:"Error.outOfDate" }
+			{ msg:"Aeon.getValue" payload:("diag_mutate_arrays" ("row1")) expectMsg:"Reply.data" expectPayload:{ flags:3 list:("head" "middle" "tail") maxValue:12 minValue:7 preserve:"first" quota:2 set:("blue" "green") } }
+		)
+	}
+	{
+		class:"correctness.mutation"
+		name:"mutate conditional guards"
+		steps:(
+			{ msg:"Aeon.createTable" payload:({ name:"diag_mutate_conditions" x:{ keyType:"utf8" } }) expectMsg:"OK" }
+			{ msg:"Aeon.mutate" payload:("diag_mutate_conditions" ("row1") { once:"initial" sequence:1 state:"new" } { once:"updateNil" sequence:"updateGreater" state:"updateNil" }) expectMsg:"Reply.data" expectPayload:{ once:"initial" sequence:1 state:"new" } }
+			{ msg:"Aeon.mutate" payload:("diag_mutate_conditions" ("row1") { once:"again" } { once:"updateNil" }) expectMsg:"Error.outOfDate" }
+			{ msg:"Aeon.mutate" payload:("diag_mutate_conditions" ("row1") { state:"new" value:"accepted" } { state:"updateMatch" }) expectMsg:"Reply.data" expectPayload:{ once:"initial" sequence:1 state:"new" value:"accepted" } }
+			{ msg:"Aeon.mutate" payload:("diag_mutate_conditions" ("row1") { state:"old" } { state:"updateMatch" }) expectMsg:"Error.outOfDate" }
+			{ msg:"Aeon.mutate" payload:("diag_mutate_conditions" ("row1") { value:"updated" } { value:"updateNotNil" }) expectMsg:"Reply.data" expectPayload:{ once:"initial" sequence:1 state:"new" value:"updated" } }
+			{ msg:"Aeon.mutate" payload:("diag_mutate_conditions" ("row1") { missing:"no" } { missing:"updateNotNil" }) expectMsg:"Error.outOfDate" }
+			{ msg:"Aeon.mutate" payload:("diag_mutate_conditions" ("row1") { sequence:1 } { sequence:"updateGreaterNoError" }) expectMsg:"Reply.data" expectPayloadNil:true }
+			{ msg:"Aeon.getValue" payload:("diag_mutate_conditions" ("row1")) expectMsg:"Reply.data" expectPayload:{ once:"initial" sequence:1 state:"new" value:"updated" } }
+		)
+	}
+	{
+		class:"correctness.ordering"
+		name:"single dimension row ordering"
+		steps:(
+			{ msg:"Aeon.createTable" payload:({ name:"diag_order" x:{ keyType:"utf8" } }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_order" ("c") { value:3 }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_order" ("a") { value:1 }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_order" ("b") { value:2 }) expectMsg:"OK" }
+			{ msg:"Aeon.getKeyRange" payload:("diag_order" 10) expectMsg:"Aeon.resultKeys" expectPayload:("a" "b" "c") }
+			{ msg:"Aeon.getRows" payload:("diag_order") expectMsg:"Reply.data" expectPayload:("a" { value:1 } "b" { value:2 } "c" { value:3 }) }
+			{ msg:"Aeon.getRows" payload:("diag_order" ("bb") (10) ()) expectMsg:"Reply.data" expectPayloadNil:true }
+			{ msg:"Aeon.getMoreRows" payload:("diag_order" ("b") (10) ()) expectMsg:"Reply.data" expectPayload:("c" { value:3 }) }
+			{ msg:"Aeon.getRowsFromList" payload:("diag_order" (("c") ("missing") ("a")) ()) expectMsg:"Reply.data" expectPayload:("c" { value:3 } "a" { value:1 }) }
+		)
+	}
+	{
+		class:"correctness.ordering"
+		name:"row scan options"
+		steps:(
+			{ msg:"Aeon.createTable" payload:({ name:"diag_scan_options" x:{ keyType:"utf8" } }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_scan_options" ("a") { value:1 }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_scan_options" ("b") { value:2 }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_scan_options" ("c") { value:3 }) expectMsg:"OK" }
+			{ msg:"Aeon.getRows" payload:("diag_scan_options" ("a") (2) ("includeKey")) expectMsg:"Reply.data" expectPayload:({ primaryKey:"a" value:1 } { primaryKey:"b" value:2 }) }
+			{ msg:"Aeon.getRows" payload:("diag_scan_options" ("b") (2) ("noKey")) expectMsg:"Reply.data" expectPayload:({ value:2 } { value:3 }) }
+			{ msg:"Aeon.getRows" payload:("diag_scan_options" ("bb") (2) ("nearest")) expectMsg:"Reply.data" expectPayload:("c" { value:3 }) }
+			{ msg:"Aeon.getRows" payload:("diag_scan_options" ("a") (2) ("bogusOption")) expectMsg:"Error.unableToComply" }
+			{ msg:"Aeon.getRowsFromList" payload:("diag_scan_options" (("c") ("missing") ("a")) ("includeKey")) expectMsg:"Reply.data" expectPayload:({ primaryKey:"c" value:3 } { primaryKey:"a" value:1 }) }
+			{ msg:"Aeon.getRowsFromList" payload:("diag_scan_options" (("c") ("missing") ("a")) ("noKey")) expectMsg:"Reply.data" expectPayload:({ value:3 } { value:1 }) }
+		)
+	}
+	{
+		class:"correctness.ordering"
+		name:"multi dimension row ordering"
+		steps:(
+			{ msg:"Aeon.createTable" payload:({ name:"diag_multi" x:{ keyType:"utf8" } y:{ keyType:"int32" } }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_multi" ("acct-b" 1) { value:"b1" }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_multi" ("acct-a" 2) { value:"a2" }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_multi" ("acct-a" 1) { value:"a1" }) expectMsg:"OK" }
+			{ msg:"Aeon.getValue" payload:("diag_multi" ("acct-a" 2)) expectMsg:"Reply.data" expectPayload:{ value:"a2" } }
+			{ msg:"Aeon.getRows" payload:("diag_multi") expectMsg:"Reply.data" expectPayload:(("acct-a" 1) { value:"a1" } ("acct-a" 2) { value:"a2" } ("acct-b" 1) { value:"b1" }) }
+			{ msg:"Aeon.getRows" payload:("diag_multi" ("acct-a") (10 1) ("noKey")) expectMsg:"Reply.data" expectPayload:({ value:"a1" } { value:"a2" }) }
+		)
+	}
+	{
+		class:"correctness.ordering"
+		name:"numeric and descending key ordering"
+		steps:(
+			{ msg:"Aeon.createTable" payload:({ name:"diag_int_order" x:{ keyType:"int32" } }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_int_order" (10) { value:"ten" }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_int_order" (-1) { value:"neg" }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_int_order" (2) { value:"two" }) expectMsg:"OK" }
+			{ msg:"Aeon.getKeyRange" payload:("diag_int_order" 10) expectMsg:"Aeon.resultKeys" expectPayload:(-1 2 10) }
+			{ msg:"Aeon.getRows" payload:("diag_int_order") expectMsg:"Reply.data" expectPayload:(-1 { value:"neg" } 2 { value:"two" } 10 { value:"ten" }) }
+			{ msg:"Aeon.createTable" payload:({ name:"diag_desc_order" x:{ keyType:"utf8" keySort:"descending" } }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_desc_order" ("a") { value:1 }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_desc_order" ("c") { value:3 }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_desc_order" ("b") { value:2 }) expectMsg:"OK" }
+			{ msg:"Aeon.getRows" payload:("diag_desc_order") expectMsg:"Reply.data" expectPayload:("c" { value:3 } "b" { value:2 } "a" { value:1 }) }
+		)
+	}
+	{
+		class:"correctness.segments"
+		name:"segment precedence across flushes"
+		steps:(
+			{ msg:"Aeon.createTable" payload:({ name:"diag_segment_precedence" x:{ keyType:"utf8" } }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_segment_precedence" ("row1") { value:1 stale:"old" }) expectMsg:"OK" }
+			{ msg:"Aeon.flushDb" payload:() expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_segment_precedence" ("row1") { value:2 }) expectMsg:"OK" }
+			{ msg:"Aeon.flushDb" payload:() expectMsg:"OK" }
+			{ msg:"Aeon.getValue" payload:("diag_segment_precedence" ("row1")) expectMsg:"Reply.data" expectPayload:{ value:2 } }
+			{ msg:"Aeon.getRows" payload:("diag_segment_precedence") expectMsg:"Reply.data" expectPayload:("row1" { value:2 }) }
+			{ msg:"Aeon.testDiagnostics" payload:("diag_segment_precedence") expectMsg:"Reply.data" }
+		)
+	}
+	{
+		class:"correctness.segments"
+		name:"segment merge preserves ordering and latest values"
+		steps:(
+			{ msg:"Aeon.createTable" payload:({ name:"diag_segment_merge" x:{ keyType:"utf8" } }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_segment_merge" ("c") { value:3 }) expectMsg:"OK" }
+			{ msg:"Aeon.flushDb" payload:() expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_segment_merge" ("a") { value:1 }) expectMsg:"OK" }
+			{ msg:"Aeon.flushDb" payload:() expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_segment_merge" ("b") { value:2 }) expectMsg:"OK" }
+			{ msg:"Aeon.flushDb" payload:() expectMsg:"OK" }
+			{ msg:"Aeon.testDiagnostics" payload:("diag_segment_merge") expectMsg:"Reply.data" }
+			{ msg:"Aeon.testHousekeeping" payload:("diag_segment_merge" 2) expectMsg:"OK" }
+			{ msg:"Aeon.testDiagnostics" payload:("diag_segment_merge") expectMsg:"Reply.data" }
+			{ msg:"Aeon.getKeyRange" payload:("diag_segment_merge" 10) expectMsg:"Aeon.resultKeys" expectPayload:("a" "b" "c") }
+			{ msg:"Aeon.getRows" payload:("diag_segment_merge") expectMsg:"Reply.data" expectPayload:("a" { value:1 } "b" { value:2 } "c" { value:3 }) }
+		)
+	}
+	{
+		class:"correctness.segments"
+		name:"segment merge compacts bottom tombstones"
+		steps:(
+			{ msg:"Aeon.createTable" payload:({ name:"diag_tombstone_compact" x:{ keyType:"utf8" } }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_tombstone_compact" ("deleted") { value:"old" }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_tombstone_compact" ("keep1") { value:1 }) expectMsg:"OK" }
+			{ msg:"Aeon.flushDb" payload:() expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_tombstone_compact" ("deleted") nil) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_tombstone_compact" ("keep2") { value:2 }) expectMsg:"OK" }
+			{ msg:"Aeon.flushDb" payload:() expectMsg:"OK" }
+			{ msg:"Aeon.getValue" payload:("diag_tombstone_compact" ("deleted")) expectMsg:"Reply.data" expectPayloadNil:true }
+			{ msg:"Aeon.getRows" payload:("diag_tombstone_compact") expectMsg:"Reply.data" expectPayload:("keep1" { value:1 } "keep2" { value:2 }) }
+			{ msg:"Aeon.testHousekeeping" payload:("diag_tombstone_compact" 1) expectMsg:"OK" }
+			{ msg:"Aeon.testDiagnostics" payload:("diag_tombstone_compact") expectMsg:"Reply.data" }
+			{ msg:"Aeon.getValue" payload:("diag_tombstone_compact" ("deleted")) expectMsg:"Reply.data" expectPayloadNil:true }
+			{ msg:"Aeon.getRows" payload:("diag_tombstone_compact") expectMsg:"Reply.data" expectPayload:("keep1" { value:1 } "keep2" { value:2 }) }
+			{ msg:"Aeon.testReopen" payload:() expectMsg:"OK" }
+			{ msg:"Aeon.getValue" payload:("diag_tombstone_compact" ("deleted")) expectMsg:"Reply.data" expectPayloadNil:true }
+			{ msg:"Aeon.getRows" payload:("diag_tombstone_compact") expectMsg:"Reply.data" expectPayload:("keep1" { value:1 } "keep2" { value:2 }) }
+		)
+	}
+	{
+		class:"correctness.segments"
+		name:"segment merge removes all-tombstone bottom pair"
+		steps:(
+			{ msg:"Aeon.createTable" payload:({ name:"diag_tombstone_empty_merge" x:{ keyType:"utf8" } }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_tombstone_empty_merge" ("deleted") { value:"old" }) expectMsg:"OK" }
+			{ msg:"Aeon.flushDb" payload:() expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_tombstone_empty_merge" ("deleted") nil) expectMsg:"OK" }
+			{ msg:"Aeon.flushDb" payload:() expectMsg:"OK" }
+			{ msg:"Aeon.getValue" payload:("diag_tombstone_empty_merge" ("deleted")) expectMsg:"Reply.data" expectPayloadNil:true }
+			{ msg:"Aeon.getRows" payload:("diag_tombstone_empty_merge") expectMsg:"Reply.data" expectPayload:() }
+			{ msg:"Aeon.testHousekeeping" payload:("diag_tombstone_empty_merge" 1) expectMsg:"OK" }
+			{ msg:"Aeon.testDiagnostics" payload:("diag_tombstone_empty_merge") expectMsg:"Reply.data" }
+			{ msg:"Aeon.getValue" payload:("diag_tombstone_empty_merge" ("deleted")) expectMsg:"Reply.data" expectPayloadNil:true }
+			{ msg:"Aeon.getRows" payload:("diag_tombstone_empty_merge") expectMsg:"Reply.data" expectPayload:() }
+			{ msg:"Aeon.testReopen" payload:() expectMsg:"OK" }
+			{ msg:"Aeon.getValue" payload:("diag_tombstone_empty_merge" ("deleted")) expectMsg:"Reply.data" expectPayloadNil:true }
+			{ msg:"Aeon.getRows" payload:("diag_tombstone_empty_merge") expectMsg:"Reply.data" expectPayload:() }
+		)
+	}
+	{
+		class:"correctness.segments"
+		name:"housekeeping compacts legacy oldest tombstones"
+		steps:(
+			{ msg:"Aeon.createTable" payload:({ name:"diag_legacy_oldest_tombstone" x:{ keyType:"utf8" } }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_legacy_oldest_tombstone" ("deleted") nil) expectMsg:"OK" }
+			{ msg:"Aeon.flushDb" payload:() expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_legacy_oldest_tombstone" ("keep") { value:1 }) expectMsg:"OK" }
+			{ msg:"Aeon.flushDb" payload:() expectMsg:"OK" }
+			{ msg:"Aeon.getValue" payload:("diag_legacy_oldest_tombstone" ("deleted")) expectMsg:"Reply.data" expectPayloadNil:true }
+			{ msg:"Aeon.getRows" payload:("diag_legacy_oldest_tombstone") expectMsg:"Reply.data" expectPayload:("keep" { value:1 }) }
+			{ msg:"Aeon.testHousekeeping" payload:("diag_legacy_oldest_tombstone" 1) expectMsg:"OK" }
+			{ msg:"Aeon.testDiagnostics" payload:("diag_legacy_oldest_tombstone") expectMsg:"Reply.data" }
+			{ msg:"Aeon.getValue" payload:("diag_legacy_oldest_tombstone" ("deleted")) expectMsg:"Reply.data" expectPayloadNil:true }
+			{ msg:"Aeon.getRows" payload:("diag_legacy_oldest_tombstone") expectMsg:"Reply.data" expectPayload:("keep" { value:1 }) }
+			{ msg:"Aeon.testReopen" payload:() expectMsg:"OK" }
+			{ msg:"Aeon.getValue" payload:("diag_legacy_oldest_tombstone" ("deleted")) expectMsg:"Reply.data" expectPayloadNil:true }
+			{ msg:"Aeon.getRows" payload:("diag_legacy_oldest_tombstone") expectMsg:"Reply.data" expectPayload:("keep" { value:1 }) }
+		)
+	}
+	{
+		class:"correctness.secondary-views"
+		name:"secondary view basic query and update"
+		steps:(
+			{ msg:"Aeon.createTable" payload:({ name:"diag_secondary" x:{ keyType:"utf8" } secondaryViews:({ name:"byType" x:{ keyType:"utf8" key:"type" } columns:("*" "primaryKey") }) }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_secondary" ("row1") { type:"alpha" name:"one" }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_secondary" ("row2") { type:"alpha" name:"two" }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_secondary" ("row3") { type:"beta" name:"three" }) expectMsg:"OK" }
+			{ msg:"Aeon.getRows" payload:(("diag_secondary" "byType") ("alpha") (10 1) ("noKey")) expectMsg:"Reply.data" expectPayload:({ name:"one" primaryKey:"row1" type:"alpha" } { name:"two" primaryKey:"row2" type:"alpha" }) }
+			{ msg:"Aeon.mutate" payload:("diag_secondary" ("row2") { type:"beta" } {}) expectMsg:"Reply.data" expectPayload:{ name:"two" type:"beta" } }
+			{ msg:"Aeon.getRows" payload:(("diag_secondary" "byType") ("alpha") (10 1) ("noKey")) expectMsg:"Reply.data" expectPayload:({ name:"one" primaryKey:"row1" type:"alpha" }) }
+			{ msg:"Aeon.getRows" payload:(("diag_secondary" "byType") ("beta") (10 1) ("noKey")) expectMsg:"Reply.data" expectPayload:({ name:"two" primaryKey:"row2" type:"beta" } { name:"three" primaryKey:"row3" type:"beta" }) }
+			{ msg:"Aeon.flushDb" payload:() expectMsg:"OK" }
+			{ msg:"Aeon.testDiagnostics" payload:("diag_secondary") expectMsg:"Reply.data" }
+			{ msg:"Aeon.getRows" payload:(("diag_secondary" "byType") ("beta") (10 1) ("noKey")) expectMsg:"Reply.data" expectPayload:({ name:"two" primaryKey:"row2" type:"beta" } { name:"three" primaryKey:"row3" type:"beta" }) }
+		)
+	}
+	{
+		class:"correctness.secondary-views"
+		name:"secondary view list keys"
+		steps:(
+			{ msg:"Aeon.createTable" payload:({ name:"diag_secondary_list" x:{ keyType:"utf8" } secondaryViews:({ name:"byTag" x:{ keyType:"list_utf8" key:"tags" } columns:("*" "primaryKey") }) }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_secondary_list" ("row1") { name:"one" tags:("red" "blue") }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_secondary_list" ("row2") { name:"two" tags:("blue") }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_secondary_list" ("row3") { name:"three" tags:("green") }) expectMsg:"OK" }
+			{ msg:"Aeon.getRows" payload:(("diag_secondary_list" "byTag") ("blue") (10 1) ("noKey")) expectMsg:"Reply.data" expectPayload:({ name:"one" primaryKey:"row1" tags:("red" "blue") } { name:"two" primaryKey:"row2" tags:("blue") }) }
+			{ msg:"Aeon.mutate" payload:("diag_secondary_list" ("row1") { tags:("green") } {}) expectMsg:"Reply.data" expectPayload:{ name:"one" tags:("green") } }
+			{ msg:"Aeon.getRows" payload:(("diag_secondary_list" "byTag") ("blue") (10 1) ("noKey")) expectMsg:"Reply.data" expectPayload:({ name:"two" primaryKey:"row2" tags:("blue") }) }
+			{ msg:"Aeon.getRows" payload:(("diag_secondary_list" "byTag") ("green") (10 1) ("noKey")) expectMsg:"Reply.data" expectPayload:({ name:"one" primaryKey:"row1" tags:("green") } { name:"three" primaryKey:"row3" tags:("green") }) }
+			{ msg:"Aeon.flushDb" payload:() expectMsg:"OK" }
+			{ msg:"Aeon.testDiagnostics" payload:("diag_secondary_list") expectMsg:"Reply.data" }
+			{ msg:"Aeon.getRows" payload:(("diag_secondary_list" "byTag") ("green") (10 1) ("noKey")) expectMsg:"Reply.data" expectPayload:({ name:"one" primaryKey:"row1" tags:("green") } { name:"three" primaryKey:"row3" tags:("green") }) }
+		)
+	}
+	{
+		class:"correctness.secondary-views"
+		name:"secondary view added after rows exist"
+		steps:(
+			{ msg:"Aeon.createTable" payload:({ name:"diag_secondary_late" x:{ keyType:"utf8" } }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_secondary_late" ("row1") { category:"alpha" name:"one" }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_secondary_late" ("row2") { category:"beta" name:"two" }) expectMsg:"OK" }
+			{ msg:"Aeon.createTable" payload:({ name:"diag_secondary_late" x:{ keyType:"utf8" } secondaryViews:({ name:"byCategory" x:{ keyType:"utf8" key:"category" } columns:("*" "primaryKey") }) }) expectMsg:"OK" }
+			{ msg:"Aeon.getRows" payload:(("diag_secondary_late" "byCategory") ("alpha") (10 1) ("noKey")) expectMsg:"Error.unableToComply" }
+			{ msg:"Aeon.testHousekeeping" payload:("diag_secondary_late" 1) expectMsg:"OK" }
+			{ msg:"Aeon.testDiagnostics" payload:("diag_secondary_late") expectMsg:"Reply.data" }
+			{ msg:"Aeon.getRows" payload:(("diag_secondary_late" "byCategory") ("alpha") (10 1) ("noKey")) expectMsg:"Reply.data" expectPayload:({ category:"alpha" name:"one" primaryKey:"row1" }) }
+			{ msg:"Aeon.getRows" payload:(("diag_secondary_late" "byCategory") ("beta") (10 1) ("noKey")) expectMsg:"Reply.data" expectPayload:({ category:"beta" name:"two" primaryKey:"row2" }) }
+		)
+	}
+	{
+		class:"correctness.persistence"
+		name:"secondary view survives diagnostic reopen"
+		steps:(
+			{ msg:"Aeon.createTable" payload:({ name:"diag_secondary_reopen" x:{ keyType:"utf8" } secondaryViews:({ name:"byType" x:{ keyType:"utf8" key:"type" } columns:("*" "primaryKey") }) }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_secondary_reopen" ("row1") { type:"alpha" name:"one" }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_secondary_reopen" ("row2") { type:"beta" name:"two" }) expectMsg:"OK" }
+			{ msg:"Aeon.flushDb" payload:() expectMsg:"OK" }
+			{ msg:"Aeon.testReopen" payload:() expectMsg:"OK" }
+			{ msg:"Aeon.getRows" payload:(("diag_secondary_reopen" "byType") ("alpha") (10 1) ("noKey")) expectMsg:"Reply.data" expectPayload:({ name:"one" primaryKey:"row1" type:"alpha" }) }
+			{ msg:"Aeon.getRows" payload:(("diag_secondary_reopen" "byType") ("beta") (10 1) ("noKey")) expectMsg:"Reply.data" expectPayload:({ name:"two" primaryKey:"row2" type:"beta" }) }
+		)
+	}
+	{
+		class:"correctness.persistence"
+		name:"flush and diagnostic reopen"
+		steps:(
+			{ msg:"Aeon.createTable" payload:({ name:"diag_reopen" x:{ keyType:"utf8" } }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_reopen" ("persisted") { value:"after-reopen" }) expectMsg:"OK" }
+			{ msg:"Aeon.testReopen" payload:() expectMsg:"OK" }
+			{ msg:"Aeon.getValue" payload:("diag_reopen" ("persisted")) expectMsg:"Reply.data" expectPayload:{ value:"after-reopen" } }
+		)
+	}
+	{
+		class:"resilience.recovery-log"
+		name:"crash reopen replays unsaved rows"
+		steps:(
+			{ msg:"Aeon.createTable" payload:({ name:"diag_recovery_replay" x:{ keyType:"utf8" } }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_recovery_replay" ("volatile") { value:"from-recovery-log" }) expectMsg:"OK" }
+			{ msg:"Aeon.testCrashReopen" payload:() expectMsg:"OK" }
+			{ msg:"Aeon.getValue" payload:("diag_recovery_replay" ("volatile")) expectMsg:"Reply.data" expectPayload:{ value:"from-recovery-log" } }
+		)
+	}
+	{
+		class:"resilience.recovery-log"
+		name:"crash reopen ignores partial trailing recovery record"
+		steps:(
+			{ msg:"Aeon.createTable" payload:({ name:"diag_recovery_tail" x:{ keyType:"utf8" } }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_recovery_tail" ("stable") { value:"complete-prefix" }) expectMsg:"OK" }
+			{ msg:"Aeon.testCrashReopen" payload:{ table:"diag_recovery_tail" action:"appendRecoveryGarbage" bytes:9 } expectMsg:"OK" }
+			{ msg:"Aeon.getValue" payload:("diag_recovery_tail" ("stable")) expectMsg:"Reply.data" expectPayload:{ value:"complete-prefix" } }
+		)
+	}
+	{
+		class:"performance.primary"
+		name:"primary table baseline"
+		steps:(
+			{ msg:"Aeon.createTable" payload:({ name:"perf_primary" x:{ keyType:"utf8" } }) expectMsg:"OK" }
+			{ perf:"insertRange" label:"primary insert 10000 rows x 128B" table:"perf_primary" count:10000 valueBytes:128 keyPrefix:"p" }
+			{ perf:"getRange" label:"primary point read 10000 in-memory rows" table:"perf_primary" count:10000 keyPrefix:"p" }
+			{ perf:"message" label:"flush primary 10000 rows" msg:"Aeon.flushDb" payload:() expectMsg:"OK" }
+			{ perf:"getRange" label:"primary point read 10000 flushed rows" table:"perf_primary" count:10000 keyPrefix:"p" }
+			{ perf:"scanRows" label:"primary scan 10000 flushed rows" table:"perf_primary" count:10000 expectResultCount:20000 }
+			{ perf:"message" label:"reopen primary sample database" msg:"Aeon.testReopen" payload:() expectMsg:"OK" }
+			{ perf:"getRange" label:"primary point read 10000 after reopen" table:"perf_primary" count:10000 keyPrefix:"p" }
+		)
+	}
+	{
+		class:"performance.secondary"
+		name:"secondary view baseline"
+		steps:(
+			{ msg:"Aeon.createTable" payload:({ name:"perf_secondary" x:{ keyType:"utf8" } secondaryViews:({ name:"byGroup" x:{ keyType:"utf8" key:"group" } columns:("*" "primaryKey") }) }) expectMsg:"OK" }
+			{ perf:"insertRange" label:"secondary insert 5000 rows x 64B" table:"perf_secondary" count:5000 valueBytes:64 keyPrefix:"s" }
+			{ perf:"scanRows" label:"secondary scan group g000 in-memory x1000" table:"perf_secondary" view:"byGroup" key:("g000") limits:(100 1) options:("noKey") count:50 repeat:1000 expectResultCount:50 }
+			{ perf:"message" label:"flush secondary 5000 rows" msg:"Aeon.flushDb" payload:() expectMsg:"OK" }
+			{ perf:"scanRows" label:"secondary scan group g000 flushed x1000" table:"perf_secondary" view:"byGroup" key:("g000") limits:(100 1) options:("noKey") count:50 repeat:1000 expectResultCount:50 }
+			{ perf:"message" label:"reopen secondary sample database" msg:"Aeon.testReopen" payload:() expectMsg:"OK" }
+			{ perf:"scanRows" label:"secondary scan group g000 after reopen x1000" table:"perf_secondary" view:"byGroup" key:("g000") limits:(100 1) options:("noKey") count:50 repeat:1000 expectResultCount:50 }
+		)
+	}
+	{
+		class:"correctness.api-contracts"
+		name:"invalid requests fail cleanly"
+		steps:(
+			{ msg:"Aeon.getValue" payload:("diag_no_such_table" ("row1")) expectMsg:"Error.notFound" }
+			{ msg:"Aeon.createTable" payload:({ name:"diag_bad_key_type" x:{ keyType:"unknown" } }) expectMsg:"Error.unableToComply" }
+			{ msg:"Aeon.createTable" payload:({ name:"diag_primary_list" x:{ keyType:"list_utf8" } }) expectMsg:"Error.unableToComply" }
+			{ msg:"Aeon.createTable" payload:({ name:"diag_bad_path" x:{ keyType:"utf8" } }) expectMsg:"OK" }
+			{ msg:"Aeon.insert" payload:("diag_bad_path" ("a" "extra") { value:1 }) expectMsg:"Error.unableToComply" }
+			{ msg:"Aeon.getRows" payload:(("diag_bad_path" "missingView") ("a") (10) ()) expectMsg:"Error.notFound" }
+			{ msg:"Aeon.mutate" payload:("diag_bad_path" ("a") { value:1 } { value:"notAnOperation" }) expectMsg:"Error.unableToComply" }
+			{ msg:"Aeon.getValue" payload:("diag_bad_path" ("a")) expectMsg:"Reply.data" expectPayloadNil:true }
+		)
+	}
+)

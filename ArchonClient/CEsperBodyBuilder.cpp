@@ -134,7 +134,7 @@ bool CEsperBodyBuilder::CreateMedia (IMediaTypePtr *retpBody)
 		case stateJSONBuild:
 			{
 			m_Body.Seek(0);
-			if (!CDatum::Deserialize(CDatum::EFormat::JSON, m_Body, &m_dBody))
+			if (!CDatum::Deserialize(CDatum::EFormat::AEONJSON, m_Body, &m_dBody))
 				{
 				m_dBody = ERR_UNABLE_TO_PARSE_JSON;
 				m_bParseSuccess = false;
@@ -202,7 +202,7 @@ bool CEsperBodyBuilder::CreateMultipartDatum (char *pPos, char *pPosEnd, CDatum 
 		if (*pPos == '{')
 			{
 			CBuffer Buffer(pPos, iDataLen, false);
-			if (!CDatum::Deserialize(CDatum::EFormat::JSON, Buffer, &dData))
+			if (!CDatum::Deserialize(CDatum::EFormat::AEONJSON, Buffer, &dData))
 				return false;
 			}
 

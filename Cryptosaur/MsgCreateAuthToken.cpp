@@ -28,6 +28,7 @@ DECLARE_CONST_STRING(MSG_AEON_GET_VALUE,				"Aeon.getValue");
 DECLARE_CONST_STRING(MSG_AEON_INSERT_NEW,				"Aeon.insertNew");
 DECLARE_CONST_STRING(MSG_AEON_MUTATE,					"Aeon.mutate");
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_CREATE_USER,		"Cryptosaur.createUser");
+DECLARE_CONST_STRING(MSG_ERROR_INVALID_AUTH,			"Error.invalidAuth");
 DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply");
 DECLARE_CONST_STRING(MSG_REPLY_DATA,					"Reply.data");
 
@@ -233,7 +234,7 @@ bool CCreateAuthTokenSession::OnProcessMessage (const SArchonMessage &Msg)
 
 				else
 					{
-					SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, ERR_INVALID_USERNAME_OR_PASSWORD);
+					SendMessageReplyError(MSG_ERROR_INVALID_AUTH, ERR_INVALID_USERNAME_OR_PASSWORD);
 					return false;
 					}
 				}

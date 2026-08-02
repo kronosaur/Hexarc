@@ -173,13 +173,14 @@ class CDatum
 			Unknown =			-1,
 
 			AEONScript =		0,
-			JSON =				1,
+			AEONJSON =			1,			//	Encode AEON types in JSON format.
 			AEONLocal =			2,			//	Serialized to a local machine
 			TextUTF8 =			3,			//	Plain text (unstructured)
 			Binary =			4,			//	Binary
 			AEONBinary =		5,			//	AEON binary format
 			AEONBinaryLocal =	6,			//	AEON binary serialized to a local machine
 			GridLang =			7,			//	GridLang literal
+			JSON =				8,			//	Plain JSON (without AEON extensions)
 			};
 
 		enum class InvokeResult
@@ -278,9 +279,14 @@ class CDatum
 		static CDatum CreateBinary (CBuffer64&& Buffer);
 		static CDatum CreateBinary (CStringBuffer&& Buffer);
 		static CDatum CreateBinary (int iSize);
+		static CDatum CreateBinary (void* pData, size_t iSize);
 		static bool CreateBinary (IByteStream &Stream, int iSize, CDatum *retDatum);
 		static bool CreateBinaryFromHandoff (CStringBuffer &Buffer, CDatum *retDatum);
 		static CDatum CreateDateTime (CDatum dValue, CDatum dOptions = CDatum());
+		static CDatum CreateVector2D (CDatum dValue);
+		static CDatum CreateVector2D (CDatum dX, CDatum dY);
+		static CDatum CreateVector3D (CDatum dValue);
+		static CDatum CreateVector3D (CDatum dX, CDatum dY, CDatum dZ);
 		static CDatum CreateDictionary (CDatum dType, CDatum dValue = CDatum());
 		static CDatum CreateEnum (int iValue, DWORD dwTypeID);
 		static CDatum CreateEnum (int iValue, CDatum dType);
@@ -292,10 +298,14 @@ class CDatum
 		static bool CreateIPIntegerFromHandoff (CIPInteger &Value, CDatum *retdDatum);
 		static CDatum CreateLibraryFunction (const SAEONLibraryFunctionCreate& Create);
 		static CDatum CreateNaN ();
+		static CDatum CreateNumber (double rValue);
 		static CDatum CreateObject (CDatum dType, CDatum dValue = CDatum());
 		static CDatum CreateObjectEmpty (CDatum dType);
 		static CDatum CreateRange (CDatum dStart, CDatum dEnd, CDatum dStep);
 		static CDatum CreateRange (int iStart, int iEnd, int iStep);
+		static CDatum CreateRecord (CDatum dType);
+		static CDatum CreateRecord (CDatum dType, const CDatum* pValues, int iCount);
+		static CDatum CreateRecord (CDatum dType, CDatum dValue);
 		static CDatum CreateRowRef (DWORD dwTableID, int iRowIndex);
 		static CDatum CreateString (CDatum dValue, CDatum dFormat = CDatum());
 		static CDatum CreateString (CStringBuffer&& Buffer);
@@ -353,6 +363,7 @@ class CDatum
 		IByteStream& AsStream () const;
 		CDatum AsStruct () const;
 		CString AsString () const;
+		CString AsStringBuffer () const;
 		CStringView AsStringView () const { return (CStringView)*this; }
 		TArray<CString> AsStringArray () const;
 		CTimeSpan AsTimeSpan () const;
@@ -361,6 +372,7 @@ class CDatum
 		size_t CalcSerializeSize (EFormat iFormat) const;
 		bool CanSum () const;
 		CDatum Clone (EClone iMode = EClone::ShallowCopy) const;
+		CDatum Cleaned () const;
 		bool Contains (CDatum dValue) const;
 		void DeleteElement (int iIndex);
 
@@ -387,6 +399,7 @@ class CDatum
 		IComplexDatum *GetComplex () const;
 		int GetCount () const;
 		inline DWORD GetBasicDatatype () const;
+		inline DWORD GetBasicDatatypeEx () const;
 		CDatum GetDatatype () const;
 		int GetDimensions () const;
 		CDatum GetElement (IInvokeCtx *pCtx, int iIndex) const;
@@ -426,10 +439,11 @@ class CDatum
 		bool IsContainer () const;
 		bool IsMemoryBlock () const;
 		bool IsEqualCompatible (CDatum dValue) const;
-		bool IsError () const;
+		bool IsError (CString* retsError = NULL) const;
 		bool IsIdenticalTo (CDatum dValue) const { return (m_dwData == dValue.m_dwData); }
 		bool IsIdenticalToNaN () const { return (m_dwData == VALUE_NAN); }
 		bool IsIdenticalToNil () const { return (m_dwData == VALUE_NULL); }
+		bool IsIdenticalToBlank () const { return (m_dwData == VALUE_BLANK); }
 		bool IsIdenticalToTrue () const { return (m_dwData == VALUE_TRUE); }
 		bool IsNaN () const { return (m_dwData == VALUE_NAN) || !std::isfinite((double)(*this)); }
 		bool IsNil () const;
@@ -470,6 +484,10 @@ class CDatum
 
 		//	Special Interfaces
 
+		TArray<double>* GetArrayOfDoubleInterface ();
+		TArray<CDatum>* GetArrayOfDatumInterface ();
+		TArray<int>* GetArrayOfInt32Interface ();
+		TArray<CVector3D>* GetArrayOfVector3DInterface ();
 		IAEONCanvas *GetCanvasInterface ();
 		const IAEONCanvas *GetCanvasInterface () const { return const_cast<CDatum *>(this)->GetCanvasInterface(); }
 		CRGBA32Image *GetImageInterface ();
@@ -553,6 +571,7 @@ class CDatum
 		IComplexDatum* raw_GetComplex () const { return (IComplexDatum *)DecodePointer(m_dwData); }
 		inline double raw_GetDouble () const { return DecodeDouble(m_dwData); }
 		int raw_GetInt32 () const { return DecodeInt32(m_dwData); }
+		bool raw_IsInt32 () const { return DecodeType(m_dwData) == TYPE_INT32; }
 		CDatum raw_IteratorGetElement (CBuffer& Iterator) const;
 		CDatum raw_IteratorGetKey (CBuffer& Iterator) const;
 		bool raw_IteratorHasMore (CBuffer& Iterator) const;
@@ -563,6 +582,7 @@ class CDatum
 		inline void raw_SetArrayElement (int iIndex, CDatum dValue);
 		static void WriteGridLangIdentifier (IByteStream& Stream, CStringView sString);
 		static void WriteGridLangString (IByteStream& Stream, CStringView sString);
+
 
 		static constexpr DWORD SERIALIZE_TYPE_NULL =				0x01000000;
 		static constexpr DWORD SERIALIZE_TYPE_TRUE =				0x02000000;
@@ -604,6 +624,9 @@ class CDatum
 		static constexpr DWORD SERIALIZE_TYPE_EXPRESSION =			0x25000000;
 		static constexpr DWORD SERIALIZE_TYPE_TABLE_V2 =			0x26000000;
 		static constexpr DWORD SERIALIZE_TYPE_VECTOR_STRING_V2 =	0x27000000;
+		static constexpr DWORD SERIALIZE_TYPE_VECTOR_VECTOR2D =	0x28000000;
+		static constexpr DWORD SERIALIZE_TYPE_VECTOR_VECTOR3D =	0x29000000;
+		static constexpr DWORD SERIALIZE_TYPE_TABLE_V3 =			0x2a000000;
 
 		static constexpr DWORD SERIALIZE_TYPE_REF =				0x80000000;
 		static constexpr DWORD SERIALIZE_TYPE_MASK =			0xff000000;
@@ -644,6 +667,7 @@ class CDatum
 		static constexpr DWORDLONG VALUE_INFINITY_P =		0x7FF0000000000000;
 		static constexpr DWORDLONG VALUE_FALSE =			0x7FF1000000000000;
 		static constexpr DWORDLONG VALUE_TRUE =				0x7FF1000000000001;
+		static constexpr DWORDLONG VALUE_BLANK =			0x7FF1000000000002;
 		static constexpr DWORDLONG VALUE_NAN =				0x7FF8000000000000;
 		static constexpr DWORDLONG VALUE_INFINITY_N =		0xFFF0000000000000;
 		static constexpr DWORDLONG VALUE_NULL =				0xFFFFFFFFFFFFFFFF;
@@ -663,12 +687,12 @@ class CDatum
 		void SerializeAEONScript (EFormat iFormat, IByteStream &Stream) const;
 		void SerializeEnum (EFormat iFormat, IByteStream &Stream) const;
 		void SerializeGridLang (IByteStream &Stream) const;
-		void SerializeJSON (IByteStream &Stream) const;
+		void SerializeJSON (EFormat iFormat, IByteStream& Stream) const;
 
 		static IComplexDatum& DecodeComplex (DWORDLONG dwData) { return *(IComplexDatum*)DecodePointer(dwData); }
 		static double DecodeDouble (DWORDLONG dwData) { return *(double*)&dwData; }
 		static DWORD DecodeEnumType (DWORDLONG dwData) { return (DWORD)((dwData & ENUM_TYPE_MASK) >> ENUM_TYPE_SHIFT); }
-		static int DecodeEnumValue (DWORDLONG dwData) { return (int)(DWORD)(dwData & ENUM_VALUE_MASK); }
+		static int DecodeEnumValue (DWORDLONG dwData) { return (int)(short)(WORD)(dwData & ENUM_VALUE_MASK); }
 		static int DecodeInt32 (DWORDLONG dwData) { return (int)(DWORD)dwData; }
 		static LPSTR DecodeLPSTR (DWORDLONG dwData) { return (LPSTR)DecodePointer(dwData); }
 		static void* DecodePointer (DWORDLONG dwData) { return (void *)(dwData & VALUE_MASK); }
@@ -677,10 +701,16 @@ class CDatum
 
 		static DWORDLONG EncodeBool (bool bValue) { return (bValue ? VALUE_TRUE : VALUE_FALSE); }
 		static DWORDLONG EncodeComplex (IComplexDatum& Ptr) { return EncodePointer(&Ptr); }
-		static DWORDLONG EncodeEnum (DWORD dwType, int iValue) { return ENCODED_ENUM | ((DWORDLONG)dwType << ENUM_TYPE_SHIFT) | (DWORDLONG)(DWORD)iValue; }
+		static DWORDLONG EncodeEnum (DWORD dwType, int iValue) { return ENCODED_ENUM | ((DWORDLONG)dwType << ENUM_TYPE_SHIFT) | (DWORDLONG)(WORD)(short)iValue; }
 		static DWORDLONG EncodeInt32 (int iValue) { return ENCODED_INT32 | (DWORDLONG)(DWORD)iValue; }
 		static DWORDLONG EncodePointer (const void* pPtr) { if ((DWORDLONG)pPtr & TYPE_MASK) throw CException(errFail); return ENCODED_COMPLEX | (DWORDLONG)pPtr; }
 		static DWORDLONG EncodeString (LPCSTR pPtr) { if ((DWORDLONG)pPtr & TYPE_MASK) throw CException(errFail); return ENCODED_STRING | (DWORDLONG)pPtr; }
+		static bool IsIEEE754NaNBits (DWORDLONG dwData)
+			{
+			const DWORDLONG dwExponent = dwData & 0x7FF0000000000000;
+			const DWORDLONG dwFraction = dwData & 0x000FFFFFFFFFFFFF;
+			return (dwExponent == 0x7FF0000000000000 && dwFraction != 0);
+			}
 
 		template<class FUNC> CDatum MathArrayOp () const;
 
@@ -751,6 +781,8 @@ struct SAEONInvokeResult
 #include "AEONInterfaces.h"
 #include "AEONArrayImpl.h"
 
+DECLARE_CONST_STRING(STR_AEON_METHODS_NOT_SUPPORTED,	"Methods not supported.");
+
 //	Serialization --------------------------------------------------------------
 
 class CAEONSerializedMap
@@ -788,11 +820,11 @@ class IComplexDatum
 			public:
 				CRecursionGuard (const IComplexDatum& This) : 
 						m_pThis(&This),
-						m_bInRecursion(This.m_bMarked)
-					{ if (!m_bInRecursion) This.m_bMarked = true; }
+						m_bInRecursion(This.m_bInRecursion)
+					{ if (!m_bInRecursion) This.m_bInRecursion = true; }
 
 				~CRecursionGuard (void)
-					{ if (!m_bInRecursion) m_pThis->m_bMarked = false; }
+					{ if (!m_bInRecursion) m_pThis->m_bInRecursion = false; }
 
 				bool InRecursion (void) const { return m_bInRecursion; }
 
@@ -831,6 +863,7 @@ class IComplexDatum
 		virtual int CastInteger32 () const { return 0; }
 		void ClearMark () { m_bMarked = false; }
 		virtual IComplexDatum *Clone (CDatum::EClone iMode) const { return NULL; }
+		virtual CDatum Cleaned () const { return CDatum::raw_AsComplex(this); }
 		virtual bool Contains (CDatum dValue) const { return false; }
 		virtual void DeleteElement (int iIndex) { }
 		bool DeserializeAEONScript (CDatum::EFormat iFormat, const CString &sTypename, CCharStream *pStream);
@@ -846,6 +879,10 @@ class IComplexDatum
 		virtual CString Format (const CStringFormat& Format) const { return AsString(); }
 		virtual const CDatum::SAnnotation& GetAnnotation () const { return CDatum().GetAnnotation(); }
 		virtual CDatum GetArrayElementUnchecked (int iIndex) const { return GetElement(iIndex); }
+		virtual TArray<double>* GetArrayOfDoubleInterface () { return NULL; }
+		virtual TArray<CDatum>* GetArrayOfDatumInterface () { return NULL; }
+		virtual TArray<int>* GetArrayOfInt32Interface () { return NULL; }
+		virtual TArray<CVector3D>* GetArrayOfVector3DInterface () { return NULL; }
 		virtual DWORD GetBasicDatatype () const = 0;
 		virtual CDatum::Types GetBasicType () const = 0;
 		virtual void* GetBinaryData () const { return (void*)CastCString().GetPointer(); }
@@ -887,10 +924,10 @@ class IComplexDatum
 		virtual CDatum::InvokeResult Invoke (IInvokeCtx *pCtx, CHexeLocalEnvironment& LocalEnv, DWORD dwExecutionRights, SAEONInvokeResult& retResult) { retResult.iResult = CDatum::InvokeResult::ok; return CDatum::InvokeResult::ok; }
 		virtual CDatum::InvokeResult InvokeContinues (IInvokeCtx *pCtx, CDatum dContext, CDatum dResult, SAEONInvokeResult& retResult) { retResult.iResult = CDatum::InvokeResult::ok; return CDatum::InvokeResult::ok; }
 		virtual CDatum::InvokeResult InvokeLibrary (IInvokeCtx& Ctx, CHexeStackEnv& LocalEnv, DWORD dwExecutionRights, SAEONInvokeResult& retResult) { retResult.iResult = CDatum::InvokeResult::ok; return CDatum::InvokeResult::ok; }
-		virtual bool InvokeMethodImpl (CDatum dObj, const CString &sMethod, IInvokeCtx &Ctx, CHexeStackEnv& LocalEnv, SAEONInvokeResult& retResult) { retResult.dResult = CString("Methods not supported."); return false; }
+		virtual bool InvokeMethodImpl (CDatum dObj, const CString &sMethod, IInvokeCtx &Ctx, CHexeStackEnv& LocalEnv, SAEONInvokeResult& retResult) { retResult.dResult = STR_AEON_METHODS_NOT_SUPPORTED; return false; }
 		virtual bool IsArray () const = 0;
 		virtual bool IsContainer () const { return false; }
-		virtual bool IsError () const { return false; }
+		virtual bool IsError (CString* retsErrorCode = NULL) const { return false; }
 		virtual bool IsImmutable () const { return false; }
 		virtual bool IsIPInteger () const { return false; }
 		bool IsMarked () const { return m_bMarked; }
@@ -971,8 +1008,9 @@ class IComplexDatum
 		virtual CDatum raw_IteratorGetKey (CBuffer& Iterator) const { int* pI = (int *)Iterator.GetPointer(); return GetKey(*pI); }
 		virtual bool raw_IteratorHasMore (CBuffer& Iterator) const { int* pI = (int *)Iterator.GetPointer(); return (*pI < GetCount()); }
 		virtual void raw_IteratorNext (CBuffer& Iterator) const { int* pI = (int *)Iterator.GetPointer(); (*pI)++; }
+		virtual bool raw_GetRecordSlot (int iIndex, CDatum* retdValue) const { return false; }
 		virtual void raw_IteratorSetElement (CBuffer& Iterator, CDatum dValue) { int* pI = (int *)Iterator.GetPointer(); SetElement(*pI, dValue); }
-		virtual CBuffer raw_IteratorStart () const { CBuffer Buffer(sizeof(int)); *(int*)Buffer.GetPointer() = 0; return Buffer; }
+		virtual CBuffer raw_IteratorStart () const { CBuffer Buffer(sizeof(int)); WriteUnalignedAt<int>(Buffer.GetPointer(), 0); return Buffer; }
 
 		CString AsAddress () const;
 		size_t CalcSerializeAsStructSize (CDatum::EFormat iFormat) const;
@@ -985,6 +1023,7 @@ class IComplexDatum
 		virtual void SerializeAEONExternal (IByteStream& Stream, CAEONSerializedMap &Serialized) const { throw CException(errFail); }
 
 		mutable bool m_bMarked = false;
+		mutable bool m_bInRecursion = false;
 	};
 
 class IComplexFactory
@@ -1134,6 +1173,7 @@ class CComplexArray : public IComplexDatum
 		virtual CString AsString () const override { return Format(CStringFormat()); }
 		virtual size_t CalcMemorySize () const override;
 		virtual IComplexDatum *Clone (CDatum::EClone iMode) const override;
+		virtual CDatum Cleaned () const override;
 		virtual bool Contains (CDatum dValue) const override;
 		virtual void DeleteElement (int iIndex) override;
 		virtual bool Find (CDatum dValue, int *retiIndex = NULL) const override;
@@ -1144,10 +1184,11 @@ class CComplexArray : public IComplexDatum
 		virtual int FindMinElement () const override { return FindMinElementInArray(m_Array); }
 		virtual CString Format (const CStringFormat& Format) const override;
 		virtual CDatum GetArrayElementUnchecked (int iIndex) const override { return m_Array[iIndex]; }
+		virtual TArray<CDatum>* GetArrayOfDatumInterface () override { return &m_Array; }
 		virtual DWORD GetBasicDatatype () const override { return IDatatype::ARRAY; }
 		virtual CDatum::Types GetBasicType () const override { return CDatum::typeArray; }
 		virtual int GetCount () const override { return m_Array.GetCount(); }
-		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY); }
+		virtual CDatum GetDatatype () const override { return CAEONTypes::Get(IDatatype::ARRAY); }
 		virtual int GetDimensions () const override { return 1; }
 		virtual CDatum GetElement (int iIndex) const override { return ((iIndex >= 0 && iIndex < m_Array.GetCount()) ? m_Array[iIndex] : CDatum()); }
 		virtual CDatum GetElement (const CString &sKey) const override { return m_Properties.GetProperty(*this, sKey); }
@@ -1293,12 +1334,13 @@ class CComplexStruct : public IComplexDatum
 		virtual CString AsString () const override;
 		virtual size_t CalcMemorySize () const override;
 		virtual IComplexDatum *Clone (CDatum::EClone iMode) const override;
+		virtual CDatum Cleaned () const override;
 		virtual bool Contains (CDatum dValue) const override;
 		virtual bool FindElement (const CString &sKey, CDatum *retpValue) const override;
 		virtual DWORD GetBasicDatatype () const override { return IDatatype::STRUCT; }
 		virtual CDatum::Types GetBasicType () const override { return CDatum::typeStruct; }
 		virtual int GetCount () const override { return m_Map.GetCount(); }
-		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::STRUCT); }
+		virtual CDatum GetDatatype () const override { return CAEONTypes::Get(IDatatype::STRUCT); }
 		virtual CDatum GetElement (int iIndex) const override { return ((iIndex >= 0 && iIndex < m_Map.GetCount()) ? m_Map[iIndex] : CDatum()); }
 		virtual CDatum GetElement (const CString &sKey) const override;
 		virtual CDatum GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) const override;
@@ -1330,7 +1372,13 @@ class CComplexStruct : public IComplexDatum
 		virtual void SetElementAt (CDatum dIndex, CDatum dDatum) override;
 
 		static CDatum DeserializeAEON (IByteStream& Stream, DWORD dwID, CAEONSerializedMap &Serialized);
+		static int FindMethodByKey (const CString& sKey) { return (m_pMethodsExt ? m_pMethodsExt->FindMethod(sKey) : -1); }
 		static int FindPropertyByKey (CStringView sKey) { return m_Properties.FindProperty(sKey); }
+		static int GetMethodCount () { return (m_pMethodsExt ? m_pMethodsExt->GetCount() : 0); }
+		static CString GetMethodKey (int iIndex) { return (m_pMethodsExt ? m_pMethodsExt->GetMethodName(iIndex) : NULL_STR); }
+		static CDatum GetMethodType (int iIndex) { return (m_pMethodsExt ? m_pMethodsExt->GetMethodType(iIndex) : CAEONTypes::Get(IDatatype::FUNCTION)); }
+		static int GetPropertyCount () { return m_Properties.GetCount(); }
+		static CString GetPropertyKey (int iIndex) { return m_Properties.GetPropertyName(iIndex); }
 		static CDatum GetPropertyType (int iIndex) { return m_Properties.GetPropertyType(iIndex); }
 		static void SetMethodsExt (TDatumMethodHandler<IComplexDatum> &MethodsExt) { m_pMethodsExt = &MethodsExt; }
 
@@ -1477,4 +1525,3 @@ bool urlParseQuery (const CString &sURL, CString *retsPath, CDatum *retdQuery);
 #include "AEONVector.h"
 #include "AEONAlgorithms.h"
 #include "AEONInlines.h"
-

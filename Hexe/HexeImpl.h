@@ -15,6 +15,7 @@ enum EOperandTypes
 	operandDatumOffset,			//	Operand is a block offset pointing to a serialized datum
 	operandInt,					//	Operand is an integer following the opcode
 	operandLibCall,				//	Operand is a count of args followed by a function ID
+	operandArgCountCodeOffset,	//	Operand is a count of args followed by a code offset
 	};
 
 struct SOpCodeInfo
@@ -51,6 +52,53 @@ inline DWORD GetOperand2Value (DWORD dwOperand) { return (dwOperand & 0xffff); }
 
 extern COpCodeDatabase g_OpCodeDb;
 
+class CHexeCode;
+
+//	CHexeCodeX64 ---------------------------------------------------------------
+
+class CHexeCodeX64
+	{
+	public:
+		using X64Entry = CHexeProcess::ERun (*)(CHexeProcess* pProcess, CDatum* retResult);
+
+		~CHexeCodeX64 ();
+
+		X64Entry FindOrCompileEntry (const CHexeCode& Code, int iVMOffset);
+		void PrintBlockStats () const;
+
+	private:
+		struct SX64Block
+			{
+			int iStartVMOffset = 0;
+			int iEndVMOffset = 0;
+			BYTE* pNativeEntry = NULL;
+			DWORD dwNativeSize = 0;
+			};
+
+		struct SFindBlockCacheEntry
+			{
+			int iVMOffset = -1;
+			SX64Block* pBlock = NULL;
+			};
+
+		static constexpr int FIND_BLOCK_CACHE_SIZE = 256;
+
+		bool CompileBlock (const CHexeCode& Code, int iVMOffset);
+		void DeleteAll ();
+		SX64Block* FindBlock (int iVMOffset) const;
+		void RecordFindBlock (int iVMOffset, bool bFound) const;
+
+		CCriticalSection m_cs;
+		TSortMap<int, SX64Block*> m_ByVMOffset;
+		TArray<SX64Block*> m_Blocks;
+		mutable SFindBlockCacheEntry m_FindBlockCache[FIND_BLOCK_CACHE_SIZE];
+		mutable bool m_bPrintedBlockStats = false;
+		mutable DWORDLONG m_dwFindBlockCalls = 0;
+		mutable DWORDLONG m_dwFindBlockCacheHits = 0;
+		mutable DWORDLONG m_dwFindBlockHits = 0;
+		mutable TSortMap<int, DWORDLONG> m_FindBlockOffsets;
+	};
+
 //	CHexeCode ------------------------------------------------------------------
 //
 //	This is a datum that contains a block of HexeCode.
@@ -58,6 +106,7 @@ extern COpCodeDatabase g_OpCodeDb;
 class CHexeCode : public TExternalDatum<CHexeCode>
 	{
 	public:
+		~CHexeCode ();
 
 		static void Create (const CHexeCodeIntermediate &Intermediate, int iEntryPoint, CDatum *retdEntryPoint);
 		static void CreateFunctionCall (const CString &sFunction, const TArray<CDatum> &Args, CDatum *retdEntryPoint);
@@ -66,7 +115,10 @@ class CHexeCode : public TExternalDatum<CHexeCode>
 		static void CreateInvokeCall (const TArray<CDatum> &Args, CDatum *retdEntryPoint);
 		static const CString &StaticGetTypename (void);
 
-		DWORD *GetCode (int iOffset) { return (DWORD *)(m_Code.GetPointer() + iOffset); }
+		DWORD *GetCode (int iOffset) const { return (DWORD *)(m_Code.GetPointer() + iOffset); }
+		DWORD *GetCodeBlockEnd (DWORD* pCode) const;
+		int GetCodeOffset (DWORD* pCode) const { return (int)((char *)pCode - m_Code.GetPointer()); }
+		CHexeCodeX64 *GetX64Code () const;
 		int GetDataBlockCount () const { return m_DataOffsets.GetCount(); }
 		CDatum GetDatum (int iOffset) const;
 		CDatum GetDatumFromID (int iID) const { if (iID < 0 || iID >= m_DataCache.GetCount()) throw CException(errFail); return m_DataCache[iID]; }
@@ -113,6 +165,8 @@ class CHexeCode : public TExternalDatum<CHexeCode>
 		TArray<int> m_DataOffsets;
 
 		TArray<CDatum> m_DataCache;
+		mutable CCriticalSection m_csX64Code;
+		mutable CHexeCodeX64* m_pX64Code = NULL;
 	};
 
 //	CHexeFunction --------------------------------------------------------------
@@ -145,9 +199,13 @@ class CHexeFunction : public TExternalDatum<CHexeFunction>
 
 		CDatum GetAttribs () const { return m_dAttribs; }
 		DWORD *GetCode (CDatum *retdCodeBank);
+		CDatum GetCodeBank () const { return m_dHexeCode; }
+		int GetCodeOffset () const { return m_iOffset; }
 		CDatum GetGlobalEnv (void) { return m_dGlobalEnv; }
 		CHexeGlobalEnvironment *GetGlobalEnvPointer (void) { return m_pGlobalEnv; }
 		CDatum GetLocalEnv (void) { return m_dLocalEnv; }
+		CHexeLocalEnvironment *GetLocalEnvPointer (void) { return m_pLocalEnv; }
+		bool IsCached () const { return m_bCached; }
 
 		//	IComplexDatum
 
@@ -183,6 +241,7 @@ class CHexeFunction : public TExternalDatum<CHexeFunction>
 		CHexeGlobalEnvironment *m_pGlobalEnv = NULL;
 
 		CDatum m_dLocalEnv;
+		CHexeLocalEnvironment *m_pLocalEnv = NULL;
 
 		bool m_bCached = false;
 		TSortMap<CString, CDatum> m_Cache;
@@ -206,7 +265,7 @@ class CHexeLibraryFunction : public TExternalDatum<CHexeLibraryFunction>
 		virtual CString AsString () const override { return strPattern("[%s]: %s", GetTypename(), m_sName); }
 		virtual bool CanInvoke (void) const override { return true; }
 		virtual CDatum::ECallType GetCallInfo (CDatum *retdCodeBank, DWORD **retpIP) const override { return CDatum::ECallType::Library; }
-		virtual CDatum GetDatatype () const override { return (m_dDatatype.IsNil() ? CAEONTypeSystem::GetCoreType(IDatatype::FUNCTION) : m_dDatatype); }
+		virtual CDatum GetDatatype () const override { return (m_dDatatype.IsNil() ? CAEONTypes::Get(IDatatype::FUNCTION) : m_dDatatype); }
 		virtual CDatum::InvokeResult Invoke (IInvokeCtx *pCtx, CHexeLocalEnvironment& LocalEnv, DWORD dwExecutionRights, SAEONInvokeResult& retResult) override;
 		virtual CDatum::InvokeResult InvokeContinues (IInvokeCtx *pCtx, CDatum dContext, CDatum dResult, SAEONInvokeResult& retResult) override;
 		virtual CDatum::InvokeResult InvokeLibrary (IInvokeCtx& Ctx, CHexeStackEnv& LocalEnv, DWORD dwExecutionRights, SAEONInvokeResult& retResult) override;
@@ -360,6 +419,7 @@ class CLispCompiler
 		void ExitLocalEnvironment (void);
 
 		bool IsNilSymbol (CDatum dDatum);
+		bool IsFalseSymbol (CDatum dDatum);
 		bool IsTrueSymbol (CDatum dDatum);
 
 		CLispParser m_Parser;

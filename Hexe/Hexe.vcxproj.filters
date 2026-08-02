@@ -24,6 +24,9 @@
     <ClCompile Include="CHexeCode.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CHexeCodeX64.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="CHexeCodeIntermediate.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

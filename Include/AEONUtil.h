@@ -307,7 +307,7 @@ class TDatumMethodHandler
 				Create.dwData = iIndex;
 				Create.dwExecFlags = Method.dwExecFlags;
 
-				Create.dType = CAEONTypes::CreateFunctionType(Method.sArgs);
+				Create.dType = CAEONTypes::CreateFunctionFromArgs(Method.sArgs);
 				if (Create.dType.IsNil())
 					Create.dType = CAEONTypes::Get(IDatatype::FUNCTION);
 
@@ -507,6 +507,7 @@ class CDatumFormat
 
 		static CDatum AsDatum (const CStringFormat& Format);
 		static CString FormatDateTime (const CDateTime& Value, const CString& sFormat) { return CStringFormat(sFormat).FormatDateTime(Value); }
+		static CString FormatDouble (double rValue, CDatum dFormat);
 		static CString FormatDouble (double rValue, const CString& sFormat) { return CStringFormat(sFormat).FormatDouble(rValue); }
 		static CString FormatInteger (int iValue, const CString& sFormat) { return CStringFormat(sFormat).FormatInteger(iValue); }
 		static CString FormatIPInteger (const CIPInteger& Value, const CString& sFormat) { return CStringFormat(sFormat).FormatIPInteger(Value); }

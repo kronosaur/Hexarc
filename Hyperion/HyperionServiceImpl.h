@@ -120,6 +120,7 @@ enum EHTTPProcessingStatus
 	pstatRPCReady,							//	Ctx.sRPCAddr and Ctx.RPCMsg initialized
 	pstatFilePathReady,						//	Ctx.sFilePath is a filepath to response
 	pstatFileDataReady,						//	Ctx.dFileData and Ctx.dFileDesc are valid
+	pstatInternalRedirect,					//	Ctx.sInternalRedirectURL is a URL to process internally
 	pstatFileError,							//	Error getting file
 	pstatUpgradeToWebSocket,				//	Upgrade to web socket
 	pstatUpgradeToWebSocketNoOp,			//	Service already upgrades; done with session
@@ -133,6 +134,7 @@ struct SHTTPRequestCtx
 		{
 		pBodyBuilder->Mark();
 		dFileData.Mark();
+		dBody.Mark();
 
 		if (pProcess)
 			pProcess->Mark();
@@ -147,13 +149,17 @@ struct SHTTPRequestCtx
 	
 	CHTTPMessage Request;					//	Initialized by CHTTPSession when it receives the request
 	CEsperBodyBuilderPtr pBodyBuilder = CEsperBodyBuilderPtr(new CEsperBodyBuilder);	//	Used to parse the body
+	CDatum dBody;
 
 	//	Processing state
 
 	CHyperionSession *pSession = NULL;		//	Session object
 	CHTTPService *pService = NULL;			//	Service handling request.
+	CString sRouteProtocol;					//	Effective route protocol after internal rewrite.
+	CString sOriginalRequestHost;			//	Browser-facing host before internal rewrites.
 
 	int iFileRecursion = 0;					//	Number of times we've requested a file this session
+	int iInternalRedirect = 0;				//	Number of times we've internally redirected this request
 	CDatum dFileData;						//	If file has been split, this contains data that we have
 											//		downloaded so far.
 
@@ -174,6 +180,7 @@ struct SHTTPRequestCtx
 
 	CString sFilePath;						//	filePath
 	CDatum dFileDesc;						//	fileDesc (no need to mark because it does not persist)
+	CString sInternalRedirectURL;			//	URL to process internally.
 	TArray<CHTTPMessage::SHeader> AdditionalHeaders;
 	};
 
@@ -220,7 +227,10 @@ class CHTTPSession : public CHyperionSession
 		bool Disconnect (const SArchonMessage &Msg);
 		bool GetRequest (const SArchonMessage &Msg, bool bContinued = false);
 		CString GetRequestDescription (void) const;
+		CString ComposeRouteTargetURL (const CHyperionEngine::SHTTPRouteMatch &Route) const;
 		bool ProcessFileResult (SHTTPRequestCtx &Ctx, CDatum dFileDesc, CDatum dFileData, const SArchonMessage &Msg);
+		bool ProcessInternalRedirect (SHTTPRequestCtx &Ctx, const SArchonMessage &Msg);
+		bool ProcessRouteMatch (SHTTPRequestCtx &Ctx, const SArchonMessage &Msg, const CHyperionEngine::SHTTPRouteMatch &Route);
 		bool ProcessServiceResult (SHTTPRequestCtx &Ctx, const SArchonMessage &Msg);
 		bool ProcessStateDisconnected (const SArchonMessage &Msg);
 		bool ProcessStateResponseSent (const SArchonMessage &Msg);
@@ -261,7 +271,10 @@ class CHTTPService : public IHyperionService
 		bool HandleHexmFile (SHTTPRequestCtx &Ctx, CDatum dFileDesc, CDatum dData) { return OnHandleHexmFile(Ctx, dFileDesc, dData); }
 		bool HandleRequest (SHTTPRequestCtx &Ctx);
 		bool HandleRPCResult (SHTTPRequestCtx &Ctx, const SArchonMessage &RPCResult) { return OnHandleRPCResult(Ctx, RPCResult); }
+		void GetHostsToServe (TArray<CString> *retHosts) const;
+		void GetPathsToServe (TArray<CString> *retPaths) const;
 		int MatchHostAndURL (const CString &sHost, const CString &sURL);
+		void SetPathsToServe (const TArray<CString> &Paths);
 
 	protected:
 		enum ETLSTypes
@@ -327,17 +340,34 @@ class CHTTPService : public IHyperionService
 class CHexeCodeRPCService : public CHTTPService
 	{
 	protected:
+
 		//	CHTTPService
-		virtual bool OnHandleRequest (SHTTPRequestCtx &Ctx) override;
-		virtual bool OnHandleRPCResult (SHTTPRequestCtx &Ctx, const SArchonMessage &RPCResult) override;
-		virtual bool OnHTTPInit (CDatum dServiceDef, const CHexeDocument &Package, CString *retsError) override;
+		virtual bool OnHandleRequest (SHTTPRequestCtx& Ctx) override;
+		virtual bool OnHandleRPCResult (SHTTPRequestCtx& Ctx, const SArchonMessage& RPCResult) override;
+		virtual bool OnHTTPInit (CDatum dServiceDef, const CHexeDocument& Package, CString *retsError) override;
 		virtual void OnHTTPMark (void) override;
 
 	private:
-		bool ComposeResponse (SHTTPRequestCtx &Ctx, CHexeProcess::ERun iRun, CDatum dResult);
+
+		enum class ERPCMode
+			{
+			None,
+			JSONRPC20,
+			};
+
+		bool ComposeResponse (SHTTPRequestCtx& Ctx, CHexeProcess::ERun iRun, CDatum dResult);
+
+		bool ComposeCustomResponse (SHTTPRequestCtx& Ctx, CHexeProcess::ERun iRun, CDatum dResult);
+		bool ComposeErrorResponse (SHTTPRequestCtx& Ctx, CHexeProcess::ERun iRun, CStringView sErrorMsg);
+		bool ComposeHTMLResponse (SHTTPRequestCtx& Ctx, CHexeProcess::ERun iRun, CDatum dResult);
+		bool ComposeInternalRedirectResponse (SHTTPRequestCtx& Ctx, CHexeProcess::ERun iRun, CDatum dResult);
+		bool ComposeJSONResponse (SHTTPRequestCtx& Ctx, CHexeProcess::ERun iRun, CDatum dResult);
+
+		bool ComposeOKResponse (SHTTPRequestCtx& Ctx, IMediaTypePtr pBody);
 
 		CHexeProcess m_ProcessTemplate;
 		CString m_sOutputContentType;
+		ERPCMode m_iRPCMode = ERPCMode::None;
 	};
 
 class CHTTPProxyService : public CHTTPService

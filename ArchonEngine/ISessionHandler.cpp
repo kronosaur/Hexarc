@@ -123,6 +123,17 @@ void ISessionHandler::ResetTimeout (const CString &sReplyAddr, DWORD dwTimeout)
 		m_pEngine->SendTimeoutMessage(dwTimeout, sReplyAddr, MSG_SIMPLE_ENGINE_TIMEOUT, m_dwTicket, &m_dwTimeoutID);
 	}
 
+bool ISessionHandler::SendMessageCommand (const CString &sAddress, const CString &sMsg, CDatum dPayload, DWORD dwTimeout)
+
+//	SendMessageCommand
+//
+//	Sends a message that we expect a reply from, using our engine command port as
+//	the reply address.
+
+	{
+	return SendMessageCommand(sAddress, sMsg, GetEngineAddress(), dPayload, dwTimeout);
+	}
+
 bool ISessionHandler::SendMessageCommand (const CString &sAddress, const CString &sMsg, const CString &sReplyAddr, CDatum dPayload, DWORD dwTimeout)
 
 //	SendMessageCommand
@@ -165,6 +176,9 @@ void ISessionHandler::SendMessageReplyError (const CString &sMsg, const CString 
 //	Sends an error
 
 	{
+#ifdef DEBUG
+	printf("%s: ERROR: %s\n", (LPCSTR)m_OriginalMsg.sMsg, (LPCSTR)sText);
+#endif
 	m_pEngine->SendMessageReplyError(sMsg, sText, m_OriginalMsg);
 	}
 

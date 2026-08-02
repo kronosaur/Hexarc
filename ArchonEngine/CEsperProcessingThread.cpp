@@ -5,6 +5,9 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_CESPER_PROCESSING_THREAD_CRASH_PROCESSING_IO_COMPLETION_PORT,	"CRASH: Processing IO completion port.");
+DECLARE_CONST_STRING(STR_CESPER_PROCESSING_THREAD_CRASH_ESPER_PROCESSING_THREAD,	"CRASH: Esper processing thread.");
+
 DECLARE_CONST_STRING(IOCP_SOCKET_OP,					"IOCP.socketOp")
 
 DECLARE_CONST_STRING(MSG_LOG_DEBUG,						"Log.debug")
@@ -80,7 +83,7 @@ void CEsperProcessingThread::Run (void)
 				}
 			catch (...)
 				{
-				m_pEngine->Log(MSG_LOG_ERROR, CString("CRASH: Processing IO completion port."));
+				m_pEngine->Log(MSG_LOG_ERROR, STR_CESPER_PROCESSING_THREAD_CRASH_PROCESSING_IO_COMPLETION_PORT);
 				}
 			}
 
@@ -91,7 +94,7 @@ void CEsperProcessingThread::Run (void)
 		}
 	catch (...)
 		{
-		m_pEngine->Log(MSG_LOG_ERROR, CString("CRASH: Esper processing thread."));
+		m_pEngine->Log(MSG_LOG_ERROR, STR_CESPER_PROCESSING_THREAD_CRASH_ESPER_PROCESSING_THREAD);
 		}
 	}
 

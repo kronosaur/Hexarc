@@ -34,7 +34,7 @@ TDatumPropertyHandler<CAEONVectorString> CAEONVectorString::m_Properties = {
 		"Returns the element type of the array.",
 		[](const CAEONVectorString &Obj, const CString &sProperty)
 			{
-			return CAEONTypeSystem::GetCoreType(IDatatype::STRING);
+			return CAEONTypes::Get(IDatatype::STRING);
 			},
 		NULL,
 		},
@@ -44,7 +44,7 @@ TDatumPropertyHandler<CAEONVectorString> CAEONVectorString::m_Properties = {
 		"Returns the key type of the array.",
 		[](const CAEONVectorString &Obj, const CString &sProperty)
 			{
-			return CAEONTypeSystem::GetCoreType(IDatatype::INTEGER);
+			return CAEONTypes::Get(IDatatype::INTEGER);
 			},
 		NULL,
 		},
@@ -149,6 +149,18 @@ IComplexDatum *CAEONVectorString::Clone (CDatum::EClone iMode) const
 		}
 	}
 
+CDatum CAEONVectorString::Cleaned () const
+	{
+	CRecursionGuard Guard(*this);
+	if (Guard.InRecursion())
+		return CDatum::raw_AsComplex(this);
+
+	auto pResult = new CAEONVectorString(m_Array);
+	for (int i = 0; i < pResult->m_Array.GetCount(); i++)
+		pResult->m_Array[i] = pResult->m_Array[i].Cleaned();
+
+	return CDatum(pResult);
+	}
 int CAEONVectorString::FindMaxElement () const
 	{
 	CDatum dNumberArray = AsNumberArray();
@@ -584,6 +596,7 @@ void CAEONVectorString::Serialize (CDatum::EFormat iFormat, IByteStream &Stream)
 			break;
 			}
 
+		case CDatum::EFormat::AEONJSON:
 		case CDatum::EFormat::JSON:
 			{
 			Stream.Write("[", 1);

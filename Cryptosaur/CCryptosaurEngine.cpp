@@ -56,6 +56,7 @@ DECLARE_CONST_STRING(MSG_CRYPTOSAUR_CREATE_USER,		"Cryptosaur.createUser")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_DELETE_USER,		"Cryptosaur.deleteUser")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_GET_CERTIFICATE,	"Cryptosaur.getCertificate")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_GET_KEY,			"Cryptosaur.getKey")
+DECLARE_CONST_STRING(MSG_CRYPTOSAUR_GET_SECRET,			"Cryptosaur.getSecret")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_GET_USER,			"Cryptosaur.getUser")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_LIST_KEYS,			"Cryptosaur.listKeys")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_CHECK_PASSWORD_SHA1,"Cryptosaur.login_SHA1")
@@ -66,6 +67,7 @@ DECLARE_CONST_STRING(MSG_CRYPTOSAUR_REQUEST_LOGIN,		"Cryptosaur.requestLogin")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_RESET_PASSWORD_MANUAL,	"Cryptosaur.resetPasswordManual")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_SET_CERTIFICATE,	"Cryptosaur.setCertificate")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_SET_KEY,			"Cryptosaur.setKey")
+DECLARE_CONST_STRING(MSG_CRYPTOSAUR_SET_SECRET,			"Cryptosaur.setSecret")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_SIGN_DATA,			"Cryptosaur.signData")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_VALIDATE_AUTH_TOKEN,"Cryptosaur.validateAuthToken")
 
@@ -107,6 +109,9 @@ CCryptosaurEngine::SMessageHandler CCryptosaurEngine::m_MsgHandlerList[] =
 		//	Cryptosaur.getKey {keyName}
 		{	MSG_CRYPTOSAUR_GET_KEY,						&CCryptosaurEngine::MsgGetKey },
 
+		//	Cryptosaur.getSecret {secretID}
+		{	MSG_CRYPTOSAUR_GET_SECRET,					&CCryptosaurEngine::MsgGetSecret },
+
 		//	Cryptosaur.getUser {username}
 		{	MSG_CRYPTOSAUR_GET_USER,					&CCryptosaurEngine::MsgGetUser },
 
@@ -133,6 +138,9 @@ CCryptosaurEngine::SMessageHandler CCryptosaurEngine::m_MsgHandlerList[] =
 
 		//	Cryptosaur.setKey {type} {data}
 		{	MSG_CRYPTOSAUR_SET_KEY,						&CCryptosaurEngine::MsgSetKey },
+
+		//	Cryptosaur.setSecret {secretID} {value}
+		{	MSG_CRYPTOSAUR_SET_SECRET,					&CCryptosaurEngine::MsgSetSecret },
 
 		//	Cryptosaur.signData {keyName} {data}
 		{	MSG_CRYPTOSAUR_SIGN_DATA,					&CCryptosaurEngine::MsgSignData },

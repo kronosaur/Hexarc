@@ -26,6 +26,16 @@ TDatumPropertyHandler<CAEONVector3D> CAEONVector3D::m_Properties = {
 		NULL,
 		},
 	{
+		"length2",
+		"f",
+		"Returns the squared length of the vector.",
+		[](const CAEONVector3D& Obj, const CString &sProperty)
+			{
+			return CDatum(Obj.m_vVector.Length2());
+			},
+		NULL,
+		},
+	{
 		"size",
 		"I",
 		"Returns the number of elements in the vector.",
@@ -37,11 +47,11 @@ TDatumPropertyHandler<CAEONVector3D> CAEONVector3D::m_Properties = {
 		},
 	{
 		"unit",
-		"$Vector3DOfFloat64",
+		"V3",
 		"Returns the a unit vector in the same direction.",
 		[](const CAEONVector3D& Obj, const CString &sProperty)
 			{
-			return CDatum(Obj.m_vVector / Obj.m_vVector.Length());
+			return CDatum(Obj.m_vVector.Unit());
 			},
 		NULL,
 		},
@@ -154,42 +164,19 @@ CDatum CAEONVector3D::GetElement (const CString &sKey) const
 		return CDatum();
 	}
 
-void CAEONVector3D::SetElement (int iIndex, CDatum dDatum)
+TArray<IDatatype::SMemberDesc> CAEONVector3D::GetMembers ()
 
-//	SetElement
+//	GetMembers
 //
-//	Sets element
+//	Returns a list of members.
 
 	{
-	switch (iIndex)
-		{
-		case 0:
-			m_vVector.SetX(dDatum);
-			break;
+	TArray<IDatatype::SMemberDesc> Members;
 
-		case 1:
-			m_vVector.SetY(dDatum);
-			break;
+	m_Properties.AccumulateMembers(Members);
+	m_Methods.AccumulateMembers(Members);
 
-		case 2:
-			m_vVector.SetZ(dDatum);
-			break;
-		}
-	}
-
-void CAEONVector3D::SetElement (const CString &sKey, CDatum dDatum)
-
-//	SetElement
-//
-//	Sets element
-
-	{
-	if (strEquals(sKey, FIELD_X))
-		m_vVector.SetX(dDatum);
-	else if (strEquals(sKey, FIELD_Y))
-		m_vVector.SetY(dDatum);
-	else if (strEquals(sKey, FIELD_Z))
-		m_vVector.SetZ(dDatum);
+	return Members;
 	}
 
 size_t CAEONVector3D::OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const

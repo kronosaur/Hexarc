@@ -19,6 +19,7 @@ enum class EPromiseResult
 	Repeat,					//	Repeat the current state
 	WaitForResponse,		//	Wait for message reply and call at fnProcess when done.
 	EndSession,				//	End the session.
+	EndSessionNoReply,		//	End the session but don't send a reply
 	Error,					//	Return error to client
 	};
 
@@ -112,6 +113,7 @@ class CSimpleEngine : public IArchonEngine, public IArchonMessagePort, protected
 		int AddEvents (CWaitArray *retWait);
 		bool Dequeue (int iMaxCount, CArchonMessageList *retList) { return m_Queue.Dequeue(iMaxCount, retList); }
 		IArchonProcessCtx *GetProcessCtx (void) const { return m_pProcess; }
+		const CString &GetCommandPort (void) const { return m_sCommandPort; }
 		CManualEvent &GetQueueEvent (void) { return m_Queue.GetEvent(); }
 		CManualEvent &GetQuitEvent (void) { return *m_pQuitEvent; }
 		CManualEvent &GetRefreshEvent (void) { return m_RefreshEvent; }
@@ -215,6 +217,7 @@ class CSimpleEngine : public IArchonEngine, public IArchonMessagePort, protected
 
 		IArchonProcessCtx *m_pProcess;		//	Parent process
 		CString m_sName;					//	Name of the engine
+		CString m_sCommandPort;				//	Canonical command port
 		DWORD m_dwID;						//	Our ID
 
 		int m_iInitialThreadCount;			//	Number of threads to start initially
@@ -254,6 +257,7 @@ class ISessionHandler
 		
 		//	Utilities
 		CString GenerateAddress (const CString &sPort) { return m_pProcess->GenerateAddress(sPort); }
+		CString GetEngineAddress (void) const { return m_pProcess->GenerateAddress(m_pEngine->GetCommandPort()); }
 		const SArchonMessage &GetOriginalMsg (void) { return m_OriginalMsg; }
 		IArchonProcessCtx *GetProcessCtx (void) { return m_pProcess; }
 		CSimpleEngine *GetSimpleEngine () { return m_pEngine; }
@@ -261,6 +265,7 @@ class ISessionHandler
 		DWORD GetTicket (void) const { return m_dwTicket; }
 		static bool IsError (const SArchonMessage &Msg);
 		void ResetTimeout (const CString &sReplyAddr, DWORD dwTimeout);
+		bool SendMessageCommand (const CString &sAddress, const CString &sMsg, CDatum dPayload, DWORD dwTimeout = 0);
 		bool SendMessageCommand (const CString &sAddress, const CString &sMsg, const CString &sReplyAddr, CDatum dPayload, DWORD dwTimeout = 0);
 		void SendMessageNotify (const CString &sAddress, const CString &sMsg, CDatum dPayload);
 		void SendMessageReply (const CString &sMsg, CDatum dData = CDatum());

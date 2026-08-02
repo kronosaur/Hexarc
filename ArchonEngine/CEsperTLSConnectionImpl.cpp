@@ -361,6 +361,19 @@ bool CEsperTLSConnectionImpl::OpProcessSSL (CString *retsError)
 //			OnSSLOperationComplete(EOperation::connect);
 			return true;
 
+		case CSSLAsyncEngine::resDisconnect:
+			{
+			m_iReadState = stateNone;
+			m_iWriteState = stateNone;
+			if (!IsDeleted())
+				{
+				OnTLSDisconnect();
+				DeleteConnection();
+				}
+
+			return true;
+			}
+
 		case CSSLAsyncEngine::resReceiveData:
 			{
 			if (m_pSSL->ProcessHasDataToSend())

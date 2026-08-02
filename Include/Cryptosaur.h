@@ -89,6 +89,7 @@ class CCryptosaurEngine : public TSimpleEngine<CCryptosaurEngine>
 		void MsgDeleteUser (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgGetCertificate (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgGetKey (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
+		void MsgGetSecret (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgGetUser (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgHasRights (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgListKeys (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
@@ -98,6 +99,7 @@ class CCryptosaurEngine : public TSimpleEngine<CCryptosaurEngine>
 		void MsgResetPasswordManual (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgSetCertificate (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgSetKey (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
+		void MsgSetSecret (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgSignData (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgValidateAuthToken (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 

@@ -549,6 +549,7 @@ void CAEONTableRowRef::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) 
 		//	For JSON format we just serialize as a plain Struct but write out 
 		//	the datatype in the special __datatype__ field.
 
+		case CDatum::EFormat::AEONJSON:
 		case CDatum::EFormat::JSON:
 			{
 			Stream.Write("{\"", 2);

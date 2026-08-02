@@ -461,6 +461,11 @@ template <class VALUE> class TVector3D
 		TVector3D operator * (VALUE a) const { return TVector3D(m_x * a, m_y * a, m_z * a); }
 		TVector3D operator / (VALUE a) const { return TVector3D(m_x / a, m_y / a, m_z / a); }
 
+		TVector3D& operator += (const TVector3D<VALUE>& vA) { m_x += vA.m_x; m_y += vA.m_y; m_z += vA.m_z; return *this; }
+		TVector3D& operator -= (const TVector3D<VALUE>& vA) { m_x -= vA.m_x; m_y -= vA.m_y; m_z -= vA.m_z; return *this; }
+		TVector3D& operator *= (VALUE a) { m_x *= a; m_y *= a; m_z *= a; return *this; }
+		TVector3D& operator /= (VALUE a) { m_x /= a; m_y /= a; m_z /= a; return *this; }
+
 		TVector3D Cross (const TVector3D<VALUE>& vA) const { return TVector3D(m_y * vA.m_z - m_z * vA.m_y, m_z * vA.m_x - m_x * vA.m_z, m_x * vA.m_y - m_y * vA.m_x); }
 		VALUE Distance2 (const TVector3D<VALUE>& vA) const { double rX = (vA.m_x - m_x); double rY = (vA.m_y - m_y); double rZ = (vA.m_z - m_z); return (rX * rX + rY * rY + rZ * rZ); }
 		VALUE Dot (const TVector3D<VALUE> &vA) const { return m_x * vA.m_x + m_y * vA.m_y + m_z * vA.m_z; }

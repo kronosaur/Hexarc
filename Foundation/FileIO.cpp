@@ -5,6 +5,8 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_FILE_IO_QUESTION_COLON,	"?:");
+
 DECLARE_CONST_STRING(STR_DOT,							".")
 DECLARE_CONST_STRING(STR_DOT_DOT,						"..")
 DECLARE_CONST_STRING(STR_STAR,							"*")
@@ -231,7 +233,7 @@ bool fileCreateDrive (const CString &sPath, CString *retsDriveRoot)
 
 	//	NOTE: GetLogicalDrives does not include drives A and B.
 
-	CString sNewDrive = CString("?:");
+	CString sNewDrive = STR_FILE_IO_QUESTION_COLON;
 	char *pPos = sNewDrive.GetParsePointer();
 	for (i = 2; i < 32; i++)
 		if (!(dwDriveMask & (1 << i)))
@@ -279,7 +281,7 @@ bool fileDeleteDrive (const CString &sDriveRoot)
 //	Deletes a drive previously created by fileCreateDrive
 
 	{
-	CString sDrive = CString("?:");
+	CString sDrive = STR_FILE_IO_QUESTION_COLON;
 	char *pPos = sDrive.GetParsePointer();
 	*pPos = *sDriveRoot.GetParsePointer();
 

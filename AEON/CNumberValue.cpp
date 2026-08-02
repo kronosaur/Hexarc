@@ -5,6 +5,81 @@
 
 #include "stdafx.h"
 
+namespace
+	{
+	union SDoubleBits
+		{
+		double rValue;
+		DWORDLONG dwBits;
+		};
+	bool TryGetExactIntegerFromDouble (double rValue, CIPInteger& retValue)
+		{
+		if (!std::isfinite(rValue))
+			return false;
+		else if (rValue == 0.0)
+			{
+			retValue = CIPInteger(0);
+			return true;
+			}
+
+		SDoubleBits Bits;
+		Bits.rValue = rValue;
+		const DWORDLONG dwBits = Bits.dwBits;
+		const DWORDLONG dwExponentBits = ((dwBits >> 52) & 0x7ff);
+		if (dwExponentBits == 0x7ff || dwExponentBits == 0)
+			return false;
+
+		const bool bNegative = ((dwBits >> 63) != 0);
+		const int iExponent = (int)dwExponentBits - 1023;
+		const DWORDLONG dwSignificand = ((DWORDLONG)1 << 52) | (dwBits & ((((DWORDLONG)1) << 52) - 1));
+
+		CIPInteger Result;
+		if (iExponent < 0)
+			return false;
+		else if (iExponent >= 52)
+			{
+			Result = CIPInteger(dwSignificand);
+			Result <<= (size_t)(iExponent - 52);
+			}
+		else
+			{
+			const int iShift = 52 - iExponent;
+			const DWORDLONG dwMask = (((DWORDLONG)1 << iShift) - 1);
+			if ((dwSignificand & dwMask) != 0)
+				return false;
+
+			Result = CIPInteger(dwSignificand >> iShift);
+			}
+
+		if (bNegative)
+			Result = -Result;
+
+		retValue = Result;
+		return true;
+		}
+
+	int CompareIntegerToDouble (const CIPInteger& iValue, double rValue)
+		{
+		if (!std::isfinite(rValue))
+			{
+			if (std::isnan(rValue))
+				return 1;
+			else
+				return (rValue > 0.0 ? -1 : 1);
+			}
+
+		CIPInteger iFromFloat;
+		if (TryGetExactIntegerFromDouble(rValue, iFromFloat))
+			return iValue.Compare(iFromFloat);
+
+		CIPInteger iFloor;
+		if (!TryGetExactIntegerFromDouble(std::floor(rValue), iFloor))
+			return 1;
+
+		const int iCompare = iValue.Compare(iFloor);
+		return (iCompare <= 0 ? -1 : 1);
+		}
+	}
 //	CNumberValue ---------------------------------------------------------------
 
 void CNumberValue::Abs ()
@@ -191,7 +266,7 @@ int CNumberValue::Compare (const CNumberValue &Value) const
 					}
 
 				case CDatum::typeDouble:
-					return KeyCompare((double)GetInteger(), Value.GetDouble());
+					return CompareIntegerToDouble(CIPInteger(GetInteger()), Value.GetDouble());
 
 				case CDatum::typeIntegerIP:
 					return KeyCompare(CIPInteger(GetInteger()), Value.GetIPInteger());
@@ -218,7 +293,7 @@ int CNumberValue::Compare (const CNumberValue &Value) const
 					return KeyCompare(GetInteger64(), Value.GetInteger64());
 
 				case CDatum::typeDouble:
-					return KeyCompare((double)GetInteger64(), Value.GetDouble());
+					return CompareIntegerToDouble(CIPInteger(GetInteger64()), Value.GetDouble());
 
 				case CDatum::typeIntegerIP:
 					return KeyCompare(CIPInteger(GetInteger64()), Value.GetIPInteger());
@@ -233,16 +308,16 @@ int CNumberValue::Compare (const CNumberValue &Value) const
 			switch (Value.m_iType)
 				{
 				case CDatum::typeInteger32:
-					return KeyCompare(GetDouble(), (double)Value.GetInteger());
+					return -CompareIntegerToDouble(CIPInteger(Value.GetInteger()), GetDouble());
 
 				case CDatum::typeInteger64:
-					return KeyCompare(GetDouble(), (double)Value.GetInteger64());
+					return -CompareIntegerToDouble(CIPInteger(Value.GetInteger64()), GetDouble());
 
 				case CDatum::typeDouble:
 					return KeyCompare(GetDouble(), Value.GetDouble());
 
 				case CDatum::typeIntegerIP:
-					return KeyCompare(CIPInteger(GetDouble()), Value.GetIPInteger());
+					return -CompareIntegerToDouble(Value.GetIPInteger(), GetDouble());
 
 				default:
 					return 1;
@@ -260,7 +335,7 @@ int CNumberValue::Compare (const CNumberValue &Value) const
 					return KeyCompare(GetIPInteger(), CIPInteger(Value.GetInteger64()));
 
 				case CDatum::typeDouble:
-					return KeyCompare(GetIPInteger(), CIPInteger(Value.GetDouble()));
+					return CompareIntegerToDouble(GetIPInteger(), Value.GetDouble());
 
 				case CDatum::typeIntegerIP:
 					return KeyCompare(GetIPInteger(), Value.GetIPInteger());

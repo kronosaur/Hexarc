@@ -10,7 +10,7 @@
 class CDatatypeAny : public IDatatype
 	{
 	public:
-		CDatatypeAny (const CString &sFullyQualifiedName) : IDatatype(sFullyQualifiedName, IDatatype::ANY)
+		CDatatypeAny (const CString &sFullyQualifiedName) : IDatatype(true, sFullyQualifiedName, IDatatype::ANY)
 			{ }
 
 	private:
@@ -41,12 +41,13 @@ class CDatatypeArray : public IDatatype
 			bool bDictionary = false;
 			CDatum dKeyType;					//	May be Nil (defaults to INTEGER)
 			bool bAnonymous = false;
+			bool bBuiltIn = false;
 			};
 
-		CDatatypeArray (const CString &sFullyQualifiedName) : IDatatype(sFullyQualifiedName)
+		CDatatypeArray (const CString &sFullyQualifiedName) : IDatatype(false, sFullyQualifiedName)
 			{ }
 
-		CDatatypeArray (const SCreate &Create) : IDatatype(Create.sFullyQualifiedName, Create.dwCoreType, Create.bAnonymous),
+		CDatatypeArray (const SCreate &Create) : IDatatype(Create.bBuiltIn, Create.sFullyQualifiedName, Create.dwCoreType, Create.bAnonymous),
 				m_dKeyType(Create.dKeyType),
 				m_dElementType(Create.dElementType),
 				m_bTable(Create.bTable),
@@ -66,8 +67,10 @@ class CDatatypeArray : public IDatatype
 
 		//	IDatatype virtuals
 
+		virtual void OnAccumulateTypesUsed (TSortMap<CString, CDatum>& retTypes) const override;
+		virtual bool OnCanBeConstructedFrom (CDatum dType) const;
 		virtual bool OnCanBeCalledWith (CDatum dThisType, const TArray<CDatum>& ArgTypes, const TArray<CDatum>& ArgLiteralTypes, CDatum* retdReturnType = NULL, CString* retsError = NULL) const override;
-		virtual bool OnCanBeNull () const override { return false; }
+		virtual bool OnCanBeNull () const override { return GetCoreType() == IDatatype::TEXT_LINES; }
 		virtual bool OnDeserialize (CDatum::EFormat iFormat, IByteStream &Stream, DWORD dwVersion) override;
 		virtual bool OnDeserializeAEON (IByteStream& Stream, DWORD dwVersion, CAEONSerializedMap &Serialized) override;
 		virtual bool OnEquals (const IDatatype &Src) const override;
@@ -110,7 +113,7 @@ class CDatatypeClass : public IDatatype
 			std::initializer_list<SMemberDesc> Members;
 			};
 
-		CDatatypeClass (const CString &sFullyQualifiedName) : IDatatype(sFullyQualifiedName)
+		CDatatypeClass (const CString &sFullyQualifiedName) : IDatatype(false, sFullyQualifiedName)
 			{ }
 
 		CDatatypeClass (const SCreate &Create);
@@ -157,12 +160,13 @@ class CDatatypeEnum : public IDatatype
 			{
 			CString sFullyQualifiedName;
 			DWORD dwCoreType = 0;
+			bool bBuiltIn = false;
 			};
 
-		CDatatypeEnum (const SCreate &Create) : IDatatype(Create.sFullyQualifiedName, Create.dwCoreType)
+		CDatatypeEnum (const SCreate &Create) : IDatatype(Create.bBuiltIn, Create.sFullyQualifiedName, Create.dwCoreType)
 			{ }
 
-		explicit CDatatypeEnum (const CString &sFullyQualifiedName) : IDatatype(sFullyQualifiedName)
+		explicit CDatatypeEnum (const CString &sFullyQualifiedName) : IDatatype(false, sFullyQualifiedName)
 			{ }
 
 		bool IsEqual (const CDatatypeEnum& Other) const;
@@ -201,6 +205,7 @@ class CDatatypeEnum : public IDatatype
 
 		TArray<SEntry> m_Entries;
 		TSortMap<CString, int> m_EntriesByName;
+		TSortMap<int, int> m_EntriesByOrdinal;
 	};
 
 class CDatatypeFunction : public IDatatype
@@ -216,7 +221,7 @@ class CDatatypeFunction : public IDatatype
 
 		CDatatypeFunction (const SCreate& Create);
 
-		explicit CDatatypeFunction (const CString &sFullyQualifiedName) : IDatatype(sFullyQualifiedName)
+		explicit CDatatypeFunction (const CString &sFullyQualifiedName) : IDatatype(false, sFullyQualifiedName)
 			{ }
 
 	private:
@@ -229,6 +234,7 @@ class CDatatypeFunction : public IDatatype
 
 		//	IDatatype virtuals
 
+		virtual void OnAccumulateTypesUsed (TSortMap<CString, CDatum>& retTypes) const;
 		virtual bool OnCanBeCalledWith (CDatum dThisType, const TArray<CDatum>& ArgTypes, const TArray<CDatum>& ArgLiteralTypes, CDatum* retdReturnType = NULL, CString* retsError = NULL) const override;
 		virtual bool OnCanBeCalledWithArgCount (CDatum dThisType, int iArgCount, CDatum* retdReturnType = NULL, CString* retsError = NULL) const override;
 		virtual bool OnDeserialize (CDatum::EFormat iFormat, IByteStream &Stream, DWORD dwVersion) override;
@@ -251,6 +257,127 @@ class CDatatypeFunction : public IDatatype
 		CRecursionState m_rs;
 	};
 
+class CDatatypeGenericFunction : public IDatatype
+	{
+	public:
+
+		CDatatypeGenericFunction (const CString &sFullyQualifiedName) : IDatatype(false, sFullyQualifiedName)
+			{ }
+
+		CDatatypeGenericFunction (CStringView sSource);
+
+	public:
+
+		enum class ETypeExpr
+			{
+			Concrete,
+			TypeVar,
+			ArrayOf,
+			TableOf,
+			DictionaryOf,
+			Nullable,
+			NonNullable,
+			ElementType,
+			KeyType,
+			Common,
+			EvalType,
+			FunctionOf,
+			ValueRef,
+			Error,
+			};
+
+		enum class EConstraintOp
+			{
+			Equal,
+			IsA,
+			IsAssignableTo,
+			};
+
+		struct STypeExpr
+			{
+			ETypeExpr iType = ETypeExpr::Concrete;
+			CString sValue;
+			CDatum dType;
+			TArray<STypeExpr> Args;
+			};
+
+		struct SParamDesc
+			{
+			CString sName;
+			CString sCapture;
+			STypeExpr Type;
+			};
+
+		struct SConstraintDesc
+			{
+			STypeExpr Left;
+			EConstraintOp iOp = EConstraintOp::Equal;
+			STypeExpr Right;
+			};
+
+		struct SSignatureDesc
+			{
+			TArray<SParamDesc> Params;
+			TArray<SConstraintDesc> Constraints;
+			STypeExpr Return;
+			};
+
+	private:
+
+		//	IDatatype virtuals
+
+		virtual void OnAccumulateTypesUsed (TSortMap<CString, CDatum>& retTypes) const override;
+		virtual bool OnCanBeCalledWith (CDatum dThisType, const TArray<CDatum>& ArgTypes, const TArray<CDatum>& ArgLiteralTypes, CDatum* retdReturnType = NULL, CString* retsError = NULL) const override;
+		virtual bool OnCanBeCalledWithArgCount (CDatum dThisType, int iArgCount, CDatum* retdReturnType = NULL, CString* retsError = NULL) const override;
+		virtual bool OnDeserialize (CDatum::EFormat iFormat, IByteStream &Stream, DWORD dwVersion) override;
+		virtual bool OnDeserializeAEON (IByteStream& Stream, DWORD dwVerson, CAEONSerializedMap &Serialized) override;
+		virtual bool OnEquals (const IDatatype &Src) const override;
+		virtual ECategory OnGetClass () const override { return IDatatype::ECategory::Function; }
+		virtual EImplementation OnGetImplementation () const override { return IDatatype::EImplementation::GenericFunction; }
+		virtual bool OnIsA (const IDatatype &Type) const override;
+		virtual void OnMark () override;
+		virtual void OnSerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const override;
+
+		bool InitFromSource (CStringView sSource, CString* retsError = NULL);
+
+		CString m_sSource;
+		TArray<SSignatureDesc> m_Signatures;
+	};
+
+class CDatatypeLiteralStruct : public IDatatype
+	{
+	public:
+
+		CDatatypeLiteralStruct (CDatum dSchema);
+
+	private:
+
+		//	IDatatype virtuals
+
+		virtual bool OnCanBeCalledWith (CDatum dThisType, const TArray<CDatum>& ArgTypes, const TArray<CDatum>& ArgLiteralTypes, CDatum* retdReturnType = NULL, CString* retsError = NULL) const override;
+		virtual bool OnCanBeConstructedFrom (CDatum dType) const override;
+		virtual bool OnCanBeNull () const override { return false; }
+		virtual bool OnDeserialize (CDatum::EFormat iFormat, IByteStream &Stream, DWORD dwVersion) override;
+		virtual bool OnDeserializeAEON (IByteStream& Stream, DWORD dwVerson, CAEONSerializedMap &Serialized) override;
+		virtual bool OnEquals (const IDatatype &Src) const override;
+		virtual int OnFindMember (CStringView sName) const override;
+		virtual ECategory OnGetClass () const override { return IDatatype::ECategory::LiteralStruct; }
+		virtual EImplementation OnGetImplementation () const override { return IDatatype::EImplementation::LiteralStruct; }
+		virtual SMemberDesc OnGetMember (int iIndex) const override;
+		virtual int OnGetMemberCount () const override;
+		virtual EMemberType OnHasMember (CStringView sName, CDatum* retdType = NULL, int* retiOrdinal = NULL) const override;
+		virtual CString OnGetName () const override;
+		virtual DWORD OnGetQualifierFlags () const { return IDatatype::QUALIFIER_LITERAL_SOURCE; }
+		virtual CDatum OnGetVariantType () const override { return m_dSchema; }
+		virtual bool OnIsA (const IDatatype &Type) const override;
+		virtual bool OnIsAbstract () const override { return false; }
+		virtual void OnMark () override { m_dSchema.Mark(); }
+		virtual void OnSerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const override;
+		virtual CDatum OnStripQualifiers () const override { return m_dSchema; }
+
+		CDatum m_dSchema;
+	};
+
 class CDatatypeTensor : public IDatatype
 	{
 	public:
@@ -260,13 +387,16 @@ class CDatatypeTensor : public IDatatype
 			DWORD dwCoreType = 0;
 			CDatum dElementType;
 			TArray<CDatum> Dimensions;
+			bool bBuiltIn = false;
 			};
 
-		CDatatypeTensor (const CString &sFullyQualifiedName) : IDatatype(sFullyQualifiedName)
+		CDatatypeTensor (const CString &sFullyQualifiedName) : IDatatype(false, sFullyQualifiedName)
 			{ }
 
 		CDatatypeTensor (const SCreate &Create);
-		CDatatypeTensor (CStringView sFullyQualifiedName, CDatum dElementType, int iRows, int iCols, DWORD dwCoreType = 0);
+		CDatatypeTensor (bool bBuiltIn, CStringView sFullyQualifiedName, CDatum dElementType, int iRows, int iCols, DWORD dwCoreType = 0);
+
+		static TArray<CDatum> MakeDimensions (int iRows, int iCols);
 
 	private:
 
@@ -307,10 +437,31 @@ class CDatatypeTensor : public IDatatype
 		TArray<SDimDesc> m_Dims;
 	};
 
+class CDatatypeNever : public IDatatype
+	{
+	public:
+
+		CDatatypeNever ();
+
+	private:
+
+		//	IDatatype virtuals
+
+		virtual bool OnCanBeNull () const override { return false; }
+		virtual bool OnDeserialize (CDatum::EFormat iFormat, IByteStream &Stream, DWORD dwVersion) override { return true; }
+		virtual bool OnDeserializeAEON (IByteStream& Stream, DWORD dwVerson, CAEONSerializedMap &Serialized) override { return true; }
+		virtual bool OnEquals (const IDatatype &Src) const override { return true; }
+		virtual ECategory OnGetClass () const override { return IDatatype::ECategory::Simple; }
+		virtual EImplementation OnGetImplementation () const override { return IDatatype::EImplementation::Null; }
+		virtual bool OnIsA (const IDatatype &Type) const override { return false; }
+		virtual bool OnIsAbstract () const override { return false; }
+		virtual void OnSerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const override { }
+	};
+
 class CDatatypeNull : public IDatatype
 	{
 	public:
-		CDatatypeNull (const CString &sFullyQualifiedName) : IDatatype(sFullyQualifiedName, IDatatype::NULL_T)
+		CDatatypeNull (const CString &sFullyQualifiedName) : IDatatype(true, sFullyQualifiedName, IDatatype::NULL_T)
 			{ }
 
 	private:
@@ -336,12 +487,13 @@ class CDatatypeNullable : public IDatatype
 			CString sFullyQualifiedName;
 			DWORD dwCoreType = 0;
 			CDatum dVariantType;
+			bool bBuiltIn = false;
 			};
 
-		CDatatypeNullable (const CString &sFullyQualifiedName) : IDatatype(sFullyQualifiedName)
+		CDatatypeNullable (const CString &sFullyQualifiedName) : IDatatype(false, sFullyQualifiedName)
 			{ }
 
-		CDatatypeNullable (const SCreate &Create) : IDatatype(Create.sFullyQualifiedName, Create.dwCoreType),
+		CDatatypeNullable (const SCreate &Create) : IDatatype(Create.bBuiltIn, Create.sFullyQualifiedName, Create.dwCoreType),
 				m_dVariantType(Create.dVariantType)
 			{ }
 
@@ -349,6 +501,7 @@ class CDatatypeNullable : public IDatatype
 
 		//	IDatatype virtuals
 
+		virtual bool OnCanBeConstructedFrom (CDatum dType) const override;
 		virtual bool OnCanBeNull () const override { return true; }
 		virtual bool OnDeserialize (CDatum::EFormat iFormat, IByteStream &Stream, DWORD dwVersion) override;
 		virtual bool OnDeserializeAEON (IByteStream& Stream, DWORD dwVersion, CAEONSerializedMap &Serialized) override;
@@ -387,12 +540,13 @@ class CDatatypeNumber : public IDatatype
 
 			bool bAbstract = false;
 			bool bCanBeNull = false;
+			bool bBuiltIn = false;
 			};
 
-		CDatatypeNumber (const CString &sFullyQualifiedName) : IDatatype(sFullyQualifiedName)
+		CDatatypeNumber (const CString &sFullyQualifiedName) : IDatatype(false, sFullyQualifiedName)
 			{ }
 
-		CDatatypeNumber (const SCreate &Create) : IDatatype(Create.sFullyQualifiedName, Create.dwCoreType),
+		CDatatypeNumber (const SCreate &Create) : IDatatype(Create.bBuiltIn, Create.sFullyQualifiedName, Create.dwCoreType),
 				m_Implements(Create.Implements),
 				m_iBits(Create.iBits),
 				m_bFloat(Create.bFloat),
@@ -435,6 +589,63 @@ class CDatatypeNumber : public IDatatype
 		int m_iSubRangeMax = 0;
 	};
 
+class CDatatypeQualified : public IDatatype
+	{
+	public:
+
+		CDatatypeQualified (CDatum dType, DWORD dwQualifiedFlags);
+
+	protected:
+
+		virtual void OnAccumulateTypesUsed (TSortMap<CString, CDatum>& retTypes) const override { m_pType->AccumulateTypesUsed(retTypes); }
+		virtual bool OnAddImplementation (CDatum dType) override { return m_pType->AddImplementation(dType); }
+		virtual bool OnAddMember (const SMemberDesc& Desc, CString* retsError = NULL) override { return m_pType->AddMember(Desc, retsError); }
+		virtual bool OnCanBeCalledWith (CDatum dThisType, const TArray<CDatum>& ArgTypes, const TArray<CDatum>& ArgLiteralTypes, CDatum* retdReturnType = NULL, CString* retsError = NULL) const override
+			{ return m_pType->CanBeCalledWith(dThisType, ArgTypes, ArgLiteralTypes, retdReturnType, retsError); }
+		virtual bool OnCanBeCalledWithArgCount (CDatum dThisType, int iArgCount, CDatum* retdReturnType = NULL, CString* retsError = NULL) const override
+			{ return m_pType->CanBeCalledWithArgCount(dThisType, iArgCount, retdReturnType, retsError); }
+		virtual bool OnCanBeConstructedFrom (CDatum dType) const override { return m_pType->CanBeConstructedFrom(dType); }
+		virtual bool OnCanBeConstructedExplicitlyFrom (CDatum dType) const override { return m_pType->CanBeConstructedExplicitlyFrom(dType); }
+		virtual bool OnCanBeNull () const override { return m_pType->CanBeNull(); }
+		virtual CDatum OnCreateAsType (CDatum dValue) const override { return m_pType->CreateAsType(dValue); }
+		virtual bool OnDeserialize (CDatum::EFormat iFormat, IByteStream &Stream, DWORD dwVersion) override;
+		virtual bool OnDeserializeAEON (IByteStream& Stream, DWORD dwVerson, CAEONSerializedMap &Serialized) override;
+		virtual bool OnEquals (const IDatatype& Src) const override { return m_pType->IsEqualEx(Src); }
+		virtual int OnFindMember (CStringView sName) const override { return m_pType->FindMember(sName); }
+		virtual int OnFindMemberByOrdinal (int iOrdinal) const override { return m_pType->FindMemberByOrdinal(iOrdinal); }
+		virtual EMemberType OnHasMember (CStringView sName, CDatum* retdType = NULL, int* retiOrdinal = NULL) const override { return m_pType->HasMember(sName, retdType, retiOrdinal); }
+		virtual ECategory OnGetClass () const override { return m_pType->GetClass(); }
+		virtual TArray<CDatum> OnGetDimensionTypes () const override { return m_pType->GetDimensionTypes(); }
+		virtual CDatum OnGetFieldsAsTable () const override { return m_pType->GetFieldsAsTable(); }
+		virtual EImplementation OnGetImplementation () const override;
+		virtual CDatum OnGetKeyType () const override { return m_pType->GetKeyType(); }
+		virtual SMemberDesc OnGetMember (int iIndex) const override { return m_pType->GetMember(iIndex); }
+		virtual int OnGetMemberCount () const override { return m_pType->GetMemberCount(); }
+		virtual CString OnGetName () const override { return m_pType->GetName(); }
+		virtual SNumberDesc OnGetNumberDesc () const override { return m_pType->GetNumberDesc(); }
+		virtual DWORD OnGetQualifierFlags () const override { return m_dwQualifiedFlags; }
+		virtual CDatum OnGetRangeType () const override { return m_pType->GetRangeType(); }
+		virtual CDatum OnGetSliceType () const override { return m_pType->GetSliceType(); }
+		virtual CDatum OnGetVariantType () const override { return m_dType; }
+		virtual bool OnIsA (const IDatatype& Type) const override { return m_pType->IsA(Type); }
+		virtual bool OnIsAbstract () const override { return m_pType->IsAbstract(); }
+		virtual bool OnIsAny () const override { return m_pType->IsAny(); }
+		virtual bool OnIsEnum (const TArray<IDatatype::SMemberDesc>& Values) const override { return m_pType->IsEnum(Values); }
+		virtual bool OnIsSupersetOf (const IDatatype& Type) const override { return m_pType->IsSupersetOf(Type); }
+		virtual CDatum OnIteratorBegin () const override { return m_pType->IteratorBegin(); }
+		virtual CDatum OnIteratorGetKey (CDatum dThisType, CDatum dIterator) const override { return m_pType->IteratorGetKey(dThisType, dIterator); }
+		virtual CDatum OnIteratorGetValue (CAEONTypeSystem& TypeSystem, CDatum dThisType, CDatum dIterator) const override { return m_pType->IteratorGetValue(TypeSystem, dThisType, dIterator); }
+		virtual CDatum OnIteratorNext (CDatum dIterator) const override { return m_pType->IteratorNext(dIterator); }
+		virtual void OnMark () override { m_dType.Mark(); }
+		virtual void OnSerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const override;
+		virtual void OnSetMemberType (const CString& sName, CDatum dType, DWORD dwFlags) override { m_pType->SetMemberType(sName, dType, dwFlags); }
+		virtual CDatum OnStripQualifiers () const override { return m_dType; }
+
+		CDatum m_dType;
+		DWORD m_dwQualifiedFlags = 0;
+		IDatatype* m_pType = NULL;
+	};
+
 class CDatatypeRange : public IDatatype
 	{
 	public:
@@ -443,13 +654,14 @@ class CDatatypeRange : public IDatatype
 			CString sFullyQualifiedName;
 			DWORD dwCoreType = 0;
 			CDatum dBaseType;
+			bool bBuiltIn = false;
 			};
 
-		CDatatypeRange (const SCreate &Create) : IDatatype(Create.sFullyQualifiedName, Create.dwCoreType),
+		CDatatypeRange (const SCreate &Create) : IDatatype(Create.bBuiltIn, Create.sFullyQualifiedName, Create.dwCoreType),
 				m_dBaseType(Create.dBaseType)
 			{ }
 
-		explicit CDatatypeRange (const CString &sFullyQualifiedName) : IDatatype(sFullyQualifiedName)
+		explicit CDatatypeRange (const CString &sFullyQualifiedName) : IDatatype(false, sFullyQualifiedName)
 			{ }
 
 	private:
@@ -480,13 +692,14 @@ class CDatatypeSchema : public IDatatype
 			CString sFullyQualifiedName;
 			CDatatypeList Implements;
 			DWORD dwCoreType = 0;
+			bool bBuiltIn = false;
 			};
 
-		CDatatypeSchema (const SCreate &Create) : IDatatype(Create.sFullyQualifiedName, Create.dwCoreType),
+		CDatatypeSchema (const SCreate &Create) : IDatatype(Create.bBuiltIn, Create.sFullyQualifiedName, Create.dwCoreType),
 				m_Implements(Create.Implements)
 			{ }
 
-		explicit CDatatypeSchema (const CString &sFullyQualifiedName) : IDatatype(sFullyQualifiedName)
+		explicit CDatatypeSchema (const CString &sFullyQualifiedName) : IDatatype(false, sFullyQualifiedName)
 			{ }
 
 	private:
@@ -516,8 +729,9 @@ class CDatatypeSchema : public IDatatype
 		virtual EImplementation OnGetImplementation () const override { return IDatatype::EImplementation::Schema; }
 		virtual SMemberDesc OnGetMember (int iIndex) const override;
 		virtual int OnGetMemberCount () const override { return m_Columns.GetCount(); }
+		virtual CDatum OnGetMemberType (int iIndex) const override { return m_Columns[iIndex].dType; }
 		virtual EMemberType OnHasMember (CStringView sName, CDatum* retdType = NULL, int* retiOrdinal = NULL) const override;
-		virtual bool OnIsA (const IDatatype &Type) const override { return m_Implements.IsA(Type); }
+		virtual bool OnIsA (const IDatatype &Type) const override;
 		virtual void OnMark () override;
 		virtual void OnSerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const override;
 
@@ -534,16 +748,19 @@ class CDatatypeSimple : public IDatatype
 			CString sFullyQualifiedName;
 			DWORD dwCoreType = 0;
 			CDatatypeList Implements;
+			CDatatypeList ConstructFrom;
 			bool bAbstract = false;
 			bool bCanBeNull = false;
 			bool bNoMembers = false;
+			bool bBuiltIn = false;
 			};
 
-		CDatatypeSimple (const CString &sFullyQualifiedName) : IDatatype(sFullyQualifiedName)
+		CDatatypeSimple (const CString &sFullyQualifiedName) : IDatatype(false, sFullyQualifiedName)
 			{ }
 
-		CDatatypeSimple (const SCreate &Create) : IDatatype(Create.sFullyQualifiedName, Create.dwCoreType),
+		CDatatypeSimple (const SCreate &Create) : IDatatype(Create.bBuiltIn, Create.sFullyQualifiedName, Create.dwCoreType),
 				m_Implements(Create.Implements),
+				m_ConstructFrom(Create.ConstructFrom),
 				m_bAbstract(Create.bAbstract),
 				m_bCanBeNull(Create.bCanBeNull),
 				m_bNoMembers(Create.bNoMembers)
@@ -554,6 +771,7 @@ class CDatatypeSimple : public IDatatype
 		//	IDatatype virtuals
 
 		virtual bool OnCanBeCalledWith (CDatum dThisType, const TArray<CDatum>& ArgTypes, const TArray<CDatum>& ArgLiteralTypes, CDatum* retdReturnType = NULL, CString* retsError = NULL) const override;
+		virtual bool OnCanBeConstructedFrom (CDatum dType) const override;
 		virtual bool OnCanBeNull () const override { return m_bCanBeNull; }
 		virtual bool OnDeserialize (CDatum::EFormat iFormat, IByteStream &Stream, DWORD dwVersion) override;
 		virtual bool OnDeserializeAEON (IByteStream& Stream, DWORD dwVerson, CAEONSerializedMap &Serialized) override;
@@ -567,6 +785,7 @@ class CDatatypeSimple : public IDatatype
 		virtual void OnSerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const override;
 
 		CDatatypeList m_Implements;
+		CDatatypeList m_ConstructFrom;
 		bool m_bAbstract = false;
 		bool m_bCanBeNull = false;
 		bool m_bNoMembers = false;
@@ -576,14 +795,15 @@ class CDatatypeString : public IDatatype
 	{
 	public:
 
-		CDatatypeString (const CString &sFullyQualifiedName) : IDatatype(sFullyQualifiedName, IDatatype::STRING)
+		CDatatypeString (const CString &sFullyQualifiedName) : IDatatype(true, sFullyQualifiedName, IDatatype::STRING)
 			{ }
 
 	private:
 
 		//	IDatatype virtuals
 
-		virtual bool OnCanBeNull () const override { return true; }
+		virtual bool OnCanBeNull () const override { return false; }
+		virtual bool OnCanBeConstructedFrom (CDatum dType) const override;
 		virtual bool OnDeserialize (CDatum::EFormat iFormat, IByteStream &Stream, DWORD dwVersion) override { return true; }
 		virtual bool OnDeserializeAEON (IByteStream& Stream, DWORD dwVerson, CAEONSerializedMap &Serialized) override { return true; }
 		virtual bool OnEquals (const IDatatype &Src) const override;
@@ -611,6 +831,7 @@ class CDatatypeAEON : public IDatatype
 
 		//	IDatatype virtuals
 
+		virtual void OnAccumulateTypesUsed (TSortMap<CString, CDatum>& retTypes) const;
 		virtual bool OnCanBeNull () const override { return m_bCanBeNull; }
 		virtual CDatum OnCreateAsType (CDatum dValue) const override;
 		virtual bool OnDeserialize (CDatum::EFormat iFormat, IByteStream &Stream, DWORD dwVersion) override { return true; }
@@ -638,7 +859,7 @@ class CDatatypeAEON : public IDatatype
 class CDatatypeUnknownCoreType : public IDatatype
 	{
 	public:
-		CDatatypeUnknownCoreType (const CString &sFullyQualifiedName) : IDatatype(sFullyQualifiedName)
+		CDatatypeUnknownCoreType (const CString &sFullyQualifiedName) : IDatatype(false, sFullyQualifiedName)
 			{ }
 
 	private:
@@ -679,7 +900,7 @@ class CComplexDatatype : public IComplexDatum
 		virtual DWORD GetBasicDatatype () const override { return IDatatype::DATATYPE; }
 		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeDatatype; }
 		virtual int GetCount (void) const override { return m_Properties.GetCount(); }
-		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::DATATYPE); }
+		virtual CDatum GetDatatype () const override { return CAEONTypes::Get(IDatatype::DATATYPE); }
 		virtual CDatum GetElement (const CString &sKey) const override { return m_Properties.GetProperty(*this, sKey); }
 		virtual CDatum GetElement (int iIndex) const override { return m_Properties.GetProperty(*this, iIndex); }
 		virtual CString GetKey (int iIndex) const override { return m_Properties.GetPropertyName(iIndex); }
@@ -727,6 +948,8 @@ class CComplexDatatype : public IComplexDatum
 		static constexpr int IMPL_NULLABLE_ID =			17;
 		static constexpr int IMPL_TENSOR_ID =			18;
 		static constexpr int IMPL_CLASS3_ID =			19;
+		static constexpr int IMPL_LITERAL_STRUCT_ID =	20;
+		static constexpr int IMPL_GENERIC_FUNCTION_ID =	21;
 
 		//	IComplexDatum
 

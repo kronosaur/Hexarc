@@ -440,3 +440,37 @@ class CCharStream
 //	Inlines --------------------------------------------------------------------
 
 inline int IByteStream::Write (const IMemoryBlock &Block) { return this->Write(Block.GetPointer(), Block.GetLength()); }
+
+template <class T>
+static inline T ReadUnaligned (const char*& p)
+	{
+	static_assert(std::is_trivially_copyable_v<T>);
+	T v;
+	std::memcpy(&v, p, sizeof(T));
+	p += sizeof(T);
+	return v;
+	}
+
+template <class T>
+static inline T ReadUnalignedAt (const char* p)
+	{
+	static_assert(std::is_trivially_copyable_v<T>);
+	T v;
+	std::memcpy(&v, p, sizeof(T));
+	return v;
+	}
+
+template <class T>
+static inline void WriteUnaligned (char*& p, const T& v)
+	{
+	static_assert(std::is_trivially_copyable_v<T>);
+	std::memcpy(p, &v, sizeof(T));
+	p += sizeof(T);
+	}
+
+template <class T>
+static inline void WriteUnalignedAt (char* p, const T& v)
+	{
+	static_assert(std::is_trivially_copyable_v<T>);
+	std::memcpy(p, &v, sizeof(T));
+	}

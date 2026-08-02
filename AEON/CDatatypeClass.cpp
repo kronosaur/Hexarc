@@ -7,7 +7,7 @@
 
 DECLARE_CONST_STRING(ERR_DUPLICATE_MEMBER,				"Duplicate member definition: %s.")
 
-CDatatypeClass::CDatatypeClass (const SCreate &Create) : IDatatype(Create.sFullyQualifiedName),
+CDatatypeClass::CDatatypeClass (const SCreate &Create) : IDatatype(false, Create.sFullyQualifiedName),
 				m_Implements(Create.Implements)
 
 //	CDatatype constructor

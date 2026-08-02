@@ -425,6 +425,29 @@ bool CHyperionPackageList::FindPackageByName (const CString &sName, int *retiInd
 	return false;
 	}
 
+bool CHyperionPackageList::FindServiceByName (const CString &sName, IHyperionService **retpService)
+
+//	FindServiceByName
+//
+//	Finds a service by full service name.
+
+	{
+	CSmartLock Lock(m_cs);
+	int i, j;
+
+	for (i = 0; i < m_Packages.GetCount(); i++)
+		for (j = 0; j < m_Packages[i].Services.GetCount(); j++)
+			if (strEquals(m_Packages[i].Services[j].sName, sName))
+				{
+				if (retpService)
+					*retpService = m_Packages[i].Services[j].pService;
+
+				return true;
+				}
+
+	return false;
+	}
+
 void CHyperionPackageList::GetCommands (const CString &sAttrib, TArray<CHyperionCommandSet::SCommandInfo> *retList)
 
 //	GetCommands

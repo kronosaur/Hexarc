@@ -38,7 +38,7 @@ TDatumPropertyHandler<CAEONVectorInt32> CAEONVectorInt32::m_Properties = {
 		"Returns the element type of the array.",
 		[](const CAEONVectorInt32 &Obj, const CString &sProperty)
 			{
-			return CAEONTypeSystem::GetCoreType(IDatatype::INT_32);
+			return CAEONTypes::Get(IDatatype::INT_32);
 			},
 		NULL,
 		},
@@ -48,7 +48,7 @@ TDatumPropertyHandler<CAEONVectorInt32> CAEONVectorInt32::m_Properties = {
 		"Returns the key type of the array.",
 		[](const CAEONVectorInt32 &Obj, const CString &sProperty)
 			{
-			return CAEONTypeSystem::GetCoreType(IDatatype::INTEGER);
+			return CAEONTypes::Get(IDatatype::INTEGER);
 			},
 		NULL,
 		},
@@ -359,7 +359,7 @@ TDatumPropertyHandler<CAEONVectorIntIP> CAEONVectorIntIP::m_Properties = {
 		"Returns the element type of the array.",
 		[](const CAEONVectorIntIP &Obj, const CString &sProperty)
 			{
-			return CAEONTypeSystem::GetCoreType(IDatatype::INT_IP);
+			return CAEONTypes::Get(IDatatype::INT_IP);
 			},
 		NULL,
 		},
@@ -369,7 +369,7 @@ TDatumPropertyHandler<CAEONVectorIntIP> CAEONVectorIntIP::m_Properties = {
 		"Returns the key type of the array.",
 		[](const CAEONVectorIntIP &Obj, const CString &sProperty)
 			{
-			return CAEONTypeSystem::GetCoreType(IDatatype::INTEGER);
+			return CAEONTypes::Get(IDatatype::INTEGER);
 			},
 		NULL,
 		},
@@ -741,6 +741,18 @@ IComplexDatum *CAEONVectorTyped::Clone (CDatum::EClone iMode) const
 		}
 	}
 
+CDatum CAEONVectorTyped::Cleaned () const
+	{
+	CRecursionGuard Guard(*this);
+	if (Guard.InRecursion())
+		return CDatum::raw_AsComplex(this);
+
+	auto pResult = new CAEONVectorTyped(m_dDatatype, m_Array);
+	for (int i = 0; i < pResult->m_Array.GetCount(); i++)
+		pResult->m_Array[i] = pResult->m_Array[i].Cleaned();
+
+	return CDatum(pResult);
+	}
 CDatum CAEONVectorTyped::DeserializeAEON (IByteStream& Stream, DWORD dwID, CAEONSerializedMap &Serialized)
 	{
 	//	Create a new array and add it to the map.
@@ -1141,6 +1153,7 @@ void CAEONVectorTyped::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) 
 			break;
 			}
 
+		case CDatum::EFormat::AEONJSON:
 		case CDatum::EFormat::JSON:
 			{
 			Stream.Write("[", 1);

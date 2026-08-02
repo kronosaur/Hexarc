@@ -367,7 +367,7 @@ CString &CString::operator+= (const CStringSlice& Src)
 		//	Create a buffer large enough to hold both strings
 
 		LPSTR pBuffer = new char[sizeof(int) + iFinalLen + 1];
-		*(int *)pBuffer = iFinalLen;
+		WriteUnalignedAt<int>(pBuffer, iFinalLen);
 
 		//	Copy the original string
 
@@ -409,7 +409,7 @@ CString CString::operator + (const CString &sStr) const
 	//	Create a buffer large enough to hold both string
 
 	LPSTR pBuffer = new char[sizeof(int) + iFinalLen + 1];
-	*(int *)pBuffer = iFinalLen;
+	WriteUnalignedAt<int>(pBuffer, iFinalLen);
 
 	//	Copy the original string
 
@@ -423,6 +423,22 @@ CString CString::operator + (const CString &sStr) const
 	//	allocated without making a copy).
 
 	return CString(pBuffer + sizeof(int), PRIVATE_CONS);
+	}
+
+bool CString::operator== (const CString &sStr) const
+
+//	CString operator==
+
+	{
+	return strEquals(*this, sStr);
+	}
+
+bool CString::operator!= (const CString &sStr) const
+
+//	CString operator!=
+
+	{
+	return !strEquals(*this, sStr);
 	}
 
 CString CString::AsBase64 () const
@@ -580,8 +596,7 @@ LPSTR CString::CreateBufferFromUTF16 (LPTSTR pStr, int iLen)
 
 	//	Store the length
 
-	*(int *)(pNewBuffer) = iResult;
-	pNewBuffer += sizeof(int);
+	WriteUnaligned<int>(pNewBuffer, iResult);
 
 	//	Null-terminate the end
 
@@ -614,7 +629,7 @@ CString CString::Concatenate (const CString &sStr1, const CString &sStr2)
 	//	Create a buffer large enough to hold both string
 	
 	LPSTR pBuffer = new char[sizeof(int) + iFinalLen + 1];
-	*(int *)pBuffer = iFinalLen;
+	WriteUnalignedAt<int>(pBuffer, iFinalLen);
 	
 	//	Copy the original string
 	
@@ -917,7 +932,7 @@ void CString::Init (LPCSTR pStr, int iLen)
 	if (pStr || iLen > 0)
 		{
 		LPSTR pBuffer = new char[sizeof(int) + iLen + 1];
-		*(int *)pBuffer = iLen;
+		WriteUnalignedAt<int>(pBuffer, iLen);
 		m_pString = pBuffer + sizeof(int);
 
 		if (pStr)
@@ -1004,7 +1019,7 @@ void CString::SetLength (int iLength)
 			//	Create a buffer large enough to hold the result
 
 			LPSTR pBuffer = new char[sizeof(int) + iLength + 1];
-			*(int *)pBuffer = iLength;
+			WriteUnalignedAt<int>(pBuffer, iLength);
 
 			//	Copy the original string
 
@@ -3406,6 +3421,86 @@ double strToDouble (const CString &sString)
 
 	{
 	return atof((LPSTR)sString);
+	}
+
+CString strToHTML (CStringView sString)
+
+//	strToHTML
+//
+//	Converts plain text to HTML. We escape HTML delimiters, preserve line
+//	breaks, and activate HTTP(S) URLs.
+
+	{
+	auto IsURLStartBoundary = [](const char* pStart, const char* pPos)
+		{
+		if (pPos == pStart || strIsWhitespace(pPos[-1]))
+			return true;
+
+		//	Match the punctuation tokens that CTextMarkupParser treats as URL
+		//	delimiters.
+
+		static const char URL_START_DELIMITERS[] = "-_*/#=[<{}>]\'\"\\|~`(";
+		for (const char* pDelimiter = URL_START_DELIMITERS; *pDelimiter != '\0'; pDelimiter++)
+			if (pPos[-1] == *pDelimiter)
+				return true;
+
+		return false;
+		};
+
+	CStringBuffer Output;
+	const char* pStart = sString.GetParsePointer();
+	const char* pEnd = pStart + sString.GetLength();
+	const char* pPos = pStart;
+	const char* pTextStart = pStart;
+
+	while (pPos < pEnd)
+		{
+		//	CTextMarkupParser already has the URL grammar used elsewhere in
+		//	Foundation, including the rules for trailing sentence punctuation.
+
+		if ((*pPos == 'h' || *pPos == 'H')
+				&& IsURLStartBoundary(pStart, pPos)
+				&& CTextMarkupParser::IsBasicLink(pPos, pEnd))
+			{
+			CTextMarkupParser Parser;
+			Parser.SetInput(pPos, pEnd);
+			if (Parser.ParseNextToken() == CTextMarkupParser::tokenURL)
+				{
+				CString sURL = Parser.GetTokenString();
+				htmlWriteText(pTextStart, pPos, Output);
+				Output.Write("<a href=\"", 9);
+				htmlWriteAttributeValue(sURL, Output);
+				Output.Write("\">", 2);
+				htmlWriteText(sURL, Output);
+				Output.Write("</a>", 4);
+
+				pPos += sURL.GetLength();
+				pTextStart = pPos;
+				continue;
+				}
+			}
+
+		//	Treat CRLF as a single break. We also accept either newline
+		//	character by itself so Windows and Unix text behave identically.
+
+		if (*pPos == '\r' || *pPos == '\n')
+			{
+			htmlWriteText(pTextStart, pPos, Output);
+			if (*pPos == '\r' && pPos + 1 < pEnd && pPos[1] == '\n')
+				pPos += 2;
+			else
+				pPos++;
+
+			Output.Write("<br/>", 5);
+			pTextStart = pPos;
+			continue;
+			}
+
+		pPos++;
+		}
+
+	htmlWriteText(pTextStart, pEnd, Output);
+	return Output;
 	}
 
 CString strToLower (const CString &sString)

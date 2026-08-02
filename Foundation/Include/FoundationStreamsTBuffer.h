@@ -9,6 +9,8 @@
 
 #pragma once
 
+DECLARE_CONST_STRING(STR_FOUNDATION_STREAMS_TBUFFER_CSTATIC_ALLOCATOR_DOES_NOT_SUPPORT_DYNAMIC_ALLOCATION,	"CStaticAllocator does not support dynamic allocation.");
+
 template <typename ALLOCATOR>
 class TBuffer : public CMemoryBlockImpl
 	{
@@ -359,7 +361,7 @@ class CStaticAllocator
 
 		CStaticAllocator (size_t dwSize)
 			{
-			throw CException(errFail, CString("CStaticAllocator does not support dynamic allocation."));
+			throw CException(errFail, STR_FOUNDATION_STREAMS_TBUFFER_CSTATIC_ALLOCATOR_DOES_NOT_SUPPORT_DYNAMIC_ALLOCATION);
 			}
 
 		CStaticAllocator (void *pBuffer, int iLength)
@@ -395,13 +397,13 @@ class CStaticAllocator
 
 			if (dwNewSize > m_dwAllocSize)
 				{
-				throw CException(errFail, CString("CStaticAllocator does not support dynamic allocation."));
+				throw CException(errFail, STR_FOUNDATION_STREAMS_TBUFFER_CSTATIC_ALLOCATOR_DOES_NOT_SUPPORT_DYNAMIC_ALLOCATION);
 				}
 			}
 
 		void TakeHandoff (void *pBuffer, size_t dwLength)
 			{
-			throw CException(errFail, CString("CStaticAllocator does not support dynamic allocation."));
+			throw CException(errFail, STR_FOUNDATION_STREAMS_TBUFFER_CSTATIC_ALLOCATOR_DOES_NOT_SUPPORT_DYNAMIC_ALLOCATION);
 			}
 
 	private:

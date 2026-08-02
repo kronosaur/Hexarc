@@ -5,6 +5,8 @@
 
 #include "stdafx.h"
 
+static constexpr int INITIAL_CODE_BLOCK_ALLOC = 64;
+
 int CHexeCodeIntermediate::CreateCodeBlock (void)
 
 //	CreateCodeBlock
@@ -13,7 +15,7 @@ int CHexeCodeIntermediate::CreateCodeBlock (void)
 
 	{
 	int iID = m_CodeBlocks.GetCount();
-	m_CodeBlocks.Insert();
+	m_CodeBlocks.Insert(CBuffer(INITIAL_CODE_BLOCK_ALLOC));
 	return iID;
 	}
 

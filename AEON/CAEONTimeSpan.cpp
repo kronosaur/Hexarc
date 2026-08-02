@@ -23,12 +23,23 @@ TDatumPropertyHandler<CAEONTimeSpan> CAEONTimeSpan::m_Properties = {
 		},
 	{
 		"days",
-		"i",
-		"Returns the total number of days (or fractions of a day).",
+		"n",
+		"Returns the total number of days (and fractions of a day).",
 		[](const CAEONTimeSpan &Obj, const CString &sProperty)
 			{
 			double rValue = (double)Obj.m_TimeSpan.Milliseconds64() / ((double)SECONDS_PER_DAY * 1000.0);
-			return CDatum(Obj.m_TimeSpan.IsNegative() ? -rValue : rValue);
+			return CDatum::CreateNumber(Obj.m_TimeSpan.IsNegative() ? -rValue : rValue);
+			},
+		NULL,
+		},
+	{
+		"hours",
+		"n",
+		"Returns the total number of hours (and fractions of an hour).",
+		[](const CAEONTimeSpan &Obj, const CString &sProperty)
+			{
+			double rValue = (double)Obj.m_TimeSpan.Milliseconds64() / (double)SECONDS_PER_HOUR * 1000.0;
+			return CDatum::CreateNumber(Obj.m_TimeSpan.IsNegative() ? -rValue : rValue);
 			},
 		NULL,
 		},
@@ -43,13 +54,24 @@ TDatumPropertyHandler<CAEONTimeSpan> CAEONTimeSpan::m_Properties = {
 		NULL,
 		},
 	{
+		"minutes",
+		"n",
+		"Returns the total number of minutes (and fractions of a minute).",
+		[](const CAEONTimeSpan &Obj, const CString &sProperty)
+			{
+			double rValue = (double)Obj.m_TimeSpan.Milliseconds64() / (double)SECONDS_PER_MINUTE * 1000.0;
+			return CDatum::CreateNumber(Obj.m_TimeSpan.IsNegative() ? -rValue : rValue);
+			},
+		NULL,
+		},
+	{
 		"seconds",
-		"i",
-		"Returns the total number of seconds (or fractions of a second).",
+		"n",
+		"Returns the total number of seconds (and fractions of a second).",
 		[](const CAEONTimeSpan &Obj, const CString &sProperty)
 			{
 			double rValue = (double)Obj.m_TimeSpan.Milliseconds64() / (double)1000.0;
-			return CDatum(Obj.m_TimeSpan.IsNegative() ? -rValue : rValue);
+			return CDatum::CreateNumber(Obj.m_TimeSpan.IsNegative() ? -rValue : rValue);
 			},
 		NULL,
 		},

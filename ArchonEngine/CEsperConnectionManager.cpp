@@ -117,7 +117,6 @@ bool CEsperConnectionManager::BeginAMP1Operation (const CString &sHostConnection
 
 		pConnection->SetBusy(IIOCPEntry::EOperation::connect);
 		}
-
 	//	Done
 
 	*retpConnection = pConnection;
@@ -201,12 +200,6 @@ bool CEsperConnectionManager::BeginAMP1Request (const SArchonMessage &Msg, const
 
 	CString sHostConnection = strPattern("%s://%s:%d", PROTOCOL_AMP1, sAddress, dwPort);
 
-	//	Get a connection to this host
-
-	CEsperConnection *pConnection;
-	if (!BeginAMP1Operation(sHostConnection, sAddress, dwPort, &pConnection, retsError))
-		return false;
-
 	//	Make the request
 
 	CEsperConnection::SAMP1Request Request;
@@ -217,12 +210,103 @@ bool CEsperConnectionManager::BeginAMP1Request (const SArchonMessage &Msg, const
 	Request.sSenderName = sAuthName;
 	Request.SenderKey = AuthKey;
 
-	if (!pConnection->BeginAMP1Request(Msg, Request, retsError))
-		return false;
+	bool bSerialize;
+		{
+		CSmartLock Lock(m_cs);
+		bSerialize = m_bSerializeAMP1;
+		}
 
-	//	Done
+	//	If we're serializing, we need a different mechanic.
 
-	return true;
+	if (bSerialize)
+		return BeginSerializedAMP1Request(Msg, sHostConnection, sAddress, dwPort, Request, retsError);
+
+	else
+		{
+		//	Get a connection to this host
+
+		CEsperConnection *pConnection;
+		if (!BeginAMP1Operation(sHostConnection, sAddress, dwPort, &pConnection, retsError))
+			return false;
+
+		if (!pConnection->BeginAMP1Request(Msg, Request, retsError))
+			return false;
+
+		//	Done
+
+		return true;
+		}
+	}
+
+bool CEsperConnectionManager::BeginSerializedAMP1Request (const SArchonMessage &Msg, const CString &sHostConnection, const CString &sAddress, DWORD dwPort, const CEsperConnection::SAMP1Request &Request, CString *retsError)
+
+//	BeginSerializedAMP1Request
+//
+//	Starts or queues an AMP1 request so that each host sees at most one
+//	outbound request at a time.
+
+	{
+	CSmartLock Lock(m_cs);
+
+	//	See if we have an existing connection that we can use.
+
+	CEsperConnection *pConnection = NULL;
+	bool bStartNow = false;
+
+	for (int i = 0; i < m_Outbound.GetCount(); i++)
+		if (m_Outbound[i]->IsDeleted() || m_Outbound[i]->IsMarkedForDelete())
+			{
+			m_Outbound.Delete(i);
+			i--;
+			}
+		else if (strEquals(sHostConnection, m_Outbound[i]->GetHostConnection()))
+			{
+			pConnection = m_Outbound[i];
+			break;
+			}
+
+	//	If we have an existing connection, then use it.
+
+	if (pConnection)
+		{
+		bool bQueued;
+		if (!pConnection->SetBusyOrQueueAMP1Request(Msg, Request, bQueued, retsError))
+			return false;
+
+		if (bQueued)
+			{
+			//	Queued, so we're done
+			return true;
+			}
+		else
+			{
+			//	NOTE: We need to unlock because making a request my call back to
+			//	ConnectionManager and we don't want to cause a deadlock.
+
+			Lock.Unlock();
+			return pConnection->BeginAMP1Request(Msg, Request, retsError);
+			}
+		}
+
+	//	Otherwise, create a new connection
+
+	else
+		{
+		pConnection = new CEsperAMP1ConnectionOut(*this, sHostConnection, sAddress, dwPort);
+		if (pConnection->GetSocket() == INVALID_SOCKET)
+			{
+			delete pConnection;
+			if (retsError) *retsError = strPattern(ERR_CANT_CONNECT, sAddress);
+			return false;
+			}
+
+		AddConnection(pConnection);
+		m_Outbound.Insert(pConnection);
+
+		pConnection->SetBusy(IIOCPEntry::EOperation::connect);
+		Lock.Unlock();
+		return pConnection->BeginAMP1Request(Msg, Request, retsError);
+		}
 	}
 
 bool CEsperConnectionManager::BeginHTTPRequest (const SArchonMessage &Msg, 
@@ -417,7 +501,7 @@ void CEsperConnectionManager::CreateConnection (SConnectionCtx &Ctx,
 			//	Create a new connection for this socket. The socket is owned by the
 			//	connection now.
 
-			CEsperConnection *pConnection = new CEsperAMP1ConnectionIn(*this, Ctx.Msg.sReplyAddr, NewSocket.Handoff());
+			CEsperConnection *pConnection = new CEsperAMP1ConnectionIn(*this, Ctx.Msg.sReplyAddr, Ctx.Msg.dwTicket, NewSocket.Handoff());
 
 			CDatum dConnection;
 			AddConnection(pConnection, &dConnection);
@@ -626,7 +710,19 @@ void CEsperConnectionManager::DeleteConnectionByAddress (const CString sAddress)
 
 	for (int i = 0; i < ToDelete.GetCount(); i++)
 		{
-		DeleteConnection(ToDelete[i]);
+		if (ToDelete[i]->IsBusy())
+			{
+			if (!ToDelete[i]->DisconnectAMP1WhenIdle())
+				{
+				m_Outbound.DeleteValue(ToDelete[i]);
+				ToDelete[i]->SetMarkedForDelete();
+				}
+			}
+		else
+			{
+			m_Outbound.DeleteValue(ToDelete[i]);
+			DeleteConnection(ToDelete[i]);
+			}
 		}
 	}
 
@@ -670,7 +766,7 @@ bool CEsperConnectionManager::FindConnection (CDatum dConnection, CEsperConnecti
 	return true;
 	}
 
-bool CEsperConnectionManager::FindOutboundConnection (const CString &sHostConnection, CEsperConnection **retpConnection)
+bool CEsperConnectionManager::FindOutboundConnection (const CString &sHostConnection, CEsperConnection **retpConnection, bool bAvailableOnly)
 
 //	FindOutboundConnection
 //
@@ -683,8 +779,13 @@ bool CEsperConnectionManager::FindOutboundConnection (const CString &sHostConnec
 	//	Look for an available connection to this host
 
 	for (i = 0; i < m_Outbound.GetCount(); i++)
-		if (strEquals(sHostConnection, m_Outbound[i]->GetHostConnection())
-				&& m_Outbound[i]->SetBusy(IIOCPEntry::EOperation::connect))
+		if (m_Outbound[i]->IsDeleted() || m_Outbound[i]->IsMarkedForDelete())
+			{
+			m_Outbound.Delete(i);
+			i--;
+			}
+		else if (strEquals(sHostConnection, m_Outbound[i]->GetHostConnection())
+				&& (!bAvailableOnly || m_Outbound[i]->SetBusy(IIOCPEntry::EOperation::connect)))
 			{
 			*retpConnection = m_Outbound[i];
 			return true;

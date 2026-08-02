@@ -34,7 +34,7 @@ TDatumPropertyHandler<CAEONVectorFloat64> CAEONVectorFloat64::m_Properties = {
 		"Returns the element type of the array.",
 		[](const CAEONVectorFloat64 &Obj, const CString &sProperty)
 			{
-			return CAEONTypeSystem::GetCoreType(IDatatype::FLOAT_64);
+			return CAEONTypes::Get(IDatatype::FLOAT_64);
 			},
 		NULL,
 		},
@@ -44,7 +44,7 @@ TDatumPropertyHandler<CAEONVectorFloat64> CAEONVectorFloat64::m_Properties = {
 		"Returns the key type of the array.",
 		[](const CAEONVectorFloat64 &Obj, const CString &sProperty)
 			{
-			return CAEONTypeSystem::GetCoreType(IDatatype::INTEGER);
+			return CAEONTypes::Get(IDatatype::INTEGER);
 			},
 		NULL,
 		},

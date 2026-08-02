@@ -44,6 +44,7 @@ DECLARE_CONST_STRING(ERR_INVALID_CALL_TYPE,				"Invalid call type.");
 DECLARE_CONST_STRING(ERR_EXCEEDED_RECURSION_LIMITS,		"Exceeded recursion limits.");
 DECLARE_CONST_STRING(ERR_NEGATIVE_ARRAY_SIZE,			"Array size cannot be negative: %d.");
 DECLARE_CONST_STRING(ERR_INVALID_ARRAY_DIMENSION,		"Invalid array dimension: %s.");
+DECLARE_CONST_STRING(ERR_COMPUTE_CRASH_JIT,				"Compute runtime crash.");
 
 #ifdef DEBUG
 
@@ -54,6 +55,47 @@ inline void DebugCheck (bool bExpr) { if (!bExpr) throw CException(errFail); }
 inline void DebugCheck (bool bExpr) { }
 
 #endif
+
+static inline void DebugThrowJitFault (CHexeProcess::EJitFaultBoundary iBoundary)
+	{
+#ifdef _DEBUG
+	CHexeProcess::DebugThrowIfJitFault(iBoundary);
+#else
+	UNREFERENCED_PARAMETER(iBoundary);
+#endif
+	}
+
+static bool TraceJitEnv ()
+	{
+	static bool bTrace = (::GetEnvironmentVariableA("GW_JIT_ENV_TRACE", NULL, 0) > 0);
+	return bTrace;
+	}
+
+static CHexeProcess::EJitFaultBoundary g_iDebugJitFaultBoundary = CHexeProcess::EJitFaultBoundary::None;
+
+void CHexeProcess::DebugClearJitFaultBoundary ()
+	{
+	g_iDebugJitFaultBoundary = EJitFaultBoundary::None;
+	}
+
+bool CHexeProcess::DebugIsJitFaultPending ()
+	{
+	return (g_iDebugJitFaultBoundary != EJitFaultBoundary::None);
+	}
+
+void CHexeProcess::DebugSetJitFaultBoundary (EJitFaultBoundary iBoundary)
+	{
+	g_iDebugJitFaultBoundary = iBoundary;
+	}
+
+void CHexeProcess::DebugThrowIfJitFault (EJitFaultBoundary iBoundary)
+	{
+	if (g_iDebugJitFaultBoundary == iBoundary)
+		{
+		g_iDebugJitFaultBoundary = EJitFaultBoundary::None;
+		throw CException(errFail);
+		}
+	}
 
 CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 
@@ -74,51 +116,1091 @@ CHexeProcess::ERun CHexeProcess::Execute (CDatum *retResult)
 	if (m_bEnableHistogram)
 		return ExecuteWithHistogram(retResult);
 
+	else if (m_bEnableX64JIT)
+		return ExecuteWithX64JIT(retResult);
+
 	else
+		return ExecuteInterpreted(retResult);
+	}
+
+CHexeProcess::ERun CHexeProcess::ExecuteInterpreted (CDatum *retResult)
+	{
+	DWORD dwStopCheck = STOP_CHECK_COUNT;
+
+	while (true)
 		{
-		DWORD dwStopCheck = STOP_CHECK_COUNT;
+		//	Execute opcode
 
-		while (true)
+		ERun iResult = (this->*m_INSTRUCTION[*m_pIP >> 24])(*retResult);
+
+		//	If error or halt, then we're done
+
+		if (iResult != ERun::Continue)
 			{
-			//	Execute opcode
+			m_dwComputes += STOP_CHECK_COUNT - dwStopCheck;
+			return iResult;
+			}
 
-			ERun iResult = (this->*m_INSTRUCTION[*m_pIP >> 24])(*retResult);
+		//	Check to make sure we're not in an infinite loop.
 
-			//	If error or halt, then we're done
+		if (--dwStopCheck == 0)
+			{
+			m_dwComputes += STOP_CHECK_COUNT;
 
-			if (iResult != ERun::Continue)
+			if (m_dwAbortTime && ::sysGetTickCount64() >= m_dwAbortTime)
+				return ERun::StopCheck;
+
+			if (m_pComputeProgress)
 				{
-				m_dwComputes += STOP_CHECK_COUNT - dwStopCheck;
-				return iResult;
+				m_pComputeProgress->OnCompute(m_dwComputes, m_dwLibraryTime);
+				if (m_pComputeProgress->OnAbortCheck())
+					return RuntimeError(ERR_EXECUTION_TOOK_TOO_LONG, *retResult);
 				}
 
-			//	Check to make sure we're not in an infinite loop.
-
-			if (--dwStopCheck == 0)
+			CSmartLock Lock(m_cs);
+			if (m_bSignalPause)
 				{
-				m_dwComputes += STOP_CHECK_COUNT;
-
-				if (m_dwAbortTime && ::sysGetTickCount64() >= m_dwAbortTime)
-					return ERun::StopCheck;
-
-				if (m_pComputeProgress)
-					{
-					m_pComputeProgress->OnCompute(m_dwComputes, m_dwLibraryTime);
-					if (m_pComputeProgress->OnAbortCheck())
-						return RuntimeError(ERR_EXECUTION_TOOK_TOO_LONG, *retResult);
-					}
-
-				CSmartLock Lock(m_cs);
-				if (m_bSignalPause)
-					{
-					m_bSignalPause = false;
-					return ERun::StopCheck;
-					}
-
-				dwStopCheck = STOP_CHECK_COUNT;
+				m_bSignalPause = false;
+				return ERun::StopCheck;
 				}
+
+			dwStopCheck = STOP_CHECK_COUNT;
 			}
 		}
+	}
+
+DWORD CHexeProcess::JitExecuteStep (CHexeProcess* pProcess, CDatum* retResult, const CHexeCode* pExpectedCodeBank, DWORD* pExpectedNextIP)
+	{
+	ERun iResult;
+	try
+		{
+		DebugThrowJitFault(EJitFaultBoundary::ExecuteStep);
+		iResult = (pProcess->*pProcess->m_INSTRUCTION[*pProcess->m_pIP >> 24])(*retResult);
+		}
+	catch (...)
+		{
+		*retResult = ERR_COMPUTE_CRASH_JIT;
+		return JitReturnBase | (DWORD)ERun::Error;
+		}
+
+	if (iResult != ERun::Continue)
+		return JitReturnBase | (DWORD)iResult;
+
+	pProcess->m_dwComputes++;
+	if (pProcess->m_dwComputes >= pProcess->m_dwNextStopCheck)
+		{
+		DWORD dwResult = JitNativeStopCheck(pProcess, retResult, pExpectedNextIP);
+		if (dwResult != JitContinueBlock)
+			return dwResult;
+		}
+
+	if (pProcess->m_pCodeBank != pExpectedCodeBank || pProcess->m_pIP != pExpectedNextIP)
+		return JitExitBlock;
+
+	return JitContinueBlock;
+	}
+
+void* CHexeProcess::JitFindChainedEntry (CHexeProcess* pProcess, const void* pExpectedCodeBankArg, void* pX64Arg)
+	{
+#ifndef _M_X64
+	UNREFERENCED_PARAMETER(pProcess);
+	UNREFERENCED_PARAMETER(pExpectedCodeBankArg);
+	UNREFERENCED_PARAMETER(pX64Arg);
+	return NULL;
+#else
+	try
+		{
+		const CHexeCode* pExpectedCodeBank = (const CHexeCode*)pExpectedCodeBankArg;
+		CHexeCodeX64* pX64 = (CHexeCodeX64*)pX64Arg;
+
+		if (pProcess == NULL || pExpectedCodeBank == NULL || pX64 == NULL)
+			return NULL;
+
+		if (pProcess->m_pCodeBank != pExpectedCodeBank || pProcess->m_pIP == NULL)
+			return NULL;
+
+		int iVMOffset = pExpectedCodeBank->GetCodeOffset(pProcess->m_pIP);
+		SJitEntryCache& Cache = pProcess->m_JitEntryCache[(iVMOffset >> 2) & (JIT_ENTRY_CACHE_SIZE - 1)];
+		if (Cache.pX64 == pX64 && Cache.iVMOffset == iVMOffset && Cache.pEntry)
+			return Cache.pEntry;
+
+		CHexeCodeX64::X64Entry pEntry = pX64->FindOrCompileEntry(*pExpectedCodeBank, iVMOffset);
+		if (pEntry == NULL)
+			return NULL;
+
+		Cache.pX64 = pX64;
+		Cache.iVMOffset = iVMOffset;
+		Cache.pEntry = (void*)pEntry;
+
+		return (void*)pEntry;
+		}
+	catch (...)
+		{
+		return NULL;
+		}
+#endif
+	}
+
+DWORD CHexeProcess::JitGetCallInfo (DWORDLONG qwExpression, DWORDLONG* retqwCodeBank, DWORD_PTR* retpNewIP)
+	{
+	try
+		{
+		DebugThrowJitFault(EJitFaultBoundary::GetCallInfo);
+		CDatum dExpression = CDatum::raw_MakeDatum(qwExpression);
+		CDatum dCodeBank;
+		DWORD* pNewIP = NULL;
+		CDatum::ECallType iCallType = dExpression.GetCallInfo(&dCodeBank, &pNewIP);
+
+		if (retqwCodeBank)
+			*retqwCodeBank = dCodeBank.raw_AsEncoded();
+
+		if (retpNewIP)
+			*retpNewIP = (DWORD_PTR)pNewIP;
+
+		return (DWORD)iCallType;
+		}
+	catch (...)
+		{
+		if (retqwCodeBank)
+			*retqwCodeBank = CDatum().raw_AsEncoded();
+
+		if (retpNewIP)
+			*retpNewIP = 0;
+
+		return (DWORD)CDatum::ECallType::None;
+		}
+	}
+
+DWORD CHexeProcess::JitMakeObjectDirectUncheckedKnownType (CHexeProcess* pProcess, CDatum* retResult, DWORDLONG* pArgs)
+	{
+	try
+		{
+		DWORD* pPushTypeIP = (DWORD*)(DWORD_PTR)pArgs[0];
+		DWORD* pMakeObjectIP = (DWORD*)(DWORD_PTR)pArgs[1];
+		DWORD* pExpectedNextIP = (DWORD*)(DWORD_PTR)pArgs[2];
+
+		pProcess->m_pIP = pExpectedNextIP;
+
+		int iTypeIndex = GetOperand(*pPushTypeIP);
+		DWORD dwID = pProcess->m_GlobalEnvCache.GetID(iTypeIndex);
+		if (dwID == CHexeGlobalEnvCache::INVALID_ID)
+			{
+			dwID = pProcess->m_Types.Atomize(pProcess->m_pCodeBank->GetStringLiteral(iTypeIndex));
+			if (dwID == CHexeGlobalEnvCache::INVALID_ID)
+				return JitReturnBase | (DWORD)RuntimeError(strPattern(ERR_UNBOUND_VARIABLE, pProcess->m_pCodeBank->GetStringLiteral(iTypeIndex)), *retResult);
+
+			pProcess->m_GlobalEnvCache.SetID(iTypeIndex, dwID);
+			}
+
+		CDatum dType = pProcess->m_Types.Get(dwID);
+		int iCount = GetOperand(*pMakeObjectIP);
+		CDatum dObj;
+
+		const IDatatype& Type = dType;
+		if (Type.GetClass() == IDatatype::ECategory::Schema)
+			{
+			int iValueStart = pProcess->m_Stack.GetCount() - iCount;
+			dObj = CDatum::CreateRecord(dType, pProcess->m_Stack.GetPointerAt(iValueStart), iCount);
+			}
+		else
+			{
+			dObj = CDatum::CreateObjectEmpty(dType);
+			for (int i = iCount - 1; i >= 0; i--)
+				{
+				CDatum dValue = pProcess->m_Stack.Pop();
+				dObj.raw_SetArrayElement(i, dValue);
+				}
+
+			pProcess->m_Stack.Push(dObj);
+			pProcess->m_dwComputes++;
+			return JitFinishNativeStep(pProcess, retResult, pExpectedNextIP);
+			}
+
+		pProcess->m_Stack.Replace(dObj, iCount);
+
+		pProcess->m_dwComputes++;
+		return JitFinishNativeStep(pProcess, retResult, pExpectedNextIP);
+		}
+	catch (...)
+		{
+		*retResult = ERR_COMPUTE_CRASH_JIT;
+		return JitReturnBase | (DWORD)ERun::Error;
+		}
+	}
+
+DWORD CHexeProcess::JitEnterCachedCall (CHexeProcess* pProcess, CDatum* retResult, DWORDLONG* pArgs)
+	{
+	try
+		{
+		DebugThrowJitFault(EJitFaultBoundary::EnterCachedCall);
+		CDatum dNewExpression = CDatum::raw_MakeDatum(pArgs[0]);
+		CDatum dNewCodeBank = CDatum::raw_MakeDatum(pArgs[1]);
+		DWORD* pNewIP = (DWORD*)(DWORD_PTR)pArgs[2];
+		DWORD* pReturnIP = (DWORD*)(DWORD_PTR)pArgs[3];
+
+		SAEONInvokeResult Result;
+		CDatum::InvokeResult iResult = dNewExpression.Invoke(pProcess, pProcess->m_Env.GetLocalEnv(), pProcess->m_UserSecurity.GetExecutionRights(), Result);
+		if (iResult == CDatum::InvokeResult::ok)
+			{
+			pProcess->m_Env.PopFrame();
+			pProcess->m_Stack.Push(Result.dResult);
+			pProcess->m_pIP = pReturnIP;
+			}
+		else
+			{
+			if (pProcess->m_CallStack.GetCount() >= pProcess->m_Limits.iMaxStackDepth)
+				return JitReturnBase | (DWORD)RuntimeError(ERR_EXCEEDED_RECURSION_LIMITS, *retResult);
+
+			pProcess->m_CallStack.PushFunCall(pProcess->m_dExpression, pProcess->m_dCodeBank, pReturnIP);
+			pProcess->m_dExpression = dNewExpression;
+			if (dNewCodeBank.raw_AsEncoded() != pProcess->m_dCodeBank.raw_AsEncoded()
+					&& !pProcess->SetCodeBank(dNewCodeBank))
+				return JitReturnBase | (DWORD)RuntimeError(strPattern(ERR_NOT_A_FUNCTION, dNewExpression.AsString()), *retResult);
+
+			pProcess->m_pIP = pNewIP;
+			}
+
+		pProcess->m_dwComputes++;
+		if (pProcess->m_dwComputes >= pProcess->m_dwNextStopCheck)
+			{
+			DWORD dwResult = JitNativeStopCheck(pProcess, retResult, pProcess->m_pIP);
+			if (dwResult != JitContinueBlock)
+				return dwResult;
+			}
+
+		return JitExitBlock;
+		}
+	catch (...)
+		{
+		*retResult = ERR_COMPUTE_CRASH_JIT;
+		return JitReturnBase | (DWORD)ERun::Error;
+		}
+	}
+
+DWORD CHexeProcess::JitEnterCall (CHexeProcess* pProcess, CDatum* retResult, DWORDLONG* pArgs)
+	{
+	CDatum dNewCodeBank;
+	DWORD* pNewIP = NULL;
+	CDatum::ECallType iCallType = CDatum::ECallType::None;
+
+	try
+		{
+		DebugThrowJitFault(EJitFaultBoundary::GetCallInfo);
+		CDatum dNewExpression = CDatum::raw_MakeDatum(pArgs[0]);
+		iCallType = dNewExpression.GetCallInfo(&dNewCodeBank, &pNewIP);
+		}
+	catch (...)
+		{
+		return JitFastPathMiss;
+		}
+
+	if (iCallType == CDatum::ECallType::None)
+		return JitFastPathMiss;
+
+	pArgs[1] = dNewCodeBank.raw_AsEncoded();
+	pArgs[2] = (DWORD_PTR)pNewIP;
+
+	try
+		{
+		pProcess->m_Stack.Pop();
+
+		switch (iCallType)
+			{
+			case CDatum::ECallType::Call:
+				return JitEnterDirectCall(pProcess, retResult, pArgs);
+
+			case CDatum::ECallType::CachedCall:
+				return JitEnterCachedCall(pProcess, retResult, pArgs);
+
+			case CDatum::ECallType::Library:
+				return JitEnterLibraryCall(pProcess, retResult, pArgs);
+
+			case CDatum::ECallType::Invoke:
+				return JitEnterInvokeCall(pProcess, retResult, pArgs);
+
+			default:
+				return JitFastPathMiss;
+			}
+		}
+	catch (...)
+		{
+		*retResult = ERR_COMPUTE_CRASH_JIT;
+		return JitReturnBase | (DWORD)ERun::Error;
+		}
+	}
+
+DWORD CHexeProcess::JitEnterCallLib (CHexeProcess* pProcess, CDatum* retResult, DWORDLONG* pArgs)
+	{
+	try
+		{
+		DebugThrowJitFault(EJitFaultBoundary::EnterCallLib);
+		int iArgCount = (int)pArgs[0];
+		int iIndex = (int)pArgs[1];
+		DWORD* pReturnIP = (DWORD*)(DWORD_PTR)pArgs[2];
+
+		pProcess->m_pIP = pReturnIP;
+
+		DWORD dwID = pProcess->m_GlobalEnvCache.GetID(iIndex);
+		if (dwID == CHexeGlobalEnvCache::INVALID_ID)
+			{
+			if (!pProcess->m_Env.GetGlobalEnv().FindSymbol(pProcess->m_pCodeBank->GetStringLiteral(iIndex), &dwID))
+				return JitReturnBase | (DWORD)RuntimeError(strPattern(ERR_UNBOUND_VARIABLE, pProcess->m_pCodeBank->GetStringLiteral(iIndex)), *retResult);
+
+			pProcess->m_GlobalEnvCache.SetID(iIndex, dwID);
+			}
+
+		CDatum dFunc = pProcess->m_Env.GetGlobalEnv().GetAt(dwID);
+
+		CDatum* pStart = NULL;
+		if (iArgCount > 0)
+			{
+			CDatum* pTop = &pProcess->m_Stack.GetRef();
+			pStart = pTop - iArgCount + 1;
+			}
+
+		CHexeStackEnv LocalEnv(pStart, iArgCount);
+
+		DWORDLONG dwStart = ::sysGetTickCount64();
+
+		SAEONInvokeResult Result;
+		CDatum::InvokeResult iResult = dFunc.InvokeLibrary(*pProcess, LocalEnv, pProcess->m_UserSecurity.GetExecutionRights(), Result);
+
+		pProcess->m_dwLibraryTime += ::sysGetTickCount64() - dwStart;
+
+		pProcess->m_Stack.Pop(iArgCount);
+
+		if (iResult != CDatum::InvokeResult::ok)
+			{
+			ERun iRunResult = pProcess->ExecuteHandleInvokeResult(iResult, dFunc, Result, retResult, FLAG_NO_ADVANCE | FLAG_NO_ENV);
+			if (iRunResult != ERun::OK)
+				return JitReturnBase | (DWORD)iRunResult;
+			}
+		else
+			pProcess->m_Stack.Push(Result.dResult);
+
+		pProcess->m_dwComputes++;
+		if (pProcess->m_dwComputes >= pProcess->m_dwNextStopCheck)
+			{
+			DWORD dwResult = JitNativeStopCheck(pProcess, retResult, pProcess->m_pIP);
+			if (dwResult != JitContinueBlock)
+				return dwResult;
+			}
+
+		return JitExitBlock;
+		}
+	catch (...)
+		{
+		*retResult = ERR_COMPUTE_CRASH_JIT;
+		return JitReturnBase | (DWORD)ERun::Error;
+		}
+	}
+
+DWORD CHexeProcess::JitEnterDirectCall (CHexeProcess* pProcess, CDatum* retResult, DWORDLONG* pArgs)
+	{
+	try
+		{
+		DebugThrowJitFault(EJitFaultBoundary::EnterDirectCall);
+		CDatum dNewExpression = CDatum::raw_MakeDatum(pArgs[0]);
+		CDatum dNewCodeBank = CDatum::raw_MakeDatum(pArgs[1]);
+		DWORD* pNewIP = (DWORD*)(DWORD_PTR)pArgs[2];
+		DWORD* pReturnIP = (DWORD*)(DWORD_PTR)pArgs[3];
+
+		if (pProcess->m_CallStack.GetCount() >= pProcess->m_Limits.iMaxStackDepth)
+			return JitReturnBase | (DWORD)RuntimeError(ERR_EXCEEDED_RECURSION_LIMITS, *retResult);
+
+		pProcess->m_CallStack.PushFunCall(pProcess->m_dExpression, pProcess->m_dCodeBank, pReturnIP);
+		pProcess->m_dExpression = dNewExpression;
+		if (dNewCodeBank.raw_AsEncoded() != pProcess->m_dCodeBank.raw_AsEncoded()
+				&& !pProcess->SetCodeBank(dNewCodeBank))
+			return JitReturnBase | (DWORD)RuntimeError(strPattern(ERR_NOT_A_FUNCTION, dNewExpression.AsString()), *retResult);
+
+		pProcess->m_pIP = pNewIP;
+
+		pProcess->m_dwComputes++;
+		if (pProcess->m_dwComputes >= pProcess->m_dwNextStopCheck)
+			{
+			DWORD dwResult = JitNativeStopCheck(pProcess, retResult, pNewIP);
+			if (dwResult != JitContinueBlock)
+				return dwResult;
+			}
+
+		return JitExitBlock;
+		}
+	catch (...)
+		{
+		*retResult = ERR_COMPUTE_CRASH_JIT;
+		return JitReturnBase | (DWORD)ERun::Error;
+		}
+	}
+
+DWORD CHexeProcess::JitEnterKnownDirectCall (CHexeProcess* pProcess, CDatum* retResult, DWORDLONG* pArgs)
+	{
+	try
+		{
+		DebugThrowJitFault(EJitFaultBoundary::EnterDirectCall);
+		CDatum dNewExpression = CDatum::raw_MakeDatum(pArgs[0]);
+		DWORD* pNewIP = (DWORD*)(DWORD_PTR)pArgs[1];
+		DWORD* pReturnIP = (DWORD*)(DWORD_PTR)pArgs[2];
+		int iCodeOffset = (int)pArgs[3];
+
+		CHexeFunction *pFunction = CHexeFunction::Upconvert(dNewExpression);
+		if (pFunction == NULL
+				|| pFunction->IsCached()
+				|| pFunction->GetCodeOffset() != iCodeOffset
+				|| pFunction->GetCodeBank().raw_AsEncoded() != pProcess->m_dCodeBank.raw_AsEncoded())
+			return JitFastPathMiss;
+
+		pProcess->m_Stack.Pop();
+
+		if (pProcess->m_CallStack.GetCount() >= pProcess->m_Limits.iMaxStackDepth)
+			return JitReturnBase | (DWORD)RuntimeError(ERR_EXCEEDED_RECURSION_LIMITS, *retResult);
+
+		pProcess->m_CallStack.PushFunCall(pProcess->m_dExpression, pProcess->m_dCodeBank, pReturnIP);
+		pProcess->m_dExpression = dNewExpression;
+		pProcess->m_pIP = pNewIP;
+
+		pProcess->m_dwComputes++;
+		if (pProcess->m_dwComputes >= pProcess->m_dwNextStopCheck)
+			{
+			DWORD dwResult = JitNativeStopCheck(pProcess, retResult, pNewIP);
+			if (dwResult != JitContinueBlock)
+				return dwResult;
+			}
+
+		return JitExitBlock;
+		}
+	catch (...)
+		{
+		*retResult = ERR_COMPUTE_CRASH_JIT;
+		return JitReturnBase | (DWORD)ERun::Error;
+		}
+	}
+
+DWORD CHexeProcess::JitEnterKnownDirectCallWithEnv (CHexeProcess* pProcess, CDatum* retResult, DWORDLONG* pArgs)
+	{
+	try
+		{
+		DebugThrowJitFault(EJitFaultBoundary::EnterDirectCall);
+		DWORD* pNewIP = (DWORD*)(DWORD_PTR)pArgs[0];
+		DWORD* pReturnIP = (DWORD*)(DWORD_PTR)pArgs[1];
+		int iCodeOffset = (int)pArgs[2];
+		int iArgCount = (int)pArgs[3];
+
+		if (pNewIP == NULL || GetOpCode(*pNewIP) != opEnterEnv)
+			return JitFastPathMiss;
+
+		CDatum dNewExpression = pProcess->m_Stack.Get(iArgCount);
+		CHexeFunction *pFunction = CHexeFunction::Upconvert(dNewExpression);
+		if (pFunction == NULL
+				|| pFunction->IsCached()
+				|| pFunction->GetCodeOffset() != iCodeOffset
+				|| pFunction->GetCodeBank().raw_AsEncoded() != pProcess->m_dCodeBank.raw_AsEncoded())
+			return JitFastPathMiss;
+
+		if (pProcess->m_CallStack.GetCount() >= pProcess->m_Limits.iMaxStackDepth)
+			return JitReturnBase | (DWORD)RuntimeError(ERR_EXCEEDED_RECURSION_LIMITS, *retResult);
+
+		pProcess->m_Env.PushNewFrame(iArgCount);
+		CHexeLocalEnvironment &LocalEnv = pProcess->m_Env.GetLocalEnv();
+		for (int i = iArgCount - 1; i >= 0; i--)
+			LocalEnv.SetArgumentValue((iArgCount - 1) - i, pProcess->m_Stack.Get(i));
+
+		pProcess->m_Stack.Pop(iArgCount + 1);
+
+		CHexeGlobalEnvironment *pGlobalEnv = pFunction->GetGlobalEnvPointer();
+		if (pGlobalEnv)
+			pProcess->m_Env.SetGlobalEnv(pFunction->GetGlobalEnv(), pGlobalEnv);
+
+		pProcess->m_Env.SetLocalEnvParent(pFunction->GetLocalEnv(), pFunction->GetLocalEnvPointer());
+		LocalEnv.ResetNextArg();
+
+		pProcess->m_CallStack.PushFunCall(pProcess->m_dExpression, pProcess->m_dCodeBank, pReturnIP);
+		pProcess->m_dExpression = dNewExpression;
+		pProcess->m_pIP = pNewIP + 1;
+
+		pProcess->m_dwComputes += 3;
+		if (pProcess->m_dwComputes >= pProcess->m_dwNextStopCheck)
+			{
+			DWORD dwResult = JitNativeStopCheck(pProcess, retResult, pProcess->m_pIP);
+			if (dwResult != JitContinueBlock)
+				return dwResult;
+			}
+
+		return JitExitBlock;
+		}
+	catch (...)
+		{
+		*retResult = ERR_COMPUTE_CRASH_JIT;
+		return JitReturnBase | (DWORD)ERun::Error;
+		}
+	}
+
+DWORD CHexeProcess::JitEnterKnownDirectCallWithEnvNoClosure (CHexeProcess* pProcess, CDatum* retResult, DWORDLONG* pArgs)
+	{
+	try
+		{
+		DebugThrowJitFault(EJitFaultBoundary::EnterDirectCall);
+		DWORD* pNewIP = (DWORD*)(DWORD_PTR)pArgs[0];
+		DWORD* pReturnIP = (DWORD*)(DWORD_PTR)pArgs[1];
+		int iCodeOffset = (int)pArgs[2];
+		int iArgCount = (int)pArgs[3];
+
+		if (pNewIP == NULL || GetOpCode(*pNewIP) != opEnterEnv)
+			return JitFastPathMiss;
+
+		CDatum dNewExpression = pProcess->m_Stack.Get(iArgCount);
+		CHexeFunction *pFunction = CHexeFunction::Upconvert(dNewExpression);
+		if (pFunction == NULL
+				|| pFunction->IsCached()
+				|| pFunction->GetCodeOffset() != iCodeOffset
+				|| pFunction->GetCodeBank().raw_AsEncoded() != pProcess->m_dCodeBank.raw_AsEncoded())
+			return JitFastPathMiss;
+
+		if (pProcess->m_CallStack.GetCount() >= pProcess->m_Limits.iMaxStackDepth)
+			return JitReturnBase | (DWORD)RuntimeError(ERR_EXCEEDED_RECURSION_LIMITS, *retResult);
+
+		if (TraceJitEnv())
+			printf("JIT no-closure direct call: target=%d args=%d returnOffset=%d funcLocalEnv=%p funcGlobalEnv=%p\n",
+					iCodeOffset,
+					iArgCount,
+					(pReturnIP ? pProcess->m_pCodeBank->GetCodeOffset(pReturnIP) : -1),
+					pFunction->GetLocalEnvPointer(),
+					pFunction->GetGlobalEnvPointer());
+
+		pProcess->m_Env.PushNewFrame(iArgCount);
+		CHexeLocalEnvironment &LocalEnv = pProcess->m_Env.GetLocalEnv();
+		for (int i = iArgCount - 1; i >= 0; i--)
+			LocalEnv.SetArgumentValue((iArgCount - 1) - i, pProcess->m_Stack.Get(i));
+
+		pProcess->m_Stack.Pop(iArgCount + 1);
+
+		CHexeGlobalEnvironment *pGlobalEnv = pFunction->GetGlobalEnvPointer();
+		if (pGlobalEnv)
+			pProcess->m_Env.SetGlobalEnv(pFunction->GetGlobalEnv(), pGlobalEnv);
+
+		pProcess->m_Env.SetLocalEnvParent(pFunction->GetLocalEnv(), pFunction->GetLocalEnvPointer());
+		LocalEnv.ResetNextArg();
+
+		pProcess->m_CallStack.PushFunCall(pProcess->m_dExpression, pProcess->m_dCodeBank, pReturnIP);
+		pProcess->m_dExpression = dNewExpression;
+		pProcess->m_pIP = pNewIP + 1;
+
+		pProcess->m_dwComputes += 3;
+		if (pProcess->m_dwComputes >= pProcess->m_dwNextStopCheck)
+			{
+			DWORD dwResult = JitNativeStopCheck(pProcess, retResult, pProcess->m_pIP);
+			if (dwResult != JitContinueBlock)
+				return dwResult;
+			}
+
+		return JitExitBlock;
+		}
+	catch (...)
+		{
+		*retResult = ERR_COMPUTE_CRASH_JIT;
+		return JitReturnBase | (DWORD)ERun::Error;
+		}
+	}
+
+DWORD CHexeProcess::JitEnterKnownDirectSelfCallWithEnvNoClosure (CHexeProcess* pProcess, CDatum* retResult, DWORDLONG* pArgs)
+	{
+	try
+		{
+		DebugThrowJitFault(EJitFaultBoundary::EnterDirectCall);
+		DWORD* pNewIP = (DWORD*)(DWORD_PTR)pArgs[0];
+		DWORD* pReturnIP = (DWORD*)(DWORD_PTR)pArgs[1];
+		int iCodeOffset = (int)pArgs[2];
+		int iArgCount = (int)pArgs[3];
+
+		if (pNewIP == NULL || GetOpCode(*pNewIP) != opEnterEnv)
+			return JitFastPathMiss;
+
+		CDatum dNewExpression = pProcess->m_dExpression;
+		CHexeFunction *pFunction = CHexeFunction::UpconvertRaw(dNewExpression);
+		if (pFunction == NULL
+				|| pFunction->IsCached()
+				|| pFunction->GetCodeOffset() != iCodeOffset
+				|| pFunction->GetCodeBank().raw_AsEncoded() != pProcess->m_dCodeBank.raw_AsEncoded())
+			return JitFastPathMiss;
+
+		if (pProcess->m_CallStack.GetCount() >= pProcess->m_Limits.iMaxStackDepth)
+			return JitReturnBase | (DWORD)RuntimeError(ERR_EXCEEDED_RECURSION_LIMITS, *retResult);
+
+		if (TraceJitEnv())
+			printf("JIT no-closure self call: target=%d args=%d returnOffset=%d funcLocalEnv=%p funcGlobalEnv=%p\n",
+					iCodeOffset,
+					iArgCount,
+					(pReturnIP ? pProcess->m_pCodeBank->GetCodeOffset(pReturnIP) : -1),
+					pFunction->GetLocalEnvPointer(),
+					pFunction->GetGlobalEnvPointer());
+
+		pProcess->m_Env.PushNewFrame(iArgCount);
+		CHexeLocalEnvironment &LocalEnv = pProcess->m_Env.GetLocalEnv();
+		for (int i = iArgCount - 1; i >= 0; i--)
+			LocalEnv.SetArgumentValue((iArgCount - 1) - i, pProcess->m_Stack.Get(i));
+
+		pProcess->m_Stack.Pop(iArgCount);
+
+		CHexeGlobalEnvironment *pGlobalEnv = pFunction->GetGlobalEnvPointer();
+		if (pGlobalEnv)
+			pProcess->m_Env.SetGlobalEnv(pFunction->GetGlobalEnv(), pGlobalEnv);
+
+		pProcess->m_Env.SetLocalEnvParent(pFunction->GetLocalEnv(), pFunction->GetLocalEnvPointer());
+		LocalEnv.ResetNextArg();
+
+		pProcess->m_CallStack.PushFunCall(pProcess->m_dExpression, pProcess->m_dCodeBank, pReturnIP);
+		pProcess->m_dExpression = dNewExpression;
+		pProcess->m_pIP = pNewIP + 1;
+
+		pProcess->m_dwComputes += 3;
+		if (pProcess->m_dwComputes >= pProcess->m_dwNextStopCheck)
+			{
+			DWORD dwResult = JitNativeStopCheck(pProcess, retResult, pProcess->m_pIP);
+			if (dwResult != JitContinueBlock)
+				return dwResult;
+			}
+
+		return JitExitBlock;
+		}
+	catch (...)
+		{
+		*retResult = ERR_COMPUTE_CRASH_JIT;
+		return JitReturnBase | (DWORD)ERun::Error;
+		}
+	}
+
+DWORD CHexeProcess::JitEnterInvokeCall (CHexeProcess* pProcess, CDatum* retResult, DWORDLONG* pArgs)
+	{
+	try
+		{
+		DebugThrowJitFault(EJitFaultBoundary::EnterInvokeCall);
+		DWORD* pReturnIP = (DWORD*)(DWORD_PTR)pArgs[3];
+
+		CDatum dMsg = pProcess->m_Env.GetLocalEnv().GetElement(0);
+
+		CDatum dArray(CDatum::typeArray);
+		for (int i = 1; i < pProcess->m_Env.GetLocalEnv().GetCount(); i++)
+			dArray.Append(pProcess->m_Env.GetLocalEnv().GetElement(i));
+
+		pProcess->m_Env.PopFrame();
+		pProcess->m_pIP = pReturnIP;
+
+		if (pProcess->m_dwAbortTime && ::sysGetTickCount64() >= pProcess->m_dwAbortTime)
+			return JitReturnBase | (DWORD)RuntimeError(ERR_EXECUTION_TOOK_TOO_LONG, *retResult);
+
+		CDatum dValue;
+		if (!pProcess->SendHexarcMessage(dMsg.AsStringView(), dArray, &dValue))
+			{
+			*retResult = dValue;
+			return JitReturnBase | (DWORD)ERun::Error;
+			}
+
+		*retResult = dValue;
+		return JitReturnBase | (DWORD)ERun::AsyncRequest;
+		}
+	catch (...)
+		{
+		*retResult = ERR_COMPUTE_CRASH_JIT;
+		return JitReturnBase | (DWORD)ERun::Error;
+		}
+	}
+
+DWORD CHexeProcess::JitEnterLibraryCall (CHexeProcess* pProcess, CDatum* retResult, DWORDLONG* pArgs)
+	{
+	try
+		{
+		DebugThrowJitFault(EJitFaultBoundary::EnterLibraryCall);
+		CDatum dNewExpression = CDatum::raw_MakeDatum(pArgs[0]);
+		DWORD* pReturnIP = (DWORD*)(DWORD_PTR)pArgs[3];
+		DWORD* pCurrentIP = (DWORD*)(DWORD_PTR)pArgs[4];
+
+		pProcess->m_pIP = pCurrentIP;
+
+		DWORDLONG dwStart = ::sysGetTickCount64();
+
+		SAEONInvokeResult Result;
+		CDatum::InvokeResult iResult = dNewExpression.Invoke(pProcess, pProcess->m_Env.GetLocalEnv(), pProcess->m_UserSecurity.GetExecutionRights(), Result);
+
+		pProcess->m_dwLibraryTime += ::sysGetTickCount64() - dwStart;
+
+		if (iResult != CDatum::InvokeResult::ok)
+			{
+			ERun iRunResult = pProcess->ExecuteHandleInvokeResult(iResult, dNewExpression, Result, retResult);
+			if (iRunResult != ERun::OK)
+				return JitReturnBase | (DWORD)iRunResult;
+			}
+		else
+			{
+			pProcess->m_Env.PopFrame();
+			pProcess->m_Stack.Push(Result.dResult);
+			pProcess->m_pIP = pReturnIP;
+			}
+
+		pProcess->m_dwComputes++;
+		if (pProcess->m_dwComputes >= pProcess->m_dwNextStopCheck)
+			{
+			DWORD dwResult = JitNativeStopCheck(pProcess, retResult, pProcess->m_pIP);
+			if (dwResult != JitContinueBlock)
+				return dwResult;
+			}
+
+		return JitExitBlock;
+		}
+	catch (...)
+		{
+		*retResult = ERR_COMPUTE_CRASH_JIT;
+		return JitReturnBase | (DWORD)ERun::Error;
+		}
+	}
+
+DWORD CHexeProcess::JitFinishNativeStep (CHexeProcess* pProcess, CDatum* retResult, DWORD* pExpectedNextIP)
+	{
+	pProcess->m_dwComputes++;
+	if (pProcess->m_dwComputes >= pProcess->m_dwNextStopCheck)
+		{
+		DWORD dwResult = JitNativeStopCheck(pProcess, retResult, pExpectedNextIP);
+		if (dwResult != JitContinueBlock)
+			return dwResult;
+		}
+
+	return (pProcess->m_pIP == pExpectedNextIP ? JitContinueBlock : JitExitBlock);
+	}
+
+DWORD CHexeProcess::JitNativeStopCheck (CHexeProcess* pProcess, CDatum* retResult, DWORD* pExpectedNextIP)
+	{
+	try
+		{
+		DebugThrowJitFault(EJitFaultBoundary::NativeStopCheck);
+		if (pProcess->m_dwAbortTime && ::sysGetTickCount64() >= pProcess->m_dwAbortTime)
+			return JitReturnBase | (DWORD)ERun::StopCheck;
+
+		if (pProcess->m_pComputeProgress)
+			{
+			pProcess->m_pComputeProgress->OnCompute(pProcess->m_dwComputes, pProcess->m_dwLibraryTime);
+			if (pProcess->m_pComputeProgress->OnAbortCheck())
+				return JitReturnBase | (DWORD)RuntimeError(ERR_EXECUTION_TOOK_TOO_LONG, *retResult);
+			}
+
+		CSmartLock Lock(pProcess->m_cs);
+		if (pProcess->m_bSignalPause)
+			{
+			pProcess->m_bSignalPause = false;
+			return JitReturnBase | (DWORD)ERun::StopCheck;
+			}
+
+		pProcess->m_dwNextStopCheck = pProcess->m_dwComputes + STOP_CHECK_COUNT;
+
+		return (pProcess->m_pIP == pExpectedNextIP ? JitContinueBlock : JitExitBlock);
+		}
+	catch (...)
+		{
+		*retResult = ERR_COMPUTE_CRASH_JIT;
+		return JitReturnBase | (DWORD)ERun::Error;
+		}
+	}
+
+#define IMPLEMENT_JIT_EXECUTE_OP(name, method)																	\
+DWORD CHexeProcess::name (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP)			\
+	{																											\
+	try																											\
+		{																										\
+		pProcess->m_pIP = pIP;																					\
+		ERun iResult = pProcess->method(*retResult);															\
+		if (iResult != ERun::Continue)																			\
+			return JitReturnBase | (DWORD)iResult;																\
+																												\
+		return JitFinishNativeStep(pProcess, retResult, pExpectedNextIP);										\
+		}																										\
+	catch (...)																									\
+		{																										\
+		*retResult = ERR_COMPUTE_CRASH_JIT;																		\
+		return JitReturnBase | (DWORD)ERun::Error;																\
+		}																										\
+	}
+
+IMPLEMENT_JIT_EXECUTE_OP(JitOpAdd, ExecuteAdd)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpAppendToArray, ExecuteAppendToArray)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpCallDirect, ExecuteCallDirect)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpCallDirectSelf, ExecuteCallDirectSelf)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpCallFrame, ExecuteCallFrame)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpCallFrameSelf, ExecuteCallFrameSelf)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpConcat, ExecuteConcat)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpDebugBreak, ExecuteDebugBreak)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpDefine, ExecuteDefine)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpDefineArg, ExecuteDefineArg)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpDefineArgFromCode, ExecuteDefineArgFromCode)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpDivide, ExecuteDivide)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpEnterEnv, ExecuteEnterEnv)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpEnterStackFrame, ExecuteEnterStackFrame)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpError, ExecuteError)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpExitEnv, ExecuteExitEnv)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpExitEnvAndJumpIfGreaterInt, ExecuteExitEnvAndJumpIfGreaterInt)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpExitEnvAndJumpIfGreaterOrEqualInt, ExecuteExitEnvAndJumpIfGreaterOrEqualInt)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpExitEnvAndJumpIfNil, ExecuteExitEnvAndJumpIfNil)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpHexarcMsg, ExecuteHexarcMsg)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpIncForEach, ExecuteIncForEach)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpInitForEach, ExecuteInitForEach)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpIsEqualMulti, ExecuteIsEqualMulti)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpIsGreater, ExecuteIsGreater)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpIsGreaterMulti, ExecuteIsGreaterMulti)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpIsGreaterOrEqual, ExecuteIsGreaterOrEqual)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpIsGreaterOrEqualMulti, ExecuteIsGreaterOrEqualMulti)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpIsIn, ExecuteIsIn)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpIsLess, ExecuteIsLess)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpIsLessMulti, ExecuteIsLessMulti)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpIsLessOrEqual, ExecuteIsLessOrEqual)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpIsLessOrEqualMulti, ExecuteIsLessOrEqualMulti)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpIsNotEqualMulti, ExecuteIsNotEqualMulti)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpIsNotIn, ExecuteIsNotIn)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMakeApplyEnv, ExecuteMakeApplyEnv)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMakeArray, ExecuteMakeArray)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMakeAsType, ExecuteMakeAsType)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMakeAsTypeCons, ExecuteMakeAsTypeCons)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMakeBlockEnv, ExecuteMakeBlockEnv)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMakeDatatype, ExecuteMakeDatatype)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMakeEmptyArray, ExecuteMakeEmptyArray)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMakeEmptyArrayAsType, ExecuteMakeEmptyArrayAsType)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMakeEmptyStruct, ExecuteMakeEmptyStruct)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMakeEnv, ExecuteMakeEnv)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMakeExpr, ExecuteMakeExpr)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMakeExprIf, ExecuteMakeExprIf)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMakeFlagsFromArray, ExecuteMakeFlagsFromArray)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMakeFunc, ExecuteMakeFunc)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMakeFunc2, ExecuteMakeFunc2)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMakeLocalEnv, ExecuteMakeLocalEnv)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMakeMapColExpr, ExecuteMakeMapColExpr)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMakeMethodEnv, ExecuteMakeMethodEnv)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMakeObject, ExecuteMakeObject)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMakeObjectDirect, ExecuteMakeObjectDirect)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMakeObjectDirectUnchecked, ExecuteMakeObjectDirectUnchecked)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMakePrimitive, ExecuteMakePrimitive)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMakeRange, ExecuteMakeRange)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMakeSpread, ExecuteMakeSpread)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMakeStruct, ExecuteMakeStruct)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMakeTensor, ExecuteMakeTensor)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMakeTensorType, ExecuteMakeTensorType)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMapResult, ExecuteMapResult)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMultiply, ExecuteMultiply)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMutateGlobalAdd, ExecuteMutateGlobalAdd)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMutateGlobalConcat, ExecuteMutateGlobalConcat)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMutateGlobalDivide, ExecuteMutateGlobalDivide)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMutateGlobalMod, ExecuteMutateGlobalMod)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMutateGlobalMultiply, ExecuteMutateGlobalMultiply)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMutateGlobalPower, ExecuteMutateGlobalPower)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMutateGlobalSubtract, ExecuteMutateGlobalSubtract)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMutateLocalAdd, ExecuteMutateLocalAdd)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMutateLocalConcat, ExecuteMutateLocalConcat)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMutateLocalDivide, ExecuteMutateLocalDivide)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMutateLocalMod, ExecuteMutateLocalMod)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMutateLocalMultiply, ExecuteMutateLocalMultiply)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMutateLocalPower, ExecuteMutateLocalPower)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMutateLocalSubtract, ExecuteMutateLocalSubtract)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMutateObjectItemAdd, ExecuteMutateObjectItemAdd)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMutateObjectItemConcat, ExecuteMutateObjectItemConcat)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMutateObjectItemDivide, ExecuteMutateObjectItemDivide)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMutateObjectItemMod, ExecuteMutateObjectItemMod)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMutateObjectItemMultiply, ExecuteMutateObjectItemMultiply)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMutateObjectItemPower, ExecuteMutateObjectItemPower)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMutateObjectItemSubtract, ExecuteMutateObjectItemSubtract)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMutateTensorItemAdd, ExecuteMutateTensorItemAdd)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMutateTensorItemConcat, ExecuteMutateTensorItemConcat)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMutateTensorItemDivide, ExecuteMutateTensorItemDivide)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMutateTensorItemMod, ExecuteMutateTensorItemMod)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMutateTensorItemMultiply, ExecuteMutateTensorItemMultiply)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMutateTensorItemPower, ExecuteMutateTensorItemPower)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpMutateTensorItemSubtract, ExecuteMutateTensorItemSubtract)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpNewObject, ExecuteNewObject)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpPushArrayItem, ExecutePushArrayItem)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpPushArrayItemI, ExecutePushArrayItemI)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpPushFrameArg, ExecutePushFrameArg)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpPushGlobal, ExecutePushGlobal)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpPushInitForEach, ExecutePushInitForEach)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpPushLocalItem, ExecutePushLocalItem)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpPushLocalLength, ExecutePushLocalLength)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpPushObjectItem, ExecutePushObjectItem)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpPushObjectMethod, ExecutePushObjectMethod)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpPushTensorItem, ExecutePushTensorItem)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpPushTensorItemI, ExecutePushTensorItemI)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpPushType, ExecutePushType)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpReturnFrame, ExecuteReturnFrame)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpSetArrayItem, ExecuteSetArrayItem)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpSetArrayItemI, ExecuteSetArrayItemI)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpSetForEachItem, ExecuteSetForEachItem)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpSetFrameLocal, ExecuteSetFrameLocal)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpSetGlobal, ExecuteSetGlobal)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpSetGlobalItem, ExecuteSetGlobalItem)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpSetLocalItem, ExecuteSetLocalItem)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpSetObjectItem, ExecuteSetObjectItem)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpSetObjectItem2, ExecuteSetObjectItem2)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpSetTensorItem, ExecuteSetTensorItem)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpSetTensorItemI, ExecuteSetTensorItemI)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpPower, ExecutePower)
+IMPLEMENT_JIT_EXECUTE_OP(JitOpSubtract, ExecuteSubtract)
+
+#undef IMPLEMENT_JIT_EXECUTE_OP
+
+DWORD CHexeProcess::JitOpExitEnvAndReturn (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP)
+	{
+	try
+		{
+		pProcess->m_pIP = pIP;
+
+		CHexeFunction *pFunction = CHexeFunction::UpconvertRaw(pProcess->m_dExpression);
+		if (pFunction->IsCached())
+			{
+			CDatum dResult = pProcess->m_Stack.Get();
+			pFunction->CacheInvokeResult(pProcess->m_Env.GetLocalEnv(), dResult);
+
+			//	We need to mark this as copy-on-write; otherwise callers would be
+			//	modifying our cached value.
+			//	LATER: This should be handled inside CacheInvokeResult
+
+			pProcess->m_Stack.Set(dResult.Clone(CDatum::EClone::CopyOnWrite));
+			}
+
+		pProcess->m_Env.PopFrame();
+
+		ERun iResult = pProcess->ExecuteReturn(*retResult);
+		if (iResult != ERun::Continue)
+			return JitReturnBase | (DWORD)iResult;
+
+		return JitFinishNativeStep(pProcess, retResult, pExpectedNextIP);
+		}
+	catch (...)
+		{
+		*retResult = ERR_COMPUTE_CRASH_JIT;
+		return JitReturnBase | (DWORD)ERun::Error;
+		}
+	}
+
+DWORD CHexeProcess::JitOpExitEnvAndJumpIfLocalGreaterInt (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP)
+	{
+	try
+		{
+		bool bJump = pProcess->m_Env.GetLocalEnv().GetArgument(LOOP_INDEX).raw_GetInt32() > (int)pIP[1];
+
+		if (bJump)
+			{
+			pProcess->m_Env.PopFrame();
+			pProcess->m_pIP = pIP + CHexeCode::GetOperandInt(*pIP);
+			}
+		else
+			pProcess->m_pIP = pExpectedNextIP;
+
+		return JitFinishNativeStep(pProcess, retResult, pExpectedNextIP);
+		}
+	catch (...)
+		{
+		*retResult = ERR_COMPUTE_CRASH_JIT;
+		return JitReturnBase | (DWORD)ERun::Error;
+		}
+	}
+
+DWORD CHexeProcess::JitOpIncLocalInt (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP)
+	{
+	try
+		{
+		DWORD dwOperand = GetOperand(*pIP);
+		int iLevel = (dwOperand >> 8);
+		int iIndex = (dwOperand & 0xff);
+
+		auto& Env = pProcess->m_Env.GetLocalEnvAt(iLevel);
+		Env.OpInc1(iIndex);
+
+		pProcess->m_pIP = pExpectedNextIP;
+
+		return JitFinishNativeStep(pProcess, retResult, pExpectedNextIP);
+		}
+	catch (...)
+		{
+		*retResult = ERR_COMPUTE_CRASH_JIT;
+		return JitReturnBase | (DWORD)ERun::Error;
+		}
+	}
+
+DWORD CHexeProcess::JitOpLoopIncLocalAndJump (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP)
+	{
+	try
+		{
+		pProcess->m_Env.GetLocalEnv().IncArgumentValueInt32(LOOP_INDEX, 1);
+		pProcess->m_pIP = pIP + CHexeCode::GetOperandInt(*pIP);
+
+		return JitFinishNativeStep(pProcess, retResult, pExpectedNextIP);
+		}
+	catch (...)
+		{
+		*retResult = ERR_COMPUTE_CRASH_JIT;
+		return JitReturnBase | (DWORD)ERun::Error;
+		}
+	}
+
+DWORD CHexeProcess::JitOpPop (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP)
+	{
+	try
+		{
+		pProcess->m_Stack.Pop(GetOperand(*pIP));
+		pProcess->m_pIP = pExpectedNextIP;
+
+		return JitFinishNativeStep(pProcess, retResult, pExpectedNextIP);
+		}
+	catch (...)
+		{
+		*retResult = ERR_COMPUTE_CRASH_JIT;
+		return JitReturnBase | (DWORD)ERun::Error;
+		}
+	}
+
+DWORD CHexeProcess::JitOpPushLocal (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP)
+	{
+	try
+		{
+		DWORD dwOperand = GetOperand(*pIP);
+		int iLevel = (dwOperand >> 8);
+		int iIndex = (dwOperand & 0xff);
+
+		pProcess->m_Stack.Push(pProcess->GetLocalOrFrameSlot(iLevel, iIndex));
+		pProcess->m_pIP = pExpectedNextIP;
+
+		return JitFinishNativeStep(pProcess, retResult, pExpectedNextIP);
+		}
+	catch (...)
+		{
+		*retResult = ERR_COMPUTE_CRASH_JIT;
+		return JitReturnBase | (DWORD)ERun::Error;
+		}
+	}
+
+CHexeProcess::ERun CHexeProcess::ExecuteWithX64JIT (CDatum *retResult)
+	{
+#ifndef _M_X64
+	return ExecuteInterpreted(retResult);
+#else
+	m_dwNextStopCheck = m_dwComputes + STOP_CHECK_COUNT;
+
+	for (int i = 0; i < JIT_ENTRY_CACHE_SIZE; i++)
+		m_JitEntryCache[i] = SJitEntryCache();
+
+	while (true)
+		{
+		if (m_pCodeBank == NULL)
+			return ExecuteInterpreted(retResult);
+
+		CHexeCodeX64* pX64 = m_pCodeBank->GetX64Code();
+		if (pX64 == NULL)
+			return ExecuteInterpreted(retResult);
+
+		CHexeCodeX64::X64Entry pEntry = (CHexeCodeX64::X64Entry)JitFindChainedEntry(this, m_pCodeBank, pX64);
+		if (pEntry == NULL)
+			return ExecuteInterpreted(retResult);
+
+		ERun iResult = pEntry(this, retResult);
+		if (iResult != ERun::Continue)
+			{
+			pX64->PrintBlockStats();
+			return iResult;
+			}
+		}
+#endif
 	}
 
 CHexeProcess::ERun CHexeProcess::ExecuteWithHistogram (CDatum *retResult)
@@ -172,8 +1254,14 @@ void CHexeProcess::InitInstructionTable ()
 	m_INSTRUCTION[(DWORD)opAdd >> 24] = &CHexeProcess::ExecuteAdd;
 	m_INSTRUCTION[(DWORD)opAdd2 >> 24] = &CHexeProcess::ExecuteAdd2;
 	m_INSTRUCTION[(DWORD)opAddInt >> 24] = &CHexeProcess::ExecuteAddInt;
+	m_INSTRUCTION[(DWORD)opAddLocalL0Int16 >> 24] = &CHexeProcess::ExecuteAddLocalL0Int16;
 	m_INSTRUCTION[(DWORD)opAppendToArray >> 24] = &CHexeProcess::ExecuteAppendToArray;
 	m_INSTRUCTION[(DWORD)opCall >> 24] = &CHexeProcess::ExecuteCall;
+	m_INSTRUCTION[(DWORD)opCallDirect >> 24] = &CHexeProcess::ExecuteCallDirect;
+	m_INSTRUCTION[(DWORD)opCallDirectNoClosure >> 24] = &CHexeProcess::ExecuteCallDirect;
+	m_INSTRUCTION[(DWORD)opCallDirectSelfNoClosure >> 24] = &CHexeProcess::ExecuteCallDirectSelf;
+	m_INSTRUCTION[(DWORD)opCallFrame >> 24] = &CHexeProcess::ExecuteCallFrame;
+	m_INSTRUCTION[(DWORD)opCallFrameSelf >> 24] = &CHexeProcess::ExecuteCallFrameSelf;
 	m_INSTRUCTION[(DWORD)opCallLib >> 24] = &CHexeProcess::ExecuteCallLib;
 	m_INSTRUCTION[(DWORD)opCompareForEach >> 24] = &CHexeProcess::ExecuteCompareForEach;
 	m_INSTRUCTION[(DWORD)opCompareStep >> 24] = &CHexeProcess::ExecuteCompareStep;
@@ -185,11 +1273,13 @@ void CHexeProcess::InitInstructionTable ()
 	m_INSTRUCTION[(DWORD)opDivide >> 24] = &CHexeProcess::ExecuteDivide;
 	m_INSTRUCTION[(DWORD)opDivide2 >> 24] = &CHexeProcess::ExecuteDivide2;
 	m_INSTRUCTION[(DWORD)opEnterEnv >> 24] = &CHexeProcess::ExecuteEnterEnv;
+	m_INSTRUCTION[(DWORD)opEnterStackFrame >> 24] = &CHexeProcess::ExecuteEnterStackFrame;
 	m_INSTRUCTION[(DWORD)opError >> 24] = &CHexeProcess::ExecuteError;
 	m_INSTRUCTION[(DWORD)opExitEnv >> 24] = &CHexeProcess::ExecuteExitEnv;
 	m_INSTRUCTION[(DWORD)opExitEnvAndJumpIfGreaterInt >> 24] = &CHexeProcess::ExecuteExitEnvAndJumpIfGreaterInt;
 	m_INSTRUCTION[(DWORD)opExitEnvAndJumpIfGreaterOrEqualInt >> 24] = &CHexeProcess::ExecuteExitEnvAndJumpIfGreaterOrEqualInt;
 	m_INSTRUCTION[(DWORD)opExitEnvAndJumpIfNil >> 24] = &CHexeProcess::ExecuteExitEnvAndJumpIfNil;
+	m_INSTRUCTION[(DWORD)opExitEnvAndJumpIfLocalGreaterInt >> 24] = &CHexeProcess::ExecuteExitEnvAndJumpIfLocalGreaterInt;
 	m_INSTRUCTION[(DWORD)opExitEnvAndReturn >> 24] = &CHexeProcess::ExecuteExitEnvAndReturn;
 	m_INSTRUCTION[(DWORD)opHalt >> 24] = &CHexeProcess::ExecuteHalt;
 	m_INSTRUCTION[(DWORD)opHexarcMsg >> 24] = &CHexeProcess::ExecuteHexarcMsg;
@@ -220,11 +1310,13 @@ void CHexeProcess::InitInstructionTable ()
 	m_INSTRUCTION[(DWORD)opIsNotEqualInt >> 24] = &CHexeProcess::ExecuteIsNotEqualInt;
 	m_INSTRUCTION[(DWORD)opIsNotEqualMulti >> 24] = &CHexeProcess::ExecuteIsNotEqualMulti;
 	m_INSTRUCTION[(DWORD)opIsNotIdentical >> 24] = &CHexeProcess::ExecuteIsNotIdentical;
+	m_INSTRUCTION[(DWORD)opIsNotIn >> 24] = &CHexeProcess::ExecuteIsNotIn;
 	m_INSTRUCTION[(DWORD)opJump >> 24] = &CHexeProcess::ExecuteJump;
 	m_INSTRUCTION[(DWORD)opJumpIfNil >> 24] = &CHexeProcess::ExecuteJumpIfNil;
 	m_INSTRUCTION[(DWORD)opJumpIfNilNoPop >> 24] = &CHexeProcess::ExecuteJumpIfNilNoPop;
 	m_INSTRUCTION[(DWORD)opJumpIfNotNilNoPop >> 24] = &CHexeProcess::ExecuteJumpIfNotNilNoPop;
 	m_INSTRUCTION[(DWORD)opLoopIncAndJump >> 24] = &CHexeProcess::ExecuteLoopIncAndJump;
+	m_INSTRUCTION[(DWORD)opLoopIncLocalAndJump >> 24] = &CHexeProcess::ExecuteLoopIncLocalAndJump;
 	m_INSTRUCTION[(DWORD)opMakeApplyEnv >> 24] = &CHexeProcess::ExecuteMakeApplyEnv;
 	m_INSTRUCTION[(DWORD)opMakeArray >> 24] = &CHexeProcess::ExecuteMakeArray;
 	m_INSTRUCTION[(DWORD)opMakeRange >> 24] = &CHexeProcess::ExecuteMakeRange;
@@ -245,6 +1337,8 @@ void CHexeProcess::InitInstructionTable ()
 	m_INSTRUCTION[(DWORD)opMakeMapColExpr >> 24] = &CHexeProcess::ExecuteMakeMapColExpr;
 	m_INSTRUCTION[(DWORD)opMakeMethodEnv >> 24] = &CHexeProcess::ExecuteMakeMethodEnv;
 	m_INSTRUCTION[(DWORD)opMakeObject >> 24] = &CHexeProcess::ExecuteMakeObject;
+	m_INSTRUCTION[(DWORD)opMakeObjectDirect >> 24] = &CHexeProcess::ExecuteMakeObjectDirect;
+	m_INSTRUCTION[(DWORD)opMakeObjectDirectUnchecked >> 24] = &CHexeProcess::ExecuteMakeObjectDirectUnchecked;
 	m_INSTRUCTION[(DWORD)opMakePrimitive >> 24] = &CHexeProcess::ExecuteMakePrimitive;
 	m_INSTRUCTION[(DWORD)opMakeSpread >> 24] = &CHexeProcess::ExecuteMakeSpread;
 	m_INSTRUCTION[(DWORD)opMakeStruct >> 24] = &CHexeProcess::ExecuteMakeStruct;
@@ -302,6 +1396,7 @@ void CHexeProcess::InitInstructionTable ()
 	m_INSTRUCTION[(DWORD)opPushCoreType >> 24] = &CHexeProcess::ExecutePushCoreType;
 	m_INSTRUCTION[(DWORD)opPushDatum >> 24] = &CHexeProcess::ExecutePushDatum;
 	m_INSTRUCTION[(DWORD)opPushFalse >> 24] = &CHexeProcess::ExecutePushFalse;
+	m_INSTRUCTION[(DWORD)opPushFrameArg >> 24] = &CHexeProcess::ExecutePushFrameArg;
 	m_INSTRUCTION[(DWORD)opPushGlobal >> 24] = &CHexeProcess::ExecutePushGlobal;
 	m_INSTRUCTION[(DWORD)opPushInitForEach >> 24] = &CHexeProcess::ExecutePushInitForEach;
 	m_INSTRUCTION[(DWORD)opPushInt >> 24] = &CHexeProcess::ExecutePushInt;
@@ -315,6 +1410,7 @@ void CHexeProcess::InitInstructionTable ()
 	m_INSTRUCTION[(DWORD)opPushNil >> 24] = &CHexeProcess::ExecutePushNil;
 	m_INSTRUCTION[(DWORD)opPushObjectItem >> 24] = &CHexeProcess::ExecutePushObjectItem;
 	m_INSTRUCTION[(DWORD)opPushObjectMethod >> 24] = &CHexeProcess::ExecutePushObjectMethod;
+	m_INSTRUCTION[(DWORD)opPushRecordSlotI >> 24] = &CHexeProcess::ExecutePushArrayItemI;
 	m_INSTRUCTION[(DWORD)opPushStr >> 24] = &CHexeProcess::ExecutePushStr;
 	m_INSTRUCTION[(DWORD)opPushStrNull >> 24] = &CHexeProcess::ExecutePushStrNull;
 	m_INSTRUCTION[(DWORD)opPushTensorItem >> 24] = &CHexeProcess::ExecutePushTensorItem;
@@ -322,9 +1418,11 @@ void CHexeProcess::InitInstructionTable ()
 	m_INSTRUCTION[(DWORD)opPushTrue >> 24] = &CHexeProcess::ExecutePushTrue;
 	m_INSTRUCTION[(DWORD)opPushType >> 24] = &CHexeProcess::ExecutePushType;
 	m_INSTRUCTION[(DWORD)opReturn >> 24] = &CHexeProcess::ExecuteReturn;
+	m_INSTRUCTION[(DWORD)opReturnFrame >> 24] = &CHexeProcess::ExecuteReturnFrame;
 	m_INSTRUCTION[(DWORD)opSetArrayItem >> 24] = &CHexeProcess::ExecuteSetArrayItem;
 	m_INSTRUCTION[(DWORD)opSetArrayItemI >> 24] = &CHexeProcess::ExecuteSetArrayItemI;
 	m_INSTRUCTION[(DWORD)opSetForEachItem >> 24] = &CHexeProcess::ExecuteSetForEachItem;
+	m_INSTRUCTION[(DWORD)opSetFrameLocal >> 24] = &CHexeProcess::ExecuteSetFrameLocal;
 	m_INSTRUCTION[(DWORD)opSetGlobal >> 24] = &CHexeProcess::ExecuteSetGlobal;
 	m_INSTRUCTION[(DWORD)opSetGlobalItem >> 24] = &CHexeProcess::ExecuteSetGlobalItem;
 	m_INSTRUCTION[(DWORD)opSetLocal >> 24] = &CHexeProcess::ExecuteSetLocal;
@@ -392,6 +1490,18 @@ CHexeProcess::ERun CHexeProcess::ExecuteAddInt (CDatum& retResult)
 	return ERun::Continue;
 	}
 
+CHexeProcess::ERun CHexeProcess::ExecuteAddLocalL0Int16 (CDatum& retResult)
+	{
+	DWORD dwOperand = GetOperand(*m_pIP);
+	int iIndex = (dwOperand >> 16) & 0xff;
+	int iInc = ((dwOperand & 0x8000) ? (int)(dwOperand | 0xffff0000) : (int)(dwOperand & 0xffff));
+
+	m_Env.GetLocalEnv().OpInc(iIndex, iInc);
+	m_pIP++;
+
+	return ERun::Continue;
+	}
+
 CHexeProcess::ERun CHexeProcess::ExecuteAppendToArray (CDatum& retResult)
 	{
 	//	We expect n elements on the stack and before that, the 
@@ -430,9 +1540,15 @@ CHexeProcess::ERun CHexeProcess::ExecuteCall (CDatum& retResult)
 
 			m_CallStack.PushFunCall(m_dExpression, m_dCodeBank, ++m_pIP);
 			m_dExpression = dNewExpression;
-			SetCodeBank(dNewCodeBank);
+			if (dNewCodeBank.raw_AsEncoded() != m_dCodeBank.raw_AsEncoded())
+				SetCodeBank(dNewCodeBank);
 
 			m_pIP = pNewIP;
+
+#ifdef DEBUG_COMPUTE_IP
+			if (!m_Host.GetProcessID().IsNil())
+				printf("[%s] CHexeProcess::ExecuteCall: IP = %08x\n", (LPCSTR)m_Host.GetProcessID().AsString(), (DWORD)(DWORD_PTR)m_pIP);
+#endif
 			break;
 			}
 
@@ -463,9 +1579,15 @@ CHexeProcess::ERun CHexeProcess::ExecuteCall (CDatum& retResult)
 
 				m_CallStack.PushFunCall(m_dExpression, m_dCodeBank, ++m_pIP);
 				m_dExpression = dNewExpression;
-				SetCodeBank(dNewCodeBank);
+				if (dNewCodeBank.raw_AsEncoded() != m_dCodeBank.raw_AsEncoded())
+					SetCodeBank(dNewCodeBank);
 
 				m_pIP = pNewIP;
+
+#ifdef DEBUG_COMPUTE_IP
+				if (!m_Host.GetProcessID().IsNil())
+					printf("[%s] CDatum::ECallType::CachedCall: IP = %08x\n", (LPCSTR)m_Host.GetProcessID().AsString(), (DWORD)(DWORD_PTR)m_pIP);
+#endif
 				}
 
 			break;
@@ -540,6 +1662,166 @@ CHexeProcess::ERun CHexeProcess::ExecuteCall (CDatum& retResult)
 		default:
 			return RuntimeError(strPattern(ERR_NOT_A_FUNCTION, dNewExpression.AsString()), retResult);
 		}
+
+	return ERun::Continue;
+	}
+
+CHexeProcess::ERun CHexeProcess::ExecuteCallDirect (CDatum& retResult)
+	{
+	DWORD *pCallIP = m_pIP;
+	CDatum dNewExpression = m_Stack.Pop();
+	CHexeFunction *pFunction = CHexeFunction::Upconvert(dNewExpression);
+	DWORD dwCodeOffset = GetOperand(*pCallIP);
+
+	if (pFunction == NULL
+			|| pFunction->IsCached()
+			|| pFunction->GetCodeOffset() != (int)dwCodeOffset
+			|| pFunction->GetCodeBank().raw_AsEncoded() != m_dCodeBank.raw_AsEncoded())
+		{
+		m_Stack.Push(dNewExpression);
+		return ExecuteCall(retResult);
+		}
+
+	if (m_CallStack.GetCount() >= m_Limits.iMaxStackDepth)
+		return RuntimeError(ERR_EXCEEDED_RECURSION_LIMITS, retResult);
+
+	m_CallStack.PushFunCall(m_dExpression, m_dCodeBank, pCallIP + 1);
+	m_dExpression = dNewExpression;
+	m_pIP = m_pCodeBank->GetCode(dwCodeOffset);
+
+#ifdef DEBUG_COMPUTE_IP
+	if (!m_Host.GetProcessID().IsNil())
+		printf("[%s] CHexeProcess::ExecuteCallDirect: IP = %08x\n", (LPCSTR)m_Host.GetProcessID().AsString(), (DWORD)(DWORD_PTR)m_pIP);
+#endif
+
+	return ERun::Continue;
+	}
+
+CHexeProcess::ERun CHexeProcess::ExecuteCallDirectSelf (CDatum& retResult)
+	{
+	DWORD *pCallIP = m_pIP;
+	CDatum dNewExpression = m_dExpression;
+	CHexeFunction *pFunction = CHexeFunction::Upconvert(dNewExpression);
+	DWORD dwCodeOffset = GetOperand(*pCallIP);
+
+	if (pFunction == NULL
+			|| pFunction->IsCached()
+			|| pFunction->GetCodeOffset() != (int)dwCodeOffset
+			|| pFunction->GetCodeBank().raw_AsEncoded() != m_dCodeBank.raw_AsEncoded())
+		{
+		m_Stack.Push(dNewExpression);
+		return ExecuteCall(retResult);
+		}
+
+	if (m_CallStack.GetCount() >= m_Limits.iMaxStackDepth)
+		return RuntimeError(ERR_EXCEEDED_RECURSION_LIMITS, retResult);
+
+	m_CallStack.PushFunCall(m_dExpression, m_dCodeBank, pCallIP + 1);
+	m_dExpression = dNewExpression;
+	m_pIP = m_pCodeBank->GetCode(dwCodeOffset);
+
+#ifdef DEBUG_COMPUTE_IP
+	if (!m_Host.GetProcessID().IsNil())
+		printf("[%s] CHexeProcess::ExecuteCallDirectSelf: IP = %08x\n", (LPCSTR)m_Host.GetProcessID().AsString(), (DWORD)(DWORD_PTR)m_pIP);
+#endif
+
+	return ERun::Continue;
+	}
+
+CHexeProcess::ERun CHexeProcess::ExecuteCallFrame (CDatum& retResult)
+	{
+	DWORD* pCallIP = m_pIP;
+	int iArgCount = GetOperand(*pCallIP);
+	DWORD dwCodeOffset = pCallIP[1];
+	CDatum dNewExpression = m_Stack.Get(iArgCount);
+	CHexeFunction* pFunction = CHexeFunction::Upconvert(dNewExpression);
+
+	if (pFunction == NULL
+			|| pFunction->IsCached()
+			|| pFunction->GetCodeOffset() != (int)dwCodeOffset
+			|| pFunction->GetCodeBank().raw_AsEncoded() != m_dCodeBank.raw_AsEncoded())
+		{
+		m_Env.PushNewFrame();
+		for (int i = iArgCount - 1; i >= 0; i--)
+			m_Env.GetLocalEnv().AppendArgumentValue(m_Stack.Get(i));
+
+		m_Stack.Pop(iArgCount);
+		m_pIP = pCallIP + 2;
+		return ExecuteCall(retResult);
+		}
+
+	if (m_CallStack.GetCount() >= m_Limits.iMaxStackDepth)
+		return RuntimeError(ERR_EXCEEDED_RECURSION_LIMITS, retResult);
+
+	int iPrevStackTop = m_Stack.GetCount() - (iArgCount + 1);
+	int iFrameBase = iPrevStackTop;
+	for (int i = 0; i < iArgCount; i++)
+		m_Stack.SetAt(iFrameBase + i, m_Stack.GetAt(iFrameBase + 1 + i));
+
+	m_Stack.Pop(1);
+	int iLocalCount = GetOperand(*m_pCodeBank->GetCode(dwCodeOffset));
+	m_Stack.PushNil(iLocalCount);
+
+	m_CallStack.PushStackFrameCall(m_dExpression, m_dCodeBank, pCallIP + 2, m_iFrameBase, iPrevStackTop, iFrameBase);
+	m_iFrameBase = iFrameBase;
+	m_dExpression = dNewExpression;
+
+	CHexeGlobalEnvironment* pGlobalEnv = pFunction->GetGlobalEnvPointer();
+	if (pGlobalEnv)
+		m_Env.SetGlobalEnv(pFunction->GetGlobalEnv(), pGlobalEnv);
+
+	m_pIP = m_pCodeBank->GetCode(dwCodeOffset) + 1;
+
+	return ERun::Continue;
+	}
+
+CHexeProcess::ERun CHexeProcess::ExecuteCallFrameSelf (CDatum& retResult)
+	{
+	DWORD* pCallIP = m_pIP;
+	int iArgCount = GetOperand(*pCallIP);
+	DWORD dwCodeOffset = pCallIP[1];
+	CDatum dNewExpression = m_dExpression;
+	CHexeFunction* pFunction = CHexeFunction::UpconvertRaw(dNewExpression);
+
+	if (pFunction->IsCached()
+			|| pFunction->GetCodeOffset() != (int)dwCodeOffset
+			|| pFunction->GetCodeBank().raw_AsEncoded() != m_dCodeBank.raw_AsEncoded())
+		{
+		TArray<CDatum> Args;
+		int iFrameBase = m_Stack.GetCount() - iArgCount;
+		for (int i = 0; i < iArgCount; i++)
+			Args.Insert(m_Stack.GetAt(iFrameBase + i));
+
+		m_Stack.Pop(iArgCount);
+		m_Stack.Push(dNewExpression);
+		for (int i = 0; i < Args.GetCount(); i++)
+			m_Stack.Push(Args[i]);
+
+		m_Env.PushNewFrame();
+		for (int i = iArgCount - 1; i >= 0; i--)
+			m_Env.GetLocalEnv().AppendArgumentValue(m_Stack.Get(i));
+
+		m_Stack.Pop(iArgCount);
+		m_pIP = pCallIP + 2;
+		return ExecuteCall(retResult);
+		}
+
+	if (m_CallStack.GetCount() >= m_Limits.iMaxStackDepth)
+		return RuntimeError(ERR_EXCEEDED_RECURSION_LIMITS, retResult);
+
+	int iFrameBase = m_Stack.GetCount() - iArgCount;
+	int iLocalCount = GetOperand(*m_pCodeBank->GetCode(dwCodeOffset));
+	m_Stack.PushNil(iLocalCount);
+
+	m_CallStack.PushStackFrameCall(m_dExpression, m_dCodeBank, pCallIP + 2, m_iFrameBase, iFrameBase, iFrameBase);
+	m_iFrameBase = iFrameBase;
+	m_dExpression = dNewExpression;
+
+	CHexeGlobalEnvironment* pGlobalEnv = pFunction->GetGlobalEnvPointer();
+	if (pGlobalEnv)
+		m_Env.SetGlobalEnv(pFunction->GetGlobalEnv(), pGlobalEnv);
+
+	m_pIP = m_pCodeBank->GetCode(dwCodeOffset) + 1;
 
 	return ERun::Continue;
 	}
@@ -798,9 +2080,34 @@ CHexeProcess::ERun CHexeProcess::ExecuteEnterEnv (CDatum& retResult)
 
 	//	Set the local environment of the function
 
-	m_Env.SetLocalEnvParent(pFunction->GetLocalEnv());
+	m_Env.SetLocalEnvParent(pFunction->GetLocalEnv(), pFunction->GetLocalEnvPointer());
 	m_Env.GetLocalEnv().ResetNextArg();
 
+	m_pIP++;
+
+	return ERun::Continue;
+	}
+
+CHexeProcess::ERun CHexeProcess::ExecuteEnterStackFrame (CDatum& retResult)
+	{
+	int iLocalCount = GetOperand(*m_pIP);
+	CHexeFunction* pFunction = CHexeFunction::Upconvert(m_dExpression);
+
+	CHexeGlobalEnvironment* pGlobalEnv = pFunction->GetGlobalEnvPointer();
+	if (pGlobalEnv)
+		m_Env.SetGlobalEnv(pFunction->GetGlobalEnv(), pGlobalEnv);
+
+	CHexeLocalEnvironment& LocalEnv = m_Env.GetLocalEnv();
+	int iArgCount = LocalEnv.GetCount();
+	int iPrevStackTop = m_Stack.GetCount();
+	int iFrameBase = iPrevStackTop;
+
+	for (int i = 0; i < iArgCount; i++)
+		m_Stack.Push(LocalEnv.GetArgument(i));
+
+	m_Stack.PushNil(iLocalCount);
+	m_CallStack.SetTopStackFrame(m_iFrameBase, iPrevStackTop, iFrameBase);
+	m_iFrameBase = iFrameBase;
 	m_pIP++;
 
 	return ERun::Continue;
@@ -840,6 +2147,21 @@ CHexeProcess::ERun CHexeProcess::ExecuteExitEnvAndJumpIfGreaterInt (CDatum& retR
 	return ERun::Continue;
 	}
 
+CHexeProcess::ERun CHexeProcess::ExecuteExitEnvAndJumpIfLocalGreaterInt (CDatum& retResult)
+	{
+	bool bJump = m_Env.GetLocalEnv().GetArgument(LOOP_INDEX).raw_GetInt32() > (int)m_pIP[1];
+
+	if (bJump)
+		{
+		m_Env.PopFrame();
+		m_pIP += CHexeCode::GetOperandInt(*m_pIP);
+		}
+	else
+		m_pIP += 2;
+
+	return ERun::Continue;
+	}
+
 CHexeProcess::ERun CHexeProcess::ExecuteExitEnvAndJumpIfGreaterOrEqualInt (CDatum& retResult)
 	{
 	bool bJump = (int)m_Stack.Get(1) >= (int)m_Stack.Get();
@@ -873,10 +2195,11 @@ CHexeProcess::ERun CHexeProcess::ExecuteExitEnvAndReturn (CDatum& retResult)
 	{
 	//	If this function needs to be cached, then we cache it now.
 
-	if (m_dExpression.GetCallInfo() == CDatum::ECallType::CachedCall)
+	CHexeFunction *pFunction = CHexeFunction::Upconvert(m_dExpression);
+	if (pFunction && pFunction->IsCached())
 		{
 		CDatum dResult = m_Stack.Get();
-		m_dExpression.CacheInvokeResult(m_Env.GetLocalEnv(), dResult);
+		pFunction->CacheInvokeResult(m_Env.GetLocalEnv(), dResult);
 
 		//	We need to mark this as copy-on-write; otherwise callers would be
 		//	modifying our cached value.
@@ -953,9 +2276,12 @@ CHexeProcess::ERun CHexeProcess::ExecuteIncForEach (CDatum& retResult)
 CHexeProcess::ERun CHexeProcess::ExecuteIncLocalInt (CDatum& retResult)
 	{
 	DWORD dwOperand = GetOperand(*m_pIP);
-	CDatum dValue = m_Env.GetLocalEnv().GetArgument((dwOperand >> 8), (dwOperand & 0xff));
+	int iLevel = (dwOperand >> 8);
+	int iIndex = (dwOperand & 0xff);
 
-	m_Env.GetLocalEnv().SetArgumentValue((dwOperand >> 8), (dwOperand & 0xff), CDatum((int)dValue + 1));
+	auto& Env = m_Env.GetLocalEnvAt(iLevel);
+	Env.OpInc1(iIndex);
+
 	m_pIP++;
 
 	return ERun::Continue;
@@ -963,7 +2289,7 @@ CHexeProcess::ERun CHexeProcess::ExecuteIncLocalInt (CDatum& retResult)
 
 CHexeProcess::ERun CHexeProcess::ExecuteIncLocalL0 (CDatum& retResult)
 	{
-	m_Env.GetLocalEnv().IncArgumentValue(GetOperand(*m_pIP), 1);
+	m_Env.GetLocalEnv().OpInc1(GetOperand(*m_pIP));
 	m_pIP++;
 	return ERun::Continue;
 	}
@@ -1332,6 +2658,17 @@ CHexeProcess::ERun CHexeProcess::ExecuteIsNotIdentical (CDatum& retResult)
 	return ERun::Continue;
 	}
 
+CHexeProcess::ERun CHexeProcess::ExecuteIsNotIn (CDatum& retResult)
+	{
+	DebugCheck(GetOperand(*m_pIP) == 2);
+
+	CDatum dValue = !m_Stack.Get(0).OpContains(m_Stack.Get(1));
+	m_Stack.Replace(dValue, 2);
+	m_pIP++;
+
+	return ERun::Continue;
+	}
+
 CHexeProcess::ERun CHexeProcess::ExecuteJump (CDatum& retResult)
 	{
 	m_pIP += CHexeCode::GetOperandInt(*m_pIP);
@@ -1371,6 +2708,14 @@ CHexeProcess::ERun CHexeProcess::ExecuteJumpIfNotNilNoPop (CDatum& retResult)
 CHexeProcess::ERun CHexeProcess::ExecuteLoopIncAndJump (CDatum& retResult)
 	{
 	m_Stack.Push(m_Env.GetLocalEnv().IncArgumentValueInt32(LOOP_INDEX, 1));
+	m_pIP += CHexeCode::GetOperandInt(*m_pIP);
+
+	return ERun::Continue;
+	}
+
+CHexeProcess::ERun CHexeProcess::ExecuteLoopIncLocalAndJump (CDatum& retResult)
+	{
+	m_Env.GetLocalEnv().IncArgumentValueInt32(LOOP_INDEX, 1);
 	m_pIP += CHexeCode::GetOperandInt(*m_pIP);
 
 	return ERun::Continue;
@@ -1716,6 +3061,62 @@ CHexeProcess::ERun CHexeProcess::ExecuteMakeObject (CDatum& retResult)
 	return ERun::Continue;
 	}
 
+CHexeProcess::ERun CHexeProcess::ExecuteMakeObjectDirect (CDatum& retResult)
+	{
+	CDatum dType = m_Stack.Pop();
+	CDatum dObj = CDatum::CreateObjectEmpty(dType);
+
+	int iCount = GetOperand(*m_pIP);
+	if (iCount > 0)
+		{
+		for (int i = iCount - 1; i >= 0; i--)
+			{
+			CDatum dValue = m_Stack.Pop();
+			dObj.SetElement(i, dValue);
+			}
+		}
+
+	m_Stack.Push(dObj);
+	m_pIP++;
+
+	return ERun::Continue;
+	}
+
+CHexeProcess::ERun CHexeProcess::ExecuteMakeObjectDirectUnchecked (CDatum& retResult)
+	{
+	int iCount = GetOperand(*m_pIP);
+	CDatum dType = m_Stack.Get();
+	CDatum dObj;
+
+	const IDatatype& Type = dType;
+	if (Type.GetClass() == IDatatype::ECategory::Schema)
+		{
+		int iValueStart = m_Stack.GetCount() - iCount - 1;
+		dObj = CDatum::CreateRecord(dType, m_Stack.GetPointerAt(iValueStart), iCount);
+		}
+	else
+		{
+		m_Stack.Pop();
+		dObj = CDatum::CreateObjectEmpty(dType);
+
+		for (int i = iCount - 1; i >= 0; i--)
+			{
+			CDatum dValue = m_Stack.Pop();
+			dObj.raw_SetArrayElement(i, dValue);
+			}
+
+		m_Stack.Push(dObj);
+		m_pIP++;
+
+		return ERun::Continue;
+		}
+
+	m_Stack.Replace(dObj, iCount + 1);
+	m_pIP++;
+
+	return ERun::Continue;
+	}
+
 CHexeProcess::ERun CHexeProcess::ExecuteMakePrimitive (CDatum& retResult)
 	{
 	CDatum dValue;
@@ -1851,7 +3252,7 @@ CHexeProcess::ERun CHexeProcess::ExecuteMakeTensorTypeFromStack (CDatum& retResu
 		Dims[i] = CAEONTypes::CreateInt32SubRange(NULL_STR, iMin, iMax);
 		}
 
-	retResult = m_Types.AddAnonymousTensor(dElementType, Dims);
+	retResult = m_Types.AddAnonymousTensor(dElementType, std::move(Dims));
 	return ERun::Continue;
 	}
 
@@ -2950,6 +4351,11 @@ CHexeProcess::ERun CHexeProcess::ExecuteNewObject (CDatum& retdError)
 		SetCodeBank(dNewCodeBank);
 
 		m_pIP = pNewIP;
+
+#ifdef DEBUG_COMPUTE_IP
+		if (!m_Host.GetProcessID().IsNil())
+			printf("[%s] CHexeProcess::ExecuteNewObject: IP = %08x\n", (LPCSTR)m_Host.GetProcessID().AsString(), (DWORD)(DWORD_PTR)m_pIP);
+#endif
 		}
 
 	//	Otherwise, we create a new object
@@ -3124,13 +4530,45 @@ CHexeProcess::ERun CHexeProcess::ExecutePushLiteral (CDatum& retResult)
 	return ERun::Continue;
 	}
 
+CDatum CHexeProcess::GetLocalOrFrameSlot (int iLevel, int iIndex)
+	{
+	CHexeLocalEnvironment* pEnv = &m_Env.GetLocalEnv();
+	int iOriginalLevel = iLevel;
+	int iWalked = 0;
+	while (iLevel--)
+		{
+		CHexeLocalEnvironment* pParent = pEnv->GetParentEnv();
+		if (pParent == NULL)
+			{
+			if (TraceJitEnv())
+				printf("GetLocalOrFrameSlot failed: level=%d index=%d walked=%d ipOffset=%d opcode=%08x curEnv=%p stack=%d frameBase=%d callDepth=%d exprType=%s\n",
+						iOriginalLevel,
+						iIndex,
+						iWalked,
+						(m_pIP && m_pCodeBank ? m_pCodeBank->GetCodeOffset(m_pIP) : -1),
+						(m_pIP ? *m_pIP : 0),
+						pEnv,
+						m_Stack.GetCount(),
+						m_iFrameBase,
+						m_CallStack.GetCount(),
+						(LPCSTR)m_dExpression.GetTypename());
+			throw CException(errFail);
+			}
+
+		pEnv = pParent;
+		iWalked++;
+		}
+
+	return pEnv->GetArgument(iIndex);
+	}
+
 CHexeProcess::ERun CHexeProcess::ExecutePushLocal (CDatum& retResult)
 	{
 	DWORD dwOperand = GetOperand(*m_pIP);
 	int iLevel = (dwOperand >> 8);
 	int iIndex = (dwOperand & 0xff);
 
-	m_Stack.Push(m_Env.GetLocalEnvAt(iLevel).GetArgument(iIndex));
+	m_Stack.Push(GetLocalOrFrameSlot(iLevel, iIndex));
 	m_pIP++;
 
 	return ERun::Continue;
@@ -3140,7 +4578,7 @@ CHexeProcess::ERun CHexeProcess::ExecutePushLocalItem (CDatum& retResult)
 	{
 	DWORD dwOperand = GetOperand(*m_pIP);
 	int iIndex = (int)m_Stack.Pop();
-	CDatum dList = m_Env.GetLocalEnv().GetArgument((dwOperand >> 8), (dwOperand & 0xff));
+	CDatum dList = GetLocalOrFrameSlot((dwOperand >> 8), (dwOperand & 0xff));
 
 	//	For structs we push a tuple of key, value
 
@@ -3169,10 +4607,17 @@ CHexeProcess::ERun CHexeProcess::ExecutePushLocalL0 (CDatum& retResult)
 	return ERun::Continue;
 	}
 
+CHexeProcess::ERun CHexeProcess::ExecutePushFrameArg (CDatum& retResult)
+	{
+	m_Stack.Push(m_Stack.GetAt(m_iFrameBase + (int)GetOperand(*m_pIP)));
+	m_pIP++;
+	return ERun::Continue;
+	}
+
 CHexeProcess::ERun CHexeProcess::ExecutePushLocalLength (CDatum& retResult)
 	{
 	DWORD dwOperand = GetOperand(*m_pIP);
-	m_Stack.Push(m_Env.GetLocalEnv().GetArgument((dwOperand >> 8), (dwOperand & 0xff)).GetCount());
+	m_Stack.Push(GetLocalOrFrameSlot((dwOperand >> 8), (dwOperand & 0xff)).GetCount());
 	m_pIP++;
 	return ERun::Continue;
 	}
@@ -3261,6 +4706,7 @@ CHexeProcess::ERun CHexeProcess::ExecutePushObjectMethod (CDatum &retResult)
 		case CDatum::typeDateTime:
 		case CDatum::typeString:
 		case CDatum::typeArray:
+		case CDatum::typeImage32:
 		case CDatum::typeRange:
 		case CDatum::typeTable:
 		case CDatum::typeTensor:
@@ -3312,7 +4758,6 @@ CHexeProcess::ERun CHexeProcess::ExecutePushObjectMethod (CDatum &retResult)
 
 		case CDatum::typeClassInstance:
 		case CDatum::typeObject:
-		case CDatum::typeImage32:
 		case CDatum::typeRowRef:
 			{
 			const IDatatype &Type = dObject.GetDatatype();
@@ -3575,7 +5020,14 @@ CHexeProcess::ERun CHexeProcess::ExecuteReturn (CDatum& retResult)
 	const CHexeCallStack::SFrame& Frame = m_CallStack.Top();
 	m_dExpression = Frame.dExpression;
 	m_pIP = Frame.pIP;
-	SetCodeBank(Frame.dCodeBank);
+
+#ifdef DEBUG_COMPUTE_IP
+	if (!m_Host.GetProcessID().IsNil())
+		printf("[%s] CHexeProcess::ExecuteReturn: IP = %08x\n", (LPCSTR)m_Host.GetProcessID().AsString(), (DWORD)(DWORD_PTR)m_pIP);
+#endif
+
+	if (Frame.dCodeBank.raw_AsEncoded() != m_dCodeBank.raw_AsEncoded())
+		SetCodeBank(Frame.dCodeBank);
 
 	if (Frame.dwType == CHexeCallStack::FUNC_CALL)
 		{
@@ -3596,6 +5048,36 @@ CHexeProcess::ERun CHexeProcess::ExecuteReturn (CDatum& retResult)
 		}
 	else
 		throw CException(errFail);
+	}
+
+CHexeProcess::ERun CHexeProcess::ExecuteReturnFrame (CDatum& retResult)
+	{
+	CDatum dResult = m_Stack.Get();
+	const CHexeCallStack::SFrame& Frame = m_CallStack.Top();
+
+	m_dExpression = Frame.dExpression;
+	m_pIP = Frame.pIP;
+
+#ifdef DEBUG_COMPUTE_IP
+	if (!m_Host.GetProcessID().IsNil())
+		printf("[%s] CHexeProcess::ExecuteReturnFrame: IP = %08x\n", (LPCSTR)m_Host.GetProcessID().AsString(), (DWORD)(DWORD_PTR)m_pIP);
+#endif
+
+	if (Frame.dCodeBank.raw_AsEncoded() != m_dCodeBank.raw_AsEncoded())
+		SetCodeBank(Frame.dCodeBank);
+
+	if (Frame.dwType != CHexeCallStack::STACK_FRAME_CALL)
+		throw CException(errFail);
+
+	if (Frame.dwFlags & CHexeCallStack::FLAG_STACK_FRAME_HAS_ENV)
+		m_Env.PopFrame();
+
+	m_Stack.PopTo(Frame.iPrevStackTop);
+	m_Stack.Push(dResult);
+	m_iFrameBase = Frame.iPrevFrameBase;
+	m_CallStack.Pop();
+
+	return ERun::Continue;
 	}
 
 CHexeProcess::ERun CHexeProcess::ExecuteSetArrayItem (CDatum& retResult)
@@ -3723,6 +5205,14 @@ CHexeProcess::ERun CHexeProcess::ExecuteSetLocalItem (CDatum& retResult)
 CHexeProcess::ERun CHexeProcess::ExecuteSetLocalL0 (CDatum& retResult)
 	{
 	m_Env.GetLocalEnv().SetArgumentValue(GetOperand(*m_pIP), m_Stack.Get());
+	m_pIP++;
+
+	return ERun::Continue;
+	}
+
+CHexeProcess::ERun CHexeProcess::ExecuteSetFrameLocal (CDatum& retResult)
+	{
+	m_Stack.SetAt(m_iFrameBase + (int)GetOperand(*m_pIP), m_Stack.Get());
 	m_pIP++;
 
 	return ERun::Continue;
@@ -4037,6 +5527,9 @@ CDatum CHexeProcess::ExecuteBinaryOp (IInvokeCtx& Ctx, EOpCodes iOp, CDatum dLef
 		case opIsNotIdentical:
 			return CAEONOp::CompNotIdentical(Ctx, dLeft, dRight);
 
+		case opIsNotIn:
+			return CAEONOp::NotIn(Ctx, dLeft, dRight);
+
 		case opMakeRange:
 			return CDatum::CreateRange(dLeft, dRight, CDatum());
 
@@ -4134,6 +5627,10 @@ CHexeProcess::ERun CHexeProcess::ExecuteHandleInvokeResult (CDatum::InvokeResult
 
 			m_pIP = pNewIP;
 
+#ifdef DEBUG_COMPUTE_IP
+			if (!m_Host.GetProcessID().IsNil())
+				printf("[%s] CDatum::InvokeResult::functionCall: IP = %08x\n", (LPCSTR)m_Host.GetProcessID().AsString(), (DWORD)(DWORD_PTR)m_pIP);
+#endif
 			//	Continue processing
 
 			return ERun::OK;
@@ -4183,6 +5680,10 @@ CHexeProcess::ERun CHexeProcess::ExecuteHandleInvokeResult (CDatum::InvokeResult
 
 			m_pIP = pNewIP;
 
+#ifdef DEBUG_COMPUTE_IP
+			if (!m_Host.GetProcessID().IsNil())
+				printf("[%s] CDatum::InvokeResult::runFunction: IP = %08x\n", (LPCSTR)m_Host.GetProcessID().AsString(), (DWORD)(DWORD_PTR)m_pIP);
+#endif
 			//	Continue processing
 
 			return ERun::OK;
@@ -4404,6 +5905,11 @@ bool CHexeProcess::ExecuteObjectMemberItem (CDatum dObject, const CString& sFiel
 						SetCodeBank(dNewCodeBank);
 
 						m_pIP = pNewIP;
+
+#ifdef DEBUG_COMPUTE_IP
+						if (!m_Host.GetProcessID().IsNil())
+							printf("[%s] CHexeProcess::ExecuteObjectMemberItem: IP = %08x\n", (LPCSTR)m_Host.GetProcessID().AsString(), (DWORD)(DWORD_PTR)m_pIP);
+#endif
 						retbNoIPInc = true;
 						break;
 						}
@@ -4681,7 +6187,8 @@ CHexeProcess::ERun CHexeProcess::ExecuteReturnFromLibrary (const CHexeCallStack:
 		{
 		//	Must be in an event handler.
 
-		if (m_iEventHandlerLevel <= 0)
+		if (m_EventHandlerStack.GetCount() == 0
+				|| m_EventHandlerStack.GetAt(m_EventHandlerStack.GetCount() - 1) != EEventHandlerType::Code)
 			throw CException(errFail);
 
 		//	Pop the result
@@ -4693,7 +6200,7 @@ CHexeProcess::ERun CHexeProcess::ExecuteReturnFromLibrary (const CHexeCallStack:
 		//	NOTE: We don't need to restore m_Env because the function 
 		//	did that in its return code (call to opExitEnv).
 
-		m_iEventHandlerLevel--;
+		m_EventHandlerStack.Delete(m_EventHandlerStack.GetCount() - 1);
 		retResult = dEventHandlerResult;
 		return ERun::EventHandlerDone;
 		}

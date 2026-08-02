@@ -217,6 +217,26 @@ IComplexDatum *CComplexStruct::Clone (CDatum::EClone iMode) const
 		}
 	}
 
+CDatum CComplexStruct::Cleaned () const
+
+//	Cleaned
+//
+//	Returns a cleaned copy of this struct.
+
+	{
+	CRecursionGuard Guard(*this);
+	if (Guard.InRecursion())
+		return CDatum::raw_AsComplex(this);
+
+	CDatum dResult(CDatum::typeStruct);
+	dResult.GrowToFit(m_Map.GetCount());
+
+	for (int i = 0; i < m_Map.GetCount(); i++)
+		dResult.SetElement(m_Map.GetKey(i), m_Map[i].Cleaned());
+
+	return dResult;
+	}
+
 void CComplexStruct::CloneContents ()
 
 //	CloneContents

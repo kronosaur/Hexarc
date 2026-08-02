@@ -10,11 +10,12 @@ DECLARE_CONST_STRING(FIELD_ALLOW_NULL,					"allowNull");
 DECLARE_CONST_STRING(TYPENAME_ARRAY_MAP_PROC,			"arrayMapProcessor");
 const CString &CArrayMapProcessor::StaticGetTypename (void) { return TYPENAME_ARRAY_MAP_PROC; }
 
-CArrayMapProcessor::CArrayMapProcessor (CDatum dArray, CDatum dOptions, CDatum dMapFunc) :
+CArrayMapProcessor::CArrayMapProcessor (CDatum dArray, CDatum dOptions, CDatum dMapFunc, CDatum dResultType) :
 		m_dArray(dArray),
 		m_dOptions(dOptions),
 		m_dMapFunc(dMapFunc),
-		m_bAllowNull(dOptions.GetElement(FIELD_ALLOW_NULL).AsBool())
+		m_bAllowNull(dOptions.GetElement(FIELD_ALLOW_NULL).AsBool()),
+		m_dResultType(dResultType)
 
 //	CArrayMapProcess constructor
 
@@ -32,6 +33,7 @@ void CArrayMapProcessor::OnMarked (void)
 	m_dOptions.Mark();
 	m_dMapFunc.Mark();
 	m_dResult.Mark();
+	m_dResultType.Mark();
 	}
 
 bool CArrayMapProcessor::Process (CDatum dSelf, SAEONInvokeResult& retResult)
@@ -59,13 +61,13 @@ bool CArrayMapProcessor::Process (CDatum dSelf, SAEONInvokeResult& retResult)
 		}
 	else if (m_dArray.GetCount() == 0)
 		{
-		retResult.dResult = CDatum(CDatum::typeArray);
+		retResult.dResult = (m_dResultType.IsNil() ? CDatum(CDatum::typeArray) : CDatum::CreateArrayAsType(m_dResultType));
 		return true;
 		}
 
 	//	Initialize our state.
 
-	m_dResult = CDatum(CDatum::typeArray);
+	m_dResult = (m_dResultType.IsNil() ? CDatum(CDatum::typeArray) : CDatum::CreateArrayAsType(m_dResultType));
 	m_dResult.GrowToFit(m_dArray.GetCount());
 	m_iPos = 0;
 

@@ -5,6 +5,8 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_CMACHINE_STORAGE_VOL01,	"Vol01");
+
 DECLARE_CONST_STRING(FIELD_LOCAL_PATH,					"localPath");
 DECLARE_CONST_STRING(FIELD_STATUS,						"status");
 DECLARE_CONST_STRING(FIELD_VOLUME_NAME,					"volumeName");
@@ -162,7 +164,7 @@ bool CMachineStorage::InitLocal (const CString &sStoragePath, const CString &sEn
 
 	{
 	m_sEngineDirectory = sEngineDirectory;
-	CString sVolumeName = CString("Vol01");
+	CString sVolumeName = STR_CMACHINE_STORAGE_VOL01;
 
 	//	Add a path for the engine directory
 

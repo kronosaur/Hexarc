@@ -74,7 +74,7 @@ class CRowKey
 		static bool ComparePartial (const CTableDimensions &Dims, const CRowKey &PartialKey, const CRowKey &Key);
 
 	private:
-		CDatum AsDatum (char *pPos, EKeyTypes iKeyType, char **retpPos = NULL) const;
+		CDatum AsDatum (const char *pPos, EKeyTypes iKeyType, const char **retpPos = NULL) const;
 		void CleanUp (void);
 		static void WriteKeyPart (CStringBuffer &Buffer, EKeyTypes iKeyType, CDatum dKey);
 
@@ -575,7 +575,8 @@ class CAeonView
 		DWORD GetRecoveryFileVersion (void) { return m_Recovery.GetVersion(); }
 		const CAeonSegment &GetSegment (int iIndex) const { return *m_Segments[iIndex]; }
 		int GetSegmentCount (void) { return m_Segments.GetCount(); }
-		bool GetSegmentsToMerge (CAeonSegment **retpSeg1, CAeonSegment **retpSeg2);
+		bool GetOldestSegmentToCompactTombstones (CAeonSegment **retpSeg);
+		bool GetSegmentsToMerge (CAeonSegment **retpSeg1, CAeonSegment **retpSeg2, bool *retbIncludesOldest = NULL);
 		int GetUpdateCount (void) const { return m_pRows->GetUpdateCount(); }
 		bool HasRowID (void) { return !IsSecondaryView(); }
 		bool HasUnsavedRows (void) { return (m_pRows->GetCount() > 0); }
@@ -590,6 +591,7 @@ class CAeonView
 		bool IsValid (void) const { return !m_bInvalid; }
 		bool LoadRecoveryFile (const CString &sRecoveryFilespec, CAeonRowArray **retpRows, int *retiRowsRecovered, CString *retsError);
 		void Mark (void);
+		void SegmentCompactComplete (CAeonSegment *pOldSeg, CAeonSegment *pNewSeg);
 		void SegmentMergeComplete (CAeonSegment *pSeg1, CAeonSegment *pSeg2, CAeonSegment *pNewSeg);
 		void SegmentSaveComplete (CAeonSegment *pSeg);
 		void SetID (DWORD dwID) { m_dwID = dwID; }
@@ -626,6 +628,10 @@ class CAeonView
 		bool m_bUpdateNeeded = false;		//	If TRUE then we are updating the view
 											//	to add segments saved before the given
 											//	sequence number
+
+		//	Temporary migration state used to purge tombstones from oldest
+		//	segments created before tombstone-compacting merges existed.
+		bool m_bOldestTombstoneCleanupNeeded = true;
 	};
 
 //	CAeonTable
@@ -760,6 +766,7 @@ class CAeonTable
 			stateReady,						//	We are ready for housekeeping
 			stateCreatingSegment,			//	We are saving out a new segment
 			stateMergingSegments,			//	We are merging two segments.
+			stateCompactingTombstones,		//	We are removing obsolete tombstones.
 			stateBackup,					//	We are creating a backup.
 			stateRestore,					//	We are restoring the primary from backup.
 			stateUpdatingView,				//	We are updating a newly created secondary view.
@@ -794,6 +801,7 @@ class CAeonTable
 		CString GetUniqueSegmentFilespec (CString *retsBackup);
 		SEQUENCENUMBER GetVolumeSeq (const CString &sVolume);
 		bool HousekeepingBackup (CSmartLock &Lock);
+		bool HousekeepingCompactOldestTombstones (CSmartLock &Lock, bool *retbDone);
 		bool HousekeepingMergeSegments (CSmartLock &Lock);
 		bool HousekeepingUpdateView (CSmartLock &Lock, DWORD dwViewID);
 		void HousekeepingValidateBackup (void);
@@ -812,7 +820,7 @@ class CAeonTable
 		bool SaveDesc (CDatum dDesc, const CString &sFilespec, CString *retsError);
 		bool ValidateVolume (const CString &sVolume, TArray<CString> &retUnused, CString *retsError) const;
 
-		static CDatum GetDimensionPathElement (EKeyTypes iKeyType, char **iopPos, char *pPosEnd);
+		static CDatum GetDimensionPathElement (EKeyTypes iKeyType, const char **iopPos, const char *pPosEnd);
 		static void SetDimensionDesc (CComplexStruct *pDesc, const SDimensionDesc &Dim);
 
 		IArchonProcessCtx *m_pProcess = NULL;		//	Process pointer
@@ -848,6 +856,7 @@ class CAeonEngine : public TSimpleEngine<CAeonEngine>
 		virtual ~CAeonEngine (void);
 
 		bool GetViewStatus (const CString &sTable, DWORD dwViewID, bool *retbUpToDate, CString *retsError);
+		bool InitDiagnostics (const CString &sStoragePath, CString *retsError);
 		void SetConsoleMode (const CString &sStorage) { m_sConsoleStorage = sStorage; m_bConsoleMode = true; }
 
 		virtual CString ConsoleCommand (const CString &sCmd, const TArray<CDatum> &Args) override;
@@ -897,6 +906,10 @@ class CAeonEngine : public TSimpleEngine<CAeonEngine>
 		void MsgOnMnemosynthModified (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgRecoverTableTest (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgStatus (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
+		void MsgTestCrashReopen (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
+		void MsgTestDiagnostics (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
+		void MsgTestHousekeeping (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
+		void MsgTestReopen (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgTranspaceDownload (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgWaitForView (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgWaitForVolume (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
@@ -918,9 +931,16 @@ class CAeonEngine : public TSimpleEngine<CAeonEngine>
 		bool m_bMachineStarted = false;				//	TRUE if we've received Exarch.onMachineStart message
 		bool m_bReady = false;						//	TRUE if we are serving requests
 		bool m_bConsoleMode = false;				//	TRUE if we're in console mode
+		bool m_bDiagnosticsMode = false;			//	TRUE if diagnostics-only messages are enabled
 		DWORD m_dwMaxMemoryUse = 0;
 		CMachineStorage m_LocalVolumes;
 		TSortMap<CString, CAeonTable *> m_Tables;
 
 		CString m_sConsoleStorage;					//	If in console mode, this is the root of our storage
+	};
+
+class CAeonDiagnostics
+	{
+	public:
+		static int RunDiagnostics (void);
 	};

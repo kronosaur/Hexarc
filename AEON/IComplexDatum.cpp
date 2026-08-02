@@ -102,7 +102,7 @@ const IDatatype &IComplexDatum::CastIDatatype (void) const
 //	Cast to IDatatype (default implementation)
 
 	{
-	return (const IDatatype &)CAEONTypeSystem::GetCoreType(IDatatype::ANY);
+	return (const IDatatype &)CAEONTypes::Get(IDatatype::ANY);
 	}
 
 bool IComplexDatum::OnDeserialize (CDatum::EFormat iFormat, CDatum dStruct)
@@ -190,7 +190,7 @@ bool IComplexDatum::DeserializeJSON (const CString &sTypename, const TArray<CDat
 
 	CStringBuffer Buffer(Data[0].AsStringView());
 	CBase64Decoder Decoder(&Buffer);
-	if (!OnDeserialize(CDatum::EFormat::JSON, sTypename, Decoder))
+	if (!OnDeserialize(CDatum::EFormat::AEONJSON, sTypename, Decoder))
 		return false;
 
 	return true;
@@ -246,7 +246,7 @@ CDatum IComplexDatum::GetDatatype () const
 //	Default implementation. This should only be used for internal datum types.
 
 	{
-	return CAEONTypeSystem::GetCoreType(IDatatype::ANY);
+	return CAEONTypes::Get(IDatatype::ANY);
 	}
 
 CDatum IComplexDatum::GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) const
@@ -366,7 +366,7 @@ void IComplexDatum::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) con
 			SerializeAsStruct(iFormat, Stream);
 			break;
 
-		case CDatum::EFormat::JSON:
+		case CDatum::EFormat::AEONJSON:
 			{
 			if (!(dwFlags & FLAG_SERIALIZE_NO_TYPENAME))
 				{
@@ -397,6 +397,31 @@ void IComplexDatum::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) con
 
 			if (!(dwFlags & FLAG_SERIALIZE_NO_TYPENAME))
 				Stream.Write("]", 1);
+			break;
+			}
+
+		case CDatum::EFormat::JSON:
+			{
+			if (dwFlags & FLAG_SERIALIZE_AS_STRUCT)
+				{
+				CComplexStruct *pStruct = new CComplexStruct;
+
+				OnSerialize(iFormat, pStruct);
+
+				CDatum dDatum(pStruct);
+				dDatum.Serialize(iFormat, Stream);
+				}
+			else
+				{
+				Stream.Write("\"", 1);
+
+				CBase64Encoder Encoder(&Stream);
+				OnSerialize(iFormat, Encoder);
+				Encoder.Close();
+
+				Stream.Write("\"", 1);
+				}
+
 			break;
 			}
 
@@ -451,16 +476,17 @@ CDatum IComplexDatum::DeserializeAEONAsExternal (IByteStream& Stream, DWORD dwID
 		Stream.Read(sData.GetPointer(), dwStreamSize);
 
 		dValue = CAEONForeign::Create(sTypename, std::move(sData));
+		Serialized.Add(dwID, dValue);
 		}
 	else
 		{
 		IComplexDatum* pDatum = pFactory->Create();
 		dValue = CDatum(pDatum);
+		Serialized.Add(dwID, dValue);
 
 		pDatum->DeserializeAEONExternal(Stream, Serialized);
 		}
 
-	Serialized.Add(dwID, dValue);
 	return dValue;
 	}
 
@@ -555,6 +581,7 @@ void IComplexDatum::SerializeAsStruct (CDatum::EFormat iFormat, IByteStream &Str
 			break;
 			}
 
+		case CDatum::EFormat::AEONJSON:
 		case CDatum::EFormat::JSON:
 			{
 			Stream.Write("{", 1);

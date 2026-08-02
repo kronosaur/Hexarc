@@ -29,7 +29,6 @@ DECLARE_CONST_STRING(FIELD_AUTH_NAME,					"authName");
 DECLARE_CONST_STRING(FIELD_AUTH_KEY,					"authKey");
 
 DECLARE_CONST_STRING(MSG_ESPER_ON_AMP1,					"Esper.onAMP1");
-DECLARE_CONST_STRING(MSG_LOG_DEBUG,						"Log.debug");
 DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error");
 
 DECLARE_CONST_STRING(PROTOCOL_AMP1,						"AMP/1.00");
@@ -43,9 +42,10 @@ DECLARE_CONST_STRING(ERR_INVALID_HEADER,				"Invalid header.");
 DECLARE_CONST_STRING(ERR_INVALID_DATA_LEN,				"Invalid data length: %s.");
 DECLARE_CONST_STRING(ERR_INVALID_AUTH,					"Invalid machine authentication from %s.");
 
-CEsperAMP1ConnectionIn::CEsperAMP1ConnectionIn (CEsperConnectionManager &Manager, const CString &sClientAddr, SOCKET hSocket) : CEsperConnection(hSocket),
+CEsperAMP1ConnectionIn::CEsperAMP1ConnectionIn (CEsperConnectionManager &Manager, const CString &sClientAddr, DWORD dwClientTicket, SOCKET hSocket) : CEsperConnection(hSocket),
 		m_Manager(Manager),
 		m_sClientAddr(sClientAddr),
+		m_dwClientTicket(dwClientTicket),
 		m_iState(stateNone)
 
 //	CEsperAMP1ConnectionIn constructor
@@ -132,54 +132,7 @@ void CEsperAMP1ConnectionIn::OnSocketOperationComplete (EOperation iOp, DWORD dw
 		{
 		case stateReadingHeader:
 			{
-			IMemoryBlock *pData = GetReadBuffer();
-
-			//	See if we have the entire header. If we don't then we need to 
-			//	keep reading.
-
-			const char *pPartialData;
-			DWORD dwPartialDataLen;
-			if (!CAMP1Protocol::GetHeader(*pData, &m_sCommand, &m_dwDataLen, &pPartialData, &dwPartialDataLen))
-				{
-				//	Error
-
-				if (!m_sCommand.IsEmpty())
-					{
-					m_Manager.LogTrace(strPattern(ERR_INVALID_MESSAGE, CEsperInterface::ConnectionToFriendlyID(CDatum(GetID())), m_sCommand));
-					SetMarkedForDelete();
-					}
-
-				//	Need more data
-
-				else
-					{
-					m_Data.SetLength(0);
-					m_Data.Seek(0);
-					m_Data.Write(*pData);
-
-					OpReadRequest(stateReadingHeaderContinues);
-					}
-				}
-
-			//	The header is complete. See if we have enough data.
-
-			else if (dwPartialDataLen >= (int)m_dwDataLen)
-				{
-				CBuffer Buffer(pPartialData, dwPartialDataLen);
-				OpSendAMPMessage(m_sCommand, Buffer);
-				}
-
-			//	Otherwise, keep reading
-
-			else
-				{
-				m_Data.SetLength(0);
-				m_Data.Seek(0);
-				m_Data.Write(pPartialData, dwPartialDataLen);
-
-				OpReadRequest(stateReadingData);
-				}
-
+			OpProcessHeaderBuffer(*GetReadBuffer());
 			break;
 			}
 
@@ -187,50 +140,12 @@ void CEsperAMP1ConnectionIn::OnSocketOperationComplete (EOperation iOp, DWORD dw
 			{
 			//	Append the new data to what we read before
 
-			m_Data.Write(*GetWriteBuffer());
-
-			//	See if we have the entire header. If we don't then we need to 
-			//	keep reading.
-
-			const char *pPartialData;
-			DWORD dwPartialDataLen;
-			if (!CAMP1Protocol::GetHeader(m_Data, &m_sCommand, &m_dwDataLen, &pPartialData, &dwPartialDataLen))
-				{
-				//	Error
-
-				if (!m_sCommand.IsEmpty())
-					{
-					m_Manager.LogTrace(strPattern(ERR_INVALID_MESSAGE, CEsperInterface::ConnectionToFriendlyID(CDatum(GetID())), m_sCommand));
-					SetMarkedForDelete();
-					}
-
-				//	Need more data
-
-				else
-					{
-					OpReadRequest(stateReadingHeaderContinues);
-					}
-				}
-
-			//	The header is complete. See if we have enough data.
-
-			else if (dwPartialDataLen >= (int)m_dwDataLen)
-				{
-				CBuffer Buffer(pPartialData, dwPartialDataLen);
-				OpSendAMPMessage(m_sCommand, Buffer);
-				}
-
-			//	Otherwise, keep reading
-
-			else
-				{
-				CBuffer Data;
-				Data.Write(pPartialData, dwPartialDataLen);
-				m_Data.TakeHandoff(Data);
-				m_Data.Seek(0, true);
-
-				OpReadRequest(stateReadingData);
-				}
+			m_Data.Write(*GetReadBuffer());
+			CBuffer Data;
+			Data.Write(m_Data);
+			m_Data.SetLength(0);
+			m_Data.Seek(0);
+			OpProcessHeaderBuffer(Data);
 
 			break;
 			}
@@ -241,8 +156,11 @@ void CEsperAMP1ConnectionIn::OnSocketOperationComplete (EOperation iOp, DWORD dw
 
 			if (m_Data.GetLength() >= (int)m_dwDataLen)
 				{
-				m_Data.Seek(0);
-				OpSendAMPMessage(m_sCommand, m_Data);
+				CBuffer Buffer;
+				Buffer.Write(m_Data.GetPointer(), m_dwDataLen);
+				Buffer.Seek(0);
+				SaveBufferedInput(m_Data.GetPointer() + m_dwDataLen, m_Data.GetLength() - m_dwDataLen);
+				OpSendAMPMessage(m_sCommand, Buffer);
 				}
 			else
 				OpReadRequest(stateReadingData);
@@ -252,9 +170,19 @@ void CEsperAMP1ConnectionIn::OnSocketOperationComplete (EOperation iOp, DWORD dw
 
 		case stateWriting:
 			{
-			//	Writing successful, read more
+			//	Writing successful. If we already read bytes for the next
+			//	message, process them before waiting on the socket again.
 
-			OpReadRequest(stateReadingHeader);
+			if (m_Data.GetLength() > 0)
+				{
+				CBuffer Data;
+				Data.Write(m_Data);
+				m_Data.SetLength(0);
+				m_Data.Seek(0);
+				OpProcessHeaderBuffer(Data);
+				}
+			else
+				OpReadRequest(stateReadingHeader);
 			break;
 			}
 		}
@@ -315,6 +243,59 @@ void CEsperAMP1ConnectionIn::OpReadRequest (EStates iNewState)
 		}
 	}
 
+void CEsperAMP1ConnectionIn::OpProcessHeaderBuffer (IMemoryBlock &Data)
+
+//	OpProcessHeaderBuffer
+//
+//	Process a buffer that starts at an AMP1 header. If the buffer includes
+//	bytes after the current frame, we save them to process after ACK.
+
+	{
+	const char *pPartialData;
+	DWORD dwPartialDataLen;
+	if (!CAMP1Protocol::GetHeader(Data, &m_sCommand, &m_dwDataLen, &pPartialData, &dwPartialDataLen))
+		{
+		//	Error
+
+		if (!m_sCommand.IsEmpty())
+			{
+			m_Manager.LogTrace(strPattern(ERR_INVALID_MESSAGE, CEsperInterface::ConnectionToFriendlyID(CDatum(GetID())), m_sCommand));
+			SetMarkedForDelete();
+			}
+
+		//	Need more data
+
+		else
+			{
+			m_Data.SetLength(0);
+			m_Data.Seek(0);
+			m_Data.Write(Data);
+
+			OpReadRequest(stateReadingHeaderContinues);
+			}
+		}
+
+	//	The header is complete. See if we have enough data.
+
+	else if (dwPartialDataLen >= (int)m_dwDataLen)
+		{
+		CBuffer Buffer(pPartialData, m_dwDataLen);
+		SaveBufferedInput(pPartialData + m_dwDataLen, dwPartialDataLen - m_dwDataLen);
+		OpSendAMPMessage(m_sCommand, Buffer);
+		}
+
+	//	Otherwise, keep reading
+
+	else
+		{
+		m_Data.SetLength(0);
+		m_Data.Seek(0);
+		m_Data.Write(pPartialData, dwPartialDataLen);
+
+		OpReadRequest(stateReadingData);
+		}
+	}
+
 void CEsperAMP1ConnectionIn::OpSendAMPMessage (const CString &sCommand, IMemoryBlock &Data)
 
 //	OpSendAMPMessage
@@ -325,7 +306,8 @@ void CEsperAMP1ConnectionIn::OpSendAMPMessage (const CString &sCommand, IMemoryB
 	//	Deserialize
 
 	CDatum dData;
-	if (!CDatum::Deserialize(CDatum::EFormat::AEONScript, Data, &dData))
+	bool bDeserializeOK = CDatum::Deserialize(CDatum::EFormat::AEONScript, Data, &dData);
+	if (!bDeserializeOK)
 		dData = CDatum();
 
 	//	If this is an AUTH command, then we need to check the key to see if we can 
@@ -354,6 +336,7 @@ void CEsperAMP1ConnectionIn::OpSendAMPMessage (const CString &sCommand, IMemoryB
 
 	//	Compose a message for our client
 
+	CDatum dPayload;
 	if (!bAuthFailure)
 		{
 		CComplexArray *pPayload = new CComplexArray;
@@ -366,9 +349,7 @@ void CEsperAMP1ConnectionIn::OpSendAMPMessage (const CString &sCommand, IMemoryB
 		if (!m_sMachineName.IsEmpty())
 			pPayload->Insert(m_sMachineName);
 
-		//	Send it
-
-		m_Manager.SendMessageCommand(m_sClientAddr, MSG_ESPER_ON_AMP1, NULL_STR, 0, CDatum(pPayload));
+		dPayload = CDatum(pPayload);
 		}
 
 	//	Reply with acknowledgement.
@@ -381,7 +362,27 @@ void CEsperAMP1ConnectionIn::OpSendAMPMessage (const CString &sCommand, IMemoryB
 		{
 		m_Manager.LogTrace(strPattern(ERR_WRITE_OP_FAILED, CEsperInterface::ConnectionToFriendlyID(CDatum(GetID()))));
 		SetMarkedForDelete();
+		return;
 		}
+
+	//	Send the message after we have started writing the AMP1 ACK.
+
+	if (!bAuthFailure)
+		m_Manager.SendMessageCommand(m_sClientAddr, MSG_ESPER_ON_AMP1, NULL_STR, m_dwClientTicket, dPayload);
+	}
+
+void CEsperAMP1ConnectionIn::SaveBufferedInput (const char *pData, DWORD dwLen)
+
+//	SaveBufferedInput
+//
+//	Saves bytes that were read beyond the current AMP1 frame.
+
+	{
+	m_Data.SetLength(0);
+	m_Data.Seek(0);
+
+	if (dwLen > 0)
+		m_Data.Write(pData, dwLen);
 	}
 
 bool CEsperAMP1ConnectionIn::SetBusy (EOperation iOperation)

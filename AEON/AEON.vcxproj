@@ -257,6 +257,7 @@
     <ClCompile Include="CAEONMapColumnExpression.cpp" />
     <ClCompile Include="CAEONNilImpl.cpp" />
     <ClCompile Include="CAEONObject.cpp" />
+    <ClCompile Include="CAEONRecord.cpp" />
     <ClCompile Include="CAEONOp.cpp" />
     <ClCompile Include="CAEONPolygon2D.cpp" />
     <ClCompile Include="CAEONExpression.cpp" />
@@ -282,6 +283,8 @@
     <ClCompile Include="CAEONVector3D.cpp" />
     <ClCompile Include="CAEONVectorFloat64.cpp" />
     <ClCompile Include="CAEONVectorNumber.cpp" />
+    <ClCompile Include="CAEONVectorVector2D.cpp" />
+    <ClCompile Include="CAEONVectorVector3D.cpp" />
     <ClCompile Include="CAEONVectorString.cpp" />
     <ClCompile Include="CComplexArray.cpp" />
     <ClCompile Include="CComplexBinary.cpp" />
@@ -297,7 +300,11 @@
     <ClCompile Include="CDatatypeClass.cpp" />
     <ClCompile Include="CDatatypeEnum.cpp" />
     <ClCompile Include="CDatatypeFunction.cpp" />
+    <ClCompile Include="CDatatypeGenericFunction.cpp" />
     <ClCompile Include="CDatatypeList.cpp" />
+    <ClCompile Include="CDatatypeLiteralStruct.cpp" />
+    <ClCompile Include="CDatatypeNever.cpp" />
+    <ClCompile Include="CDatatypeQualified.cpp" />
     <ClCompile Include="CDatatypeTensor.cpp" />
     <ClCompile Include="CDatatypeNull.cpp" />
     <ClCompile Include="CDatatypeNullable.cpp" />
@@ -367,6 +374,7 @@
     <ClInclude Include="..\Include\GridLangParser.h" />
     <ClInclude Include="AEONImpl.h" />
     <ClInclude Include="AEONLines.h" />
+    <ClInclude Include="AEONStore.h" />
     <ClInclude Include="AEONTable.h" />
     <ClInclude Include="DatatypeImpl.h" />
     <ClInclude Include="OpsImpl.h" />

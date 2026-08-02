@@ -7,6 +7,12 @@
 
 #include <type_traits>
 
+template <class T, class = void>
+struct has_less_than_op : std::false_type {};
+
+template <class T>
+struct has_less_than_op<T, std::void_t<decltype(std::declval<const T&>() < std::declval<const T&>())>> : std::true_type {};
+
 template <class VALUE, class IMPL> class TAEONVector : public IComplexDatum
 	{
 	public:
@@ -72,6 +78,23 @@ template <class VALUE, class IMPL> class TAEONVector : public IComplexDatum
 				default:
 					return new IMPL(m_Array);
 				}
+			}
+
+
+		virtual CDatum Cleaned () const override
+			{
+			CRecursionGuard Guard(*this);
+			if (Guard.InRecursion())
+				return CDatum::raw_AsComplex(this);
+
+			auto pResult = new IMPL(m_Array);
+			for (int i = 0; i < pResult->m_Array.GetCount(); i++)
+				{
+				CDatum dElement = IMPL::ToDatum(pResult->m_Array[i]).Cleaned();
+				pResult->m_Array[i] = IMPL::FromDatum(dElement);
+				}
+
+			return CDatum(pResult);
 			}
 
 		virtual void DeleteElement (int iIndex) override { if (iIndex >= 0 && iIndex < m_Array.GetCount()) m_Array.Delete(iIndex); }
@@ -288,6 +311,7 @@ template <class VALUE, class IMPL> class TAEONVector : public IComplexDatum
 					break;
 					}
 
+				case CDatum::EFormat::AEONJSON:
 				case CDatum::EFormat::JSON:
 					{
 					Stream.Write("[", 1);
@@ -310,11 +334,20 @@ template <class VALUE, class IMPL> class TAEONVector : public IComplexDatum
 				}
 			}
 			
-		virtual void Sort (ESortOptions Order = AscendingSort, TArray<CDatum>::COMPAREPROC pfCompare = NULL, void *pCtx = NULL) override { m_Array.Sort(Order); }
+		virtual void Sort (ESortOptions Order = AscendingSort, TArray<CDatum>::COMPAREPROC pfCompare = NULL, void *pCtx = NULL) override { if constexpr (has_less_than_op<VALUE>::value) m_Array.Sort(Order); }
 		virtual void SetArrayElementUnchecked (int iIndex, CDatum dValue) override { m_Array[iIndex] = IMPL::FromDatum(dValue); }
 		virtual void SetElement (int iIndex, CDatum dDatum) override { if (iIndex >= 0 && iIndex < m_Array.GetCount()) m_Array[iIndex] = IMPL::FromDatum(dDatum); }
 
 	protected:
+		virtual void OnMarked (void) override
+			{
+			if constexpr (std::is_same<VALUE, CDatum>::value)
+				{
+				for (int i = 0; i < m_Array.GetCount(); i++)
+					m_Array[i].Mark();
+				}
+			}
+
 		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const override
 			{
 			size_t TotalSize = 2 + m_Array.GetCount();
@@ -327,4 +360,3 @@ template <class VALUE, class IMPL> class TAEONVector : public IComplexDatum
 
 		TArray<VALUE> m_Array;
 	};
-

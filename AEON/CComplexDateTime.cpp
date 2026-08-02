@@ -369,6 +369,7 @@ void CComplexDateTime::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) 
 			break;
 			}
 
+		case CDatum::EFormat::AEONJSON:
 		case CDatum::EFormat::JSON:
 			{
 			CString sDate = strPattern("\"%d-%02d-%02dT%02d:%02d:%02d.%03d\"",

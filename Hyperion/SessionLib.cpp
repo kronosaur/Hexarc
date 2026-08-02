@@ -5,6 +5,10 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_SESSION_LIB_COLON,	":");
+DECLARE_CONST_STRING(STR_SESSION_LIB_EQUALS,	"=");
+DECLARE_CONST_STRING(STR_SESSION_LIB_DOMAIN,	"domain");
+
 DECLARE_CONST_STRING(LIBRARY_HYPERION,					"hyperion");
 DECLARE_CONST_STRING(LIBRARY_SESSION,					"session");
 DECLARE_CONST_STRING(LIBRARY_SESSION_CTX,				"sessionCtx");
@@ -136,6 +140,107 @@ DECLARE_CONST_STRING(ERR_INVALID_COOKIE,				"Invalid cookie.");
 DECLARE_CONST_STRING(ERR_NO_SESSION_CTX,				"Unable to find session context.");
 DECLARE_CONST_STRING(ERR_BAD_COMMAND_LINE,				"Unable to parse command line.");
 DECLARE_CONST_STRING(ERR_INVALID_REQUEST_URL,			"Unable to parse request URL: %s.");
+
+static CString GetCookieDomainFromHost (const CString &sHost)
+	{
+	CString sHostName = strToLower(strClean(sHost));
+	int iColon = strFind(sHostName, STR_SESSION_LIB_COLON);
+	if (iColon != -1)
+		sHostName = strSubString(sHostName, 0, iColon);
+
+	while (!sHostName.IsEmpty())
+		{
+		char *pPos = sHostName.GetParsePointer();
+		if (pPos[sHostName.GetLength() - 1] != '.')
+			break;
+
+		sHostName = strSubString(sHostName, 0, sHostName.GetLength() - 1);
+		}
+
+	if (sHostName.IsEmpty())
+		return NULL_STR;
+
+	int iLastDot = -1;
+	int iPrevDot = -1;
+	char *pPos = sHostName.GetParsePointer();
+	for (int i = 0; i < sHostName.GetLength(); i++)
+		if (pPos[i] == '.')
+			{
+			iPrevDot = iLastDot;
+			iLastDot = i;
+			}
+
+	if (iLastDot == -1)
+		return NULL_STR;
+
+	return strPattern(".%s", strSubString(sHostName, (iPrevDot == -1 ? 0 : iPrevDot + 1)));
+	}
+
+static bool IsCookieDomainMatch (const CString &sDomain, const CString &sHost)
+	{
+	CString sDomainClean = strToLower(strClean(sDomain));
+	CString sHostDomain = GetCookieDomainFromHost(sHost);
+	if (sDomainClean.IsEmpty() || sHostDomain.IsEmpty())
+		return false;
+
+	if (*sDomainClean.GetParsePointer() == '.')
+		sDomainClean = strSubString(sDomainClean, 1);
+
+	if (*sHostDomain.GetParsePointer() == '.')
+		sHostDomain = strSubString(sHostDomain, 1);
+
+	return strEquals(sDomainClean, sHostDomain);
+	}
+
+static CString RewriteCookieDomainForPublicHost (const CString &sCookie, const CString &sPublicHost, const CString &sInternalHost)
+	{
+	if (sPublicHost.IsEmpty() || sInternalHost.IsEmpty() || strEqualsNoCase(sPublicHost, sInternalHost))
+		return sCookie;
+
+	CString sPublicDomain = GetCookieDomainFromHost(sPublicHost);
+	if (sPublicDomain.IsEmpty())
+		return sCookie;
+
+	CString sResult;
+	bool bFirst = true;
+	char *pPos = sCookie.GetParsePointer();
+	char *pEnd = pPos + sCookie.GetLength();
+
+	while (pPos < pEnd)
+		{
+		char *pPartStart = pPos;
+		while (pPos < pEnd && *pPos != ';')
+			pPos++;
+
+		CString sPart = strClean(CString(pPartStart, (int)(pPos - pPartStart)));
+
+		int iEquals = strFind(sPart, STR_SESSION_LIB_EQUALS);
+		if (iEquals != -1)
+			{
+			CString sName = strToLower(strClean(strSubString(sPart, 0, iEquals)));
+			if (strEquals(sName, STR_SESSION_LIB_DOMAIN))
+				{
+				CString sDomain = strSubString(sPart, iEquals + 1);
+				if (IsCookieDomainMatch(sDomain, sInternalHost))
+					sPart = strPattern("domain=%s", sPublicDomain);
+				}
+			}
+
+		if (!sPart.IsEmpty())
+			{
+			if (!bFirst)
+				sResult = strPattern("%s; ", sResult);
+
+			sResult = strPattern("%s%s", sResult, sPart);
+			bFirst = false;
+			}
+
+		if (pPos < pEnd && *pPos == ';')
+			pPos++;
+		}
+
+	return sResult.IsEmpty() ? sCookie : sResult;
+	}
 
 //	Library --------------------------------------------------------------------
 
@@ -326,9 +431,13 @@ bool httpMisc (IInvokeCtx *pCtx, DWORD dwData, CHexeStackEnv& LocalEnv, CDatum d
 			CDatum dCookie = LocalEnv.GetArgument(0);
 			if (dCookie.GetBasicType() == CDatum::typeString)
 				{
+				CString sCookie(dCookie.AsStringView());
+				if (!pSessionCtx->sOriginalRequestHost.IsEmpty())
+					sCookie = RewriteCookieDomainForPublicHost(sCookie, pSessionCtx->sOriginalRequestHost, pSessionCtx->Request.GetRequestedHost());
+
 				CHTTPMessage::SHeader *pHeader = pSessionCtx->AdditionalHeaders.Insert();
 				pHeader->sField = HEADER_SET_COOKIE;
-				pHeader->sValue = dCookie.AsStringView();
+				pHeader->sValue = sCookie;
 				}
 			else
 				{

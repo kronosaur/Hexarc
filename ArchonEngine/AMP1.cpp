@@ -24,6 +24,7 @@ DECLARE_CONST_STRING(FIELD_NODE_ID,						"nodeID");
 DECLARE_CONST_STRING(FIELD_STATUS,						"status");
 
 DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply");
+DECLARE_CONST_STRING(MSG_ERROR_UNKNOWN_MACHINE,			"Error.unknownMachine");
 DECLARE_CONST_STRING(MSG_ESPER_AMP1,					"Esper.amp1");
 DECLARE_CONST_STRING(MSG_ESPER_AMP1_DISCONNECT,			"Esper.amp1Disconnect");
 DECLARE_CONST_STRING(MSG_ESPER_SET_CONNECTION_PROPERTY,	"Esper.setConnectionProperty");
@@ -54,28 +55,32 @@ DECLARE_CONST_STRING(ERR_CANT_BIND,						"Unable to bind to address: %s.");
 DECLARE_CONST_STRING(ERR_CANT_SEND,						"Unable to send to address: %s.");
 DECLARE_CONST_STRING(ERR_CANT_SEND_AMP1_COMMAND,		"Unable to send AMP1 command to %s.");
 DECLARE_CONST_STRING(ERR_CANT_WRITE_CONFIG_FILE,		"Unable to write configuration file.");
+DECLARE_CONST_STRING(ERR_UNKNOWN_MACHINE,				"Unknown machine: %s.");
 DECLARE_CONST_STRING(ERR_UNKNOWN_AMP1_COMMAND,			"Unknown AMP1 command: %s.");
 DECLARE_CONST_STRING(ERR_AMP1_ERROR,					"AMP1 ERROR: %s.");
 
-void CExarchEngine::OnAMP1ClientConnected (CStringView sNodeID)
+void CExarchEngine::OnAMP1ClientConnected (CStringView sNodeID, CStringView sMachineName)
 	{
 	CSmartLock Lock(m_cs);
 	if (m_bInGC)
 		{
-		m_AMP1Queue.OnAMP1ClientConnected(sNodeID);
+		m_AMP1Queue.OnAMP1ClientConnected(sNodeID, sMachineName);
 		return;
 		}
 	Lock.Unlock();
 
 	Log(MSG_LOG_INFO, strPattern(STR_CLIENT_CONNECTED, sNodeID));
+
+	if (m_MecharcologyDb.OnMachineConnected(sNodeID, sMachineName))
+		OnMachineConnection(sNodeID, sMachineName);
 	}
 
-void CExarchEngine::OnAMP1ClientDisconnected (CStringView sNodeID)
+void CExarchEngine::OnAMP1ClientDisconnected (CStringView sNodeID, CStringView sMachineName)
 	{
 	CSmartLock Lock(m_cs);
 	if (m_bInGC)
 		{
-		m_AMP1Queue.OnAMP1ClientDisconnected(sNodeID);
+		m_AMP1Queue.OnAMP1ClientDisconnected(sNodeID, sMachineName);
 		return;
 		}
 
@@ -83,8 +88,11 @@ void CExarchEngine::OnAMP1ClientDisconnected (CStringView sNodeID)
 
 	//	When a machine disconnects, we need to update our mnemosynth database
 
-	SMachineDesc Desc;
-	if (!m_MecharcologyDb.FindMachineByNodeID(sNodeID, &Desc))
+	CString sName(sMachineName);
+	if (!m_MecharcologyDb.OnMachineDisconnected(sNodeID, &sName))
+		return;
+
+	if (sName.IsEmpty())
 		return;
 
 	CDatum dMachineInfo(CDatum::typeStruct);
@@ -93,21 +101,24 @@ void CExarchEngine::OnAMP1ClientDisconnected (CStringView sNodeID)
 	dMachineInfo.SetElement(FIELD_STATUS, MNEMO_STATUS_STOPPED);
 
 	MnemosynthWrite(MNEMO_ARC_MACHINES, 
-			Desc.sName, 
+			sName,
 			dMachineInfo);
 	}
 
-void CExarchEngine::OnAMP1ConnectedToServer ()
+void CExarchEngine::OnAMP1ConnectedToServer (CStringView sMachineName)
 	{
 	CSmartLock Lock(m_cs);
 	if (m_bInGC)
 		{
-		m_AMP1Queue.OnAMP1ConnectedToServer();
+		m_AMP1Queue.OnAMP1ConnectedToServer(sMachineName);
 		return;
 		}
 	Lock.Unlock();
 
 	LogBlackBox(STR_CONNECTED_TO_SERVER);
+
+	if (m_MecharcologyDb.OnMachineConnected(CMecharcologyDb::ArcologyPrimeNodeID(), sMachineName))
+		OnMachineConnection(CMecharcologyDb::ArcologyPrimeNodeID(), sMachineName);
 	}
 
 void CExarchEngine::OnAMP1FatalError (CStringView sError)
@@ -237,18 +248,40 @@ void CExarchEngine::MsgSendToMachine (const SArchonMessage &Msg, const CHexeSecu
 //	Exarch.sendToMachine {machineName} {address} {msg} {ticket} {replyAddr} {payload} {sendingMachine} {noLog}
 
 	{
-	CStringView sMachineName = Msg.dPayload.GetElement(0);
+	CString sMachineName = Msg.dPayload.GetElement(0).AsString();
 	CDatum dNoLog = Msg.dPayload.GetElement(7);
 
-	if (!SendAMP1Command(sMachineName, AMP1_SEND, Msg.dPayload))
+	CString sErrorCode;
+	CString sError;
+	SMachineDesc MachineDesc;
+	if (!m_MecharcologyDb.FindMachineByName(sMachineName, &MachineDesc))
+		{
+		sErrorCode = MSG_ERROR_UNKNOWN_MACHINE;
+		sError = strPattern(ERR_UNKNOWN_MACHINE, sMachineName);
+		}
+	else if (!SendAMP1Command(MachineDesc, AMP1_SEND, Msg.dPayload))
+		{
+		sErrorCode = MSG_ERROR_UNABLE_TO_COMPLY;
+		sError = strPattern(ERR_CANT_SEND_AMP1_COMMAND, sMachineName);
+		}
+
+	if (!sErrorCode.IsEmpty())
 		{
 		//	dNoLog is TRUE if we're sending a log message. This prevents us from
 		//	infinitely recursing.
 
 		if (dNoLog.IsNil())
-			Log(MSG_LOG_ERROR, strPattern(ERR_CANT_SEND_AMP1_COMMAND, sMachineName));
+			Log(MSG_LOG_ERROR, sError);
 
-		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_CANT_SEND_AMP1_COMMAND, sMachineName), Msg);
+		//	Propagate the failure to the original caller. The wrapper message sent
+		//	to Exarch has no reply address, so SendMessageReplyError below cannot
+		//	wake the original async request.
+
+		CString sOriginalReplyAddr = Msg.dPayload.GetElement(4).AsString();
+		if (!CMessagePort::IsNullAddr(sOriginalReplyAddr))
+			SendMessageCommand(sOriginalReplyAddr, sErrorCode, NULL_STR, (DWORD)(int)Msg.dPayload.GetElement(3), CDatum(sError));
+
+		SendMessageReplyError(sErrorCode, sError, Msg);
 		return;
 		}
 
@@ -271,7 +304,19 @@ void CExarchEngine::AMP1Auth (CDatum dData, CDatum dConnection)
 
 	CString sNodeID;
 	if (m_MecharcologyDb.OnCompleteAuth(sName, sNodeID))
+		{
+		SMachineDesc Desc;
+		if (m_MecharcologyDb.FindMachineByName(CString(sName), &Desc)
+				&& !Desc.sAddress.IsEmpty())
+			{
+			CDatum dPayload(CDatum::typeArray);
+			dPayload.Append(Desc.sAddress);
+
+			SendMessageCommand(ADDRESS_ESPER_COMMAND, MSG_ESPER_AMP1_DISCONNECT, NULL_STR, 0, dPayload);
+			}
+
 		OnMachineConnection(sNodeID, sName);
+		}
 	}
 
 void CExarchEngine::AMP1Join (CDatum dData)
@@ -430,14 +475,15 @@ void CExarchEngine::AMP1Send (CDatum dData)
 	//	See CIntermachinePort.cpp for parameters
 
 	CStringView sAddr = dData.GetElement(1);
+
 	SArchonMessage Msg;
 	Msg.sMsg = dData.GetElement(2).AsStringView();
 	Msg.dwTicket = dData.GetElement(3);
 	Msg.sReplyAddr = dData.GetElement(4).AsStringView();
 	Msg.dPayload = dData.GetElement(5);
-	CDatum dNoLog = dData.GetElement(7);
 
 #ifdef DEBUG_AMP1
+	CDatum dNoLog = dData.GetElement(7);
 	if (dNoLog.IsNil())
 		Log(MSG_LOG_DEBUG, strPattern(STR_AMP1_SEND_DISPATCH, Msg.sMsg, sAddr, dData.GetElement(6).AsString()));
 #endif

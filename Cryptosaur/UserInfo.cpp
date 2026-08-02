@@ -37,6 +37,7 @@ DECLARE_CONST_STRING(MSG_CRYPTOSAUR_GET_USER,			"Cryptosaur.getUser")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_HAS_RIGHTS,			"Cryptosaur.hasRights")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_LOGIN_USER,			"Cryptosaur.loginUser")
 DECLARE_CONST_STRING(MSG_ERROR_DOES_NOT_EXIST,			"Error.doesNotExist")
+DECLARE_CONST_STRING(MSG_ERROR_INVALID_AUTH,			"Error.invalidAuth");
 DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply")
 DECLARE_CONST_STRING(MSG_LOG_INFO,						"Log.info")
 DECLARE_CONST_STRING(MSG_OK,							"OK")
@@ -249,7 +250,7 @@ bool CUserInfoSession::OnProcessMessage (const SArchonMessage &Msg)
 
 			if (Msg.dPayload.IsNil())
 				{
-				SendMessageReplyError(MSG_ERROR_DOES_NOT_EXIST, ERR_INVALID_USERNAME_OR_PASSWORD);
+				SendMessageReplyError(MSG_ERROR_INVALID_AUTH, ERR_INVALID_USERNAME_OR_PASSWORD);
 				return false;
 				}
 
@@ -322,7 +323,7 @@ bool CUserInfoSession::OnProcessMessage (const SArchonMessage &Msg)
 
 			if (Msg.dPayload.IsNil())
 				{
-				SendMessageReplyError(MSG_ERROR_DOES_NOT_EXIST, ERR_INVALID_USERNAME_OR_PASSWORD);
+				SendMessageReplyError(MSG_ERROR_INVALID_AUTH, ERR_INVALID_USERNAME_OR_PASSWORD);
 				return false;
 				}
 
@@ -369,7 +370,7 @@ bool CUserInfoSession::OnProcessMessage (const SArchonMessage &Msg)
 
 			if (dAuthDesc.IsNil())
 				{
-				SendMessageReplyError(MSG_ERROR_DOES_NOT_EXIST, ERR_INVALID_USERNAME_OR_PASSWORD);
+				SendMessageReplyError(MSG_ERROR_INVALID_AUTH, ERR_INVALID_USERNAME_OR_PASSWORD);
 				return false;
 				}
 
@@ -378,7 +379,7 @@ bool CUserInfoSession::OnProcessMessage (const SArchonMessage &Msg)
 
 			else if (!dAuthDesc.GetElement(FIELD_AUTHORITY).IsNil())
 				{
-				SendMessageReplyError(MSG_ERROR_DOES_NOT_EXIST, ERR_INVALID_USERNAME_OR_PASSWORD);
+				SendMessageReplyError(MSG_ERROR_INVALID_AUTH, ERR_INVALID_USERNAME_OR_PASSWORD);
 				return false;
 				}
 
@@ -422,7 +423,7 @@ bool CUserInfoSession::OnProcessMessage (const SArchonMessage &Msg)
 					const CDateTime &Expires = dAuthDesc.GetElement(FIELD_CHALLENGE_EXPIRATION);
 					if (Expires < CDateTime(CDateTime::Now))
 						{
-						SendMessageReplyError(MSG_ERROR_DOES_NOT_EXIST, ERR_INVALID_USERNAME_OR_PASSWORD);
+						SendMessageReplyError(MSG_ERROR_INVALID_AUTH, ERR_INVALID_USERNAME_OR_PASSWORD);
 						return false;
 						}
 
@@ -531,7 +532,7 @@ bool CUserInfoSession::OnProcessMessage (const SArchonMessage &Msg)
 
 		//	Send a failure
 
-		SendMessageReplyError(MSG_ERROR_DOES_NOT_EXIST, ERR_INVALID_USERNAME_OR_PASSWORD);
+		SendMessageReplyError(MSG_ERROR_INVALID_AUTH, ERR_INVALID_USERNAME_OR_PASSWORD);
 		return false;
 		}
 

@@ -96,8 +96,10 @@ class CEsperConnection : public CIOCPSocket
 		virtual CDatum GetProperty (const CString &sProperty) const { return CDatum(); }
 		virtual bool IsBusy () const = 0;
 		void Mark () { OnMark(); }
+		virtual bool DisconnectAMP1WhenIdle () { return false; }
 		virtual void OnConnect () { }
 		virtual void OnUpgradedToWebSocket (CDatum dConnectInfo, CStringView sKey) { }
+		virtual bool SetBusyOrQueueAMP1Request (const SArchonMessage &Msg, const SAMP1Request &Request, bool& retbQueued, CString *retsError) { ASSERT(false); return false; }
 		virtual bool SendWSMessage (CDatum dMessage, CString* retsError) { ASSERT(false); return false; }
 		virtual bool SetBusy (EOperation iOperation) = 0;
 		virtual bool SetProperty (const CString &sProperty, CDatum dValue) { return false; }
@@ -293,6 +295,7 @@ class CEsperConnectionManager
 		void SendMessageReplyOnWrite (CDatum dConnection, DWORD dwBytesTransferred, const SArchonMessage &OriginalMsg);
 		bool SendWSMessage (CDatum dConnection, CDatum dMessage, CString* retsError);
 		void SetArchonCtx (IArchonProcessCtx *pArchon) { m_pArchon = pArchon; }
+		void SetSerializeAMP1 (bool bValue) { CSmartLock Lock(m_cs); m_bSerializeAMP1 = bValue; }
 		bool SetProperty (CDatum dConnection, const CString &sProperty, CDatum dValue, CString *retsError);
 		void SignalEvent (IIOCPEntry *pObject) { m_IOCP.SignalEvent(EncodeConnection(pObject)); }
 		bool UpgradeToWebSocket (CDatum dConnection, CDatum dConnectInfo, CStringView sKey, CString* retsError = NULL);
@@ -303,6 +306,7 @@ class CEsperConnectionManager
 
 		void AddConnection (CEsperConnection *pConnection, CDatum *retdConnection = NULL);
 		bool BeginAMP1Operation (const CString &sHostConnection, const CString &sAddress, DWORD dwPort, CEsperConnection **retpConnection, CString *retsError);
+		bool BeginSerializedAMP1Request (const SArchonMessage &Msg, const CString &sHostConnection, const CString &sAddress, DWORD dwPort, const CEsperConnection::SAMP1Request &Request, CString *retsError);
 		bool BeginHTTPOperation (const CString &sHostConnection, const CString &sAddress, DWORD dwPort, CEsperConnection **retpConnection, CString *retsError);
 		bool BeginOperation (CEsperConnection *pConnection, IIOCPEntry::EOperation iOp);
 		bool BeginOperation (CDatum dConnection, IIOCPEntry::EOperation iOp, CEsperConnection **retpConnection, CString *retsError);
@@ -310,7 +314,7 @@ class CEsperConnectionManager
 		void DeleteConnection (CEsperConnection *pConnection);
 		DWORD_PTR EncodeConnection (IIOCPEntry* pConnection) const;
 		bool FindConnection (CDatum dConnection, CEsperConnection **retpConnection);
-		bool FindOutboundConnection (const CString &sHostConnection, CEsperConnection **retpConnection);
+		bool FindOutboundConnection (const CString &sHostConnection, CEsperConnection **retpConnection, bool bAvailableOnly = true);
 		void FlushConnections ();
 		void TimeoutCheck (void);
 
@@ -324,6 +328,7 @@ class CEsperConnectionManager
 
 		DWORDLONG m_dwLastTimeoutCheck;					//	Tick on which we last checked for timeouts
 		TArray<CEsperConnection *> m_Deleted;			//	Connections to delete
+		bool m_bSerializeAMP1 = true;					//	If TRUE, queue AMP1 requests per host.
 
 #ifdef DEBUG_MARK_CRASH
 		int m_bInGC = false;

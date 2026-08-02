@@ -69,8 +69,8 @@ CDatum CRowKey::AsDatum (const CTableDimensions &Dims) const
 		{
 		CComplexArray *pArray = new CComplexArray;
 
-		char *pPos = m_psKey->GetParsePointer();
-		char *pPosEnd = pPos + m_psKey->GetLength();
+		const char *pPos = m_psKey->GetParsePointer();
+		const char *pPosEnd = pPos + m_psKey->GetLength();
 		int i = 0;
 		while (pPos < pPosEnd && i < Dims.GetCount())
 			{
@@ -82,7 +82,7 @@ CDatum CRowKey::AsDatum (const CTableDimensions &Dims) const
 		}
 	}
 
-CDatum CRowKey::AsDatum (char *pPos, EKeyTypes iKeyType, char **retpPos) const
+CDatum CRowKey::AsDatum (const char *pPos, EKeyTypes iKeyType, const char **retpPos) const
 
 //	AsDatum
 //
@@ -107,23 +107,23 @@ CDatum CRowKey::AsDatum (char *pPos, EKeyTypes iKeyType, char **retpPos) const
 
 		case keyInt32:
 			{
-			dResult = CDatum(*(int *)pPos);
+			dResult = CDatum(ReadUnaligned<int>(pPos));
 
 			//	Next
 
 			if (retpPos)
-				*retpPos = pPos + sizeof(int) + 1;
+				*retpPos = pPos + 1;
 			break;
 			}
 
 		case keyInt64:
 			{
-			dResult = CDatum(*(DWORDLONG *)pPos);
+			dResult = CDatum(ReadUnaligned<DWORDLONG>(pPos));
 
 			//	Next
 
 			if (retpPos)
-				*retpPos = pPos + sizeof(DWORDLONG) + 1;
+				*retpPos = pPos + 1;
 			break;
 			}
 

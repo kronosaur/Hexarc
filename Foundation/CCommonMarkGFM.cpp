@@ -122,46 +122,44 @@ CString CCommonMarkGFM::SetCheckbox (CStringView sText, int iLine, bool bChecked
 //	Set a checkbox in a markdown document at the given line (1-based).
 
 	{
-	const char* pPos = sText.GetParsePointer();
-	const char* pEndPos = pPos + sText.GetLength();
+	if (iLine < 1)
+		return CString(sText);
+
+	const char* pStart = sText.GetParsePointer();
+	const char* pEnd = pStart + sText.GetLength();
+	const char* pLineStart = pStart;
 
 	//	Advance to the first character of the line.
 
-	int iCurLine = 1;
-	while (pPos < pEndPos && iCurLine < iLine)
+	int iCurrentLine = 1;
+	while (pLineStart < pEnd && iCurrentLine < iLine)
 		{
-		if (*pPos == '\n')
-			iCurLine++;
+		if (*pLineStart == '\n')
+			iCurrentLine++;
 
-		pPos++;
+		pLineStart++;
 		}
 
-	if (pPos == pEndPos)
+	if (pLineStart == pEnd || iCurrentLine != iLine)
 		return CString(sText);
 
-	//	Advance to the bracket.
+	//	Find the end of the line and update the checkbox.
 
-	while (pPos < pEndPos && *pPos != '[' && *pPos != '\n')
-		pPos++;
+	const char* pLineEnd = pLineStart;
+	while (pLineEnd < pEnd && *pLineEnd != '\n')
+		pLineEnd++;
 
-	if (*pPos != '[')
+	CString sLine(pLineStart, pLineEnd - pLineStart);
+	CString sNewLine = SetCheckboxOnLine(sLine, bChecked);
+	if (strEquals(sLine, sNewLine))
 		return CString(sText);
 
-	pPos++;
-
-	//	Write out everything before the bracket
+	//	Rebuild the document with the updated line.
 
 	CStringBuffer Output;
-	Output.Write(sText.GetParsePointer(), pPos - sText.GetParsePointer());
-
-	//	Write out the checkbox
-
-	Output.WriteChar(bChecked ? 'x' : ' ');
-	pPos++;
-
-	//	Write out the remaining text.
-
-	Output.Write(pPos, pEndPos - pPos);
+	Output.Write(pStart, pLineStart - pStart);
+	Output.Write(sNewLine);
+	Output.Write(pLineEnd, pEnd - pLineEnd);
 
 	//	Done
 
@@ -183,7 +181,11 @@ CString CCommonMarkGFM::SetCheckboxOnLine (CStringView sLine, bool bChecked)
 	char* pEndPos = pPos + sResult.GetLength();
 	while (pPos < pEndPos)
 		{
-		if (*pPos == '[' && pPos + 3 < pEndPos && pPos[2] == ']' && pPos[3] == ' ')
+		if (*pPos == '['
+				&& pPos + 3 < pEndPos
+				&& (pPos[1] == ' ' || pPos[1] == 'x' || pPos[1] == 'X')
+				&& pPos[2] == ']'
+				&& pPos[3] == ' ')
 			{
 			if (bChecked)
 				{

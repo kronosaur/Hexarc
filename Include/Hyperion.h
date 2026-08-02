@@ -276,6 +276,7 @@ class CHyperionPackageList
 		void GetPackageTables (const CString &sName, TArray<CDatum> *retTables);
 		void GetScheduledTasks (IArchonProcessCtx *pProcess, TArray<STaskInfo> *retList);
 		void GetServices (TArray<SServiceInfo> *retList);
+		bool FindServiceByName (const CString &sName, IHyperionService **retpService = NULL);
 		void SetPackages (const TArray<SPackageFileInfo> &List, TArray<CString> *retNeeded);
 		void Mark (void);
 
@@ -424,10 +425,23 @@ class CHyperionEngine : public TSimpleEngine<CHyperionEngine>
 		//	Used by session objects
 		bool AddServicePackage (CDatum dFileDesc, CHexeProcess &Process, CHexeDocument &Doc, CString *retsName);
 		void AddServicePackage (const CString &sResName);
+		void ComposeHTTPHostSeeds (TArray<CDatum> *retHosts);
 		void Disconnect (CDatum dSocket);
 		void FatalError (const SArchonMessage &Msg);
 		bool FindAI1Service (const CString &sListener, const CString &sInterface, CAI1Service **retpService);
 		bool FindHTTPService (const CString &sListener, const CHTTPMessage &Request, CHTTPService **retpService);
+		struct SHTTPRouteMatch
+			{
+			CString sAction;
+			CString sTarget;
+			CString sURLPath;
+			CDatum dOptions;
+			CHTTPService *pService = NULL;
+		};
+
+		bool FindHTTPRoute (const CString &sProtocol, const CString &sPort, const CHTTPMessage &Request, SHTTPRouteMatch *retRoute = NULL);
+		bool FindHTTPRoute (const CString &sListener, const CHTTPMessage &Request, SHTTPRouteMatch *retRoute = NULL);
+		bool FindHTTPHostByRouteID (CDatum dHostList, const CString &sRouteID, CDatum *retdHost = NULL, CString *retsID = NULL);
 		inline bool FindServiceCommand (const CString &sAttrib, const CString &sCommand, CHyperionCommandSet::SCommandInfo *retInfo) { return m_Packages.FindCommand(sAttrib, sCommand, retInfo); }
 		inline bool FindServiceCommand (const CString &sPackage, const CString &sAttrib, const CString &sCommand, CHyperionCommandSet::SCommandInfo *retInfo) { return m_Packages.FindCommand(sPackage, sAttrib, sCommand, retInfo); }
 		inline CHyperionCache &GetCache (void) { return m_Cache; }
@@ -439,6 +453,9 @@ class CHyperionEngine : public TSimpleEngine<CHyperionEngine>
 		inline bool IsAdminNeeded (void) { return m_bAdminNeeded; }
 		void LoadServices (void);
 		void LogSessionState (const CString &sLine);
+		CDatum ComposeHTTPRouteTable (CDatum dHostList);
+		bool NormalizeHTTPHostDesc (CDatum dHost, CDatum dOriginal, bool bRequireID, CDatum *retdHost, CString *retsError = NULL);
+		void SetHTTPHosts (CDatum dHostList);
 		inline void SetServicePackages (const TArray<CHyperionPackageList::SPackageFileInfo> &List, TArray<CString> *retNeeded) { m_Packages.SetPackages(List, retNeeded); }
 
 		//	TSimpleEngine
@@ -481,6 +498,23 @@ class CHyperionEngine : public TSimpleEngine<CHyperionEngine>
 			IHyperionService *pService;				//	Service (may be NULL, if inactive)
 			};
 
+		struct SHTTPRoute
+			{
+			CString sRouteID;
+			CString sAction;
+			CString sTarget;
+			CDatum dOptions;
+			CString sPackageName;
+			CString sServiceName;
+			CString sProtocol;
+			CString sPort;
+			CString sUnencryptedPort;
+			CString sHostName;
+			CString sURLPath;
+			int iPriority = 0;
+			bool bActive = false;
+			};
+
 		//	Messages
 		void MsgAeonOnStart (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgCryptosaurOnAdminNeeded (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
@@ -491,6 +525,7 @@ class CHyperionEngine : public TSimpleEngine<CHyperionEngine>
 		void MsgFileDownload (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgGetOptions (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgGetPackageList (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
+		void MsgGetRouteList (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgGetServiceList (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgGetSessionList (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgGetTaskList (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
@@ -501,6 +536,11 @@ class CHyperionEngine : public TSimpleEngine<CHyperionEngine>
 		void MsgRunTask (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgServiceMsg (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgServiceMsgSandboxed (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
+		void MsgBindHost (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
+		void MsgBindHostRedirect (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
+		void MsgDeleteRoute (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
+		void MsgUnbindHost (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
+		void MsgSetRoute (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgSetOption (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgSetTaskRunOn (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgStopTask (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
@@ -521,8 +561,10 @@ class CHyperionEngine : public TSimpleEngine<CHyperionEngine>
 		CHyperionPackageList m_Packages;
 		TSortMap<CString, SListener> m_Listeners;
 		TSortMap<CString, SMsgHandler> m_MsgHandlers;
+		TArray<SHTTPRoute> m_HTTPRoutes;
 		CHyperionScheduler m_Scheduler;
 		CHyperionOptions m_Options;
 		CHyperionCache m_Cache;
+		bool m_bUseHTTPRoutes = false;				//	TRUE if Arc.hosts is authoritative.
 		bool m_bAdminNeeded;						//	TRUE if we need to create an admin account
 	};

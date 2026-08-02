@@ -5,6 +5,11 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_AI1_PARSE_QUOTE_NIL_QUOTE,	"\"nil\"");
+DECLARE_CONST_STRING(STR_AI1_PARSE_NIL,	"nil");
+DECLARE_CONST_STRING(STR_AI1_PARSE_QUOTE_TRUE_QUOTE,	"\"true\"");
+DECLARE_CONST_STRING(STR_AI1_PARSE_TRUE,	"true");
+
 static CString ParseBrackets (char *pPos, char **retpPos);
 static CString ParseList (char *pPos, char **retpPos);
 static CString ParseQuotedArg (char *pPos, char **retpPos);
@@ -250,10 +255,10 @@ CString ParseUnquotedArg (char *pPos, bool bQuote, char **retpPos)
 	CString sArg = CString::CreateFromHandoff(Output);
 	CString sArgLower = strToLower(sArg);
 
-	if (strEquals(sArgLower, CString("\"nil\"")))
-		return CString("nil");
-	else if (strEquals(sArgLower, CString("\"true\"")))
-		return CString("true");
+	if (strEquals(sArgLower, STR_AI1_PARSE_QUOTE_NIL_QUOTE))
+		return STR_AI1_PARSE_NIL;
+	else if (strEquals(sArgLower, STR_AI1_PARSE_QUOTE_TRUE_QUOTE))
+		return STR_AI1_PARSE_TRUE;
 	else
 		return sArg;
 	}

@@ -7,10 +7,17 @@
 
 DECLARE_CONST_STRING(DATUM_TYPENAME_XML_ELEMENT,		"xmlElement");
 
+DECLARE_CONST_STRING(FIELD_ADDITIONAL_PROPERTIES,		"additionalProperties");
+DECLARE_CONST_STRING(FIELD_ANY_OF,						"anyOf");
 DECLARE_CONST_STRING(FIELD_DATA,						"data");
+DECLARE_CONST_STRING(FIELD_ENUM,						"enum");
+DECLARE_CONST_STRING(FIELD_FORMAT,						"format");
 DECLARE_CONST_STRING(FIELD_HEADERS,						"headers");
+DECLARE_CONST_STRING(FIELD_ITEMS,						"items");
+DECLARE_CONST_STRING(FIELD_PROPERTIES,					"properties");
 DECLARE_CONST_STRING(FIELD_STATUS,						"status");
 DECLARE_CONST_STRING(FIELD_STATUS_CODE,					"statusCode");
+DECLARE_CONST_STRING(FIELD_TYPE,						"type");
 
 DECLARE_CONST_STRING(HEADER_CONTENT_TYPE,				"content-type");
 DECLARE_CONST_STRING(HEADER_HOST,						"host");
@@ -27,6 +34,16 @@ DECLARE_CONST_STRING(METHOD_GET,						"GET");
 
 DECLARE_CONST_STRING(PROTOCOL_HTTPS,					"https");
 
+DECLARE_CONST_STRING(JSON_SCHEMA_TYPE_BOOLEAN,			"boolean");
+DECLARE_CONST_STRING(JSON_SCHEMA_TYPE_ARRAY,			"array");
+DECLARE_CONST_STRING(JSON_SCHEMA_TYPE_INTEGER,			"integer");
+DECLARE_CONST_STRING(JSON_SCHEMA_TYPE_NULL,				"null");
+DECLARE_CONST_STRING(JSON_SCHEMA_TYPE_NUMBER,			"number");
+DECLARE_CONST_STRING(JSON_SCHEMA_TYPE_OBJECT,			"object");
+DECLARE_CONST_STRING(JSON_SCHEMA_TYPE_STRING,			"string");
+
+DECLARE_CONST_STRING(JSON_SCHEMA_FORMAT_DATE_TIME,		"date-time");
+
 DECLARE_CONST_STRING(TYPENAME_URL,						"URLType");
 DECLARE_CONST_STRING(TYPENAME_XML_ELEMENT,				"XMLElementType");
 
@@ -40,9 +57,135 @@ DECLARE_CONST_STRING(ERR_UNABLE_TO_CONNECT,				"Unable to connect to server at %
 DECLARE_CONST_STRING(ERR_INVALID_PORT,					"Unable to determine port from URL: %s.");
 DECLARE_CONST_STRING(ERR_INVALID_URL,					"Invalid URL: %s.");
 
+static CDatum JSONSchemaFromType (CDatum dType, TArray<const IDatatype*> TypeStack);
+
 bool CHTTPUtil::m_bAEONRegistered = false;
 DWORD CHTTPUtil::URL_TYPE = 0;
 DWORD CHTTPUtil::XML_ELEMENT_TYPE = 0;
+
+CDatum CJSONSchema::FromType (CDatum dType)
+
+//	FromType
+//
+//	Converts an AEON/GridLang datatype to a JSON Schema.
+
+	{
+	TArray<const IDatatype*> TypeStack;
+	return JSONSchemaFromType(dType, TypeStack);
+	}
+
+static CDatum JSONSchemaFromType (CDatum dType, TArray<const IDatatype*> TypeStack)
+
+//	JSONSchemaFromType
+//
+//	Converts a datatype to a JSON Schema, returning an empty schema on recursion.
+
+	{
+	CDatum dResult(CDatum::typeStruct);
+
+	if (dType.GetBasicType() != CDatum::typeDatatype)
+		return dResult;
+
+	const IDatatype& Type = dType;
+	for (int i = 0; i < TypeStack.GetCount(); i++)
+		if (TypeStack[i] == &Type)
+			return dResult;
+
+	TypeStack.Insert(&Type);
+
+	if (Type.GetClass() == IDatatype::ECategory::Enum)
+		{
+		CDatum dEnum(CDatum::typeArray);
+		for (int i = 0; i < Type.GetMemberCount(); i++)
+			{
+			IDatatype::SMemberDesc Member = Type.GetMember(i);
+			if (Member.iType == IDatatype::EMemberType::EnumValue)
+				dEnum.Append(Member.sID);
+			}
+
+		dResult.SetElement(FIELD_TYPE, JSON_SCHEMA_TYPE_STRING);
+		dResult.SetElement(FIELD_ENUM, dEnum);
+		return dResult;
+		}
+	else if (Type.GetClass() == IDatatype::ECategory::Nullable)
+		{
+		CDatum dAnyOf(CDatum::typeArray);
+		dAnyOf.Append(JSONSchemaFromType(Type.GetVariantType(), TypeStack));
+
+		CDatum dNullSchema(CDatum::typeStruct);
+		dNullSchema.SetElement(FIELD_TYPE, JSON_SCHEMA_TYPE_NULL);
+		dAnyOf.Append(dNullSchema);
+
+		dResult.SetElement(FIELD_ANY_OF, dAnyOf);
+		return dResult;
+		}
+	else if (Type.GetClass() == IDatatype::ECategory::Array
+			|| Type.GetClass() == IDatatype::ECategory::Table
+			|| Type.GetClass() == IDatatype::ECategory::Tensor)
+		{
+		dResult.SetElement(FIELD_TYPE, JSON_SCHEMA_TYPE_ARRAY);
+		dResult.SetElement(FIELD_ITEMS, JSONSchemaFromType(Type.GetElementType(), TypeStack));
+		return dResult;
+		}
+	else if (Type.GetClass() == IDatatype::ECategory::Dictionary)
+		{
+		dResult.SetElement(FIELD_TYPE, JSON_SCHEMA_TYPE_OBJECT);
+		dResult.SetElement(FIELD_ADDITIONAL_PROPERTIES, JSONSchemaFromType(Type.GetElementType(), TypeStack));
+		return dResult;
+		}
+	else if (Type.GetClass() == IDatatype::ECategory::Schema)
+		{
+		CDatum dProperties(CDatum::typeStruct);
+		for (int i = 0; i < Type.GetMemberCount(); i++)
+			{
+			IDatatype::SMemberDesc Member = Type.GetMember(i);
+			switch (Member.iType)
+				{
+				case IDatatype::EMemberType::InstanceKeyVar:
+				case IDatatype::EMemberType::InstanceVar:
+					dProperties.SetElement(Member.sID, JSONSchemaFromType(Member.dType, TypeStack));
+					break;
+				}
+			}
+
+		dResult.SetElement(FIELD_TYPE, JSON_SCHEMA_TYPE_OBJECT);
+		dResult.SetElement(FIELD_PROPERTIES, dProperties);
+		return dResult;
+		}
+
+	switch (Type.GetCoreType())
+		{
+		case IDatatype::NULL_T:
+			dResult.SetElement(FIELD_TYPE, JSON_SCHEMA_TYPE_NULL);
+			break;
+
+		case IDatatype::BOOL:
+			dResult.SetElement(FIELD_TYPE, JSON_SCHEMA_TYPE_BOOLEAN);
+			break;
+
+		case IDatatype::STRING:
+			dResult.SetElement(FIELD_TYPE, JSON_SCHEMA_TYPE_STRING);
+			break;
+
+		case IDatatype::DATE_TIME:
+			dResult.SetElement(FIELD_TYPE, JSON_SCHEMA_TYPE_STRING);
+			dResult.SetElement(FIELD_FORMAT, JSON_SCHEMA_FORMAT_DATE_TIME);
+			break;
+
+		case IDatatype::STRUCT:
+			dResult.SetElement(FIELD_TYPE, JSON_SCHEMA_TYPE_OBJECT);
+			break;
+
+		default:
+			if (Type.IsA(IDatatype::INTEGER))
+				dResult.SetElement(FIELD_TYPE, JSON_SCHEMA_TYPE_INTEGER);
+			else if (Type.IsA(IDatatype::NUMBER))
+				dResult.SetElement(FIELD_TYPE, JSON_SCHEMA_TYPE_NUMBER);
+			break;
+		}
+
+	return dResult;
+	}
 
 bool CHTTPUtil::Boot ()
 
@@ -56,8 +199,8 @@ bool CHTTPUtil::Boot ()
 		CAEONURL::RegisterFactory();
 		CAEONXMLElement::RegisterFactory();
 
-		URL_TYPE = CAEONTypes::AddCoreSimple(TYPENAME_URL, CDatatypeList(), false);
-		XML_ELEMENT_TYPE = CAEONTypes::AddCoreAEON(TYPENAME_XML_ELEMENT, CDatatypeList(), DATUM_TYPENAME_XML_ELEMENT, CAEONXMLElement::GetMembers());
+		URL_TYPE = CAEONTypes::RegisterSimple(TYPENAME_URL, CDatatypeList(), false);
+		XML_ELEMENT_TYPE = CAEONTypes::RegisterAEON(TYPENAME_XML_ELEMENT, CDatatypeList(), DATUM_TYPENAME_XML_ELEMENT, CAEONXMLElement::GetMembers());
 
 		m_bAEONRegistered = true;
 		}
@@ -105,7 +248,7 @@ bool CHTTPUtil::ConvertBodyToDatum (const CHTTPMessage &Message, CDatum &retdBod
 	else if (strEquals(sMediaType, MEDIA_TYPE_JSON))
 		{
 		CStringBuffer Buffer(sBuffer);
-		if (!CDatum::Deserialize(CDatum::EFormat::JSON, Buffer, &retdBody))
+		if (!CDatum::Deserialize(CDatum::EFormat::AEONJSON, Buffer, &retdBody))
 			{
 			retdBody = ERR_UNABLE_TO_PARSE_JSON;
 			return false;

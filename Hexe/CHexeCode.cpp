@@ -39,6 +39,11 @@ DECLARE_CONST_STRING(ERR_INVALID_LITERAL,				"Invalid literal in code block: %s.
 DECLARE_CONST_STRING(TYPENAME_HEXECODE,					"hexeCode")
 const CString &CHexeCode::StaticGetTypename (void) { return TYPENAME_HEXECODE; }
 
+CHexeCode::~CHexeCode ()
+	{
+	delete m_pX64Code;
+	}
+
 void CHexeCode::Create (const CHexeCodeIntermediate &Intermediate, int iEntryPoint, CDatum *retdEntryPoint)
 
 //	Create
@@ -148,6 +153,8 @@ void CHexeCode::Create (const CHexeCodeIntermediate &Intermediate, int iEntryPoi
 				*pPos = MakeOpCode(pInfo->dwOpCode, pCodeObj->m_DataOffsets[GetOperand(*pPos)]);
 			else if (pInfo->dwOpCode == opCallLib)
 				pPos[1] = pCodeObj->m_DataOffsets[pPos[1]];
+			else if (pInfo->iOperand == operandArgCountCodeOffset)
+				pPos[1] = pCodeObj->m_CodeOffsets[pPos[1]];
 
 			//	Next op code
 
@@ -158,6 +165,34 @@ void CHexeCode::Create (const CHexeCodeIntermediate &Intermediate, int iEntryPoi
 	//	Create a function that points to the given offset
 
 	CHexeFunction::Create(dCodeObj, pCodeObj->m_CodeOffsets[iEntryPoint], CDatum(), CDatum(), retdEntryPoint);
+	}
+
+DWORD *CHexeCode::GetCodeBlockEnd (DWORD* pCode) const
+	{
+	int iOffset = GetCodeOffset(pCode);
+
+	for (int i = 0; i < m_CodeOffsets.GetCount(); i++)
+		{
+		int iCodeOffset = m_CodeOffsets[i];
+		BLOCKHEADER *pBlockStart = (BLOCKHEADER *)(m_Code.GetPointer() + iCodeOffset - sizeof(BLOCKHEADER));
+		DWORD dwBlockSize = GetBlockSize(*pBlockStart);
+		int iEndOffset = iCodeOffset - sizeof(BLOCKHEADER) + (int)dwBlockSize;
+
+		if (iOffset >= iCodeOffset && iOffset < iEndOffset)
+			return (DWORD *)(m_Code.GetPointer() + iEndOffset);
+		}
+
+	return NULL;
+	}
+
+CHexeCodeX64 *CHexeCode::GetX64Code () const
+	{
+	CSmartLock Lock(m_csX64Code);
+
+	if (m_pX64Code == NULL)
+		m_pX64Code = new CHexeCodeX64;
+
+	return m_pX64Code;
 	}
 
 CDatum CHexeCode::CreateDatum (int iID) const
@@ -455,13 +490,15 @@ void CHexeCode::DeserializeAEONExternal (IByteStream& Stream, CAEONSerializedMap
 
 	iLength = (int)Stream.ReadDWORD();
 	m_CodeOffsets.InsertEmpty(iLength);
-	Stream.Read(&m_CodeOffsets[0], iLength * sizeof(DWORD));
+	if (iLength)
+		Stream.Read(&m_CodeOffsets[0], iLength * sizeof(DWORD));
 
 	//	Read data offsets
 
 	iLength = (int)Stream.ReadDWORD();
 	m_DataOffsets.InsertEmpty(iLength);
-	Stream.Read(&m_DataOffsets[0], iLength * sizeof(DWORD));
+	if (iLength)
+		Stream.Read(&m_DataOffsets[0], iLength * sizeof(DWORD));
 
 	//	Initialize the cache.
 
@@ -522,10 +559,12 @@ void CHexeCode::SerializeAEONExternal (IByteStream& Stream, CAEONSerializedMap &
 	//	Write the code offsets
 
 	Stream.Write(m_CodeOffsets.GetCount());
-	Stream.Write(&m_CodeOffsets[0], m_CodeOffsets.GetCount() * sizeof(DWORD));
+	if (m_CodeOffsets.GetCount())
+		Stream.Write(&m_CodeOffsets[0], m_CodeOffsets.GetCount() * sizeof(DWORD));
 
 	//	Write the data offsets
 
 	Stream.Write(m_DataOffsets.GetCount());
-	Stream.Write(&m_DataOffsets[0], m_DataOffsets.GetCount() * sizeof(DWORD));
+	if (m_DataOffsets.GetCount())
+		Stream.Write(&m_DataOffsets[0], m_DataOffsets.GetCount() * sizeof(DWORD));
 	}

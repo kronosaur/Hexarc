@@ -123,6 +123,7 @@ Arc.service Arc.console
 		"getTables"
 //		"getValue {tableName} {path}"
 		"insertRow {tableName} {path} {data}"
+		"listRoutes"
 		"listTables"
 		"listViews {tableName}"
 //		"mnemosynthDump"
@@ -132,6 +133,7 @@ Arc.service Arc.console
 		"resetPassword {username}"
 		"shutdown"
 		"tableTest [{rows} [{dataSize} [{tableName}]]]"
+		"testAmp1 {test} [{options}]"
 		"unitTest [{unitTest} ...]"
 		"upgrade"
 		"upload {filePath} {filespec}"
@@ -142,6 +144,12 @@ Arc.service Arc.console
 	
 (define Arc.console+insertRow (lambda (thePayload)
 	(apply invoke 'Aeon.insert thePayload)
+	))
+	
+(define Arc.console+listRoutes (lambda (thePayload)
+	(map (invoke 'Hyperion.getRouteList) 'excludeNil theEntry 
+		(cat (@ theEntry 'routeID) "\t" (@ theEntry 'packageName) "\t" (@ theEntry 'serviceName) "\t" (@ theEntry 'hostName) "\t" (@ theEntry 'protocol) "\t" (@ theEntry 'port) "\t" (@ theEntry 'urlPath))
+		)
 	))
 	
 (define Arc.console+listTables (lambda (thePayload)
@@ -192,6 +200,10 @@ Arc.service Arc.console
 	(cat "Hello, " (userGetName) ". "
 		"You are " (if (userHasRight 'Arc.admin) "an administrator." "not an administrator.")
 		)
+	))
+
+(define Arc.console+testAmp1 (lambda (thePayload)
+	(apply invoke 'DrHouse.amp1Test thePayload)
 	))
 
 (define Arc.console+unitTest (lambda (thePayload)

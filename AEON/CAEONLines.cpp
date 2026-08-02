@@ -99,7 +99,7 @@ CAEONLines::CAEONLines (CDatum dValue)
 //	CAEONLines constructor
 
 	{
-	if (!dValue.IsNil())
+	if (!dValue.IsIdenticalToNil())
 		Append(dValue);
 	}
 
@@ -110,43 +110,10 @@ void CAEONLines::Append (CDatum dDatum)
 //	Append to the datum.
 
 	{
-	//	LATER: Handle some special types like another lines type or a vector
-	//	of strings.
-
 	if (dDatum.IsNil())
 		m_Lines.Insert(NULL_STR);
-
-	else if (dDatum.IsArray())
-		{
-		TArray<CString> Lines;
-		for (int i = 0; i < dDatum.GetCount(); i++)
-			{
-			CDatum dElement = dDatum.GetElement(i);
-
-			if (dElement.GetBasicType() == CDatum::typeString)
-				{
-				CStringView sValue = dElement;
-				Lines.Insert(SplitBuffer(CBuffer(sValue)));
-				}
-			else
-				{
-				CString sValue = dElement.AsString();
-				Lines.Insert(SplitBuffer(CBuffer(sValue)));
-				}
-			}
-
-		Insert(std::move(Lines));
-		}
-	else if (dDatum.GetBasicType() == CDatum::typeString)
-		{
-		CStringView sValue = dDatum;
-		Insert(SplitBuffer(CBuffer(sValue)));
-		}
 	else
-		{
-		CString sValue = dDatum.AsString();
-		Insert(SplitBuffer(CBuffer(sValue)));
-		}
+		Insert(ParseDatumAsLines(dDatum));
 
 	OnModify();
 	}
@@ -271,6 +238,80 @@ void CAEONLines::DeleteElement (int iIndex)
 		}
 	}
 
+bool CAEONLines::Find (CDatum dValue, int *retiIndex) const
+
+//	Find
+//
+//	Finds a line by value using normal equality.
+
+	{
+	for (int i = 0; i < GetCount(); i++)
+		{
+		if (dValue.OpIsEqual(GetElement(i)))
+			{
+			if (retiIndex)
+				*retiIndex = i;
+			return true;
+			}
+		}
+
+	return false;
+	}
+
+CDatum CAEONLines::FindAll (CDatum dValue) const
+
+//	FindAll
+//
+//	Finds all lines matching by value.
+
+	{
+	CDatum dResult(CDatum::typeArray);
+	for (int i = 0; i < GetCount(); i++)
+		{
+		if (dValue.OpIsEqual(GetElement(i)))
+			dResult.Append(i);
+		}
+
+	return dResult;
+	}
+
+CDatum CAEONLines::FindAllExact (CDatum dValue) const
+
+//	FindAllExact
+//
+//	Finds all lines matching exactly.
+
+	{
+	CDatum dResult(CDatum::typeArray);
+	for (int i = 0; i < GetCount(); i++)
+		{
+		if (dValue.OpIsIdentical(GetElement(i)))
+			dResult.Append(i);
+		}
+
+	return dResult;
+	}
+
+bool CAEONLines::FindExact (CDatum dValue, int *retiIndex) const
+
+//	FindExact
+//
+//	Finds a line matching exactly.
+
+	{
+	for (int i = 0; i < GetCount(); i++)
+		{
+		if (dValue.OpIsIdentical(GetElement(i)))
+			{
+			if (retiIndex)
+				*retiIndex = i;
+			return true;
+			}
+		}
+
+	return false;
+	}
+
 CDatum CAEONLines::GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) const
 
 //	GetElementAt
@@ -313,6 +354,26 @@ void CAEONLines::Insert (TArray<CString>&& Lines, int iIndex)
 		{
 		m_Lines[iStart + i] = std::move(Lines[i]);
 		}
+	}
+
+void CAEONLines::InsertElementAt (CDatum dIndex, CDatum dDatum)
+
+//	InsertElementAt
+//
+//	Inserts one or more lines at the given index.
+
+	{
+	int iIndex;
+	if (!dIndex.IsNumberInt32(&iIndex))
+		return;
+
+	iIndex = CDatum::CalcArrayIndex(iIndex, m_Lines.GetCount());
+	if (iIndex < 0 || iIndex > m_Lines.GetCount())
+		return;
+
+	CAEONLines NewLines(dDatum);
+	Insert(std::move(NewLines.m_Lines), iIndex);
+	OnModify();
 	}
 
 size_t CAEONLines::OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const
@@ -386,6 +447,48 @@ void CAEONLines::OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream) cons
 		m_Lines[i].Serialize(Stream);
 	}
 
+TArray<CString> CAEONLines::ParseDatumAsLines (CDatum dDatum)
+
+//	ParseDatumAsLines
+//
+//	Converts a datum to zero or more text lines.
+
+	{
+	if (dDatum.IsArray())
+		{
+		TArray<CString> Lines;
+		for (int i = 0; i < dDatum.GetCount(); i++)
+			{
+			CDatum dElement = dDatum.GetElement(i);
+
+			if (dElement.GetBasicType() == CDatum::typeNil)
+				{ }
+			else if (dElement.GetBasicType() == CDatum::typeString)
+				{
+				CStringView sValue = dElement;
+				Lines.Insert(SplitBuffer(CBuffer(sValue)));
+				}
+			else
+				{
+				CString sValue = dElement.AsString();
+				Lines.Insert(SplitBuffer(CBuffer(sValue)));
+				}
+			}
+
+		return Lines;
+		}
+	else if (dDatum.GetBasicType() == CDatum::typeString)
+		{
+		CStringView sValue = dDatum;
+		return SplitBuffer(CBuffer(sValue));
+		}
+	else
+		{
+		CString sValue = dDatum.AsString();
+		return SplitBuffer(CBuffer(sValue));
+		}
+	}
+
 void CAEONLines::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const
 	{
 	switch (iFormat)
@@ -406,9 +509,85 @@ void CAEONLines::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const
 			break;
 			}
 
+		case CDatum::EFormat::AEONJSON:
+		case CDatum::EFormat::JSON:
+			{
+			//	Write out as a single string with embedded newlines.
+
+			Stream.Write("\"", 1);
+			for (int i = 0; i < m_Lines.GetCount(); i++)
+				{
+				if (i != 0)
+					Stream.Write("\n", 1);
+				m_Lines[i].SerializeJSON(Stream);
+				}
+			Stream.Write("\"", 1);
+			break;
+			}
+
 		default:
 			IComplexDatum::Serialize(iFormat, Stream);
 			break;
+		}
+	}
+
+bool CAEONLines::RemoveAll ()
+
+//	RemoveAll
+//
+//	Removes all lines.
+
+	{
+	if (m_Lines.GetCount() == 0)
+		return false;
+
+	m_Lines.DeleteAll();
+	OnModify();
+	return true;
+	}
+
+bool CAEONLines::RemoveElementAt (CDatum dIndex)
+
+//	RemoveElementAt
+//
+//	Removes the line or lines at the given index.
+
+	{
+	if (dIndex.IsArray())
+		{
+		bool bRemoved = false;
+		for (int i = dIndex.GetCount() - 1; i >= 0; i--)
+			{
+			int iIndex;
+			if (!dIndex.GetElement(i).IsNumberInt32(&iIndex))
+				continue;
+
+			iIndex = CDatum::CalcArrayIndex(iIndex, m_Lines.GetCount());
+			if (iIndex < 0 || iIndex >= m_Lines.GetCount())
+				continue;
+
+			m_Lines.Delete(iIndex);
+			bRemoved = true;
+			}
+
+		if (bRemoved)
+			OnModify();
+
+		return bRemoved;
+		}
+	else
+		{
+		int iIndex;
+		if (!dIndex.IsNumberInt32(&iIndex))
+			return false;
+
+		iIndex = CDatum::CalcArrayIndex(iIndex, m_Lines.GetCount());
+		if (iIndex < 0 || iIndex >= m_Lines.GetCount())
+			return false;
+
+		m_Lines.Delete(iIndex);
+		OnModify();
+		return true;
 		}
 	}
 
@@ -435,36 +614,7 @@ void CAEONLines::SetElement (int iIndex, CDatum dDatum)
 
 	//	Parse the value into 0 or more lines.
 
-	TArray<CString> Lines;
-	if (dDatum.IsArray())
-		{
-		for (int i = 0; i < dDatum.GetCount(); i++)
-			{
-			CDatum dElement = dDatum.GetElement(i);
-
-			if (dElement.GetBasicType() == CDatum::typeString)
-				{
-				CStringView sValue = dElement;
-				Lines.Insert(SplitBuffer(CBuffer(sValue)));
-				}
-			else
-				{
-				CString sValue = dElement.AsString();
-				Lines.Insert(SplitBuffer(CBuffer(sValue)));
-				}
-			}
-
-		}
-	else if (dDatum.GetBasicType() == CDatum::typeString)
-		{
-		CStringView sValue = dDatum;
-		Lines = SplitBuffer(CBuffer(sValue));
-		}
-	else
-		{
-		CString sValue = dDatum.AsString();
-		Lines = SplitBuffer(CBuffer(sValue));
-		}
+	TArray<CString> Lines = ParseDatumAsLines(dDatum);
 
 	//	We only support 0 or 1 lines.
 
@@ -504,6 +654,7 @@ bool CAEONLines::SetLine (int iLine, CStringView sLine)
 		return false;
 
 	m_Lines[iLine] = CString(sLine);
+	OnModify();
 	return true;
 	}
 
@@ -556,10 +707,13 @@ TArray<CString> CAEONLines::SplitBuffer (const IMemoryBlock& Buffer)
 				pDest = NULL;
 
 			char chEnd = *pPos++;
-			if (chEnd == '\n' && *pPos == '\r')
+			if (pPos < pEnd && chEnd == '\n' && *pPos == '\r')
 				pPos++;
-			else if (chEnd == '\r' && *pPos == '\n')
+			else if (pPos < pEnd && chEnd == '\r' && *pPos == '\n')
 				pPos++;
+
+			if (pPos == pEnd)
+				Result.Insert(NULL_STR);
 			}
 
 		//	Otherwise, this is an invalid character.

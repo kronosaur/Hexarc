@@ -5,9 +5,12 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_CINTERPROCESS_MESSAGE_THREAD_CRASH_INTERPROCESS_MESSAGE_THREAD,	"CRASH: Interprocess Message Thread.");
+
 const int DEFAULT_PROCESSING_CHUNK =					10;
 const int MAX_QUEUE_SIZE =								256;
 
+DECLARE_CONST_STRING(MSG_ARC_FILE_MSG,					"Arc.fileMsg");
 DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error");
 
 DECLARE_CONST_STRING(STR_THREAD_NAME,					"InterprocessMessage");
@@ -136,7 +139,7 @@ void CInterprocessMessageThread::Run (void)
 			if (++iCrashCount > MAX_CRASH_COUNT)
 				throw;
 
-			m_pProcess->Log(MSG_LOG_ERROR, CString("CRASH: Interprocess Message Thread."));
+			m_pProcess->Log(MSG_LOG_ERROR, STR_CINTERPROCESS_MESSAGE_THREAD_CRASH_INTERPROCESS_MESSAGE_THREAD);
 			}
 		}
 	}

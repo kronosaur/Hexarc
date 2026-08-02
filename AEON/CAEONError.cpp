@@ -56,7 +56,7 @@ void CAEONError::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const
 			CDatum::WriteGridLangString(Stream, strPattern("ERROR: %s", m_sDescription));
 			break;
 
-		case CDatum::EFormat::JSON:
+		case CDatum::EFormat::AEONJSON:
 			{
 			//	For backwards compatibility we write this as a hexeError.
 
@@ -77,6 +77,19 @@ void CAEONError::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const
 			//	Done
 
 			Stream.Write("\"]", 2);
+			break;
+			}
+
+		case CDatum::EFormat::JSON:
+			{
+			if (!m_sError.IsEmpty() && !m_sDescription.IsEmpty())
+				strPattern("%s: %s", m_sError, m_sDescription).SerializeJSON(Stream);
+			else if (!m_sError.IsEmpty())
+				m_sError.SerializeJSON(Stream);
+			else if (!m_sDescription.IsEmpty())
+				m_sDescription.SerializeJSON(Stream);
+			else
+				TYPENAME_ERROR.SerializeJSON(Stream);
 			break;
 			}
 

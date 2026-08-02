@@ -31,16 +31,10 @@ int main (int argc, char* argv[])
 	CArchonProcess Module;
 	g_pModule = &Module;
 
-	//	We expect to be started from Arcology.exe, so if we are run without
-	//	parameters then we just show help and exit.
+	//	With no parameters, run diagnostics.
 
 	if (argc == 1)
-		{
-		printf("AeonModule: This program is a module of Arcology.exe. To run in console mode, try:\n\n");
-
-		printf("aeonDB /console [storage-path]\n");
-		return 1;
-		}
+		return CAeonDiagnostics::RunDiagnostics();
 
 	//	Set a close handler
 

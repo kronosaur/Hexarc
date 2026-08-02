@@ -34,7 +34,7 @@ class CComplexBinary : public IComplexDatum
 		virtual CDatum::Types GetBasicType () const override { return CDatum::typeBinary; }
 		virtual int GetBinarySize () const override { return GetLength(); }
 		virtual int GetCount () const override { return 1; }
-		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::BINARY); }
+		virtual CDatum GetDatatype () const override { return CAEONTypes::Get(IDatatype::BINARY); }
 		virtual CDatum GetElement (int iIndex) const override { return CDatum(); }
 		virtual CDatum GetMethod (const CString &sMethod) const override { return m_Methods.GetMethod(sMethod); }
 		virtual CDatum GetProperty (const CString& sProperty) const override { return m_Properties.GetProperty(*this, sProperty); }
@@ -85,7 +85,7 @@ class CComplexBinary64 : public IComplexDatum
 		virtual int GetBinarySize () const override { return (int)Min(GetLength(), (DWORDLONG)INT_MAX); }
 		virtual DWORDLONG GetBinarySize64 () const override { return GetLength(); }
 		virtual int GetCount () const override { return 1; }
-		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::BINARY); }
+		virtual CDatum GetDatatype () const override { return CAEONTypes::Get(IDatatype::BINARY); }
 		virtual CDatum GetElement (int iIndex) const override { return CDatum(); }
 		virtual CDatum GetMethod (const CString &sMethod) const override { return m_Methods.GetMethod(sMethod); }
 		virtual CDatum GetProperty (const CString& sProperty) const override { return m_Properties.GetProperty(*this, sProperty); }
@@ -130,7 +130,7 @@ class CComplexDateTime : public IComplexDatum
 		virtual DWORD GetBasicDatatype () const override { return IDatatype::DATE_TIME; }
 		virtual CDatum::Types GetBasicType () const override { return CDatum::typeDateTime; }
 		virtual int GetCount () const override { return partCount; }
-		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::DATE_TIME); }
+		virtual CDatum GetDatatype () const override { return CAEONTypes::Get(IDatatype::DATE_TIME); }
 		virtual CDatum GetElement (int iIndex) const override;
 		virtual CDatum GetElement (const CString &sKey) const override;
 		virtual CDatum GetMethod (const CString &sMethod) const override { if (m_pMethodsExt) return m_pMethodsExt->GetMethod(sMethod); else return CDatum(); }
@@ -232,7 +232,7 @@ class CComplexInteger : public IComplexDatum
 		virtual DWORD GetBasicDatatype () const override { return IDatatype::INT_IP; }
 		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeIntegerIP; }
 		virtual int GetCount (void) const override { return 1; }
-		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::INT_IP); }
+		virtual CDatum GetDatatype () const override { return CAEONTypes::Get(IDatatype::INT_IP); }
 		virtual CDatum GetElement (int iIndex) const override { return CDatum(); }
 		virtual CDatum::Types GetNumberType (int *retiValue) override;
 		virtual const CString &GetTypename (void) const override;
@@ -290,7 +290,7 @@ class CAEONAnnotated : public IComplexDatum
 		virtual const CString &GetTypename () const override;
 		virtual bool IsArray () const override { return true; }
 		virtual bool IsContainer () const override { return true; }
-		virtual bool IsError (void) const override { return false; }
+		virtual bool IsError (CString* retsErrorCode = NULL) const override { return false; }
 		virtual void SerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const override;
 
 		static CDatum DeserializeAEON (IByteStream& Stream, DWORD dwID, CAEONSerializedMap &Serialized);
@@ -417,6 +417,10 @@ class CAEONCopyOnWrite : public IComplexDatum,
 		virtual CDatum GetElement (const CString &sKey) const override { return m_dValue.raw_GetComplex()->GetElement(sKey); }
 		virtual CDatum GetElementAt (int iIndex) const override { return m_dValue.raw_GetComplex()->GetElementAt(iIndex); }
 		virtual CDatum GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) const override { return m_dValue.raw_GetComplex()->GetElementAt(TypeSystem, dIndex); }
+		virtual TArray<double>* GetArrayOfDoubleInterface () override { OnModify(); return m_dValue.raw_GetComplex()->GetArrayOfDoubleInterface(); }
+		virtual TArray<CDatum>* GetArrayOfDatumInterface () override { OnModify(); return m_dValue.raw_GetComplex()->GetArrayOfDatumInterface(); }
+		virtual TArray<int>* GetArrayOfInt32Interface () override { OnModify(); return m_dValue.raw_GetComplex()->GetArrayOfInt32Interface(); }
+		virtual TArray<CVector3D>* GetArrayOfVector3DInterface () override { OnModify(); return m_dValue.raw_GetComplex()->GetArrayOfVector3DInterface(); }
 		virtual CRGBA32Image *GetImageInterface () override { return m_dValue.raw_GetComplex()->GetImageInterface(); }
 		virtual CString GetKey (int iIndex) const override { return m_dValue.raw_GetComplex()->GetKey(iIndex); }
 		virtual CDatum GetKeyEx (int iIndex) const override { return m_dValue.raw_GetComplex()->GetKeyEx(iIndex); }
@@ -438,7 +442,7 @@ class CAEONCopyOnWrite : public IComplexDatum,
 		virtual bool InvokeMethodImpl(CDatum dObj, const CString &sMethod, IInvokeCtx &Ctx, CHexeStackEnv& LocalEnv, SAEONInvokeResult& retResult) override { OnModify(); return m_dValue.raw_GetComplex()->InvokeMethodImpl(dObj, sMethod, Ctx, LocalEnv, retResult); }
 		virtual bool IsArray () const override { return m_dValue.raw_GetComplex()->IsArray(); }
 		virtual bool IsContainer () const override { return m_dValue.raw_GetComplex()->IsContainer(); }
-		virtual bool IsError () const override { return m_dValue.raw_GetComplex()->IsError(); }
+		virtual bool IsError (CString* retsErrorCode = NULL) const override { return m_dValue.raw_GetComplex()->IsError(retsErrorCode); }
 		virtual bool IsIPInteger () const override { return m_dValue.raw_GetComplex()->IsIPInteger(); }
 		virtual bool IsMemoryBlock () const override { return m_dValue.raw_GetComplex()->IsMemoryBlock(); }
 		virtual bool IsNil () const override { return m_dValue.raw_GetComplex()->IsNil(); }
@@ -518,6 +522,7 @@ class CAEONDictionary : public IComplexDatum
 		virtual CString AsString () const override;
 		virtual size_t CalcMemorySize () const override;
 		virtual IComplexDatum* Clone (CDatum::EClone iMode) const override;
+		virtual CDatum Cleaned () const override;
 		virtual bool Contains (CDatum dValue) const override;
 		virtual bool Find (CDatum dValue, int *retiIndex = NULL) const override;
 		virtual CDatum FindAll (CDatum dValue) const override;
@@ -614,7 +619,7 @@ class CAEONError : public IComplexDatum
 		virtual CString GetKey (int iIndex) const override { return NULL_STR; }
 		virtual const CString &GetTypename () const override;
 		virtual bool IsArray () const override { return false; }
-		virtual bool IsError (void) const override { return true; }
+		virtual bool IsError (CString* retsErrorCode = NULL) const override { if (retsErrorCode) *retsErrorCode = m_sError; return true; }
 		virtual bool IsImmutable () const override { return true; }
 		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
 		virtual void SerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const override;
@@ -746,37 +751,177 @@ class CAEONNilImpl
 		static TDatumMethodHandler<int> m_Methods;
 	};
 
-class CAEONObject : public CComplexStruct
+class CAEONObject : public IComplexDatum
 	{
 	public:
 		CAEONObject () { }
-		CAEONObject (CDatum dType) : m_dType(dType) { }
-		CAEONObject (CDatum dType, CDatum dSrc) : CComplexStruct(dSrc), m_dType(dType) { }
-		CAEONObject (CDatum dType, const TSortMap<CString, CDatum> &Src) : CComplexStruct(Src), m_dType(dType) { }
-		CAEONObject (CDatum dType, const TSortMap<CString, CString> &Src) : CComplexStruct(Src), m_dType(dType) { }
+		CAEONObject (CDatum dType) : m_dType(dType) { InitStorage(); }
+		CAEONObject (CDatum dType, CDatum dSrc);
+		CAEONObject (CDatum dType, const TSortMap<CString, CDatum> &Src);
+		CAEONObject (CDatum dType, const TSortMap<CString, CString> &Src);
 
 		//	IComplexDatum
 
-		virtual IComplexDatum *Clone (CDatum::EClone iMode) const override { return new CAEONObject(m_dType, m_Map); }
+		virtual void Append (CDatum dDatum) override { AppendStruct(dDatum); }
+		virtual CString AsString () const override;
+		virtual size_t CalcMemorySize () const override;
+		virtual IComplexDatum *Clone (CDatum::EClone iMode) const override;
+		virtual CDatum Cleaned () const override;
+		virtual bool Contains (CDatum dValue) const override;
+		virtual void DeleteElement (int iIndex) override;
+		virtual bool FindElement (const CString &sKey, CDatum *retpValue) const override;
 		virtual DWORD GetBasicDatatype () const override { return ((const IDatatype&)m_dType).GetClass() == IDatatype::ECategory::ClassDef ? IDatatype::CLASS_T : IDatatype::SCHEMA; }
 		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeClassInstance; }
+		virtual int GetCount () const override;
 		virtual CDatum GetDatatype () const override { return m_dType; }
 		virtual CDatum GetElement (int iIndex) const override;
+		virtual CDatum GetElement (const CString &sKey) const override;
+		virtual CDatum GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) const override;
 		virtual CString GetKey (int iIndex) const override;
+		virtual CDatum GetKeyEx (int iIndex) const override { return CDatum(GetKey(iIndex)); }
+		virtual CDatum GetMethod (const CString &sMethod) const override;
+		virtual CDatum GetProperty (const CString& sProperty) const override;
 		virtual const CString &GetTypename () const override;
+		virtual void GrowToFit (int iCount) override;
+		virtual bool HasKeys () const override { return true; }
+		virtual void InsertElementAt (CDatum dIndex, CDatum dDatum) override { SetElementAt(dIndex, dDatum); }
+		virtual bool IsArray () const override { return true; }
 		virtual bool IsContainer () const override { return true; }
+		virtual bool IsStruct () const override { return true; }
 		virtual bool IsNil () const { return false; }	//	Objects are never nil
-		virtual void OnMarked (void) override { m_dType.Mark(); CComplexStruct::OnMarked(); }
+		virtual CDatum IteratorGetKey (CDatum dIterator) const override { return GetKeyEx((int)dIterator); };
+		virtual CDatum IteratorGetValue (CAEONTypeSystem& TypeSystem, CDatum dIterator) const override { return GetElement((int)dIterator); }
+		virtual int OpCompare (CDatum::Types iValueType, CDatum dValue) const override;
+		virtual int OpCompareExact (CDatum::Types iValueType, CDatum dValue) const override;
+		virtual bool OpContains (CDatum dValue) const override { return !GetElement(dValue.AsString()).IsIdenticalToNil(); }
+		virtual bool OpIsEqual (CDatum::Types iValueType, CDatum dValue) const override;
+		virtual bool OpIsIdentical (CDatum::Types iValueType, CDatum dValue) const override;
+		virtual bool RemoveAll () override;
+		virtual bool RemoveElementAt (CDatum dIndex) override;
 		virtual void ResolveDatatypes (const CAEONTypeSystem &TypeSystem) override;
 		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
 		virtual void SerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const override;
+		virtual void SetArrayElementUnchecked (int iIndex, CDatum dDatum) override;
+		virtual void SetElement (int iIndex, CDatum dDatum) override;
 		virtual void SetElement (const CString &sKey, CDatum dDatum) override;
 		virtual void SetElementAt (CDatum dIndex, CDatum dDatum) override;
 
 		static CDatum DeserializeAEON (IByteStream& Stream, DWORD dwID, CAEONSerializedMap &Serialized);
+		static void SetMethodsExt (TDatumMethodHandler<IComplexDatum> &MethodsExt) { m_pMethodsExt = &MethodsExt; }
 
 	private:
+		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const override { return CalcSerializeAsStructSize(iFormat); }
+		virtual void OnMarked () override;
+
+		void AppendStruct (CDatum dDatum);
+		int CalcSlotCount () const;
+		void CloneContents ();
+		void EnsureSlots ();
+		bool FindSlot (const CString &sKey, int *retiSlot = NULL, IDatatype::SMemberDesc *retMember = NULL) const;
+		CDatum GetSlot (int iSlot) const;
+		bool HasSlots () const;
+		void InitStorage ();
+		static bool IsInstanceMember (const IDatatype::SMemberDesc &Member);
+		void OnCopyOnWrite ();
+		void SetSlot (int iSlot, const IDatatype::SMemberDesc &Member, CDatum dDatum);
+
+		bool m_bCopyOnWrite = false;
+		bool m_bHasSlots = false;
+		TSortMap<CString, CDatum> m_Map;
+		TArray<CDatum> m_Values;
 		CDatum m_dType;
+
+		static TDatumPropertyHandler<CAEONObject> m_Properties;
+		static TDatumMethodHandler<IComplexDatum> *m_pMethodsExt;
+	};
+
+class CAEONRecord : public IComplexDatum
+	{
+	public:
+		CAEONRecord () { }
+		CAEONRecord (CDatum dType) : m_dType(dType) { InitStorage(); }
+		CAEONRecord (CDatum dType, const CDatum* pValues, int iCount);
+
+		//	IComplexDatum
+
+		virtual void Append (CDatum dDatum) override { AppendStruct(dDatum); }
+		virtual CString AsString () const override;
+		virtual size_t CalcMemorySize () const override;
+		virtual IComplexDatum *Clone (CDatum::EClone iMode) const override;
+		virtual CDatum Cleaned () const override;
+		virtual bool Contains (CDatum dValue) const override;
+		virtual void DeleteElement (int iIndex) override;
+		virtual bool FindElement (const CString &sKey, CDatum *retpValue) const override;
+		virtual DWORD GetBasicDatatype () const override { return IDatatype::SCHEMA; }
+		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeClassInstance; }
+		virtual int GetCount () const override { return ((const IDatatype&)m_dType).GetMemberCount(); }
+		virtual CDatum GetDatatype () const override { return m_dType; }
+		virtual CDatum GetElement (int iIndex) const override;
+		virtual CDatum GetElement (const CString &sKey) const override;
+		virtual CDatum GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) const override;
+		virtual CString GetKey (int iIndex) const override;
+		virtual CDatum GetKeyEx (int iIndex) const override { return CDatum(GetKey(iIndex)); }
+		virtual CDatum GetMethod (const CString &sMethod) const override;
+		virtual CDatum GetProperty (const CString& sProperty) const override;
+		virtual const CString &GetTypename () const override;
+		virtual void GrowToFit (int iCount) override;
+		virtual bool HasKeys () const override { return true; }
+		virtual void InsertElementAt (CDatum dIndex, CDatum dDatum) override { SetElementAt(dIndex, dDatum); }
+		virtual bool IsArray () const override { return true; }
+		virtual bool IsContainer () const override { return true; }
+		virtual bool IsStruct () const override { return true; }
+		virtual bool IsNil () const { return false; }
+		virtual CDatum IteratorGetKey (CDatum dIterator) const override { return GetKeyEx((int)dIterator); };
+		virtual CDatum IteratorGetValue (CAEONTypeSystem& TypeSystem, CDatum dIterator) const override { return GetElement((int)dIterator); }
+		virtual int OpCompare (CDatum::Types iValueType, CDatum dValue) const override;
+		virtual int OpCompareExact (CDatum::Types iValueType, CDatum dValue) const override;
+		virtual bool OpContains (CDatum dValue) const override { return !GetElement(dValue.AsString()).IsIdenticalToNil(); }
+		virtual bool OpIsEqual (CDatum::Types iValueType, CDatum dValue) const override;
+		virtual bool OpIsIdentical (CDatum::Types iValueType, CDatum dValue) const override;
+		virtual bool RemoveAll () override;
+		virtual bool RemoveElementAt (CDatum dIndex) override;
+		virtual void ResolveDatatypes (const CAEONTypeSystem &TypeSystem) override;
+		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
+		virtual void SerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const override;
+		virtual void SetArrayElementUnchecked (int iIndex, CDatum dDatum) override;
+		virtual void SetElement (int iIndex, CDatum dDatum) override;
+		virtual void SetElement (const CString &sKey, CDatum dDatum) override;
+		virtual void SetElementAt (CDatum dIndex, CDatum dDatum) override;
+		virtual bool raw_GetRecordSlot (int iIndex, CDatum* retdValue) const override;
+
+		static CDatum DeserializeAEON (IByteStream& Stream, DWORD dwID, CAEONSerializedMap &Serialized);
+		static void SetMethodsExt (TDatumMethodHandler<IComplexDatum> &MethodsExt) { m_pMethodsExt = &MethodsExt; }
+
+	private:
+
+		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const override { return CalcSerializeAsStructSize(iFormat); }
+		virtual void OnMarked () override;
+
+		void AppendStruct (CDatum dDatum);
+		void CloneContents ();
+		void DeleteAllSlotValues ();
+		void EnsureSlotValueCount (int iCount);
+		int FindSlot (const CString& sKey) const;
+		CDatum GetSlot (int iSlot) const;
+		int GetSlotValueCount () const;
+		CDatum& GetSlotValueRef (int iSlot);
+		const CDatum& GetSlotValueRef (int iSlot) const;
+		void InitStorage ();
+		void InitStorage (int iSlotCount);
+		void OnCopyOnWrite ();
+		void SetSlotValue (int iSlot, CDatum dDatum);
+
+		static constexpr int INLINE_SLOT_COUNT = 4;
+
+		bool m_bCopyOnWrite = false;
+		bool m_bInlineSlots = false;
+		int m_iInlineSlotCount = 0;
+		TArray<CDatum> m_Values;
+		CDatum m_InlineValues[INLINE_SLOT_COUNT];
+		CDatum m_dType;
+
+		static TDatumPropertyHandler<CAEONRecord> m_Properties;
+		static TDatumMethodHandler<IComplexDatum> *m_pMethodsExt;
 	};
 
 class CAEONRange : public IComplexDatum, public IAEONRange
@@ -801,7 +946,7 @@ class CAEONRange : public IComplexDatum, public IAEONRange
 		virtual DWORD GetBasicDatatype () const override { return IDatatype::RANGE; }
 		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeRange; }
 		virtual int GetCount (void) const override { return m_Properties.GetCount(); }
-		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::RANGE); }
+		virtual CDatum GetDatatype () const override { return CAEONTypes::Get(IDatatype::RANGE); }
 		virtual CDatum GetElement (const CString &sKey) const override { return m_Properties.GetProperty(*this, sKey); }
 		virtual CDatum GetElement (int iIndex) const override { return m_Properties.GetProperty(*this, iIndex); }
 		virtual CString GetKey (int iIndex) const override { return m_Properties.GetPropertyName(iIndex); }
@@ -923,6 +1068,7 @@ class CAEONStringImpl
 		static int FindMethodByKey (const CString& sKey) { return m_Methods.FindMethod(sKey); }
 		static int FindPropertyByKey (const CString& sKey) { return m_Properties.FindProperty(sKey); }
 		static CDatum GetProperty (const CString& sValue, const CString &sKey) { return m_Properties.GetProperty(sValue, sKey); }
+		static CDatum GetElementAt (const CString& sValue, int iIndex);
 		static CDatum GetElementAt (const CString& sValue, CAEONTypeSystem &TypeSystem, CDatum dIndex);
 		static CDatum GetMethod (const CString &sMethod) { return m_Methods.GetMethod(sMethod); }
 		static int GetMethodCount () { return m_Methods.GetCount(); }
@@ -1023,6 +1169,7 @@ class CAEONTensor : public IComplexDatum
 		virtual CString AsString (void) const override { return Format(CStringFormat()); }
 		virtual size_t CalcMemorySize (void) const override { return m_dData.CalcMemorySize(); }
 		virtual IComplexDatum *Clone (CDatum::EClone iMode) const override;
+		virtual CDatum Cleaned () const override;
 		virtual bool EnumElements (DWORD dwFlags, std::function<bool(CDatum)> fn) const override;
 		virtual bool Find (CDatum dValue, int *retiIndex = NULL) const override;
 		virtual CDatum FindAll (CDatum dValue) const override;
@@ -1042,6 +1189,8 @@ class CAEONTensor : public IComplexDatum
 		virtual CDatum GetElementAt3DA (CDatum dIndex1, CDatum dIndex2, CDatum dIndex3) const override;
 		virtual CDatum GetElementAt2DI (int iIndex1, int iIndex2) const override;
 		virtual CDatum GetElementAt3DI (int iIndex1, int iIndex2, int iIndex3) const override;
+		virtual TArray<CDatum>* GetArrayOfDatumInterface () override { return (IsStandard1D() ? m_dData.GetArrayOfDatumInterface() : NULL); }
+		virtual TArray<int>* GetArrayOfInt32Interface () override { return (IsStandard1D() ? m_dData.GetArrayOfInt32Interface() : NULL); }
 		virtual CDatum GetMethod (const CString &sMethod) const override { if (m_pMethodsExt) return m_pMethodsExt->GetMethod(sMethod); else return CDatum(); }
 		virtual const CString &GetTypename (void) const override;
 		virtual bool IsArray (void) const override { return true; }
@@ -1111,6 +1260,8 @@ class CAEONTensor : public IComplexDatum
 			int iFlatStride = 0;		//	Stride of the dimension (in the slice)
 			bool bEnum = false;
 			};
+
+		bool IsStandard1D () const { return (m_Dims.GetCount() == 1 && m_Dims[0].iOrigin == 0 && m_Dims[0].iStride == 1); }
 
 		class Iterator 
 			{
@@ -1387,7 +1538,7 @@ class CAEONTimeSpan : public IComplexDatum
 		virtual DWORD GetBasicDatatype () const override { return IDatatype::TIME_SPAN; }
 		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeTimeSpan; }
 		virtual int GetCount (void) const override { return PART_COUNT; };
-		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::TIME_SPAN); }
+		virtual CDatum GetDatatype () const override { return CAEONTypes::Get(IDatatype::TIME_SPAN); }
 		virtual CDatum GetElement (int iIndex) const override;
 		virtual CDatum GetElement (const CString &sKey) const override;
 		virtual CDatum::Types GetNumberType (int *retiValue) override { return CDatum::typeTimeSpan; }
@@ -1432,7 +1583,8 @@ class CAEONVectorInt32 : public TAEONVector<int, CAEONVectorInt32>
 
 		virtual int FindMaxElement () const override;
 		virtual int FindMinElement () const override;
-		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY_INT_32); }
+		virtual TArray<int>* GetArrayOfInt32Interface () override { return &m_Array; }
+		virtual CDatum GetDatatype () const override { return CAEONTypes::Get(IDatatype::ARRAY_INT_32); }
 		virtual int GetDimensions () const override { return 1; }
 		virtual CDatum GetElement (const CString &sKey) const override { return m_Properties.GetProperty(*this, sKey); }
 		virtual CDatum GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) const override { return TArrayImpl<CAEONVectorInt32, int>::GetElementAt(this, m_Array, dIndex); }
@@ -1482,7 +1634,7 @@ class CAEONVectorIntIP : public TAEONVector<CIPInteger, CAEONVectorIntIP>
 
 		virtual int FindMaxElement () const override;
 		virtual int FindMinElement () const override;
-		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY_INT_IP); }
+		virtual CDatum GetDatatype () const override { return CAEONTypes::Get(IDatatype::ARRAY_INT_IP); }
 		virtual int GetDimensions () const override { return 1; }
 		virtual CDatum GetElement (const CString &sKey) const override { return m_Properties.GetProperty(*this, sKey); }
 		virtual CDatum GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) const override { return TArrayImpl<CAEONVectorIntIP, CIPInteger>::GetElementAt(this, m_Array, dIndex); }
@@ -1532,7 +1684,8 @@ class CAEONVectorFloat64 : public TAEONVector<double, CAEONVectorFloat64>
 
 		virtual int FindMaxElement () const override;
 		virtual int FindMinElement () const override;
-		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY_FLOAT_64); }
+		virtual TArray<double>* GetArrayOfDoubleInterface () override { return &m_Array; }
+		virtual CDatum GetDatatype () const override { return CAEONTypes::Get(IDatatype::ARRAY_FLOAT_64); }
 		virtual int GetDimensions () const override { return 1; }
 		virtual CDatum GetElement (const CString &sKey) const override { return m_Properties.GetProperty(*this, sKey); }
 		virtual CDatum GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) const override { return TArrayImpl<CAEONVectorFloat64, double>::GetElementAt(this, m_Array, dIndex); }
@@ -1580,6 +1733,85 @@ class CAEONVectorFloat64 : public TAEONVector<double, CAEONVectorFloat64>
 		static bool IsFloat (CDatum dValue, double& retrValue);
 
 		static TDatumPropertyHandler<CAEONVectorFloat64> m_Properties;
+		static TDatumMethodHandler<IComplexDatum> *m_pMethodsExt;
+	};
+
+class CAEONVectorVector2D : public TAEONVector<CVector2D, CAEONVectorVector2D>
+	{
+	public:
+		CAEONVectorVector2D () { }
+		CAEONVectorVector2D (const TArray<CVector2D> &Src) : TAEONVector<CVector2D, CAEONVectorVector2D>(Src) { }
+		CAEONVectorVector2D (const TArray<CDatum> &Src) : TAEONVector<CVector2D, CAEONVectorVector2D>(Src) { }
+
+		static CVector2D FromDatum (CDatum dValue) { return (const CVector2D &)dValue; }
+		static CDatum MakeNullElement () { return CDatum(CVector2D()); }
+		static CDatum ToDatum (const CVector2D &Value) { return CDatum(Value); }
+
+		virtual CDatum GetDatatype () const override { return CAEONTypes::Get(IDatatype::ARRAY_VECTOR_2D); }
+		virtual int GetDimensions () const override { return 1; }
+		virtual CDatum GetElement (const CString &sKey) const override { return m_Properties.GetProperty(*this, sKey); }
+		virtual CDatum GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) const override { return TArrayImpl<CAEONVectorVector2D, CVector2D>::GetElementAt(this, m_Array, dIndex); }
+		virtual CDatum GetMethod (const CString &sMethod) const override { if (m_pMethodsExt) return m_pMethodsExt->GetMethod(sMethod); else return CDatum(); }
+		virtual const CString &GetTypename (void) const override;
+		virtual void InsertEmpty (int iCount) override;
+		virtual CDatum IteratorGetKey (CDatum dIterator) const override { return dIterator; };
+		virtual CDatum IteratorGetValue (CAEONTypeSystem& TypeSystem, CDatum dIterator) const override { return TArrayImpl<CAEONVectorVector2D, CVector2D>::GetElementAt(this, m_Array, dIterator); }
+		virtual int OpCompare (CDatum::Types iValueType, CDatum dValue) const override { return CComplexArray::CompareArray(CDatum::raw_AsComplex(this), iValueType, dValue); }
+		virtual int OpCompareExact (CDatum::Types iValueType, CDatum dValue) const override { return CComplexArray::CompareArrayExact(CDatum::raw_AsComplex(this), iValueType, dValue); }
+		virtual CDatum OpConcatenated (IInvokeCtx& Ctx, CDatum dSrc, int iAxis = 0) const override { return CAEONOp::ExecConcatenateArray_Array(Ctx, CDatum::raw_AsComplex(this), dSrc, iAxis); }
+		virtual bool OpIsEqual (CDatum::Types iValueType, CDatum dValue) const override { return CComplexArray::IsArrayEqual(CDatum::raw_AsComplex(this), iValueType, dValue); }
+		virtual bool OpIsIdentical (CDatum::Types iValueType, CDatum dValue) const override { return CComplexArray::IsArrayIdentical(CDatum::raw_AsComplex(this), iValueType, dValue); }
+		virtual void SerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const override;
+		virtual void SetElement (const CString &sKey, CDatum dDatum) override { m_Properties.SetProperty(*this, sKey, dDatum, NULL); }
+		virtual void SetElementAt (CDatum dIndex, CDatum dDatum) override { TArrayImpl<CAEONVectorVector2D, CVector2D>::SetElementAt(this, m_Array, dIndex, dDatum); }
+		virtual void Sort (ESortOptions Order = AscendingSort, TArray<CDatum>::COMPAREPROC pfCompare = NULL, void *pCtx = NULL) override { }
+
+		static CDatum DeserializeAEON (IByteStream& Stream, DWORD dwID, CAEONSerializedMap &Serialized);
+		static void SetMethodsExt (TDatumMethodHandler<IComplexDatum> &MethodsExt) { m_pMethodsExt = &MethodsExt; }
+
+	private:
+
+		static TDatumPropertyHandler<CAEONVectorVector2D> m_Properties;
+		static TDatumMethodHandler<IComplexDatum> *m_pMethodsExt;
+	};
+
+class CAEONVectorVector3D : public TAEONVector<CVector3D, CAEONVectorVector3D>
+	{
+	public:
+		CAEONVectorVector3D () { }
+		CAEONVectorVector3D (const TArray<CVector3D> &Src) : TAEONVector<CVector3D, CAEONVectorVector3D>(Src) { }
+		CAEONVectorVector3D (const TArray<CDatum> &Src) : TAEONVector<CVector3D, CAEONVectorVector3D>(Src) { }
+
+		static CVector3D FromDatum (CDatum dValue) { return (const CVector3D &)dValue; }
+		static CDatum MakeNullElement () { return CDatum(CVector3D()); }
+		static CDatum ToDatum (const CVector3D &Value) { return CDatum(Value); }
+
+		virtual TArray<CVector3D>* GetArrayOfVector3DInterface () override { return &m_Array; }
+		virtual CDatum GetDatatype () const override { return CAEONTypes::Get(IDatatype::ARRAY_VECTOR_3D); }
+		virtual int GetDimensions () const override { return 1; }
+		virtual CDatum GetElement (const CString &sKey) const override { return m_Properties.GetProperty(*this, sKey); }
+		virtual CDatum GetElementAt (CAEONTypeSystem &TypeSystem, CDatum dIndex) const override { return TArrayImpl<CAEONVectorVector3D, CVector3D>::GetElementAt(this, m_Array, dIndex); }
+		virtual CDatum GetMethod (const CString &sMethod) const override { if (m_pMethodsExt) return m_pMethodsExt->GetMethod(sMethod); else return CDatum(); }
+		virtual const CString &GetTypename (void) const override;
+		virtual void InsertEmpty (int iCount) override;
+		virtual CDatum IteratorGetKey (CDatum dIterator) const override { return dIterator; };
+		virtual CDatum IteratorGetValue (CAEONTypeSystem& TypeSystem, CDatum dIterator) const override { return TArrayImpl<CAEONVectorVector3D, CVector3D>::GetElementAt(this, m_Array, dIterator); }
+		virtual int OpCompare (CDatum::Types iValueType, CDatum dValue) const override { return CComplexArray::CompareArray(CDatum::raw_AsComplex(this), iValueType, dValue); }
+		virtual int OpCompareExact (CDatum::Types iValueType, CDatum dValue) const override { return CComplexArray::CompareArrayExact(CDatum::raw_AsComplex(this), iValueType, dValue); }
+		virtual CDatum OpConcatenated (IInvokeCtx& Ctx, CDatum dSrc, int iAxis = 0) const override { return CAEONOp::ExecConcatenateArray_Array(Ctx, CDatum::raw_AsComplex(this), dSrc, iAxis); }
+		virtual bool OpIsEqual (CDatum::Types iValueType, CDatum dValue) const override { return CComplexArray::IsArrayEqual(CDatum::raw_AsComplex(this), iValueType, dValue); }
+		virtual bool OpIsIdentical (CDatum::Types iValueType, CDatum dValue) const override { return CComplexArray::IsArrayIdentical(CDatum::raw_AsComplex(this), iValueType, dValue); }
+		virtual void SerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const override;
+		virtual void SetElement (const CString &sKey, CDatum dDatum) override { m_Properties.SetProperty(*this, sKey, dDatum, NULL); }
+		virtual void SetElementAt (CDatum dIndex, CDatum dDatum) override { TArrayImpl<CAEONVectorVector3D, CVector3D>::SetElementAt(this, m_Array, dIndex, dDatum); }
+		virtual void Sort (ESortOptions Order = AscendingSort, TArray<CDatum>::COMPAREPROC pfCompare = NULL, void *pCtx = NULL) override { }
+
+		static CDatum DeserializeAEON (IByteStream& Stream, DWORD dwID, CAEONSerializedMap &Serialized);
+		static void SetMethodsExt (TDatumMethodHandler<IComplexDatum> &MethodsExt) { m_pMethodsExt = &MethodsExt; }
+
+	private:
+
+		static TDatumPropertyHandler<CAEONVectorVector3D> m_Properties;
 		static TDatumMethodHandler<IComplexDatum> *m_pMethodsExt;
 	};
 
@@ -1646,6 +1878,7 @@ class CAEONVectorString : public IComplexDatum
 		virtual CString AsString (void) const override;
 		virtual size_t CalcMemorySize (void) const override;
 		virtual IComplexDatum *Clone (CDatum::EClone iMode) const override;
+		virtual CDatum Cleaned () const override;
 		virtual void DeleteElement (int iIndex) override { if (iIndex >= 0 && iIndex < m_Array.GetCount()) m_Array.Delete(iIndex); }
 		virtual bool Find (CDatum dValue, int *retiIndex = NULL) const override;
 		virtual CDatum FindAll (CDatum dValue) const override;
@@ -1656,7 +1889,7 @@ class CAEONVectorString : public IComplexDatum
 		virtual DWORD GetBasicDatatype () const override { return IDatatype::ARRAY; }
 		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeArray; }
 		virtual int GetCount (void) const override { return m_Array.GetCount(); }
-		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY_STRING); }
+		virtual CDatum GetDatatype () const override { return CAEONTypes::Get(IDatatype::ARRAY_STRING); }
 		virtual int GetDimensions () const override { return 1; }
 		virtual CDatum GetElement (int iIndex) const override { return ((iIndex >= 0 && iIndex < m_Array.GetCount()) ? m_Array[iIndex] : CDatum()); }
 		virtual CDatum GetElement (const CString &sKey) const override { return m_Properties.GetProperty(*this, sKey); }
@@ -1728,6 +1961,7 @@ class CAEONVectorTyped : public IComplexDatum
 		virtual CString AsString (void) const override { return Format(CStringFormat()); }
 		virtual size_t CalcMemorySize (void) const override;
 		virtual IComplexDatum *Clone (CDatum::EClone iMode) const override;
+		virtual CDatum Cleaned () const override;
 		virtual void DeleteElement (int iIndex) override { if (iIndex >= 0 && iIndex < m_Array.GetCount()) m_Array.Delete(iIndex); }
 		virtual bool Find (CDatum dValue, int *retiIndex = NULL) const override;
 		virtual CDatum FindAll (CDatum dValue) const override;
@@ -1737,6 +1971,7 @@ class CAEONVectorTyped : public IComplexDatum
 		virtual int FindMinElement () const override { return CComplexArray::FindMinElementInArray(m_Array); }
 		virtual CString Format (const CStringFormat &Format) const override;
 		virtual CDatum GetArrayElementUnchecked (int iIndex) const override { return m_Array[iIndex]; }
+		virtual TArray<CDatum>* GetArrayOfDatumInterface () override { return &m_Array; }
 		virtual DWORD GetBasicDatatype () const override { return IDatatype::ARRAY; }
 		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeArray; }
 		virtual CDatum GetDatatype () const override { return m_dDatatype; }
@@ -1819,23 +2054,21 @@ class CAEONVector2D : public TExternalDatum<CAEONVector2D>
 		//	IComplexDatum
 
 		virtual const CVector2D& CastCVector2D () const override { return m_vVector; }
-		virtual IComplexDatum* Clone (CDatum::EClone iMode) const override { return new CAEONVector2D(*this); }
 		virtual DWORD GetBasicDatatype () const override { return IDatatype::VECTOR_2D_F64; }
 		virtual CDatum::Types GetBasicType () const override { return CDatum::typeVector2D; }
 		virtual int GetCount (void) const override { return 2; }
-		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::VECTOR_2D_F64); }
+		virtual CDatum GetDatatype () const override { return CAEONTypes::Get(IDatatype::VECTOR_2D_F64); }
 		virtual CDatum GetElement (int iIndex) const override;
 		virtual CDatum GetElement (const CString &sKey) const override;
 		virtual CDatum GetMethod (const CString &sMethod) const override { return m_Methods.GetMethod(sMethod); }
 		virtual CDatum GetProperty (const CString& sProperty) const override { return m_Properties.GetProperty(*this, sProperty); }
 		virtual bool IsArray (void) const override { return true; }
 		virtual bool IsContainer (void) const override { return true; }
-		virtual void SetElement (int iIndex, CDatum dDatum) override;
-		virtual void SetElement (const CString &sKey, CDatum dDatum) override;
+		virtual bool IsImmutable () const { return true; }
 		virtual void SerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const override;
 
 		static CDatum DeserializeAEON (IByteStream& Stream, DWORD dwID, CAEONSerializedMap &Serialized);
-		static TArray<IDatatype::SMemberDesc> GetMembers (void);
+		static TArray<IDatatype::SMemberDesc> GetMembers ();
 
 	protected:
 
@@ -1867,23 +2100,21 @@ class CAEONVector3D : public TExternalDatum<CAEONVector3D>
 		//	IComplexDatum
 
 		virtual const CVector3D& CastCVector3D () const override { return m_vVector; }
-		virtual IComplexDatum* Clone (CDatum::EClone iMode) const override { return new CAEONVector3D(*this); }
 		virtual DWORD GetBasicDatatype () const override { return IDatatype::VECTOR_3D_F64; }
 		virtual CDatum::Types GetBasicType () const override { return CDatum::typeVector3D; }
 		virtual int GetCount (void) const override { return 3; }
-		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::VECTOR_3D_F64); }
+		virtual CDatum GetDatatype () const override { return CAEONTypes::Get(IDatatype::VECTOR_3D_F64); }
 		virtual CDatum GetElement (int iIndex) const override;
 		virtual CDatum GetElement (const CString &sKey) const override;
 		virtual CDatum GetMethod (const CString &sMethod) const override { return m_Methods.GetMethod(sMethod); }
 		virtual CDatum GetProperty (const CString& sProperty) const override { return m_Properties.GetProperty(*this, sProperty); }
 		virtual bool IsArray (void) const override { return true; }
 		virtual bool IsContainer (void) const override { return true; }
-		virtual void SetElement (int iIndex, CDatum dDatum) override;
-		virtual void SetElement (const CString &sKey, CDatum dDatum) override;
+		virtual bool IsImmutable () const { return true; }
 		virtual void SerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const override;
 
 		static CDatum DeserializeAEON (IByteStream& Stream, DWORD dwID, CAEONSerializedMap &Serialized);
-		static TArray<IDatatype::SMemberDesc> GetMembers (void);
+		static TArray<IDatatype::SMemberDesc> GetMembers ();
 
 	protected:
 
@@ -1900,4 +2131,3 @@ class CAEONVector3D : public TExternalDatum<CAEONVector3D>
 		static TDatumPropertyHandler<CAEONVector3D> m_Properties;
 		static TDatumMethodHandler<CAEONVector3D> m_Methods;
 	};
-

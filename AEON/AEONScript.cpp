@@ -125,6 +125,9 @@ size_t CDatum::CalcSerializeSizeAEONScript (EFormat iFormat) const
 			{
 			switch (m_dwData)
 				{
+				case VALUE_BLANK:
+					return 2;	//	""
+
 				case VALUE_FALSE:
 					return 5;	//	"false"
 
@@ -207,6 +210,10 @@ void CDatum::SerializeAEONScript (EFormat iFormat, IByteStream &Stream) const
 			{
 			switch (m_dwData)
 				{
+				case VALUE_BLANK:
+					Stream.Write("\"\"", 2);
+					break;
+
 				case VALUE_FALSE:
 					Stream.Write("false", 5);
 					break;
@@ -322,7 +329,7 @@ void CDatum::SerializeEnum (EFormat iFormat, IByteStream &Stream) const
 			break;
 			}
 
-		case CDatum::EFormat::JSON:
+		case CDatum::EFormat::AEONJSON:
 			{
 			Stream.Write("[\"AEON2011:enum:v1\",", 20);
 
@@ -335,6 +342,14 @@ void CDatum::SerializeEnum (EFormat iFormat, IByteStream &Stream) const
 			Stream.Write("\"", 1);
 
 			Stream.Write("]", 1);
+			break;
+			}
+
+		case CDatum::EFormat::JSON:
+			{
+			Stream.Write("\"", 1);
+			Stream.Write(sID);
+			Stream.Write("\"", 1);
 			break;
 			}
 

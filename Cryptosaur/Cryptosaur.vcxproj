@@ -241,6 +241,7 @@
     <ClCompile Include="MsgCreateAuthToken.cpp" />
     <ClCompile Include="MsgDeleteUser.cpp" />
     <ClCompile Include="MsgGetKey.cpp" />
+    <ClCompile Include="MsgSecret.cpp" />
     <ClCompile Include="MsgSetCertificate.cpp" />
     <ClCompile Include="MsgSetKey.cpp" />
     <ClCompile Include="MsgSignData.cpp" />

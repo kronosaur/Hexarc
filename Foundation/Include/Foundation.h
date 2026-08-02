@@ -120,6 +120,8 @@ class CFoundation
 
 		struct SCPUInfo
 			{
+			CString sArchitecture;
+			CString sModel;
 			int iLogicalProcessorCount = 0;
 			};
 
@@ -128,6 +130,7 @@ class CFoundation
 
 		static bool Boot (DWORD dwFlags = 0, CString *retsError = NULL);
 		static SCPUInfo GetCPUInfo ();
+		static const CString& GetPlatform ();
 
 		static void DebugTest_TIDTable ();
 

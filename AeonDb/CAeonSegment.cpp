@@ -425,7 +425,17 @@ bool CAeonSegment::Create (DWORD dwViewID, const CTableDimensions &Dims, SEQUENC
 		SBlockHeader BlockHeader;
 		BlockHeader.dwSize = dwRowDataPos;
 		BlockHeader.dwRowCount = pBlock->dwRowCount;
-		ASSERT(BlockHeader.dwSize == pBlock->dwBlockSize);
+
+		if (BlockHeader.dwSize != pBlock->dwBlockSize)
+			{
+			delete m_pHeader;
+			m_pHeader = NULL;
+			SegFile.Close();
+			fileDelete(m_sFilespec);
+
+			if (retsError) *retsError = strPattern("Block size mismatch in segment: %s (expected %d, got %d)", m_sFilespec, pBlock->dwBlockSize, BlockHeader.dwSize);
+			return false;
+			}
 
 		BlockBuffer.Seek(0);
 		BlockBuffer.Write(&BlockHeader, sizeof(BlockHeader));
@@ -538,8 +548,10 @@ bool CAeonSegment::Create (DWORD dwViewID, const CTableDimensions &Dims, SEQUENC
 		return false;
 		}
 
-	//	Done writing the segment file
+	//	Done writing the segment file. Flush to make sure all data is
+	//	committed to disk before we close.
 
+	SegFile.Flush();
 	SegFile.Close();
 
 	//	Open the block cache
@@ -1130,6 +1142,25 @@ bool CAeonSegment::Open (const CString &sFilespec, CString *retsError)
 			}
 
 		*retsError = strPattern("Unable to open segment file: %s", sFilespec);
+		return false;
+		}
+
+	//	Validate that the file is large enough to contain all blocks and the
+	//	index. If the file is truncated (e.g., due to a crash before the data
+	//	was flushed to disk), we reject it now rather than reading corrupt data
+	//	later.
+
+	DWORDLONG dwFileSize = File.GetSize();
+	DWORDLONG dwExpectedMinSize = (DWORDLONG)m_pHeader->dwIndexOffset + (DWORDLONG)m_pHeader->dwIndexSize;
+	if (dwFileSize < dwExpectedMinSize)
+		{
+		delete m_pHeader;
+		m_pHeader = NULL;
+		delete [] (char *)m_pIndex;
+		m_pIndex = NULL;
+		CString sExpectedMinSize = CIPInteger(dwExpectedMinSize).AsString();
+		CString sFileSize = CIPInteger(dwFileSize).AsString();
+		*retsError = strPattern("Segment file is truncated: %s (expected %s bytes, got %s)", sFilespec, sExpectedMinSize, sFileSize);
 		return false;
 		}
 

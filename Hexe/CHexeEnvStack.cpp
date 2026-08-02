@@ -132,6 +132,8 @@ void CHexeEnvStack::Mark (void)
 //	Mark data in use
 
 	{
+	DEBUG_TRY
+
 	for (int i = 0; i < m_Stack.GetCount(); i++)
 		{
 		m_Stack[i].dGlobalEnv.Mark();
@@ -153,6 +155,8 @@ void CHexeEnvStack::Mark (void)
 
 	m_dCurGlobalEnv.Mark();
 	m_pCurLocalEnv.Mark();
+
+	DEBUG_CATCH
 	}
 
 void CHexeEnvStack::PopFrame (void)
@@ -346,13 +350,12 @@ void CHexeEnvStack::SetLocalEnv (SEnvCtx& Ctx, CHexeLocalEnvPointer&& pLocalEnv)
 		}
 	}
 
-void CHexeEnvStack::SetLocalEnvParent (CDatum dLocalEnv)
+void CHexeEnvStack::SetLocalEnvParent (CDatum dLocalEnv, CHexeLocalEnvironment *pLocalEnv)
 
 //	SetLocalEnvParent
 //
 //	Sets the parent of the current local environment
 
 	{
-	m_pCurLocalEnv.AsEnv().SetParentEnv(dLocalEnv);
+	m_pCurLocalEnv.AsEnv().SetParentEnv(dLocalEnv, pLocalEnv);
 	}
-

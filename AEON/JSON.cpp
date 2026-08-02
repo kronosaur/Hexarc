@@ -59,7 +59,7 @@ bool CDatum::DeserializeJSON (IByteStream &Stream, CDatum *retDatum)
 	return Parse.ParseDatum(retDatum);
 	}
 
-void CDatum::SerializeJSON (IByteStream &Stream) const
+void CDatum::SerializeJSON (EFormat iFormat, IByteStream &Stream) const
 
 //	SerializeJSON
 //
@@ -76,6 +76,10 @@ void CDatum::SerializeJSON (IByteStream &Stream) const
 			{
 			switch (m_dwData)
 				{
+				case VALUE_BLANK:
+					Stream.Write("\"\"", 2);
+					break;
+
 				case VALUE_FALSE:
 					Stream.Write("false", 5);
 					break;
@@ -99,7 +103,7 @@ void CDatum::SerializeJSON (IByteStream &Stream) const
 			}
 
 		case TYPE_ENUM:
-			SerializeEnum(EFormat::JSON, Stream);
+			SerializeEnum(iFormat, Stream);
 			break;
 
 		case TYPE_STRING:
@@ -111,15 +115,18 @@ void CDatum::SerializeJSON (IByteStream &Stream) const
 			}
 
 		case TYPE_COMPLEX:
-			DecodeComplex(m_dwData).Serialize(EFormat::JSON, Stream);
+			DecodeComplex(m_dwData).Serialize(iFormat, Stream);
 			break;
 
 		case TYPE_ROW_REF:
-			CAEONRowRefImpl::Serialize(m_dwData, EFormat::JSON, Stream);
+			CAEONRowRefImpl::Serialize(m_dwData, iFormat, Stream);
 			break;
 
 		case TYPE_NAN:
-			Stream.Write(STR_NAN);
+			if (iFormat == EFormat::AEONJSON)
+				Stream.Write(STR_NAN);
+			else
+				Stream.Write("null", 4);
 			break;
 
 		case TYPE_INFINITY_N:
@@ -130,10 +137,11 @@ void CDatum::SerializeJSON (IByteStream &Stream) const
 		default:
 			{
 			double rValue = DecodeDouble(m_dwData);
+			//	JSON does not support NaN or Infinity, so we write null instead.
 			if (isnan(rValue))
-				Stream.Write(STR_NAN);
+				Stream.Write("null", 4);
 			else if (isinf(rValue))
-				Stream.Write(STR_INFINITY);
+				Stream.Write("null", 4);
 			else
 				Stream.Write(strFromDouble(rValue));
 			break;

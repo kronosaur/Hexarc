@@ -196,7 +196,7 @@ class CTimeSpan
 		DWORDLONG Milliseconds64 (void) const { return ((DWORDLONG)SECONDS_PER_DAY * (DWORDLONG)m_Days * 1000) + (DWORDLONG)m_Milliseconds; }
 		int MillisecondsSinceMidnight (void) const { return (int)m_Milliseconds; }
 		static const CTimeSpan &Null () { return m_Null; }
-
+		static bool Parse (CStringView sValue, CTimeSpan& retResult);
 		CString Format (const CString &sFormat) const;
 
 		static CTimeSpan Add (const CTimeSpan &A, const CTimeSpan &B);

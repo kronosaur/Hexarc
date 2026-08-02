@@ -5,6 +5,19 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_CDATE_TIME_PM,	"pm");
+DECLARE_CONST_STRING(STR_CDATE_TIME_AM,	"am");
+DECLARE_CONST_STRING(STR_CDATE_TIME_PM_CC9F471B,	"PM");
+DECLARE_CONST_STRING(STR_CDATE_TIME_AM_3C1D8623,	"AM");
+DECLARE_CONST_STRING(STR_CDATE_TIME_JUST_NOW,	"just now");
+DECLARE_CONST_STRING(STR_CDATE_TIME_VALUE_1_MINUTE_AGO,	"1 minute ago");
+DECLARE_CONST_STRING(STR_CDATE_TIME_VALUE_1_HOUR_AGO,	"1 hour ago");
+DECLARE_CONST_STRING(STR_CDATE_TIME_VALUE_1_YEAR,	"1 year");
+DECLARE_CONST_STRING(STR_CDATE_TIME_VALUE_1_DAY,	"1 day");
+DECLARE_CONST_STRING(STR_CDATE_TIME_VALUE_1_HOUR,	"1 hour");
+DECLARE_CONST_STRING(STR_CDATE_TIME_VALUE_1_MINUTE,	"1 minute");
+DECLARE_CONST_STRING(STR_CDATE_TIME_VALUE_1_SECOND,	"1 second");
+
 DECLARE_CONST_STRING(STR_UN,							"un");
 DECLARE_CONST_STRING(STR_UNK,							"unk");
 DECLARE_CONST_STRING(STR_UNKNOWN,						"unknown");
@@ -666,17 +679,17 @@ CString CDateTime::Format (const CString &sFormat) const
 		else if (strEquals((LPSTR)sToken, "pm"))
 			{
 			if (Hour() >= 12)
-				Buffer.Write(CString("pm"));
+				Buffer.Write(STR_CDATE_TIME_PM);
 			else
-				Buffer.Write(CString("am"));
+				Buffer.Write(STR_CDATE_TIME_AM);
 			}
 
 		else if (strEquals((LPSTR)sToken, "PM"))
 			{
 			if (Hour() >= 12)
-				Buffer.Write(CString("PM"));
+				Buffer.Write(STR_CDATE_TIME_PM_CC9F471B);
 			else
-				Buffer.Write(CString("AM"));
+				Buffer.Write(STR_CDATE_TIME_AM_3C1D8623);
 			}
 
 		else
@@ -702,13 +715,13 @@ CString CDateTime::Format (DateFormats iDateFormat, TimeFormats iTimeFormat) con
 		CTimeSpan Span = timeSpan(*this, CDateTime(Now));
 		DWORDLONG dwSeconds = Span.Seconds64();
 		if (dwSeconds < SECONDS_PER_MINUTE)
-			return CString("just now");
+			return STR_CDATE_TIME_JUST_NOW;
 		else if (dwSeconds < SECONDS_PER_MINUTE + (SECONDS_PER_MINUTE / 2))
-			return CString("1 minute ago");
+			return STR_CDATE_TIME_VALUE_1_MINUTE_AGO;
 		else if (dwSeconds < SECONDS_PER_HOUR)
 			return strPattern("%d minutes ago", (int)(dwSeconds / SECONDS_PER_MINUTE));
 		else if (dwSeconds < SECONDS_PER_HOUR + (SECONDS_PER_HOUR / 2))
-			return CString("1 hour ago");
+			return STR_CDATE_TIME_VALUE_1_HOUR_AGO;
 		else if (dwSeconds < 2 * SECONDS_PER_DAY)
 			return strPattern("%d hours ago", (int)(dwSeconds / SECONDS_PER_HOUR));
 		else if (dwSeconds < 30 * SECONDS_PER_DAY)
@@ -2392,25 +2405,25 @@ CString CTimeSpan::Format (const CString &sFormat) const
 
 	CString sYears;
 	if (iYears == 1)
-		sYears = CString("1 year");
+		sYears = STR_CDATE_TIME_VALUE_1_YEAR;
 	else if (iYears > 1)
 		sYears = strPattern("%d years", iYears);
 
 	CString sDays;
 	if (iDays == 1)
-		sDays = CString("1 day");
+		sDays = STR_CDATE_TIME_VALUE_1_DAY;
 	else if (iDays > 1)
 		sDays = strPattern("%d days", iDays);
 
 	CString sHours;
 	if (iHours == 1)
-		sHours = CString("1 hour");
+		sHours = STR_CDATE_TIME_VALUE_1_HOUR;
 	else if (iHours > 1)
 		sHours = strPattern("%d hours", iHours);
 
 	CString sMinutes;
 	if (iMinutes == 1)
-		sMinutes = CString("1 minute");
+		sMinutes = STR_CDATE_TIME_VALUE_1_MINUTE;
 	else if (iMinutes > 1)
 		sMinutes = strPattern("%d minutes", iMinutes);
 
@@ -2418,7 +2431,7 @@ CString CTimeSpan::Format (const CString &sFormat) const
 	if (iMilliseconds / 10 > 0)
 		sSeconds = strPattern("%d.%02d seconds", iSeconds, iMilliseconds / 10);
 	else if (iSeconds == 1)
-		sSeconds = CString("1 second");
+		sSeconds = STR_CDATE_TIME_VALUE_1_SECOND;
 	else
 		sSeconds = strPattern("%d seconds", iSeconds);
 

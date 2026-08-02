@@ -105,8 +105,9 @@ bool CHTTPService::HandleRequest (SHTTPRequestCtx &Ctx)
 
 	//	If we require TLS, then redirect HTTP to HTTPS
 
+	const CString &sEffectiveProtocol = Ctx.sRouteProtocol.IsEmpty() ? Ctx.pSession->GetProtocol() : Ctx.sRouteProtocol;
 	if (m_iTLS == tlsRequired 
-			&& !strEquals(Ctx.pSession->GetProtocol(), PROTOCOL_TLS))
+			&& !strEquals(sEffectiveProtocol, PROTOCOL_TLS))
 		{
 		Ctx.iStatus = pstatResponseReady;
 		Ctx.Response.InitResponse(http_MOVED_PERMANENTLY, STR_MOVED_PERMANENTLY);
@@ -141,6 +142,28 @@ bool CHTTPService::HandleRequest (SHTTPRequestCtx &Ctx)
 	//	Let our subclasses deal with it.
 
 	return OnHandleRequest(Ctx); 
+	}
+
+void CHTTPService::GetHostsToServe (TArray<CString> *retHosts) const
+
+//	GetHostsToServe
+//
+//	Returns the legacy service-document hosts.
+
+	{
+	retHosts->DeleteAll();
+	retHosts->Insert(m_HostsToServe);
+	}
+
+void CHTTPService::GetPathsToServe (TArray<CString> *retPaths) const
+
+//	GetPathsToServe
+//
+//	Returns the current URL path prefixes for this service.
+
+	{
+	retPaths->DeleteAll();
+	retPaths->Insert(m_PathsToServe);
 	}
 
 CString CHTTPService::MakePathCanonical (const CString &sPath)
@@ -377,6 +400,17 @@ int CHTTPService::MatchHostAndURL (const CString &sHost, const CString &sURL)
 	//	Done
 
 	return iBestMatch;
+	}
+
+void CHTTPService::SetPathsToServe (const TArray<CString> &Paths)
+
+//	SetPathsToServe
+//
+//	Sets the URL path prefixes.
+
+	{
+	m_PathsToServe.DeleteAll();
+	m_PathsToServe.Insert(Paths);
 	}
 
 void CHTTPService::OnGetListeners (TArray<SListenerDesc> &Listeners) const

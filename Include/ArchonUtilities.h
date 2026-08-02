@@ -20,9 +20,9 @@ class IAMP1CommunicatorEvents
 	{
 	public:
 
-		virtual void OnAMP1ClientConnected (CStringView sNodeID) { }
-		virtual void OnAMP1ClientDisconnected (CStringView sNodeID) { }
-		virtual void OnAMP1ConnectedToServer () { }
+		virtual void OnAMP1ClientConnected (CStringView sNodeID, CStringView sMachineName) { }
+		virtual void OnAMP1ClientDisconnected (CStringView sNodeID, CStringView sMachineName) { }
+		virtual void OnAMP1ConnectedToServer (CStringView sMachineName) { }
 		virtual void OnAMP1FatalError (CStringView sError) { }
 		virtual void OnAMP1Message (CStringView sNodeID, CStringView sMsg, CBuffer&& Data) { }
 	};
@@ -35,11 +35,11 @@ class CAMP1Queue : public IAMP1CommunicatorEvents
 
 		//	IAMP1CommunicatorEvents
 
-		virtual void OnAMP1ClientConnected (CStringView sNodeID) override { m_Queue.Insert(SEntry{ EEntryType::ClientConnected, CString(sNodeID), CString(), CBuffer() }); }
-		virtual void OnAMP1ClientDisconnected (CStringView sNodeID) override { m_Queue.Insert(SEntry{ EEntryType::ClientDisconnected, CString(sNodeID), CString(), CBuffer() }); }
-		virtual void OnAMP1ConnectedToServer () override { m_Queue.Insert(SEntry{ EEntryType::ConnectedToServer, CString(), CString(), CBuffer() }); }
-		virtual void OnAMP1FatalError (CStringView sError) override { m_Queue.Insert(SEntry{ EEntryType::FatalError, CString(), CString(sError), CBuffer() }); }
-		virtual void OnAMP1Message (CStringView sNodeID, CStringView sMsg, CBuffer&& Data) override { m_Queue.Insert(SEntry{ EEntryType::Message, CString(sNodeID), CString(sMsg), std::move(Data) }); }
+		virtual void OnAMP1ClientConnected (CStringView sNodeID, CStringView sMachineName) override { m_Queue.Insert(SEntry{ EEntryType::ClientConnected, CString(sNodeID), CString(sMachineName), CString(), CBuffer() }); }
+		virtual void OnAMP1ClientDisconnected (CStringView sNodeID, CStringView sMachineName) override { m_Queue.Insert(SEntry{ EEntryType::ClientDisconnected, CString(sNodeID), CString(sMachineName), CString(), CBuffer() }); }
+		virtual void OnAMP1ConnectedToServer (CStringView sMachineName) override { m_Queue.Insert(SEntry{ EEntryType::ConnectedToServer, CString(), CString(sMachineName), CString(), CBuffer() }); }
+		virtual void OnAMP1FatalError (CStringView sError) override { m_Queue.Insert(SEntry{ EEntryType::FatalError, CString(), CString(), CString(sError), CBuffer() }); }
+		virtual void OnAMP1Message (CStringView sNodeID, CStringView sMsg, CBuffer&& Data) override { m_Queue.Insert(SEntry{ EEntryType::Message, CString(sNodeID), CString(), CString(sMsg), std::move(Data) }); }
 
 	private:
 
@@ -58,6 +58,7 @@ class CAMP1Queue : public IAMP1CommunicatorEvents
 			{
 			EEntryType iType = EEntryType::None;
 			CString sNodeID;
+			CString sMachineName;
 			CString sCommand;
 			CBuffer Data;
 			};

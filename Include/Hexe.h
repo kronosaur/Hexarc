@@ -19,7 +19,10 @@
 #include "HexeLibrarian.h"
 #include "HexeProcessImpl.h"
 
+#ifdef DEBUG
 //#define DEBUG_HISTOGRAM
+//#define DEBUG_COMPUTE_IP
+#endif
 
 //	Interfaces Used by CHexeProcess --------------------------------------------
 
@@ -60,10 +63,12 @@ class IHexeVMHost
 		virtual ~IHexeVMHost () { }
 
 		virtual bool GetInput (const IInvokeCtx::SInputOptions &Options, CDatum& retdResult) { return Impl_StdIn(Options, retdResult); }
+		virtual CDatum GetProcessArgs () const { return CDatum(); }
 		virtual CDatum GetProcessID () const { return CDatum(); }
 		virtual CDatum GetProgramInfo () const { return CDatum(); }
 		virtual CDatum GetSystemObject () const { return Impl_GetSystemObject(); }
 		virtual CDatum GetUsername () const { return CDatum(); }
+		virtual bool InDiagnosticsMode () const { return false; }
 		virtual void Mark () { }
 		virtual void Output (CDatum dValue) { Impl_StdOut(dValue); }
 		virtual void SetAsyncProgressFunc (CDatum dFunc) { }
@@ -72,6 +77,7 @@ class IHexeVMHost
 	protected:
 
 		static bool Impl_ArrayMap (IInvokeCtx &Ctx, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult);
+		static CDatum Impl_CalcArrayMapType (IInvokeCtx &Ctx, CDatum dArray, CDatum dMapFunc, int& retiArgs);
 		static CDatum Impl_CalcDictionaryMapType (IInvokeCtx &Ctx, CDatum dDictionary, CDatum dMapFunc, int& retiArgs);
 		static bool Impl_DictionaryMap (IInvokeCtx &Ctx, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult);
 		static CDatum Impl_GetSystemObject ();
@@ -153,6 +159,9 @@ class CHexeProcess : public IInvokeCtx
 									//	"blocking request". Should probably 
 									//	rename to HexarcRequest.
 
+			AsyncRun,				//	Run has started in a background thread.
+									//	Call SetAsyncResult when ready.
+
 			InputRequest,			//	Run needs input (usually from the user).
 									//	Result is a struct describing the 
 									//	request. Call RunContinues when the data
@@ -171,6 +180,50 @@ class CHexeProcess : public IInvokeCtx
 			Continue,
 			};
 
+		enum EJitStepResult : DWORD
+			{
+			JitContinueBlock = 0,
+			JitExitBlock = 1,
+			JitFastPathMiss = 2,
+			JitReturnBase = 0x100,
+			};
+
+		enum class EJitFaultBoundary
+			{
+			None,
+
+			DatumGetElementAt,
+			DatumGetElementAtInt,
+			DatumIteratorBegin,
+			DatumIteratorGetKey,
+			DatumIteratorGetValue,
+			DatumGetCount,
+			DatumSetElementAt,
+			DatumSetElementAtChecked,
+			DatumSetElementAtIntChecked,
+			DatumGetObjectElement,
+			CanUseDefaultObjectProperty,
+			CanUseDefaultObjectSet,
+			DatumGetProperty,
+			DatumSetObjectElement,
+			OpAddDatum,
+			OpConcatDatum,
+			OpDivideDatum,
+			OpModDatum,
+			OpMultiplyDatum,
+			OpPowerDatum,
+			OpSubtractDatum,
+
+			ExecuteStep,
+			GetCallInfo,
+			EnterCachedCall,
+			EnterCallLib,
+			EnterDirectCall,
+			EnterInvokeCall,
+			EnterLibraryCall,
+			NativeStopCheck,
+			};
+
 		CHexeProcess (IHexeVMHost& Host = DefaultHost);
 
 		static bool Boot (void);
@@ -181,6 +234,10 @@ class CHexeProcess : public IInvokeCtx
 		static bool IsHexarcMessage (const CString &sMsg, CString *retsAddress = NULL) { return FindHexarcMessage(sMsg, retsAddress); }
 
 		static CDatum AsDatum (const IInvokeCtx::SLimits& Limits);
+		static void DebugClearJitFaultBoundary ();
+		static bool DebugIsJitFaultPending ();
+		static void DebugSetJitFaultBoundary (EJitFaultBoundary iBoundary);
+		static void DebugThrowIfJitFault (EJitFaultBoundary iBoundary);
 		static IInvokeCtx::SLimits InitLimitsFromDatum (CDatum dData);
 
 		void DefineGlobal (const CString &sIdentifier, CDatum dValue);
@@ -216,6 +273,7 @@ class CHexeProcess : public IInvokeCtx
 		void *SetLibraryCtx (const CString &sLibrary, void *pCtx);
 		void SetLimits (const IInvokeCtx::SLimits &Limits) { m_Limits = Limits; }
 		void SetOptionAddConcatenatesStrings (bool bValue = true) { m_bAddConcatenatesStrings = bValue; }
+		void SetOptionX64JIT (bool bValue = true) { m_bEnableX64JIT = bValue; }
 		void SetSecurityCtx (const CHexeSecurityCtx &Ctx);
 		void SetTypeSystem (const CAEONTypeSystem &Types) { m_Types = Types; }
 		void SignalPause (bool bPause = true);
@@ -235,6 +293,7 @@ class CHexeProcess : public IInvokeCtx
 		virtual bool GetInput (const IInvokeCtx::SInputOptions &Options, CDatum& retdResult) override { return m_Host.GetInput(Options, retdResult); }
 		virtual void *GetLibraryCtx (const CString &sLibrary) override { void **ppCtx = m_LibraryCtx.GetAt(sLibrary); return (ppCtx ? *ppCtx : NULL); }
 		virtual const SLimits& GetLimits () const override { return m_Limits; }
+		virtual CDatum GetProcessArgs () const override { return m_Host.GetProcessArgs(); }
 		virtual CDatum GetProcessID () const override { return m_Host.GetProcessID(); }
 		virtual CDatum GetProgramInfo () const override { return m_Host.GetProgramInfo(); }
 		virtual CRandomModule& GetRandomModule () { return m_RNG; }
@@ -242,6 +301,7 @@ class CHexeProcess : public IInvokeCtx
 		virtual CAEONTypeSystem& GetTypeSystem () override { return m_Types; }
 		virtual CDatum GetUsername () const override { return m_Host.GetUsername(); }
 		virtual CDatum GetVMInfo () const override;
+		virtual bool InDiagnosticsMode () const { return m_Host.InDiagnosticsMode(); }
 		virtual void Output (CDatum dValue) override { m_Host.Output(dValue); }
 		virtual CDatum SerializeProcess () const override { return Serialize(); }
 		virtual void SetAsyncProgressFunc (CDatum dFunc) { m_Host.SetAsyncProgressFunc(dFunc); }
@@ -249,10 +309,173 @@ class CHexeProcess : public IInvokeCtx
 		virtual bool VMLibraryInvoke (DWORD dwEntryPoint, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult) override { return m_Host.VMLibraryInvoke(*this, dwEntryPoint, LocalEnv, dContinueCtx, dContinueResult, retResult); }
 
 		static IHexeVMHost DefaultHost;
+		static DWORD JitOpAdd (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpAppendToArray (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpCallDirect (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpCallDirectSelf (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpCallFrame (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpCallFrameSelf (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpConcat (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpDebugBreak (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpDefine (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpDefineArg (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpDefineArgFromCode (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpDivide (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpEnterEnv (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpEnterStackFrame (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpError (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpExitEnv (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpExitEnvAndReturn (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpExitEnvAndJumpIfGreaterInt (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpExitEnvAndJumpIfGreaterOrEqualInt (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpExitEnvAndJumpIfNil (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpExitEnvAndJumpIfLocalGreaterInt (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpHexarcMsg (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpIncForEach (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpIncLocalInt (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpInitForEach (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpIsEqualMulti (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpIsGreater (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpIsGreaterMulti (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpIsGreaterOrEqual (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpIsGreaterOrEqualMulti (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpIsIn (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpIsLess (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpIsLessMulti (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpIsLessOrEqual (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpIsLessOrEqualMulti (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpIsNotEqualMulti (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpIsNotIn (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpLoopIncLocalAndJump (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpMakeApplyEnv (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpMakeArray (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpMakeAsType (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpMakeAsTypeCons (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpMakeBlockEnv (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpMakeDatatype (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpMakeEmptyArray (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpMakeEmptyArrayAsType (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpMakeEmptyStruct (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpMakeEnv (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpMakeExpr (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpMakeExprIf (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpMakeFlagsFromArray (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpMakeFunc (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpMakeFunc2 (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpMakeLocalEnv (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpMakeMapColExpr (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpMakeMethodEnv (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpMakeObject (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpMakeObjectDirect (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpMakeObjectDirectUnchecked (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpMakePrimitive (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpMakeRange (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpMakeSpread (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpMakeStruct (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpMakeTensor (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpMakeTensorType (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpMapResult (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpMultiply (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+#define DECLARE_JIT_MUTATE_OP(name) static DWORD name (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		DECLARE_JIT_MUTATE_OP(JitOpMutateGlobalAdd)
+		DECLARE_JIT_MUTATE_OP(JitOpMutateGlobalConcat)
+		DECLARE_JIT_MUTATE_OP(JitOpMutateGlobalDivide)
+		DECLARE_JIT_MUTATE_OP(JitOpMutateGlobalMod)
+		DECLARE_JIT_MUTATE_OP(JitOpMutateGlobalMultiply)
+		DECLARE_JIT_MUTATE_OP(JitOpMutateGlobalPower)
+		DECLARE_JIT_MUTATE_OP(JitOpMutateGlobalSubtract)
+		DECLARE_JIT_MUTATE_OP(JitOpMutateLocalAdd)
+		DECLARE_JIT_MUTATE_OP(JitOpMutateLocalConcat)
+		DECLARE_JIT_MUTATE_OP(JitOpMutateLocalDivide)
+		DECLARE_JIT_MUTATE_OP(JitOpMutateLocalMod)
+		DECLARE_JIT_MUTATE_OP(JitOpMutateLocalMultiply)
+		DECLARE_JIT_MUTATE_OP(JitOpMutateLocalPower)
+		DECLARE_JIT_MUTATE_OP(JitOpMutateLocalSubtract)
+		DECLARE_JIT_MUTATE_OP(JitOpMutateObjectItemAdd)
+		DECLARE_JIT_MUTATE_OP(JitOpMutateObjectItemConcat)
+		DECLARE_JIT_MUTATE_OP(JitOpMutateObjectItemDivide)
+		DECLARE_JIT_MUTATE_OP(JitOpMutateObjectItemMod)
+		DECLARE_JIT_MUTATE_OP(JitOpMutateObjectItemMultiply)
+		DECLARE_JIT_MUTATE_OP(JitOpMutateObjectItemPower)
+		DECLARE_JIT_MUTATE_OP(JitOpMutateObjectItemSubtract)
+		DECLARE_JIT_MUTATE_OP(JitOpMutateTensorItemAdd)
+		DECLARE_JIT_MUTATE_OP(JitOpMutateTensorItemConcat)
+		DECLARE_JIT_MUTATE_OP(JitOpMutateTensorItemDivide)
+		DECLARE_JIT_MUTATE_OP(JitOpMutateTensorItemMod)
+		DECLARE_JIT_MUTATE_OP(JitOpMutateTensorItemMultiply)
+		DECLARE_JIT_MUTATE_OP(JitOpMutateTensorItemPower)
+		DECLARE_JIT_MUTATE_OP(JitOpMutateTensorItemSubtract)
+#undef DECLARE_JIT_MUTATE_OP
+		static DWORD JitOpNewObject (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpPop (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpPower (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpPushArrayItem (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpPushArrayItemI (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpPushInitForEach (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpPushGlobal (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpPushFrameArg (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpPushLocal (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpPushLocalItem (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpPushLocalLength (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpPushObjectItem (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpPushObjectMethod (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpPushTensorItem (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpPushTensorItemI (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpPushType (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpReturnFrame (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpSetArrayItem (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpSetArrayItemI (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpSetForEachItem (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpSetFrameLocal (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpSetGlobal (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpSetGlobalItem (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpSetLocalItem (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpSetObjectItem (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpSetObjectItem2 (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpSetTensorItem (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpSetTensorItemI (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitOpSubtract (CHexeProcess* pProcess, CDatum* retResult, DWORD* pIP, DWORD* pExpectedNextIP);
+		static DWORD JitExecuteStep (CHexeProcess* pProcess, CDatum* retResult, const CHexeCode* pExpectedCodeBank, DWORD* pExpectedNextIP);
+		static DWORD JitEnterCachedCall (CHexeProcess* pProcess, CDatum* retResult, DWORDLONG* pArgs);
+		static DWORD JitEnterCall (CHexeProcess* pProcess, CDatum* retResult, DWORDLONG* pArgs);
+		static DWORD JitEnterCallLib (CHexeProcess* pProcess, CDatum* retResult, DWORDLONG* pArgs);
+		static DWORD JitEnterDirectCall (CHexeProcess* pProcess, CDatum* retResult, DWORDLONG* pArgs);
+		static DWORD JitEnterInvokeCall (CHexeProcess* pProcess, CDatum* retResult, DWORDLONG* pArgs);
+		static DWORD JitEnterKnownDirectCall (CHexeProcess* pProcess, CDatum* retResult, DWORDLONG* pArgs);
+		static DWORD JitEnterKnownDirectCallWithEnv (CHexeProcess* pProcess, CDatum* retResult, DWORDLONG* pArgs);
+		static DWORD JitEnterKnownDirectCallWithEnvNoClosure (CHexeProcess* pProcess, CDatum* retResult, DWORDLONG* pArgs);
+		static DWORD JitEnterKnownDirectSelfCallWithEnvNoClosure (CHexeProcess* pProcess, CDatum* retResult, DWORDLONG* pArgs);
+		static DWORD JitEnterLibraryCall (CHexeProcess* pProcess, CDatum* retResult, DWORDLONG* pArgs);
+		static void* JitFindChainedEntry (CHexeProcess* pProcess, const void* pExpectedCodeBank, void* pX64);
+		static DWORD JitGetCallInfo (DWORDLONG qwExpression, DWORDLONG* retqwCodeBank, DWORD_PTR* retpNewIP);
+		static DWORD JitMakeObjectDirectUncheckedKnownType (CHexeProcess* pProcess, CDatum* retResult, DWORDLONG* pArgs);
+		static DWORD JitNativeStopCheck (CHexeProcess* pProcess, CDatum* retResult, DWORD* pExpectedNextIP);
+		static int JitEntryCacheEntrySize ();
+		static int JitEntryCacheOffsetEntry ();
+		static int JitEntryCacheOffsetVMOffset ();
+		static int JitEntryCacheOffsetX64 ();
+		static int JitEntryCacheSize ();
+		static int JitOffsetCallStack ();
+		static int JitOffsetCodeBank ();
+		static int JitOffsetCodeBankDatum ();
+		static int JitOffsetComputes ();
+		static int JitOffsetEnv ();
+		static int JitOffsetEntryCache ();
+		static int JitOffsetExpression ();
+		static int JitOffsetFrameBase ();
+		static int JitOffsetIP ();
+		static int JitOffsetNextStopCheck ();
+		static int JitOffsetStack ();
 
 	private:
 
 		using OpCodeExec = ERun (CHexeProcess::*) (CDatum& retResult);
+
+		enum class EEventHandlerType
+			{
+			Code,
+			Library,
+			};
 
 		struct SHexarcMsgInfo
 			{
@@ -267,8 +490,20 @@ class CHexeProcess : public IInvokeCtx
 			CString sAddr;
 			};
 
+		struct SJitEntryCache
+			{
+			const void* pX64 = NULL;
+			int iVMOffset = -1;
+			void* pEntry = NULL;
+			};
+
+		static constexpr int JIT_ENTRY_CACHE_SIZE = 256;
+
 		ERun Execute (CDatum *retResult);
+		ERun ExecuteInterpreted (CDatum *retResult);
 		ERun ExecuteWithHistogram (CDatum *retResult);
+		ERun ExecuteWithX64JIT (CDatum *retResult);
+		static DWORD JitFinishNativeStep (CHexeProcess* pProcess, CDatum* retResult, DWORD* pExpectedNextIP);
 		static bool FindHexarcMessage (const CString &sMsg, CString *retsAddr = NULL);
 		void GetCurrentSecurityCtx (CHexeSecurityCtx *retCtx);
 		CDatum GetCurrentSecurityCtx (void);
@@ -309,8 +544,13 @@ class CHexeProcess : public IInvokeCtx
 		ERun ExecuteAdd (CDatum& retResult);
 		ERun ExecuteAdd2 (CDatum& retResult);
 		ERun ExecuteAddInt (CDatum& retResult);
+		ERun ExecuteAddLocalL0Int16 (CDatum& retResult);
 		ERun ExecuteAppendToArray (CDatum& retResult);
 		ERun ExecuteCall (CDatum& retResult);
+		ERun ExecuteCallDirect (CDatum& retResult);
+		ERun ExecuteCallDirectSelf (CDatum& retResult);
+		ERun ExecuteCallFrame (CDatum& retResult);
+		ERun ExecuteCallFrameSelf (CDatum& retResult);
 		ERun ExecuteCallLib (CDatum& retResult);
 		ERun ExecuteCompareForEach (CDatum& retResult);
 		ERun ExecuteCompareStep (CDatum& retResult);
@@ -323,11 +563,13 @@ class CHexeProcess : public IInvokeCtx
 		ERun ExecuteDivide (CDatum& retResult);
 		ERun ExecuteDivide2 (CDatum& retResult);
 		ERun ExecuteEnterEnv (CDatum& retResult);
+		ERun ExecuteEnterStackFrame (CDatum& retResult);
 		ERun ExecuteError (CDatum& retResult);
 		ERun ExecuteExitEnv (CDatum& retResult);
 		ERun ExecuteExitEnvAndJumpIfGreaterInt (CDatum& retResult);
 		ERun ExecuteExitEnvAndJumpIfGreaterOrEqualInt (CDatum& retResult);
 		ERun ExecuteExitEnvAndJumpIfNil (CDatum& retResult);
+		ERun ExecuteExitEnvAndJumpIfLocalGreaterInt (CDatum& retResult);
 		ERun ExecuteExitEnvAndReturn (CDatum& retResult);
 		ERun ExecuteHalt (CDatum& retResult);
 		ERun ExecuteHexarcMsg (CDatum& retResult);
@@ -358,11 +600,13 @@ class CHexeProcess : public IInvokeCtx
 		ERun ExecuteIsNotEqualInt (CDatum& retResult);
 		ERun ExecuteIsNotEqualMulti (CDatum& retResult);
 		ERun ExecuteIsNotIdentical (CDatum& retResult);
+		ERun ExecuteIsNotIn (CDatum& retResult);
 		ERun ExecuteJump (CDatum& retResult);
 		ERun ExecuteJumpIfNil (CDatum& retResult);
 		ERun ExecuteJumpIfNilNoPop (CDatum& retResult);
 		ERun ExecuteJumpIfNotNilNoPop (CDatum& retResult);
 		ERun ExecuteLoopIncAndJump (CDatum& retResult);
+		ERun ExecuteLoopIncLocalAndJump (CDatum& retResult);
 		ERun ExecuteMakeApplyEnv (CDatum& retResult);
 		ERun ExecuteMakeArray (CDatum& retResult);
 		ERun ExecuteMakeAsType (CDatum& retResult);
@@ -382,6 +626,8 @@ class CHexeProcess : public IInvokeCtx
 		ERun ExecuteMakeMapColExpr (CDatum& retResult);
 		ERun ExecuteMakeMethodEnv (CDatum& retResult);
 		ERun ExecuteMakeObject (CDatum& retResult);
+		ERun ExecuteMakeObjectDirect (CDatum& retResult);
+		ERun ExecuteMakeObjectDirectUnchecked (CDatum& retResult);
 		ERun ExecuteMakePrimitive (CDatum& retResult);
 		ERun ExecuteMakeRange (CDatum& retResult);
 		ERun ExecuteMakeSpread (CDatum& retResult);
@@ -442,6 +688,7 @@ class CHexeProcess : public IInvokeCtx
 		ERun ExecutePushDatum (CDatum& retResult);
 		ERun ExecutePushFalse (CDatum& retResult);
 		ERun ExecutePushGlobal (CDatum& retResult);
+		ERun ExecutePushFrameArg (CDatum& retResult);
 		ERun ExecutePushInitForEach (CDatum& retResult);
 		ERun ExecutePushInt (CDatum& retResult);
 		ERun ExecutePushIntShort (CDatum& retResult);
@@ -461,9 +708,11 @@ class CHexeProcess : public IInvokeCtx
 		ERun ExecutePushTrue (CDatum& retResult);
 		ERun ExecutePushType (CDatum& retResult);
 		ERun ExecuteReturn (CDatum& retResult);
+		ERun ExecuteReturnFrame (CDatum& retResult);
 		ERun ExecuteSetArrayItem (CDatum& retResult);
 		ERun ExecuteSetArrayItemI (CDatum& retResult);
 		ERun ExecuteSetForEachItem (CDatum& retResult);
+		ERun ExecuteSetFrameLocal (CDatum& retResult);
 		ERun ExecuteSetGlobal (CDatum& retResult);
 		ERun ExecuteSetGlobalItem (CDatum& retResult);
 		ERun ExecuteSetLocal (CDatum& retResult);
@@ -476,6 +725,7 @@ class CHexeProcess : public IInvokeCtx
 		ERun ExecuteSubtract (CDatum& retResult);
 		ERun ExecuteSubtract2 (CDatum& retResult);
 		ERun ExecuteSubtractInt (CDatum& retResult);
+		CDatum GetLocalOrFrameSlot (int iLevel, int iIndex);
 
 		//	Options
 
@@ -483,6 +733,7 @@ class CHexeProcess : public IInvokeCtx
 		IHexeComputeProgress *m_pProgress = NULL;	//	Callback to report progress
 		bool m_bAddConcatenatesStrings = false;		//	If TRUE, then + will concatenate string (instead of converting 
 													//		them to numbers).
+		bool m_bEnableX64JIT = true;
 
 		IInvokeCtx::SLimits m_Limits;				//	Limits on execution
 
@@ -496,7 +747,8 @@ class CHexeProcess : public IInvokeCtx
 		CDatum m_dCodeBank;							//	Current code bank
 		const CHexeCode *m_pCodeBank = NULL;		//	Current code bank
 		CHexeCallStack m_CallStack;					//	Call stack
-		int m_iEventHandlerLevel = 0;				//	>0 = Inside event handler
+		int m_iFrameBase = -1;						//	Base of current data-stack frame.
+		TArray<EEventHandlerType> m_EventHandlerStack;	//	Nested event handlers currently being executed.
 		DWORDLONG m_dwAbortTime = 0;				//	Abort at this tick (0 = never abort)
 		CRandomModule m_RNG;						//	Random number generator
 
@@ -509,8 +761,10 @@ class CHexeProcess : public IInvokeCtx
 
 		IHexeComputeProgress *m_pComputeProgress = NULL;
 		DWORDLONG m_dwComputes = 0;					//	Total instructions processed so far.
+		DWORDLONG m_dwNextStopCheck = 0;				//	Next JIT compute budget for stop checks.
 		DWORDLONG m_dwLibraryTime = 0;				//	Total milliseconds spent executing
 													//		native library functions.
+		SJitEntryCache m_JitEntryCache[JIT_ENTRY_CACHE_SIZE];
 #ifdef DEBUG_HISTOGRAM
 		bool m_bEnableHistogram = true;				//	If TRUE, then we keep a histogram of
 													//	execution times.
@@ -529,6 +783,23 @@ class CHexeProcess : public IInvokeCtx
 		static TSortMap<CString, int> m_HexarcMsgIndex;
 		static TArray<SHexarcMsgPattern> m_HexarcMsgPatterns;
 	};
+
+inline int CHexeProcess::JitOffsetComputes () { return (int)offsetof(CHexeProcess, m_dwComputes); }
+inline int CHexeProcess::JitOffsetEnv () { return (int)offsetof(CHexeProcess, m_Env); }
+inline int CHexeProcess::JitEntryCacheEntrySize () { return sizeof(SJitEntryCache); }
+inline int CHexeProcess::JitEntryCacheOffsetEntry () { return (int)offsetof(SJitEntryCache, pEntry); }
+inline int CHexeProcess::JitEntryCacheOffsetVMOffset () { return (int)offsetof(SJitEntryCache, iVMOffset); }
+inline int CHexeProcess::JitEntryCacheOffsetX64 () { return (int)offsetof(SJitEntryCache, pX64); }
+inline int CHexeProcess::JitEntryCacheSize () { return JIT_ENTRY_CACHE_SIZE; }
+inline int CHexeProcess::JitOffsetCallStack () { return (int)offsetof(CHexeProcess, m_CallStack); }
+inline int CHexeProcess::JitOffsetCodeBank () { return (int)offsetof(CHexeProcess, m_pCodeBank); }
+inline int CHexeProcess::JitOffsetCodeBankDatum () { return (int)offsetof(CHexeProcess, m_dCodeBank); }
+inline int CHexeProcess::JitOffsetEntryCache () { return (int)offsetof(CHexeProcess, m_JitEntryCache); }
+inline int CHexeProcess::JitOffsetExpression () { return (int)offsetof(CHexeProcess, m_dExpression); }
+inline int CHexeProcess::JitOffsetFrameBase () { return (int)offsetof(CHexeProcess, m_iFrameBase); }
+inline int CHexeProcess::JitOffsetIP () { return (int)offsetof(CHexeProcess, m_pIP); }
+inline int CHexeProcess::JitOffsetNextStopCheck () { return (int)offsetof(CHexeProcess, m_dwNextStopCheck); }
+inline int CHexeProcess::JitOffsetStack () { return (int)offsetof(CHexeProcess, m_Stack); }
 
 //	CHexeError -----------------------------------------------------------------
 

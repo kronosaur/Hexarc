@@ -90,6 +90,119 @@ bool CEsperAMP1ConnectionOut::BeginAMP1Request (const SArchonMessage &Msg, const
 //	Starts a request
 
 	{
+	return StartAMP1Request(Msg, Request, retsError);
+	}
+
+bool CEsperAMP1ConnectionOut::DisconnectAMP1WhenIdle ()
+
+//	DisconnectAMP1WhenIdle
+//
+//	Reconnect the socket before sending the next request.
+
+	{
+	CSmartLock Lock(m_cs);
+
+	if (IsDeleted() || IsMarkedForDelete())
+		return false;
+
+	m_bReconnectBeforeNextRequest = true;
+	return true;
+	}
+
+void CEsperAMP1ConnectionOut::DeleteConnection ()
+
+//	DeleteConnection
+//
+//	Delete the connection.
+
+	{
+	FailQueuedRequests(ERR_LOST_CONNECTION);
+
+	m_iState = stateDisconnected;
+	SetMarkedForDelete();
+	}
+
+void CEsperAMP1ConnectionOut::FailQueuedRequests (const CString &sError)
+
+//	FailQueuedRequests
+//
+//	Replies to all pending requests with the given error.
+
+	{
+	TArray<SQueuedRequest> Queue;
+
+		{
+		CSmartLock Lock(m_cs);
+
+		Queue.InsertEmpty(m_Queue.GetCount());
+		for (int i = 0; i < m_Queue.GetCount(); i++)
+			Queue[i] = m_Queue[i];
+
+		m_Queue.DeleteAll();
+		}
+
+	for (int i = 0; i < Queue.GetCount(); i++)
+		m_Manager.SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, sError, Queue[i].Msg);
+	}
+
+CDatum CEsperAMP1ConnectionOut::GetProperty (const CString &sProperty) const
+
+//	GetProperty
+//
+//	Returns properties.
+
+	{
+	if (strEquals(sProperty, FIELD_ADDRESS))
+		return CDatum(m_sAddress);
+	else
+		return CDatum();
+	}
+
+bool CEsperAMP1ConnectionOut::SetBusyOrQueueAMP1Request (const SArchonMessage &Msg, const SAMP1Request &Request, bool& retbQueued, CString *retsError)
+
+//	SetBusyOrQueueAMP1Request
+//
+//	Queues a request to send after the current request completes.
+//	If we return TRUE then check retbQueued. If queued, then the request is queued
+//	and there is nothing to do. If not queued, then caller must begin the request.
+//	If we return FALSE, then the request is rejected and caller should reply with an error.
+
+	{
+	CSmartLock Lock(m_cs);
+
+	if (IsDeleted() || IsMarkedForDelete())
+		{
+		if (retsError) *retsError = ERR_LOST_CONNECTION;
+		return false;
+		}
+
+	//	If we're connected and ready, then start the request immediately
+
+	if (SetBusy(IIOCPEntry::EOperation::connect))
+		{
+		retbQueued = false;
+		return true;
+		}
+
+	//	Otherwise, we need to queue the request.
+
+	else
+		{
+		retbQueued = true;
+		SQueuedRequest* pRequest = m_Queue.Insert();
+		pRequest->Msg = Msg;
+		pRequest->Request = Request;
+		return true;
+		}
+	}
+
+bool CEsperAMP1ConnectionOut::StartAMP1Request (const SArchonMessage &Msg, const SAMP1Request &Request, CString *retsError)
+
+//	StartAMP1Request
+//
+//	Starts a request.
+
+	{
 	CString sError;
 
 	//	Prepare the request.
@@ -112,6 +225,16 @@ bool CEsperAMP1ConnectionOut::BeginAMP1Request (const SArchonMessage &Msg, const
 	//	If this is a AMP1_LEAVE message, then delete the connection.
 
 	m_bDeleteWhenDone = strEquals(Request.sCommand, AMP1_LEAVE);
+
+	//	If someone asked us to disconnect, reset the socket before sending the
+	//	next request without dropping anything queued behind the current request.
+
+	if (m_bReconnectBeforeNextRequest && m_iState == stateConnectedBusy)
+		{
+		m_bReconnectBeforeNextRequest = false;
+		m_iState = stateDisconnectedBusy;
+		m_Manager.ResetConnection(CDatum(GetID()));
+		}
 
 	//	If we're not yet connected, we need to connect
 
@@ -155,30 +278,6 @@ bool CEsperAMP1ConnectionOut::BeginAMP1Request (const SArchonMessage &Msg, const
 	return true;
 	}
 
-void CEsperAMP1ConnectionOut::DeleteConnection ()
-
-//	DeleteConnection
-//
-//	Delete the connection.
-
-	{
-	m_iState = stateDisconnected;
-	SetMarkedForDelete();
-	}
-
-CDatum CEsperAMP1ConnectionOut::GetProperty (const CString &sProperty) const
-
-//	GetProperty
-//
-//	Returns properties.
-
-	{
-	if (strEquals(sProperty, FIELD_ADDRESS))
-		return CDatum(m_sAddress);
-	else
-		return CDatum();
-	}
-
 void CEsperAMP1ConnectionOut::OnSocketOperationComplete (EOperation iOp, DWORD dwBytesTransferred)
 
 //	OnSocketOperationComplete
@@ -186,6 +285,8 @@ void CEsperAMP1ConnectionOut::OnSocketOperationComplete (EOperation iOp, DWORD d
 //	Success
 
 	{
+	CSmartLock Lock(m_cs);
+
 	switch (m_iState)
 		{
 		case stateWaitForConnect:
@@ -252,12 +353,18 @@ void CEsperAMP1ConnectionOut::OnSocketOperationComplete (EOperation iOp, DWORD d
 			//	Process message
 			//	LATER: Parse the response and see if it's an error.
 
+			SArchonMessage OriginalMsg = m_Msg;
+			bool bDeleteWhenDone = m_bDeleteWhenDone || IsMarkedForDelete();
+
 			m_iState = stateConnected;
 			m_sLastResult = MSG_OK;
-			m_Manager.SendMessageReply(MSG_OK, CDatum(), m_Msg);
 
-			if (m_bDeleteWhenDone)
+			if (bDeleteWhenDone)
 				DeleteConnection();
+			else
+				StartNextQueuedRequest();
+
+			m_Manager.SendMessageReply(MSG_OK, CDatum(), OriginalMsg);
 			break;
 			}
 		}
@@ -270,6 +377,8 @@ void CEsperAMP1ConnectionOut::OnSocketOperationFailed (EOperation iOp, CStringVi
 //	Failure
 
 	{
+	CSmartLock Lock(m_cs);
+
 	switch (m_iState)
 		{
 		case stateWaitForAuthAck:
@@ -327,6 +436,7 @@ bool CEsperAMP1ConnectionOut::OpConnect (bool bReconnect)
 #endif
 		m_sLastResult = strPattern(ERR_CANNOT_CONNECT, m_sAddress, m_dwPort, sError);
 		m_Manager.SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, m_sLastResult, m_Msg);
+		FailQueuedRequests(m_sLastResult);
 		return false;
 		}
 
@@ -418,6 +528,7 @@ bool CEsperAMP1ConnectionOut::OpTransmissionFailed (const CString &sError)
 		{
 		m_sLastResult = sError;
 		m_Manager.SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, sError, m_Msg);
+		FailQueuedRequests(sError);
 
 		//	Delete the connection; otherwise we'll keep getting called here.
 
@@ -525,6 +636,38 @@ bool CEsperAMP1ConnectionOut::SerializeAMP1Request (const CString &sCommand, CDa
 	return true;
 	}
 
+bool CEsperAMP1ConnectionOut::StartNextQueuedRequest ()
+
+//	StartNextQueuedRequest
+//
+//	Starts the next queued request, if we have one.
+
+	{
+	CSmartLock Lock(m_cs);
+
+	while (!IsDeleted() && !IsMarkedForDelete())
+		{
+		SQueuedRequest Next;
+
+		if (m_Queue.GetCount() == 0)
+			return false;
+
+		Next = m_Queue[0];
+		m_Queue.Delete(0);
+
+		CString sError;
+		m_iState = stateConnectedBusy;
+		if (StartAMP1Request(Next.Msg, Next.Request, &sError))
+			return true;
+
+		m_Manager.SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, sError, Next.Msg);
+		m_iState = stateConnected;
+		}
+
+	FailQueuedRequests(ERR_LOST_CONNECTION);
+	return false;
+	}
+
 bool CEsperAMP1ConnectionOut::SetBusy (EOperation iOperation)
 
 //	SetBusy
@@ -532,7 +675,7 @@ bool CEsperAMP1ConnectionOut::SetBusy (EOperation iOperation)
 //	Sets the connection to busy mode
 
 	{
-	if (IsDeleted())
+	if (IsDeleted() || IsMarkedForDelete())
 		return false;
 
 	switch (m_iState)

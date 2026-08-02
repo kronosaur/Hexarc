@@ -858,6 +858,30 @@ bool CIPInteger::FitsAsInteger32Signed (void) const
 	return (*this >= MIN_INT32 && *this <= MAX_INT32);
 	}
 
+bool CIPInteger::FitsAsDouble (void) const
+
+//	FitsAsDouble
+//
+//	Returns TRUE if we can represent this integer in a double without loss
+//	of precision.
+
+	{
+	if (!m_Value)
+		return true;
+
+	size_t iBitCount = bdBitLength((BIGD)m_Value);
+	if (iBitCount <= DBL_MANT_DIG)
+		return true;
+
+	if (iBitCount > DBL_MAX_EXP)
+		return false;
+
+	CIPInteger Remainder(*this);
+	bdModPowerOf2((BIGD)Remainder.m_Value, iBitCount - DBL_MANT_DIG);
+
+	return Remainder.IsZero();
+	}
+
 bool CIPInteger::FitsAsInteger64Unsigned (void) const
 
 //	FitsAsInteger64Unsigned

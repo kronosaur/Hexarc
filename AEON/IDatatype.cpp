@@ -22,8 +22,9 @@ DECLARE_CONST_STRING(DISPLAY_EDITABLE,					"editable");
 DECLARE_CONST_STRING(DISPLAY_HIDDEN,					"hidden");
 DECLARE_CONST_STRING(DISPLAY_READ_ONLY,					"readOnly");
 
-IDatatype::IDatatype (const CString &sFullyQualifiedName, DWORD dwCoreType, bool bForceAnonymous) :
-		m_dwCoreType(dwCoreType)
+IDatatype::IDatatype (bool bBuiltIn, const CString &sFullyQualifiedName, DWORD dwCoreType, bool bForceAnonymous) :
+		m_dwCoreType(dwCoreType),
+		m_fBuiltIn(bBuiltIn)
 
 //	IDatatype constructor
 
@@ -45,10 +46,43 @@ bool IDatatype::operator == (const IDatatype &Src) const
 //	operator ==
 
 	{
+	if (this == &Src)
+		return true;
+
 	if (GetImplementation() != Src.GetImplementation())
 		return false;
 
 	return OnEquals(Src);
+	}
+
+void IDatatype::AccumulateType (CDatum dType, TSortMap<CString, CDatum>& retTypes)
+	{
+	const IDatatype& Type = dType;
+	if (!Type.IsCoreType())
+		{
+		retTypes.SetAt(Type.GetFullyQualifiedName(), dType);
+		Type.AccumulateTypesUsed(retTypes);
+		}
+	}
+
+CDatum IDatatype::StripQualifiers (CDatum dType)
+	{
+	if (dType.GetBasicType() != CDatum::typeDatatype)
+		return dType;
+
+	CDatum dCurrent = dType;
+	while (true)
+		{
+		const IDatatype& Type = dCurrent;
+		CDatum dStripped = Type.OnStripQualifiers();
+		if (dStripped.IsNil())
+			return dCurrent;
+
+		if (dStripped.GetBasicType() != CDatum::typeDatatype)
+			return dStripped;
+
+		dCurrent = dStripped;
+		}
 	}
 
 CDatum IDatatype::ApplyKeyToRow (CDatum dKey, CDatum dRow) const
@@ -167,6 +201,14 @@ TUniquePtr<IDatatype> IDatatype::Deserialize (CDatum::EFormat iFormat, DWORD dwT
 			pDatatype.Set(new CDatatypeFunction(sFullyQualifiedName));
 			break;
 
+		case EImplementation::GenericFunction:
+			pDatatype.Set(new CDatatypeGenericFunction(sFullyQualifiedName));
+			break;
+
+		case EImplementation::LiteralStruct:
+			pDatatype.Set(new CDatatypeLiteralStruct(CDatum()));
+			break;
+
 		case EImplementation::Tensor:
 			pDatatype.Set(new CDatatypeTensor(sFullyQualifiedName));
 			break;
@@ -247,6 +289,14 @@ TUniquePtr<IDatatype> IDatatype::DeserializeAEON (IByteStream& Stream, DWORD dwT
 			pDatatype.Set(new CDatatypeFunction(sFullyQualifiedName));
 			break;
 
+		case EImplementation::GenericFunction:
+			pDatatype.Set(new CDatatypeGenericFunction(sFullyQualifiedName));
+			break;
+
+		case EImplementation::LiteralStruct:
+			pDatatype.Set(new CDatatypeLiteralStruct(CDatum()));
+			break;
+
 		case EImplementation::Tensor:
 			pDatatype.Set(new CDatatypeTensor(sFullyQualifiedName));
 			break;
@@ -278,6 +328,7 @@ TUniquePtr<IDatatype> IDatatype::DeserializeAEON (IByteStream& Stream, DWORD dwT
 		dwFlags = Stream.ReadDWORD();
 
 	pDatatype->m_fAnonymous = ((dwFlags & 0x00000001) ? true : false);
+	pDatatype->m_fSavedFromBuiltIn = ((dwFlags & 0x00000002) ? true : false);
 
 	//	Load the rest
 
@@ -591,7 +642,7 @@ bool IDatatype::HasMember (EMemberType iType, CDatum* retdType, int* retiOrdinal
 	if (IsAny())
 		{
 		if (retdType)
-			*retdType = CAEONTypeSystem::GetCoreType(IDatatype::ANY);
+			*retdType = CAEONTypes::Get(IDatatype::ANY);
 
 		if (retiOrdinal)
 			*retiOrdinal = -1;
@@ -626,7 +677,7 @@ bool IDatatype::IsA (const IDatatype &Type) const
 	{
 	//	We are always a subtype of ANY
 
-	if (Type.IsAny() || Type == *this)
+	if (this == &Type || Type.IsAny() || Type == *this)
 		return true;
 
 	//	If the Type is a nullable version of us, then we are a subtype.
@@ -635,6 +686,17 @@ bool IDatatype::IsA (const IDatatype &Type) const
 		return true;
 
 	return OnIsA(Type);
+	}
+
+bool IDatatype::IsA (const CDatatypeList& Types) const
+	{
+	for (int i = 0; i < Types.GetCount(); i++)
+		{
+		if (IsA(Types.GetType(i)))
+			return true;
+		}
+
+	return false;
 	}
 
 bool IDatatype::IsAEx (const IDatatype& Type) const
@@ -666,7 +728,7 @@ bool IDatatype::IsA (DWORD dwType) const
 //	Returns TRUE if we are the given type or a subtype of the given type.
 
 	{
-	return IsA(CAEONTypeSystem::GetCoreType(dwType));
+	return IsA(CAEONTypes::Get(dwType));
 	}
 
 bool IDatatype::IsEqualEx(const IDatatype& Src) const
@@ -692,7 +754,7 @@ CDatum IDatatype::OnGetFieldsAsTable () const
 //	methods).
 
 	{
-	CDatum dSchema = CAEONTypeSystem::GetCoreType(IDatatype::SCHEMA_TABLE);
+	CDatum dSchema = CAEONTypes::Get(IDatatype::SCHEMA_TABLE);
 	CDatum dResult = CDatum::CreateTable(dSchema);
 
 	for (int i = 0; i < GetMemberCount(); i++)
@@ -793,15 +855,9 @@ IDatatype::EDisplay IDatatype::ParseDisplay (CDatum dValue)
 
 void IDatatype::SerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const
 	{
-#ifdef DEBUG
-	if (strEquals(m_sFullyQualifiedName, CString("$GridACLType")))
-		{
-		int a = 0;
-		}
-#endif
-
-	//	If this is a core type, then we only need to save the fully qualified
-	//	name because it will be unique.
+	//	If this is a built-in type, then we only need to save the fully qualified
+	//	name because it will be unique (and is guaranteed to exist the next time 
+	//	we load).
 
 	if (IsCoreType() || GetImplementation() == EImplementation::Unknown)
 		{
@@ -827,6 +883,7 @@ void IDatatype::SerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serializ
 
 		DWORD dwFlags = 0;
 		dwFlags |= (m_fAnonymous ? 0x00000001 : 0);
+		dwFlags |= (IsBuiltIn() || IsSavedFromBuiltIn() ? 0x00000002 : 0);
 		Stream.Write(dwFlags);
 
 		//	Serialize the rest.

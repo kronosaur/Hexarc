@@ -5,7 +5,14 @@
 
 #include "stdafx.h"
 
-DECLARE_CONST_STRING(TYPENAME_MAP_COLUMN_EXPRESSION,"mapColumnExpression");
+DECLARE_CONST_STRING(FIELD_DF,							"df");
+DECLARE_CONST_STRING(FIELD_INTERCEPT,					"intercept");
+DECLARE_CONST_STRING(FIELD_N,							"n");
+DECLARE_CONST_STRING(FIELD_R_SQUARED,					"rSquared");
+DECLARE_CONST_STRING(FIELD_RMSE,						"rmse");
+DECLARE_CONST_STRING(FIELD_SLOPE,						"slope");
+
+DECLARE_CONST_STRING(TYPENAME_MAP_COLUMN_EXPRESSION,	"mapColumnExpression");
 
 TDatumPropertyHandler<CAEONMapColumnExpression> CAEONMapColumnExpression::m_Properties = {
 	};
@@ -57,7 +64,7 @@ CDatum CAEONMapColumnExpression::CreateFromStruct (CDatum dStruct)
 			}
 		}
 
-	CDatum dNewType = CAEONTypeSystem::CreateAnonymousSchema(Members);
+	CDatum dNewType = CAEONTypes::CreateSchema(NULL_STR, Members);
 	return CAEONMapColumnExpression::Create(dNewType, dExprs);
 	}
 
@@ -94,6 +101,41 @@ CDatum CAEONMapColumnExpression::CreateIdentity (CDatum dTable)
 	return CreateWithGroups(dTableSchema, dResultExpr, dTable);
 	}
 
+CDatum CAEONMapColumnExpression::CreateLinearFitOutput (CDatum dTable)
+
+//	CreateLinearFitOutput
+//
+//	Creates a map column expression that has columns for linear regression output
+//	(slope, intercept, r-squared, etc.).
+
+	{
+	//	Define the schema for the linear fit output.
+
+	TArray<IDatatype::SMemberDesc> Members;
+	Members.Insert({ IDatatype::EMemberType::InstanceVar, FIELD_N, CAEONTypes::Get(IDatatype::INT_32) });
+	Members.Insert({ IDatatype::EMemberType::InstanceVar, FIELD_SLOPE, CAEONTypes::Get(IDatatype::FLOAT_64) });
+	Members.Insert({ IDatatype::EMemberType::InstanceVar, FIELD_INTERCEPT, CAEONTypes::Get(IDatatype::FLOAT_64) });
+	Members.Insert({ IDatatype::EMemberType::InstanceVar, FIELD_R_SQUARED, CAEONTypes::Get(IDatatype::FLOAT_64) });
+	Members.Insert({ IDatatype::EMemberType::InstanceVar, FIELD_RMSE, CAEONTypes::Get(IDatatype::FLOAT_64) });
+	Members.Insert({ IDatatype::EMemberType::InstanceVar, FIELD_DF, CAEONTypes::Get(IDatatype::INT_32) });
+	CDatum dNewType = CAEONTypes::CreateSchema(NULL_STR, Members);
+
+	//	Create (dummy) expressions for each of the output columns.
+
+	CDatum dColExprs(CDatum::typeArray);
+	dColExprs.Append(CAEONExpression::CreateLiteral(0.0)); // n
+	dColExprs.Append(CAEONExpression::CreateLiteral(0.0)); // slope
+	dColExprs.Append(CAEONExpression::CreateLiteral(0.0)); // intercept
+	dColExprs.Append(CAEONExpression::CreateLiteral(0.0)); // rSquared
+	dColExprs.Append(CAEONExpression::CreateLiteral(0.0)); // rmse
+	dColExprs.Append(CAEONExpression::CreateLiteral(0.0)); // df
+	CDatum dResultExpr = CAEONMapColumnExpression::Create(dNewType, dColExprs);
+
+	//	Now combine with groups, if any.
+
+	return CreateWithGroups(dNewType, dResultExpr, dTable);
+	}
+
 CDatum CAEONMapColumnExpression::CreateSummary (CDatum dTable, CStringView sColName, CDatum dColExpr)
 
 //	CreateSummary
@@ -107,7 +149,7 @@ CDatum CAEONMapColumnExpression::CreateSummary (CDatum dTable, CStringView sColN
 	TArray<IDatatype::SMemberDesc> Members;
 	Members.Insert({ IDatatype::EMemberType::InstanceVar, CString(sColName), CAEONTypes::Get(IDatatype::ANY) });
 
-	CDatum dNewType = CAEONTypeSystem::CreateAnonymousSchema(Members);
+	CDatum dNewType = CAEONTypes::CreateSchema(NULL_STR, Members);
 	CDatum dColExprs = CDatum(CDatum::typeArray);
 	dColExprs.Append(dColExpr);
 	CDatum dResultExpr = CAEONMapColumnExpression::Create(dNewType, dColExprs);
@@ -282,7 +324,7 @@ CDatum CAEONMapColumnExpression::CreateWithGroups (CDatum dType, CDatum dExpress
 		Members.Insert(Member);
 		}
 
-	CDatum dNewType = CAEONTypeSystem::CreateAnonymousSchema(Members);
+	CDatum dNewType = CAEONTypes::CreateSchema(NULL_STR, Members);
 
 	//	Create a new map column expression with the new type and the existing expressions.
 
@@ -301,6 +343,40 @@ CDatum CAEONMapColumnExpression::CreateWithGroups (CDatum dType, CDatum dExpress
 	//	Now we can finally create the map column expression.
 
 	return Create(dNewType, dNewExpressions);
+	}
+
+CDatum CAEONMapColumnExpression::FindColExpression (CStringView sColID) const
+
+//	FindColExpression
+//
+//	Finds the expression for the given column ID. Return nil if not found.
+
+	{
+	const IDatatype& Schema = m_dType;
+	int iIndex = Schema.FindMember(sColID);
+	if (iIndex == -1)
+		return CDatum();
+
+	return m_dExpressions.GetElement(iIndex);
+	}
+
+CDatum CAEONMapColumnExpression::GetElementAsValue (CStringView sColID) const
+	{
+	const IDatatype& Schema = m_dType;
+	int iIndex = Schema.FindMember(sColID);
+	if (iIndex == -1)
+		return CDatum();
+
+	CDatum dValue = m_dExpressions.GetElement(iIndex);
+	if (const CAEONExpression* pExpr = dValue.GetQueryInterface())
+		{
+		if (pExpr->GetRootNode().iOp == CAEONExpression::EOp::Literal)
+			return pExpr->GetLiteral(pExpr->GetRootNode().iDataID);
+		else
+			return dValue;
+		}
+	else
+		return dValue;
 	}
 
 CDatum CAEONMapColumnExpression::GetDatatype () const

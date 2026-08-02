@@ -198,6 +198,22 @@ enum EOpCodes
 	opMakeExprIf =			0xA5000000,
 	opIsIn =				0xA6000000,
 	opSetTensorItemI =		0xA7000000,
+	opIsNotIn =				0xA8000000,
+	opAddLocalL0Int16 =		0xA9000000,
+	opCallDirect =			0xAA000000,
+	opExitEnvAndJumpIfLocalGreaterInt =	0xAB000000,
+	opLoopIncLocalAndJump =	0xAC000000,
+	opMakeObjectDirect =	0xAD000000,
+	opMakeObjectDirectUnchecked =	0xAE000000,
+	opCallDirectNoClosure =	0xAF000000,
+	opCallDirectSelfNoClosure =	0xB0000000,
+	opEnterStackFrame =		0xB1000000,
+	opPushFrameArg =		0xB2000000,
+	opSetFrameLocal =		0xB3000000,
+	opReturnFrame =			0xB4000000,
+	opCallFrame =			0xB5000000,
+	opCallFrameSelf =		0xB6000000,
+	opPushRecordSlotI =		0xB7000000,
 
 	opHalt =				0xff000000,
 
@@ -237,10 +253,32 @@ class CHexeTableExpressionEval
 	{
 	public:
 
+		static CDatum Hierarchize (CDatum dTable, CDatum dOptions);
 		static CDatum Sort (CDatum dTable, CDatum dSortColumns);
 
 	private:
 
+		enum class ENode {
+			white,
+			gray,
+			black
+		};
+
+		struct SNode {
+			ENode state = ENode::white;
+		};
+
+		struct SHierarchicalOptions {
+			int iParentCol = -1;
+			CDatum dRootValue = CDatum();
+			CDatum dRootOrder = CDatum();
+			CDatum dChildOrder = CDatum();
+			CString sLevelColName;
+		};
+
+		static void AppendChildRows (const IAEONTable& Table, int iParentRow, const TSortMap<CDatum, TArray<int>>& ChildIndex, TSortMap<CDatum, SNode>& Visited, int iLevel, const TArray<int>& ChildRows, TArray<int>& retResult, CDatum dLevelColumn);
+		static bool ParseHierarchicalColumnName (const IAEONTable& Table, CDatum dValue, int* retiColIndex, CString* retsError = NULL);
+		static bool ParseHierarchicalOptions (const IAEONTable& Table, CDatum dOptions, SHierarchicalOptions& retOptions, CString* retsError = NULL);
 		static TArray<int> SortRows (CDatum dTable, CDatum dSortColumns, const TArray<int>* pRows = NULL);
 	};
 
@@ -317,6 +355,7 @@ class CHexeColumnExpressionEval
 		bool All () const { return All(m_Expr.GetRootNode()); }
 		bool Any () const { return Any(m_Expr.GetRootNode()); }
 		void AppendValues (CDatum dColumn) const { AppendValues(m_Expr.GetRootNode(), dColumn); }
+		TArray<double> EvalArrayOfDouble () const { return EvalArrayOfDouble(m_Expr.GetRootNode()); }
 		CDatum Average () const { return Average(m_Expr.GetRootNode()); }
 		CDatum Column () const { return Column(m_Expr.GetRootNode()); }
 		CDatum Eval () const;
@@ -334,7 +373,11 @@ class CHexeColumnExpressionEval
 		CDatum Median () const { return Median(m_Expr.GetRootNode()); }
 		CDatum Min () const { return Min(m_Expr.GetRootNode()); }
 		int MinRow () const { return MinRow(m_Expr.GetRootNode()); }
+		CDatum StdDev () const { return StdDev(m_Expr.GetRootNode()); }
+		CDatum StdError () const { return StdError(m_Expr.GetRootNode()); }
 		CDatum Sum () const { return Sum(m_Expr.GetRootNode()); }
+
+		static CDatum CalcEvalType (const CAEONExpression& Expr, CDatum dSchema);
 
 	private:
 
@@ -361,6 +404,8 @@ class CHexeColumnExpressionEval
 
 		CDatum Column (const CAEONExpression::SNode& Node) const;
 		int Count (const CAEONExpression::SNode& Node) const;
+
+		TArray<double> EvalArrayOfDouble (const CAEONExpression::SNode& Node) const;
 
 		TArray<int> FilterRows (const CAEONExpression::SNode& Node) const;
 		TArray<int> FilterRowsColumnEqLit (SEvalCtx& Ctx, int iColIndex, CDatum dLiteral) const;
@@ -400,6 +445,14 @@ class CHexeColumnExpressionEval
 		int MinRowOfColumn (SEvalCtx& Ctx, int iColIndex) const;
 		int MinRowOfExpr (SEvalCtx& Ctx, const CAEONExpression::SNode& Node) const;
 
+		CDatum StdDev (const CAEONExpression::SNode& Node) const;
+		CDatum StdDevOfColumn (SEvalCtx& Ctx, int iColIndex) const;
+		CDatum StdDevOfExpr (SEvalCtx& Ctx, const CAEONExpression::SNode& Node) const;
+
+		CDatum StdError (const CAEONExpression::SNode& Node) const;
+		CDatum StdErrorOfColumn (SEvalCtx& Ctx, int iColIndex) const;
+		CDatum StdErrorOfExpr (SEvalCtx& Ctx, const CAEONExpression::SNode& Node) const;
+
 		CDatum Sum (const CAEONExpression::SNode& Node) const;
 		CDatum SumOfColumn (SEvalCtx& Ctx, int iColIndex) const;
 		CDatum SumOfExpr (SEvalCtx& Ctx, const CAEONExpression::SNode& Node) const;
@@ -425,6 +478,7 @@ class CHexeMapColumnExpressionEval
 
 		CHexeMapColumnExpressionEval (const CAEONMapColumnExpression& ColExpr, CDatum dTable);
 
+		CDatum LinearRegression (CDatum dXExpr, CDatum dYExpr, CDatum dOptions);
 		CDatum Summarize (CDatum dSchema = CDatum()) const;
 
 	private:
@@ -454,4 +508,3 @@ class CHexeTableGroupEval
 		const CAEONTableGroupDefinition& m_GroupDef;
 		CDatum m_dTable;
 	};
-

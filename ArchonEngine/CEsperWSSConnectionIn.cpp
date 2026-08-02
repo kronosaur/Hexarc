@@ -94,6 +94,10 @@ void CEsperWSSConnectionIn::OnTLSRead (CString&& sData)
 				//	Ignore
 				break;
 
+			case CWebSocketProtocol::EOpCode::Error:
+				DisconnectWithError(sFrameData);
+				return;
+
 			case CWebSocketProtocol::EOpCode::Binary:
 				SendWSOnMessage(CDatum::CreateBinary(std::move(sFrameData)));
 				break;
@@ -263,7 +267,7 @@ bool CEsperWSSConnectionIn::SendWSMessage (CDatum dMessage, CString* retsError)
 		}
 	else
 		{
-		SendWSFrame(CWebSocketProtocol::EOpCode::Text, dMessage.SerializeToString(CDatum::EFormat::JSON));
+		SendWSFrame(CWebSocketProtocol::EOpCode::Text, dMessage.SerializeToString(CDatum::EFormat::AEONJSON));
 		return true;
 		}
 	}

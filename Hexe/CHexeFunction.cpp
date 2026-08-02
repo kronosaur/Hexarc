@@ -66,7 +66,8 @@ CDatum CHexeFunction::Create (CDatum dCodeBank, int iCodeOffset, CDatum dGlobalE
 	pFunc->m_pGlobalEnv = CHexeGlobalEnvironment::Upconvert(dGlobalEnv);
 	pFunc->m_dGlobalEnv = (pFunc->m_pGlobalEnv ? dGlobalEnv : CDatum());
 
-	pFunc->m_dLocalEnv = dLocalEnv;
+	pFunc->m_pLocalEnv = CHexeLocalEnvironment::Upconvert(dLocalEnv);
+	pFunc->m_dLocalEnv = (pFunc->m_pLocalEnv ? dLocalEnv : CDatum());
 
 	pFunc->m_bCached = dAttribs.GetElement(FIELD_CACHED).AsBool();
 
@@ -253,7 +254,7 @@ void CHexeFunction::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruc
 	//	NOTE: We only serialize a single level. In the future, we should be 
 	//	smarter about only saving variables used by the function (in a closure).
 
-	if (CHexeLocalEnvironment *pCurrentLocalEnv = CHexeLocalEnvironment::Upconvert(m_dLocalEnv))
+	if (CHexeLocalEnvironment *pCurrentLocalEnv = m_pLocalEnv)
 		{
 		CHexeLocalEnvironment *pLocalEnv = new CHexeLocalEnvironment;
 		pLocalEnv->SetNextArg(pCurrentLocalEnv->GetNextArg());
@@ -307,6 +308,9 @@ void CHexeFunction::DeserializeAEONExternal (IByteStream& Stream, CAEONSerialize
 
 	m_dAttribs = CDatum::DeserializeAEON(Stream, Serialized);
 	m_dLocalEnv = CDatum::DeserializeAEON(Stream, Serialized);
+	m_pLocalEnv = CHexeLocalEnvironment::Upconvert(m_dLocalEnv);
+	if (!m_pLocalEnv)
+		m_dLocalEnv = CDatum();
 
 	m_bCached = m_dAttribs.GetElement(FIELD_CACHED).AsBool();
 	}
@@ -353,5 +357,8 @@ void CHexeFunction::SetElement (const CString &sKey, CDatum dDatum)
 	else if (strEquals(sKey, FIELD_OFFSETX))
 		m_iOffset = dDatum;
 	else if (strEquals(sKey, FIELD_LOCAL_ENV))
-		m_dLocalEnv = dDatum;
+		{
+		m_pLocalEnv = CHexeLocalEnvironment::Upconvert(dDatum);
+		m_dLocalEnv = (m_pLocalEnv ? dDatum : CDatum());
+		}
 	}

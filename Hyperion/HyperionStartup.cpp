@@ -30,6 +30,8 @@ DECLARE_CONST_STRING(LIBRARY_SESSION,					"session")
 DECLARE_CONST_STRING(MSG_AEON_CREATE_TABLE,				"Aeon.createTable")
 DECLARE_CONST_STRING(MSG_AEON_FILE_DIRECTORY,			"Aeon.fileDirectory")
 DECLARE_CONST_STRING(MSG_AEON_FILE_DOWNLOAD,			"Aeon.fileDownload")
+DECLARE_CONST_STRING(MSG_AEON_GET_ROWS,					"Aeon.getRows")
+DECLARE_CONST_STRING(MSG_AEON_MUTATE,					"Aeon.mutate")
 DECLARE_CONST_STRING(MSG_ERROR_ALREADY_EXISTS,			"Error.alreadyExists")
 DECLARE_CONST_STRING(MSG_HYPERION_REFRESH,				"Hyperion.refresh")
 DECLARE_CONST_STRING(MSG_LOG_ERROR,						"Log.error")
@@ -39,11 +41,14 @@ DECLARE_CONST_STRING(MSG_OK,							"OK")
 DECLARE_CONST_STRING(FIELD_DATA,						"data")
 DECLARE_CONST_STRING(FIELD_FILE_DESC,					"fileDesc")
 DECLARE_CONST_STRING(FIELD_FILE_PATH,					"filePath")
+DECLARE_CONST_STRING(FIELD_ID,							"id")
 DECLARE_CONST_STRING(FIELD_NAME,						"name")
+DECLARE_CONST_STRING(FIELD_PRIMARY_KEY,					"primaryKey")
 DECLARE_CONST_STRING(FIELD_VERSION,						"version")
 
 DECLARE_CONST_STRING(STR_ARC_SERVICES,					"/Arc.services/")
 DECLARE_CONST_STRING(STR_INCLUDE_PATTERN,				"/Arc.services/%s/%s")
+DECLARE_CONST_STRING(TABLE_ARC_HOSTS,					"Arc.hosts")
 
 DECLARE_CONST_STRING(TYPE_INCLUDE,						"$include")	//	This is a keyword in HexeDocument
 
@@ -56,8 +61,15 @@ DECLARE_CONST_STRING(ERR_CREATING_TABLE,				"Unable to create table %s: %s")
 DECLARE_CONST_STRING(ERR_CANT_INIT_PROCESS,				"Unable to initialize process: %s")
 DECLARE_CONST_STRING(ERR_LOADING_PACKAGE,				"Unable to load package %s: %s")
 DECLARE_CONST_STRING(ERR_LOADING_FILE,					"Unable to load include file %s: %s")
+DECLARE_CONST_STRING(ERR_LOADING_ROUTES,				"Unable to load Arc.hosts: %s")
 DECLARE_CONST_STRING(ERR_CANT_LOAD_DOC,					"[%s]: %s")
 DECLARE_CONST_STRING(ERR_INVALID_PROTOCOL_ON_PORT,		"Cannot use protocol %s on %s: Another service is using a different protocol.")
+DECLARE_CONST_STRING(ERR_SEEDING_ROUTE,					"Unable to seed Arc.hosts row: %s")
+
+DECLARE_CONST_STRING(MUTATE_CODE8,						"code8")
+DECLARE_CONST_STRING(MUTATE_PRIMARY_KEY,				"primaryKey")
+DECLARE_CONST_STRING(OPTION_INCLUDE_KEY,				"includeKey")
+DECLARE_CONST_STRING(STR_TABLE_ARC_HOSTS_CREATED,		"Table Arc.hosts created.")
 
 class CLoadServicesSession : public ISessionHandler
 	{
@@ -86,15 +98,23 @@ class CLoadServicesSession : public ISessionHandler
 			stateLoadPackage,
 			stateLoadInclude,
 			stateCreateTable,
+			stateCheckRoutes,
+			stateCreateRouteTable,
+			stateSeedRoute,
+			stateLoadRoutes,
 			};
 
 		void CleanUpTempPackageDoc (void);
 		ErrorCodes LoadPackageDoc (CDatum dFileDesc, IByteStream &Stream);
 		bool ReplyOK (void);
 		bool RequestCreateTable (CDatum dDesc);
+		bool RequestCreateRouteTable (void);
 		bool RequestFileDownload (const CString &sFilePath);
+		bool RequestLoadRoutes (States iState = stateCheckRoutes);
 		bool RequestNextPackage (void);
 		bool RequestProcessPackages (void);
+		bool RequestProcessRoutes (void);
+		bool RequestSeedRoute (CDatum dRoute);
 
 		CHyperionEngine *m_pEngine;
 
@@ -106,6 +126,7 @@ class CLoadServicesSession : public ISessionHandler
 		TArray<CString> m_IncludeFiles;
 		TArray<CString> m_PackagesAdded;
 		TArray<CDatum> m_TableDefs;
+		TArray<CDatum> m_RouteSeeds;
 		int m_iPos;
 		int m_iIncludePos;
 	};
@@ -503,6 +524,9 @@ void CLoadServicesSession::OnMark (void)
 	for (i = 0; i < m_TableDefs.GetCount(); i++)
 		m_TableDefs[i].Mark();
 
+	for (i = 0; i < m_RouteSeeds.GetCount(); i++)
+		m_RouteSeeds[i].Mark();
+
 	m_dPackageFileDesc.Mark();
 	}
 
@@ -525,8 +549,7 @@ bool CLoadServicesSession::OnProcessMessage (const SArchonMessage &Msg)
 			if (IsError(Msg))
 				{
 				GetProcessCtx()->Log(MSG_LOG_INFO, strPattern(ERR_NO_PACKAGES, Msg.dPayload.AsString()));
-				m_pEngine->LoadServices();
-				return ReplyOK();
+				return RequestProcessRoutes();
 				}
 
 			//	Otherwise, compose an array of package files
@@ -551,10 +574,7 @@ bool CLoadServicesSession::OnProcessMessage (const SArchonMessage &Msg)
 			//	If no packages, nothing to do
 
 			if (m_PackageFiles.GetCount() == 0)
-				{
-				m_pEngine->LoadServices();
-				return ReplyOK();
-				}
+				return RequestProcessPackages();
 
 			//	Start at the first file
 
@@ -684,12 +704,74 @@ bool CLoadServicesSession::OnProcessMessage (const SArchonMessage &Msg)
 			if (++m_iPos < m_TableDefs.GetCount())
 				return RequestCreateTable(m_TableDefs[m_iPos]);
 
-			//	Now that we're done creating tables, load all services.
+			//	Now that we're done creating tables, process Arc.hosts.
 			//
 			//	NOTE: Until this method is run we will still bind to previous
 			//	services (even ones that were deleted out of the package list). This
 			//	is the big switch that stops accepting connections from deleted
 			//	services and starts accepting connections from new services.
+
+			return RequestProcessRoutes();
+			}
+
+		case stateCheckRoutes:
+			{
+			//	If Arc.hosts does not exist yet, create it and seed it from
+			//	legacy service-document hosts.
+
+			if (IsError(Msg))
+				return RequestCreateRouteTable();
+
+			m_pEngine->SetHTTPHosts(Msg.dPayload);
+			m_pEngine->LoadServices();
+			return ReplyOK();
+			}
+
+		case stateCreateRouteTable:
+			{
+			if (strEquals(Msg.sMsg, MSG_ERROR_ALREADY_EXISTS))
+				return RequestLoadRoutes(stateLoadRoutes);
+
+			else if (IsError(Msg))
+				{
+				GetProcessCtx()->Log(MSG_LOG_ERROR, strPattern(ERR_CREATING_TABLE, TABLE_ARC_HOSTS, Msg.dPayload.AsString()));
+				m_pEngine->SetHTTPHosts(CDatum());
+				m_pEngine->LoadServices();
+				return ReplyOK();
+				}
+
+			else
+				GetProcessCtx()->Log(MSG_LOG_INFO, STR_TABLE_ARC_HOSTS_CREATED);
+
+			m_pEngine->ComposeHTTPHostSeeds(&m_RouteSeeds);
+			if (m_RouteSeeds.GetCount() == 0)
+				return RequestLoadRoutes(stateLoadRoutes);
+
+			m_iPos = 0;
+			m_iState = stateSeedRoute;
+			return RequestSeedRoute(m_RouteSeeds[m_iPos]);
+			}
+
+		case stateSeedRoute:
+			{
+			if (IsError(Msg))
+				GetProcessCtx()->Log(MSG_LOG_ERROR, strPattern(ERR_SEEDING_ROUTE, Msg.dPayload.AsString()));
+
+			if (++m_iPos < m_RouteSeeds.GetCount())
+				return RequestSeedRoute(m_RouteSeeds[m_iPos]);
+
+			return RequestLoadRoutes(stateLoadRoutes);
+			}
+
+		case stateLoadRoutes:
+			{
+			if (IsError(Msg))
+				{
+				GetProcessCtx()->Log(MSG_LOG_ERROR, strPattern(ERR_LOADING_ROUTES, Msg.dPayload.AsString()));
+				m_pEngine->SetHTTPHosts(CDatum());
+				}
+			else
+				m_pEngine->SetHTTPHosts(Msg.dPayload);
 
 			m_pEngine->LoadServices();
 			return ReplyOK();
@@ -760,6 +842,17 @@ bool CLoadServicesSession::RequestCreateTable (CDatum dDesc)
 	return true;
 	}
 
+bool CLoadServicesSession::RequestCreateRouteTable (void)
+
+//	RequestCreateRouteTable
+//
+//	Create Arc.hosts.
+
+	{
+	m_iState = stateCreateRouteTable;
+	return RequestCreateTable(CArcRouteUtil::CreateHostTableDesc());
+	}
+
 bool CLoadServicesSession::RequestFileDownload (const CString &sFilePath)
 
 //	RequestFileDownload
@@ -774,6 +867,32 @@ bool CLoadServicesSession::RequestFileDownload (const CString &sFilePath)
 			MSG_AEON_FILE_DOWNLOAD,
 			GenerateAddress(PORT_HYPERION_COMMAND),
 			CDatum(pArray));
+
+	return true;
+	}
+
+bool CLoadServicesSession::RequestLoadRoutes (States iState)
+
+//	RequestLoadRoutes
+//
+//	Load all rows from Arc.hosts.
+
+	{
+	CDatum dOptions(CDatum::typeArray);
+	dOptions.Append(OPTION_INCLUDE_KEY);
+
+	CDatum dPayload(CDatum::typeArray);
+	dPayload.Append(TABLE_ARC_HOSTS);
+	dPayload.Append(CDatum());
+	dPayload.Append(0);
+	dPayload.Append(dOptions);
+
+	m_iState = iState;
+
+	ISessionHandler::SendMessageCommand(ADDR_AEON,
+			MSG_AEON_GET_ROWS,
+			GenerateAddress(PORT_HYPERION_COMMAND),
+			dPayload);
 
 	return true;
 	}
@@ -812,17 +931,49 @@ bool CLoadServicesSession::RequestProcessPackages (void)
 	for (i = 0; i < m_PackagesAdded.GetCount(); i++)
 		m_pEngine->GetPackageTables(m_PackagesAdded[i], &m_TableDefs);
 
-	//	If we have no tables to define, then just load the services
+	//	If we have no tables to define, then process Arc.hosts.
 
 	if (m_TableDefs.GetCount() == 0)
-		{
-		m_pEngine->LoadServices();
-		return ReplyOK();
-		}
+		return RequestProcessRoutes();
 
 	//	Otherwise we request a table create
 
 	m_iPos = 0;
 	m_iState = stateCreateTable;
 	return RequestCreateTable(m_TableDefs[m_iPos]);
+	}
+
+bool CLoadServicesSession::RequestProcessRoutes (void)
+
+//	RequestProcessRoutes
+//
+//	Load Arc.hosts if it exists, otherwise create and seed it.
+
+	{
+	return RequestLoadRoutes(stateCheckRoutes);
+	}
+
+bool CLoadServicesSession::RequestSeedRoute (CDatum dRoute)
+
+//	RequestSeedRoute
+//
+//	Insert a seed host row using Aeon primary-key generation.
+
+	{
+	CDatum dMutate(CDatum::typeStruct);
+	dMutate.SetElement(FIELD_PRIMARY_KEY, MUTATE_CODE8);
+	dMutate.SetElement(FIELD_ID, MUTATE_PRIMARY_KEY);
+
+	CDatum dPayload(CDatum::typeArray);
+	dPayload.Append(TABLE_ARC_HOSTS);
+	dPayload.Append(CDatum());
+	dPayload.Append(dRoute);
+	dPayload.Append(dMutate);
+
+	ISessionHandler::SendMessageCommand(ADDR_AEON,
+			MSG_AEON_MUTATE,
+			GenerateAddress(PORT_HYPERION_COMMAND),
+			dPayload);
+
+	return true;
 	}

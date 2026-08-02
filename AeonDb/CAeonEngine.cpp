@@ -5,6 +5,11 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_CAEON_ENGINE_DIAGNOSTICS_ONLY_MESSAGE,	"Diagnostics-only message.");
+DECLARE_CONST_STRING(STR_CAEON_ENGINE_TABLE_EXPECTED,	"table expected.");
+DECLARE_CONST_STRING(STR_CAEON_ENGINE_ERROR,	"ERROR:");
+DECLARE_CONST_STRING(STR_CAEON_ENGINE_HOUSEKEEPING_FAILED,	"Housekeeping failed.");
+
 DECLARE_CONST_STRING(VIRTUAL_PORT_AEON_COMMAND,			"Aeon.command")
 DECLARE_CONST_STRING(VIRTUAL_PORT_EXARCH_NOTIFY,		"Exarch.notify")
 DECLARE_CONST_STRING(VIRTUAL_PORT_MNEMOSYNTH_NOTIFY,	"Mnemosynth.notify")
@@ -38,10 +43,15 @@ DECLARE_CONST_STRING(OPTION_INCLUDE_KEY,				"includeKey")
 DECLARE_CONST_STRING(OPTION_NEAREST,					"nearest")
 DECLARE_CONST_STRING(OPTION_NO_KEY,						"noKey")
 
+DECLARE_CONST_STRING(ACTION_APPEND_RECOVERY_GARBAGE,	"appendRecoveryGarbage")
+DECLARE_CONST_STRING(ACTION_TRUNCATE_RECOVERY_TAIL,		"truncateRecoveryTail")
+
 DECLARE_CONST_STRING(FILESPEC_TABLE_DIR_FILTER,			"*")
 
+DECLARE_CONST_STRING(FIELD_ACTION,						"action")
 DECLARE_CONST_STRING(FIELD_ADDRESS,						"address")
 DECLARE_CONST_STRING(FIELD_BACKUP_VOLUMES,				"backupVolumes")
+DECLARE_CONST_STRING(FIELD_BYTES,						"bytes")
 DECLARE_CONST_STRING(FIELD_COLLECTIONS,					"collections")
 DECLARE_CONST_STRING(FIELD_DATA,						"data")
 DECLARE_CONST_STRING(FIELD_DIAGNOSTICS,					"diagnostics")
@@ -57,8 +67,10 @@ DECLARE_CONST_STRING(FIELD_PARTIAL_MAX_SIZE,			"partialMaxSize")
 DECLARE_CONST_STRING(FIELD_PARTIAL_POS,					"partialPos")
 DECLARE_CONST_STRING(FIELD_PRIMARY_KEY,					"primaryKey");
 DECLARE_CONST_STRING(FIELD_PRIMARY_VOLUME,				"primaryVolume")
+DECLARE_CONST_STRING(FIELD_RECOVERY_FILESPEC,			"recoveryFilespec")
 DECLARE_CONST_STRING(FIELD_STATUS,						"status")
 DECLARE_CONST_STRING(FIELD_STORAGE_PATH,				"storagePath")
+DECLARE_CONST_STRING(FIELD_TABLE,						"table")
 DECLARE_CONST_STRING(FIELD_X,							"x")
 DECLARE_CONST_STRING(FIELD_Y,							"y")
 DECLARE_CONST_STRING(FIELD_Z,							"z")
@@ -92,6 +104,7 @@ DECLARE_CONST_STRING(ERR_UNABLE_TO_FLUSH,				"Unable to save all tables to disk.
 DECLARE_CONST_STRING(ERR_INVALID_GET_ROWS_OPTION,		"Invalid %s option: %s.")
 DECLARE_CONST_STRING(ERR_INVALID_FILE_PATH,				"Invalid filePath: %s.")
 DECLARE_CONST_STRING(ERR_FILE_NOT_FOUND,				"File not found: %s.")
+DECLARE_CONST_STRING(ERR_CANT_OPEN,						"Unable to open tables.")
 DECLARE_CONST_STRING(ERR_NOT_STARTED,					"AeonDb has not yet started.")
 
 //	Message Table --------------------------------------------------------------
@@ -118,6 +131,10 @@ DECLARE_CONST_STRING(MSG_AEON_INSERT_NEW,				"Aeon.insertNew")
 DECLARE_CONST_STRING(MSG_AEON_MUTATE,					"Aeon.mutate")
 DECLARE_CONST_STRING(MSG_AEON_RECOVER_TABLE_TEST,		"Aeon.recoverTableTest")
 DECLARE_CONST_STRING(MSG_AEON_STATUS,					"Aeon.status")
+DECLARE_CONST_STRING(MSG_AEON_TEST_CRASH_REOPEN,		"Aeon.testCrashReopen")
+DECLARE_CONST_STRING(MSG_AEON_TEST_DIAGNOSTICS,		"Aeon.testDiagnostics")
+DECLARE_CONST_STRING(MSG_AEON_TEST_HOUSEKEEPING,		"Aeon.testHousekeeping")
+DECLARE_CONST_STRING(MSG_AEON_TEST_REOPEN,				"Aeon.testReopen")
 DECLARE_CONST_STRING(MSG_AEON_WAIT_FOR_VIEW,			"Aeon.waitForView")
 DECLARE_CONST_STRING(MSG_AEON_WAIT_FOR_VOLUME,			"Aeon.waitForVolume")
 DECLARE_CONST_STRING(MSG_ARC_HOUSEKEEPING,				"Arc.housekeeping")
@@ -198,6 +215,18 @@ CAeonEngine::SMessageHandler CAeonEngine::m_MsgHandlerList[] =
 
 		//	Aeon.status
 		{	MSG_AEON_STATUS,					&CAeonEngine::MsgStatus },
+
+		//	Aeon.testDiagnostics
+		{	MSG_AEON_TEST_DIAGNOSTICS,			&CAeonEngine::MsgTestDiagnostics },
+
+		//	Aeon.testCrashReopen
+		{	MSG_AEON_TEST_CRASH_REOPEN,		&CAeonEngine::MsgTestCrashReopen },
+
+		//	Aeon.testHousekeeping
+		{	MSG_AEON_TEST_HOUSEKEEPING,			&CAeonEngine::MsgTestHousekeeping },
+
+		//	Aeon.testReopen
+		{	MSG_AEON_TEST_REOPEN,				&CAeonEngine::MsgTestReopen },
 
 		//	Arc.housekeeping
 		{	MSG_ARC_HOUSEKEEPING,				&CAeonEngine::MsgHousekeeping },
@@ -1570,6 +1599,244 @@ void CAeonEngine::MsgStatus (const SArchonMessage &Msg, const CHexeSecurityCtx *
 	SendMessageReply(MSG_REPLY_DATA, dStatus, Msg);
 	}
 
+void CAeonEngine::MsgTestCrashReopen (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)
+
+//	MsgTestCrashReopen
+//
+//	Diagnostic-only helper: tears down the in-memory table map without flushing
+//	rows, optionally corrupts the recovery-log tail, and reopens from storage.
+
+	{
+	if (!m_bDiagnosticsMode)
+		{
+		SendMessageReplyError(MSG_ERROR_NOT_ALLOWED, STR_CAEON_ENGINE_DIAGNOSTICS_ONLY_MESSAGE, Msg);
+		return;
+		}
+
+	if (!ValidateAdminAccess(Msg, pSecurityCtx))
+		return;
+
+	CString sAction = Msg.dPayload.GetElement(FIELD_ACTION).AsString();
+	CString sRecoveryFilespec;
+
+	if (!sAction.IsEmpty())
+		{
+		if (!strEquals(sAction, ACTION_APPEND_RECOVERY_GARBAGE)
+				&& !strEquals(sAction, ACTION_TRUNCATE_RECOVERY_TAIL))
+			{
+			SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern("Unknown diagnostic action: %s.", sAction), Msg);
+			return;
+			}
+
+		CString sTable = Msg.dPayload.GetElement(FIELD_TABLE).AsString();
+		if (sTable.IsEmpty())
+			{
+			SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, STR_CAEON_ENGINE_TABLE_EXPECTED, Msg);
+			return;
+			}
+
+		CAeonTable *pTable;
+		if (!FindTable(sTable, &pTable))
+			{
+			SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(STR_ERROR_UNKNOWN_TABLE, sTable), Msg);
+			return;
+			}
+
+		CDatum dViewInfo;
+		if (!pTable->DebugDumpView(0, &dViewInfo))
+			{
+			SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, dViewInfo.AsStringView(), Msg);
+			return;
+			}
+
+		sRecoveryFilespec = dViewInfo.GetElement(FIELD_RECOVERY_FILESPEC).AsString();
+		}
+
+	//	Simulate an abrupt process stop by closing tables without calling Save().
+
+		{
+		CSmartLock Lock(m_cs);
+
+		for (int i = 0; i < m_Tables.GetCount(); i++)
+			delete m_Tables[i];
+
+		m_Tables.DeleteAll();
+		m_bReady = false;
+		}
+
+	//	Optionally damage the tail after the process has "stopped."
+
+	if (!sAction.IsEmpty())
+		{
+		CFile File;
+		if (!File.Create(sRecoveryFilespec, CFile::FLAG_OPEN_ALWAYS))
+			{
+			SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern("Unable to open recovery file: %s.", sRecoveryFilespec), Msg);
+			return;
+			}
+
+		int iBytes = (int)Msg.dPayload.GetElement(FIELD_BYTES);
+		if (iBytes <= 0)
+			iBytes = 7;
+
+		try
+			{
+			if (strEquals(sAction, ACTION_APPEND_RECOVERY_GARBAGE))
+				{
+				File.Seek(File.GetStreamLength());
+				for (int i = 0; i < iBytes; i++)
+					File.Write("X", 1);
+				}
+			else if (strEquals(sAction, ACTION_TRUNCATE_RECOVERY_TAIL))
+				{
+				DWORD dwLength = File.GetStreamLength();
+				File.SetLength((dwLength > (DWORD)iBytes ? dwLength - iBytes : 0));
+				}
+			}
+		catch (...)
+			{
+			SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern("Unable to alter recovery file: %s.", sRecoveryFilespec), Msg);
+			return;
+			}
+		}
+
+	if (!Open())
+		{
+		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, ERR_CANT_OPEN, Msg);
+		return;
+		}
+
+	SendMessageReply(MSG_OK, CDatum(), Msg);
+	}
+
+void CAeonEngine::MsgTestDiagnostics (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)
+
+//	MsgTestDiagnostics
+//
+//	Diagnostic-only helper: runs internal table/segment diagnostics and returns
+//	the diagnostic log.
+
+	{
+	if (!m_bDiagnosticsMode)
+		{
+		SendMessageReplyError(MSG_ERROR_NOT_ALLOWED, STR_CAEON_ENGINE_DIAGNOSTICS_ONLY_MESSAGE, Msg);
+		return;
+		}
+
+	if (!ValidateAdminAccess(Msg, pSecurityCtx))
+		return;
+
+	CStringView sTable = Msg.dPayload.GetElement(0);
+
+	CAeonTable *pTable;
+	if (!FindTable(sTable, &pTable))
+		{
+		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(STR_ERROR_UNKNOWN_TABLE, sTable), Msg);
+		return;
+		}
+
+	CString sError;
+	TArray<CString> Log;
+	if (!pTable->Diagnostics(0, Log, &sError))
+		{
+		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, sError, Msg);
+		return;
+		}
+
+	for (int i = 0; i < Log.GetCount(); i++)
+		if (strStartsWith(Log[i], STR_CAEON_ENGINE_ERROR))
+			{
+			SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, Log[i], Msg);
+			return;
+			}
+
+	CDatum dResult(CDatum::typeArray);
+	for (int i = 0; i < Log.GetCount(); i++)
+		dResult.Append(Log[i]);
+
+	SendMessageReply(MSG_REPLY_DATA, dResult, Msg);
+	}
+
+void CAeonEngine::MsgTestHousekeeping (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)
+
+//	MsgTestHousekeeping
+//
+//	Diagnostic-only helper: invokes table housekeeping synchronously.
+
+	{
+	if (!m_bDiagnosticsMode)
+		{
+		SendMessageReplyError(MSG_ERROR_NOT_ALLOWED, STR_CAEON_ENGINE_DIAGNOSTICS_ONLY_MESSAGE, Msg);
+		return;
+		}
+
+	if (!ValidateAdminAccess(Msg, pSecurityCtx))
+		return;
+
+	CStringView sTable = Msg.dPayload.GetElement(0);
+	int iPasses = (int)Msg.dPayload.GetElement(1);
+	if (iPasses <= 0)
+		iPasses = 1;
+
+	CAeonTable *pTable;
+	if (!FindTable(sTable, &pTable))
+		{
+		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(STR_ERROR_UNKNOWN_TABLE, sTable), Msg);
+		return;
+		}
+
+	for (int i = 0; i < iPasses; i++)
+		if (!pTable->Housekeeping(m_dwMaxMemoryUse))
+			{
+			SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, STR_CAEON_ENGINE_HOUSEKEEPING_FAILED, Msg);
+			return;
+			}
+
+	SendMessageReply(MSG_OK, CDatum(), Msg);
+	}
+
+void CAeonEngine::MsgTestReopen (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)
+
+//	MsgTestReopen
+//
+//	Diagnostic-only helper: flushes all rows, tears down the in-memory table
+//	map, and reopens from local storage.
+
+	{
+	if (!m_bDiagnosticsMode)
+		{
+		SendMessageReplyError(MSG_ERROR_NOT_ALLOWED, STR_CAEON_ENGINE_DIAGNOSTICS_ONLY_MESSAGE, Msg);
+		return;
+		}
+
+	if (!ValidateAdminAccess(Msg, pSecurityCtx))
+		return;
+
+	if (!FlushTableRows())
+		{
+		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, ERR_UNABLE_TO_FLUSH, Msg);
+		return;
+		}
+
+		{
+		CSmartLock Lock(m_cs);
+
+		for (int i = 0; i < m_Tables.GetCount(); i++)
+			delete m_Tables[i];
+
+		m_Tables.DeleteAll();
+		m_bReady = false;
+		}
+
+	if (!Open())
+		{
+		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, ERR_CANT_OPEN, Msg);
+		return;
+		}
+
+	SendMessageReply(MSG_OK, CDatum(), Msg);
+	}
+
 void CAeonEngine::MsgTranspaceDownload (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)
 
 //	MsgTranspaceDownload
@@ -1886,7 +2153,7 @@ bool CAeonEngine::ParseTableAndView (const SArchonMessage &Msg,
 	CAeonTable *pTable;
 	if (!FindTable(sTable, &pTable))
 		{
-		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(STR_ERROR_UNKNOWN_TABLE, sTable), Msg);
+		SendMessageReplyError(MSG_ERROR_NOT_FOUND, strPattern(STR_ERROR_UNKNOWN_TABLE, sTable), Msg);
 		return false;
 		}
 
@@ -1897,7 +2164,7 @@ bool CAeonEngine::ParseTableAndView (const SArchonMessage &Msg,
 		{
 		if (!pTable->FindViewAndPath(sView, &dwViewID, dKey, retKey, &sError))
 			{
-			SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, sError, Msg);
+			SendMessageReplyError(MSG_ERROR_NOT_FOUND, sError, Msg);
 			return false;
 			}
 		}
@@ -1908,7 +2175,7 @@ bool CAeonEngine::ParseTableAndView (const SArchonMessage &Msg,
 		{
 		if (!pTable->FindView(sView, &dwViewID))
 			{
-			SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY,  strPattern(ERR_UNKNOWN_VIEW, sTable, sView), Msg);
+			SendMessageReplyError(MSG_ERROR_NOT_FOUND,  strPattern(ERR_UNKNOWN_VIEW, sTable, sView), Msg);
 			return false;
 			}
 		}

@@ -29,8 +29,43 @@
 #pragma once
 
 #include "Foundation.h"
+#include <functional>
 
 class CSSLCtx;
+
+constexpr int CRYPTO_SHA1_DIGEST_SIZE = 20;
+constexpr int CRYPTO_SHA256_DIGEST_SIZE = 32;
+constexpr int CRYPTO_SHA384_DIGEST_SIZE = 48;
+constexpr int CRYPTO_SHA512_DIGEST_SIZE = 64;
+constexpr int CRYPTO_MD5_DIGEST_SIZE = 16;
+
+using FCryptoByteConsumer = std::function<bool(const void *pData, size_t iLength)>;
+using FCryptoByteProducer = std::function<bool(const FCryptoByteConsumer& fnWrite, CString *retsError)>;
+
+bool cryptoMD5 (const void *pData, size_t iLength, CStringBuffer *retDigest, CString *retsError = NULL);
+bool cryptoMD5 (const IMemoryBlock &Data, CStringBuffer *retDigest, CString *retsError = NULL);
+bool cryptoMD5 (const FCryptoByteProducer& Data, CStringBuffer *retDigest, CString *retsError = NULL);
+bool cryptoSHA1 (const void *pData, size_t iLength, CStringBuffer *retDigest, CString *retsError = NULL);
+bool cryptoSHA1 (const IMemoryBlock &Data, CStringBuffer *retDigest, CString *retsError = NULL);
+bool cryptoSHA1 (const FCryptoByteProducer& Data, CStringBuffer *retDigest, CString *retsError = NULL);
+bool cryptoSHA256 (const void *pData, size_t iLength, CStringBuffer *retDigest, CString *retsError = NULL);
+bool cryptoSHA256 (const IMemoryBlock &Data, CStringBuffer *retDigest, CString *retsError = NULL);
+bool cryptoSHA256 (const FCryptoByteProducer& Data, CStringBuffer *retDigest, CString *retsError = NULL);
+bool cryptoSHA384 (const void *pData, size_t iLength, CStringBuffer *retDigest, CString *retsError = NULL);
+bool cryptoSHA384 (const IMemoryBlock &Data, CStringBuffer *retDigest, CString *retsError = NULL);
+bool cryptoSHA384 (const FCryptoByteProducer& Data, CStringBuffer *retDigest, CString *retsError = NULL);
+bool cryptoSHA512 (const void *pData, size_t iLength, CStringBuffer *retDigest, CString *retsError = NULL);
+bool cryptoSHA512 (const IMemoryBlock &Data, CStringBuffer *retDigest, CString *retsError = NULL);
+bool cryptoSHA512 (const FCryptoByteProducer& Data, CStringBuffer *retDigest, CString *retsError = NULL);
+bool cryptoHMACSHA1 (const void *pKey, size_t iKeyLength, const void *pData, size_t iLength, CStringBuffer *retDigest, CString *retsError = NULL);
+bool cryptoHMACSHA1 (const IMemoryBlock &Key, const IMemoryBlock &Data, CStringBuffer *retDigest, CString *retsError = NULL);
+bool cryptoHMACSHA1 (const void *pKey, size_t iKeyLength, const FCryptoByteProducer& Data, CStringBuffer *retDigest, CString *retsError = NULL);
+bool cryptoHMACSHA256 (const void *pKey, size_t iKeyLength, const void *pData, size_t iLength, CStringBuffer *retDigest, CString *retsError = NULL);
+bool cryptoHMACSHA256 (const IMemoryBlock &Key, const IMemoryBlock &Data, CStringBuffer *retDigest, CString *retsError = NULL);
+bool cryptoHMACSHA256 (const void *pKey, size_t iKeyLength, const FCryptoByteProducer& Data, CStringBuffer *retDigest, CString *retsError = NULL);
+bool cryptoRandomBytes (size_t iLength, CStringBuffer *retData, CString *retsError = NULL);
+bool cryptoConstantTimeEqual (const void *pData1, size_t iLength1, const void *pData2, size_t iLength2);
+bool cryptoConstantTimeEqual (const IMemoryBlock &Data1, const IMemoryBlock &Data2);
 
 //	These pointer types hide the real pointer defined by OpenSSL. There are
 //	internal functions to cast these to the real OpenSSL types.
@@ -127,6 +162,7 @@ class CSSLEnvelopeKey
 		bool Init (CString *retsError = NULL);
 		bool InitFromPEM (IMemoryBlock &Data, const CString &sPassphrase, bool bKeepRaw, CString *retsError = NULL);
 		inline bool IsEmpty (void) const { return m_pData == NULL; }
+		bool SignRS256 (const CString& sPayload, CStringBuffer& retSignature, CString* retsError = NULL) const;
 
 		static bool IsKeyPEMSection (const CString &sType);
 
@@ -302,6 +338,7 @@ class CSSLAsyncEngine
 			resConnect,						//	Not yet connected. Call Connect.
 			resSendData,					//	Call ProcessSendData to get data to send
 			resReceiveData,					//	Call ProcessReceiveData to give data to engine
+			resDisconnect,					//	Peer cleanly disconnected
 
 			resReadyConnect,
 			resReadyRead,

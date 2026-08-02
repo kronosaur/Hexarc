@@ -12,6 +12,8 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_CAI1_SESSION_WELCOME_TO_THE_ARCOLOGY,	"Welcome to the arcology!");
+
 DECLARE_CONST_STRING(PORT_HYPERION_COMMAND,				"Hyperion.command")
 
 DECLARE_CONST_STRING(ADDRESS_CRYPTOSAUR_COMMAND,		"Cryptosaur.command")
@@ -49,7 +51,7 @@ DECLARE_CONST_STRING(LIBRARY_SESSION_HTTP_REQUEST,		"sessionHTTPRequest")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_CREATE_ADMIN,		"Cryptosaur.createAdmin")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_CHECK_PASSWORD_SHA1,"Cryptosaur.login_SHA1")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_LOGIN_USER,			"Cryptosaur.loginUser")
-DECLARE_CONST_STRING(MSG_ERROR_DOES_NOT_EXIST,			"Error.doesNotExist")
+DECLARE_CONST_STRING(MSG_ERROR_INVALID_AUTH,			"Error.invalidAuth")
 DECLARE_CONST_STRING(MSG_ERROR_TIMEOUT,					"Error.timeout")
 DECLARE_CONST_STRING(MSG_ESPER_DISCONNECT,				"Esper.disconnect")
 DECLARE_CONST_STRING(MSG_ESPER_ON_DISCONNECT,			"Esper.onDisconnect")
@@ -583,10 +585,10 @@ bool CAI1Session::ProcessRPC (const SArchonMessage &RPCMsg)
 
 	else if (m_iState == stateWaitingForAuthRPC)
 		{
-		//	If we get Error.doesNotExist, then auth failed and we need to ask
+		//	If we get Error.invalidAuth, then auth failed and we need to ask
 		//	again.
 
-		if (strEquals(RPCMsg.sMsg, MSG_ERROR_DOES_NOT_EXIST))
+		if (strEquals(RPCMsg.sMsg, MSG_ERROR_INVALID_AUTH))
 			{
 			m_dChallenge = CAI1Protocol::CreateSHAPasswordChallenge();
 			return SendReply(CMD_AUTH_INVALID, m_dChallenge);
@@ -790,7 +792,7 @@ bool CAI1Session::SendReplyWelcome (void)
 //	Sends a welcome message reply when the connection is first established
 
 	{
-	return SendReply(CMD_WELCOME, CString("Welcome to the arcology!"));
+	return SendReply(CMD_WELCOME, STR_CAI1_SESSION_WELCOME_TO_THE_ARCOLOGY);
 	}
 
 bool CAI1Session::SendRPC (const CString &sAddr, const SArchonMessage &Msg, EStates iNewState)

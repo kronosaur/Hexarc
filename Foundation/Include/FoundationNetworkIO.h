@@ -9,6 +9,8 @@
 
 #pragma once
 
+DECLARE_CONST_STRING(STR_FOUNDATION_NETWORK_IO_SLASH,	"/");
+
 struct SAddrInfo
 	{
 	int iFlags = 0;
@@ -305,7 +307,7 @@ class CHTTPMessage
 		void AddAuthBasic (const CString &sUsername, const CString &sPassword);
 		void AddHeader (const CString &sField, const CString &sValue);
 		void AddHeader (const CString &sField, const CDateTime &Value);
-		inline void DeleteBodyBuilder (void) { m_pBodyBuilder = NULL; }
+		inline void DeleteBodyBuilder (void) { m_pBodyBuilder = NULL; m_pDecodedBodyBuilder = NULL; m_iContentEncoding = http_encodingIdentity; }
 		bool Encode (EContentEncodingTypes iEncoding);
 		bool FindHeader (const CString &sField, CString *retsValue = NULL) const;
 		inline IMediaTypePtr GetBody (void) const { return m_pBody; }
@@ -334,6 +336,7 @@ class CHTTPMessage
 		bool IsMessageComplete (void) const { return m_iState == stateDone; }
 		bool IsMessagePartial (void) const { return (m_iState != stateDone && m_iState != stateStart); }
 		bool ParseRequestedURL (CString *retsProtocol, CString *retsHost = NULL, CString *retsPath = NULL) const;
+		inline void SetRequestedURL (const CString &sURL) { m_sURL = (sURL.IsEmpty() ? STR_FOUNDATION_NETWORK_IO_SLASH : sURL); }
 		void SetBody (IMediaTypePtr pBody);
 		bool WriteChunkToBuffer (IByteStream &Stream, DWORD dwOffset, DWORD dwSize) const;
 		bool WriteHeadersToBuffer (IByteStream &Stream, DWORD dwFlags = 0) const;
@@ -371,6 +374,9 @@ class CHTTPMessage
 			LPCSTR pszMessage = NULL;
 			};
 
+		bool FinalizeBodyBuilder (TArray<CString> *pDebugOutput = NULL);
+		bool InitBodyBuilder (const CString &sMediaType, TArray<CString> *pDebugOutput = NULL, bool bDecodeContentEncoding = true);
+		bool ParseContentEncoding (EContentEncodingTypes *retiEncoding) const;
 		bool ParseToken (const char *pPos, const char *pEndPos, char chDelimiter, const char **retpPos, CString *retsToken) const;
 
 		MessageTypes m_iType;
@@ -387,6 +393,8 @@ class CHTTPMessage
 		States m_iState;
 		int m_iChunkLeft;
 		IMediaTypeBuilderPtr m_pBodyBuilder;
+		IMediaTypeBuilderPtr m_pDecodedBodyBuilder;
+		EContentEncodingTypes m_iContentEncoding;
 		CString m_sLeftOver;			//	Left over buffer from previous call
 
 		static SStatusMessageEntry m_StatusMessageTable[];
@@ -552,6 +560,7 @@ void htmlWriteText (const CString& sText, IByteStream& Output);
 CString htmlWriteText (const CString &sText);
 CString urlAppend (const CString &sPath, const CString &sComponent);
 CString urlDecode (const CString &sValue, bool bDoNotDecodePlus = false);
+CString urlEncodePathSegment (const CString &sValue);
 CString urlEncodeParam (const CString &sValue);
 DWORD urlGetDefaultPort (const CString &sProtocol);
 bool urlMatchPattern (const CString &sPattern, const CString &sURL);

@@ -12,6 +12,8 @@ DECLARE_CONST_STRING(FIELD_NAME,						"name");
 DECLARE_CONST_STRING(FIELD_ORDINAL,						"ordinal");
 
 DECLARE_CONST_STRING(ERR_DUPLICATE_MEMBER,				"Duplicate enum definition: %s.")
+DECLARE_CONST_STRING(ERR_DUPLICATE_ORDINAL,				"Duplicate enum ordinal: %d.")
+DECLARE_CONST_STRING(ERR_ORDINAL_OUT_OF_RANGE,			"Enum ordinal out of range: %d.")
 
 bool CDatatypeEnum::IsEqual (const CDatatypeEnum& Other) const
 
@@ -46,11 +48,16 @@ bool CDatatypeEnum::OnAddMember (const SMemberDesc& Desc, CString *retsError)
 	if (Desc.iType != EMemberType::EnumValue)
 		throw CException(errFail);
 
+	int iOrdinal = Desc.iOrdinal;
 	int iIndex = m_Entries.GetCount();
 
-	//	LATER: Load ordinal from dType (or something).
+	//	Make sure the ordinal fits in the NaN-boxed encoding (signed 16-bit)
 
-	int iOrdinal = iIndex;
+	if (iOrdinal < INT16_MIN || iOrdinal > INT16_MAX)
+		{
+		if (retsError) *retsError = strPattern(ERR_ORDINAL_OUT_OF_RANGE, iOrdinal);
+		return false;
+		}
 
 	//	Make sure this name doesn't already exist
 
@@ -59,6 +66,16 @@ bool CDatatypeEnum::OnAddMember (const SMemberDesc& Desc, CString *retsError)
 	if (!bNew)
 		{
 		if (retsError) *retsError = strPattern(ERR_DUPLICATE_MEMBER, Desc.sID);
+		return false;
+		}
+
+	//	Make sure this ordinal doesn't already exist
+
+	m_EntriesByOrdinal.SetAt(iOrdinal, iIndex, &bNew);
+	if (!bNew)
+		{
+		m_EntriesByName.DeleteAt(strToLower(Desc.sID));
+		if (retsError) *retsError = strPattern(ERR_DUPLICATE_ORDINAL, iOrdinal);
 		return false;
 		}
 
@@ -97,6 +114,7 @@ bool CDatatypeEnum::OnDeserialize (CDatum::EFormat iFormat, IByteStream &Stream,
 		Stream.Read(&m_Entries[i].iOrdinal, sizeof(DWORD));
 
 		m_EntriesByName.SetAt(strToLower(m_Entries[i].sID), i);
+		m_EntriesByOrdinal.SetAt(m_Entries[i].iOrdinal, i);
 		}
 
 	return true;
@@ -119,6 +137,7 @@ bool CDatatypeEnum::OnDeserializeAEON (IByteStream& Stream, DWORD dwVerson, CAEO
 		m_Entries[i].iOrdinal = (int)Stream.ReadDWORD();
 
 		m_EntriesByName.SetAt(strToLower(m_Entries[i].sID), i);
+		m_EntriesByOrdinal.SetAt(m_Entries[i].iOrdinal, i);
 		}
 
 	return true;
@@ -158,11 +177,11 @@ int CDatatypeEnum::OnFindMemberByOrdinal (int iOrdinal) const
 //	Return the index of the member (or -1)
 
 	{
-	for (int i = 0; i < m_Entries.GetCount(); i++)
-		if (m_Entries[i].iOrdinal == iOrdinal)
-			return i;
+	auto pIndex = m_EntriesByOrdinal.GetAt(iOrdinal);
+	if (!pIndex)
+		return -1;
 
-	return -1;
+	return *pIndex;
 	}
 
 IDatatype::SMemberDesc CDatatypeEnum::OnGetMember (int iIndex) const

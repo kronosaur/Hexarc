@@ -181,7 +181,7 @@ CDatum CAEONURL::GetDatatype () const
 	if (CHTTPUtil::URL_TYPE == 0)
 		throw CException(errFail);
 
-	return CAEONTypeSystem::GetCoreType(CHTTPUtil::URL_TYPE);
+	return CAEONTypes::Get(CHTTPUtil::URL_TYPE);
 	}
 
 bool CAEONURL::OnDeserialize (CDatum::EFormat iFormat, const CString &sTypename, IByteStream &Stream)

@@ -98,6 +98,7 @@ void CAEONForeign::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) cons
 			CDatum::WriteGridLangString(Stream, strPattern("AEON: %s", GetTypename()));
 			break;
 
+		case CDatum::EFormat::AEONJSON:
 		case CDatum::EFormat::JSON:
 			Stream.Write("[\"AEON2011:", 11);
 			Stream.Write(GetTypename());

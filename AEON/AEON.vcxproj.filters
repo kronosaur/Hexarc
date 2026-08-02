@@ -171,6 +171,9 @@
     <ClCompile Include="CAEONObject.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CAEONRecord.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="CAEONForeign.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -234,6 +237,9 @@
     <ClCompile Include="CDatatypeNullable.cpp">
       <Filter>Source Files\Type System</Filter>
     </ClCompile>
+    <ClCompile Include="CDatatypeGenericFunction.cpp">
+      <Filter>Source Files\Type System</Filter>
+    </ClCompile>
     <ClCompile Include="CDatatypeNull.cpp">
       <Filter>Source Files\Type System</Filter>
     </ClCompile>
@@ -271,6 +277,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CAEONVectorFloat64.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CAEONVectorVector2D.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CAEONVectorVector3D.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CAEONArrayAlgorithm.cpp">
@@ -323,6 +335,15 @@
     </ClCompile>
     <ClCompile Include="GridLang.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CDatatypeNever.cpp">
+      <Filter>Source Files\Type System</Filter>
+    </ClCompile>
+    <ClCompile Include="CDatatypeQualified.cpp">
+      <Filter>Source Files\Type System</Filter>
+    </ClCompile>
+    <ClCompile Include="CDatatypeLiteralStruct.cpp">
+      <Filter>Source Files\Type System</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -384,6 +405,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Include\GridLangParser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AEONStore.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -9,6 +9,14 @@ DECLARE_CONST_STRING(ERR_ARRAY_DIMENSION_MISMATCH,		"Cannot dereference an array
 DECLARE_CONST_STRING(ERR_DICTIONARY_DIMENSION_MISMATCH,	"Cannot dereference a dictionary with multiple keys.");
 DECLARE_CONST_STRING(ERR_INVALID_KEY_COUNT,				"Table has %d keys.");
 
+void CDatatypeArray::OnAccumulateTypesUsed (TSortMap<CString, CDatum>& retTypes) const
+	{
+	if (!m_dKeyType.IsNil())
+		AccumulateType(m_dKeyType, retTypes);
+
+	AccumulateType(m_dElementType, retTypes);
+	}
+
 bool CDatatypeArray::OnCanBeCalledWith (CDatum dThisType, const TArray<CDatum>& ArgTypes, const TArray<CDatum>& ArgLiteralTypes, CDatum* retdReturnType, CString* retsError) const
 	{
 	if (m_bTable)
@@ -49,12 +57,84 @@ bool CDatatypeArray::OnCanBeCalledWith (CDatum dThisType, const TArray<CDatum>& 
 
 	if (retdReturnType)
 		{
-		*retdReturnType == GetElementType();
+		*retdReturnType = GetElementType();
 		if (retdReturnType->IsNil())
 			*retdReturnType = CAEONTypes::Get(IDatatype::ANY);
 		}
 
 	return true;
+	}
+
+bool CDatatypeArray::OnCanBeConstructedFrom (CDatum dType) const
+	{
+	const IDatatype& Type = dType;
+	if ((Type.IsAny() || Type.IsA(*this)))
+		return true;
+
+	if (m_bTable && Type.IsNullType())
+		return true;
+
+	if (m_bTable && Type.IsA(IDatatype::TABLE))
+		{
+		const IDatatype& ElementType = GetElementType();
+		return ElementType.CanBeConstructedFrom(Type.GetElementType());
+		}
+
+	if (m_bTable && Type.IsA(IDatatype::ARRAY))
+		return true;
+
+	if (m_bTable && Type.IsA(IDatatype::STRUCT))
+		return true;
+
+	if (m_bDictionary && Type.IsA(IDatatype::DICTIONARY))
+		{
+		const IDatatype& KeyType = GetKeyType();
+		const IDatatype& ElementType = GetElementType();
+		return (KeyType.CanBeConstructedFrom(Type.GetKeyType()) && ElementType.CanBeConstructedFrom(Type.GetElementType()));
+		}
+
+	if (m_bDictionary && Type.IsA(IDatatype::STRUCT))
+		{
+		const IDatatype& KeyType = GetKeyType();
+		if (!KeyType.CanBeConstructedFrom(CAEONTypes::Get(IDatatype::STRING)))
+			return false;
+
+		const IDatatype& ElementType = GetElementType();
+		for (int i = 0; i < Type.GetMemberCount(); i++)
+			{
+			SMemberDesc Member = Type.GetMember(i);
+			if (Member.iType != EMemberType::InstanceVar && Member.iType != EMemberType::InstanceKeyVar)
+				continue;
+
+			if (!ElementType.CanBeConstructedFrom(Member.dType))
+				return false;
+			}
+
+		return true;
+		}
+
+	if (m_bDictionary && Type.IsA(IDatatype::ARRAY))
+		{
+		const IDatatype& PairType = Type.GetElementType();
+		if (PairType.IsAny())
+			return true;
+
+		if (!PairType.IsA(IDatatype::ARRAY))
+			return false;
+
+		CDatum dPairElementType = PairType.GetElementType();
+		const IDatatype& KeyType = GetKeyType();
+		const IDatatype& ElementType = GetElementType();
+		return (KeyType.CanBeConstructedFrom(dPairElementType) && ElementType.CanBeConstructedFrom(dPairElementType));
+		}
+
+	if (!m_bDictionary && Type.IsA(IDatatype::ARRAY))
+		{
+		const IDatatype& ElementType = GetElementType();
+		return ElementType.CanBeConstructedFrom(Type.GetElementType());
+		}
+
+	return false;
 	}
 
 bool CDatatypeArray::OnDeserialize (CDatum::EFormat iFormat, IByteStream &Stream, DWORD dwVersion)

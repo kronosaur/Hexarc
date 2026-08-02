@@ -32,10 +32,10 @@ class CAEONReanimator3D : public TExternalDatum<CAEONReanimator3D>, public IAEON
 
 		virtual int GetObjCount () const override { return m_Model.GetObjCount(); }
 		virtual SequenceNumber GetSeq () const override { return m_Model.GetSeq(); }
-		virtual void Play (int iStartFrame = 0) override { m_Model.Play(iStartFrame); }
 		virtual CDatum RenderAsHTMLCanvasCommands (SequenceNumber Seq = 0) const override;
 		virtual void SetSeq (SequenceNumber Seq) override { m_Model.SetSeq(Seq); }
-		virtual void Stop () override { m_Model.Stop(); }
+
+		static TArray<IDatatype::SMemberDesc> GetMembers ();
 
 	private:
 

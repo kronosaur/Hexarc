@@ -5,14 +5,18 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_CDBFORMAT_RTF_CARRIAGE_RETURN_NEWLINE,	"\r\n}");
+DECLARE_CONST_STRING(STR_CDBFORMAT_RTF_CARRIAGE_RETURN_TF1_BACKSLASH_ANSI_BACKSLASH_ANSICPG1252_BACKSLASH_PARD_B_AB5992A3,	"{\\rtf1\\ansi\\ansicpg1252\\pard\\plain ");
+DECLARE_CONST_STRING(STR_CDBFORMAT_RTF_CARRIAGE_RETURN_NEWLINE_BACKSLASH_PAR,	"\r\n\\par ");
+
 void CDBFormatRTF::WriteEoF (IByteStream &Stream)
 	{
-	Stream.Write(CString("\r\n}"));
+	Stream.Write(STR_CDBFORMAT_RTF_CARRIAGE_RETURN_NEWLINE);
 	}
 
 void CDBFormatRTF::WriteHeader (IByteStream &Stream)
 	{
-	Stream.Write(CString("{\\rtf1\\ansi\\ansicpg1252\\pard\\plain "));
+	Stream.Write(STR_CDBFORMAT_RTF_CARRIAGE_RETURN_TF1_BACKSLASH_ANSI_BACKSLASH_ANSICPG1252_BACKSLASH_PARD_B_AB5992A3);
 	}
 
 void CDBFormatRTF::WriteText (IByteStream &Stream, const CString &sText)
@@ -43,7 +47,7 @@ void CDBFormatRTF::WriteText (IByteStream &Stream, const CString &sText)
 				break;
 
 			case '\n':
-				Stream.Write(CString("\r\n\\par "));
+				Stream.Write(STR_CDBFORMAT_RTF_CARRIAGE_RETURN_NEWLINE_BACKSLASH_PAR);
 				pPos++;
 				break;
 

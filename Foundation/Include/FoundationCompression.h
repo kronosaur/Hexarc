@@ -38,15 +38,22 @@ class CZipFormatReader
 		CZipFormatReader () { }
 		CZipFormatReader (const IMemoryBlock& Data);
 
+		static DWORD CalcCRC32 (const IMemoryBlock64& Data);
+
 		bool FindFileByName (const CString& sFilename, int* retiIndex = NULL) const;
 		int GetCount () const { return m_Directory.GetCount(); }
+		DWORD GetFileCRC32 (int iIndex) const { return m_Directory[iIndex].dwCRC32; }
 		CString GetFilespec (int iIndex) const { return m_Directory[iIndex].sFilename; }
 		CDateTime GetModifiedOn (int iIndex) const { return m_Directory[iIndex].ModifiedOn; }
 		DWORDLONG GetFileSize (int iIndex) const { return m_Directory[iIndex].dwUncompressedSize; }
+		bool HasEncryptedFiles () const;
 		bool Init (const IMemoryBlock& Data);
+		bool IsFileEncrypted (int iIndex) const { return ((m_Directory[iIndex].dwFlags & CZipFormat::FLAG_ENCRYPTED) ? true : false); }
 		bool IsEmpty () const { return m_Directory.GetCount() == 0; }
 		bool ReadFile (int iIndex, CBuffer64& retBuffer, CString* retsError = NULL) const;
+		bool ReadFile (int iIndex, CBuffer64& retBuffer, CStringView sPassword, CString* retsError = NULL) const;
 		bool ReadFile (const CString& sFilename, CBuffer64& retBuffer, CString* retsError = NULL) const;
+		bool ReadFile (const CString& sFilename, CBuffer64& retBuffer, CStringView sPassword, CString* retsError = NULL) const;
 
 	private:
 
@@ -68,7 +75,8 @@ class CZipFormatReader
 
 
 		static bool ReadDirectoryFileHeader (TArray<SEntry>& Directory, CZipFormat::SCentralDirectoryFileHeader* pHeader, const char* pEnd);
-		bool ReadFileAtOffset (DWORD dwOffset, IByteStream64& Stream, DWORD dwCompressedSize, CString* retsError = NULL) const;
+		static bool DecryptZipCrypto (const char* pFileData, DWORD dwCompressedSize, DWORD dwCRC32, DWORD dwFlags, WORD wModTime, CStringView sPassword, CBuffer& retDecrypted, CString* retsError = NULL);
+		bool ReadFileAtOffset (const SEntry& Entry, IByteStream64& Stream, CStringView sPassword, CString* retsError = NULL) const;
 
 		const IMemoryBlock* m_pData = NULL;
 		TArray<SEntry> m_Directory;

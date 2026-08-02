@@ -27,28 +27,34 @@ enum class Obj2DProp
 	Height =						7,		//	E.g., height of a rectangle
 	Radius =						8,		//	E.g., radius of a circle
 	Width =							9,		//	E.g., width of a rectangle
+	MaxPoints =					10,		//	Trail size limit
 
-	CornerRadius =					10,
-	CornerRadiusBottomLeft =		11,
-	CornerRadiusBottomRight =		12,
-	CornerRadiusTopLeft =			13,
-	CornerRadiusTopRight =			14,
-	FillColor =						15,
-	LineColor =						16,
-	LineWidth =						17,
+	CornerRadius =				11,
+	CornerRadiusBottomLeft =	12,
+	CornerRadiusBottomRight =	13,
+	CornerRadiusTopLeft =		14,
+	CornerRadiusTopRight =		15,
+	FillColor =				16,
+	LineColor =				17,
+	LineWidth =				18,
+	Points =					19,		//	Trail points (array of CVector2D)
+	LinePoints =			20,		//	Line points (array of CVector2D)
+	PointCount =				21,		//	Polyline size
 
-	Count =							18,
+	Count =					22,
 	};
 
 enum class ObjPropType
 	{
 	Unknown,
 
-	Bool,									//	Boolean value
-	Color,									//	CLuminousColor
-	Scalar,									//	A double precision scalar
-	String,									//	ID or text
-	Vector,									//	A 2D vector
+	Bool,								//	Boolean value
+	Color,							//	CLuminousColor
+	Scalar,						//	A double precision scalar
+	String,						//	ID or text
+	Vector,						//	A 2D vector
+	VectorQueue,				//	A queue of 2D vectors
+	VectorList,					//	A fixed list of 2D vectors
 	};
 
 class IAnimator2D
@@ -84,6 +90,7 @@ class IAnimator2D
 		void AddKeyframeScalar (const SKeyframeDesc& Desc, double rValue) { m_Keyframes.Insert(Desc); AddScalarValue(rValue); }
 		void AddKeyframeString (const SKeyframeDesc& Desc, const CString& sValue) { m_Keyframes.Insert(Desc); AddStringValue(sValue); }
 		void AddKeyframeVector (const SKeyframeDesc& Desc, const CVector2D& vValue) { m_Keyframes.Insert(Desc); AddVectorValue(vValue); }
+		void AddKeyframeVectorQueue (const SKeyframeDesc& Desc, const TArray<CVector2D>& Value) { m_Keyframes.Insert(Desc); AddVectorQueueValue(Value); }
 		static CString AsID (Type iType);
 		static Type AsType (const CString& sID);
 		virtual TUniquePtr<IAnimator2D> Clone () const = 0;
@@ -97,8 +104,10 @@ class IAnimator2D
 		virtual const TArray<double>& GetKeyframesScalar () const { return m_NullScalar; }
 		virtual const TArray<CString>& GetKeyframesString () const { return m_NullString; }
 		virtual const TArray<CVector2D>& GetKeyframesVector () const { return m_NullVector; }
+		virtual const TArray<TArray<CVector2D>>& GetKeyframesVectorQueue () const { return m_NullVectorQueue; }
 		Obj2DProp GetProperty () const { return m_iProp; }
 		virtual ObjPropType GetPropertyType () const = 0;
+		void TrimBefore (int iFrame);
 		void Write (IByteStream& Stream) const;
 
 	private:
@@ -108,6 +117,7 @@ class IAnimator2D
 		static constexpr DWORD IMPL_SCALAR = 0x00000003;
 		static constexpr DWORD IMPL_STRING = 0x00000004;
 		static constexpr DWORD IMPL_VECTOR = 0x00000005;
+		static constexpr DWORD IMPL_VECTOR_QUEUE = 0x00000006;
 
 		DWORD GetImplID () const;
 
@@ -116,7 +126,9 @@ class IAnimator2D
 		virtual void AddScalarValue (double rValue) { }
 		virtual void AddStringValue (const CString& sValue) { }
 		virtual void AddVectorValue (const CVector2D& vValue) { }
+		virtual void AddVectorQueueValue (const TArray<CVector2D>& Value) { }
 		virtual void OnRead (IByteStream& Stream) { }
+		virtual void OnTrimValues (int iIndex, int iCount) { }
 		virtual void OnWrite (IByteStream& Stream) const { }
 
 		Obj2DProp m_iProp = Obj2DProp::Unknown;
@@ -135,6 +147,7 @@ class IAnimator2D
 		static TArray<double> m_NullScalar;
 		static TArray<CString> m_NullString;
 		static TArray<CVector2D> m_NullVector;
+		static TArray<TArray<CVector2D>> m_NullVectorQueue;
 		static SKeyframeDesc m_NullKeyframe;
 	};
 
@@ -152,6 +165,7 @@ class CBoolAnimator2D : public IAnimator2D
 		virtual void AddBoolValue (bool bValue) override { m_Values.Insert(bValue); }
 		virtual const TArray<bool>& GetKeyframesBool () const override { return m_Values; }
 		virtual void OnRead (IByteStream& Stream) override;
+		virtual void OnTrimValues (int iIndex, int iCount) override { m_Values.Delete(iIndex, iCount); }
 		virtual void OnWrite (IByteStream& Stream) const override;
 
 		TArray<bool> m_Values;
@@ -171,6 +185,7 @@ class CColorAnimator2D : public IAnimator2D
 		virtual void AddColorValue (const CLuminousColor& Color) override { m_Values.Insert(Color); }
 		virtual const TArray<CLuminousColor>& GetKeyframesColor () const override { return m_Values; }
 		virtual void OnRead (IByteStream& Stream) override;
+		virtual void OnTrimValues (int iIndex, int iCount) override { m_Values.Delete(iIndex, iCount); }
 		virtual void OnWrite (IByteStream& Stream) const override;
 
 		TArray<CLuminousColor> m_Values;
@@ -190,6 +205,7 @@ class CScalarAnimator2D : public IAnimator2D
 		virtual void AddScalarValue (double rValue) override { m_Values.Insert(rValue); }
 		virtual const TArray<double>& GetKeyframesScalar () const override { return m_Values; }
 		virtual void OnRead (IByteStream& Stream) override;
+		virtual void OnTrimValues (int iIndex, int iCount) override { m_Values.Delete(iIndex, iCount); }
 		virtual void OnWrite (IByteStream& Stream) const override;
 
 		TArray<double> m_Values;
@@ -209,6 +225,7 @@ class CStringAnimator2D : public IAnimator2D
 		virtual void AddStringValue (const CString& sValue) override { m_Values.Insert(sValue); }
 		virtual const TArray<CString>& GetKeyframesString () const override { return m_Values; }
 		virtual void OnRead (IByteStream& Stream) override;
+		virtual void OnTrimValues (int iIndex, int iCount) override { m_Values.Delete(iIndex, iCount); }
 		virtual void OnWrite (IByteStream& Stream) const override;
 
 		TArray<CString> m_Values;
@@ -228,9 +245,30 @@ class CVectorAnimator2D : public IAnimator2D
 		virtual void AddVectorValue (const CVector2D& vValue) override { m_Values.Insert(vValue); }
 		virtual const TArray<CVector2D>& GetKeyframesVector () const override { return m_Values; }
 		virtual void OnRead (IByteStream& Stream) override;
+		virtual void OnTrimValues (int iIndex, int iCount) override { m_Values.Delete(iIndex, iCount); }
 		virtual void OnWrite (IByteStream& Stream) const override;
 
 		TArray<CVector2D> m_Values;
+	};
+
+class CVectorQueueAnimator2D : public IAnimator2D
+	{
+	public:
+
+		CVectorQueueAnimator2D (Obj2DProp iProp) : IAnimator2D(iProp) { }
+
+		virtual TUniquePtr<IAnimator2D> Clone () const override { return TUniquePtr<IAnimator2D>(new CVectorQueueAnimator2D(*this)); }
+		virtual ObjPropType GetPropertyType () const override;
+
+	private:
+
+		virtual void AddVectorQueueValue (const TArray<CVector2D>& Value) override { m_Values.Insert(Value); }
+		virtual const TArray<TArray<CVector2D>>& GetKeyframesVectorQueue () const override { return m_Values; }
+		virtual void OnRead (IByteStream& Stream) override;
+		virtual void OnTrimValues (int iIndex, int iCount) override { m_Values.Delete(iIndex, iCount); }
+		virtual void OnWrite (IByteStream& Stream) const override;
+
+		TArray<TArray<CVector2D>> m_Values;
 	};
 
 class CAnimatorSet2D
@@ -252,9 +290,11 @@ class CAnimatorSet2D
 		IAnimator2D& GetAnimatorScalar (Obj2DProp iProp, double rInitialValue);
 		IAnimator2D& GetAnimatorString (Obj2DProp iProp, const CString& sInitialValue);
 		IAnimator2D& GetAnimatorVector (Obj2DProp iProp, const CVector2D& InitialValue);
+		IAnimator2D& GetAnimatorVectorQueue (Obj2DProp iProp, const TArray<CVector2D>& InitialValue);
 		int GetFrameCount () const;
 		const IAnimator2D* FindAnimator (Obj2DProp iProp) const { auto* pAnimator = m_Animators.GetAt(iProp); return (pAnimator ? (const IAnimator2D*)(*pAnimator) : NULL); }
 		bool RemoveAnimation (Obj2DProp iProp);
+		void TrimAllBefore (int iFrame);
 		void Write (IByteStream& Stream) const;
 
 	private:
@@ -296,6 +336,8 @@ class ILuminousObj2D
 		bool AnimateStringConstant (Obj2DProp iProp, int iFrame, const CString& sValue);
 		bool AnimateVectorConstant (Obj2DProp iProp, int iFrame, const CVector2D& Value);
 		bool AnimateVectorLinear (Obj2DProp iProp, int iFrame, const CVector2D& vValue);
+		bool AnimateVectorQueueConstant (Obj2DProp iProp, int iFrame, const TArray<CVector2D>& Value);
+		bool AnimateVectorQueueLinear (Obj2DProp iProp, int iFrame, const TArray<CVector2D>& Value);
 		TUniquePtr<ILuminousObj2D> Clone () const { return OnClone(); }
 		int GetFrameCount () const { return m_Animators.GetFrameCount(); }
 		DWORD GetID () const { return m_dwID; }
@@ -309,28 +351,43 @@ class ILuminousObj2D
 		double GetPropertyScalar (Obj2DProp iProp) const;
 		CString GetPropertyString (Obj2DProp iProp) const;
 		CVector2D GetPropertyVector (Obj2DProp iProp) const;
+		const TArray<CVector2D>& GetPropertyVectorQueue (Obj2DProp iProp) const;
 		SequenceNumber GetSeq () const { return m_Seq; }
 		static Obj2DProp ParseProperty (const CString& sProperty);
 		bool RemoveAnimation (Obj2DProp iProp) { return m_Animators.RemoveAnimation(iProp); }
 		void SetParent (ILuminousObj2D* pParent) { m_pParent = pParent; }
+		void TrimKeyframesBefore (int iFrame) { m_Animators.TrimAllBefore(iFrame); }
 		bool SetPropertyBool (Obj2DProp iProp, bool bValue);
 		bool SetPropertyColor (Obj2DProp iProp, const CLuminousColor& Value);
 		bool SetPropertyScalar (Obj2DProp iProp, double rValue);
 		bool SetPropertyString (Obj2DProp iProp, const CString& sValue);
 		bool SetPropertyVector (Obj2DProp iProp, const CVector2D& Value);
+		bool SetPropertyVectorQueue (Obj2DProp iProp, const TArray<CVector2D>& Value);
 		void SetSeq (SequenceNumber Seq) { m_Seq = Seq; }
 		void Write (IByteStream& Stream) const;
+
+		void MarkPropertyDirty (Obj2DProp iProp) { m_dwDirtyProps |= (1 << (int)iProp); }
+		DWORD GetDirtyProps () const { return m_dwDirtyProps; }
+		void ClearDirtyProps () { m_dwDirtyProps = 0; }
 
 		static const SPropertyDesc& GetPropertyDesc (Obj2DProp iProp);
 
 	protected:
 
 		static constexpr DWORD IMPL_RECTANGLE = 0x00000001;
+		static constexpr DWORD IMPL_CIRCLE = 0x00000002;
+		static constexpr DWORD IMPL_TRAIL = 0x00000003;
+		static constexpr DWORD IMPL_LINE = 0x00000004;
 
 		static void AccumulatePropertyToRender (const SPropertyDesc& Desc, const IAnimator2D* pAnimator, TArray<SPropertyRenderCtx>& Result)
 			{ Result.Insert({ Desc.iProp, Desc.iType, Desc.sID, pAnimator }); }
 
-	private:
+	
+		CLuminousScene2D& GetScene () { return m_Scene; }
+		const CLuminousScene2D& GetScene () const { return m_Scene; }
+		static const TArray<CVector2D>& GetNullVectorQueueValue () { return m_NullVectorQueueValue; }
+
+private:
 
 		virtual void OnAccumulatePropertiesToRender (TArray<SPropertyRenderCtx>& Result) const { }
 		virtual TUniquePtr<ILuminousObj2D> OnClone () const = 0;
@@ -340,12 +397,14 @@ class ILuminousObj2D
 		virtual double OnGetPropertyScalar (Obj2DProp iProp) const { return 0.0; }
 		virtual CString OnGetPropertyString (Obj2DProp iProp) const { return NULL_STR; }
 		virtual CVector2D OnGetPropertyVector (Obj2DProp iProp) const { return CVector2D(); }
+		virtual const TArray<CVector2D>& OnGetPropertyVectorQueue (Obj2DProp iProp) const { return m_NullVectorQueueValue; }
 		virtual void OnRead (IByteStream& Stream) { }
 		virtual bool OnSetPropertyBool (Obj2DProp iProp, bool bValue) { return false; }
 		virtual bool OnSetPropertyColor (Obj2DProp iProp, const CLuminousColor& Value) { return false; }
 		virtual bool OnSetPropertyScalar (Obj2DProp iProp, double rValue) { return false; }
 		virtual bool OnSetPropertyVector (Obj2DProp iProp, const CVector2D& Value) { return false; }
 		virtual bool OnSetPropertyString (Obj2DProp iProp, const CString& sValue) { return false; }
+		virtual bool OnSetPropertyVectorQueue (Obj2DProp iProp, const TArray<CVector2D>& Value) { return false; }
 		virtual void OnWrite (IByteStream& Stream) const { }
 
 		CLuminousScene2D& m_Scene;
@@ -359,11 +418,13 @@ class ILuminousObj2D
 		bool m_bVisible = true;
 
 		CAnimatorSet2D m_Animators;
+		DWORD m_dwDirtyProps = 0;
 
 		SequenceNumber m_Seq = 0;
 
 		static TArray<SPropertyDesc> m_Properties;
 		static TSortMap<CString, Obj2DProp> m_PropLookup;
+		static TArray<CVector2D> m_NullVectorQueueValue;
 	};
 
 class CLuminousScene2D
@@ -377,6 +438,16 @@ class CLuminousScene2D
 			Default,
 			Loop,
 			Realtime,
+			Stream,
+			};
+
+		enum class EOrigin
+			{
+			Unknown,
+
+			Center,								//	(0,0) at center; +X right, +Y down
+			UpperLeft,							//	(0,0) at upper-left; +X right, +Y down
+			LowerLeft,							//	(0,0) at lower-left; +X right, +Y up
 			};
 
 		static CLuminousScene2D CreateFromStream (IByteStream& Stream);
@@ -388,44 +459,51 @@ class CLuminousScene2D
 		CLuminousScene2D& operator= (const CLuminousScene2D& Src) { CleanUp(); Copy(Src); return *this; }
 		CLuminousScene2D& operator= (CLuminousScene2D&& Src) noexcept = default;
 
-		void Play (int iStartFrame = 0);
-		bool IsPlaying () const { return m_dwStartTime != 0; }
-		void Stop ();
-
 		static const CString& AsID (EMode iMode);
 		static EMode AsMode (const CString& sValue);
+		ILuminousObj2D& CreateCircle (DWORD dwParentID);
 		ILuminousObj2D& CreateRectangle (DWORD dwParentID);
+		ILuminousObj2D& CreateTrail (DWORD dwParentID);
+		ILuminousObj2D& CreateLine (DWORD dwParentID);
 		ILuminousObj2D* FindObj (DWORD dwID) { auto* pObj = m_Objs.GetAt(dwID); return (pObj ? (ILuminousObj2D*)(*pObj) : NULL); }
 		const ILuminousObj2D* FindObj (DWORD dwID) const { return const_cast<CLuminousScene2D*>(this)->FindObj(dwID); }
 		CLuminousColor GetBackgroundColor () const { return m_Background; }
-		DWORDLONG GetCurTime () const { return (IsPlaying() ? ::sysGetTickCount64() : 0); }
 		int GetFPS () const { return m_iFPS; }
 		int GetFrameCount () const { return m_iFrameCount; }
 		ILuminousObj2D& GetObj (int iIndex) { return *m_Objs[iIndex]; }
 		const ILuminousObj2D& GetObj (int iIndex) const { return *m_Objs[iIndex]; }
 		int GetObjCount () const { return m_Objs.GetCount(); }
-		const CVector2D& GetOrigin () const { return m_vOrigin; }
-		double GetHeight () const { return m_vExtent.Y(); }
+		EOrigin GetOrigin () const { return m_iOrigin; }
+		const CVector2D& GetExtents () const { return m_vExtents; }
 		EMode GetMode () const { return m_iMode; }
 		SequenceNumber GetSeq () const { return m_Seq; }
-		int GetStartFrame () const { return m_iStartFrame; }
-		DWORDLONG GetStartTime () const { return m_dwStartTime; }
-		double GetWidth () const { return m_vExtent.X(); }
 		SequenceNumber IncSeq () { return ++m_Seq; }
 		void OnObjModified (ILuminousObj2D& Obj);
+		bool RemoveObj (DWORD dwID);
 		void SetBackgroundColor (const CLuminousColor& Color) { m_Background = Color; IncSeq(); }
+		void SetKeyframe (int iFrame, IAnimator2D::Type iType) { m_iKeyframeFrame = iFrame; m_iKeyframeType = iType; }
+		void ClearKeyframe () { m_iKeyframeFrame = -1; m_iKeyframeType = IAnimator2D::Type::Unknown; }
+		bool IsKeyframeMode () const { return m_iKeyframeFrame >= 0; }
+		int GetKeyframeFrame () const { return m_iKeyframeFrame; }
+		IAnimator2D::Type GetKeyframeType () const { return m_iKeyframeType; }
+		void SetExtents (const CVector2D& vExtents) { m_vExtents = vExtents; IncSeq(); }
+		void SetFPS (int iFPS);
 		void SetMode (EMode iMode);
+		void SetOrigin (EOrigin iOrigin) { m_iOrigin = iOrigin; IncSeq(); }
+		static const CString& AsOriginID (EOrigin iOrigin);
+		static EOrigin AsOrigin (const CString& sValue);
+		bool IsStreamMode () const { return m_iMode == EMode::Stream; }
+		int GetStreamFrame () const { return m_iStreamFrame; }
+		void AdvanceFrame (int iCount = 1);
+		void TrimKeyframes (int iFrame);
 		void SetSeq (SequenceNumber Seq) { m_Seq = Seq; }
-		void SetStartFrame (int iFrame) { m_iStartFrame = iFrame; IncSeq(); }
 		void Write (IByteStream& Stream) const;
 
 	private:
 
-		static constexpr DWORD SERIALIZED_VERSION = 1;
+		static constexpr DWORD SERIALIZED_VERSION = 3;
 
-		static constexpr int DEFAULT_FPS = 60;
-		static constexpr double DEFAULT_WIDTH = 1620;
-		static constexpr double DEFAULT_HEIGHT = 1002;
+		static constexpr int DEFAULT_FPS = 30;
 
 		void CleanUp () { m_Objs.DeleteAll(); }
 		void Copy (const CLuminousScene2D& Src);
@@ -433,8 +511,8 @@ class CLuminousScene2D
 
 		int m_iFPS = DEFAULT_FPS;
 		int m_iFrameCount = -1;				//	-1 = infinite (otherwise, stop or repeat at this frame).
-		CVector2D m_vExtent = CVector2D(DEFAULT_WIDTH, DEFAULT_HEIGHT);
-		CVector2D m_vOrigin = CVector2D(DEFAULT_WIDTH / 2.0, DEFAULT_HEIGHT / 2.0);
+		EOrigin m_iOrigin = EOrigin::Center;
+		CVector2D m_vExtents;				//	Logical extents (0,0 = raw pixels, scaleMode ignored)
 		EMode m_iMode = EMode::Default;
 
 		CLuminousColor m_Background = CLuminousColor();
@@ -442,6 +520,14 @@ class CLuminousScene2D
 		DWORD m_dwNextID = 1;
 		SequenceNumber m_Seq = 1;
 
-		DWORDLONG m_dwStartTime = 0;		//	Tick on which we started playing (0 = not playing)
-		int m_iStartFrame = 0;				//	Frame on which we started playing
+		//	Frame pointer: when set, property assignments on objects create
+		//	keyframes instead of setting constant values.
+
+		int m_iKeyframeFrame = -1;			//	-1 = not in keyframe mode
+		IAnimator2D::Type m_iKeyframeType = IAnimator2D::Type::Unknown;
+
+		//	Stream mode (EMode::Stream): properties set on objects are tracked
+		//	as dirty; advanceFrame() creates constant keyframes for dirty properties.
+
+		int m_iStreamFrame = 0;
 	};

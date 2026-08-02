@@ -5,6 +5,8 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_CHEXE_TEXT_MARKUP_ERROR,	"ERROR");
+
 DECLARE_CONST_STRING(FORMAT_HEXE_TEXT,					"hexetext");
 DECLARE_CONST_STRING(FORMAT_HTML,						"html");
 
@@ -263,7 +265,7 @@ CString CHexeTextMarkup::FormatString (CHexeStackEnv& LocalEnv)
 				int iSignOut;
 				int err = _fcvt_s(sNew.GetPointer(), sNew.GetLength(), rValue, iDecimalSize, &iDecimalOut, &iSignOut);
 				if (err != 0)
-					sNew = CString("ERROR");
+					sNew = STR_CHEXE_TEXT_MARKUP_ERROR;
 
 				//	Write out the sign
 

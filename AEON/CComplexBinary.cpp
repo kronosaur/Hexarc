@@ -8,6 +8,7 @@
 DECLARE_CONST_STRING(TYPENAME_BINARY,				"binary");
 
 DECLARE_CONST_STRING(ERR_INVALID_OPTIONS,			"Invalid options");
+DECLARE_CONST_STRING(ERR_INVALID_CHAR_SET_TYPE,		"Invalid character set type: %s.");
 
 TDatumPropertyHandler<CComplexBinary> CComplexBinary::m_Properties = {
 	{
@@ -23,6 +24,34 @@ TDatumPropertyHandler<CComplexBinary> CComplexBinary::m_Properties = {
 	};
 
 TDatumMethodHandler<CComplexBinary> CComplexBinary::m_Methods = {
+	{
+		"decodeToString",
+		"s:charSet=$CharSetType",
+		".decodeToString(charSet) -> string.",
+		0,
+		[](CComplexBinary& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
+			{
+			CDatum dCharSet = LocalEnv.GetArgument(1);
+			CString sCharSet = dCharSet.AsString();
+			ECharSetType iCharSet;
+			if (!strParseCharSetType(sCharSet, &iCharSet))
+				{
+				retResult.dResult = CDatum::CreateError(strPattern(ERR_INVALID_CHAR_SET_TYPE, sCharSet));
+				return false;
+				}
+
+			CString sResult;
+			CString sError;
+			if (!strDecodeToString(Obj.m_pData, Obj.GetLength(), iCharSet, &sResult, &sError))
+				{
+				retResult.dResult = CDatum::CreateError(sError);
+				return false;
+				}
+
+			retResult.dResult = CDatum(std::move(sResult));
+			return true;
+			},
+		},
 	{
 		"getAs",
 		"%1:type=%|type=%,offset=n|type=%,offset=n,options=?",
@@ -81,7 +110,7 @@ TDatumMethodHandler<CComplexBinary> CComplexBinary::m_Methods = {
 		},
 	{
 		"hex",
-		"v:|options=?",
+		"s:|options=?",
 		".hex() -> hex string.",
 		0,
 		[](CComplexBinary& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)

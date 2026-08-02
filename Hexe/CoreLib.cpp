@@ -300,6 +300,7 @@ DECLARE_CONST_STRING(FORMAT_HEXE_TEXT,					"hexetext")
 DECLARE_CONST_STRING(FORMAT_DATE_ONLY,					"dateonly")
 DECLARE_CONST_STRING(FORMAT_DATE_TIME,					"datetime")
 DECLARE_CONST_STRING(FORMAT_INTERNET,					"internet")
+DECLARE_CONST_STRING(FORMAT_PLAIN,						"plain")
 DECLARE_CONST_STRING(FORMAT_RELATIVE,					"relative")
 DECLARE_CONST_STRING(FORMAT_SHORT_DATE_ONLY,			"shortdateonly")
 DECLARE_CONST_STRING(FORMAT_SHORT_DATE_TIME,			"shortdatetime")
@@ -323,6 +324,7 @@ DECLARE_CONST_STRING(TYPE_NIL,							"nil")
 DECLARE_CONST_STRING(TYPE_REAL,							"real")
 DECLARE_CONST_STRING(TYPE_STRING,						"string")
 DECLARE_CONST_STRING(TYPE_STRUCT,						"struct")
+DECLARE_CONST_STRING(TYPE_TABLE,						"table")
 DECLARE_CONST_STRING(TYPE_TRUE,							"true")
 
 DECLARE_CONST_STRING(TYPENAME_HEXE_FUNCTION,			"hexeFunction")
@@ -338,6 +340,7 @@ DECLARE_CONST_STRING(ERR_KEY_EXPECTED,					"Key expected: %s.")
 DECLARE_CONST_STRING(ERR_KEY_VALUE_EXPECTED,			"Key/value pair expected: %s.")
 DECLARE_CONST_STRING(ERR_CANT_HEXIFY,					"Unable to convert value to hexadecimal: %s.")
 DECLARE_CONST_STRING(ERR_CANT_DEHEXIFY,					"Unable to parse hexadecimal value: %s.")
+DECLARE_CONST_STRING(ERR_STRING_TOO_BIG,				"Strings may not be larger than %s bytes.")
 DECLARE_CONST_STRING(ERR_UNEXPECTED_END_OF_TEMPLATE,	"Unexpected end of template.")
 DECLARE_CONST_STRING(ERR_UNKNOWN_MAKE_TYPE,				"Unknown make type: %s.")
 DECLARE_CONST_STRING(ERR_LIST_EXPECTED,					"List expected: %s.")
@@ -346,7 +349,7 @@ DECLARE_CONST_STRING(ERR_START_CANNOT_BE_NEGATIVE,		"Splice start must be non-ne
 bool GetStrSplitFlags (CDatum dArg, DWORD *retdwFlags);
 CDatum MinMaxOfList (CHexeStackEnv& LocalEnv, int iMinMax);
 CDatum MinMaxOfList (CDatum dList, int iMinMax);
-void WriteDatumToCat (CStringBuffer &Output, CDatum dDatum);
+bool WriteDatumToCat (IInvokeCtx *pCtx, CStringBuffer &Output, CDatum dDatum, CDatum *retdError);
 void WriteHTMLContent (CStringBuffer &Output, CDatum dDatum);
 
 //	Library --------------------------------------------------------------------
@@ -1365,7 +1368,8 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CHexeStackEnv& LocalEnv, CDatu
 			CStringBuffer Buffer;
 
 			for (i = 0; i < LocalEnv.GetCount(); i++)
-				WriteDatumToCat(Buffer, LocalEnv.GetArgument(i));
+				if (!WriteDatumToCat(pCtx, Buffer, LocalEnv.GetArgument(i), &retResult.dResult))
+					return false;
 
 			if (Buffer.GetLength() > 0)
 				CDatum::CreateStringFromHandoff(Buffer, &retResult.dResult);
@@ -1611,7 +1615,7 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CHexeStackEnv& LocalEnv, CDatu
 			CDatum dList = LocalEnv.GetArgument(0);
 			if (dList.GetCount() == 0)
 				{
-				retResult.dResult = CDatum();
+				retResult.dResult = NULL_STR;
 				return true;
 				}
 
@@ -1624,7 +1628,10 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CHexeStackEnv& LocalEnv, CDatu
 				if (i != 0 && !sSeparator.IsEmpty())
 					Buffer.Write(sSeparator);
 
-				Buffer.Write(dItem.AsString());
+				if (dItem.GetBasicType() == CDatum::typeString)
+					Buffer.Write(dItem.AsStringView());
+				else
+					Buffer.Write(dItem.AsString());
 				}
 
 			CDatum::CreateStringFromHandoff(Buffer, &retResult.dResult);
@@ -1777,8 +1784,14 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CHexeStackEnv& LocalEnv, CDatu
 			}
 
 		case STR_TO_JSON:
-			retResult.dResult = LocalEnv.GetArgument(0).SerializeToString(CDatum::EFormat::JSON);
+			{
+			CStringView sFormat = LocalEnv.GetArgument(1);
+			if (strEquals(sFormat, FORMAT_PLAIN))
+				retResult.dResult = LocalEnv.GetArgument(0).SerializeToString(CDatum::EFormat::JSON);
+			else
+				retResult.dResult = LocalEnv.GetArgument(0).SerializeToString(CDatum::EFormat::AEONJSON);
 			return true;
+			}
 
 		case STR_TYPE_OF:
 			if (LocalEnv.GetArgument(0).IsError())
@@ -1817,6 +1830,10 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CHexeStackEnv& LocalEnv, CDatu
 
 					case CDatum::typeStruct:
 						retResult.dResult = TYPE_STRUCT;
+						break;
+
+					case CDatum::typeTable:
+						retResult.dResult = TYPE_TABLE;
 						break;
 
 					case CDatum::typeDateTime:
@@ -2025,20 +2042,34 @@ CDatum MinOfList (CDatum dList)
 		}
 	}
 
-void WriteDatumToCat (CStringBuffer &Output, CDatum dDatum)
+bool WriteDatumToCat (IInvokeCtx *pCtx, CStringBuffer &Output, CDatum dDatum, CDatum *retdError)
 	{
 	int i;
 
 	if (dDatum.GetBasicType() == CDatum::typeArray)
 		{
 		for (i = 0; i < dDatum.GetCount(); i++)
-			WriteDatumToCat(Output, dDatum.GetElement(i));
+			if (!WriteDatumToCat(pCtx, Output, dDatum.GetElement(i), retdError))
+				return false;
 		}
 	else
 		{
 		CString sString = dDatum.AsString();
+
+		size_t dwMaxStringSize = (pCtx ? (size_t)pCtx->GetLimits().iMaxStringSize : 1'000'000);
+		size_t dwCurLength = (size_t)Output.GetLength();
+		size_t dwAddLength = (size_t)sString.GetLength();
+
+		if (dwAddLength > dwMaxStringSize || dwCurLength > dwMaxStringSize - dwAddLength)
+			{
+			CHexeError::Create(NULL_STR, strPattern(ERR_STRING_TOO_BIG, strFormatInteger((int)dwMaxStringSize, -1, FORMAT_THOUSAND_SEPARATOR)), retdError);
+			return false;
+			}
+
 		Output.Write((LPSTR)sString, sString.GetLength());
 		}
+
+	return true;
 	}
 
 void WriteHTMLContent (CStringBuffer &Output, CDatum dDatum)

@@ -9,9 +9,156 @@
 
 #pragma once
 
+DECLARE_CONST_STRING(STR_AEONALLOCATOR_ARRAY,	"array");
+
 #ifdef DEBUG
 //#define DEBUG_ALLOCATOR
 #endif
+
+//	TGCThreadSegmentBackbone
+//
+//	This template manages per-thread segment backbones for GC allocators. TRAITS
+//	must implement: static bool HasFree(const SEGMENT&).
+
+template <class OWNER, class SEGMENT, class TRAITS> class TGCThreadSegmentBackbone
+	{
+	public:
+		struct SThreadPool
+			{
+			OWNER* pOwner = NULL;
+			DWORD dwThreadID = 0;
+			TArray<SEGMENT*> Backbone;
+			SEGMENT* pFreeSeg = NULL;
+			int iNextFreeSegment = -1;
+			};
+
+		TGCThreadSegmentBackbone (OWNER* pOwner) : m_pOwner(pOwner) { }
+		TGCThreadSegmentBackbone (const TGCThreadSegmentBackbone& Src) = delete;
+		TGCThreadSegmentBackbone (TGCThreadSegmentBackbone&& Src) = delete;
+
+		~TGCThreadSegmentBackbone ()
+			{
+			for (int i = 0; i < m_Pools.GetCount(); i++)
+				{
+				SThreadPool* pPool = m_Pools[i];
+				if (pPool == NULL)
+					continue;
+
+				for (int j = 0; j < pPool->Backbone.GetCount(); j++)
+					delete pPool->Backbone[j];
+
+				delete pPool;
+				}
+			}
+
+		TGCThreadSegmentBackbone& operator= (const TGCThreadSegmentBackbone& Src) = delete;
+		TGCThreadSegmentBackbone& operator= (TGCThreadSegmentBackbone&& Src) = delete;
+
+		template <class PROC> void ForEachPool (PROC Proc)
+			{
+			CSmartLock Lock(m_cs);
+
+			for (int i = 0; i < m_Pools.GetCount(); i++)
+				{
+				SThreadPool* pPool = m_Pools[i];
+				if (pPool)
+					Proc(*pPool);
+				}
+			}
+
+		template <class PROC> void ForEachSegment (PROC Proc)
+			{
+			CSmartLock Lock(m_cs);
+
+			for (int i = 0; i < m_Pools.GetCount(); i++)
+				{
+				SThreadPool* pPool = m_Pools[i];
+				if (pPool == NULL)
+					continue;
+
+				for (int j = 0; j < pPool->Backbone.GetCount(); j++)
+					{
+					SEGMENT* pSeg = pPool->Backbone[j];
+					if (pSeg)
+						Proc(*pPool, *pSeg);
+					}
+				}
+			}
+
+		SEGMENT* GetNextFreeSegment (SThreadPool& Pool)
+			{
+			ASSERT(Pool.pFreeSeg);
+			return Pool.pFreeSeg;
+			}
+
+		SThreadPool& GetThreadPool ()
+			{
+			static thread_local SThreadPool* pPool = NULL;
+			if (pPool == NULL || pPool->pOwner != m_pOwner)
+				pPool = AllocThreadPool();
+
+			return *pPool;
+			}
+
+		void RecalcNextFreeSegment (SThreadPool& Pool)
+			{
+			Pool.iNextFreeSegment = CalcNextFreeSegment(Pool);
+			Pool.pFreeSeg = (Pool.iNextFreeSegment == -1 ? NULL : Pool.Backbone[Pool.iNextFreeSegment]);
+
+			if (Pool.pFreeSeg == NULL)
+				AllocSeg(Pool);
+			}
+
+	private:
+		void AllocSeg (SThreadPool& Pool)
+			{
+			ASSERT(Pool.pFreeSeg == NULL);
+
+			int iSegIndex = -1;
+			for (int i = 0; i < Pool.Backbone.GetCount(); i++)
+				if (Pool.Backbone[i] == NULL)
+					{
+					iSegIndex = i;
+					break;
+					}
+
+			if (iSegIndex == -1)
+				{
+				iSegIndex = Pool.Backbone.GetCount();
+				Pool.Backbone.Insert(NULL);
+				}
+
+			Pool.iNextFreeSegment = iSegIndex;
+			Pool.Backbone[iSegIndex] = new SEGMENT;
+			Pool.pFreeSeg = Pool.Backbone[iSegIndex];
+			}
+
+		SThreadPool* AllocThreadPool ()
+			{
+			CSmartLock Lock(m_cs);
+
+			SThreadPool* pPool = new SThreadPool;
+			pPool->pOwner = m_pOwner;
+			pPool->dwThreadID = ::GetCurrentThreadId();
+			AllocSeg(*pPool);
+
+			m_Pools.Insert(pPool);
+			return pPool;
+			}
+
+		int CalcNextFreeSegment (const SThreadPool& Pool) const
+			{
+			for (int i = 0; i < Pool.Backbone.GetCount(); i++)
+				if (Pool.Backbone[i] && TRAITS::HasFree(*Pool.Backbone[i]))
+					return i;
+
+			return -1;
+			}
+
+		OWNER* m_pOwner = NULL;
+		CCriticalSection m_cs;
+		TArray<SThreadPool*> m_Pools;
+	};
 
 //	TGCAllocator
 //
@@ -342,7 +489,7 @@ class CGCComplexAllocatorBase
 			else
 				(*pCount)++;
 
-			if (strEquals(sType, CString("array")))
+			if (strEquals(sType, STR_AEONALLOCATOR_ARRAY))
 				{
 				bool bNew;
 				int* pSize = Stats.ArraySizeHistogram.SetAt(pValue->GetCount(), &bNew);
@@ -367,6 +514,176 @@ class CGCComplexAllocatorBase
 	};
 
 typedef TGCAllocator<IComplexDatum *, CGCComplexAllocatorBase> CGCComplexAllocator;
+
+//	TGCSlabAllocator
+//
+//	This template allocates fixed-size GC-managed objects out of segments. VALUE
+//	is expected to implement IsMarked(), ClearMark(), and a destructor.
+
+template <class VALUE> class TGCSlabAllocator
+	{
+	public:
+		TGCSlabAllocator () : m_Segments(this) { }
+		TGCSlabAllocator (const TGCSlabAllocator& Src) = delete;
+		TGCSlabAllocator (TGCSlabAllocator&& Src) = delete;
+
+		~TGCSlabAllocator ()
+			{
+			m_Segments.ForEachSegment([] (SThreadPool& Pool, SSegment& Seg)
+				{
+				for (DWORD k = 0; k < Seg.dwNextUnallocated; k++)
+					{
+					SBlock& Block = Seg.Blocks[k];
+					if (!Block.bFree)
+						Block.GetValue()->~VALUE();
+					}
+				});
+			}
+
+		TGCSlabAllocator& operator= (const TGCSlabAllocator& Src) = delete;
+		TGCSlabAllocator& operator= (TGCSlabAllocator&& Src) = delete;
+
+		template <class... ARGS> VALUE* New (ARGS&&... Args)
+			{
+			SThreadPool& Pool = m_Segments.GetThreadPool();
+			SReservedBlock Reserved = ReserveBlock(Pool);
+
+			try
+				{
+				return ::new (Reserved.pBlock->GetValue()) VALUE(std::forward<ARGS>(Args)...);
+				}
+			catch (...)
+				{
+				ReleaseBlock(Reserved);
+				throw;
+				}
+			}
+
+		void Sweep ()
+			{
+			m_Segments.ForEachPool([this] (SThreadPool& Pool)
+				{
+				for (int j = 0; j < Pool.Backbone.GetCount(); j++)
+					{
+					SSegment* pSeg = Pool.Backbone[j];
+					if (pSeg == NULL)
+						continue;
+
+					for (DWORD k = 0; k < pSeg->dwNextUnallocated; k++)
+						{
+						SBlock& Block = pSeg->Blocks[k];
+						if (Block.bFree)
+							continue;
+
+						VALUE* pValue = Block.GetValue();
+						if (!pValue->IsMarked())
+							{
+							pValue->~VALUE();
+							ReleaseBlock({ &Pool, pSeg, &Block, (DWORD)k }, false);
+							}
+						else
+							pValue->ClearMark();
+						}
+					}
+
+				//	Retain empty segments so allocation-heavy workloads can reuse
+				//	the high-water mark instead of thrashing segment allocation.
+				m_Segments.RecalcNextFreeSegment(Pool);
+				});
+			}
+
+	private:
+		static constexpr int SEGMENT_SIZE = 4096;
+		static constexpr DWORD END_OF_FREE_LIST = 0xFFFFFFFF;
+
+		struct SBlock
+			{
+			VALUE* GetValue () { return reinterpret_cast<VALUE*>(Data); }
+
+			DWORD dwNextFree;
+			bool bFree;
+			alignas(VALUE) BYTE Data[sizeof(VALUE)];
+			};
+
+		struct SSegment
+			{
+			DWORD dwCount = 0;
+			DWORD dwFirstFree = END_OF_FREE_LIST;
+			DWORD dwNextUnallocated = 0;
+			SBlock Blocks[SEGMENT_SIZE];
+			};
+
+		struct SSegmentTraits
+			{
+			static bool HasFree (const SSegment& Seg)
+				{
+				return (Seg.dwFirstFree != END_OF_FREE_LIST || Seg.dwNextUnallocated < SEGMENT_SIZE);
+				}
+			};
+
+		using TSegmentStore = TGCThreadSegmentBackbone<TGCSlabAllocator<VALUE>, SSegment, SSegmentTraits>;
+		using SThreadPool = typename TSegmentStore::SThreadPool;
+
+		struct SReservedBlock
+			{
+			SThreadPool* pPool = NULL;
+			SSegment* pSeg = NULL;
+			SBlock* pBlock = NULL;
+			DWORD dwBlock = END_OF_FREE_LIST;
+			};
+
+		SReservedBlock ReserveBlock (SThreadPool& Pool)
+			{
+			SSegment* pSeg = m_Segments.GetNextFreeSegment(Pool);
+			ASSERT(pSeg->dwFirstFree != END_OF_FREE_LIST || pSeg->dwNextUnallocated < SEGMENT_SIZE);
+
+			DWORD dwBlock;
+			SBlock* pBlock;
+
+			if (pSeg->dwFirstFree != END_OF_FREE_LIST)
+				{
+				dwBlock = pSeg->dwFirstFree;
+				pBlock = &pSeg->Blocks[dwBlock];
+				pSeg->dwFirstFree = pBlock->dwNextFree;
+
+				if (pSeg->dwFirstFree == END_OF_FREE_LIST
+						&& pSeg->dwNextUnallocated == SEGMENT_SIZE)
+					m_Segments.RecalcNextFreeSegment(Pool);
+				}
+			else
+				{
+				dwBlock = pSeg->dwNextUnallocated++;
+				pBlock = &pSeg->Blocks[dwBlock];
+
+				if (pSeg->dwNextUnallocated == SEGMENT_SIZE)
+					m_Segments.RecalcNextFreeSegment(Pool);
+				}
+
+			pSeg->dwCount++;
+
+			pBlock->dwNextFree = END_OF_FREE_LIST;
+			pBlock->bFree = false;
+
+			return { &Pool, pSeg, pBlock, dwBlock };
+			}
+
+		void ReleaseBlock (const SReservedBlock& Reserved, bool bUpdateNextFree = true)
+			{
+			if (Reserved.pSeg == NULL || Reserved.pBlock == NULL)
+				return;
+
+			ASSERT(!Reserved.pBlock->bFree);
+			Reserved.pBlock->bFree = true;
+			Reserved.pBlock->dwNextFree = Reserved.pSeg->dwFirstFree;
+			Reserved.pSeg->dwFirstFree = Reserved.dwBlock;
+			Reserved.pSeg->dwCount--;
+
+			if (bUpdateNextFree)
+				Reserved.pPool->pFreeSeg = Reserved.pSeg;
+			}
+
+		TSegmentStore m_Segments;
+	};
 
 template <class VALUE> class TAllocatorGC
 	{
@@ -645,33 +962,6 @@ class CAEONTableTable
 		CCriticalSection m_cs;
 		TArray<SEntry*> m_Backbone;
 		TArray<int> m_FreeList;
-	};
-
-class CAEONStore
-	{
-	public:
-
-		static DWORD Alloc (IComplexDatum* pValue) { return m_ComplexAlloc.New(pValue); }
-		static DWORD Alloc (LPSTR pValue) { return m_StringAlloc.New(pValue); }
-
-		static DWORD AllocTableID (CDatum dTable) { return m_TableTable.AddTable(dTable); }
-		static void FreeTableID (DWORD dwID) { m_TableTable.DeleteTable(dwID); }
-		static CDatum GetTableByID (DWORD dwID) { return m_TableTable.GetTable(dwID); }
-
-		static void MarkComplex (IComplexDatum* pValue) { m_ComplexAlloc.Mark(pValue); }
-		static void MarkString (LPSTR Value) { m_StringAlloc.Mark(Value); }
-
-		static void RegisterMarkProc (MARKPROC fnProc) { m_MarkList.Insert(fnProc); }
-
-		static void Sweep ();
-
-	private:
-
-		static CGCStringAllocator m_StringAlloc;
-		static CGCComplexAllocator m_ComplexAlloc;
-
-		static TArray<MARKPROC> m_MarkList;
-		static CAEONTableTable m_TableTable;
 	};
 
 class CAEONFactoryList

@@ -46,7 +46,7 @@ CDatum COpNegate::CalcType (CDatum dType)
 	else if (Type.IsNullable())
 		{
 		CDatum dNewType = CalcType(Type.GetVariantType());
-		return CAEONTypeSystem::CreateNullableType(NULL_STR, dNewType);
+		return CAEONTypes::CreateNullableType(NULL_STR, dNewType);
 		}
 
 	else if (Type.IsA(IDatatype::EXPRESSION))
@@ -55,7 +55,7 @@ CDatum COpNegate::CalcType (CDatum dType)
 	else if (Type.IsA(IDatatype::ARRAY))
 		{
 		CDatum dElementType = Type.GetElementType();
-		return CAEONTypeSystem::CreateAnonymousArray(NULL_STR, CalcType(dElementType));
+		return CAEONTypes::CreateArray(NULL_STR, CalcType(dElementType));
 		}
 	else if (Type.IsA(IDatatype::TIME_SPAN) || Type.IsA(IDatatype::VECTOR_2D_F64) || Type.IsA(IDatatype::VECTOR_3D_F64))
 		{

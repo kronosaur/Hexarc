@@ -5,6 +5,9 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_CHEXE_MARKUP_EVALUATOR_MISMATCHED_ELSE,	"Mismatched <?else?>");
+DECLARE_CONST_STRING(STR_CHEXE_MARKUP_EVALUATOR_MISMATCHED_ENDIF,	"Mismatched <?endif?>");
+
 DECLARE_CONST_STRING(HEADER_LOCATION,					"location")
 
 DECLARE_CONST_STRING(LIBRARY_HYPERION,					"hyperion")
@@ -347,7 +350,7 @@ bool CHexeMarkupEvaluator::ProcessDirective (SHTTPRequestCtx &Ctx, const CString
 
 		if (m_iIfLevel == 0)
 			{
-			m_Output.Write(CString("Mismatched <?else?>"));
+			m_Output.Write(STR_CHEXE_MARKUP_EVALUATOR_MISMATCHED_ELSE);
 			return true;
 			}
 
@@ -360,7 +363,7 @@ bool CHexeMarkupEvaluator::ProcessDirective (SHTTPRequestCtx &Ctx, const CString
 
 		if (m_iIfLevel == 0)
 			{
-			m_Output.Write(CString("Mismatched <?endif?>"));
+			m_Output.Write(STR_CHEXE_MARKUP_EVALUATOR_MISMATCHED_ENDIF);
 			return true;
 			}
 

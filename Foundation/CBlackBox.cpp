@@ -5,6 +5,8 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_CBLACK_BOX_LOG,	"*.log");
+
 DECLARE_CONST_STRING(DEFAULT_PREFIX,					"BlackBox");
 
 DECLARE_CONST_STRING(ERR_UNABLE_TO_GET_VERSION,			"Unable to obtain executable version information.");
@@ -116,7 +118,7 @@ bool CBlackBox::ReadRecent (const CString &sPath, const CString &sFind, int iLin
 	//	First we make a list of log files at the given path.
 
 	TArray<CString> Files;
-	if (!fileGetFileList(sPath, NULL_STR, CString("*.log"), 0, &Files))
+	if (!fileGetFileList(sPath, NULL_STR, STR_CBLACK_BOX_LOG, 0, &Files))
 		return false;
 
 	//	Now sort them in reverse chronological order (we can do this because we

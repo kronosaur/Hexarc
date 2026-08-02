@@ -20,7 +20,7 @@ CDatum CAEONTypeSystem::AddAnonymousArray (CDatum dElementType)
 //	Adds a new array type (or returns an existing one).
 
 	{
-	CDatum dNewType = CreateAnonymousArray(NULL_STR, dElementType);
+	CDatum dNewType = CAEONTypes::CreateArray(NULL_STR, dElementType);
 	const IDatatype& NewType = dNewType;
 
 	//	See if this type already exists.
@@ -44,7 +44,7 @@ CDatum CAEONTypeSystem::AddAnonymousDictionary (CDatum dKeyType, CDatum dElement
 //	Adds a new dictionary type (or returns an existing one).
 
 	{
-	CDatum dNewType = CreateAnonymousDictionary(NULL_STR, dKeyType, dElementType);
+	CDatum dNewType = CAEONTypes::CreateDictionary(NULL_STR, dKeyType, dElementType);
 	const IDatatype& NewType = dNewType;
 
 	//	See if this type already exists.
@@ -92,7 +92,7 @@ CDatum CAEONTypeSystem::AddAnonymousSchema (const TArray<IDatatype::SMemberDesc>
 //	Adds a new schema (or returns an existing one).
 
 	{
-	CDatum dNewSchema = CreateAnonymousSchema(Columns);
+	CDatum dNewSchema = CAEONTypes::CreateSchema(NULL_STR, Columns);
 	const IDatatype& NewSchema = dNewSchema;
 
 	//	See if this schema already exists.
@@ -109,15 +109,14 @@ CDatum CAEONTypeSystem::AddAnonymousSchema (const TArray<IDatatype::SMemberDesc>
 	return dNewSchema;
 	}
 
-CDatum CAEONTypeSystem::AddAnonymousTensor (CDatum dElementType, const TArray<CDatum>& Dimensions)
+CDatum CAEONTypeSystem::AddAnonymousTensor (CDatum dElementType, TArray<CDatum>&& Dimensions)
 
 //	AddAnonymousTensor
 //
 //	Adds a new tensor type (or returns an existing one).
 
 	{
-	IDatatype* pNewType = new CDatatypeTensor(CDatatypeTensor::SCreate({ NULL_STR, 0, dElementType, Dimensions }));
-	CDatum dNewType(new CComplexDatatype(pNewType));
+	CDatum dNewType = CAEONTypes::CreateTensor(NULL_STR, dElementType, std::move(Dimensions));
 
 	//	See if this type already exists.
 
@@ -169,161 +168,6 @@ DWORD CAEONTypeSystem::Atomize (CStringView sFullyQualifiedName)
 	return *pAtom;
 	}
 
-CDatum CAEONTypeSystem::CreateAnonymousArray (const CString& sFullyQualifiedName, CDatum dElementType)
-
-//	CreateAnonymousArray
-//
-//	Creates an anonymous array given parameters.
-
-	{
-	if (dElementType.GetBasicType() != CDatum::typeDatatype)
-		throw CException(errFail);
-
-	IDatatype *pNewType = new CDatatypeArray(CDatatypeArray::SCreate({ sFullyQualifiedName, 0, dElementType, false }));
-
-	CDatum dType(new CComplexDatatype(pNewType));
-	return dType;
-	}
-
-CDatum CAEONTypeSystem::CreateAnonymousDictionary (const CString& sFullyQualifiedName, CDatum dKeyType, CDatum dElementType)
-
-//	CreateAnonymousDictionary
-//
-//	Creates an anonymous dictionary given parameters.
-
-	{
-	if (dElementType.GetBasicType() != CDatum::typeDatatype || dKeyType.GetBasicType() != CDatum::typeDatatype)
-		throw CException(errFail);
-
-	IDatatype *pNewType = new CDatatypeArray(CDatatypeArray::SCreate({ sFullyQualifiedName, 0, dElementType, false, true, dKeyType }));
-
-	CDatum dType(new CComplexDatatype(pNewType));
-	return dType;
-	}
-
-CDatum CAEONTypeSystem::CreateAnonymousSchema (const TArray<IDatatype::SMemberDesc> &Columns)
-
-//	CreateAnonymousSchema
-//
-//	Create an anonymous schema.
-
-	{
-	CString sFullyQualifiedName = CAEONTypeSystem::MakeFullyQualifiedName(NULL_STR, strPattern("AnonymousSchema%08x", mathRandom()));
-	return CAEONTypes::CreateSchema(sFullyQualifiedName, Columns, 0);
-	}
-
-CDatum CAEONTypeSystem::CreateAnonymousTable (const CString& sFullyQualifiedName, CDatum dSchema)
-
-//	CreateAnonymousTable
-//
-//	Creates an anonymous table of the given schema.
-
-	{
-	if (((const IDatatype&)dSchema).GetClass() != IDatatype::ECategory::Schema)
-		throw CException(errFail);
-
-	IDatatype *pNewType = new CDatatypeArray(CDatatypeArray::SCreate({ sFullyQualifiedName, 0, dSchema, true }));
-
-	CDatum dType(new CComplexDatatype(pNewType));
-	return dType;
-	}
-
-CDatum CAEONTypeSystem::CreateNullableType (const CString& sFullyQualifiedName, CDatum dVariantType)
-
-//	CreateNullableType
-//
-//	Creates a nullable type.
-
-	{
-	const IDatatype& VariantType = dVariantType;
-
-	//	Certain types are intrinsically nullable, which means we can just return
-	//	them.
-
-	if (VariantType.CanBeNull())
-		return dVariantType;
-
-	CString sID;
-	if (sFullyQualifiedName.IsEmpty())
-		{
-		if (VariantType.GetCoreType())
-			sID = MakeFullyQualifiedName(NULL_STR, strPattern("%s?", VariantType.GetName()));
-		else
-			sID = MakeFullyQualifiedName(NULL_STR, strPattern("NullableType%08x", mathRandom()));
-		}
-	else
-		sID = sFullyQualifiedName;
-
-	IDatatype *pNewType = new CDatatypeNullable(CDatatypeNullable::SCreate({ sID, 0, dVariantType }));
-
-	CDatum dType(new CComplexDatatype(pNewType));
-	return dType;
-	}
-
-CDatum CAEONTypeSystem::CreateDatatypeClass (const CString &sFullyQualifiedName, IDatatype **retpNewType)
-
-//	CreateDatatypeClass
-//
-//	Creates a new datatype.
-
-	{
-	IDatatype *pNewType = new CDatatypeClass({ sFullyQualifiedName, CDatatypeList({ CAEONTypes::Get(IDatatype::CLASS_T) }) });
-	CDatum dNewType(new CComplexDatatype(pNewType));
-
-	if (retpNewType)
-		*retpNewType = pNewType;
-
-	return dNewType;
-	}
-
-CDatum CAEONTypeSystem::CreateDatatypeFunction (const CString& sFullyQualifiedName, const IDatatype::SReturnTypeDesc& Return, const TArray<IDatatype::SArgDesc>& Args, IDatatype** retpNewType, CString* retsError)
-
-//	CreateDatatypeFunction
-//
-//	Creates a new function.
-
-	{
-	CString sID;
-	if (sFullyQualifiedName.IsEmpty())
-		sID = MakeFullyQualifiedName(NULL_STR, strPattern("AnonymousFunction%08x", mathRandom()));
-	else
-		sID = sFullyQualifiedName;
-
-	IDatatype* pNewType = new CDatatypeFunction(CDatatypeFunction::SCreate({ sID, Return, Args }));
-	CDatum dNewType(new CComplexDatatype(pNewType));
-
-	if (retpNewType)
-		*retpNewType = pNewType;
-
-	return dNewType;
-	}
-
-CDatum CAEONTypeSystem::CreateDatatypeSchema (const CString& sFullyQualifiedName, IDatatype **retpNewType)
-
-//	CreateDatatypeSchema
-//
-//	Creates a new datatype.
-
-	{
-	IDatatype *pNewType = new CDatatypeSchema({ sFullyQualifiedName, CDatatypeList({ CAEONTypes::Get(IDatatype::SCHEMA) }), 0 });
-	CDatum dNewType(new CComplexDatatype(pNewType));
-
-	if (retpNewType)
-		*retpNewType = pNewType;
-
-	return dNewType;
-	}
-
-CDatum CAEONTypeSystem::FindCoreType (const CString& sFullyQualifiedName, const IDatatype** retpDatatype)
-
-//	FindCoreType
-//
-//	Looks for a core type. Return nil if not found.
-
-	{
-	return CAEONTypes::FindCoreType(sFullyQualifiedName, retpDatatype);
-	}
-
 CDatum CAEONTypeSystem::FindType (const CString& sFullyQualifiedName, const IDatatype **retpDatatype) const
 
 //	FindType
@@ -365,16 +209,6 @@ CDatum CAEONTypeSystem::FindType (CDatum dType) const
 		}
 
 	return CDatum();
-	}
-
-CDatum CAEONTypeSystem::GetCoreType (DWORD dwType)
-
-//	GetCoreType
-//
-//	Returns the given core type.
-
-	{
-	return CAEONTypes::Get(dwType);
 	}
 
 CDatum CAEONTypeSystem::GetTypeList () const
@@ -440,8 +274,12 @@ void CAEONTypeSystem::Mark ()
 //	Mark types in use.
 
 	{
+	DEBUG_TRY
+
 	for (int i = 0; i < m_Types.GetCount(); i++)
 		m_Types[i].Mark();
+
+	DEBUG_CATCH
 	}
 
 CDatum CAEONTypeSystem::ResolveType (CDatum dType) const

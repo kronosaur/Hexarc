@@ -4,6 +4,139 @@
 //	Copyright (c) 2023 GridWhale Corporation. All Rights Reserved.
 
 #pragma once
+class COpCompHelpers
+	{
+	public:
+
+		static bool IsIntFloatPair (DWORD dwLeftType, DWORD dwRightType)
+			{
+			return (IsIntegerType(dwLeftType) && dwRightType == IDatatype::FLOAT_64)
+				|| (dwLeftType == IDatatype::FLOAT_64 && IsIntegerType(dwRightType));
+			}
+
+		static bool TryCompareIntFloat (CDatum dLeft, CDatum dRight, int& retCompare)
+			{
+			DWORD dwLeftType = dLeft.GetBasicDatatype();
+			DWORD dwRightType = dRight.GetBasicDatatype();
+			if (!IsIntFloatPair(dwLeftType, dwRightType))
+				return false;
+
+			double rValue = 0.0;
+			CIPInteger iValue;
+			const bool bFloatOnLeft = (dwLeftType == IDatatype::FLOAT_64);
+			if (bFloatOnLeft)
+				{
+				rValue = (double)dLeft;
+				iValue = IntegerFromDatum(dRight);
+				}
+			else
+				{
+				rValue = (double)dRight;
+				iValue = IntegerFromDatum(dLeft);
+				}
+
+			if (!std::isfinite(rValue))
+				return false;
+
+			CIPInteger iFromFloat;
+			if (TryGetExactIntegerFromDouble(rValue, iFromFloat))
+				{
+				const int iCompare = iFromFloat.Compare(iValue);
+				retCompare = (bFloatOnLeft ? iCompare : -iCompare);
+				return true;
+				}
+
+			CIPInteger iFloor;
+			if (!TryGetExactIntegerFromDouble(std::floor(rValue), iFloor))
+				return false;
+
+			const int iCompare = (iFloor.Compare(iValue) >= 0 ? 1 : -1);
+			retCompare = (bFloatOnLeft ? iCompare : -iCompare);
+			return true;
+			}
+
+
+	private:
+
+		union SDoubleBits
+			{
+			double rValue;
+			DWORDLONG dwBits;
+			};
+
+		static bool IsIntegerType (DWORD dwType)
+			{
+			return (dwType == IDatatype::INT_32
+					|| dwType == IDatatype::INT_64
+					|| dwType == IDatatype::INT_IP);
+			}
+
+		static CIPInteger IntegerFromDatum (CDatum dValue)
+			{
+			switch (dValue.GetBasicDatatype())
+				{
+				case IDatatype::INT_32:
+					return CIPInteger((int)dValue);
+
+				case IDatatype::INT_64:
+					return CIPInteger((DWORDLONG)dValue);
+
+				case IDatatype::INT_IP:
+					return (const CIPInteger&)dValue;
+
+				default:
+					return CIPInteger(0);
+				}
+			}
+
+		static bool TryGetExactIntegerFromDouble (double rValue, CIPInteger& retValue)
+			{
+			if (!std::isfinite(rValue))
+				return false;
+			else if (rValue == 0.0)
+				{
+				retValue = CIPInteger(0);
+				return true;
+				}
+
+			SDoubleBits Bits;
+			Bits.rValue = rValue;
+
+			const DWORDLONG dwExponentBits = ((Bits.dwBits >> 52) & 0x7ff);
+			if (dwExponentBits == 0x7ff)
+				return false;
+			else if (dwExponentBits == 0)
+				return false;
+
+			const bool bNegative = ((Bits.dwBits >> 63) != 0);
+			const int iExponent = (int)dwExponentBits - 1023;
+			const DWORDLONG dwSignificand = ((DWORDLONG)1 << 52) | (Bits.dwBits & ((((DWORDLONG)1) << 52) - 1));
+
+			CIPInteger Result;
+			if (iExponent < 0)
+				return false;
+			else if (iExponent >= 52)
+				{
+				Result = CIPInteger(dwSignificand);
+				Result <<= (size_t)(iExponent - 52);
+				}
+			else
+				{
+				const int iShift = 52 - iExponent;
+				const DWORDLONG dwMask = ((((DWORDLONG)1) << iShift) - 1);
+				if ((dwSignificand & dwMask) != 0)
+					return false;
+
+				Result = CIPInteger(dwSignificand >> iShift);
+				}
+
+			if (bNegative && !Result.IsZero())
+				Result.SetNegative(true);
+
+			retValue = Result;
+			return true;
+			}
+	};
 
 class COpAdd
 	{
@@ -68,6 +201,11 @@ class COpCompEqual
 	private:
 
 		static CDatum ExecAny_Any (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight) { return CDatum(dLeft.OpIsEqual(dRight)); }
+		static CDatum ExecDouble (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
+		static CDatum ExecInt32 (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
+		static CDatum ExecInt64 (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
+		static CDatum ExecIntIP (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
+		static CDatum ExecNumber_Any (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
 		static CDatum ExecAny_Expression (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
 		static CDatum ExecExpression_Any (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
 		static CDatum ExecExpression_Expression (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
@@ -82,6 +220,11 @@ class COpCompGreaterThan
 	private:
 
 		static CDatum ExecAny_Any (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight) { return CDatum(dLeft.OpCompare(dRight) > 0); }
+		static CDatum ExecDouble (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
+		static CDatum ExecInt32 (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
+		static CDatum ExecInt64 (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
+		static CDatum ExecIntIP (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
+		static CDatum ExecNumber_Any (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
 		static CDatum ExecAny_Expression (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
 		static CDatum ExecExpression_Any (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
 		static CDatum ExecExpression_Expression (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
@@ -96,6 +239,11 @@ class COpCompGreaterThanOrEqual
 	private:
 
 		static CDatum ExecAny_Any (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight) { return CDatum(dLeft.OpCompare(dRight) >= 0); }
+		static CDatum ExecDouble (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
+		static CDatum ExecInt32 (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
+		static CDatum ExecInt64 (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
+		static CDatum ExecIntIP (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
+		static CDatum ExecNumber_Any (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
 		static CDatum ExecAny_Expression (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
 		static CDatum ExecExpression_Any (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
 		static CDatum ExecExpression_Expression (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
@@ -124,6 +272,11 @@ class COpCompLessThan
 	private:
 
 		static CDatum ExecAny_Any (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight) { return CDatum(dLeft.OpCompare(dRight) < 0); }
+		static CDatum ExecDouble (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
+		static CDatum ExecInt32 (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
+		static CDatum ExecInt64 (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
+		static CDatum ExecIntIP (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
+		static CDatum ExecNumber_Any (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
 		static CDatum ExecAny_Expression (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
 		static CDatum ExecExpression_Any (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
 		static CDatum ExecExpression_Expression (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
@@ -138,6 +291,11 @@ class COpCompLessThanOrEqual
 	private:
 
 		static CDatum ExecAny_Any (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight) { return CDatum(dLeft.OpCompare(dRight) <= 0); }
+		static CDatum ExecDouble (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
+		static CDatum ExecInt32 (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
+		static CDatum ExecInt64 (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
+		static CDatum ExecIntIP (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
+		static CDatum ExecNumber_Any (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
 		static CDatum ExecAny_Expression (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
 		static CDatum ExecExpression_Any (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
 		static CDatum ExecExpression_Expression (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
@@ -152,6 +310,11 @@ class COpCompNotEqual
 	private:
 
 		static CDatum ExecAny_Any (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight) { return CDatum(!dLeft.OpIsEqual(dRight)); }
+		static CDatum ExecDouble (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
+		static CDatum ExecInt32 (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
+		static CDatum ExecInt64 (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
+		static CDatum ExecIntIP (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
+		static CDatum ExecNumber_Any (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
 		static CDatum ExecAny_Expression (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
 		static CDatum ExecExpression_Any (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
 		static CDatum ExecExpression_Expression (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);

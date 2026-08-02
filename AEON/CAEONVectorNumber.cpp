@@ -34,7 +34,7 @@ TDatumPropertyHandler<CAEONVectorNumber> CAEONVectorNumber::m_Properties = {
 		"Returns the element type of the array.",
 		[](const CAEONVectorNumber &Obj, const CString &sProperty)
 			{
-			return CAEONTypeSystem::GetCoreType(IDatatype::NUMBER);
+			return CAEONTypes::Get(IDatatype::NUMBER);
 			},
 		NULL,
 		},
@@ -44,7 +44,7 @@ TDatumPropertyHandler<CAEONVectorNumber> CAEONVectorNumber::m_Properties = {
 		"Returns the key type of the array.",
 		[](const CAEONVectorNumber &Obj, const CString &sProperty)
 			{
-			return CAEONTypeSystem::GetCoreType(IDatatype::INTEGER);
+			return CAEONTypes::Get(IDatatype::INTEGER);
 			},
 		NULL,
 		},

@@ -32,6 +32,7 @@ DECLARE_CONST_STRING(MSG_CRYPTOSAUR_REMOVE_RIGHTS,		"Cryptosaur.removeRights")
 DECLARE_CONST_STRING(MSG_CRYPTOSAUR_RESET_PASSWORD_MANUAL,	"Cryptosaur.resetPasswordManual")
 DECLARE_CONST_STRING(MSG_ERROR_ALREADY_EXISTS,			"Error.alreadyExists")
 DECLARE_CONST_STRING(MSG_ERROR_DOES_NOT_EXIST,			"Error.doesNotExist")
+DECLARE_CONST_STRING(MSG_ERROR_INVALID_AUTH,			"Error.invalidAuth");
 DECLARE_CONST_STRING(MSG_ERROR_NOT_ALLOWED,				"Error.notAllowed")
 DECLARE_CONST_STRING(MSG_ERROR_UNABLE_TO_COMPLY,		"Error.unableToComply")
 DECLARE_CONST_STRING(MSG_REPLY_DATA,					"Reply.data")
@@ -308,7 +309,7 @@ bool CChangeUserSession::OnProcessMessage (const SArchonMessage &Msg)
 				CDatum dCurrentAuthDesc = dUserData.GetElement(FIELD_AUTH_DESC);
 				if (!dCurrentAuthDesc.GetElement(FIELD_AUTHORITY).IsNil())
 					{
-					SendMessageReplyError(MSG_ERROR_DOES_NOT_EXIST, ERR_INVALID_USERNAME_OR_PASSWORD);
+					SendMessageReplyError(MSG_ERROR_INVALID_AUTH, ERR_INVALID_USERNAME_OR_PASSWORD);
 					return false;
 					}
 
@@ -324,7 +325,7 @@ bool CChangeUserSession::OnProcessMessage (const SArchonMessage &Msg)
 					CDatum dPassword = dOldAuthDesc.GetElement(FIELD_PASSWORD);
 					if (dPassword.IsNil())
 						{
-						SendMessageReplyError(MSG_ERROR_DOES_NOT_EXIST, ERR_INVALID_USERNAME_OR_PASSWORD);
+						SendMessageReplyError(MSG_ERROR_INVALID_AUTH, ERR_INVALID_USERNAME_OR_PASSWORD);
 						return false;
 						}
 
@@ -352,7 +353,7 @@ bool CChangeUserSession::OnProcessMessage (const SArchonMessage &Msg)
 
 				if ((const CIPInteger &)dOldCredentials != (const CIPInteger &)dCurrentAuthDesc.GetElement(FIELD_CREDENTIALS))
 					{
-					SendMessageReplyError(MSG_ERROR_DOES_NOT_EXIST, ERR_INVALID_USERNAME_OR_PASSWORD);
+					SendMessageReplyError(MSG_ERROR_INVALID_AUTH, ERR_INVALID_USERNAME_OR_PASSWORD);
 					return false;
 					}
 
@@ -402,7 +403,7 @@ bool CChangeUserSession::OnProcessMessage (const SArchonMessage &Msg)
 				CDatum dCurrentAuthDesc = dUserData.GetElement(FIELD_AUTH_DESC);
 				if (!dCurrentAuthDesc.GetElement(FIELD_AUTHORITY).IsNil())
 					{
-					SendMessageReplyError(MSG_ERROR_DOES_NOT_EXIST, ERR_INVALID_USERNAME_OR_PASSWORD);
+					SendMessageReplyError(MSG_ERROR_INVALID_AUTH, ERR_INVALID_USERNAME_OR_PASSWORD);
 					return false;
 					}
 
@@ -578,7 +579,7 @@ bool CChangeUserSession::OnProcessMessage (const SArchonMessage &Msg)
 				CDatum dCurrentAuthDesc = dUserData.GetElement(FIELD_AUTH_DESC);
 				if (!dCurrentAuthDesc.GetElement(FIELD_AUTHORITY).IsNil())
 					{
-					SendMessageReplyError(MSG_ERROR_DOES_NOT_EXIST, ERR_INVALID_USERNAME_OR_PASSWORD);
+					SendMessageReplyError(MSG_ERROR_INVALID_AUTH, ERR_INVALID_USERNAME_OR_PASSWORD);
 					return false;
 					}
 

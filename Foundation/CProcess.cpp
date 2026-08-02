@@ -33,18 +33,41 @@ void CProcess::Create (const CString sCmdLine, const SOptions &Options)
 		pEnvironment = (LPVOID)EnvironmentBlock.GetPointer();
 		}
 
+	DWORD dwCreationFlags = (Options.hJobObject ? CREATE_SUSPENDED : 0);
+
 	PROCESS_INFORMATION ProcessInfo;
 	if (!::CreateProcess(NULL,
 			CString16(sCmdLine),
 			NULL,
 			NULL,
 			TRUE,
-			0,
+			dwCreationFlags,
 			pEnvironment,
 			NULL,
 			&StartupInfo,
 			&ProcessInfo))
 		throw CException(errOS, ::GetLastError(), sysGetOSErrorText(::GetLastError()));
+
+	if (Options.hJobObject)
+		{
+		if (!::AssignProcessToJobObject(Options.hJobObject, ProcessInfo.hProcess))
+			{
+			DWORD dwError = ::GetLastError();
+			::TerminateProcess(ProcessInfo.hProcess, 1);
+			::CloseHandle(ProcessInfo.hThread);
+			::CloseHandle(ProcessInfo.hProcess);
+			throw CException(errOS, dwError, sysGetOSErrorText(dwError));
+			}
+
+		if (::ResumeThread(ProcessInfo.hThread) == (DWORD)-1)
+			{
+			DWORD dwError = ::GetLastError();
+			::TerminateProcess(ProcessInfo.hProcess, 1);
+			::CloseHandle(ProcessInfo.hThread);
+			::CloseHandle(ProcessInfo.hProcess);
+			throw CException(errOS, dwError, sysGetOSErrorText(dwError));
+			}
+		}
 
 	//	Remember the handle
 

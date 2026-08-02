@@ -6,12 +6,15 @@
 #include "stdafx.h"
 
 DECLARE_CONST_STRING(TYPE_PRIVATE_KEY,					"PRIVATE KEY")
+DECLARE_CONST_STRING(TYPE_RSA_PRIVATE_KEY,				"RSA PRIVATE KEY")
 
 DECLARE_CONST_STRING(ERR_CANT_PARSE_KEY,				"Unable to parse key from PEM section.")
 DECLARE_CONST_STRING(ERR_CANT_PARSE_PEM,				"Unable to parse PEM section.")
 DECLARE_CONST_STRING(ERR_NO_KEY_FOUND,					"Unable to find key in PEM buffer.")
 DECLARE_CONST_STRING(ERR_OUT_OF_MEMORY,					"Out of memory creating keys.")
 DECLARE_CONST_STRING(ERR_CANT_GENERATE_RSA,				"Unable to generate 2048-bit RSA key.")
+DECLARE_CONST_STRING(ERR_KEY_NOT_INITIALIZED,			"Private key not initialized.")
+DECLARE_CONST_STRING(ERR_SIGN_FAILED,					"Unable to sign payload.")
 
 CCriticalSection CSSLEnvelopeKey::m_cs;
 
@@ -202,5 +205,59 @@ bool CSSLEnvelopeKey::IsKeyPEMSection (const CString &sType)
 //	Returns TRUE if this is a section we can load.
 
 	{
-	return (strEqualsNoCase(sType, TYPE_PRIVATE_KEY));
+	return (strEqualsNoCase(sType, TYPE_PRIVATE_KEY) || strEqualsNoCase(sType, TYPE_RSA_PRIVATE_KEY));
+	}
+
+bool CSSLEnvelopeKey::SignRS256 (const CString& sPayload, CStringBuffer& retSignature, CString* retsError) const
+
+//	SignRS256
+//
+//	Signs the payload with RSASSA-PKCS1-v1_5 using SHA-256.
+
+	{
+	if (!m_pData || !m_pData->pKey)
+		{
+		if (retsError) *retsError = ERR_KEY_NOT_INITIALIZED;
+		return false;
+		}
+
+	EVP_MD_CTX* pCtx = EVP_MD_CTX_new();
+	if (!pCtx)
+		{
+		if (retsError) *retsError = ERR_OUT_OF_MEMORY;
+		return false;
+		}
+
+	bool bSuccess = false;
+	do
+		{
+		if (EVP_DigestSignInit(pCtx, NULL, EVP_sha256(), NULL, COpenSSL::AsEVPPKey(m_pData->pKey)) <= 0)
+			break;
+
+		if (EVP_DigestSignUpdate(pCtx, sPayload.GetParsePointer(), sPayload.GetLength()) <= 0)
+			break;
+
+		size_t cbSig = 0;
+		if (EVP_DigestSignFinal(pCtx, NULL, &cbSig) <= 0)
+			break;
+
+		retSignature.SetLength((int)cbSig);
+		if (EVP_DigestSignFinal(pCtx, (BYTE*)retSignature.GetPointer(), &cbSig) <= 0)
+			break;
+
+		retSignature.SetLength((int)cbSig);
+		bSuccess = true;
+		}
+	while (false);
+
+	EVP_MD_CTX_free(pCtx);
+
+	if (!bSuccess)
+		{
+		retSignature.SetLength(0);
+		if (retsError) *retsError = ERR_SIGN_FAILED;
+		return false;
+		}
+
+	return true;
 	}

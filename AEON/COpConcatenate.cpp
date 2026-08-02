@@ -97,7 +97,7 @@ CDatum COpConcatenate::ExecAny_Null (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRigh
 
 	else
 		{
-		CDatum dNewDatatype = CAEONTypeSystem::CreateAnonymousArray(NULL_STR, dLeft.GetDatatype());
+		CDatum dNewDatatype = CAEONTypes::CreateArray(NULL_STR, dLeft.GetDatatype());
 		CDatum dResult = CDatum::CreateArrayAsType(dNewDatatype);
 		dResult.Append(dLeft);
 
@@ -117,14 +117,14 @@ CDatum COpConcatenate::CalcType (CDatum dLeftType, CDatum dRightType)
 		if (RightType.IsA(IDatatype::ARRAY))
 			return dRightType;
 		else
-			return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY);
+			return CAEONTypes::Get(IDatatype::ARRAY);
 		}
 	else if (RightType.IsNullType())
 		{
 		if (LeftType.IsA(IDatatype::ARRAY))
 			return dLeftType;
 		else
-			return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY);
+			return CAEONTypes::Get(IDatatype::ARRAY);
 		}
 
 	//	If either side is an array, then we return an array.
@@ -163,10 +163,13 @@ CDatum COpConcatenate::CalcType (CDatum dLeftType, CDatum dRightType)
 		else if (RightType.IsA(LeftType))
 			return dLeftType;
 
+		else if (LeftType.IsA(IDatatype::STRUCT) || RightType.IsA(IDatatype::STRUCT))
+			return CAEONTypes::Get(IDatatype::STRUCT);
+
 		//	Otherwise, we return an array.
 
 		else
-			return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY);
+			return CAEONTypes::Get(IDatatype::ARRAY);
 		}
 
 	//	If one side is a class instance and the other side is a struct, then we 
@@ -188,7 +191,7 @@ CDatum COpConcatenate::CalcType (CDatum dLeftType, CDatum dRightType)
 	//	Otherwise, we return an array.
 
 	else
-		return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY);
+		return CAEONTypes::Get(IDatatype::ARRAY);
 	}
 
 CDatum COpConcatenate::ExecArray_Array (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight)
@@ -228,7 +231,19 @@ CDatum COpConcatenate::ExecClassInstance_ClassInstance (IInvokeCtx& Ctx, CDatum 
 		return dResult;
 		}
 
-	//	Otherwise, just combine them into an array
+	//	Schema get converted to structs.
+
+	else if (LeftType.IsA(IDatatype::SCHEMA) || RightType.IsA(IDatatype::SCHEMA))
+		{
+		//	Create the new structure
+
+		CDatum dResult(CDatum::typeStruct);
+		dResult.Append(dLeft);
+		dResult.Append(dRight);
+		return dResult;
+		}
+
+	//	Otherwise, we combine both objects in a generic array.
 
 	else
 		return ExecScalar_Scalar(Ctx, dLeft, dRight);
@@ -384,13 +399,13 @@ CDatum COpConcatenate::ExecScalar_Scalar (IInvokeCtx& Ctx, CDatum dLeft, CDatum 
 
 	CDatum dNewDatatype;
 	if (RightElementType.IsA(LeftElementType))
-		dNewDatatype = CAEONTypeSystem::CreateAnonymousArray(NULL_STR, dLeftElementType);
+		dNewDatatype = CAEONTypes::CreateArray(NULL_STR, dLeftElementType);
 
 	//	If the array element is a subtype of the scalar, then we create a new
 	//	array type for the scalar.
 
 	else if (LeftElementType.IsA(RightElementType))
-		dNewDatatype = CAEONTypeSystem::CreateAnonymousArray(NULL_STR, dRightElementType);
+		dNewDatatype = CAEONTypes::CreateArray(NULL_STR, dRightElementType);
 
 	//	Otherwise, generic type.
 
@@ -512,7 +527,7 @@ CDatum COpConcatenate::CalcDatatypeArray_Scalar (CDatum dArrayType, CDatum dScal
 	//	array type for the scalar.
 
 	else if (ArrayElementType.IsA(ScalarElementType))
-		return CAEONTypeSystem::CreateAnonymousArray(NULL_STR, dScalarType);
+		return CAEONTypes::CreateArray(NULL_STR, dScalarType);
 
 	//	Otherwise, generic type.
 

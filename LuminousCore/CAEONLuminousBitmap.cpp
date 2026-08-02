@@ -167,7 +167,7 @@ TDatumMethodHandler<CAEONLuminousBitmap> CAEONLuminousBitmap::m_Methods = {
 		},
 	{
 		"getScaled",
-		"*",
+		"$BitmapType:width=n,height=n",
 		".getScaled(width, height) -> image",
 		0,
 		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
@@ -195,7 +195,7 @@ TDatumMethodHandler<CAEONLuminousBitmap> CAEONLuminousBitmap::m_Methods = {
 		},
 	{
 		"getSlice",
-		"*",
+		"$BitmapType:x=n,y=n,width=n,height=n",
 		".getSlice(x, y, width, height) -> image",
 		0,
 		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
@@ -320,6 +320,44 @@ TDatumMethodHandler<CAEONLuminousBitmap> CAEONLuminousBitmap::m_Methods = {
 			return true;
 			},
 		},
+	{
+		"toJPEG",
+		"v:|options=?",
+		".toJPEG() -> Binary",
+		0,
+		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
+			{
+			CStringBuffer Buffer;
+			CString sError;
+			if (!CJPEG::Save(Obj.m_Image, Buffer, CJPEG::QUALITY_DEFAULT, &sError))
+				{
+				retResult.dResult = CDatum::CreateError(sError);
+				return false;
+				}
+
+			retResult.dResult = CDatum::CreateBinary(std::move(Buffer));
+			return true;
+			},
+		},
+	{
+		"toPNG",
+		"v:|options=?",
+		".toPNG() -> Binary",
+		0,
+		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
+			{
+			CStringBuffer Buffer;
+			CString sError;
+			if (!CPNG::Save(Obj.m_Image, Buffer, &sError))
+				{
+				retResult.dResult = CDatum::CreateError(sError);
+				return false;
+				}
+
+			retResult.dResult = CDatum::CreateBinary(std::move(Buffer));
+			return true;
+			},
+		},
 	};
 
 const CString &CAEONLuminousBitmap::StaticGetTypename (void) { return TYPENAME_LUMINOUS_BITMAP; }
@@ -399,6 +437,27 @@ CDatum CAEONLuminousBitmap::Create (int cxWidth, int cyHeight, CRGBA32 rgbBackgr
 	return CDatum(pBitmap);
 	}
 
+CDatum CAEONLuminousBitmap::GetDatatype () const
+	{
+	//	For now we only support RGBA8, but we could support other formats in the future.
+	return CAEONTypes::Get(CAEONLuminous::BITMAP_RGBA8_TYPE);
+	}
+
+TArray<IDatatype::SMemberDesc> CAEONLuminousBitmap::GetMembers (void)
+
+//	GetMembers
+//
+//	Returns a list of members.
+
+	{
+	TArray<IDatatype::SMemberDesc> Members;
+
+	m_Properties.AccumulateMembers(Members);
+	m_Methods.AccumulateMembers(Members);
+
+	return Members;
+	}
+
 size_t CAEONLuminousBitmap::OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const
 
 //	OnCalcSerializeSizeAEONScript
@@ -418,7 +477,7 @@ bool CAEONLuminousBitmap::OnDeserialize (CDatum::EFormat iFormat, const CString 
 	{
 	switch (iFormat)
 		{
-		case CDatum::EFormat::JSON:
+		case CDatum::EFormat::AEONJSON:
 			{
 			CBuffer Buffer;
 			Buffer.SetLength(Stream.GetStreamLength());
@@ -480,7 +539,7 @@ void CAEONLuminousBitmap::OnSerialize (CDatum::EFormat iFormat, IByteStream &Str
 		{
 		//	Always serialize to a PNG.
 
-		case CDatum::EFormat::JSON:
+		case CDatum::EFormat::AEONJSON:
 			CPNG::Save(m_Image, Stream);
 			break;
 

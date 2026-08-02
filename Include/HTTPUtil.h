@@ -32,6 +32,13 @@ class CHTTPUtil
 		static bool m_bAEONRegistered;
 	};
 
+class CJSONSchema
+	{
+	public:
+
+		static CDatum FromType (CDatum dType);
+	};
+
 class CHTTPMultipartParser
 	{
 	public:

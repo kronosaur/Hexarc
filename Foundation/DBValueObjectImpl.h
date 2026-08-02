@@ -5,6 +5,8 @@
 
 #pragma once
 
+DECLARE_CONST_STRING(STR_DBVALUE_OBJECT_IMPL_HH_MM_SS,	"hh:mm:ss");
+
 class CDBValueArray : public IDBValueObject
 	{
 	public:
@@ -127,7 +129,7 @@ class CDBValueTimeSpan : public IDBValueObject
 			{ }
 
 		virtual CTimeSpan AsTimeSpan (void) const override { return m_Value; }
-		virtual CString AsString (void) const override { return m_Value.Format(CString("hh:mm:ss")); }
+		virtual CString AsString (void) const override { return m_Value.Format(STR_DBVALUE_OBJECT_IMPL_HH_MM_SS); }
 		virtual LONGLONG CastLONGLONG (void) const override { return (LONGLONG)m_Value.Milliseconds64(); }
 		virtual IDBValueObject *Clone (void) const override { return new CDBValueTimeSpan(m_Value); }
 		virtual CDBValue::ETypes GetType (void) const override { return CDBValue::typeTimeSpan; }

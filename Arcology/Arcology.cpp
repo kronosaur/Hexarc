@@ -101,6 +101,8 @@ void CArcologyService::OnStart (const TArray<CString> &Params)
 	ExarchOptions.sArcologyPrime = Options.sArcologyPrime;
 	ExarchOptions.sConfigFilename = Options.sConfigFilename;
 	ExarchOptions.dwAMP1Port = Options.dwAMP1Port;
+	ExarchOptions.bCreateModuleJob = InServiceDebugMode();
+	ExarchOptions.bTerminateOrphanModules = Options.sArcologyPrime.IsEmpty();
 
 	pDesc = Config.Engines.Insert();
 	CExarchEngine *pExarch = new CExarchEngine(ExarchOptions);

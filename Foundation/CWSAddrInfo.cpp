@@ -5,6 +5,8 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_CWSADDR_INFO_UNABLE_TO_RESOLVE_LOCAL_ADDRESS,	"Unable to resolve local address.");
+
 CWSAddrInfo CWSAddrInfo::Get (DWORD dwPort, CString *retsError)
 
 //	Get
@@ -96,7 +98,7 @@ CWSAddrInfo CWSAddrInfo::GetLocal (int iFamily, CString *retsError)
 	if (iResult != 0)
 		{
 		int iLastError = WSAGetLastError();
-		if (retsError) *retsError = CString("Unable to resolve local address.");
+		if (retsError) *retsError = STR_CWSADDR_INFO_UNABLE_TO_RESOLVE_LOCAL_ADDRESS;
 		return CWSAddrInfo();
 		}
 

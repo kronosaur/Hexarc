@@ -14,6 +14,47 @@ DECLARE_CONST_STRING(FIELD_ORDINAL,						"ordinal");
 DECLARE_CONST_STRING(ERR_DUPLICATE_MEMBER,				"Duplicate member definition: %s.")
 DECLARE_CONST_STRING(ERR_BLANK_MEMBER,					"Member name cannot be blank.")
 
+struct SSchemaIsAPair
+	{
+	const IDatatype* pSource = NULL;
+	const IDatatype* pTarget = NULL;
+	};
+
+class CSchemaIsAGuard
+	{
+	public:
+		CSchemaIsAGuard (TArray<SSchemaIsAPair>& Stack, const IDatatype& Source, const IDatatype& Target) :
+				m_Stack(Stack)
+			{
+			for (int i = 0; i < m_Stack.GetCount(); i++)
+				if (m_Stack[i].pSource == &Source && m_Stack[i].pTarget == &Target)
+					{
+					m_bRecursive = true;
+					return;
+					}
+
+			SSchemaIsAPair Pair;
+			Pair.pSource = &Source;
+			Pair.pTarget = &Target;
+
+			m_Stack.Insert(Pair);
+			m_bInserted = true;
+			}
+
+		~CSchemaIsAGuard ()
+			{
+			if (m_bInserted)
+				m_Stack.Delete(m_Stack.GetCount() - 1);
+			}
+
+		bool IsRecursive () const { return m_bRecursive; }
+
+	private:
+		TArray<SSchemaIsAPair>& m_Stack;
+		bool m_bInserted = false;
+		bool m_bRecursive = false;
+	};
+
 bool CDatatypeSchema::OnAddImplementation (CDatum dType)
 
 //	OnAddImplementation
@@ -98,9 +139,10 @@ bool CDatatypeSchema::OnCanBeConstructedFrom (CDatum dType) const
 	if (Type.IsA(*this))
 		return true;
 
-	//	We also allow constructing from a generic Struct.
+	//	Literal structs are statically checked by the compiler against the
+	//	target schema before construction.
 
-	if (Type.IsA(IDatatype::STRUCT))
+	if (Type.GetImplementation() == EImplementation::LiteralStruct)
 		return true;
 
 	//	Otherwise, we cannot construct from this type.
@@ -310,6 +352,47 @@ IDatatype::EMemberType CDatatypeSchema::OnHasMember (CStringView sName, CDatum* 
 		}
 	else
 		return EMemberType::None;
+	}
+
+bool CDatatypeSchema::OnIsA (const IDatatype &Type) const
+	{
+	if (m_Implements.IsA(Type))
+		return true;
+
+	if (Type.GetImplementation() != EImplementation::Schema)
+		return false;
+
+	static thread_local TArray<SSchemaIsAPair> SchemaIsAStack;
+	CSchemaIsAGuard Guard(SchemaIsAStack, *this, Type);
+	if (Guard.IsRecursive())
+		return true;
+
+	//	A schema is-a target schema if every target member exists in the source
+	//	with a compatible type. Extra source members are OK.
+
+	for (int i = 0; i < Type.GetMemberCount(); i++)
+		{
+		SMemberDesc TargetMember = Type.GetMember(i);
+		if (TargetMember.iType != EMemberType::InstanceVar
+				&& TargetMember.iType != EMemberType::InstanceKeyVar)
+			continue;
+
+		int iSourceMember = FindMember(TargetMember.sID);
+		if (iSourceMember == -1)
+			return false;
+
+		SMemberDesc SourceMember = GetMember(iSourceMember);
+		if (TargetMember.iType == EMemberType::InstanceKeyVar
+				&& SourceMember.iType != EMemberType::InstanceKeyVar)
+			return false;
+
+		const IDatatype& SourceMemberType = SourceMember.dType;
+		const IDatatype& TargetMemberType = TargetMember.dType;
+		if (!SourceMemberType.IsA(TargetMemberType))
+			return false;
+		}
+
+	return true;
 	}
 
 void CDatatypeSchema::OnMark ()

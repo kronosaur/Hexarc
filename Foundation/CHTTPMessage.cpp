@@ -5,6 +5,12 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_CHTTPMESSAGE_STATE_START,	"stateStart");
+DECLARE_CONST_STRING(STR_CHTTPMESSAGE_STATE_HEADERS,	"stateHeaders");
+DECLARE_CONST_STRING(STR_CHTTPMESSAGE_STATE_DONE,	"stateDone");
+DECLARE_CONST_STRING(STR_CHTTPMESSAGE_INITIALIZING_BUFFER,	"Initializing buffer.");
+DECLARE_CONST_STRING(STR_CHTTPMESSAGE_COMMA,	",");
+
 DECLARE_CONST_STRING(STR_HEADER_CONS,					"%s: %s\r\n")
 DECLARE_CONST_STRING(STR_REQUEST_LINE,					"%s %s HTTP/1.1\r\n")
 DECLARE_CONST_STRING(STR_EMPTY_PATH,					"/")
@@ -79,9 +85,74 @@ CHTTPMessage::SStatusMessageEntry CHTTPMessage::m_StatusMessageTable[] =
 
 CString GetToken (char *pPos, char *pEndPos, char chDelimiter, char **retpPos);
 
+static bool ParseChunkLength (const CString &sLine, int *retiLength)
+	{
+	const char *pPos = sLine.GetParsePointer();
+	const char *pPosEnd = pPos + sLine.GetLength();
+
+	while (pPos < pPosEnd && strIsWhitespace(pPos))
+		pPos++;
+
+	const char *pStart = pPos;
+	DWORDLONG dwLength = 0;
+	while (pPos < pPosEnd && strIsHexDigit(pPos))
+		{
+		BYTE byDigit;
+		if (*pPos >= '0' && *pPos <= '9')
+			byDigit = *pPos - '0';
+		else if (*pPos >= 'a' && *pPos <= 'f')
+			byDigit = *pPos - 'a' + 10;
+		else
+			byDigit = *pPos - 'A' + 10;
+
+		dwLength = (dwLength * 16) + byDigit;
+		if (dwLength > 0x7fffffff)
+			return false;
+
+		pPos++;
+		}
+
+	if (pPos == pStart)
+		return false;
+
+	while (pPos < pPosEnd && strIsWhitespace(pPos))
+		pPos++;
+
+	if (pPos < pPosEnd && *pPos != ';')
+		return false;
+
+	if (retiLength)
+		*retiLength = (int)dwLength;
+
+	return true;
+	}
+
+class CHTTPDecodedBodyBuffer : public CBuffer64
+	{
+	public:
+		CHTTPDecodedBodyBuffer (DWORDLONG dwMaxLength) :
+				m_dwMaxLength(dwMaxLength)
+			{ }
+
+		//	IByteStream64
+
+		virtual void Write (const void *pData, DWORDLONG dwLength) override
+			{
+			if (GetPos() > m_dwMaxLength
+					|| dwLength > (m_dwMaxLength - GetPos()))
+				throw CException(errFail);
+
+			CMemoryBlockImpl64::Write(pData, dwLength);
+			}
+
+	private:
+		DWORDLONG m_dwMaxLength = 0;
+	};
+
 CHTTPMessage::CHTTPMessage (void) : 
 		m_iType(typeUnknown),
-		m_bHTTP11(true)
+		m_bHTTP11(true),
+		m_iContentEncoding(http_encodingIdentity)
 
 //	CHTTPMessage constructor
 
@@ -152,10 +223,10 @@ CString CHTTPMessage::DebugGetInitState (void) const
 	switch (m_iState)
 		{
 		case stateStart:
-			return CString("stateStart");
+			return STR_CHTTPMESSAGE_STATE_START;
 
 		case stateHeaders:
-			return CString("stateHeaders");
+			return STR_CHTTPMESSAGE_STATE_HEADERS;
 
 		case stateBody:
 			return strPattern("stateBody: %d bytes", m_pBodyBuilder->GetLength());
@@ -164,7 +235,7 @@ CString CHTTPMessage::DebugGetInitState (void) const
 			return strPattern("stateChunk: body = %d bytes; %d bytes left in chunk.", m_pBodyBuilder->GetLength(), m_iChunkLeft);
 
 		case stateDone:
-			return CString("stateDone");
+			return STR_CHTTPMESSAGE_STATE_DONE;
 
 		default:
 			return strPattern("Unknown state: %d.", (int)m_iState);
@@ -207,6 +278,72 @@ bool CHTTPMessage::FindHeader (const CString &sField, CString *retsValue) const
 		}
 
 	return false;
+	}
+
+bool CHTTPMessage::FinalizeBodyBuilder (TArray<CString> *pDebugOutput)
+
+//	FinalizeBodyBuilder
+//
+//	Finishes parsing the body and, if necessary, decodes content encoding before
+//	handing the body to the real body builder.
+
+	{
+	if (m_iState != stateDone || !m_pBodyBuilder || m_pBodyBuilder->IsEmpty())
+		return true;
+
+	IMediaTypePtr pBody;
+	if (m_iContentEncoding == http_encodingIdentity)
+		{
+		if (!m_pBodyBuilder->CreateMedia(&pBody))
+			return false;
+
+		SetBody(pBody);
+		}
+	else if (m_iContentEncoding == http_encodingGzip)
+		{
+		//	The main body builder contains compressed entity bytes. Decode them,
+		//	then replay the decoded body through the original media-specific
+		//	builder.
+
+		if (!m_pDecodedBodyBuilder)
+			return false;
+
+		IMediaTypePtr pEncodedBody;
+		if (!m_pBodyBuilder->CreateMedia(&pEncodedBody))
+			return false;
+
+		CBuffer EncodedBody(pEncodedBody->GetMediaBuffer());
+		CHTTPDecodedBodyBuffer DecodedBody((DWORDLONG)MAXINT);
+		try
+			{
+			compDecompress(EncodedBody, compressionGzip, DecodedBody);
+			}
+		catch (...)
+			{
+			return false;
+			}
+
+		if (DecodedBody.GetLength() > (DWORDLONG)MAXINT)
+			return false;
+
+		m_pDecodedBodyBuilder->Init(pEncodedBody->GetMediaType());
+		m_pDecodedBodyBuilder->Append(DecodedBody.GetPointer(), (int)DecodedBody.GetLength());
+		if (!m_pDecodedBodyBuilder->CreateMedia(&pBody))
+			return false;
+
+		SetBody(pBody);
+
+		if (pDebugOutput)
+			pDebugOutput->Insert(strPattern("Decoded gzip content: %d bytes to %d bytes.", EncodedBody.GetLength(), (int)DecodedBody.GetLength()));
+		}
+	else
+		return false;
+
+	m_pBodyBuilder = IMediaTypeBuilderPtr();
+	m_pDecodedBodyBuilder = IMediaTypeBuilderPtr();
+	m_iContentEncoding = http_encodingIdentity;
+
+	return true;
 	}
 
 DWORD CHTTPMessage::GetBodySize (void) const
@@ -264,6 +401,42 @@ EContentEncodingTypes CHTTPMessage::GetDefaultEncoding (void) const
 		return http_encodingIdentity;
 
 	return IMediaType::GetDefaultEncodingType(m_pBody->GetMediaType());
+	}
+
+bool CHTTPMessage::InitBodyBuilder (const CString &sMediaType, TArray<CString> *pDebugOutput, bool bDecodeContentEncoding)
+
+//	InitBodyBuilder
+//
+//	Initializes the body builder. If the HTTP body has a content encoding, we
+//	first accumulate the encoded bytes into a raw builder and defer the real body
+//	parsing until the full body has been decoded.
+
+	{
+	EContentEncodingTypes iContentEncoding;
+	if (bDecodeContentEncoding)
+		{
+		if (!ParseContentEncoding(&iContentEncoding))
+			return false;
+		}
+	else
+		iContentEncoding = http_encodingIdentity;
+
+	m_iContentEncoding = iContentEncoding;
+	if (m_iContentEncoding == http_encodingIdentity)
+		{
+		m_pDecodedBodyBuilder = IMediaTypeBuilderPtr();
+		m_pBodyBuilder->Init(sMediaType);
+		return true;
+		}
+
+	m_pDecodedBodyBuilder = m_pBodyBuilder;
+	m_pBodyBuilder = IMediaTypeBuilderPtr(new CHTTPMessageBodyBuilder);
+	m_pBodyBuilder->Init(sMediaType);
+
+	if (pDebugOutput)
+		pDebugOutput->Insert(strPattern("stateHeaders: content encoding: gzip."));
+
+	return true;
 	}
 
 CString CHTTPMessage::GetRequestedHost (void) const
@@ -370,7 +543,7 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 		{
 		InitFromPartialBufferReset();
 		if (pDebugOutput)
-			pDebugOutput->Insert(CString("Initializing buffer."));
+			pDebugOutput->Insert(STR_CHTTPMESSAGE_INITIALIZING_BUFFER);
 		}
 
 	//	If we have left overs, prepend it to the new buffer.
@@ -533,7 +706,9 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 							|| (m_dwStatusCode >= 100 && m_dwStatusCode < 200)
 							|| (m_dwStatusCode == 204) || (m_dwStatusCode == 304))
 						{
-						m_pBodyBuilder->Init(NULL_STR);
+						if (!InitBodyBuilder(NULL_STR, pDebugOutput, false))
+							return false;
+
 						m_iState = stateDone;
 
 						if (pDebugOutput)
@@ -544,13 +719,18 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 					//	a body.
 
 					else if (FindHeader(HEADER_TRANSFER_ENCODING, &sEncoding)
-							&& !strEquals(sEncoding, ENCODING_IDENTITY))
+							&& !strEqualsNoCase(sEncoding, ENCODING_IDENTITY))
 						{
+						if (!strEqualsNoCase(sEncoding, ENCODING_CHUNKED))
+							return false;
+
 						CString sMediaType;
 						if (!FindHeader(HEADER_CONTENT_TYPE, &sMediaType))
 							sMediaType = NULL_STR;
 
-						m_pBodyBuilder->Init(sMediaType);
+						if (!InitBodyBuilder(sMediaType, pDebugOutput))
+							return false;
+
 						m_iState = stateBody;
 
 						if (pDebugOutput)
@@ -566,7 +746,9 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 						if (!FindHeader(HEADER_CONTENT_TYPE, &sMediaType))
 							sMediaType = NULL_STR;
 
-						m_pBodyBuilder->Init(sMediaType);
+						if (!InitBodyBuilder(sMediaType, pDebugOutput))
+							return false;
+
 						m_iState = stateBody;
 
 						if (pDebugOutput)
@@ -577,7 +759,9 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 
 					else
 						{
-						m_pBodyBuilder->Init(NULL_STR);
+						if (!InitBodyBuilder(NULL_STR, pDebugOutput, false))
+							return false;
+
 						m_iState = stateDone;
 
 						if (pDebugOutput)
@@ -608,7 +792,7 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 				//	Chunked transfer encoding
 
 				if (FindHeader(HEADER_TRANSFER_ENCODING, &sEncoding)
-						&& strEquals(sEncoding, ENCODING_CHUNKED))
+						&& strEqualsNoCase(sEncoding, ENCODING_CHUNKED))
 					{
 					const char *pOriginalPos = pPos;
 
@@ -625,7 +809,9 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 						return true;
 						}
 
-					int iTotalLength = strParseIntOfBase(sLine, 16, 0);
+					int iTotalLength;
+					if (!ParseChunkLength(sLine, &iTotalLength))
+						return false;
 
 					if (pDebugOutput)
 						pDebugOutput->Insert(strPattern("stateBody: Total length %d.", iTotalLength));
@@ -796,15 +982,8 @@ bool CHTTPMessage::InitFromPartialBuffer (const IMemoryBlock &Buffer, bool bNoBo
 
 	//	If we're done, decode the body into an IMediaType object
 
-	if (m_iState == stateDone && !m_pBodyBuilder->IsEmpty())
-		{
-		IMediaTypePtr pBody;
-
-		m_pBodyBuilder->CreateMedia(&pBody);
-		SetBody(pBody);
-
-		m_pBodyBuilder = IMediaTypeBuilderPtr();
-		}
+	if (!FinalizeBodyBuilder(pDebugOutput))
+		return false;
 
 	return true;
 	}
@@ -824,6 +1003,8 @@ void CHTTPMessage::InitFromPartialBufferReset (IMediaTypeBuilderPtr pBodyBuilder
 		m_pBodyBuilder = IMediaTypeBuilderPtr(new CHTTPMessageBodyBuilder);
 
 	m_iState = stateStart;
+	m_iContentEncoding = http_encodingIdentity;
+	m_pDecodedBodyBuilder = IMediaTypeBuilderPtr();
 	m_sLeftOver = NULL_STR;
 	m_Headers.DeleteAll();
 	}
@@ -914,6 +1095,8 @@ bool CHTTPMessage::InitRequest (const CString &sMethod, const CString &sURL)
 	m_Headers.DeleteAll();
 
 	m_pBodyBuilder = NULL;
+	m_pDecodedBodyBuilder = NULL;
+	m_iContentEncoding = http_encodingIdentity;
 
 	SetBody(IMediaTypePtr());
 
@@ -940,6 +1123,8 @@ bool CHTTPMessage::InitResponse (DWORD dwStatusCode, const CString &sStatusMsg)
 	m_Headers.DeleteAll();
 
 	m_pBodyBuilder = NULL;
+	m_pDecodedBodyBuilder = NULL;
+	m_iContentEncoding = http_encodingIdentity;
 
 	SetBody(IMediaTypePtr());
 
@@ -966,7 +1151,7 @@ bool CHTTPMessage::IsEncodingAccepted (EContentEncodingTypes iEncoding)
 		return false;
 
 	TArray<CString> Encodings;
-	strSplit(sValue, CString(","), &Encodings, -1, SSP_FLAG_WHITESPACE_SEPARATOR | SSP_FLAG_FORCE_LOWERCASE);
+	strSplit(sValue, STR_CHTTPMESSAGE_COMMA, &Encodings, -1, SSP_FLAG_WHITESPACE_SEPARATOR | SSP_FLAG_FORCE_LOWERCASE);
 
 	//	Look for the specific encoding
 
@@ -978,6 +1163,43 @@ bool CHTTPMessage::IsEncodingAccepted (EContentEncodingTypes iEncoding)
 		default:
 			return false;
 		}
+	}
+
+bool CHTTPMessage::ParseContentEncoding (EContentEncodingTypes *retiEncoding) const
+
+//	ParseContentEncoding
+//
+//	Parses the Content-Encoding header. We currently support identity and a
+//	single gzip content coding.
+
+	{
+	if (retiEncoding)
+		*retiEncoding = http_encodingIdentity;
+
+	CString sValue;
+	if (!FindHeader(HEADER_CONTENT_ENCODING, &sValue) || sValue.IsEmpty())
+		return true;
+
+	TArray<CString> Encodings;
+	strSplit(sValue, STR_CHTTPMESSAGE_COMMA, &Encodings, -1, SSP_FLAG_WHITESPACE_SEPARATOR | SSP_FLAG_FORCE_LOWERCASE);
+
+	if (Encodings.GetCount() == 0)
+		return true;
+
+	if (Encodings.GetCount() != 1)
+		return false;
+
+	if (strEquals(Encodings[0], ENCODING_IDENTITY))
+		return true;
+	else if (strEquals(Encodings[0], ENCODING_GZIP))
+		{
+		if (retiEncoding)
+			*retiEncoding = http_encodingGzip;
+
+		return true;
+		}
+	else
+		return false;
 	}
 
 void CHTTPMessage::ParseCookies (const CString &sValue, TSortMap<CString, CString> *retCookies)

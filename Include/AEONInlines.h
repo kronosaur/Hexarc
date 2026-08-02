@@ -69,6 +69,9 @@ inline DWORD CDatum::GetBasicDatatype () const
 				case VALUE_TRUE:
 					return IDatatype::BOOL;
 
+				case VALUE_BLANK:
+					return IDatatype::STRING;
+
 				default:
 					ASSERT(false);
 					return IDatatype::ANY;
@@ -106,5 +109,132 @@ inline DWORD CDatum::GetBasicDatatype () const
 inline CDatum CHexeLocalEnvironment::OpAdd (int iIndex, CDatum dValue)
 	{
 	ASSERT(iIndex < GetAllocSize());
-	return (m_pArray[iIndex].dValue = CAEONOp::Add(m_pArray[iIndex].dValue, dValue));
+
+	CDatum& dLocal = m_pArray[iIndex].dValue;
+
+	if (dLocal.raw_IsInt32() && dValue.raw_IsInt32())
+		{
+		LONGLONG iResult = (LONGLONG)dLocal.raw_GetInt32() + (LONGLONG)dValue.raw_GetInt32();
+		if (iResult >= INT_MIN && iResult <= INT_MAX)
+			{
+			dLocal = CDatum((int)iResult);
+			return dLocal;
+			}
+		}
+
+	return (dLocal = CAEONOp::Add(dLocal, dValue));
+	}
+
+inline void CHexeLocalEnvironment::OpInc (int iIndex, int iInc)
+	{
+	ASSERT(iIndex < GetAllocSize());
+
+	CDatum& dLocal = m_pArray[iIndex].dValue;
+
+	if (dLocal.raw_IsInt32())
+		{
+		int iValue = dLocal.raw_GetInt32();
+
+		//	Keep this checked int32 fast path local instead of folding it into
+		//	CDatum::MutateAdd. On the 600M GLDiagnostics loop, a shared helper
+		//	regressed Release from ~5.8s to ~6.4s.
+		if (iInc == 1)
+			{
+			if (iValue < INT_MAX)
+				{
+				dLocal.MutateAddInt32(1);
+				return;
+				}
+			}
+		else if (iInc == -1)
+			{
+			if (iValue > INT_MIN)
+				{
+				dLocal.MutateAddInt32(-1);
+				return;
+				}
+			}
+		else
+			{
+			LONGLONG iResult = (LONGLONG)iValue + (LONGLONG)iInc;
+			if (iResult >= INT_MIN && iResult <= INT_MAX)
+				{
+				dLocal.MutateAddInt32(iInc);
+				return;
+				}
+			}
+		}
+
+	dLocal.MutateAdd(iInc);
+	}
+
+inline void CHexeLocalEnvironment::OpInc1 (int iIndex)
+	{
+	ASSERT(iIndex < GetAllocSize());
+
+	CDatum& dLocal = m_pArray[iIndex].dValue;
+
+	if (dLocal.raw_IsInt32() && dLocal.raw_GetInt32() < INT_MAX)
+		{
+		dLocal.MutateAddInt32(1);
+		return;
+		}
+
+	dLocal.MutateAdd(1);
+	}
+
+inline DWORD CDatum::GetBasicDatatypeEx () const
+
+//	GetBasicDatatypeEx
+//
+//	Like GetBasicDatatype, but returns NAN_CONST for any IEEE-754 NaN payload.
+
+	{
+	switch (DecodeType(m_dwData))
+		{
+		case TYPE_NULL:
+			return IDatatype::NULL_T;
+
+		case TYPE_CONSTANTS:
+			{
+			switch (m_dwData)
+				{
+				case VALUE_FALSE:
+				case VALUE_TRUE:
+					return IDatatype::BOOL;
+
+				case VALUE_BLANK:
+					return IDatatype::NULL_T;
+
+				default:
+					ASSERT(false);
+					return IDatatype::ANY;
+				}
+			}
+
+		case TYPE_INT32:
+			return IDatatype::INT_32;
+
+		case TYPE_ENUM:
+			return IDatatype::ENUM;
+
+		case TYPE_STRING:
+			return IDatatype::STRING;
+
+		case TYPE_COMPLEX:
+			return DecodeComplex(m_dwData).GetBasicDatatype();
+
+		case TYPE_ROW_REF:
+			return IDatatype::SCHEMA;
+
+		case TYPE_NAN:
+			return IDatatype::NAN_CONST;
+
+		case TYPE_INFINITY_N:
+		case TYPE_INFINITY_P:
+			return IDatatype::FLOAT_64;
+
+		default:
+			return (IsIEEE754NaNBits(m_dwData) ? IDatatype::NAN_CONST : IDatatype::FLOAT_64);
+		}
 	}

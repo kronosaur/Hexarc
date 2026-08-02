@@ -34,7 +34,7 @@ void CHexeLibraryFunction::Create (const SLibraryFuncDef &Def, CDatum *retdFunc)
 	pFunc->m_sHelpLine = Def.sHelpLine;
 	pFunc->m_dwExecFlags = Def.dwExecFlags;
 
-	pFunc->m_dDatatype = CAEONTypes::CreateFunctionType(Def.sArgList);
+	pFunc->m_dDatatype = CAEONTypes::CreateFunctionFromArgs(Def.sArgList);
 
 	*retdFunc = CDatum(pFunc);
 	}

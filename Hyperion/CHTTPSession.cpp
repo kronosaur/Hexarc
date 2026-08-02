@@ -9,6 +9,12 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_CHTTPSESSION_QUESTION,	"?");
+DECLARE_CONST_STRING(STR_CHTTPSESSION_COMMA,	",");
+DECLARE_CONST_STRING(STR_CHTTPSESSION_UNMODIFIED,	" UNMODIFIED");
+DECLARE_CONST_STRING(STR_CHTTPSESSION_SLASH,	"/");
+DECLARE_CONST_STRING(STR_CHTTPSESSION_COLON_SLASH_SLASH,	"://");
+
 #ifdef DEBUG
 //#define DEBUG_SESSION_TIMING
 #endif
@@ -25,9 +31,16 @@ DECLARE_CONST_STRING(FIELD_DATA,						"data");
 DECLARE_CONST_STRING(FIELD_FILE_DESC,					"fileDesc");
 DECLARE_CONST_STRING(FIELD_FILE_PATH,					"filePath");
 DECLARE_CONST_STRING(FIELD_HTTP_METHOD,					"method");
+DECLARE_CONST_STRING(FIELD_MATCH,						"match");
+DECLARE_CONST_STRING(FIELD_MATCH_MODE,					"matchMode");
 DECLARE_CONST_STRING(FIELD_MODIFIED_ON,					"modifiedOn");
+DECLARE_CONST_STRING(FIELD_PATH_MODE,					"pathMode");
+DECLARE_CONST_STRING(FIELD_PATH_PARAM,					"pathParam");
+DECLARE_CONST_STRING(FIELD_PRESERVE_QUERY,				"preserveQuery");
 DECLARE_CONST_STRING(FIELD_PROTOCOL,					"protocol");
+DECLARE_CONST_STRING(FIELD_REDIRECT_CODE,				"redirectCode");
 DECLARE_CONST_STRING(FIELD_REQUEST_TIME,				"requestTime");
+DECLARE_CONST_STRING(FIELD_REWRITE,						"rewrite");
 DECLARE_CONST_STRING(FIELD_SIZE,						"size");
 DECLARE_CONST_STRING(FIELD_SOCKET,						"socket");
 DECLARE_CONST_STRING(FIELD_STATE,						"state");
@@ -41,6 +54,7 @@ DECLARE_CONST_STRING(HEADER_CONNECTION,					"Connection");
 DECLARE_CONST_STRING(HEADER_DATE,						"Date");
 DECLARE_CONST_STRING(HEADER_IF_MODIFIED_SINCE,			"If-Modified-Since");
 DECLARE_CONST_STRING(HEADER_LAST_MODIFIED,				"Last-Modified");
+DECLARE_CONST_STRING(HEADER_LOCATION,					"location");
 DECLARE_CONST_STRING(HEADER_SERVER,						"Server");
 
 DECLARE_CONST_STRING(IP_ADDRESS_NULL,					"0.0.0.0");
@@ -62,7 +76,20 @@ DECLARE_CONST_STRING(MSG_REPLY_LONG_POLL,				"Reply.longPoll");
 
 DECLARE_CONST_STRING(PORT_HYPERION_COMMAND,				"Hyperion.command");
 
+DECLARE_CONST_STRING(PROTOCOL_HTTPS,					"https");
 DECLARE_CONST_STRING(PROTOCOL_HTTP,						"http");
+DECLARE_CONST_STRING(PROTOCOL_TLS,						"tls");
+
+DECLARE_CONST_STRING(ACTION_INTERNAL_REWRITE,			"internalRewrite");
+DECLARE_CONST_STRING(ACTION_REDIRECT,					"redirect");
+DECLARE_CONST_STRING(ACTION_SERVICE,					"service");
+
+DECLARE_CONST_STRING(PATH_MODE_APPEND_PATH,				"appendPath");
+DECLARE_CONST_STRING(PATH_MODE_QUERY_PARAM,				"queryParam");
+DECLARE_CONST_STRING(PATH_MODE_NONE,					"none");
+DECLARE_CONST_STRING(DEFAULT_PATH_PARAM,				"path");
+DECLARE_CONST_STRING(MATCH_EXACT,						"exact");
+DECLARE_CONST_STRING(MATCH_PREFIX,						"prefix");
 
 DECLARE_CONST_STRING(STATE_DISCONNECTED,				"disconnected");
 DECLARE_CONST_STRING(STATE_RESPONSE_SENT,				"responseSent");
@@ -83,6 +110,9 @@ DECLARE_CONST_STRING(ERR_400_BAD_REQUEST,				"Bad Request");
 DECLARE_CONST_STRING(ERR_RPC_TIMEOUT,					"No response from RPC message.");
 DECLARE_CONST_STRING(ERR_404_NOT_FOUND,					"Not Found");
 DECLARE_CONST_STRING(ERR_FILE_RECURSION,				"Too many HEXM file loads to handle a request. Possible infinite recursion.");
+DECLARE_CONST_STRING(ERR_INTERNAL_REDIRECT_RECURSION,	"Too many internal redirects to handle a request. Possible infinite recursion.");
+DECLARE_CONST_STRING(ERR_INVALID_INTERNAL_REDIRECT,		"Invalid internal redirect URL.");
+DECLARE_CONST_STRING(ERR_UNSUPPORTED_INTERNAL_REDIRECT,	"Internal redirects cannot target a different host.");
 DECLARE_CONST_STRING(ERR_CANT_SERIALIZE,				"Unable to serialize response.");
 DECLARE_CONST_STRING(ERR_UNEXPECTED_MSG,				"[%x] Unexpected msg in state %d: %s.");
 DECLARE_CONST_STRING(ERR_CRASH_PROCESS_FILE_HEXM,		"Crash processing HEXM file: %s.");
@@ -94,6 +124,88 @@ DECLARE_CONST_STRING(ERR_HTTP_SESSION_TIMING,			"[%x] %s%s took %d ms to process
 DECLARE_CONST_STRING(ERR_LONG_POLL_TIMEOUT,				"TIMEOUT: Long-poll expired.");
 
 const DWORD MAX_SINGLE_BODY_SIZE =						100000;
+
+static CString AppendQueryString (const CString &sURL, const CString &sQuery)
+	{
+	if (sQuery.IsEmpty())
+		return sURL;
+
+	return strPattern("%s%c%s", sURL, (strFind(sURL, STR_CHTTPSESSION_QUESTION) == -1 ? '?' : '&'), sQuery);
+	}
+
+static void ClearRequestProcessingState (SHTTPRequestCtx &Ctx)
+	{
+	Ctx.sInternalRedirectURL = NULL_STR;
+	Ctx.sRouteProtocol = NULL_STR;
+	Ctx.sFilePath = NULL_STR;
+	Ctx.dFileData = CDatum();
+	Ctx.dFileDesc = CDatum();
+
+	if (Ctx.pProcess)
+		{
+		delete Ctx.pProcess;
+		Ctx.pProcess = NULL;
+		Ctx.pProcessService = NULL;
+		}
+
+	if (Ctx.pHexeEval)
+		{
+		delete Ctx.pHexeEval;
+		Ctx.pHexeEval = NULL;
+		}
+	}
+
+static void SplitURLQuery (const CString &sURL, CString *retsURL, CString *retsQuery)
+	{
+	int iQuery = strFind(sURL, STR_CHTTPSESSION_QUESTION);
+	if (iQuery == -1)
+		{
+		if (retsURL) *retsURL = sURL;
+		if (retsQuery) *retsQuery = NULL_STR;
+		}
+	else
+		{
+		if (retsURL) *retsURL = strSubString(sURL, 0, iQuery);
+		if (retsQuery) *retsQuery = strSubString(sURL, iQuery + 1);
+		}
+	}
+
+static CString GetRouteMatchOption (CDatum dOptions)
+	{
+	CString sMatch = dOptions.GetElement(FIELD_MATCH).AsString();
+	if (sMatch.IsEmpty())
+		sMatch = dOptions.GetElement(FIELD_MATCH_MODE).AsString();
+	if (sMatch.IsEmpty())
+		sMatch = MATCH_PREFIX;
+
+	return sMatch;
+	}
+
+static CString GetRouteRewriteOption (CDatum dOptions)
+	{
+	CString sRewrite = dOptions.GetElement(FIELD_REWRITE).AsString();
+	if (sRewrite.IsEmpty())
+		sRewrite = dOptions.GetElement(FIELD_PATH_MODE).AsString();
+	if (sRewrite.IsEmpty())
+		sRewrite = PATH_MODE_NONE;
+
+	return sRewrite;
+	}
+
+static bool IsConnectionClose (const CHTTPMessage &Request)
+	{
+	CString sConnection;
+	if (!Request.FindHeader(HEADER_CONNECTION, &sConnection))
+		return false;
+
+	TArray<CString> Tokens;
+	strSplit(sConnection, STR_CHTTPSESSION_COMMA, &Tokens, -1, SSP_FLAG_WHITESPACE_SEPARATOR);
+	for (int i = 0; i < Tokens.GetCount(); i++)
+		if (strEqualsNoCase(Tokens[i], STR_CLOSE))
+			return true;
+
+	return false;
+	}
 
 CHTTPSession::CHTTPSession (CHyperionEngine *pEngine, const CString &sListener, const CString &sProtocol, CDatum dSocket, const CString &sNetAddress) : 
 		CHyperionSession(pEngine, sListener, sProtocol, dSocket, sNetAddress)
@@ -188,6 +300,7 @@ bool CHTTPSession::GetRequest (const SArchonMessage &Msg, bool bContinued)
 		{
 		m_Ctx.Request.InitFromPartialBufferReset(IMediaTypeBuilderPtr(m_Ctx.pBodyBuilder->AddRef()));
 		m_Ctx.AdditionalHeaders.DeleteAll();
+		m_Ctx.sOriginalRequestHost = NULL_STR;
 		}
 
 	//	Compose message
@@ -369,7 +482,7 @@ bool CHTTPSession::ProcessStateResponseSent (const SArchonMessage &Msg)
 		//	If this is a 1.0 server or we were asked to close the connection, 
 		//	then we're done.
 
-		if (!m_Ctx.Request.IsHTTP11())
+		if (!m_Ctx.Request.IsHTTP11() || IsConnectionClose(m_Ctx.Request))
 			return Disconnect(Msg);
 
 		//	Otherwise, read more.
@@ -429,7 +542,12 @@ bool CHTTPSession::ProcessStateResponseSentPartial (const SArchonMessage &Msg)
 		//	If we're done writing chunks, then continue reading
 
 		if (m_dwPartialSend >= m_Ctx.Response.GetBodySize())
-			return GetRequest(Msg);
+			{
+			if (!m_Ctx.Request.IsHTTP11() || IsConnectionClose(m_Ctx.Request))
+				return Disconnect(Msg);
+			else
+				return GetRequest(Msg);
+			}
 
 		//	Otherwise, send the next chunk
 
@@ -467,7 +585,7 @@ bool CHTTPSession::ProcessStateWaitingForFileData (const SArchonMessage &Msg)
 	GetProcessCtx()->Log(MSG_LOG_DEBUG, strPattern("[%x]: Received Aeon.fileDownloadDesc filePath=%s%s", 
 			Msg.dwTicket, 
 			(const CString &)Msg.dPayload.GetElement(FIELD_FILE_DESC).GetElement(FIELD_FILE_PATH),
-			(Msg.dPayload.GetElement(FIELD_UNMODIFIED).IsNil() ? NULL_STR : CString(" UNMODIFIED"))));
+			(Msg.dPayload.GetElement(FIELD_UNMODIFIED).IsNil() ? NULL_STR : STR_CHTTPSESSION_UNMODIFIED)));
 #endif
 	//	If the file has not been modified then we can just return
 
@@ -633,35 +751,23 @@ bool CHTTPSession::ProcessStateWaitingForRequest (const SArchonMessage &Msg)
 			
 		GetProcessCtx()->Log(MSG_LOG_INFO, strPattern("[%x] %s.", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetRequestDescription()));
 #endif
-		//	Ask the engine for a service to handle this request
+		//	Ask the engine for a route to handle this request.
 
-		CHTTPService *pService;
-		if (!m_pEngine->FindHTTPService(m_sListener, m_Ctx.Request, &pService))
+		CHyperionEngine::SHTTPRouteMatch Route;
+		if (!m_pEngine->FindHTTPRoute(m_sListener, m_Ctx.Request, &Route))
 			{
 			m_Ctx.Response.InitResponse(http_NOT_FOUND, ERR_404_NOT_FOUND);
 			return SendResponse(m_Ctx, Msg);
 			}
 
-		//	Connect the service to the session and vice versa
-
-		if (pService != m_Ctx.pService)
-			{
-			if (m_Ctx.pService)
-				m_Ctx.pService->DeleteSession(this);
-
-			m_Ctx.pService = pService;
-			m_Ctx.pService->InsertSession(this);
-			}
-
 		//	Initialize file recursion counter
 
 		m_Ctx.iFileRecursion = 0;
+		m_Ctx.iInternalRedirect = 0;
+		m_Ctx.sRouteProtocol = NULL_STR;
+		m_Ctx.sOriginalRequestHost = m_Ctx.Request.GetRequestedHost();
 
-		//	Ask the service to handle the request. If the handler returned
-		//	false then it means that it needs to process a message first
-
-		m_Ctx.pService->HandleRequest(m_Ctx);
-		return ProcessServiceResult(m_Ctx, Msg);
+		return ProcessRouteMatch(m_Ctx, Msg, Route);
 		}
 	else
 		{
@@ -871,6 +977,247 @@ bool CHTTPSession::ProcessFileResult (SHTTPRequestCtx &Ctx, CDatum dFileDesc, CD
 		}
 	}
 
+CString CHTTPSession::ComposeRouteTargetURL (const CHyperionEngine::SHTTPRouteMatch &Route) const
+
+//	ComposeRouteTargetURL
+//
+//	Composes the target URL for a route action, applying any path/query options.
+
+	{
+	CString sTarget;
+	CString sTargetQuery;
+	SplitURLQuery(Route.sTarget, &sTarget, &sTargetQuery);
+
+	CString sRequestPath;
+	CString sRequestQuery;
+	SplitURLQuery(m_Ctx.Request.GetRequestedPath(), &sRequestPath, &sRequestQuery);
+
+	CDatum dOptions = Route.dOptions;
+	CString sRemainder;
+	if (strEquals(GetRouteMatchOption(dOptions), MATCH_EXACT))
+		sRemainder = NULL_STR;
+	else if (Route.sURLPath.IsEmpty() || strEquals(Route.sURLPath, STR_CHTTPSESSION_SLASH))
+		sRemainder = sRequestPath;
+	else if (strStartsWith(sRequestPath, Route.sURLPath))
+		{
+		CString sTail = strSubString(sRequestPath, Route.sURLPath.GetLength());
+		sRemainder = sTail.IsEmpty() ? STR_CHTTPSESSION_SLASH : strPattern("/%s", sTail);
+		}
+	else
+		sRemainder = STR_CHTTPSESSION_SLASH;
+
+	CString sPathMode = GetRouteRewriteOption(dOptions);
+
+	if (strEquals(sPathMode, PATH_MODE_QUERY_PARAM))
+		{
+		CString sPathParam = dOptions.GetElement(FIELD_PATH_PARAM).AsString();
+		if (sPathParam.IsEmpty())
+			sPathParam = DEFAULT_PATH_PARAM;
+
+		sTarget = AppendQueryString(sTarget, strPattern("%s=%s", sPathParam, urlEncodeParam(sRemainder)));
+		}
+	else if (strEquals(sPathMode, PATH_MODE_APPEND_PATH))
+		sTarget = urlAppend(sTarget, sRemainder);
+
+	if (!sTargetQuery.IsEmpty())
+		sTarget = AppendQueryString(sTarget, sTargetQuery);
+
+	if (dOptions.GetElement(FIELD_PRESERVE_QUERY).IsIdenticalToTrue())
+		sTarget = AppendQueryString(sTarget, sRequestQuery);
+
+	return sTarget;
+	}
+
+bool CHTTPSession::ProcessRouteMatch (SHTTPRequestCtx &Ctx, const SArchonMessage &Msg, const CHyperionEngine::SHTTPRouteMatch &Route)
+
+//	ProcessRouteMatch
+//
+//	Executes the route action.
+
+	{
+	if (Route.sAction.IsEmpty() || strEquals(Route.sAction, ACTION_SERVICE))
+		{
+		if (Route.pService == NULL)
+			{
+			Ctx.Response.InitResponse(http_NOT_FOUND, ERR_404_NOT_FOUND);
+			return SendResponse(Ctx, Msg);
+			}
+
+		if (Route.pService != Ctx.pService)
+			{
+			if (Ctx.pService)
+				Ctx.pService->DeleteSession(this);
+
+			Ctx.pService = Route.pService;
+			Ctx.pService->InsertSession(this);
+			}
+
+		Ctx.pService->HandleRequest(Ctx);
+		return ProcessServiceResult(Ctx, Msg);
+		}
+	else if (strEquals(Route.sAction, ACTION_REDIRECT))
+		{
+		CString sTarget = ComposeRouteTargetURL(Route);
+		if (sTarget.IsEmpty())
+			{
+			Ctx.Response.InitResponse(http_BAD_REQUEST, ERR_INVALID_INTERNAL_REDIRECT);
+			return SendResponse(Ctx, Msg);
+			}
+
+		DWORD dwResponseCode = http_FOUND;
+		CDatum dRedirectCode = Route.dOptions.GetElement(FIELD_REDIRECT_CODE);
+		if (!dRedirectCode.IsNil())
+			dwResponseCode = (DWORD)(int)dRedirectCode;
+
+		Ctx.Response.InitResponse(dwResponseCode, CHTTPMessage::StatusMessageFromStatusCode(dwResponseCode));
+		Ctx.Response.AddHeader(HEADER_LOCATION, sTarget);
+		return SendResponse(Ctx, Msg);
+		}
+	else if (strEquals(Route.sAction, ACTION_INTERNAL_REWRITE))
+		{
+		if (++Ctx.iInternalRedirect > 20)
+			{
+			Ctx.Response.InitResponse(http_INTERNAL_SERVER_ERROR, ERR_INTERNAL_REDIRECT_RECURSION);
+			return SendResponse(Ctx, Msg);
+			}
+
+		CString sTarget = ComposeRouteTargetURL(Route);
+		if (sTarget.IsEmpty())
+			{
+			Ctx.Response.InitResponse(http_BAD_REQUEST, ERR_INVALID_INTERNAL_REDIRECT);
+			return SendResponse(Ctx, Msg);
+			}
+
+		if (!strStartsWith(sTarget, STR_CHTTPSESSION_SLASH) && strFind(sTarget, STR_CHTTPSESSION_COLON_SLASH_SLASH) == -1)
+			sTarget = strPattern("/%s", sTarget);
+
+		CString sProtocol;
+		CString sHost;
+		CString sPath;
+		if (!urlParse(sTarget, &sProtocol, &sHost, &sPath))
+			{
+			Ctx.Response.InitResponse(http_BAD_REQUEST, ERR_INVALID_INTERNAL_REDIRECT);
+			return SendResponse(Ctx, Msg);
+			}
+
+		CString sTargetHostName;
+		DWORD dwTargetPort = 0;
+		if (!sHost.IsEmpty() && !urlParseHostPort(sProtocol, sHost, &sTargetHostName, &dwTargetPort))
+			{
+			Ctx.Response.InitResponse(http_BAD_REQUEST, ERR_INVALID_INTERNAL_REDIRECT);
+			return SendResponse(Ctx, Msg);
+			}
+
+		ClearRequestProcessingState(Ctx);
+		Ctx.Request.SetRequestedURL(sHost.IsEmpty() ? sPath : sTarget);
+
+		CHyperionEngine::SHTTPRouteMatch NextRoute;
+		CString sTargetProtocol = strEquals(sProtocol, PROTOCOL_HTTPS) ? PROTOCOL_TLS : sProtocol;
+		if (!sHost.IsEmpty())
+			Ctx.sRouteProtocol = sTargetProtocol;
+
+		bool bFoundRoute = sHost.IsEmpty()
+				? m_pEngine->FindHTTPRoute(m_sListener, Ctx.Request, &NextRoute)
+				: m_pEngine->FindHTTPRoute(sTargetProtocol, strFromInt((int)dwTargetPort), Ctx.Request, &NextRoute);
+		if (!bFoundRoute)
+			{
+			Ctx.Response.InitResponse(http_NOT_FOUND, ERR_404_NOT_FOUND);
+			return SendResponse(Ctx, Msg);
+			}
+
+		return ProcessRouteMatch(Ctx, Msg, NextRoute);
+		}
+	else
+		{
+		Ctx.Response.InitResponse(http_NOT_FOUND, ERR_404_NOT_FOUND);
+		return SendResponse(Ctx, Msg);
+		}
+	}
+
+bool CHTTPSession::ProcessInternalRedirect (SHTTPRequestCtx &Ctx, const SArchonMessage &Msg)
+
+//	ProcessInternalRedirect
+//
+//	Reprocesses a URL as if the client had requested it directly. This is a
+//	server-side rewrite: the browser never sees a 3xx response.
+
+	{
+	if (++Ctx.iInternalRedirect > 20)
+		{
+		Ctx.Response.InitResponse(http_INTERNAL_SERVER_ERROR, ERR_INTERNAL_REDIRECT_RECURSION);
+		return SendResponse(Ctx, Msg);
+		}
+
+	CString sTarget = Ctx.sInternalRedirectURL;
+	if (sTarget.IsEmpty())
+		{
+		Ctx.Response.InitResponse(http_BAD_REQUEST, ERR_INVALID_INTERNAL_REDIRECT);
+		return SendResponse(Ctx, Msg);
+		}
+
+	//	Bare paths, such as "program.hexm?id=ABCD1234", are relative to the
+	//	current host root.
+
+	if (!strStartsWith(sTarget, STR_CHTTPSESSION_SLASH) && strFind(sTarget, STR_CHTTPSESSION_COLON_SLASH_SLASH) == -1)
+		sTarget = strPattern("/%s", sTarget);
+
+	CString sProtocol;
+	CString sHost;
+	CString sPath;
+	if (!urlParse(sTarget, &sProtocol, &sHost, &sPath))
+		{
+		Ctx.Response.InitResponse(http_BAD_REQUEST, ERR_INVALID_INTERNAL_REDIRECT);
+		return SendResponse(Ctx, Msg);
+		}
+
+	//	Internal redirects intentionally do not cross host boundaries. Use a
+	//	regular HTTP redirect if the client should navigate to another host.
+
+	if (!sHost.IsEmpty() && !strEqualsNoCase(sHost, Ctx.Request.GetRequestedHost()))
+		{
+		Ctx.Response.InitResponse(http_FORBIDDEN, ERR_UNSUPPORTED_INTERNAL_REDIRECT);
+		return SendResponse(Ctx, Msg);
+		}
+
+	Ctx.Request.SetRequestedURL(sPath);
+	Ctx.sInternalRedirectURL = NULL_STR;
+	Ctx.sFilePath = NULL_STR;
+	Ctx.dFileData = CDatum();
+	Ctx.dFileDesc = CDatum();
+
+	if (Ctx.pProcess)
+		{
+		delete Ctx.pProcess;
+		Ctx.pProcess = NULL;
+		Ctx.pProcessService = NULL;
+		}
+
+	if (Ctx.pHexeEval)
+		{
+		delete Ctx.pHexeEval;
+		Ctx.pHexeEval = NULL;
+		}
+
+	CHTTPService *pService;
+	if (!m_pEngine->FindHTTPService(m_sListener, Ctx.Request, &pService))
+		{
+		Ctx.Response.InitResponse(http_NOT_FOUND, ERR_404_NOT_FOUND);
+		return SendResponse(Ctx, Msg);
+		}
+
+	if (pService != Ctx.pService)
+		{
+		if (Ctx.pService)
+			Ctx.pService->DeleteSession(this);
+
+		Ctx.pService = pService;
+		Ctx.pService->InsertSession(this);
+		}
+
+	Ctx.pService->HandleRequest(Ctx);
+	return ProcessServiceResult(Ctx, Msg);
+	}
+
 bool CHTTPSession::ProcessServiceResult (SHTTPRequestCtx &Ctx, const SArchonMessage &Msg)
 
 //	ProcessServiceResult
@@ -897,6 +1244,9 @@ bool CHTTPSession::ProcessServiceResult (SHTTPRequestCtx &Ctx, const SArchonMess
 
 			case pstatFileDataReady:
 				return ProcessFileResult(m_Ctx, m_Ctx.dFileDesc, m_Ctx.dFileData, Msg);
+
+			case pstatInternalRedirect:
+				return ProcessInternalRedirect(m_Ctx, Msg);
 
 			case pstatUpgradeToWebSocket:
 				return SendRPCUpgradeWebSocket(m_Ctx);
@@ -1033,7 +1383,7 @@ bool CHTTPSession::SendResponse (SHTTPRequestCtx &Ctx, const SArchonMessage &Msg
 
 		//	For HTTP 1.0 we always close the connection after a response
 
-		if (!Ctx.Request.IsHTTP11())
+		if (!Ctx.Request.IsHTTP11() || IsConnectionClose(Ctx.Request))
 			Ctx.Response.AddHeader(HEADER_CONNECTION, STR_CLOSE);
 		}
 

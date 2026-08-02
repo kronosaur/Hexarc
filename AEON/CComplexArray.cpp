@@ -35,7 +35,7 @@ TDatumPropertyHandler<CComplexArray> CComplexArray::m_Properties = {
 		[](const CComplexArray &Obj, const CString &sProperty)
 			{
 			CDatum dType = ((const IDatatype&)Obj.GetDatatype()).GetElementType();
-			return (!dType.IsNil() ? dType : CAEONTypeSystem::GetCoreType(IDatatype::ANY));
+			return (!dType.IsNil() ? dType : CAEONTypes::Get(IDatatype::ANY));
 			},
 		NULL,
 		},
@@ -319,6 +319,23 @@ IComplexDatum *CComplexArray::Clone (CDatum::EClone iMode) const
 		}
 	}
 
+CDatum CComplexArray::Cleaned () const
+
+//	Cleaned
+//
+//	Returns a cleaned copy of this array.
+
+	{
+	CRecursionGuard Guard(*this);
+	if (Guard.InRecursion())
+		return CDatum::raw_AsComplex(this);
+
+	auto pResult = new CComplexArray(m_Array);
+	for (int i = 0; i < pResult->m_Array.GetCount(); i++)
+		pResult->m_Array[i] = pResult->m_Array[i].Cleaned();
+
+	return CDatum(pResult);
+	}
 void CComplexArray::CloneContents ()
 
 //	CloneContents
@@ -1017,6 +1034,7 @@ void CComplexArray::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) con
 			break;
 			}
 
+		case CDatum::EFormat::AEONJSON:
 		case CDatum::EFormat::JSON:
 			{
 			Stream.Write("[", 1);

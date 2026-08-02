@@ -318,6 +318,13 @@ CDatum CHexeColumnExpressionEval::EvalNode (SEvalCtx& Ctx, const CAEONExpression
 			return !CHexeProcess::ExecuteIsEquivalent(dLeft, dRight);
 			}
 
+		case CAEONExpression::EOp::NotIn:
+			{
+			CDatum dLeft = EvalNode(Ctx, m_Expr.GetNode(Node.iLeft));
+			CDatum dRight = EvalNode(Ctx, m_Expr.GetNode(Node.iRight));
+			return !dRight.OpContains(dLeft);
+			}
+
 		case CAEONExpression::EOp::Number:
 			{
 			CDatum dValue = EvalNode(Ctx, m_Expr.GetNode(Node.iLeft));
@@ -377,6 +384,18 @@ CDatum CHexeColumnExpressionEval::EvalNode (SEvalCtx& Ctx, const CAEONExpression
 			{
 			CDatum dValue = EvalNode(Ctx, m_Expr.GetNode(Node.iLeft));
 			return dValue.MathSign();
+			}
+
+		case CAEONExpression::EOp::StdDev:
+			{
+			const CAEONExpression::SNode& ColExpr = m_Expr.GetNode(Node.iLeft);
+			return StdDev(ColExpr);
+			}
+
+		case CAEONExpression::EOp::StdError:
+			{
+			const CAEONExpression::SNode& ColExpr = m_Expr.GetNode(Node.iLeft);
+			return StdError(ColExpr);
 			}
 
 		case CAEONExpression::EOp::Slice:
@@ -447,6 +466,25 @@ CDatum CHexeColumnExpressionEval::EvalNode (SEvalCtx& Ctx, const CAEONExpression
 				return dValue;
 			else
 				return CDatum(dValue.AsTimeSpan());
+			}
+		case CAEONExpression::EOp::Vector2D:
+			{
+			if (Node.iLeft != -1 && Node.iRight != -1)
+				return CDatum::CreateVector2D(EvalNode(Ctx, m_Expr.GetNode(Node.iLeft)), EvalNode(Ctx, m_Expr.GetNode(Node.iRight)));
+			else if (Node.iLeft != -1)
+				return CDatum::CreateVector2D(EvalNode(Ctx, m_Expr.GetNode(Node.iLeft)));
+			else
+				return CDatum::CreateVector2D(CDatum());
+			}
+
+		case CAEONExpression::EOp::Vector3D:
+			{
+			if (Node.iLeft != -1 && Node.iRight != -1 && Node.iDataID != -1)
+				return CDatum::CreateVector3D(EvalNode(Ctx, m_Expr.GetNode(Node.iLeft)), EvalNode(Ctx, m_Expr.GetNode(Node.iRight)), EvalNode(Ctx, m_Expr.GetNode(Node.iDataID)));
+			else if (Node.iLeft != -1 && Node.iRight == -1 && Node.iDataID == -1)
+				return CDatum::CreateVector3D(EvalNode(Ctx, m_Expr.GetNode(Node.iLeft)));
+			else
+				return CDatum::CreateVector3D(CDatum());
 			}
 
 		case CAEONExpression::EOp::True:
@@ -701,6 +739,11 @@ CDatum CHexeColumnExpressionEval::AverageOfExpr (SEvalCtx& Ctx, const CAEONExpre
 	return CDatum(mean);
 	}
 
+CDatum CHexeColumnExpressionEval::CalcEvalType (const CAEONExpression& Expr, CDatum dSchema)
+	{
+	return CAEONExpression::CalcEvalType(Expr, dSchema);
+	}
+
 CDatum CHexeColumnExpressionEval::Column (const CAEONExpression::SNode& Node) const
 	{
 	SEvalCtx Ctx;
@@ -716,7 +759,8 @@ CDatum CHexeColumnExpressionEval::Column (const CAEONExpression::SNode& Node) co
 		}
 	else
 		{
-		CDatum dResult(CDatum::typeArray);
+		CDatum dElementType = CalcEvalType(m_Expr, Ctx.pTable->GetSchema());
+		CDatum dResult = CDatum::CreateArrayAsTypeOfElement(dElementType);
 		if (m_pRows)
 			{
 			dResult.GrowToFit(m_pRows->GetCount());
@@ -786,6 +830,35 @@ CDatum CHexeColumnExpressionEval::Eval () const
 		Ctx.iRow = 0;
 
 	return EvalNode(Ctx, m_Expr.GetRootNode());
+	}
+
+TArray<double> CHexeColumnExpressionEval::EvalArrayOfDouble (const CAEONExpression::SNode& Node) const
+	{
+	SEvalCtx Ctx;
+	Ctx.pTable = m_dTable.GetTableInterface();
+	if (!Ctx.pTable)
+		throw CException(errFail);
+
+	TArray<double> Result;
+	if (m_pRows)
+		{
+		Result.InsertEmpty(m_pRows->GetCount());
+		for (int i = 0; i < m_pRows->GetCount(); i++)
+			{
+			Ctx.iRow = m_pRows->GetAt(i);
+			Result[i] = (double)EvalNode(Ctx, Node);
+			}
+		}
+	else
+		{
+		Result.InsertEmpty(Ctx.pTable->GetRowCount());
+		for (Ctx.iRow = 0; Ctx.iRow < Ctx.pTable->GetRowCount(); Ctx.iRow++)
+			{
+			Result[Ctx.iRow] = (double)EvalNode(Ctx, Node);
+			}
+		}
+
+	return Result;
 	}
 
 TArray<CDatum> CHexeColumnExpressionEval::EvalColumn (const CAEONExpression::SNode& Node) const
@@ -1891,6 +1964,266 @@ CDatum CHexeColumnExpressionEval::SumOfExpr (SEvalCtx& Ctx, const CAEONExpressio
 		}
 
 	return Result.GetDatum();
+	}
+
+CDatum CHexeColumnExpressionEval::StdDev (const CAEONExpression::SNode& Node) const
+	{
+	SEvalCtx Ctx;
+	Ctx.pTable = m_dTable.GetTableInterface();
+	if (!Ctx.pTable)
+		throw CException(errFail);
+
+	if (Ctx.pTable->GetRowCount() == 0)
+		return CDatum();
+
+	if (Node.iOp == CAEONExpression::EOp::Column)
+		return StdDevOfColumn(Ctx, m_Col[Node.iDataID].iIndex);
+	else
+		return StdDevOfExpr(Ctx, Node);
+	}
+
+CDatum CHexeColumnExpressionEval::StdDevOfColumn (SEvalCtx& Ctx, int iColIndex) const
+	{
+	//	Welford's online algorithm for variance.
+
+	double mean = 0.0;
+	double M2 = 0.0;
+	int iCount = 0;
+
+	if (m_pRows)
+		{
+		for (int i = 0; i < m_pRows->GetCount(); i++)
+			{
+			CDatum dValue = Ctx.pTable->GetFieldValue(m_pRows->GetAt(i), iColIndex);
+			if (dValue.IsNil())
+				continue;
+
+			if (!dValue.CanSum())
+				return CDatum::CreateNaN();
+
+			iCount++;
+			double rValue = (double)dValue;
+			double rDelta = rValue - mean;
+			mean += rDelta / (double)iCount;
+			double rDelta2 = rValue - mean;
+			M2 += rDelta * rDelta2;
+			}
+		}
+	else
+		{
+		for (int iRow = 0; iRow < Ctx.pTable->GetRowCount(); iRow++)
+			{
+			CDatum dValue = Ctx.pTable->GetFieldValue(iRow, iColIndex);
+			if (dValue.IsNil())
+				continue;
+
+			if (!dValue.CanSum())
+				return CDatum::CreateNaN();
+
+			iCount++;
+			double rValue = (double)dValue;
+			double rDelta = rValue - mean;
+			mean += rDelta / (double)iCount;
+			double rDelta2 = rValue - mean;
+			M2 += rDelta * rDelta2;
+			}
+		}
+
+	if (iCount == 0)
+		return CDatum();
+	else if (iCount == 1)
+		return CDatum(0.0);
+
+	double rVariance = M2 / (iCount - 1);
+	return CDatum(sqrt(rVariance));
+	}
+
+CDatum CHexeColumnExpressionEval::StdDevOfExpr (SEvalCtx& Ctx, const CAEONExpression::SNode& Node) const
+	{
+	//	Welford's online algorithm for variance.
+
+	double mean = 0.0;
+	double M2 = 0.0;
+	int iCount = 0;
+
+	if (m_pRows)
+		{
+		for (int i = 0; i < m_pRows->GetCount(); i++)
+			{
+			Ctx.iRow = m_pRows->GetAt(i);
+			CDatum dValue = EvalNode(Ctx, Node);
+			if (dValue.IsNil())
+				continue;
+
+			if (!dValue.CanSum())
+				return CDatum::CreateNaN();
+
+			iCount++;
+			double rValue = (double)dValue;
+			double rDelta = rValue - mean;
+			mean += rDelta / (double)iCount;
+			double rDelta2 = rValue - mean;
+			M2 += rDelta * rDelta2;
+			}
+		}
+	else
+		{
+		for (Ctx.iRow = 0; Ctx.iRow < Ctx.pTable->GetRowCount(); Ctx.iRow++)
+			{
+			CDatum dValue = EvalNode(Ctx, Node);
+			if (dValue.IsNil())
+				continue;
+
+			if (!dValue.CanSum())
+				return CDatum::CreateNaN();
+
+			iCount++;
+			double rValue = (double)dValue;
+			double rDelta = rValue - mean;
+			mean += rDelta / (double)iCount;
+			double rDelta2 = rValue - mean;
+			M2 += rDelta * rDelta2;
+			}
+		}
+
+	if (iCount == 0)
+		return CDatum();
+	else if (iCount == 1)
+		return CDatum(0.0);
+
+	double rVariance = M2 / (iCount - 1);
+	return CDatum(sqrt(rVariance));
+	}
+
+CDatum CHexeColumnExpressionEval::StdError (const CAEONExpression::SNode& Node) const
+	{
+	SEvalCtx Ctx;
+	Ctx.pTable = m_dTable.GetTableInterface();
+	if (!Ctx.pTable)
+		throw CException(errFail);
+
+	if (Ctx.pTable->GetRowCount() == 0)
+		return CDatum();
+
+	if (Node.iOp == CAEONExpression::EOp::Column)
+		return StdErrorOfColumn(Ctx, m_Col[Node.iDataID].iIndex);
+	else
+		return StdErrorOfExpr(Ctx, Node);
+	}
+
+CDatum CHexeColumnExpressionEval::StdErrorOfColumn (SEvalCtx& Ctx, int iColIndex) const
+	{
+	//	Welford's online algorithm for variance.
+
+	double mean = 0.0;
+	double M2 = 0.0;
+	int iCount = 0;
+
+	if (m_pRows)
+		{
+		for (int i = 0; i < m_pRows->GetCount(); i++)
+			{
+			CDatum dValue = Ctx.pTable->GetFieldValue(m_pRows->GetAt(i), iColIndex);
+			if (dValue.IsNil())
+				continue;
+
+			if (!dValue.CanSum())
+				return CDatum::CreateNaN();
+
+			iCount++;
+			double rValue = (double)dValue;
+			double rDelta = rValue - mean;
+			mean += rDelta / (double)iCount;
+			double rDelta2 = rValue - mean;
+			M2 += rDelta * rDelta2;
+			}
+		}
+	else
+		{
+		for (int iRow = 0; iRow < Ctx.pTable->GetRowCount(); iRow++)
+			{
+			CDatum dValue = Ctx.pTable->GetFieldValue(iRow, iColIndex);
+			if (dValue.IsNil())
+				continue;
+
+			if (!dValue.CanSum())
+				return CDatum::CreateNaN();
+
+			iCount++;
+			double rValue = (double)dValue;
+			double rDelta = rValue - mean;
+			mean += rDelta / (double)iCount;
+			double rDelta2 = rValue - mean;
+			M2 += rDelta * rDelta2;
+			}
+		}
+
+	if (iCount == 0)
+		return CDatum();
+	else if (iCount == 1)
+		return CDatum(0.0);
+
+	double rVariance = M2 / (iCount - 1);
+	double rStdDev = sqrt(rVariance);
+	return CDatum(rStdDev / sqrt((double)iCount));
+	}
+
+CDatum CHexeColumnExpressionEval::StdErrorOfExpr (SEvalCtx& Ctx, const CAEONExpression::SNode& Node) const
+	{
+	//	Welford's online algorithm for variance.
+
+	double mean = 0.0;
+	double M2 = 0.0;
+	int iCount = 0;
+
+	if (m_pRows)
+		{
+		for (int i = 0; i < m_pRows->GetCount(); i++)
+			{
+			Ctx.iRow = m_pRows->GetAt(i);
+			CDatum dValue = EvalNode(Ctx, Node);
+			if (dValue.IsNil())
+				continue;
+
+			if (!dValue.CanSum())
+				return CDatum::CreateNaN();
+
+			iCount++;
+			double rValue = (double)dValue;
+			double rDelta = rValue - mean;
+			mean += rDelta / (double)iCount;
+			double rDelta2 = rValue - mean;
+			M2 += rDelta * rDelta2;
+			}
+		}
+	else
+		{
+		for (Ctx.iRow = 0; Ctx.iRow < Ctx.pTable->GetRowCount(); Ctx.iRow++)
+			{
+			CDatum dValue = EvalNode(Ctx, Node);
+			if (dValue.IsNil())
+				continue;
+
+			if (!dValue.CanSum())
+				return CDatum::CreateNaN();
+
+			iCount++;
+			double rValue = (double)dValue;
+			double rDelta = rValue - mean;
+			mean += rDelta / (double)iCount;
+			double rDelta2 = rValue - mean;
+			M2 += rDelta * rDelta2;
+			}
+		}
+
+	if (iCount == 0)
+		return CDatum();
+	else if (iCount == 1)
+		return CDatum(0.0);
+
+	double rVariance = M2 / (iCount - 1);
+	double rStdDev = sqrt(rVariance);
+	return CDatum(rStdDev / sqrt((double)iCount));
 	}
 
 CDatum CHexeColumnExpressionEval::UniqueArray (const CAEONExpression::SNode& Node) const

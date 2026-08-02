@@ -35,6 +35,12 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_CESPER_ENGINE_ESPER_CONNECTION_ACTIVE,	"Esper/connectionActive");
+DECLARE_CONST_STRING(STR_CESPER_ENGINE_ESPER_CONNECTION_COUNT,	"Esper/connectionCount");
+DECLARE_CONST_STRING(STR_CESPER_ENGINE_ESPER_CONNECTIONS_IDLE,	"Esper/connectionsIdle");
+DECLARE_CONST_STRING(STR_CESPER_ENGINE_ESPER_CONNECTIONS_READING,	"Esper/connectionsReading");
+DECLARE_CONST_STRING(STR_CESPER_ENGINE_ESPER_CONNECTIONS_WRITING,	"Esper/connectionsWriting");
+
 const int INITIAL_PROCESSING_THREADS =					6;
 const int DEFAULT_BUFFER_SIZE =							16 * 1024;
 const int DEFAULT_QUEUE_SIZE =							1000;
@@ -88,6 +94,7 @@ DECLARE_CONST_STRING(MSG_REPLY_DATA,					"Reply.data");
 DECLARE_CONST_STRING(OPTION_DISABLE,					"disable");
 DECLARE_CONST_STRING(OPTION_ENABLE,						"enable");
 DECLARE_CONST_STRING(OPTION_LOG_WEB_SOCKET,				"Esper.logWebSocket");
+DECLARE_CONST_STRING(OPTION_SERIALIZE_AMP1,				"Esper.serializeAMP1");
 
 DECLARE_CONST_STRING(PROTOCOL_AMP1,						"amp1");
 DECLARE_CONST_STRING(PROTOCOL_RAW,						"raw");
@@ -406,7 +413,10 @@ void CEsperEngine::MsgEsperAMP1Disconnect (const SArchonMessage &Msg)
 //	Esper.amp1Disconnect {machine-address}
 
 	{
-	m_Connections.DeleteConnectionByAddress(CString(Msg.dPayload.GetElement(0).AsStringView()));
+	CString sAddress = (Msg.dPayload.GetCount() > 0 ? Msg.dPayload.GetElement(0).AsString() : Msg.dPayload.AsString());
+	if (!sAddress.IsEmpty())
+		m_Connections.DeleteConnectionByAddress(sAddress);
+
 	SendMessageReply(MSG_OK, CDatum(), Msg);
 	}
 
@@ -602,6 +612,10 @@ void CEsperEngine::MsgEsperSetOption (const SArchonMessage &Msg)
 		else
 			m_bLogWebSocket = false;
 		}
+	else if (strEqualsNoCase(sOption, OPTION_SERIALIZE_AMP1))
+		{
+		m_Connections.SetSerializeAMP1(strEqualsNoCase(dValue.AsStringView(), OPTION_ENABLE) || dValue.AsBool());
+		}
 	else
 		{
 		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern("Unknown option: %s.", sOption), Msg);
@@ -740,11 +754,11 @@ void CEsperEngine::MsgGetStatus (const SArchonMessage &Msg, const CHexeSecurityC
 	//	Compose into a struct
 
 	CComplexStruct *pResult = new CComplexStruct;
-	pResult->SetElement(CString("Esper/connectionActive"), CDatum(Status.iActive));
-	pResult->SetElement(CString("Esper/connectionCount"), CDatum(Status.iTotalObjects));
-	pResult->SetElement(CString("Esper/connectionsIdle"), CDatum(Status.iIdle));
-	pResult->SetElement(CString("Esper/connectionsReading"), CDatum(Status.iWaitingForRead));
-	pResult->SetElement(CString("Esper/connectionsWriting"), CDatum(Status.iWaitingForWrite));
+	pResult->SetElement(STR_CESPER_ENGINE_ESPER_CONNECTION_ACTIVE, CDatum(Status.iActive));
+	pResult->SetElement(STR_CESPER_ENGINE_ESPER_CONNECTION_COUNT, CDatum(Status.iTotalObjects));
+	pResult->SetElement(STR_CESPER_ENGINE_ESPER_CONNECTIONS_IDLE, CDatum(Status.iIdle));
+	pResult->SetElement(STR_CESPER_ENGINE_ESPER_CONNECTIONS_READING, CDatum(Status.iWaitingForRead));
+	pResult->SetElement(STR_CESPER_ENGINE_ESPER_CONNECTIONS_WRITING, CDatum(Status.iWaitingForWrite));
 
 	//	Done
 

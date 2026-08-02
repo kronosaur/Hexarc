@@ -88,6 +88,7 @@ class CIPInteger
 		int Compare (const CIPInteger &Src) const;
 		static bool Deserialize (IByteStream &Stream, CIPInteger *retpValue);
 		bool DivideMod (const CIPInteger &Divisor, CIPInteger &retQuotient, CIPInteger &retRemainder) const;
+		bool FitsAsDouble (void) const;
 		bool FitsAsInteger32Signed (void) const;
 		bool FitsAsInteger64Unsigned (void) const;
 		DWORD GetSize (void) const;
@@ -122,6 +123,16 @@ extern CIPInteger NULL_IPINTEGER;
 
 //	Statistics -----------------------------------------------------------------
 
+struct SLinearFitResult
+	{
+	int n = 0;
+	double rSlope = 0.0;
+	double rIntercept = 0.0;
+	double rRSquared = 0.0;
+	double rRMSE = 0.0;
+	int df = 0;
+	};
+
 class CStatistics
 	{
 	public:
@@ -133,6 +144,9 @@ class CStatistics
 		static double FDistCDF (double x, double df1, double df2);
 		static double FDistInverse (double x, double df1, double df2);
 		static double FDistPDF (double x, double df1, double df2);
+		static SLinearFitResult LinearRegression (const TArray<double>& x, const TArray<double>& y);
+		static double NoncentralFDistCDF (double x, double df1, double df2, double lambda);
+		static double NoncentralFDistPDF (double x, double df1, double df2, double lambda);
 		static double NormalCDF (double x);
 		static double NormalPDF (double x);
 		static double TDistCDF (double x, double df);

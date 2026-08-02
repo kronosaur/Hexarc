@@ -5,6 +5,8 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_CMNEMOSYNTH_ENGINE_UNABLE_TO_FIND_ARCOLOGY_CHECKPOINT_TICKET,	"Unable to find arcology checkpoint ticket.");
+
 DECLARE_CONST_STRING(PORT_MNEMOSYNTH_COMMAND,			"Mnemosynth.command");
 
 DECLARE_CONST_STRING(ADDRESS_MNEMOSYNTH_COMMAND,		"Mnemosynth.command@~/~");
@@ -436,7 +438,7 @@ void CMnemosynthEngine::OnEndpointUpdated (const CString &sReplyAddr, DWORD dwTi
 
 	if (pCheckpoint == NULL)
 		{
-		Log(MSG_LOG_ERROR, CString("Unable to find arcology checkpoint ticket."));
+		Log(MSG_LOG_ERROR, STR_CMNEMOSYNTH_ENGINE_UNABLE_TO_FIND_ARCOLOGY_CHECKPOINT_TICKET);
 		return;
 		}
 

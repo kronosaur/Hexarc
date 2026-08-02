@@ -5,6 +5,8 @@
 
 #pragma once
 
+DECLARE_CONST_STRING(STR_AEONINTERFACES_NOT_IMPLEMENTED,	"Not implemented.");
+
 class IAEONCanvas
 	{
 	public:
@@ -35,12 +37,13 @@ class IAEONReanimator
 	{
 	public:
 
+		virtual int GetFrameCount () const { return 0; }
 		virtual int GetObjCount () const { return 0; }
 		virtual SequenceNumber GetSeq () const { return 0; }
-		virtual void Play (int iStartFrame = 0) { }
+		virtual bool IsStreamMode () const { return false; }
 		virtual CDatum RenderAsHTMLCanvasCommands (SequenceNumber Seq = 0) const { return CDatum(); }
 		virtual void SetSeq (SequenceNumber Seq) { }
-		virtual void Stop () { }
+		virtual void TrimKeyframes (int iFrame) { }
 	};
 
 class CAEONTableGroupIndex
@@ -142,10 +145,21 @@ class IAEONTable
 			bool bExcludeNull = false;
 			};
 
+		struct SApplyDiffResult
+			{
+			bool bOK = true;
+			bool bApplied = false;
+			CString sError;
+			SequenceNumber Seq = 0;
+
+			CDatum AsDatum () const;
+			};
+
 		virtual EResult AppendEmptyRow (int iCount = 1) = 0;
 		virtual EResult AppendRow (CDatum dRow, int* retiRow = NULL) = 0;
 		EResult AppendRowIfNew (CDatum dTable, CDatum dRow, int* retiRow = NULL);
 		virtual EResult AppendTable (CDatum dTable) = 0;
+		virtual bool ApplyDiff (CDatum dDiff, SApplyDiffResult& retResult, CString* retsError = NULL) { if (retsError) *retsError = STR_AEONINTERFACES_NOT_IMPLEMENTED; return false; }
 		EResult AppendTableColumns (CDatum dTable, CDatum dSrcTable);
 		virtual CDatum CombineSubset (SSubset& ioSubset) const = 0;
 		CDatum CreateFormattedTable (CDatum dTable) const;
@@ -168,6 +182,7 @@ class IAEONTable
 		virtual CString GetColName (int iCol) const = 0;
 		TArray<int> GetColsInSortedOrder () const;
 		virtual CDatum GetDataSlice (int iFirstRow, int iRowCount) const = 0;
+		virtual CDatum GetDiffSince (SequenceNumber BaseSeq) const { return CDatum::CreateError(STR_AEONINTERFACES_NOT_IMPLEMENTED); }
 		CDatum GetElementAtIndex (CAEONTypeSystem& TypeSystem, CDatum dTable, CDatum dIndex) const;
 		virtual CDatum GetFieldValue (int iRow, int iCol) const = 0;
 		virtual const CAEONTableGroupDefinition& GetGroups () const = 0;
@@ -184,6 +199,7 @@ class IAEONTable
 		virtual EResult InsertColumn (const CString& sName, CDatum dType, CDatum dValues = CDatum(), int iPos = -1, int *retiCol = NULL) = 0;
 		virtual void InvalidateKeys () = 0;
 		virtual bool IsSameSchema (CDatum dDatatype) const = 0;
+		virtual CDatum GetChangeTrackingInfo () const { return CDatum::CreateError(STR_AEONINTERFACES_NOT_IMPLEMENTED); }
 		virtual SequenceNumber MakeID () = 0;
 		CDatum MakeSortDesc (CDatum dTable, const TArray<IAEONTable::SSort>& SortOrder) const;
 		bool ParseSort (CDatum dValue, TArray<SSort>& retSort) const;
@@ -199,12 +215,14 @@ class IAEONTable
 		virtual EResult SetRowByID (CDatum dKey, CDatum dRow, int *retiRow = NULL) = 0;
 		virtual void SetSeq (SequenceNumber Seq) = 0;
 		virtual CDatum Sort (const TArray<SSort>& Sort) const = 0;
+		virtual bool TrackChanges (CString* retsError = NULL) { if (retsError) *retsError = STR_AEONINTERFACES_NOT_IMPLEMENTED; return false; }
 
 		static EKeyType CalcKeyType (CDatum dDatatype, TArray<int>* retpKeyCols = NULL);
 		static CString CalcUniqueColName (const IDatatype& Schema, CStringView sName);
 		static bool CombineSchema (CDatum dDatatype1, CDatum dDatatype2, CDatum& retdDatatype);
 		static CDatum CreateColumn (CDatum dType);
 		static TArray<CDatum> CreateColumns (const IDatatype& Schema, TArray<bool>* retpIsKeyCol = NULL, int iGrowToFit = 0);
+		static CDatum CreateError (EResult iResult);
 		static bool CreateRef (CAEONTypeSystem& TypeSystem, CDatum dTable, SSubset&& Subset, CDatum& retdValue);
 		static bool CreateSchemaFromDesc (CAEONTypeSystem& TypeSystem, CDatum dSchemaDesc, CDatum& retdDatatype);
 		static bool CreateTableDatatype (CAEONTypeSystem& TypeSystem, CDatum dTable, SSubset& Subset, CDatum& retdDatatype);

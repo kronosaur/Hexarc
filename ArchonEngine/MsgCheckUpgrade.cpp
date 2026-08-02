@@ -5,6 +5,8 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_MSG_CHECK_UPGRADE_ARCOLOGY_EXE_RESTART,	"Arcology.exe /restart");
+
 //#define DEBUG_CHECK_UPGRADE
 
 DECLARE_CONST_STRING(ADDRESS_AEON_COMMAND,				"Aeon.command")
@@ -661,7 +663,7 @@ bool CExarchCheckUpgrade::RestartMachine (CString *retsError)
 	CProcess Restart;
 	try
 		{
-		Restart.Create(CString("Arcology.exe /restart"));
+		Restart.Create(STR_MSG_CHECK_UPGRADE_ARCOLOGY_EXE_RESTART);
 		}
 	catch (...)
 		{

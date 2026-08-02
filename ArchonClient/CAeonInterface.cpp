@@ -311,7 +311,7 @@ bool CAeonInterface::ParseTableFilePath (const CString &sPath, CString *retsTabl
 	if (pPos >= pEndPos)
 		{
 		if (retsFilePath)
-			*retsFilePath = CString("/", 1);
+			*retsFilePath = SEPARATOR_SLASH;
 		return true;
 		}
 

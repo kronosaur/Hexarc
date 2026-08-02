@@ -5,6 +5,9 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_CEXARCH_ENGINE_ORIGINAL,	"Original_*.*");
+DECLARE_CONST_STRING(STR_CEXARCH_ENGINE_ARCOLOGY_EXE_RESTART,	"Arcology.exe /restart");
+
 DECLARE_CONST_STRING(STR_ARCOLOGY_PRIME,				"ArcologyPrime");
 DECLARE_CONST_STRING(STR_CENTRAL_MODULE,				"CentralModule");
 DECLARE_CONST_STRING(STR_CONFIG_FILENAME,				"Config.ars");
@@ -139,8 +142,10 @@ DECLARE_CONST_STRING(STR_WARNING_LOG_PREFIX,			"WARNING: ");
 
 DECLARE_CONST_STRING(STR_MACHINE_AUTH,					"[%s]: Arcology machine authenticated: %s.");
 DECLARE_CONST_STRING(STR_MACHINE_STARTED,				"Machine started.");
+DECLARE_CONST_STRING(STR_MODULE_JOB_UNAVAILABLE,		"Debug module process job could not be initialized; child modules will not be terminated automatically if Arcology exits abruptly.");
 DECLARE_CONST_STRING(STR_NO_KEYS_FOUND,					"(no keys found)");
 DECLARE_CONST_STRING(STR_NO_TABLES_FOUND,				"(no tables found)");
+DECLARE_CONST_STRING(STR_NODE_ID_CLEANUP,				"Removing stale machine resources for %s after node %s connected as %s.");
 DECLARE_CONST_STRING(STR_EMPTY_DATA,					"(nil)");
 
 DECLARE_CONST_STRING(ERR_ARCOLOGY_EXISTS,				"%s is already part of an arcology.");
@@ -349,7 +354,9 @@ int CExarchEngine::m_iMsgHandlerListCount = SIZEOF_STATIC_ARRAY(CExarchEngine::m
 
 CExarchEngine::CExarchEngine (const SOptions &Options) : TSimpleEngine(ENGINE_NAME_EXARCH, 3),
 		m_sArcologyPrime(Options.sArcologyPrime),
-		m_sConfigFilename(Options.sConfigFilename)
+		m_sConfigFilename(Options.sConfigFilename),
+		m_bCreateModuleJob(Options.bCreateModuleJob),
+		m_bTerminateOrphanModules(Options.bTerminateOrphanModules)
 
 //	CExarchEngine constructor
 
@@ -513,7 +520,7 @@ bool CExarchEngine::CleanUpUpgrade (void)
 	//	Now delete all original files
 
 	TArray<CString> FileList;
-	if (!fileGetFileList(sRootFolder, NULL_STR, CString("Original_*.*"), 0, &FileList))
+	if (!fileGetFileList(sRootFolder, NULL_STR, STR_CEXARCH_ENGINE_ORIGINAL, 0, &FileList))
 		Log(MSG_LOG_ERROR, ERR_CANT_DELETE_ORIGINALS);
 
 	bool bSucceded = true;
@@ -686,6 +693,16 @@ void CExarchEngine::DeleteMachineResources (const CString &sName)
 	for (i = 0; i < Modules.GetCount(); i++)
 		if (strStartsWith(Modules[i], sPattern))
 			DeleteModuleResources(Modules[i], true);
+
+	//	Delete any remaining ports for this machine. These should normally be
+	//	removed with the module resources above, but stale port entries can
+	//	outlive their Arc.modules entries.
+
+	TArray<CString> Ports;
+	MnemosynthReadCollection(MNEMO_ARC_PORTS, &Ports);
+	for (i = 0; i < Ports.GetCount(); i++)
+		if (strStartsWith(Ports[i], sPattern))
+			GetTransporter().OnModuleDeleted(Ports[i]);
 
 	//	Delete all storage 
 
@@ -2071,7 +2088,7 @@ void CExarchEngine::MsgRestartMachine (const SArchonMessage &Msg, const CHexeSec
 	CProcess Restart;
 	try
 		{
-		Restart.Create(CString("Arcology.exe /restart"));
+		Restart.Create(STR_CEXARCH_ENGINE_ARCOLOGY_EXE_RESTART);
 		bSuccess = true;
 		}
 	catch (...)
@@ -2255,6 +2272,7 @@ void CExarchEngine::OnBoot (void)
 	//	CentralModule because that's the only module that Exarch lives in).
 
 	Init.sCurrentModule = STR_CENTRAL_MODULE;
+	Init.bCreateModuleJob = m_bCreateModuleJob;
 
 	//	Initialize a descriptor for this machine
 
@@ -2307,8 +2325,39 @@ void CExarchEngine::OnMachineConnection (CStringView sNodeID, CStringView sName)
 
 	TArray<CString> OldNames;
 	m_MecharcologyDb.ProcessOldMachines(OldNames);
+
+	//	Also scan the replicated machine list for this same stable node ID under
+	//	another runtime machine name. This covers Prime restarts, stale
+	//	Mnemosynth state, and cases where the in-memory old-name list was empty.
+
+	TArray<CString> Machines;
+	MnemosynthReadCollection(MNEMO_ARC_MACHINES, &Machines);
+	for (int i = 0; i < Machines.GetCount(); i++)
+		{
+		if (strEquals(Machines[i], sName))
+			continue;
+
+		CDatum dMachineInfo = MnemosynthRead(MNEMO_ARC_MACHINES, Machines[i]);
+		if (!strEquals(dMachineInfo.GetElement(FIELD_NODE_ID).AsStringView(), sNodeID))
+			continue;
+
+		bool bFound = false;
+		for (int j = 0; j < OldNames.GetCount(); j++)
+			if (strEquals(OldNames[j], Machines[i]))
+				{
+				bFound = true;
+				break;
+				}
+
+		if (!bFound)
+			OldNames.Insert(Machines[i]);
+		}
+
 	for (int i = 0; i < OldNames.GetCount(); i++)
+		{
+		Log(MSG_LOG_WARNING, strPattern(STR_NODE_ID_CLEANUP, OldNames[i], sNodeID, sName));
 		GetMnemosynth().RemoveMachineEndpoints(OldNames[i]);
+		}
 
 	//	Add this endpoint to Mnemosynth. (If this is NOT Arcology Prime, 
 	//	then we trigger a sync now.)
@@ -2410,7 +2459,6 @@ void CExarchEngine::OnMachineStart (void)
 			SendAMP1Command(Desc, AMP1_REJOIN, CDatum());
 			}
 
-#ifdef ENABLE_AMP1_FABRIC
 		//	Start the AMP1 server to listen for AMP1 connections either from a 
 		//	secondary machine (if we're Arcology Prime) or from Arcology Prime
 
@@ -2423,7 +2471,6 @@ void CExarchEngine::OnMachineStart (void)
 			{
 			Log(MSG_LOG_ERROR, sError);
 			}
-#endif
 		}
 
 	//	If we're a secondary machine, then ping Arcology Prime
@@ -2439,7 +2486,6 @@ void CExarchEngine::OnMachineStart (void)
 			{
 			SendAMP1Command(NULL_STR, AMP1_PING, CDatum());
 
-#ifdef ENABLE_AMP1_FABRIC
 			//	Start the AMP1 client
 
 			CString sError;
@@ -2451,7 +2497,6 @@ void CExarchEngine::OnMachineStart (void)
 				{
 				Log(MSG_LOG_ERROR, sError);
 				}
-#endif
 			}
 		}
 
@@ -2490,6 +2535,19 @@ void CExarchEngine::OnStartRunning (void)
 
 	if (!ReadConfig())
 		return;
+
+	if (m_bCreateModuleJob && !m_MecharcologyDb.HasModuleJob())
+		Log(MSG_LOG_WARNING, STR_MODULE_JOB_UNAVAILABLE);
+
+	//	Terminate any orphan modules left over from a previous run. We do this
+	//	before loading new modules so that we don't collide with stale processes.
+
+	if (m_bTerminateOrphanModules)
+		{
+		int iOrphansTerminated = m_MecharcologyDb.TerminateOrphanModules(m_dMachineConfig.GetElement(FIELD_MODULES));
+		if (iOrphansTerminated > 0)
+			Log(MSG_LOG_WARNING, strPattern("Terminated %d orphan module process%s from previous run.", iOrphansTerminated, (iOrphansTerminated == 1 ? "" : "es")));
+		}
 
 	//	Set our module info
 
@@ -2550,10 +2608,44 @@ void CExarchEngine::OnStartRunning (void)
 		//	Add all the machines we know about to the arcology
 
 		CDatum dMachines = m_dMachineConfig.GetElement(FIELD_MACHINES);
+		DWORD dwNextNodeID = 2;
+		TArray<CString> NodeIDs;
+		for (int i = 0; i < dMachines.GetCount(); i++)
+			{
+			CString sNodeID = dMachines.GetElement(i).GetElement(FIELD_NODE_ID).AsString();
+			DWORD dwNodeID = CMecharcologyDb::ParseNodeID(sNodeID);
+			if (dwNodeID >= dwNextNodeID)
+				dwNextNodeID = dwNodeID + 1;
+			}
+
+		CDatum dNewMachineList(CDatum::typeArray);
+		bool bConfigUpdated = false;
 		for (int i = 0; i < dMachines.GetCount(); i++)
 			{
 			CDatum dMachineDesc = dMachines.GetElement(i);
-			CString sNodeID = m_MecharcologyDb.MakeNodeID(i + 2);	//	+2 because we reserve 1 for Arcology Prime
+
+			CString sNodeID = dMachineDesc.GetElement(FIELD_NODE_ID).AsString();
+			bool bNodeIDUsed = false;
+			for (int j = 0; j < NodeIDs.GetCount(); j++)
+				if (strEquals(NodeIDs[j], sNodeID))
+					{
+					bNodeIDUsed = true;
+					break;
+					}
+
+			if (CMecharcologyDb::ParseNodeID(sNodeID) == 0 || bNodeIDUsed)
+				{
+				sNodeID = CMecharcologyDb::MakeNodeID(dwNextNodeID++);
+
+				CComplexStruct *pNewMachineDesc = new CComplexStruct(dMachineDesc);
+				pNewMachineDesc->SetElement(FIELD_NODE_ID, sNodeID);
+				dMachineDesc = CDatum(pNewMachineDesc);
+
+				bConfigUpdated = true;
+				}
+
+			NodeIDs.Insert(sNodeID);
+			dNewMachineList.Append(dMachineDesc);
 
 			if (!m_MecharcologyDb.AddMachine(sNodeID,
 					dMachineDesc.GetElement(FIELD_NAME).AsStringView(),
@@ -2569,6 +2661,13 @@ void CExarchEngine::OnStartRunning (void)
 #ifdef DEBUG_STARTUP
 			printf("[OnStartRunning]: Added machine: %s at %s.\n", (LPCSTR)dMachineDesc.GetElement(FIELD_NAME).AsStringView(), (LPCSTR)dMachineDesc.GetElement(FIELD_ADDRESS).AsStringView());
 #endif
+			}
+
+		if (bConfigUpdated)
+			{
+			m_dMachineConfig.SetElement(FIELD_MACHINES, dNewMachineList);
+			if (!WriteConfig())
+				Log(MSG_LOG_ERROR, ERR_CANT_WRITE_CONFIG);
 			}
 		}
 

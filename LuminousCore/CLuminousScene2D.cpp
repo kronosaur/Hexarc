@@ -8,6 +8,11 @@
 DECLARE_CONST_STRING(MODE_DEFAULT,					"default");
 DECLARE_CONST_STRING(MODE_LOOP,						"loop");
 DECLARE_CONST_STRING(MODE_REALTIME,					"realtime");
+DECLARE_CONST_STRING(MODE_STREAM,					"stream");
+
+DECLARE_CONST_STRING(ORIGIN_CENTER,					"center");
+DECLARE_CONST_STRING(ORIGIN_UPPER_LEFT,				"upperLeft");
+DECLARE_CONST_STRING(ORIGIN_LOWER_LEFT,				"lowerLeft");
 
 const CString& CLuminousScene2D::AsID (EMode iMode)
 	{
@@ -22,6 +27,9 @@ const CString& CLuminousScene2D::AsID (EMode iMode)
 		case EMode::Realtime:
 			return MODE_REALTIME;
 
+		case EMode::Stream:
+			return MODE_STREAM;
+
 		default:
 			throw CException(errFail);
 		}
@@ -35,22 +43,52 @@ CLuminousScene2D::EMode CLuminousScene2D::AsMode (const CString& sValue)
 		return EMode::Loop;
 	else if (strEqualsNoCase(sValue, MODE_REALTIME))
 		return EMode::Realtime;
+	else if (strEqualsNoCase(sValue, MODE_STREAM))
+		return EMode::Stream;
 	else
 		return EMode::Unknown;
+	}
+
+CLuminousScene2D::EOrigin CLuminousScene2D::AsOrigin (const CString& sValue)
+	{
+	if (sValue.IsEmpty() || strEqualsNoCase(sValue, ORIGIN_CENTER))
+		return EOrigin::Center;
+	else if (strEqualsNoCase(sValue, ORIGIN_UPPER_LEFT))
+		return EOrigin::UpperLeft;
+	else if (strEqualsNoCase(sValue, ORIGIN_LOWER_LEFT))
+		return EOrigin::LowerLeft;
+	else
+		return EOrigin::Unknown;
+	}
+
+const CString& CLuminousScene2D::AsOriginID (EOrigin iOrigin)
+	{
+	switch (iOrigin)
+		{
+		case EOrigin::Center:
+			return ORIGIN_CENTER;
+
+		case EOrigin::UpperLeft:
+			return ORIGIN_UPPER_LEFT;
+
+		case EOrigin::LowerLeft:
+			return ORIGIN_LOWER_LEFT;
+
+		default:
+			return ORIGIN_CENTER;
+		}
 	}
 
 void CLuminousScene2D::Copy (const CLuminousScene2D& Src)
 	{
 	m_iFPS = Src.m_iFPS;
 	m_iFrameCount = Src.m_iFrameCount;
-	m_vExtent = Src.m_vExtent;
-	m_vOrigin = Src.m_vOrigin;
+	m_iOrigin = Src.m_iOrigin;
+	m_vExtents = Src.m_vExtents;
 	m_iMode = Src.m_iMode;
 	m_Background = Src.m_Background;
 	m_dwNextID = Src.m_dwNextID;
 	m_Seq = Src.m_Seq;
-	m_dwStartTime = Src.m_dwStartTime;
-	m_iStartFrame = Src.m_iStartFrame;
 
 	//	Copy objects
 
@@ -75,9 +113,48 @@ CLuminousScene2D CLuminousScene2D::CreateFromStream (IByteStream& Stream)
 
 	Result.m_iFPS = Stream.ReadInt();
 	Result.m_iFrameCount = Stream.ReadInt();
-	Result.m_vExtent.Read(Stream);
-	Result.m_vOrigin.Read(Stream);
-	
+
+	if (dwVersion == 1)
+		{
+		//	Version 1: m_vExtent and m_vOrigin as CVector2D.
+		//	Convert to new format: treat as center origin with extents.
+
+		CVector2D vExtent;
+		vExtent.Read(Stream);
+
+		CVector2D vOrigin;
+		vOrigin.Read(Stream);
+
+		Result.m_iOrigin = EOrigin::Center;
+		Result.m_vExtents = vExtent;
+		}
+	else if (dwVersion == 2)
+		{
+		//	Version 2: origin + scale + extents. Scale was moved to
+		//	CUIScene2DCtrl in version 3, so we read and discard it.
+
+		CString sOrigin = CString::Deserialize(Stream);
+		Result.m_iOrigin = AsOrigin(sOrigin);
+		if (Result.m_iOrigin == EOrigin::Unknown)
+			Result.m_iOrigin = EOrigin::Center;
+
+		CString sScale = CString::Deserialize(Stream);
+		//	Discard scale ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â now lives on the control.
+
+		Result.m_vExtents.Read(Stream);
+		}
+	else
+		{
+		//	Version 3+: origin + extents (no scale).
+
+		CString sOrigin = CString::Deserialize(Stream);
+		Result.m_iOrigin = AsOrigin(sOrigin);
+		if (Result.m_iOrigin == EOrigin::Unknown)
+			Result.m_iOrigin = EOrigin::Center;
+
+		Result.m_vExtents.Read(Stream);
+		}
+
 	CString sMode = CString::Deserialize(Stream);
 	Result.m_iMode = AsMode(sMode);
 	if (Result.m_iMode == EMode::Unknown)
@@ -117,6 +194,25 @@ CLuminousScene2D CLuminousScene2D::CreateFromStream (IByteStream& Stream)
 	return Result;
 	}
 
+ILuminousObj2D& CLuminousScene2D::CreateCircle (DWORD dwParentID)
+
+//	CreateCircle
+//
+//	Adds a circle object.
+
+	{
+	DWORD dwID = m_dwNextID++;
+
+	ILuminousObj2D* pParent = (dwParentID ? FindObj(dwParentID) : NULL);
+	ILuminousObj2D *pObj = new CObj2DCircle(*this, dwID, pParent);
+	pObj->SetSeq(IncSeq());
+	m_Objs.SetAt(dwID, TUniquePtr<ILuminousObj2D>(pObj));
+
+	RecalcAnimation();
+
+	return *pObj;
+	}
+
 ILuminousObj2D& CLuminousScene2D::CreateRectangle (DWORD dwParentID)
 
 //	CreateRectangle
@@ -136,6 +232,42 @@ ILuminousObj2D& CLuminousScene2D::CreateRectangle (DWORD dwParentID)
 	return *pObj;
 	}
 
+ILuminousObj2D& CLuminousScene2D::CreateTrail (DWORD dwParentID)
+
+//	CreateTrail
+//
+//	Adds a trail object.
+
+	{
+	DWORD dwID = m_dwNextID++;
+
+	ILuminousObj2D* pParent = (dwParentID ? FindObj(dwParentID) : NULL);
+	ILuminousObj2D *pObj = new CObj2DTrail(*this, dwID, pParent);
+	pObj->SetSeq(IncSeq());
+	m_Objs.SetAt(dwID, TUniquePtr<ILuminousObj2D>(pObj));
+
+	RecalcAnimation();
+
+	return *pObj;
+	}
+ILuminousObj2D& CLuminousScene2D::CreateLine (DWORD dwParentID)
+
+//	CreateLine
+//
+//	Adds a line object.
+
+	{
+	DWORD dwID = m_dwNextID++;
+
+	ILuminousObj2D* pParent = (dwParentID ? FindObj(dwParentID) : NULL);
+	ILuminousObj2D *pObj = new CObj2DLine(*this, dwID, pParent);
+	pObj->SetSeq(IncSeq());
+	m_Objs.SetAt(dwID, TUniquePtr<ILuminousObj2D>(pObj));
+
+	RecalcAnimation();
+
+	return *pObj;
+	}
 void CLuminousScene2D::OnObjModified (ILuminousObj2D& Obj)
 
 //	OnObjModified
@@ -147,16 +279,19 @@ void CLuminousScene2D::OnObjModified (ILuminousObj2D& Obj)
 	RecalcAnimation();
 	}
 
-void CLuminousScene2D::Play (int iStartFrame)
+bool CLuminousScene2D::RemoveObj (DWORD dwID)
 
-//	Play
+//	RemoveObj
 //
-//	Set play mode.
+//	Removes an object from the scene by ID. Returns true if successful.
 
 	{
-	m_dwStartTime = ::sysGetTickCount64();
-	m_iStartFrame = iStartFrame;
+	if (!m_Objs.DeleteAt(dwID))
+		return false;
+
+	RecalcAnimation();
 	IncSeq();
+	return true;
 	}
 
 void CLuminousScene2D::RecalcAnimation ()
@@ -173,11 +308,98 @@ void CLuminousScene2D::RecalcAnimation ()
 		m_iFrameCount = Max(m_iFrameCount, m_Objs[i]->GetFrameCount());
 	}
 
+
+void CLuminousScene2D::AdvanceFrame (int iCount)
+
+//	AdvanceFrame
+//
+//	For each object, emit constant keyframes for any properties that have
+//	been modified since the last AdvanceFrame. Then advance the stream
+//	frame counter by iCount.
+
+	{
+	for (int i = 0; i < m_Objs.GetCount(); i++)
+		{
+		ILuminousObj2D& Obj = *m_Objs[i];
+		DWORD dwDirty = Obj.GetDirtyProps();
+		if (dwDirty == 0)
+			continue;
+
+		for (int j = 1; j < (int)Obj2DProp::Count; j++)
+			{
+			if (!(dwDirty & (1 << j)))
+				continue;
+
+			Obj2DProp iProp = (Obj2DProp)j;
+			const auto& Desc = ILuminousObj2D::GetPropertyDesc(iProp);
+
+			switch (Desc.iType)
+				{
+				case ObjPropType::Bool:
+					Obj.AnimateBoolConstant(iProp, m_iStreamFrame, Obj.GetPropertyBool(iProp));
+					break;
+
+				case ObjPropType::Color:
+					Obj.AnimateColorConstant(iProp, m_iStreamFrame, Obj.GetPropertyColor(iProp));
+					break;
+
+				case ObjPropType::Scalar:
+					Obj.AnimateScalarConstant(iProp, m_iStreamFrame, Obj.GetPropertyScalar(iProp));
+					break;
+
+				case ObjPropType::Vector:
+					Obj.AnimateVectorConstant(iProp, m_iStreamFrame, Obj.GetPropertyVector(iProp));
+					break;
+
+				case ObjPropType::VectorQueue:
+				case ObjPropType::VectorList:
+					Obj.AnimateVectorQueueConstant(iProp, m_iStreamFrame, Obj.GetPropertyVectorQueue(iProp));
+					break;
+				}
+			}
+
+		Obj.ClearDirtyProps();
+		}
+
+	m_iStreamFrame += iCount;
+	RecalcAnimation();
+	IncSeq();
+	}
+
+void CLuminousScene2D::TrimKeyframes (int iFrame)
+
+//	TrimKeyframes
+//
+//	Remove keyframes before the given frame from all objects in the scene.
+//	The last keyframe before iFrame is preserved as the new starting point.
+
+	{
+	for (int i = 0; i < m_Objs.GetCount(); i++)
+		m_Objs[i]->TrimKeyframesBefore(iFrame);
+
+	RecalcAnimation();
+	IncSeq();
+	}
+
+void CLuminousScene2D::SetFPS (int iFPS)
+
+//	SetFPS
+//
+//	Sets the frames per second.
+
+	{
+	if (iFPS > 0 && m_iFPS != iFPS)
+		{
+		m_iFPS = iFPS;
+		IncSeq();
+		}
+	}
+
 void CLuminousScene2D::SetMode (EMode iMode)
 
 //	SetMode
 //
-//	Sets the repeat mode.
+//	Sets the animation mode.
 
 	{
 	if (iMode == EMode::Unknown)
@@ -185,21 +407,19 @@ void CLuminousScene2D::SetMode (EMode iMode)
 
 	if (m_iMode != iMode)
 		{
+		//	Reset stream state when entering or leaving stream mode.
+
+		if (iMode == EMode::Stream || m_iMode == EMode::Stream)
+			{
+			m_iStreamFrame = 0;
+
+			for (int i = 0; i < m_Objs.GetCount(); i++)
+				m_Objs[i]->ClearDirtyProps();
+			}
+
 		m_iMode = iMode;
 		IncSeq();
 		}
-	}
-
-void CLuminousScene2D::Stop ()
-
-//	Stop
-//
-//	Stop playing.
-
-	{
-	m_dwStartTime = 0;
-	m_iStartFrame = 0;
-	IncSeq();
 	}
 
 void CLuminousScene2D::Write (IByteStream& Stream) const
@@ -213,8 +433,11 @@ void CLuminousScene2D::Write (IByteStream& Stream) const
 
 	Stream.Write(m_iFPS);
 	Stream.Write(m_iFrameCount);
-	m_vExtent.Write(Stream);
-	m_vOrigin.Write(Stream);
+
+	CString sOrigin = AsOriginID(m_iOrigin);
+	sOrigin.Serialize(Stream);
+	m_vExtents.Write(Stream);
+
 	CString sMode = AsID(m_iMode);
 	sMode.Serialize(Stream);
 	m_Background.Write(Stream);

@@ -582,6 +582,16 @@ void CHexeLocalEnvironment::SetParentEnv (CDatum dParentEnv)
 	m_ParentEnv = CHexeLocalEnvPointer(dParentEnv);
 	}
 
+void CHexeLocalEnvironment::SetParentEnv (CDatum dParentEnv, CHexeLocalEnvironment *pParentEnv)
+
+//	SetParentEnv
+//
+//	Sets the parent environment.
+	
+	{
+	m_ParentEnv = CHexeLocalEnvPointer(dParentEnv, pParentEnv);
+	}
+
 void CHexeLocalEnvironment::SetParentEnv (CHexeLocalEnvPointer&& ParentEnv)
 
 //	SetParentEnv

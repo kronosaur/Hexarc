@@ -5,17 +5,33 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_CAEONTABLE_OUT_OF_ORDER,	"outOfOrder");
+DECLARE_CONST_STRING(STR_CAEONTABLE_NOT_MUTABLE,	"Not mutable.");
+DECLARE_CONST_STRING(STR_CAEONTABLE_UNABLE_TO_APPLY_ROW_DIFF,	"Unable to apply row diff.");
+
 DECLARE_CONST_STRING(FIELD_COLUMNS,						"columns");
+DECLARE_CONST_STRING(FIELD_BASE_SEQ,					"baseSeq");
 DECLARE_CONST_STRING(FIELD_DATATYPE,					"datatype");
+DECLARE_CONST_STRING(FIELD_DELETES,						"deletes");
+DECLARE_CONST_STRING(FIELD_ENABLED,						"enabled");
+DECLARE_CONST_STRING(FIELD_KEY,							"key");
+DECLARE_CONST_STRING(FIELD_MIN_DIFF_SEQ,				"minDiffSeq");
 DECLARE_CONST_STRING(FIELD_NAME,						"name");
+DECLARE_CONST_STRING(FIELD_RESET,						"reset");
+DECLARE_CONST_STRING(FIELD_ROW,							"row");
+DECLARE_CONST_STRING(FIELD_ROW_SEQS,					"rowSeqs");
 DECLARE_CONST_STRING(FIELD_ROWS,						"rows");
 DECLARE_CONST_STRING(FIELD_SEQ,							"seq");
+DECLARE_CONST_STRING(FIELD_TOMBSTONES,					"tombstones");
+DECLARE_CONST_STRING(FIELD_TRACKING,					"tracking");
 DECLARE_CONST_STRING(FIELD_VALUES,						"values");
 
 DECLARE_CONST_STRING(TYPENAME_TABLE,					"table");
 
 DECLARE_CONST_STRING(ERR_INVALID_TABLE_SCHEMA,			"Invalid table schema.");
 DECLARE_CONST_STRING(ERR_INVALID_TABLE_ARRAY,			"First element in array must be a structure.");
+DECLARE_CONST_STRING(ERR_NOT_TRACKING,					"Table is not tracking changes.");
+DECLARE_CONST_STRING(ERR_TRACKING_REQUIRES_KEYS,		"Change tracking requires a table with keys.");
 DECLARE_CONST_STRING(ERR_UNABLE_TO_CREATE_SCHEMA,		"Unable to create schema.");
 
 TDatumPropertyHandler<CAEONTable> CAEONTable::m_Properties = {
@@ -123,7 +139,7 @@ CAEONTable::CAEONTable (CDatum dSchema, TArray<CDatum>&& Cols)
 	if (InputDatatype.GetClass() == IDatatype::ECategory::Table)
 		dDatatype = dSchema;
 	else if (InputDatatype.GetClass() == IDatatype::ECategory::Schema)
-		dDatatype = CAEONTypeSystem::CreateAnonymousTable(NULL_STR, dSchema);
+		dDatatype = CAEONTypes::CreateTable(NULL_STR, dSchema);
 	else
 		throw CException(errFail);
 
@@ -252,7 +268,15 @@ IAEONTable::EResult CAEONTable::AppendEmptyRow (int iCount)
 			m_Cols[i].Append(CDatum());
 		}
 
+	int iFirstRow = m_iRows;
 	m_iRows += iCount;
+
+	if (m_bTrackChanges)
+		{
+		for (int i = 0; i < iCount; i++)
+			SetRowSeq(iFirstRow + i, m_Seq);
+		}
+
 	return EResult::OK;
 	}
 
@@ -299,6 +323,7 @@ IAEONTable::EResult CAEONTable::AppendRowArray (CDatum dRow, int* retiRow)
 		if (retiRow)
 			*retiRow = m_iRows;
 		m_iRows++;
+		TrackRowUpdate(m_iRows - 1);
 
 		return EResult::OK;
 		}
@@ -345,6 +370,7 @@ IAEONTable::EResult CAEONTable::AppendRowStruct (CDatum dRow, int* retiRow)
 		if (retiRow)
 			*retiRow = m_iRows;
 		m_iRows++;
+		TrackRowUpdate(m_iRows - 1);
 
 		//	Done
 
@@ -397,6 +423,12 @@ IAEONTable::EResult CAEONTable::AppendSlice (CDatum dSlice)
 		}
 
 	m_iRows += iRows;
+	if (m_bTrackChanges)
+		{
+		for (int iRow = 0; iRow < iRows; iRow++)
+			SetRowSeq(m_iRows - iRows + iRow, m_Seq);
+		}
+
 	return EResult::OK;
 	}
 
@@ -530,6 +562,217 @@ IAEONTable::EResult CAEONTable::AppendTable (CDatum dTable)
 	return EResult::OK;
 	}
 
+void CAEONTable::AddTombstone (CDatum dKey, SequenceNumber Seq)
+
+//	AddTombstone
+//
+//	Adds a delete marker. If we've already got a tombstone for this key, keep
+//	the latest sequence.
+
+	{
+	for (int i = 0; i < m_Tombstones.GetCount(); i++)
+		{
+		if (m_Tombstones[i].dKey.OpIsIdentical(dKey))
+			{
+			m_Tombstones[i].Seq = Max(m_Tombstones[i].Seq, Seq);
+			return;
+			}
+		}
+
+	STombstone* pEntry = m_Tombstones.Insert();
+	pEntry->dKey = dKey;
+	pEntry->Seq = Seq;
+	}
+
+bool CAEONTable::ApplyDiff (CDatum dDiff, SApplyDiffResult& retResult, CString* retsError)
+
+//	ApplyDiff
+//
+//	Applies a contiguous sequence-number diff.
+
+	{
+	retResult = SApplyDiffResult();
+	retResult.Seq = m_Seq;
+
+	if (!m_bTrackChanges)
+		{
+		if (retsError) *retsError = ERR_NOT_TRACKING;
+		return false;
+		}
+
+	SequenceNumber BaseSeq = (SequenceNumber)(DWORDLONG)dDiff.GetElement(FIELD_BASE_SEQ);
+	SequenceNumber DiffSeq = (SequenceNumber)(DWORDLONG)dDiff.GetElement(FIELD_SEQ);
+	bool bReset = dDiff.GetElement(FIELD_RESET).AsBool();
+
+	if (!bReset)
+		{
+		if (DiffSeq <= m_Seq)
+			{
+			retResult.bOK = true;
+			retResult.bApplied = false;
+			retResult.Seq = m_Seq;
+			return true;
+			}
+		else if (BaseSeq != m_Seq)
+			{
+			retResult.bOK = false;
+			retResult.bApplied = false;
+			retResult.Seq = m_Seq;
+			retResult.sError = STR_CAEONTABLE_OUT_OF_ORDER;
+			return true;
+			}
+		}
+
+	if (!OnModify())
+		{
+		if (retsError) *retsError = STR_CAEONTABLE_NOT_MUTABLE;
+		return false;
+		}
+
+	if (bReset)
+		{
+		for (int i = 0; i < m_Cols.GetCount(); i++)
+			m_Cols[i].RemoveAll();
+
+		InvalidateKeys();
+		m_iRows = 0;
+		m_RowSeqs.DeleteAll();
+		m_Tombstones.DeleteAll();
+		}
+
+	CDatum dRows = dDiff.GetElement(FIELD_ROWS);
+	for (int i = 0; i < dRows.GetCount(); i++)
+		{
+		CDatum dEntry = dRows.GetElement(i);
+		CDatum dRow = dEntry.GetElement(FIELD_ROW);
+		SequenceNumber RowSeq = (SequenceNumber)(DWORDLONG)dEntry.GetElement(FIELD_SEQ);
+		if (RowSeq == 0)
+			RowSeq = DiffSeq;
+
+		auto pKeyIndex = GetIndex();
+		if (!pKeyIndex)
+			{
+			if (retsError) *retsError = ERR_TRACKING_REQUIRES_KEYS;
+			return false;
+			}
+
+		CDatum dKey = pKeyIndex->GetKeyFromRow(CDatum::raw_AsComplex(this), dRow);
+		int iRow = -1;
+		if (SetRowByID(dKey, dRow, &iRow) != EResult::OK)
+			{
+			if (retsError) *retsError = STR_CAEONTABLE_UNABLE_TO_APPLY_ROW_DIFF;
+			return false;
+			}
+
+		SetRowSeq(iRow, RowSeq);
+		ClearTombstoneForKey(dKey, RowSeq);
+		}
+
+	CDatum dDeletes = dDiff.GetElement(FIELD_DELETES);
+	for (int i = 0; i < dDeletes.GetCount(); i++)
+		{
+		CDatum dEntry = dDeletes.GetElement(i);
+		CDatum dKey = dEntry.GetElement(FIELD_KEY);
+		SequenceNumber DeleteSeq = (SequenceNumber)(DWORDLONG)dEntry.GetElement(FIELD_SEQ);
+		if (DeleteSeq == 0)
+			DeleteSeq = DiffSeq;
+
+		auto pKeyIndex = GetIndex();
+		if (!pKeyIndex)
+			{
+			if (retsError) *retsError = ERR_TRACKING_REQUIRES_KEYS;
+			return false;
+			}
+
+		int iRow = pKeyIndex->Find(CDatum::raw_AsComplex(this), dKey);
+		if (iRow != -1)
+			{
+			pKeyIndex->DeleteRow(CDatum::raw_AsComplex(this), iRow);
+
+			for (int iCol = 0; iCol < m_Cols.GetCount(); iCol++)
+				m_Cols[iCol].DeleteElement(iRow);
+
+			m_iRows--;
+			DeleteRowSeq(iRow);
+			}
+
+		AddTombstone(dKey, DeleteSeq);
+		}
+
+	m_bTrackChanges = true;
+	m_Seq = DiffSeq;
+	m_MinDiffSeq = Min(m_MinDiffSeq, BaseSeq);
+
+	retResult.bOK = true;
+	retResult.bApplied = true;
+	retResult.Seq = m_Seq;
+	return true;
+	}
+
+void CAEONTable::ClearChangeTracking ()
+
+//	ClearChangeTracking
+
+	{
+	m_bTrackChanges = false;
+	m_MinDiffSeq = 0;
+	m_RowSeqs.DeleteAll();
+	m_Tombstones.DeleteAll();
+	}
+
+void CAEONTable::ClearTombstoneForKey (CDatum dKey, SequenceNumber Seq)
+
+//	ClearTombstoneForKey
+
+	{
+	for (int i = 0; i < m_Tombstones.GetCount(); i++)
+		{
+		if (m_Tombstones[i].dKey.OpIsIdentical(dKey) && m_Tombstones[i].Seq <= Seq)
+			{
+			m_Tombstones.Delete(i);
+			i--;
+			}
+		}
+	}
+
+CDatum CAEONTable::ComposeChangeTracking () const
+
+//	ComposeChangeTracking
+
+	{
+	CDatum dTracking(CDatum::typeStruct);
+	dTracking.SetElement(FIELD_ENABLED, m_bTrackChanges);
+	dTracking.SetElement(FIELD_MIN_DIFF_SEQ, m_MinDiffSeq);
+
+	CDatum dRowSeqs(CDatum::typeArray);
+	for (int i = 0; i < m_RowSeqs.GetCount(); i++)
+		dRowSeqs.Append(m_RowSeqs[i]);
+	dTracking.SetElement(FIELD_ROW_SEQS, dRowSeqs);
+
+	CDatum dTombstones(CDatum::typeArray);
+	for (int i = 0; i < m_Tombstones.GetCount(); i++)
+		{
+		CDatum dEntry(CDatum::typeStruct);
+		dEntry.SetElement(FIELD_KEY, m_Tombstones[i].dKey);
+		dEntry.SetElement(FIELD_SEQ, m_Tombstones[i].Seq);
+		dTombstones.Append(dEntry);
+		}
+	dTracking.SetElement(FIELD_TOMBSTONES, dTombstones);
+
+	return dTracking;
+	}
+
+CDatum CAEONTable::ComposeDiffRow (int iRow, SequenceNumber Seq) const
+
+//	ComposeDiffRow
+
+	{
+	CDatum dEntry(CDatum::typeStruct);
+	dEntry.SetElement(FIELD_ROW, GetRow(iRow));
+	dEntry.SetElement(FIELD_SEQ, Seq);
+	return dEntry;
+	}
+
 CString CAEONTable::AsString (void) const
 
 //	AsString
@@ -590,16 +833,16 @@ CDatum CAEONTable::CalcColumnDatatype (CDatum dValue)
 		switch (ArrayType.GetCoreType())
 			{
 			case IDatatype::ARRAY_INT_32:
-				return CAEONTypeSystem::GetCoreType(IDatatype::INT_32);
+				return CAEONTypes::Get(IDatatype::INT_32);
 
 			case IDatatype::ARRAY_INT_IP:
-				return CAEONTypeSystem::GetCoreType(IDatatype::INT_IP);
+				return CAEONTypes::Get(IDatatype::INT_IP);
 
 			case IDatatype::ARRAY_FLOAT_64:
-				return CAEONTypeSystem::GetCoreType(IDatatype::FLOAT_64);
+				return CAEONTypes::Get(IDatatype::FLOAT_64);
 
 			case IDatatype::ARRAY_STRING:
-				return CAEONTypeSystem::GetCoreType(IDatatype::STRING);
+				return CAEONTypes::Get(IDatatype::STRING);
 
 			//	For everything else, see if we can compute an element type based
 			//	on the values.
@@ -607,7 +850,7 @@ CDatum CAEONTable::CalcColumnDatatype (CDatum dValue)
 			default:
 				{
 				if (dValue.GetCount() == 0)
-					return CAEONTypeSystem::GetCoreType(IDatatype::ANY);
+					return CAEONTypes::Get(IDatatype::ANY);
 				else
 					{
 					CDatum::Types iElementType = dValue.GetElement(0).GetBasicType();
@@ -615,30 +858,30 @@ CDatum CAEONTable::CalcColumnDatatype (CDatum dValue)
 							&& iElementType != CDatum::typeIntegerIP
 							&& iElementType != CDatum::typeDouble
 							&& iElementType != CDatum::typeString)
-						return CAEONTypeSystem::GetCoreType(IDatatype::ANY);
+						return CAEONTypes::Get(IDatatype::ANY);
 
 					for (int i = 1; i < dValue.GetCount(); i++)
 						{
 						if (dValue.GetElement(i).GetBasicType() != iElementType)
-							return CAEONTypeSystem::GetCoreType(IDatatype::ANY);
+							return CAEONTypes::Get(IDatatype::ANY);
 						}
 
 					switch (iElementType)
 						{
 						case CDatum::typeInteger32:
-							return CAEONTypeSystem::GetCoreType(IDatatype::INT_32);
+							return CAEONTypes::Get(IDatatype::INT_32);
 
 						case CDatum::typeIntegerIP:
-							return CAEONTypeSystem::GetCoreType(IDatatype::INT_IP);
+							return CAEONTypes::Get(IDatatype::INT_IP);
 
 						case CDatum::typeDouble:
-							return CAEONTypeSystem::GetCoreType(IDatatype::FLOAT_64);
+							return CAEONTypes::Get(IDatatype::FLOAT_64);
 
 						case CDatum::typeString:
-							return CAEONTypeSystem::GetCoreType(IDatatype::STRING);
+							return CAEONTypes::Get(IDatatype::STRING);
 
 						default:
-							return CAEONTypeSystem::GetCoreType(IDatatype::ANY);
+							return CAEONTypes::Get(IDatatype::ANY);
 						}
 					}
 				}
@@ -704,6 +947,24 @@ IComplexDatum *CAEONTable::Clone (CDatum::EClone iMode) const
 		}
 	}
 
+CDatum CAEONTable::Cleaned () const
+
+//	Cleaned
+//
+//	Returns a cleaned copy of this table.
+
+	{
+	CRecursionGuard Guard(*this);
+	if (Guard.InRecursion())
+		return CDatum::raw_AsComplex(this);
+
+	auto pClone = static_cast<CAEONTable *>(Clone(CDatum::EClone::ShallowCopy));
+	for (int i = 0; i < pClone->m_Cols.GetCount(); i++)
+		pClone->m_Cols[i] = pClone->m_Cols[i].Cleaned();
+
+	return CDatum(pClone);
+	}
+
 void CAEONTable::CloneContents (CDatum::EClone iMode)
 
 //	CloneContents
@@ -734,7 +995,7 @@ bool CAEONTable::CreateTableFromNil (CAEONTypeSystem& TypeSystem, CDatum& retdDa
 
 	{
 	CDatum dSchema = TypeSystem.AddAnonymousSchema(TArray<IDatatype::SMemberDesc>());
-	CDatum dDatatype = TypeSystem.CreateAnonymousTable(NULL_STR, dSchema);
+	CDatum dDatatype = CAEONTypes::CreateTable(NULL_STR, dSchema);
 	CAEONTable *pNewTable = new CAEONTable(dDatatype);
 	retdDatum = CDatum(pNewTable);
 	return true;
@@ -782,7 +1043,7 @@ bool CAEONTable::CreateTableFromArray (CAEONTypeSystem &TypeSystem, CDatum dValu
 
 	//	Create the table.
 
-	CDatum dDatatype = TypeSystem.CreateAnonymousTable(NULL_STR, dSchema);
+	CDatum dDatatype = CAEONTypes::CreateTable(NULL_STR, dSchema);
 	CAEONTable *pNewTable = new CAEONTable(dDatatype);
 	retdDatum = CDatum(pNewTable);
 	pNewTable->GrowToFit(dValue.GetCount() - iStartRow);
@@ -866,7 +1127,7 @@ bool CAEONTable::CreateTableFromStruct (CAEONTypeSystem &TypeSystem, CDatum dVal
 
 	//	Create the table.
 
-	CDatum dDatatype = TypeSystem.CreateAnonymousTable(NULL_STR, dSchema);
+	CDatum dDatatype = CAEONTypes::CreateTable(NULL_STR, dSchema);
 	CAEONTable *pNewTable = new CAEONTable(dDatatype);
 	pNewTable->GrowToFit(iRows);
 	pNewTable->m_iRows = iRows;
@@ -905,9 +1166,18 @@ IAEONTable::EResult CAEONTable::DeleteAllRows ()
 	if (!OnModify())
 		return EResult::NotMutable;
 
-	//	Recreate the columns.
+	if (m_bTrackChanges)
+		{
+		for (int i = 0; i < m_iRows; i++)
+			TrackRowDelete(GetRowID(i));
+		m_RowSeqs.DeleteAll();
+		}
 
-	SetSchema(m_dDatatype);
+	for (int i = 0; i < m_Cols.GetCount(); i++)
+		m_Cols[i].RemoveAll();
+
+	InvalidateKeys();
+	m_iRows = 0;
 	return EResult::OK;
 	}
 
@@ -927,7 +1197,7 @@ IAEONTable::EResult CAEONTable::DeleteCol (int iCol)
 	if (!DeleteColumnFromSchema(GetSchema(), iCol, dNewSchema))
 		return EResult::InvalidParam;
 
-	m_dDatatype = CAEONTypeSystem::CreateAnonymousTable(NULL_STR, dNewSchema);
+	m_dDatatype = CAEONTypes::CreateTable(NULL_STR, dNewSchema);
 
 	//	Delete the column
 
@@ -964,10 +1234,14 @@ IAEONTable::EResult CAEONTable::DeleteRow (int iRow)
 	if (pKeyIndex)
 		pKeyIndex->DeleteRow(CDatum::raw_AsComplex(this), iRow);
 
+	if (m_bTrackChanges)
+		TrackRowDelete(GetRowID(iRow));
+
 	for (int i = 0; i < m_Cols.GetCount(); i++)
 		m_Cols[i].DeleteElement(iRow);
 
 	m_iRows--;
+	DeleteRowSeq(iRow);
 
 	return EResult::OK;
 	}
@@ -995,10 +1269,14 @@ IAEONTable::EResult CAEONTable::DeleteRowByID (CDatum dKey)
 
 	pKeyIndex->DeleteRow(CDatum::raw_AsComplex(this), iRow);
 
+	if (m_bTrackChanges)
+		TrackRowDelete(dKey);
+
 	for (int i = 0; i < m_Cols.GetCount(); i++)
 		m_Cols[i].DeleteElement(iRow);
 
 	m_iRows--;
+	DeleteRowSeq(iRow);
 
 	return EResult::OK;
 	}
@@ -1230,6 +1508,64 @@ CDatum CAEONTable::GetDataSlice (int iFirstRow, int iRowCount) const
 	return dResult;
 	}
 
+CDatum CAEONTable::GetChangeTrackingInfo () const
+
+//	GetChangeTrackingInfo
+
+	{
+	CDatum dResult(CDatum::typeStruct);
+	dResult.SetElement(FIELD_ENABLED, m_bTrackChanges);
+	dResult.SetElement(FIELD_SEQ, m_Seq);
+	dResult.SetElement(FIELD_MIN_DIFF_SEQ, m_MinDiffSeq);
+	dResult.SetElement(FIELD_ROWS, m_RowSeqs.GetCount());
+	dResult.SetElement(FIELD_TOMBSTONES, m_Tombstones.GetCount());
+
+	return dResult;
+	}
+
+CDatum CAEONTable::GetDiffSince (SequenceNumber BaseSeq) const
+
+//	GetDiffSince
+
+	{
+	if (!m_bTrackChanges)
+		return CDatum::CreateError(ERR_NOT_TRACKING);
+
+	CDatum dDiff(CDatum::typeStruct);
+	dDiff.SetElement(FIELD_BASE_SEQ, BaseSeq);
+	dDiff.SetElement(FIELD_SEQ, m_Seq);
+
+	bool bReset = (BaseSeq < m_MinDiffSeq);
+	dDiff.SetElement(FIELD_RESET, bReset);
+
+	CDatum dRows(CDatum::typeArray);
+	for (int i = 0; i < m_iRows; i++)
+		{
+		SequenceNumber RowSeq = (i < m_RowSeqs.GetCount() ? m_RowSeqs[i] : m_Seq);
+		if (bReset || RowSeq > BaseSeq)
+			dRows.Append(ComposeDiffRow(i, RowSeq));
+		}
+	dDiff.SetElement(FIELD_ROWS, dRows);
+
+	CDatum dDeletes(CDatum::typeArray);
+	if (!bReset)
+		{
+		for (int i = 0; i < m_Tombstones.GetCount(); i++)
+			{
+			if (m_Tombstones[i].Seq > BaseSeq)
+				{
+				CDatum dEntry(CDatum::typeStruct);
+				dEntry.SetElement(FIELD_KEY, m_Tombstones[i].dKey);
+				dEntry.SetElement(FIELD_SEQ, m_Tombstones[i].Seq);
+				dDeletes.Append(dEntry);
+				}
+			}
+		}
+	dDiff.SetElement(FIELD_DELETES, dDeletes);
+
+	return dDiff;
+	}
+
 CDatum CAEONTable::GetFieldValue (int iRow, int iCol) const
 
 //	GetFieldValue
@@ -1276,6 +1612,118 @@ std::shared_ptr<CAEONTableIndex> CAEONTable::GetIndex () const
 	m_pKeyIndex->Init(CDatum::raw_AsComplex(this), PrimaryKeys);
 
 	return m_pKeyIndex;
+	}
+
+void CAEONTable::DeleteRowSeq (int iRow)
+
+//	DeleteRowSeq
+
+	{
+	if (!m_bTrackChanges)
+		return;
+
+	if (iRow >= 0 && iRow < m_RowSeqs.GetCount())
+		m_RowSeqs.Delete(iRow);
+	}
+
+bool CAEONTable::LoadChangeTracking (CDatum dTracking)
+
+//	LoadChangeTracking
+
+	{
+	if (dTracking.IsNil() || !dTracking.GetElement(FIELD_ENABLED).AsBool())
+		{
+		ClearChangeTracking();
+		return true;
+		}
+
+	m_bTrackChanges = true;
+	m_MinDiffSeq = (SequenceNumber)(DWORDLONG)dTracking.GetElement(FIELD_MIN_DIFF_SEQ);
+
+	m_RowSeqs.DeleteAll();
+	CDatum dRowSeqs = dTracking.GetElement(FIELD_ROW_SEQS);
+	m_RowSeqs.InsertEmpty(m_iRows);
+	for (int i = 0; i < m_RowSeqs.GetCount(); i++)
+		m_RowSeqs[i] = (i < dRowSeqs.GetCount() ? (SequenceNumber)(DWORDLONG)dRowSeqs.GetElement(i) : m_Seq);
+
+	m_Tombstones.DeleteAll();
+	CDatum dTombstones = dTracking.GetElement(FIELD_TOMBSTONES);
+	for (int i = 0; i < dTombstones.GetCount(); i++)
+		{
+		CDatum dEntry = dTombstones.GetElement(i);
+		STombstone* pEntry = m_Tombstones.Insert();
+		pEntry->dKey = dEntry.GetElement(FIELD_KEY);
+		pEntry->Seq = (SequenceNumber)(DWORDLONG)dEntry.GetElement(FIELD_SEQ);
+		}
+
+	return true;
+	}
+
+void CAEONTable::ResetTrackedRows (SequenceNumber Seq)
+
+//	ResetTrackedRows
+
+	{
+	m_RowSeqs.DeleteAll();
+	m_RowSeqs.InsertEmpty(m_iRows);
+	for (int i = 0; i < m_RowSeqs.GetCount(); i++)
+		m_RowSeqs[i] = Seq;
+	}
+
+void CAEONTable::SetRowSeq (int iRow, SequenceNumber Seq)
+
+//	SetRowSeq
+
+	{
+	if (!m_bTrackChanges || iRow < 0)
+		return;
+
+	while (m_RowSeqs.GetCount() <= iRow)
+		m_RowSeqs.Insert(m_Seq);
+
+	m_RowSeqs[iRow] = Seq;
+	}
+
+bool CAEONTable::TrackChanges (CString* retsError)
+
+//	TrackChanges
+
+	{
+	if (!HasKeys())
+		{
+		if (retsError) *retsError = ERR_TRACKING_REQUIRES_KEYS;
+		return false;
+		}
+
+	m_bTrackChanges = true;
+	m_MinDiffSeq = m_Seq;
+	ResetTrackedRows(m_Seq);
+	m_Tombstones.DeleteAll();
+	return true;
+	}
+
+bool CAEONTable::TrackRowDelete (CDatum dKey)
+
+//	TrackRowDelete
+
+	{
+	if (!m_bTrackChanges)
+		return false;
+
+	AddTombstone(dKey, m_Seq);
+	return true;
+	}
+
+void CAEONTable::TrackRowUpdate (int iRow)
+
+//	TrackRowUpdate
+
+	{
+	if (!m_bTrackChanges || iRow < 0 || iRow >= m_iRows)
+		return;
+
+	SetRowSeq(iRow, m_Seq);
+	ClearTombstoneForKey(GetRowID(iRow), m_Seq);
 	}
 
 CDatum CAEONTable::GetKeyEx (int iIndex) const
@@ -1431,7 +1879,7 @@ IAEONTable::EResult CAEONTable::InsertColumn (const CString& sName, CDatum dType
 	if (!InsertColumnToSchema(GetSchema(), sName, dType, iPos, dNewSchema, &iNewCol))
 		return EResult::InvalidParam;
 
-	m_dDatatype = CAEONTypeSystem::CreateAnonymousTable(NULL_STR, dNewSchema);
+	m_dDatatype = CAEONTypes::CreateTable(NULL_STR, dNewSchema);
 
 	//	Create the column
 
@@ -1566,37 +2014,42 @@ bool CAEONTable::OnDeserialize (CDatum::EFormat iFormat, CDatum dStruct)
 	CDatum dSchema = dStruct.GetElement(FIELD_DATATYPE);
 	const IDatatype &Schema = dSchema;
 	if (Schema.GetClass() == IDatatype::ECategory::Schema)
-		dSchema = CAEONTypeSystem::CreateAnonymousTable(NULL_STR, dSchema);
+		dSchema = CAEONTypes::CreateTable(NULL_STR, dSchema);
 	else if (Schema.GetClass() != IDatatype::ECategory::Table)
 		return false;
 
 	SetSchema(dSchema);
 
 	CDatum dCols = dStruct.GetElement(FIELD_COLUMNS);
+	CDatum dRows = dStruct.GetElement(FIELD_ROWS);
+	bool bHasSerializedRows = !dRows.IsNil();
+	int iSerializedRows = (bHasSerializedRows ? (int)dRows : 0);
 
-	m_iRows = -1;
+	m_iRows = (bHasSerializedRows ? iSerializedRows : -1);
 	for (int i = 0; i < m_Cols.GetCount(); i++)
 		{
 		CDatum dColDef = dCols.GetElement(i);
-		if (dColDef.IsNil())
-			continue;
-
 		CDatum dValues = dColDef.GetElement(FIELD_VALUES);
 
-		if (m_iRows == -1)
-			m_iRows = dValues.GetCount();
-		else
-			m_iRows = Min(m_iRows, dValues.GetCount());
+		int iRows = (bHasSerializedRows ? iSerializedRows : dValues.GetCount());
+		if (!bHasSerializedRows)
+			{
+			if (m_iRows == -1)
+				m_iRows = iRows;
+			else
+				m_iRows = Min(m_iRows, iRows);
+			}
 
-		m_Cols[i].GrowToFit(dValues.GetCount());
-		for (int j = 0; j < dValues.GetCount(); j++)
+		m_Cols[i].GrowToFit(iRows);
+		for (int j = 0; j < iRows; j++)
 			m_Cols[i].Append(dValues.GetElement(j));
 		}
 
-	if (m_iRows == -1)
+	if (m_iRows < 0)
 		m_iRows = 0;
 
 	m_Seq = dStruct.GetElement(FIELD_SEQ);
+	LoadChangeTracking(dStruct.GetElement(FIELD_TRACKING));
 
 	return true;
 	}
@@ -1612,6 +2065,9 @@ void CAEONTable::OnMarked (void)
 
 	for (int i = 0; i < m_Cols.GetCount(); i++)
 		m_Cols[i].Mark();
+
+	for (int i = 0; i < m_Tombstones.GetCount(); i++)
+		m_Tombstones[i].dKey.Mark();
 	}
 
 bool CAEONTable::OnModify ()
@@ -1645,7 +2101,9 @@ void CAEONTable::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) 
 	{
 	const IDatatype &Schema = GetSchema();
 
-	pStruct->SetElement(FIELD_DATATYPE, m_dDatatype);
+	if (iFormat != CDatum::EFormat::JSON)
+		pStruct->SetElement(FIELD_DATATYPE, m_dDatatype);
+
 	pStruct->SetElement(FIELD_ROWS, m_iRows);
 	pStruct->SetElement(FIELD_SEQ, m_Seq);
 
@@ -1663,6 +2121,8 @@ void CAEONTable::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) 
 		}
 
 	pStruct->SetElement(FIELD_COLUMNS, dCols);
+	if (m_bTrackChanges)
+		pStruct->SetElement(FIELD_TRACKING, ComposeChangeTracking());
 	}
 
 IAEONTable::EResult CAEONTable::MergeArrayOfArrays (CDatum dArray)
@@ -2060,6 +2520,41 @@ CDatum CAEONTable::DeserializeAEON (IByteStream& Stream, DWORD dwID, CAEONSerial
 	return dValue;
 	}
 
+CDatum CAEONTable::DeserializeAEON_v3 (IByteStream& Stream, DWORD dwID, CAEONSerializedMap &Serialized)
+	{
+	CDatum dValue = DeserializeAEON(Stream, dwID, Serialized);
+	CAEONTable* pObj = (CAEONTable*)dValue.GetTableInterface();
+	if (pObj == NULL)
+		return dValue;
+
+	bool bTrackChanges = (Stream.ReadDWORD() != 0);
+	if (!bTrackChanges)
+		{
+		pObj->ClearChangeTracking();
+		return dValue;
+		}
+
+	pObj->m_bTrackChanges = true;
+	pObj->m_MinDiffSeq = Stream.ReadDWORDLONG();
+
+	int iRowSeqCount = (int)Stream.ReadDWORD();
+	pObj->m_RowSeqs.DeleteAll();
+	pObj->m_RowSeqs.InsertEmpty(iRowSeqCount);
+	for (int i = 0; i < iRowSeqCount; i++)
+		pObj->m_RowSeqs[i] = Stream.ReadDWORDLONG();
+
+	int iTombstoneCount = (int)Stream.ReadDWORD();
+	pObj->m_Tombstones.DeleteAll();
+	for (int i = 0; i < iTombstoneCount; i++)
+		{
+		STombstone* pEntry = pObj->m_Tombstones.Insert();
+		pEntry->dKey = CDatum::DeserializeAEON(Stream, Serialized);
+		pEntry->Seq = Stream.ReadDWORDLONG();
+		}
+
+	return dValue;
+	}
+
 CDatum CAEONTable::DeserializeAEON_v1 (IByteStream& Stream, DWORD dwID, CAEONSerializedMap &Serialized)
 	{
 	//	Create a new object and add it to the map.
@@ -2103,7 +2598,7 @@ void CAEONTable::SerializeAEON (IByteStream& Stream, CAEONSerializedMap& Seriali
 	//	See if we've already serialized this. If so, then we just write out the
 	//	reference.
 
-	if (!Serialized.WriteID(Stream, this, CDatum::SERIALIZE_TYPE_TABLE_V2))
+	if (!Serialized.WriteID(Stream, this, CDatum::SERIALIZE_TYPE_TABLE_V3))
 		return;
 
 	//	Write out the basic info
@@ -2121,15 +2616,51 @@ void CAEONTable::SerializeAEON (IByteStream& Stream, CAEONSerializedMap& Seriali
 	Stream.Write(m_Cols.GetCount());
 	for (int i = 0; i < m_Cols.GetCount(); i++)
 		m_Cols[i].SerializeAEON(Stream, Serialized);
+
+	SerializeChangeTracking(Stream, Serialized);
+	}
+
+void CAEONTable::SerializeChangeTracking (IByteStream& Stream, CAEONSerializedMap& Serialized) const
+
+//	SerializeChangeTracking
+
+	{
+	Stream.Write((DWORD)(m_bTrackChanges ? 1 : 0));
+	if (!m_bTrackChanges)
+		return;
+
+	Stream.Write(m_MinDiffSeq);
+
+	Stream.Write(m_RowSeqs.GetCount());
+	for (int i = 0; i < m_RowSeqs.GetCount(); i++)
+		Stream.Write(m_RowSeqs[i]);
+
+	Stream.Write(m_Tombstones.GetCount());
+	for (int i = 0; i < m_Tombstones.GetCount(); i++)
+		{
+		m_Tombstones[i].dKey.SerializeAEON(Stream, Serialized);
+		Stream.Write(m_Tombstones[i].Seq);
+		}
 	}
 
 bool CAEONTable::OpContains (CDatum dValue) const
 	{
-	auto pKeyIndex = GetIndex();
-	if (!pKeyIndex)
-		return false;
+	if (HasKeys())
+		{
+		auto pKeyIndex = GetIndex();
+		if (!pKeyIndex)
+			return false;
 
-	return pKeyIndex->Find(CDatum::raw_AsComplex(this), dValue) != -1;
+		return pKeyIndex->Find(CDatum::raw_AsComplex(this), dValue) != -1;
+		}
+	else
+		{
+		int iRow;
+		if (!dValue.IsNumberInt32(&iRow))
+			return false;
+
+		return (iRow >= 0 && iRow < m_iRows);
+		}
 	}
 
 CDatum CAEONTable::Query (const CAEONExpression& Expr) const
@@ -2152,6 +2683,13 @@ bool CAEONTable::RemoveAll ()
 	{
 	if (!OnModify())
 		return false;
+
+	if (m_bTrackChanges)
+		{
+		for (int i = 0; i < m_iRows; i++)
+			TrackRowDelete(GetRowID(i));
+		m_RowSeqs.DeleteAll();
+		}
 
 	for (int i = 0; i < m_Cols.GetCount(); i++)
 		m_Cols[i].RemoveAll();
@@ -2178,11 +2716,14 @@ bool CAEONTable::RemoveElementAt (CDatum dIndex)
 		if (!OnModify())
 			return false;
 
+		if (m_bTrackChanges)
+			TrackRowDelete(GetRowID(iIndex));
 
 		for (int i = 0; i < m_Cols.GetCount(); i++)
 			m_Cols[i].RemoveElementAt(iIndex);
 
 		m_iRows--;
+		DeleteRowSeq(iIndex);
 
 		m_cs.Lock();
 		auto pKeyIndex = m_pKeyIndex;
@@ -2270,7 +2811,7 @@ IAEONTable::EResult CAEONTable::SetColumn (int iCol, IDatatype::SMemberDesc& Col
 			return EResult::InvalidParam;
 
 		CDatum dNewType = ((const IDatatype&)dNewSchema).GetMember(iCol).dType;
-		m_dDatatype = CAEONTypeSystem::CreateAnonymousTable(NULL_STR, dNewSchema);
+		m_dDatatype = CAEONTypes::CreateTable(NULL_STR, dNewSchema);
 
 		//	Create a new column.
 
@@ -2365,6 +2906,7 @@ bool CAEONTable::SetFieldValue (int iRow, int iCol, CDatum dValue)
 	if (m_IsKeyCol[iCol])
 		InvalidateKeys();
 
+	TrackRowUpdate(iRow);
 	return true;
 	}
 
@@ -2408,6 +2950,7 @@ IAEONTable::EResult CAEONTable::SetRow (int iRow, CDatum dRow)
 	if (pKeyIndex)
 		pKeyIndex->Add(CDatum::raw_AsComplex(this), iRow);
 
+	TrackRowUpdate(iRow);
 	return EResult::OK;
 	}
 
@@ -2501,6 +3044,7 @@ IAEONTable::EResult CAEONTable::SetRowByID (CDatum dKey, CDatum dRow, int *retiR
 	if (retiRow)
 		*retiRow = iRow;
 
+	TrackRowUpdate(iRow);
 	return IAEONTable::EResult::OK;
 	}
 
@@ -2572,6 +3116,7 @@ IAEONTable::EResult CAEONTable::SetRowFromColumnStruct (CDatum dCols, int iIndex
 	if (retiRow)
 		*retiRow = iRow;
 
+	TrackRowUpdate(iRow);
 	return IAEONTable::EResult::OK;
 	}
 

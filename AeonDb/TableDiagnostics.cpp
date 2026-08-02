@@ -5,6 +5,9 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_TABLE_DIAGNOSTICS_C_BACKSLASH_ARCOLOGY_CONSOLE_BACKSLASH_NEW_SEGMENT_ASEG,	"c:\\ArcologyConsole\\NewSegment.aseg");
+DECLARE_CONST_STRING(STR_TABLE_DIAGNOSTICS_BACKSLASH,	"\\");
+
 DECLARE_CONST_STRING(FIELD_NAME,						"name");
 DECLARE_CONST_STRING(FIELD_STORAGE_PATH,				"storagePath");
 
@@ -208,7 +211,7 @@ bool CAeonSegment::Diagnostics (DWORD dwFlags, TArray<CString>& retLog, CString*
 		Iterator.Init(m_Dims);
 		Iterator.AddSegment(&Rows);
 
-		CString sNewFilespec = CString("c:\\ArcologyConsole\\NewSegment.aseg");
+		CString sNewFilespec = STR_TABLE_DIAGNOSTICS_C_BACKSLASH_ARCOLOGY_CONSOLE_BACKSLASH_NEW_SEGMENT_ASEG;
 
 		DWORD dwSegFlags = 0;
 		dwSegFlags |= (HasRowID() ? CAeonSegment::FLAG_HAS_ROW_ID : 0);
@@ -309,7 +312,7 @@ AEONERR CAeonTable::Merge (CAeonTable& SrcTable, CString *retsError)
 			if (*pPos == '\\')
 				{
 				pPos++;
-				sSrcStorage = CString("\\") + SrcTable.GetName() + CString("\\") + strSubString(sSrcStorage, (int)(pPos - sSrcStorage.GetParsePointer()));
+				sSrcStorage = STR_TABLE_DIAGNOSTICS_BACKSLASH + SrcTable.GetName() + STR_TABLE_DIAGNOSTICS_BACKSLASH + strSubString(sSrcStorage, (int)(pPos - sSrcStorage.GetParsePointer()));
 				}
 
 			CString sSrcFilespec = SrcTable.m_pStorage->CanonicalRelativeToMachine(SrcTable.m_sPrimaryVolume, sSrcStorage);

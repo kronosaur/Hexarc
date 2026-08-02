@@ -10,7 +10,7 @@ DECLARE_CONST_STRING(ERR_TOO_FEW_ARGS,					"Must be called with at least %d arg%
 DECLARE_CONST_STRING(ERR_TOO_MANY_ARGS,					"Must be called with no more than %d arg%p, but called with %d.");
 DECLARE_CONST_STRING(ERR_TOO_MANY_ARGS_0,				"Must be called with no arguments, but called with %d.");
 
-CDatatypeFunction::CDatatypeFunction (const SCreate& Create) : IDatatype(Create.sFullyQualifiedName)
+CDatatypeFunction::CDatatypeFunction (const SCreate& Create) : IDatatype(false, Create.sFullyQualifiedName)
 
 //	CDatatypeFunction constructor
 
@@ -251,6 +251,29 @@ bool CDatatypeFunction::CalcSignatureMatch (CDatum dThisType, const TArray<CDatu
 	//	Otherwise, no match.
 
 	return false;
+	}
+
+void CDatatypeFunction::OnAccumulateTypesUsed (TSortMap<CString, CDatum>& retTypes) const
+
+//	OnAccumulateTypesUsed
+//
+//	Adds to the list of special types used. NOTE: We don't include core types
+//	because those are always known.
+
+	{
+	CRecursionSmartLock Lock(m_rs);
+	if (Lock.InRecursion())
+		return;
+
+	for (int i = 0; i < m_Signatures.GetCount(); i++)
+		{
+		AccumulateType(m_Signatures[i].Return.dType, retTypes);
+
+		for (int j = 0; j < m_Signatures[i].Args.GetCount(); j++)
+			{
+			AccumulateType(m_Signatures[i].Args[j].dType, retTypes);
+			}
+		}
 	}
 
 bool CDatatypeFunction::OnCanBeCalledWith (CDatum dThisType, const TArray<CDatum>& ArgTypes, const TArray<CDatum>& ArgLiteralTypes, CDatum* retdReturnType, CString* retsError) const

@@ -7,7 +7,6 @@
 #include "LuminousAEON.h"
 
 DECLARE_CONST_STRING(FIELD_BACKGROUND,				"background");
-DECLARE_CONST_STRING(FIELD_CUR_TIME,				"curTime");
 DECLARE_CONST_STRING(FIELD_END_FRAME,				"endFrame");
 DECLARE_CONST_STRING(FIELD_FPS,						"fps");
 DECLARE_CONST_STRING(FIELD_FRAME,					"frame");
@@ -20,14 +19,12 @@ DECLARE_CONST_STRING(FIELD_OBJECTS,					"objects");
 DECLARE_CONST_STRING(FIELD_ORIGIN,					"origin");
 DECLARE_CONST_STRING(FIELD_PARENT_ID,				"parentID");
 DECLARE_CONST_STRING(FIELD_SEQ,						"seq");
-DECLARE_CONST_STRING(FIELD_START_FRAME,				"startFrame");
-DECLARE_CONST_STRING(FIELD_START_TIME,				"startTime");
 DECLARE_CONST_STRING(FIELD_TO,						"to");
 DECLARE_CONST_STRING(FIELD_TYPE,					"type");
 DECLARE_CONST_STRING(FIELD_VALUE,					"value");
 DECLARE_CONST_STRING(FIELD_WIDTH,					"width");
 
-DECLARE_CONST_STRING(TYPENAME_REANIMATOR,			"reanimator");
+DECLARE_CONST_STRING(TYPENAME_REANIMATOR,			"reanimator3D");
 
 DECLARE_CONST_STRING(ERR_UNKNOWN_PROPERTY,			"Unknown property: %s.");
 
@@ -67,20 +64,6 @@ TDatumPropertyHandler<CAEONReanimator3D> CAEONReanimator3D::m_Properties = {
 			return true;
 			},
 		},
-	{
-		"startFrame",
-		"?",
-		"Gets/sets the current start frame.",
-		[](const CAEONReanimator3D &Obj, const CString &sProperty)
-			{
-			return CDatum(Obj.m_Model.GetStartFrame());
-			},
-		[](CAEONReanimator3D &Obj, const CString &sProperty, CDatum dValue, CString *retsError)
-			{
-			Obj.m_Model.SetStartFrame(dValue);
-			return true;
-			},
-		},
 	};
 
 TDatumMethodHandler<CAEONReanimator3D> CAEONReanimator3D::m_Methods = {
@@ -103,19 +86,6 @@ TDatumMethodHandler<CAEONReanimator3D> CAEONReanimator3D::m_Methods = {
 			int iFrame = LocalEnv.GetArgument(3);
 			CDatum dDesc = LocalEnv.GetArgument(4);
 			retResult.dResult = Obj.AnimateProperty(dwID, iProp, iFrame, dDesc);
-			return true;
-			},
-		},
-	{
-		"play",
-		"*",
-		".play(startFrame)",
-		0,
-		[](CAEONReanimator3D &Obj, IInvokeCtx &Ctx, const CString &sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
-			{
-			int iStartFrame = LocalEnv.GetArgument(1);
-			Obj.Play(iStartFrame);
-			retResult.dResult = CDatum(true);
 			return true;
 			},
 		},
@@ -149,18 +119,6 @@ TDatumMethodHandler<CAEONReanimator3D> CAEONReanimator3D::m_Methods = {
 			CDatum dValue = LocalEnv.GetArgument(3);
 
 			retResult.dResult = Obj.SetObjProperty(dwID, iProp, dValue);
-			return true;
-			},
-		},
-	{
-		"stop",
-		"*",
-		".stop()",
-		0,
-		[](CAEONReanimator3D &Obj, IInvokeCtx &Ctx, const CString &sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
-			{
-			Obj.Stop();
-			retResult.dResult = CDatum(true);
 			return true;
 			},
 		},
@@ -286,7 +244,22 @@ CDatum CAEONReanimator3D::Create ()
 
 CDatum CAEONReanimator3D::GetDatatype () const 
 	{
-	return CAEONTypeSystem::GetCoreType(CAEONLuminous::SCENE3D_TYPE);
+	return CAEONTypes::Get(CAEONLuminous::SCENE3D_TYPE);
+	}
+
+TArray<IDatatype::SMemberDesc> CAEONReanimator3D::GetMembers (void)
+
+//	GetMembers
+//
+//	Returns a list of members.
+
+	{
+	TArray<IDatatype::SMemberDesc> Members;
+
+	m_Properties.AccumulateMembers(Members);
+	m_Methods.AccumulateMembers(Members);
+
+	return Members;
 	}
 
 CDatum CAEONReanimator3D::GetObjProperty (const ILuminousObj3D& Obj, Obj3DProp iProp, Obj3DPropType iPropType) const
@@ -416,8 +389,6 @@ CDatum CAEONReanimator3D::RenderAsHTMLCanvasCommands (SequenceNumber Seq) const
 //		fps: 30,
 //		frameCount: 120,
 //		mode: "default",
-//		startTime: 11101,		// millisecond tick
-//		curTime: 11234			// millisecond tick,
 //		seq: 117,
 //		
 //		objects: [
@@ -448,9 +419,6 @@ CDatum CAEONReanimator3D::RenderAsHTMLCanvasCommands (SequenceNumber Seq) const
 	dResult.SetElement(FIELD_FPS, m_Model.GetFPS());
 	dResult.SetElement(FIELD_FRAME_COUNT, m_Model.GetFrameCount());
 	dResult.SetElement(FIELD_MODE, CLuminousScene3D::AsID(m_Model.GetMode()));
-	dResult.SetElement(FIELD_START_FRAME, m_Model.GetStartFrame());
-	dResult.SetElement(FIELD_START_TIME, m_Model.GetStartTime());
-	dResult.SetElement(FIELD_CUR_TIME, m_Model.GetCurTime());
 	dResult.SetElement(FIELD_SEQ, m_Model.GetSeq());
 
 	CDatum dObjects(CDatum::typeArray);

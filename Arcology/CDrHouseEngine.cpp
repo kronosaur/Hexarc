@@ -18,6 +18,7 @@ DECLARE_CONST_STRING(MSG_ARC_HOUSEKEEPING,				"Arc.housekeeping")
 DECLARE_CONST_STRING(MSG_DIAGNOSTICS_CREATE_LOG_SEARCH,	"Diagnostics.createLogSearch")
 DECLARE_CONST_STRING(MSG_DIAGNOSTICS_GET_LOG_SEARCH,	"Diagnostics.getLogSearch")
 DECLARE_CONST_STRING(MSG_DIAGNOSTICS_PORT_CACHE_DUMP,	"Diagnostics.portCacheDump")
+DECLARE_CONST_STRING(MSG_DRHOUSE_AMP1_TEST,			"DrHouse.amp1Test")
 DECLARE_CONST_STRING(MSG_DRHOUSE_CREATE_TEST_TABLE,		"DrHouse.createTestTable")
 DECLARE_CONST_STRING(MSG_DRHOUSE_PROCESS_LOG_SEARCH,	"DrHouse.processLogSearch")
 DECLARE_CONST_STRING(MSG_DRHOUSE_UNIT_TEST,				"DrHouse.unitTest")
@@ -42,6 +43,9 @@ CDrHouseEngine::SMessageHandler CDrHouseEngine::m_MsgHandlerList[] =
 
 		//	Diagnostics.portCacheDump
 		{	MSG_DIAGNOSTICS_PORT_CACHE_DUMP,	&CDrHouseEngine::MsgPortCacheDump },
+
+		//	DrHouse.amp1Test {testCode} {options}
+		{	MSG_DRHOUSE_AMP1_TEST,			&CDrHouseEngine::MsgAMP1Test },
 
 		//	DrHouse.createTestTable [{noOfRows} [{dataSize} [{tableName}]]]
 		{	MSG_DRHOUSE_CREATE_TEST_TABLE,		&CDrHouseEngine::MsgCreateTestTable },

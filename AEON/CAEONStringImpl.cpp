@@ -13,6 +13,8 @@ DECLARE_CONST_STRING(TYPE_WHITESPACE,					"whitespace");
 
 DECLARE_CONST_STRING(ERR_INVALID_SPLIT_TYPE,			"Invalid split type: %s.");
 DECLARE_CONST_STRING(ERR_INVALID_PARAM,					"Invalid parameter: %s.");
+DECLARE_CONST_STRING(ERR_INVALID_CHAR_SET_TYPE,			"Invalid character set type: %s.");
+DECLARE_CONST_STRING(ERR_INVALID_ENCODING_TYPE,			"Invalid encoding type: %s.");
 
 TDatumPropertyHandler<LPCSTR> CAEONStringImpl::m_Properties = {
 	{
@@ -53,7 +55,7 @@ TDatumPropertyHandler<LPCSTR> CAEONStringImpl::m_Properties = {
 		"Returns the type of the string.",
 		[](LPCSTR pValue, const CString &sProperty)
 			{
-			return CAEONTypeSystem::GetCoreType(IDatatype::STRING);
+			return CAEONTypes::Get(IDatatype::STRING);
 			},
 		NULL,
 		},
@@ -92,6 +94,35 @@ TDatumMethodHandler<char> CAEONStringImpl::m_Methods = {
 			},
 		},
 	{
+		"decodeFrom",
+		"s:encoding=$EncodingType",
+		".decodeFrom(encoding) -> string",
+		0,
+		[](char& Value, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
+			{
+			CStringView sValue = CStringView::FromCStringPtr(&Value);
+			CDatum dEncoding = LocalEnv.GetArgument(1);
+			CString sEncoding = dEncoding.AsString();
+			EStringEncodingType iEncoding;
+			if (!strParseStringEncodingType(sEncoding, &iEncoding))
+				{
+				retResult.dResult = CDatum::CreateError(strPattern(ERR_INVALID_ENCODING_TYPE, sEncoding));
+				return false;
+				}
+
+			CString sResult;
+			CString sError;
+			if (!strDecodeFrom(sValue, iEncoding, &sResult, &sError))
+				{
+				retResult.dResult = CDatum::CreateError(sError);
+				return false;
+				}
+
+			retResult.dResult = CDatum(std::move(sResult));
+			return true;
+			},
+		},
+	{
 		"edited",
 		"s:pos=?,replace=s|start=?,len=?|start=?,len=?,replace=s",
 		".edited(start, end, replace) -> string.",
@@ -107,7 +138,7 @@ TDatumMethodHandler<char> CAEONStringImpl::m_Methods = {
 
 			if (iStart > sValue.GetLength())
 				{
-				retResult.dResult = CDatum();
+				retResult.dResult = NULL_STR;
 				return true;
 				}
 
@@ -143,6 +174,64 @@ TDatumMethodHandler<char> CAEONStringImpl::m_Methods = {
 				retResult.dResult = CDatum(sResult);
 				return true;
 				}
+			},
+		},
+	{
+		"encodeAs",
+		"s:encoding=$EncodingType",
+		".encodeAs(encoding) -> string",
+		0,
+		[](char& Value, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
+			{
+			CStringView sValue = CStringView::FromCStringPtr(&Value);
+			CDatum dEncoding = LocalEnv.GetArgument(1);
+			CString sEncoding = dEncoding.AsString();
+			EStringEncodingType iEncoding;
+			if (!strParseStringEncodingType(sEncoding, &iEncoding))
+				{
+				retResult.dResult = CDatum::CreateError(strPattern(ERR_INVALID_ENCODING_TYPE, sEncoding));
+				return false;
+				}
+
+			CString sResult;
+			CString sError;
+			if (!strEncodeAs(sValue, iEncoding, &sResult, &sError))
+				{
+				retResult.dResult = CDatum::CreateError(sError);
+				return false;
+				}
+
+			retResult.dResult = CDatum(std::move(sResult));
+			return true;
+			},
+		},
+	{
+		"encodeToBinary",
+		"v:charSet=$CharSetType",
+		".encodeToBinary(charSet) -> binary",
+		0,
+		[](char& Value, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
+			{
+			CStringView sValue = CStringView::FromCStringPtr(&Value);
+			CDatum dCharSet = LocalEnv.GetArgument(1);
+			CString sCharSet = dCharSet.AsString();
+			ECharSetType iCharSet;
+			if (!strParseCharSetType(sCharSet, &iCharSet))
+				{
+				retResult.dResult = CDatum::CreateError(strPattern(ERR_INVALID_CHAR_SET_TYPE, sCharSet));
+				return false;
+				}
+
+			CStringBuffer Buffer;
+			CString sError;
+			if (!strEncodeToBinary(sValue, iCharSet, &Buffer, &sError))
+				{
+				retResult.dResult = CDatum::CreateError(sError);
+				return false;
+				}
+
+			retResult.dResult = CDatum::CreateBinary(std::move(Buffer));
+			return true;
 			},
 		},
 	{
@@ -271,7 +360,7 @@ TDatumMethodHandler<char> CAEONStringImpl::m_Methods = {
 			int iLen = Min((int)LocalEnv.GetArgument(1), sValue.GetLength());
 			if (iLen <= 0)
 				{
-				retResult.dResult = CDatum();
+				retResult.dResult = NULL_STR;
 				return true;
 				}
 
@@ -304,7 +393,7 @@ TDatumMethodHandler<char> CAEONStringImpl::m_Methods = {
 			int iCount = (int)LocalEnv.GetArgument(1);
 			if (iCount <= 0)
 				{
-				retResult.dResult = CDatum();
+				retResult.dResult = NULL_STR;
 				return true;
 				}
 			else if (iCount == 1)
@@ -341,7 +430,7 @@ TDatumMethodHandler<char> CAEONStringImpl::m_Methods = {
 			int iCount = (int)LocalEnv.GetArgument(1);
 			if (iCount <= 0)
 				{
-				retResult.dResult = CDatum();
+				retResult.dResult = NULL_STR;
 				return true;
 				}
 			else if (iCount == 1)
@@ -378,7 +467,7 @@ TDatumMethodHandler<char> CAEONStringImpl::m_Methods = {
 			int iLen = Min((int)LocalEnv.GetArgument(1), sValue.GetLength());
 			if (iLen <= 0)
 				{
-				retResult.dResult = CDatum();
+				retResult.dResult = NULL_STR;
 				return true;
 				}
 
@@ -401,7 +490,7 @@ TDatumMethodHandler<char> CAEONStringImpl::m_Methods = {
 
 			if (iLen <= 0)
 				{
-				retResult.dResult = CDatum();
+				retResult.dResult = NULL_STR;
 				return true;
 				}
 
@@ -424,7 +513,7 @@ TDatumMethodHandler<char> CAEONStringImpl::m_Methods = {
 
 			if (iLen <= 0)
 				{
-				retResult.dResult = CDatum();
+				retResult.dResult = NULL_STR;
 				return true;
 				}
 
@@ -528,6 +617,17 @@ TDatumMethodHandler<char> CAEONStringImpl::m_Methods = {
 			},
 		},
 	{
+		"toHTML",
+		"s:",
+		".toHTML() -> HTML string",
+		0,
+		[](char& Value, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
+			{
+			retResult.dResult = strToHTML(CStringView::FromCStringPtr(&Value));
+			return true;
+			},
+		},
+	{
 		"toLowerCase",
 		"s:",
 		"DEPRECATED: Use .lowercased() instead.",
@@ -579,7 +679,7 @@ CDatum CAEONStringImpl::CreateSplitItem (const char *pStart, const char *pEnd)
 	//	we want to capture the semantic that the item is missing.
 
 	if (pStart == pEnd)
-		return CDatum();
+		return NULL_STR;
 	else
 		return CDatum(CString(pStart, pEnd - pStart));
 	}
@@ -592,6 +692,8 @@ CDatum CAEONStringImpl::ExecuteSplit (const CString& sString, const CString& sDe
 
 	{
 	CDatum dResult(CDatum::typeArray);
+	if (sString.IsEmpty())
+		return dResult;
 
 	const char *pSrc = sString.GetParsePointer();
 	const char *pSrcEnd = pSrc + sString.GetLength();
@@ -625,6 +727,8 @@ CDatum CAEONStringImpl::ExecuteSplitByArray (const CString& sString, CDatum dDel
 
 	{
 	CDatum dResult(CDatum::typeArray);
+	if (sString.IsEmpty())
+		return dResult;
 
 	const char *pSrc = sString.GetParsePointer();
 	const char *pSrcEnd = pSrc + sString.GetLength();
@@ -691,6 +795,8 @@ CDatum CAEONStringImpl::ExecuteSplitDoubleLine (const CString& sString)
 
 	{
 	CDatum dResult(CDatum::typeArray);
+	if (sString.IsEmpty())
+		return dResult;
 
 	const char *pPos = sString.GetParsePointer();
 	const char *pEndPos = pPos + sString.GetLength();
@@ -742,6 +848,8 @@ CDatum CAEONStringImpl::ExecuteSplitLines (const CString& sString)
 
 	{
 	CDatum dResult(CDatum::typeArray);
+	if (sString.IsEmpty())
+		return dResult;
 
 	const char *pPos = sString.GetParsePointer();
 	const char *pEndPos = pPos + sString.GetLength();
@@ -785,6 +893,8 @@ CDatum CAEONStringImpl::ExecuteSplitWhitespace (const CString& sString)
 
 	{
 	CDatum dResult(CDatum::typeArray);
+	if (sString.IsEmpty())
+		return dResult;
 
 	const char *pPos = sString.GetParsePointer();
 	const char *pEndPos = pPos + sString.GetLength();
@@ -817,6 +927,20 @@ CDatum CAEONStringImpl::ExecuteSplitWhitespace (const CString& sString)
 
 	dResult.Append(CreateSplitItem(pStart, pPos));
 	return dResult;
+	}
+
+CDatum CAEONStringImpl::GetElementAt (const CString& sValue, int iIndex)
+
+//	GetElementAt
+//
+//	Returns the given element.
+
+	{
+	iIndex = CDatum::CalcArrayIndex(iIndex, sValue.GetLength());
+	if (iIndex >= 0 && iIndex < sValue.GetLength())
+		return CString(sValue.GetParsePointer() + iIndex, 1);
+	else
+		return CDatum();
 	}
 
 CDatum CAEONStringImpl::GetElementAt (const CString& sValue, CAEONTypeSystem &TypeSystem, CDatum dIndex)

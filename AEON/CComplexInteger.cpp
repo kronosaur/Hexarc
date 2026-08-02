@@ -135,6 +135,17 @@ void CComplexInteger::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) c
 			Stream.Write(m_Value.AsString());
 			break;
 
+		case CDatum::EFormat::JSON:
+			if (m_Value.FitsAsDouble())
+				Stream.Write(m_Value.AsString());
+			else
+				{
+				Stream.Write("\"", 1);
+				m_Value.AsString().SerializeJSON(Stream);
+				Stream.Write("\"", 1);
+				}
+			break;
+
 		default:
 			IComplexDatum::Serialize(iFormat, Stream);
 			break;

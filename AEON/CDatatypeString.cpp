@@ -5,6 +5,18 @@
 
 #include "stdafx.h"
 
+bool CDatatypeString::OnCanBeConstructedFrom (CDatum dType) const
+	{
+	const IDatatype& Type = dType;
+	if (Type.IsAny() || Type.IsA(*this) || Type.IsNullType())
+		return true;
+
+	if (Type.IsA(IDatatype::NUMBER) || Type.IsA(IDatatype::BOOL) || Type.IsA(IDatatype::DATE_TIME) || Type.IsA(IDatatype::TIME_SPAN))
+		return true;
+
+	return false;
+	}
+
 bool CDatatypeString::OnEquals (const IDatatype &Src) const
 	{
 	auto &Other = (const CDatatypeSimple &)Src;
@@ -42,7 +54,7 @@ IDatatype::SMemberDesc CDatatypeString::OnGetMember (int iIndex) const
 	{
 	if (iIndex == 0)
 		//	LATER: Element type should be Char (but we don't have that datatype yet).
-		return SMemberDesc({ EMemberType::ArrayElement, NULL_STR, CAEONTypeSystem::GetCoreType(IDatatype::STRING) });
+		return SMemberDesc({ EMemberType::ArrayElement, NULL_STR, CAEONTypes::Get(IDatatype::STRING) });
 	else
 		{
 		iIndex--;

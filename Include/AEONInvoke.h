@@ -24,6 +24,7 @@ class IInvokeCtx
 			{
 			CString sPrompt;
 			bool bNoEcho = false;
+			bool bSingleChar = false;
 			};
 
 		struct SLimits
@@ -49,6 +50,7 @@ class IInvokeCtx
 		virtual bool GetInput (const IInvokeCtx::SInputOptions &Options, CDatum& retdResult) = 0;
 		virtual void *GetLibraryCtx (const CString &sLibrary) { return NULL; }
 		virtual const SLimits& GetLimits () const = 0;
+		virtual CDatum GetProcessArgs () const { return CDatum(); }
 		virtual CDatum GetProcessID () const { return CDatum(); }
 		virtual CDatum GetProgramInfo () const { return CDatum(); }
 		virtual CRandomModule& GetRandomModule () = 0;
@@ -56,6 +58,7 @@ class IInvokeCtx
 		virtual CAEONTypeSystem& GetTypeSystem () = 0;
 		virtual CDatum GetUsername () const { return CDatum(); }
 		virtual CDatum GetVMInfo () const { return CDatum(); }
+		virtual bool InDiagnosticsMode () const { return false; }
 		virtual void Output (CDatum dValue) = 0;
 		virtual CDatum SerializeProcess () const = 0;
 		virtual void SetAsyncProgressFunc (CDatum dFunc) { }
@@ -124,6 +127,7 @@ class CHexeLocalEnvPointer
 		CHexeLocalEnvPointer (const CHexeLocalEnvPointer &Src) = delete;
 		CHexeLocalEnvPointer (CHexeLocalEnvPointer &&Src) noexcept;
 		explicit CHexeLocalEnvPointer (CDatum dEnv);
+		CHexeLocalEnvPointer (CDatum dEnv, CHexeLocalEnvironment *pEnv);
 		explicit CHexeLocalEnvPointer (int iArgCount);
 		explicit CHexeLocalEnvPointer (CHexeLocalEnvironment *pEnv) : m_pEnv(pEnv) { }
 
@@ -141,6 +145,7 @@ class CHexeLocalEnvPointer
 		CHexeLocalEnvironment* GetEnv () const { return m_pEnv; }
 		CHexeLocalEnvironment* GetHandoff () { ASSERT(m_dEnv.IsIdenticalToNil()); CHexeLocalEnvironment *pEnv = m_pEnv; m_pEnv = NULL; return pEnv; }
 		bool IsEmpty () const { return m_pEnv == NULL; }
+		static int JitOffsetEnv ();
 		void Mark ();
 		bool TrackedByGC () const { return m_pEnv && !m_dEnv.IsIdenticalToNil(); }
 
@@ -181,6 +186,8 @@ class CHexeLocalEnvironment : public TExternalDatum<CHexeLocalEnvironment>
 		void Init (int iCount = 0);
 		CString MakeCacheKey () const;
 		inline CDatum OpAdd (int iIndex, CDatum dValue);
+		inline void OpInc (int iIndex, int iInc);
+		inline void OpInc1 (int iIndex);
 		void ResetNextArg (void) { m_iNextArg = 0; }
 		void SetArgumentKey (int iLevel, int iIndex, CStringView sKey);
 		void SetArgumentValue (int iIndex, CDatum dValue) { ASSERT(iIndex < GetAllocSize()); m_pArray[iIndex].dValue = dValue; }
@@ -189,7 +196,13 @@ class CHexeLocalEnvironment : public TExternalDatum<CHexeLocalEnvironment>
 		void SetNextArg (int iValue) { GrowArray(iValue); m_iNextArg = iValue; }
 		void SetNextArgKey (CStringView sKey) { SetArgumentKey(0, m_iNextArg, sKey); if (m_iNextArg < m_iArgCount) m_iNextArg++; }
 		void SetParentEnv (CDatum dParentEnv);
+		void SetParentEnv (CDatum dParentEnv, CHexeLocalEnvironment *pParentEnv);
 		void SetParentEnv (CHexeLocalEnvPointer&& ParentEnv);
+		static int JitEntrySize ();
+		static int JitEntryValueOffset ();
+		static int JitOffsetArgCount ();
+		static int JitOffsetArray ();
+		static int JitOffsetParentEnv ();
 
 		//	IComplexDatum
 		virtual bool Contains (CDatum dValue) const override;
@@ -237,4 +250,11 @@ class CHexeLocalEnvironment : public TExternalDatum<CHexeLocalEnvironment>
 
 		TArray<SEntry> m_DynamicArray;
 	};
+
+inline int CHexeLocalEnvPointer::JitOffsetEnv () { return (int)offsetof(CHexeLocalEnvPointer, m_pEnv); }
+inline int CHexeLocalEnvironment::JitEntrySize () { return sizeof(SEntry); }
+inline int CHexeLocalEnvironment::JitEntryValueOffset () { return (int)offsetof(SEntry, dValue); }
+inline int CHexeLocalEnvironment::JitOffsetArgCount () { return (int)offsetof(CHexeLocalEnvironment, m_iArgCount); }
+inline int CHexeLocalEnvironment::JitOffsetArray () { return (int)offsetof(CHexeLocalEnvironment, m_pArray); }
+inline int CHexeLocalEnvironment::JitOffsetParentEnv () { return (int)offsetof(CHexeLocalEnvironment, m_ParentEnv); }
 

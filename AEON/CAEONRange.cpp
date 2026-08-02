@@ -18,7 +18,7 @@ TDatumPropertyHandler<CAEONRange> CAEONRange::m_Properties = {
 		"Returns the type of the object.",
 		[](const CAEONRange &Obj, const CString &sProperty)
 			{
-			return CAEONTypeSystem::GetCoreType(IDatatype::RANGE);
+			return CAEONTypes::Get(IDatatype::RANGE);
 			},
 		NULL,
 		},

@@ -4,6 +4,7 @@
 #include "AEON.h"
 
 #include "DatatypeImpl.h"
+#include "AEONStore.h"
 #include "AEONImpl.h"
 #include "AEONLines.h"
 #include "AEONTable.h"

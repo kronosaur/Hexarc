@@ -102,6 +102,43 @@ TDatumPropertyHandler<CComplexDatatype> CComplexDatatype::m_Properties = {
 
 TDatumMethodHandler<CComplexDatatype> CComplexDatatype::m_Methods = {
 	{
+		"getReturnType",
+		"%:*",
+		".getReturnType(thisType, argTypes[, argLiterals]) -> type",
+		0,
+		[](CComplexDatatype& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
+			{
+			int iArg = 1;
+			CDatum dThisType = LocalEnv.GetArgument(iArg++);
+
+			TArray<CDatum> ArgTypes;
+			CDatum dArgTypes = LocalEnv.GetArgument(iArg++);
+			ArgTypes.InsertEmpty(dArgTypes.GetCount());
+			for (int i = 0; i < dArgTypes.GetCount(); i++)
+				ArgTypes[i] = dArgTypes.GetElement(i);
+
+			TArray<CDatum> ArgLiterals;
+			if (iArg < LocalEnv.GetCount())
+				{
+				CDatum dArgLiterals = LocalEnv.GetArgument(iArg++);
+				ArgLiterals.InsertEmpty(dArgLiterals.GetCount());
+				for (int i = 0; i < dArgLiterals.GetCount(); i++)
+					ArgLiterals[i] = dArgLiterals.GetElement(i);
+				}
+
+			CDatum dReturnType;
+			CString sError;
+			if (!Obj.m_pType->CanBeCalledWith(dThisType, ArgTypes, ArgLiterals, &dReturnType, &sError))
+				{
+				retResult.dResult = CAEONTypes::Get(IDatatype::ERROR_T);
+				return true;
+				}
+
+			retResult.dResult = dReturnType;
+			return true;
+			},
+		},
+	{
 		"isa",
 		"b:t=%",
 		".isa(type) -> true/false",
@@ -116,6 +153,18 @@ TDatumMethodHandler<CComplexDatatype> CComplexDatatype::m_Methods = {
 				}
 
 			retResult.dResult = Obj.m_pType->IsA(dType);
+			return true;
+			},
+		},
+	{
+		"isAssignableTo",
+		"b:t=%",
+		".isAssignableTo(type) -> true/false",
+		0,
+		[](CComplexDatatype& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
+			{
+			const IDatatype& Type = LocalEnv.GetArgument(1);
+			retResult.dResult = Type.CanBeConstructedFrom(LocalEnv.GetArgument(0));
 			return true;
 			},
 		},
@@ -161,7 +210,7 @@ bool CComplexDatatype::CreateFromStream (IByteStream& Stream, CDatum& retdDatum)
 		{
 		CString sFullyQualifiedName = CString::Deserialize(Stream);
 
-		retdDatum = CAEONTypeSystem::FindCoreType(sFullyQualifiedName);
+		retdDatum = CAEONTypes::FindBuiltInType(sFullyQualifiedName);
 		if (retdDatum.IsNil())
 			{
 			//	If not found then we create a datatype reference. This means
@@ -199,9 +248,9 @@ bool CComplexDatatype::CreateFromStream (IByteStream& Stream, CDatum& retdDatum)
 		//	If this is a core type, then it is a previously stored core type, 
 		//	so we need to look it up.
 
-		if (pDatum->m_pType->GetCoreType())
+		if (pDatum->m_pType->GetCoreType() || pDatum->m_pType->IsSavedFromBuiltIn())
 			{
-			retdDatum = CAEONTypeSystem::FindCoreType(pDatum->m_pType->GetFullyQualifiedName());
+			retdDatum = CAEONTypes::FindBuiltInType(pDatum->m_pType->GetFullyQualifiedName());
 			if (!retdDatum.IsNil())
 				{
 				delete pDatum;
@@ -248,6 +297,12 @@ int CComplexDatatype::GetID (IDatatype::EImplementation iValue)
 
 		case IDatatype::EImplementation::Function:
 			return IMPL_FUNCTION_ID;
+
+		case IDatatype::EImplementation::GenericFunction:
+			return IMPL_GENERIC_FUNCTION_ID;
+
+		case IDatatype::EImplementation::LiteralStruct:
+			return IMPL_LITERAL_STRUCT_ID;
 
 		case IDatatype::EImplementation::Tensor:
 			return IMPL_TENSOR_ID;
@@ -312,6 +367,14 @@ IDatatype::EImplementation CComplexDatatype::GetImplementation (int iID, DWORD& 
 		case IMPL_FUNCTION_ID:
 			retdwVersion = 1;
 			return IDatatype::EImplementation::Function;
+
+		case IMPL_GENERIC_FUNCTION_ID:
+			retdwVersion = 1;
+			return IDatatype::EImplementation::GenericFunction;
+
+		case IMPL_LITERAL_STRUCT_ID:
+			retdwVersion = 1;
+			return IDatatype::EImplementation::LiteralStruct;
 
 		case IMPL_MATRIX_ID:
 			retdwVersion = 1;
@@ -396,7 +459,7 @@ CDatum CComplexDatatype::DeserializeAEON (IByteStream& Stream, DWORD dwID, CAEON
 		{
 		CString sFullyQualifiedName = CString::Deserialize(Stream);
 
-		CDatum dValue = CAEONTypeSystem::FindCoreType(sFullyQualifiedName);
+		CDatum dValue = CAEONTypes::FindBuiltInType(sFullyQualifiedName);
 		if (dValue.IsNil())
 			{
 			//	If not found then we create a datatype reference. This means
@@ -420,6 +483,16 @@ CDatum CComplexDatatype::DeserializeAEON (IByteStream& Stream, DWORD dwID, CAEON
 		//	Read the actual type.
 
 		pValue->m_pType = std::move(IDatatype::DeserializeAEON(Stream, dwType, Serialized));
+
+		//	If this is a core type, then it is a previously stored core type, 
+		//	so we need to look it up.
+
+		if (pValue->m_pType->GetCoreType() || pValue->m_pType->IsSavedFromBuiltIn())
+			{
+			CDatum dFoundType = CAEONTypes::FindBuiltInType(pValue->m_pType->GetFullyQualifiedName());
+			if (!dFoundType.IsNil())
+				return dFoundType;
+			}
 
 		return dValue;
 		}

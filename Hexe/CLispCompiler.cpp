@@ -7,6 +7,7 @@
 
 DECLARE_CONST_STRING(STR_NIL,						"nil")
 DECLARE_CONST_STRING(STR_TRUE,						"true")
+DECLARE_CONST_STRING(STR_FALSE,						"false")
 DECLARE_CONST_STRING(STR_QUOTE,						"quote")
 
 DECLARE_CONST_STRING(OPTIONS_EXCLUDE_NIL,			"excludeNil")
@@ -386,6 +387,9 @@ bool CLispCompiler::CompileIdentifier (int iBlock)
 	else if (IsTrueSymbol(dToken))
 		m_pCode->WriteShortOpCode(iBlock, opPushTrue);
 
+	else if (IsFalseSymbol(dToken))
+		m_pCode->WriteShortOpCode(iBlock, opPushFalse);
+
 	//	Check primitives
 
 	else if (strEquals(dToken.AsStringView(), PRIMITIVE_INVOKE))
@@ -463,6 +467,9 @@ bool CLispCompiler::CompileLiteralExpression (int iBlock)
 
 			if (IsNilSymbol(dToken))
 				m_pCode->WriteShortOpCode(iBlock, opPushNil);
+
+			else if (IsFalseSymbol(dToken))
+				m_pCode->WriteShortOpCode(iBlock, opPushFalse);
 
 			else if (IsTrueSymbol(dToken))
 				m_pCode->WriteShortOpCode(iBlock, opPushTrue);
@@ -2203,6 +2210,16 @@ bool CLispCompiler::IsNilSymbol (CDatum dDatum)
 	//	case-insenstive check
 
 	return strEquals(strToLower(dDatum.AsStringView()), STR_NIL);
+	}
+
+bool CLispCompiler::IsFalseSymbol (CDatum dDatum)
+
+//	IsFalseSymbol
+//
+//	Is this false?
+
+	{
+	return strEquals(strToLower(dDatum.AsStringView()), STR_FALSE);
 	}
 
 bool CLispCompiler::IsTrueSymbol (CDatum dDatum)

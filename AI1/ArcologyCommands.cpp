@@ -5,6 +5,9 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_ARCOLOGY_COMMANDS_NO_SERVER_CONNECTION,	"No server connection.");
+DECLARE_CONST_STRING(STR_ARCOLOGY_COMMANDS_UNABLE_TO_COMMUNICATE_WITH_SERVER,	"Unable to communicate with server.");
+
 DECLARE_CONST_STRING(CMD_ADMIN_REQUIRED,				"ADMIN-REQUIRED")
 DECLARE_CONST_STRING(CMD_AUTH,							"AUTH")
 DECLARE_CONST_STRING(CMD_AUTH_INVALID,					"AUTH-INVALID")
@@ -79,7 +82,7 @@ CString ExecuteArcologyCommand (CSocket &theSocket, const CString &sCmd, CString
 	int i;
 
 	if (!theSocket.IsValid())
-		return CString("No server connection.");
+		return STR_ARCOLOGY_COMMANDS_NO_SERVER_CONNECTION;
 
 	//	Send the data
 
@@ -87,7 +90,7 @@ CString ExecuteArcologyCommand (CSocket &theSocket, const CString &sCmd, CString
 	//CString sSendBuffer = strPattern("AI/1.00 %s|", sCmd);
 	int iBytesSent = theSocket.Write(sSendBuffer);
 	if (iBytesSent == 0)
-		return CString("Unable to communicate with server.");
+		return STR_ARCOLOGY_COMMANDS_UNABLE_TO_COMMUNICATE_WITH_SERVER;
 
 	//	Wait for a reply
 
@@ -209,20 +212,26 @@ bool HandleConnectResponse (CSocket &theSocket, const CString &sFirstCommand, CD
 
 			//	Ask for an admin username
 
-			CString sUsername = GetInputLine(STR_PROMPT_USERNAME);
+			CString sUsername = Options.sUsername;
+			if (sUsername.IsEmpty())
+				sUsername = GetInputLine(STR_PROMPT_USERNAME);
+
 			if (sUsername.IsEmpty())
 				return false;
 
 			//	Ask for a password
 
-			CString sPassword;
-			CString sPasswordConfirm;
-			do
+			CString sPassword = Options.sPassword;
+			if (sPassword.IsEmpty())
 				{
-				sPassword = GetInputLine(STR_PROMPT_PASSWORD);
-				sPasswordConfirm = GetInputLine(STR_PROMPT_PASSWORD_CONFIRM);
+				CString sPasswordConfirm;
+				do
+					{
+					sPassword = GetInputLine(STR_PROMPT_PASSWORD);
+					sPasswordConfirm = GetInputLine(STR_PROMPT_PASSWORD_CONFIRM);
+					}
+				while (!strEquals(sPassword, sPasswordConfirm));
 				}
-			while (!strEquals(sPassword, sPasswordConfirm));
 
 			//	Generate an authDesc structure
 
@@ -250,7 +259,11 @@ bool HandleConnectResponse (CSocket &theSocket, const CString &sFirstCommand, CD
 				|| strEquals(sCommand, CMD_AUTH_INVALID))
 			{
 			if (strEquals(sCommand, CMD_AUTH_INVALID))
+				{
 				printf("Invalid username or password\n");
+				if (!Options.sUsername.IsEmpty() && !Options.sPassword.IsEmpty())
+					return false;
+				}
 
 			//	Get the challenge
 
@@ -258,11 +271,16 @@ bool HandleConnectResponse (CSocket &theSocket, const CString &sFirstCommand, CD
 
 			//	Ask for username and password
 
-			CString sUsername = GetInputLine(STR_PROMPT_USERNAME);
+			CString sUsername = Options.sUsername;
+			if (sUsername.IsEmpty())
+				sUsername = GetInputLine(STR_PROMPT_USERNAME);
+
 			if (sUsername.IsEmpty())
 				return false;
 
-			CString sPassword = GetInputLine(STR_PROMPT_PASSWORD);
+			CString sPassword = Options.sPassword;
+			if (sPassword.IsEmpty())
+				sPassword = GetInputLine(STR_PROMPT_PASSWORD);
 
 			//	Generate the response to the challenge
 

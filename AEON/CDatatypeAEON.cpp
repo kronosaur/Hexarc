@@ -5,7 +5,7 @@
 
 #include "stdafx.h"
 
-CDatatypeAEON::CDatatypeAEON (CStringView sFullyQualifiedName, DWORD dwCoreID, const CDatatypeList& Implements, CStringView sDatumTypename, TArray<SMemberDesc>&& Members, bool bCanBeNull) : IDatatype(sFullyQualifiedName, dwCoreID),
+CDatatypeAEON::CDatatypeAEON (CStringView sFullyQualifiedName, DWORD dwCoreID, const CDatatypeList& Implements, CStringView sDatumTypename, TArray<SMemberDesc>&& Members, bool bCanBeNull) : IDatatype(true, sFullyQualifiedName, dwCoreID),
 				m_Implements(Implements),
 				m_Members(std::move(Members)),
 				m_sDatumTypename(sDatumTypename),
@@ -23,6 +23,12 @@ CDatatypeAEON::CDatatypeAEON (CStringView sFullyQualifiedName, DWORD dwCoreID, c
 
 	if (!CDatum::FindExternalType(sDatumTypename, &m_pFactory))
 		m_pFactory = NULL;
+	}
+
+void CDatatypeAEON::OnAccumulateTypesUsed (TSortMap<CString, CDatum>& retTypes) const
+	{
+	for (int i = 0; i < m_Members.GetCount(); i++)
+		AccumulateType(m_Members[i].dType, retTypes);
 	}
 
 CDatum CDatatypeAEON::OnCreateAsType (CDatum dValue) const

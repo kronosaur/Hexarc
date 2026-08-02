@@ -18,15 +18,15 @@ void CAMP1Queue::ReplayEvents (IAMP1CommunicatorEvents& Events)
 		switch (Entry.iType)
 			{
 			case EEntryType::ClientConnected:
-				Events.OnAMP1ClientConnected(Entry.sNodeID);
+				Events.OnAMP1ClientConnected(Entry.sNodeID, Entry.sMachineName);
 				break;
 
 			case EEntryType::ClientDisconnected:
-				Events.OnAMP1ClientDisconnected(Entry.sNodeID);
+				Events.OnAMP1ClientDisconnected(Entry.sNodeID, Entry.sMachineName);
 				break;
 
 			case EEntryType::ConnectedToServer:
-				Events.OnAMP1ConnectedToServer();
+				Events.OnAMP1ConnectedToServer(Entry.sMachineName);
 				break;
 
 			case EEntryType::FatalError:

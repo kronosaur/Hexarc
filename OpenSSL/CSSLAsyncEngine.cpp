@@ -12,6 +12,7 @@ DECLARE_CONST_STRING(FIELD_MAC_PREFIX,					"Mac=");
 
 DECLARE_CONST_STRING(STR_CONNECTED,						"Connected.");
 DECLARE_CONST_STRING(STR_HANDSHAKE_START,				"Handshake start.");
+DECLARE_CONST_STRING(STR_SSL_PEER_CLOSED,				"SSL_read: peer closed connection.");
 
 DECLARE_CONST_STRING(ERR_CONNECT_INVALID_STATE,			"Connect: Invalid state.");
 DECLARE_CONST_STRING(ERR_PROCESS_INVALID_STATE,			"Process: Invalid state.");
@@ -497,6 +498,15 @@ CSSLAsyncEngine::EResults CSSLAsyncEngine::Process (CString *retsError)
 
 								if (retsError) *retsError = sError;
 								return resError;
+								}
+
+							case SSL_ERROR_ZERO_RETURN:
+								{
+								m_bReading = false;
+								m_bWriting = false;
+								m_iState = stateReady;
+								m_Diagnostics.Log(STR_SSL_PEER_CLOSED);
+								return resDisconnect;
 								}
 
 							default:

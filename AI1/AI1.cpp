@@ -3,6 +3,20 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_AI1_INVALID_URL,	"Invalid URL.");
+DECLARE_CONST_STRING(STR_AI1_GET,	"GET");
+DECLARE_CONST_STRING(STR_AI1_KEEP_ALIVE,	"keep-alive");
+DECLARE_CONST_STRING(STR_AI1_AI1_1_0_THIS_IS_A_TEST_OF_THE_HEADER_PARSING_SYSTEM_IN_HEXARC_THERE_IS_PROBABLY_A_B_242F74DB,	"AI1/1.0 (This is a test of the header parsing system in Hexarc. There is probably a bug in which splitting the header across packets will cause failure of the HTTP parsing engine.)");
+DECLARE_CONST_STRING(STR_AI1_AI1_1_0,	"AI1/1.0");
+DECLARE_CONST_STRING(STR_AI1_UNABLE_TO_COMPLETE_RUN,	"Unable to complete run.");
+DECLARE_CONST_STRING(STR_AI1_EXE,	"*.exe");
+DECLARE_CONST_STRING(STR_AI1_ERROR_UNABLE_TO_OBTAIN_A_LIST_OF_EXECUTABLE_FILES_TO_UPGRADE,	"ERROR: Unable to obtain a list of executable files to upgrade.");
+DECLARE_CONST_STRING(STR_AI1_ERROR,	"ERROR");
+DECLARE_CONST_STRING(STR_AI1_NEWLINE_ARE_YOU_SURE_YOU_WANT_TO_UPGRADE_THE_ARCOLOGY_Y_N,	"\nAre you sure you want to upgrade the arcology? [y/n] : ");
+DECLARE_CONST_STRING(STR_AI1_ARC_CERTIFICATES,	"/Arc.certificates");
+DECLARE_CONST_STRING(STR_AI1_ASTERISK_DOT_ASTERISK,	"*.*");
+DECLARE_CONST_STRING(STR_AI1_HELP,	"help");
+
 #ifdef DEBUG
 //#define DEBUG_REQUEST_FRAGMENT
 #endif
@@ -104,12 +118,12 @@ CString ExecuteHTTPGet (const CString &sInput)
 	CString sHost;
 	CString sPath;
 	if (!urlParse(pPos, NULL, &sHost, &sPath))
-		return CString("Invalid URL.");
+		return STR_AI1_INVALID_URL;
 
 	//	If no host, then local host
 
 	if (sHost.IsEmpty())
-		sHost = CString("localhost");
+		sHost = STR_LOCALHOST;
 
 	//	Connect
 
@@ -120,13 +134,13 @@ CString ExecuteHTTPGet (const CString &sInput)
 	//	Compose a request
 
 	CHTTPMessage Request;
-	Request.InitRequest(CString("GET"), sPath);
+	Request.InitRequest(STR_AI1_GET, sPath);
 	Request.AddHeader(HEADER_HOST, sHost);
-	Request.AddHeader(HEADER_CONNECTION, CString("keep-alive"));
+	Request.AddHeader(HEADER_CONNECTION, STR_AI1_KEEP_ALIVE);
 #ifdef DEBUG_REQUEST_FRAGMENT_X
-	Request.AddHeader(HEADER_USER_AGENT, CString("AI1/1.0 (This is a test of the header parsing system in Hexarc. There is probably a bug in which splitting the header across packets will cause failure of the HTTP parsing engine.)"));
+	Request.AddHeader(HEADER_USER_AGENT, STR_AI1_AI1_1_0_THIS_IS_A_TEST_OF_THE_HEADER_PARSING_SYSTEM_IN_HEXARC_THERE_IS_PROBABLY_A_B_242F74DB);
 #else
-	Request.AddHeader(HEADER_USER_AGENT, CString("AI1/1.0"));
+	Request.AddHeader(HEADER_USER_AGENT, STR_AI1_AI1_1_0);
 #endif
 
 	//	Send the request
@@ -210,7 +224,7 @@ CString ExecuteLispCommand (const CString &sInput)
 			return dResult.AsString();
 
 		default:
-			return CString("Unable to complete run.");
+			return STR_AI1_UNABLE_TO_COMPLETE_RUN;
 		}
 	}
 
@@ -280,8 +294,8 @@ CString ExecuteUpgrade (CSocket &theSocket, const CString &sCmd)
 	//	Make a list of all executable files to upgrade
 
 	TArray<CString> FileList;
-	if (!fileGetFileList(sRoot, NULL_STR, CString("*.exe"), FFL_FLAG_RELATIVE_FILESPEC, &FileList))
-		return CString("ERROR: Unable to obtain a list of executable files to upgrade.");
+	if (!fileGetFileList(sRoot, NULL_STR, STR_AI1_EXE, FFL_FLAG_RELATIVE_FILESPEC, &FileList))
+		return STR_AI1_ERROR_UNABLE_TO_OBTAIN_A_LIST_OF_EXECUTABLE_FILES_TO_UPGRADE;
 
 	//	Prepare a request upgrade command
 
@@ -325,7 +339,7 @@ CString ExecuteUpgrade (CSocket &theSocket, const CString &sCmd)
 	CString sResult;
 	CDatum dResult;
 	ExecuteArcologyCommand(theSocket, sSend, &sResult, &dResult);
-	if (strEquals(sResult, CString("ERROR")))
+	if (strEquals(sResult, STR_AI1_ERROR))
 		return dResult.AsString();
 
 	//	Show all the files to upgrade
@@ -340,7 +354,7 @@ CString ExecuteUpgrade (CSocket &theSocket, const CString &sCmd)
 
 	//	Confirm
 
-	CString sConfirm = GetInputLine(CString("\nAre you sure you want to upgrade the arcology? [y/n] : "));
+	CString sConfirm = GetInputLine(STR_AI1_NEWLINE_ARE_YOU_SURE_YOU_WANT_TO_UPGRADE_THE_ARCOLOGY_Y_N);
 	if (*sConfirm.GetParsePointer() != 'y' && *sConfirm.GetParsePointer() != 'Y')
 		return NULL_STR;
 
@@ -418,7 +432,7 @@ CString ExecuteUploadCertificate (CSocket &theSocket, const CString &sCmd)
 
 	//	Upload
 
-	return UploadFile(theSocket, CMD_UPLOAD, CString("/Arc.certificates"), sFilespec);
+	return UploadFile(theSocket, CMD_UPLOAD, STR_AI1_ARC_CERTIFICATES, sFilespec);
 	}
 
 CString ExecuteUploadPackage (CSocket &theSocket, const CString &sCmd)
@@ -470,7 +484,7 @@ CString ExecuteUploadPackage (CSocket &theSocket, const CString &sCmd)
 	//	Now loop over all files in the directory
 
 	TArray<CString> Files;
-	if (!fileGetFileList(fileAppend(sPackageFolder, CString("*.*")), 
+	if (!fileGetFileList(fileAppend(sPackageFolder, STR_AI1_ASTERISK_DOT_ASTERISK),
 			FFL_FLAG_RELATIVE_FILESPEC | FFL_FLAG_RECURSIVE,
 			&Files))
 		{
@@ -557,6 +571,26 @@ void ParseCommandLine (int argc, char *argv[], SOptions *retOptions)
 					retOptions->bNoLogo = true;
 					break;
 
+				case 'c':
+				case 'C':
+					pPos++;
+					if (*pPos != ':')
+						break;
+					pPos++;
+
+					retOptions->sSingleCommand = CString(pPos);
+					break;
+
+				case 'p':
+				case 'P':
+					pPos++;
+					if (*pPos != ':')
+						break;
+					pPos++;
+
+					retOptions->sPassword = CString(pPos);
+					break;
+
 				case 'r':
 				case 'R':
 					{
@@ -585,6 +619,16 @@ void ParseCommandLine (int argc, char *argv[], SOptions *retOptions)
 				case 't':
 				case 'T':
 					retOptions->bTiming = true;
+					break;
+
+				case 'u':
+				case 'U':
+					pPos++;
+					if (*pPos != ':')
+						break;
+					pPos++;
+
+					retOptions->sUsername = CString(pPos);
 					break;
 
 				case 'z':
@@ -635,12 +679,15 @@ int AI1 (SOptions &Options)
 		printf("ai1 [options] [\"command\"]\n");
 		printf("\n");
 		printf("  /?              Help.\n");
+		printf("  /c:{command}    Run command and exit.\n");
 		printf("  /h:{filespec}   Run HexeDocument.\n");
 		printf("  /l              Lisp engine top-level.\n");
 		printf("  /n              No logo.\n");
+		printf("  /p:{password}   Password for authentication.\n");
 		printf("  /r:{filespec}   Run script file.\n");
 		printf("  /s:{hostname}   Connect to given server.\n");
 		printf("  /t              Time each command.\n");
+		printf("  /u:{username}   Username for authentication.\n");
 		printf("  /z              Do not connect to server.\n");
 		printf("  /1              V1 authentication.\n");
 		printf("  /!              V1 auth to old server.\n");
@@ -649,7 +696,7 @@ int AI1 (SOptions &Options)
 			return 0;
 
 		printf("\n");
-		Options.sSingleCommand = CString("help");
+		Options.sSingleCommand = STR_AI1_HELP;
 		}
 
 	//	Connect (if necessary)
@@ -735,4 +782,3 @@ void PrintUTF8 (const CString sString)
 	CString16 sUnicode(strEscapePrintf(sString));
 	wprintf((LPTSTR)sUnicode);
 	}
-

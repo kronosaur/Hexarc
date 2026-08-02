@@ -245,6 +245,7 @@
     <ClCompile Include="CAI1Protocol.cpp" />
     <ClCompile Include="CAI1Stream.cpp" />
     <ClCompile Include="CAMP1Protocol.cpp" />
+    <ClCompile Include="CArcRouteUtil.cpp" />
     <ClCompile Include="CCryptosaurInterface.cpp" />
     <ClCompile Include="CEsperBodyBuilder.cpp" />
     <ClCompile Include="CEsperInterface.cpp" />

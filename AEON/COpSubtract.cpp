@@ -144,7 +144,7 @@ CDatum COpSubtract::CalcType (CDatum dLeftType, CDatum dRightType)
 	else if (LeftType.IsNullable() && RightType.IsNullable())
 		{
 		CDatum dNewType = CalcType(LeftType.GetVariantType(), RightType.GetVariantType());
-		return CAEONTypeSystem::CreateNullableType(NULL_STR, dNewType);
+		return CAEONTypes::CreateNullableType(NULL_STR, dNewType);
 		}
 	else if (LeftType.IsNullable())
 		return CalcType(LeftType.GetVariantType(), dRightType);
@@ -167,12 +167,12 @@ CDatum COpSubtract::CalcType (CDatum dLeftType, CDatum dRightType)
 			const IDatatype& RightElementType = dRightElementType;
 
 			CDatum dResultType = CalcType(dLeftElementType, dRightElementType);
-			return CAEONTypeSystem::CreateAnonymousArray(NULL_STR, dResultType);
+			return CAEONTypes::CreateArray(NULL_STR, dResultType);
 			}
 		else
 			{
 			CDatum dResultType = CalcType(dLeftElementType, dRightType);
-			return CAEONTypeSystem::CreateAnonymousArray(NULL_STR, dResultType);
+			return CAEONTypes::CreateArray(NULL_STR, dResultType);
 			}
 		}
 	else if (LeftType.IsA(IDatatype::STRING))

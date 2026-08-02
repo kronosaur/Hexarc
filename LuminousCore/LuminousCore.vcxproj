@@ -235,6 +235,10 @@
     <ClCompile Include="CAEONLuminousBitmap.cpp" />
     <ClCompile Include="CAEONLuminousCanvas.cpp" />
     <ClCompile Include="CAEONLuminousSprite.cpp" />
+    <ClCompile Include="CAEONCircle2D.cpp" />
+    <ClCompile Include="CAEONRect2D.cpp" />
+    <ClCompile Include="CAEONLine2D.cpp" />
+    <ClCompile Include="CAEONTrail2D.cpp" />
     <ClCompile Include="CAEONReanimator.cpp" />
     <ClCompile Include="CAEONReanimator3D.cpp" />
     <ClCompile Include="CAnimatorSet2D.cpp" />
@@ -257,7 +261,11 @@
     <ClCompile Include="CLuminousScene3D.cpp" />
     <ClCompile Include="CLuminousShadowStyle.cpp" />
     <ClCompile Include="CLuminousTextAlign.cpp" />
+    <ClCompile Include="CObj2DCircle.cpp" />
     <ClCompile Include="CObj2DRectangle.cpp" />
+    <ClCompile Include="CObj2DLine.cpp" />
+    <ClCompile Include="CObj2DTrail.cpp" />
+    <ClCompile Include="CVectorQueueAnimator2D.cpp" />
     <ClCompile Include="CScalarAnimator2D.cpp" />
     <ClCompile Include="CScalarAnimator3D.cpp" />
     <ClCompile Include="CStringAnimator2D.cpp" />

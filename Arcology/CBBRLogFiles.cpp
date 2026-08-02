@@ -5,6 +5,9 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_CBBRLOG_FILES_BLACK_BOX_20170124_034229_LOG,	"BlackBox_20170124_034229.log");
+DECLARE_CONST_STRING(STR_CBBRLOG_FILES_FIXUP_LOG,	"Fixup.log");
+
 DECLARE_CONST_STRING(FILESPEC_DOT_LOG,					"BlackBox*.log")
 
 DECLARE_CONST_STRING(ERR_DIRECTORY_FAILED,				"Unable to find log files at: %s.")
@@ -170,7 +173,7 @@ bool CBBRLogFiles::Init (const CString &sPath, CString *retsError)
 	m_sPath = sPath;
 
 #ifdef DEBUG_FIXUP
-	Fixup(fileAppend(sPath, CString("BlackBox_20170124_034229.log")));
+	Fixup(fileAppend(sPath, STR_CBBRLOG_FILES_BLACK_BOX_20170124_034229_LOG));
 #endif
 
 	//	First we make a list of log files at the given path.
@@ -470,7 +473,7 @@ void CBBRLogFiles::Fixup (const CString &sFilespec)
 		return;
 		}
 
-	CString sDestFilespec = fileAppend(m_sPath, CString("Fixup.log"));
+	CString sDestFilespec = fileAppend(m_sPath, STR_CBBRLOG_FILES_FIXUP_LOG);
 	CFile DestFile;
 	if (!DestFile.Create(sDestFilespec, CFile::FLAG_CREATE_ALWAYS, &sError))
 		{

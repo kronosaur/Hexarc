@@ -34,8 +34,14 @@ class CHexeStack
 		CHexeStack& operator= (CHexeStack &&Src) noexcept = delete;
 
 		void DeleteAll (void) { m_iTop = -1; }
+		CDatum GetAt (int iIndex) const { return m_Stack[iIndex]; }
 		int GetCount () const { return m_iTop + 1; }
+		CDatum* GetPointerAt (int iIndex) { return &m_Stack[iIndex]; }
+		const CDatum* GetPointerAt (int iIndex) const { return &m_Stack[iIndex]; }
 		void Mark (void);
+		void PopTo (int iCount) { m_iTop = iCount - 1; }
+		void PushNil (int iCount) { for (int i = 0; i < iCount; i++) Push(CDatum()); }
+		void SetAt (int iIndex, CDatum dValue) { m_Stack[iIndex] = dValue; }
 
 #ifdef DEBUG_PROC_ENV
 		CDatum Get (void) const { ValidatePos(m_iTop); return m_Stack[m_iTop]; }
@@ -63,6 +69,8 @@ class CHexeStack
 		CDatum SafeGet (int iIndex) const;
 		CDatum SafePop (void) { return (m_iTop == -1 ? CDatum() : m_Stack[m_iTop--]); }
 		void SafePop (int iCount) { if (m_iTop + 1 >= iCount) m_iTop -= iCount; else m_iTop = -1; }
+		static int JitOffsetData ();
+		static int JitOffsetTop ();
 
 	private:
 
@@ -82,6 +90,8 @@ class CHexeCallStack
 		static constexpr DWORD NULL_CALL =		0x00;
 		static constexpr DWORD FUNC_CALL =		0x01;
 		static constexpr DWORD SYSTEM_CALL =	0x02;
+		static constexpr DWORD STACK_FRAME_CALL =	0x03;
+		static constexpr DWORD FLAG_STACK_FRAME_HAS_ENV = 0x00000001;
 
 		struct SFrame
 			{
@@ -93,6 +103,10 @@ class CHexeCallStack
 
 			CDatum dPrimitive;
 			CDatum dContext;
+
+			int iPrevFrameBase = -1;
+			int iPrevStackTop = 0;
+			int iFrameBase = -1;
 			};
 
 		CHexeCallStack ();
@@ -103,8 +117,19 @@ class CHexeCallStack
 
 		const SFrame& Top () const;
 		void PushFunCall (CDatum dExpression, CDatum dCodeBank, DWORD* pIP);
+		void PushStackFrameCall (CDatum dExpression, CDatum dCodeBank, DWORD* pIP, int iPrevFrameBase, int iPrevStackTop, int iFrameBase);
 		void PushSysCall (CDatum dExpression, CDatum dCodeBank, DWORD* pIP, CDatum dPrimitive, CDatum dContext, DWORD dwFlags);
+		void SetTopStackFrame (int iPrevFrameBase, int iPrevStackTop, int iFrameBase);
 		void Pop ();
+		static int JitFrameOffsetCodeBank ();
+		static int JitFrameOffsetExpression ();
+		static int JitFrameOffsetFlags ();
+		static int JitFrameOffsetIP ();
+		static int JitFrameOffsetPrevFrameBase ();
+		static int JitFrameOffsetPrevStackTop ();
+		static int JitFrameOffsetType ();
+		static int JitFrameSize ();
+		static int JitOffsetStack ();
 
 	private:
 
@@ -141,7 +166,8 @@ class CHexeEnvStack
 		void PushNewFrame (int iArgCount = 0);
 		void PushNewFrameAsChild (int iArgCount = 0);
 		void SetGlobalEnv (CDatum dGlobalEnv, CHexeGlobalEnvironment *pGlobalEnv = NULL);
-		void SetLocalEnvParent (CDatum dLocalEnv);
+		void SetLocalEnvParent (CDatum dLocalEnv, CHexeLocalEnvironment *pLocalEnv);
+		static int JitOffsetCurLocalEnv ();
 
 	private:
 
@@ -174,6 +200,19 @@ class CHexeEnvStack
 
 		CHexeLocalEnvPointer m_pCurLocalEnv;
 	};
+
+inline int CHexeStack::JitOffsetData () { return (int)offsetof(CHexeStack, m_Stack); }
+inline int CHexeStack::JitOffsetTop () { return (int)offsetof(CHexeStack, m_iTop); }
+inline int CHexeCallStack::JitFrameOffsetCodeBank () { return (int)offsetof(SFrame, dCodeBank); }
+inline int CHexeCallStack::JitFrameOffsetExpression () { return (int)offsetof(SFrame, dExpression); }
+inline int CHexeCallStack::JitFrameOffsetFlags () { return (int)offsetof(SFrame, dwFlags); }
+inline int CHexeCallStack::JitFrameOffsetIP () { return (int)offsetof(SFrame, pIP); }
+inline int CHexeCallStack::JitFrameOffsetPrevFrameBase () { return (int)offsetof(SFrame, iPrevFrameBase); }
+inline int CHexeCallStack::JitFrameOffsetPrevStackTop () { return (int)offsetof(SFrame, iPrevStackTop); }
+inline int CHexeCallStack::JitFrameOffsetType () { return (int)offsetof(SFrame, dwType); }
+inline int CHexeCallStack::JitFrameSize () { return sizeof(SFrame); }
+inline int CHexeCallStack::JitOffsetStack () { return (int)offsetof(CHexeCallStack, m_Stack); }
+inline int CHexeEnvStack::JitOffsetCurLocalEnv () { return (int)offsetof(CHexeEnvStack, m_pCurLocalEnv); }
 
 class CHexeSecurityCtx
 	{

@@ -51,6 +51,62 @@ CDatum CDatumFormat::AsDatum (const CStringFormat& Format)
 	return dResult;
 	}
 
+CString CDatumFormat::FormatDouble (double rValue, CDatum dFormat)
+
+//	FormatDouble
+//
+//	Formats a double from the client-side descriptor returned by AsDatum.
+
+	{
+	if (dFormat.GetBasicType() == CDatum::typeString)
+		return CStringFormat(dFormat.AsString()).FormatDouble(rValue);
+	else if (!dFormat.IsStruct())
+		return CDatum(rValue).AsString();
+
+	CString sLeading = dFormat.GetElement(FIELD_LEADING).AsString();
+	CString sTrailing = dFormat.GetElement(FIELD_TRAILING).AsString();
+	int iZeros = Max(0, (int)dFormat.GetElement(FIELD_ZEROS));
+	int iMinDigits = Max(0, (int)dFormat.GetElement(FIELD_MIN_DIGITS));
+	int iMaxDigits = Max(iMinDigits, (int)dFormat.GetElement(FIELD_MAX_DIGITS));
+
+	//	Reconstitute a CStringFormat pattern with the same number-format fields.
+	//	A leading comma is sufficient to enable grouping; CStringFormat derives
+	//	the actual comma positions from the number of integer digits.
+
+	CStringBuffer Format;
+	Format.Write(sLeading);
+	if (dFormat.GetElement(FIELD_COMMA).AsBool())
+		Format.WriteChar(',');
+
+	if (iZeros > 0)
+		for (int i = 0; i < iZeros; i++)
+			Format.WriteChar('0');
+	else
+		Format.WriteChar('#');
+
+	if (iMaxDigits > 0)
+		{
+		Format.WriteChar('.');
+		for (int i = 0; i < iMinDigits; i++)
+			Format.WriteChar('0');
+
+		for (int i = iMinDigits; i < iMaxDigits; i++)
+			Format.WriteChar('#');
+		}
+
+	Format.Write(sTrailing);
+
+	//	AsDatum preserves the percent character in either the leading or trailing
+	//	text. Be defensive about hand-built descriptors which set only the flag.
+
+	if (dFormat.GetElement(FIELD_PERCENT).AsBool()
+			&& strFind(sLeading, CString("%")) == -1
+			&& strFind(sTrailing, CString("%")) == -1)
+		rValue *= 100.0;
+
+	return CStringFormat(CString::CreateFromHandoff(Format)).FormatDouble(rValue);
+	}
+
 CString CDatumFormat::FormatParams (CStringView sValue, CDatum dParams)
 
 //	FormatParams

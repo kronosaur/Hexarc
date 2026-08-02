@@ -59,6 +59,11 @@ CDatum CAEONOp::CalcCompType (CDatum dLeftType, CDatum dRightType)
 	else if (LeftType.IsA(IDatatype::INDEXED) && RightType.IsA(IDatatype::INDEXED))
 		return CAEONTypes::Get(IDatatype::BOOL);
 
+	//	Abstract dictionaries can be compared
+
+	else if (LeftType.IsA(IDatatype::ABSTRACT_DICTIONARY) && RightType.IsA(IDatatype::ABSTRACT_DICTIONARY))
+		return CAEONTypes::Get(IDatatype::BOOL);
+
 	//	If is-a relationship, then we can compare
 
 	else if (LeftType.IsA(RightType) || RightType.IsA(LeftType))
@@ -153,7 +158,20 @@ CDatum CAEONOp::CalcLogicalOrType (CDatum dLeftType, CDatum dRightType)
 	const IDatatype& LeftType = dLeftType;
 	const IDatatype& RightType = dRightType;
 
-	if (LeftType == RightType)
+	if (LeftType.GetCoreType() == IDatatype::NEVER)
+		return dLeftType;
+	else if (RightType.GetCoreType() == IDatatype::NEVER)
+		{
+		//	If the left-type is nullable, then we remove the nullability.
+		//	(Because the OR expression only has a value if the left side is non-null.)
+
+		if (LeftType.IsNullable())
+			return LeftType.GetVariantType();
+		else
+			return dLeftType;
+		}
+
+	else if (LeftType == RightType)
 		return dLeftType;
 
 	else if (!LeftType.IsNullType() && LeftType.IsA(IDatatype::EXPRESSION))
@@ -193,8 +211,8 @@ CDatum CAEONOp::CalcLogicalOrType (CDatum dLeftType, CDatum dRightType)
 	//	In general we try to find the most specific type that is a superset of
 	//	both types.
 
-	else if (LeftType.IsA(CAEONTypeSystem::GetCoreType(IDatatype::ARRAY))
-			&& RightType.IsA(CAEONTypeSystem::GetCoreType(IDatatype::ARRAY)))
+	else if (LeftType.IsA(CAEONTypes::Get(IDatatype::ARRAY))
+			&& RightType.IsA(CAEONTypes::Get(IDatatype::ARRAY)))
 		{
 		const IDatatype& LeftItemType = LeftType.GetElementType();
 		const IDatatype& RightItemType = RightType.GetElementType();
@@ -202,7 +220,7 @@ CDatum CAEONOp::CalcLogicalOrType (CDatum dLeftType, CDatum dRightType)
 		if (LeftItemType == RightItemType)
 			return dLeftType;
 		else
-			return CAEONTypeSystem::GetCoreType(IDatatype::ARRAY);
+			return CAEONTypes::Get(IDatatype::ARRAY);
 		}
 	else if (LeftType.IsA(IDatatype::INT_32))
 		{
@@ -383,4 +401,25 @@ CDatum CAEONOp::In (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight)
 
 	else
 		return CDatum(dRight.OpContains(dLeft));
+	}
+
+CDatum CAEONOp::NotIn (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight)
+	{
+	//	If either left or right is an expression, then we return an expression.
+
+	if (dLeft.GetBasicType() == CDatum::typeExpression || dRight.GetBasicType() == CDatum::typeExpression)
+		{
+		if (dLeft.GetBasicType() != CDatum::typeExpression)
+			dLeft = CAEONExpression::CreateLiteral(dLeft);
+
+		if (dRight.GetBasicType() != CDatum::typeExpression)
+			dRight = CAEONExpression::CreateLiteral(dRight);
+
+		return CAEONExpression::CreateBinaryOp(CAEONExpression::EOp::NotIn, dLeft.AsExpression(), dRight.AsExpression());
+		}
+
+	//	Otherwise, normal.
+
+	else
+		return CDatum(!dRight.OpContains(dLeft));
 	}

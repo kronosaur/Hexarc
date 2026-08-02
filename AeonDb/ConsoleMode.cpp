@@ -5,6 +5,9 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(STR_CONSOLE_MODE_NEWLINE,	"\n");
+DECLARE_CONST_STRING(STR_CONSOLE_MODE_OK,	"OK");
+
 DECLARE_CONST_STRING(CMD_CREATE_TABLE,					"createtable")
 DECLARE_CONST_STRING(CMD_DIAG,							"diag")
 DECLARE_CONST_STRING(CMD_HELP,							"help")
@@ -94,7 +97,7 @@ CString CAeonEngine::ConsoleCommand (const CString &sCmd, const TArray<CDatum> &
 		if (!pTable->Diagnostics(dwFlags, Log, &sError))
 			return sError;
 
-		return Log.Join(CString("\n"));
+		return Log.Join(STR_CONSOLE_MODE_NEWLINE);
 		}
 	else if (strEquals(sCmd, CMD_GET_ROWS))
 		{
@@ -259,7 +262,7 @@ CString CAeonEngine::ConsoleCommand (const CString &sCmd, const TArray<CDatum> &
 		if (pDestTable->Merge(*pSrcTable, &sError) != AEONERR_OK)
 			return sError;
 
-		return CString("OK");
+		return STR_CONSOLE_MODE_OK;
 		}
 	else
 		return NULL_STR;
@@ -308,4 +311,16 @@ bool CAeonEngine::InitConsoleMode (const CString &sStoragePath, CString *retsErr
 	m_bMachineStarted = true;
 
 	return true;
+	}
+
+bool CAeonEngine::InitDiagnostics (const CString &sStoragePath, CString *retsError)
+
+//	InitDiagnostics
+//
+//	Initializes the engine for synchronous diagnostics without starting worker
+//	threads.
+
+	{
+	m_bDiagnosticsMode = true;
+	return InitConsoleMode(sStoragePath, retsError);
 	}

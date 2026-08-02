@@ -4,6 +4,10 @@
 //	Copyright (c) 2010 GridWhale Corporation. All Rights Reserved.
 
 #include "stdafx.h"
+#include <TlHelp32.h>
+
+DECLARE_CONST_STRING(STR_CMECHARCOLOGY_DB_ON_ARCOLOGY_PRIME,	" /onArcologyPrime");
+DECLARE_CONST_STRING(STR_CMECHARCOLOGY_DB_AEON_DB_EXE,	"AeonDB.exe");
 
 DECLARE_CONST_STRING(FIELD_ADDRESS,						"address");
 DECLARE_CONST_STRING(FIELD_ID,							"id");
@@ -188,6 +192,23 @@ void CMecharcologyDb::Boot (const SInit &Init)
 
 	SetCurrentModule(Init.sCurrentModule);
 
+	if (Init.bCreateModuleJob)
+		{
+		m_hModuleJob = ::CreateJobObject(NULL, NULL);
+		if (m_hModuleJob)
+			{
+			JOBOBJECT_EXTENDED_LIMIT_INFORMATION Limits;
+			utlMemSet(&Limits, sizeof(Limits));
+			Limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+
+			if (!::SetInformationJobObject(m_hModuleJob, JobObjectExtendedLimitInformation, &Limits, sizeof(Limits)))
+				{
+				::CloseHandle(m_hModuleJob);
+				m_hModuleJob = NULL;
+				}
+			}
+		}
+
 	m_MachineDesc.sName = Init.sMachineName;
 	m_MachineDesc.sAddress = Init.sMachineHost;
 
@@ -216,6 +237,18 @@ void CMecharcologyDb::Boot (const SInit &Init)
 		{
 		m_iArcologyPrime = -1;
 		m_MachineDesc.sNodeID = ArcologyPrimeNodeID();
+		}
+	}
+
+CMecharcologyDb::~CMecharcologyDb (void)
+
+//	CMecharcologyDb destructor
+
+	{
+	if (m_hModuleJob)
+		{
+		::CloseHandle(m_hModuleJob);
+		m_hModuleJob = NULL;
 		}
 	}
 
@@ -1006,10 +1039,10 @@ bool CMecharcologyDb::LoadModule (const CString &sFilespec, bool bDebug, CString
 
 	CString sOptions;
 	if (bDebug)
-		sOptions += CString(" /debug");
+		sOptions += STR_DEBUG_SWITCH;
 
 	if (IsArcologyPrime())
-		sOptions += CString(" /onArcologyPrime");
+		sOptions += STR_CMECHARCOLOGY_DB_ON_ARCOLOGY_PRIME;
 
 	//	Generate the command line
 
@@ -1020,7 +1053,9 @@ bool CMecharcologyDb::LoadModule (const CString &sFilespec, bool bDebug, CString
 
 	try
 		{
-		pModule->hProcess.Create(sCmdLine);
+		CProcess::SOptions ProcessOptions;
+		ProcessOptions.hJobObject = m_hModuleJob;
+		pModule->hProcess.Create(sCmdLine, ProcessOptions);
 		}
 	catch (CException e)
 		{
@@ -1041,9 +1076,112 @@ bool CMecharcologyDb::LoadModule (const CString &sFilespec, bool bDebug, CString
 	return true;
 	}
 
+int CMecharcologyDb::TerminateOrphanModules (CDatum dModuleList)
+
+//	TerminateOrphanModules
+//
+//	Terminates any processes left over from a previous run. We look for
+//	processes whose executable path matches a known module in our module
+//	directory. Returns the number of processes terminated.
+
+	{
+	DWORD dwOurPID = ::GetCurrentProcessId();
+
+	//	Build a list of full filespecs for all modules we might load. This
+	//	includes the module list from config plus AeonDB (which is always
+	//	loaded on Arcology Prime).
+
+	TArray<CString> ModuleFilespecs;
+	for (int i = 0; i < dModuleList.GetCount(); i++)
+		{
+		CString sModule = fileAppendExtension(dModuleList.GetElement(i).AsString(), STR_MODULE_EXTENSION);
+		ModuleFilespecs.Insert(fileAppend(m_sModulePath, sModule));
+		}
+
+	CString sAeonDB = fileAppend(m_sModulePath, STR_CMECHARCOLOGY_DB_AEON_DB_EXE);
+	ModuleFilespecs.Insert(sAeonDB);
+
+	//	Snapshot all processes in the system
+
+	HANDLE hSnapshot = ::CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	if (hSnapshot == INVALID_HANDLE_VALUE)
+		return 0;
+
+	int iTerminated = 0;
+
+	PROCESSENTRY32 pe;
+	pe.dwSize = sizeof(pe);
+
+	if (::Process32First(hSnapshot, &pe))
+		{
+		do
+			{
+			//	Skip ourselves
+
+			if (pe.th32ProcessID == dwOurPID)
+				continue;
+
+			//	Open the process so we can query its full image path
+
+			HANDLE hProcess = ::OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_TERMINATE, FALSE, pe.th32ProcessID);
+			if (hProcess == NULL)
+				continue;
+
+			//	Get the full executable path
+
+			TCHAR szPath[MAX_PATH];
+			DWORD dwSize = MAX_PATH;
+			bool bMatch = false;
+
+			if (::QueryFullProcessImageName(hProcess, 0, szPath, &dwSize))
+				{
+				CString sProcessPath(szPath, dwSize);
+
+				for (int i = 0; i < ModuleFilespecs.GetCount(); i++)
+					{
+					if (strEqualsNoCase(sProcessPath, ModuleFilespecs[i]))
+						{
+						bMatch = true;
+						break;
+						}
+					}
+				}
+
+			if (bMatch)
+				{
+				::TerminateProcess(hProcess, 1);
+				::WaitForSingleObject(hProcess, 5000);
+				iTerminated++;
+				}
+
+			::CloseHandle(hProcess);
+			}
+		while (::Process32Next(hSnapshot, &pe));
+		}
+
+	::CloseHandle(hSnapshot);
+
+	return iTerminated;
+	}
+
 CString CMecharcologyDb::MakeNodeID (DWORD dwID)
 	{
 	return strPattern("Node-%01d", dwID);
+	}
+
+DWORD CMecharcologyDb::ParseNodeID (CStringView sNodeID)
+	{
+	const CString sPrefix("Node-");
+	CString sValue(sNodeID);
+	if (!strStartsWith(sValue, sPrefix))
+		return 0;
+
+	bool bFailed;
+	int iID = strToInt(strSubString(sValue, sPrefix.GetLength()), 0, &bFailed);
+	if (bFailed || iID <= 0)
+		return 0;
+
+	return (DWORD)iID;
 	}
 
 bool CMecharcologyDb::OnCompleteAuth (CStringView sName, CString& retsNodeID)
@@ -1080,6 +1218,69 @@ bool CMecharcologyDb::OnCompleteAuth (CStringView sName, CString& retsNodeID)
 			}
 
 	//	If we did not find the machine, then we can't complete auth
+
+	return false;
+	}
+
+bool CMecharcologyDb::OnMachineConnected (CStringView sNodeID, CStringView sName)
+
+//	OnMachineConnected
+//
+//	A machine has connected and authenticated via AMP1 Fabric. We return TRUE if
+//	we need to complete authentication by adding an endpoint to Mnemosynth.
+
+	{
+	CSmartLock Lock(m_cs);
+
+	if (sNodeID.IsEmpty() || sName.IsEmpty())
+		return false;
+
+	for (int i = 0; i < m_Machines.GetCount(); i++)
+		if (strEquals(m_Machines[i].sNodeID, sNodeID))
+			{
+			if (!strEquals(m_Machines[i].sName, sName))
+				{
+				if (!m_Machines[i].sName.IsEmpty())
+					m_OldMachines.Insert(m_Machines[i].sName);
+
+				m_Machines[i].sName = sName;
+				m_Machines[i].iStatus = connectAuth;
+				return true;
+				}
+
+			if (m_Machines[i].iStatus == connectNone)
+				{
+				m_Machines[i].iStatus = connectAuth;
+				return true;
+				}
+
+			return false;
+			}
+
+	return false;
+	}
+
+bool CMecharcologyDb::OnMachineDisconnected (CStringView sNodeID, CString* retsName)
+
+//	OnMachineDisconnected
+//
+//	A machine has disconnected from AMP1 Fabric.
+
+	{
+	CSmartLock Lock(m_cs);
+
+	for (int i = 0; i < m_Machines.GetCount(); i++)
+		if (strEquals(m_Machines[i].sNodeID, sNodeID))
+			{
+			if (m_Machines[i].sName.IsEmpty() && retsName && !retsName->IsEmpty())
+				m_Machines[i].sName = *retsName;
+
+			if (retsName)
+				*retsName = m_Machines[i].sName;
+
+			m_Machines[i].iStatus = connectNone;
+			return true;
+			}
 
 	return false;
 	}

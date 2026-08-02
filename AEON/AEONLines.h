@@ -29,11 +29,14 @@ class CAEONLines : public IComplexDatum, public IAEONTextLines
 		virtual size_t CalcMemorySize (void) const override;
 		virtual IComplexDatum *Clone (CDatum::EClone iMode) const override;
 		virtual void DeleteElement (int iIndex) override;
-		virtual bool Find (CDatum dValue, int *retiIndex = NULL) const override { throw CException(errFail); }
+		virtual bool Find (CDatum dValue, int *retiIndex = NULL) const override;
+		virtual CDatum FindAll (CDatum dValue) const override;
+		virtual CDatum FindAllExact (CDatum dValue) const override;
+		virtual bool FindExact (CDatum dValue, int *retiIndex = NULL) const override;
 		virtual DWORD GetBasicDatatype () const override { return IDatatype::OBJECT; }
 		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeTextLines; }
 		virtual int GetCount (void) const override { return m_Lines.GetCount(); }
-		virtual CDatum GetDatatype () const override { return CAEONTypeSystem::GetCoreType(IDatatype::TEXT_LINES); }
+		virtual CDatum GetDatatype () const override { return CAEONTypes::Get(IDatatype::TEXT_LINES); }
 		virtual int GetDimensions () const override { return 1; }
 		virtual CDatum GetElement (int iIndex) const override { if (iIndex >= 0 && iIndex < m_Lines.GetCount()) return m_Lines[iIndex]; else return CDatum(); }
 		virtual CDatum GetElement (const CString &sKey) const override { return m_Properties.GetProperty(*this, sKey); }
@@ -42,11 +45,14 @@ class CAEONLines : public IComplexDatum, public IAEONTextLines
 		virtual IAEONTextLines *GetTextLinesInterface () override { return this; }
 		virtual const CString &GetTypename (void) const override;
 		virtual void GrowToFit (int iCount) override;
+		virtual void InsertElementAt (CDatum dIndex, CDatum dDatum) override;
 		virtual bool IsArray (void) const override { return true; }
 		virtual bool IsContainer () const override { return true; }
 		virtual bool IsNil (void) const override { return (GetCount() == 0) || (GetCount() == 1 && m_Lines[0].IsEmpty()); }
+		virtual bool RemoveAll () override;
+		virtual bool RemoveElementAt (CDatum dIndex) override;
 		virtual void ResolveDatatypes (const CAEONTypeSystem &TypeSystem) override { }
-		virtual void Sort (ESortOptions Order = AscendingSort, TArray<CDatum>::COMPAREPROC pfCompare = NULL, void *pCtx = NULL) override { throw CException(errFail); }
+		virtual void Sort (ESortOptions Order = AscendingSort, TArray<CDatum>::COMPAREPROC pfCompare = NULL, void *pCtx = NULL) override { m_Lines.Sort(Order); OnModify(); }
 		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
 		virtual void SerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const override;
 		virtual void SetElement (int iIndex, CDatum dDatum) override;
@@ -68,6 +74,7 @@ class CAEONLines : public IComplexDatum, public IAEONTextLines
 		CAEONLines (CDatum dValue);
 		void Insert (TArray<CString>&& Lines, int iIndex = -1);
 		void OnModify ();
+		TArray<CString> ParseDatumAsLines (CDatum dDatum);
 		TArray<CString> SplitBuffer (const IMemoryBlock& Buffer);
 
 		TArray<CString> m_Lines;

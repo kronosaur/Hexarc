@@ -24,6 +24,13 @@ void CDatum::SerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized)
 			{
 			switch (m_dwData)
 				{
+				case VALUE_BLANK:
+					{
+					DWORD dwType = SERIALIZE_TYPE_STRING;
+					Stream.Write(dwType);
+					break;
+					}
+
 				case VALUE_FALSE:
 					Stream.Write(SERIALIZE_TYPE_FALSE);
 					break;
@@ -264,6 +271,9 @@ CDatum CDatum::DeserializeAEON (IByteStream& Stream, CAEONSerializedMap& Seriali
 		case SERIALIZE_TYPE_TABLE_V2:
 			return CAEONTable::DeserializeAEON(Stream, dwType & ~SERIALIZE_TYPE_MASK, Serialized);
 
+		case SERIALIZE_TYPE_TABLE_V3:
+			return CAEONTable::DeserializeAEON_v3(Stream, dwType & ~SERIALIZE_TYPE_MASK, Serialized);
+
 		case SERIALIZE_TYPE_RANGE:
 			return CAEONRange::DeserializeAEON(Stream, dwType & ~SERIALIZE_TYPE_MASK, Serialized);
 
@@ -290,6 +300,12 @@ CDatum CDatum::DeserializeAEON (IByteStream& Stream, CAEONSerializedMap& Seriali
 
 		case SERIALIZE_TYPE_VECTOR_STRING_V2:
 			return CAEONVectorString::DeserializeAEON(Stream, dwType & ~SERIALIZE_TYPE_MASK, Serialized);
+
+		case SERIALIZE_TYPE_VECTOR_VECTOR2D:
+			return CAEONVectorVector2D::DeserializeAEON(Stream, dwType & ~SERIALIZE_TYPE_MASK, Serialized);
+
+		case SERIALIZE_TYPE_VECTOR_VECTOR3D:
+			return CAEONVectorVector3D::DeserializeAEON(Stream, dwType & ~SERIALIZE_TYPE_MASK, Serialized);
 
 		case SERIALIZE_TYPE_DATE_TIME:
 			return CComplexDateTime::DeserializeAEON(Stream, dwType & ~SERIALIZE_TYPE_MASK, Serialized);

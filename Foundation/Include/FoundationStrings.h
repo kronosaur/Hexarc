@@ -18,13 +18,48 @@ class CStringView;
 class IMemoryBlock;
 struct SStringValidate;
 
-//	Small a with acute: á
+//	Small a with acute: U+00E1
 #define UTF8a1	"\xc3\xa1"
 
-//	Small a with tilde: ã
+//	Small a with tilde: U+00E3
 #define UTF8a2	"\xc3\xa3"
 
 typedef DWORD UTF32;
+enum class ECharSetType
+	{
+	Unknown = -1,
+
+	UTF8,
+	UTF16BE,
+	UTF16LE,
+	UTF32BE,
+	UTF32LE,
+	ASCII,
+	Latin1,
+	};
+
+enum class EStringEncodingType
+	{
+	Unknown = -1,
+
+	urlComponent,
+	urlPathSegment,
+	urlQueryValue,
+	formComponent,
+
+	jsonStringLiteral,
+	jsonStringContent,
+
+	cStringLiteral,
+	cStringContent,
+
+	htmlText,
+	htmlAttribute,
+
+	base64,
+	base64URL,
+	hex,
+	};
 
 class CStringSlice
 	{
@@ -147,6 +182,8 @@ class CString
 		CString &operator+= (const IMemoryBlock& Value);
 		CString &operator+= (const CStringSlice& Src);
 		CString operator + (const CString &sStr) const;
+		bool operator== (const CString &sStr) const;
+		bool operator!= (const CString &sStr) const;
 
 		CString AsBase64 () const;
 		CStringView AsView () const { return CStringView::FromCStringPtr(m_pString); }
@@ -350,6 +387,8 @@ inline bool strIsWhitespace (const char *pPos) { return strIsWhitespace(*pPos); 
 int strLength (LPCSTR pStr);
 CString strOrdinal (int iOrdinal);
 bool strOverflowsInteger32 (const CString &sValue);
+bool strParseCharSetType (CStringView sValue, ECharSetType *retiType = NULL);
+bool strParseStringEncodingType (CStringView sValue, EStringEncodingType *retiType = NULL);
 double strParseDouble (const char *pStart, double rNullResult, const char **retpEnd = NULL, bool *retbNullValue = NULL);
 int strParseHexChar (char chChar, int iNullResult = 0);
 int strParseInt (const char *pStart, int iNullResult = 0, const char **retpEnd = NULL, bool *retbNullValue = NULL);
@@ -359,6 +398,7 @@ bool strStartsWith (const CString &sString, const CString &sPartial);
 bool strStartsWithNoCase (CStringSlice sString, CStringSlice sPartial);
 CString strSubString (CStringSlice sString, int iStart, int iLen = -1);
 double strToDouble (const CString &sString);
+CString strToHTML (CStringView sString);
 inline int strToInt (const CString &sString, int iFailResult = 0, bool *retbFailed = NULL) { return strParseInt(sString, iFailResult, NULL, retbFailed); }
 CString strToLower (const CString &sString);
 CString strToSimilarMatch (const CString &sString);
@@ -368,6 +408,10 @@ CString strToUpper (const CString &sString);
 CString strEncodeUTF8Char (UTF32 dwCodePoint);
 void strEncodeUTF8Char (UTF32 dwCodePoint, IByteStream &Stream);
 void strEncodeUTF8Char (UTF32 dwCodePoint, char *pPos, char *pPosEnd);
+bool strDecodeFrom (const CString &sValue, EStringEncodingType iEncoding, CString *retsResult, CString *retsError = NULL);
+bool strDecodeToString (const void *pData, int iLength, ECharSetType iCharSet, CString *retsResult, CString *retsError = NULL);
+bool strEncodeAs (const CString &sValue, EStringEncodingType iEncoding, CString *retsResult, CString *retsError = NULL);
+bool strEncodeToBinary (const CString &sValue, ECharSetType iCharSet, CStringBuffer *retBuffer, CString *retsError = NULL);
 inline int strGetUTF8EncodeLength (UTF32 dwCodePoint) { return (dwCodePoint <= 0x007f ? 1 : (dwCodePoint <= 0x07ff ? 2 : (dwCodePoint <= 0xffff ? 3 : 4))); }
 inline bool strIsAlphaNumeric (UTF32 dwCodePoint) { return (::IsCharAlphaNumericW(LOWORD(dwCodePoint)) ? true : false); }
 inline bool strIsASCII (UTF32 dwCodePoint) { return (dwCodePoint < 0x7f); }

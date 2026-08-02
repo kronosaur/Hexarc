@@ -16,6 +16,10 @@ DECLARE_CONST_STRING(FIELD_LABEL,						"label");
 DECLARE_CONST_STRING(FIELD_MODIFIED,					"modified");
 DECLARE_CONST_STRING(FIELD_MODIFIED_ON,					"modifiedOn");
 DECLARE_CONST_STRING(FIELD_NAME,						"name");
+DECLARE_CONST_STRING(FIELD_OK,							"ok");
+DECLARE_CONST_STRING(FIELD_APPLIED,						"applied");
+DECLARE_CONST_STRING(FIELD_ERROR,						"error");
+DECLARE_CONST_STRING(FIELD_SEQ,							"seq");
 DECLARE_CONST_STRING(FIELD_TYPE,						"type");
 DECLARE_CONST_STRING(FIELD_UI,							"ui");
 
@@ -24,6 +28,23 @@ DECLARE_CONST_STRING(ERR_INVALID_SCHEMA_DESC,			"Invalid schema desc.");
 DECLARE_CONST_STRING(ERR_CANT_COMBINE_KEYS_DONT_MATCH,	"Unable to combine schemas because they have different keys.");
 DECLARE_CONST_STRING(ERR_NOT_A_TABLE,					"Not a table.");
 DECLARE_CONST_STRING(ERR_SCHEMAS_MUST_MATCH,			"Unable to compare tables because schemas don't match.");
+DECLARE_CONST_STRING(ERR_INVALID_PARAM,					"Invalid parameter.");
+DECLARE_CONST_STRING(ERR_NOT_IMPLEMENTED,				"Not implemented.");
+DECLARE_CONST_STRING(ERR_NOT_MUTABLE,					"Not mutable.");
+DECLARE_CONST_STRING(ERR_NOT_FOUND,						"Not found.");
+DECLARE_CONST_STRING(ERR_ALREADY_EXISTS,				"Already exists.");
+
+CDatum IAEONTable::SApplyDiffResult::AsDatum () const
+	{
+	CDatum dResult(CDatum::typeStruct);
+	dResult.SetElement(FIELD_OK, bOK);
+	dResult.SetElement(FIELD_APPLIED, bApplied);
+	dResult.SetElement(FIELD_SEQ, Seq);
+	if (!sError.IsEmpty())
+		dResult.SetElement(FIELD_ERROR, sError);
+
+	return dResult;
+	}
 
 IAEONTable::EResult IAEONTable::AppendRowIfNew (CDatum dTable, CDatum dRow, int* retiRow)
 
@@ -243,7 +264,7 @@ bool IAEONTable::CombineSchema (CDatum dDatatype1, CDatum dDatatype2, CDatum& re
 
 	CAEONTypeSystem TypeSystem;
 	CDatum dSchema = TypeSystem.AddAnonymousSchema(Columns);
-	retdDatatype = TypeSystem.CreateAnonymousTable(NULL_STR, dSchema);
+	retdDatatype = CAEONTypes::CreateTable(NULL_STR, dSchema);
 	if (dSchema.IsNil() || retdDatatype.IsNil())
 		{
 		retdDatatype = ERR_UNABLE_TO_CREATE_SCHEMA;
@@ -298,6 +319,36 @@ TArray<CDatum> IAEONTable::CreateColumns (const IDatatype& Schema, TArray<bool>*
 	return Cols;
 	}
 
+CDatum IAEONTable::CreateError (EResult iResult)
+	{
+	switch (iResult)
+		{
+		case EResult::OK:
+			return CDatum(true);
+
+		case EResult::InvalidParam:
+			return CDatum::CreateError(ERR_INVALID_PARAM);
+
+		case EResult::NotATable:
+			return CDatum::CreateError(ERR_NOT_A_TABLE);
+
+		case EResult::NotImplemented:
+			return CDatum::CreateError(ERR_NOT_IMPLEMENTED);
+
+		case EResult::NotMutable:
+			return CDatum::CreateError(ERR_NOT_MUTABLE);
+
+		case EResult::NotFound:
+			return CDatum::CreateError(ERR_NOT_FOUND);
+
+		case EResult::AlreadyExists:
+			return CDatum::CreateError(ERR_ALREADY_EXISTS);
+
+		default:
+			return CDatum(false);
+		}
+	}
+
 CDatum IAEONTable::CreateFormattedTable (CDatum dTable) const
 
 //	CreateFormattedTable
@@ -320,7 +371,7 @@ CDatum IAEONTable::CreateFormattedTable (CDatum dTable) const
 
 		//	No keys
 		MemberDesc.iType = IDatatype::EMemberType::InstanceVar;
-		MemberDesc.dType = CAEONTypeSystem::GetCoreType(IDatatype::STRING);
+		MemberDesc.dType = CAEONTypes::Get(IDatatype::STRING);
 		Format.Insert(MemberDesc.sFormat);
 		MemberDesc.sFormat = NULL_STR;
 		NewMembers.Insert(MemberDesc);
@@ -436,7 +487,7 @@ bool IAEONTable::CreateTableDatatype (CAEONTypeSystem& TypeSystem, CDatum dTable
 	//	Create a new schema.
 
 	CDatum dSchema = TypeSystem.AddAnonymousSchema(Columns);
-	retdDatatype = CAEONTypeSystem::CreateAnonymousTable(NULL_STR, dSchema);
+	retdDatatype = CAEONTypes::CreateTable(NULL_STR, dSchema);
 	if (dSchema.IsNil() || retdDatatype.IsNil())
 		{
 		retdDatatype = ERR_UNABLE_TO_CREATE_SCHEMA;
@@ -623,7 +674,7 @@ bool IAEONTable::CreateTableDatatypeFromDesc (CAEONTypeSystem& TypeSystem, CDatu
 
 	//	Now create the table type
 
-	retdDatatype = CAEONTypeSystem::CreateAnonymousTable(NULL_STR, dSchema);
+	retdDatatype = CAEONTypes::CreateTable(NULL_STR, dSchema);
 	if (dSchema.IsNil() || retdDatatype.IsNil())
 		{
 		retdDatatype = ERR_UNABLE_TO_CREATE_SCHEMA;

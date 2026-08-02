@@ -9,7 +9,7 @@ class CArrayMapProcessor : public TExternalDatum<CArrayMapProcessor>
 	{
 	public:
 
-		CArrayMapProcessor (CDatum dArray, CDatum dOptions, CDatum dMapFunc);
+		CArrayMapProcessor (CDatum dArray, CDatum dOptions, CDatum dMapFunc, CDatum dResultType = CDatum());
 
 		static const CString &StaticGetTypename (void);
 
@@ -28,6 +28,7 @@ class CArrayMapProcessor : public TExternalDatum<CArrayMapProcessor>
 		bool m_bAllowNull = false;
 
 		CDatum m_dResult;
+		CDatum m_dResultType;
 		int m_iPos = -1;
 	};
 

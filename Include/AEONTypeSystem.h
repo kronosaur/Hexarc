@@ -5,6 +5,8 @@
 
 #pragma once
 
+class CDatatypeList;
+
 class IDatatype
 	{
 	public:
@@ -61,42 +63,48 @@ class IDatatype
 		static constexpr DWORD UINT_8 =				38;	//	An 8-bit unsigned integer (subrange)
 		static constexpr DWORD UINT_16 =			39;	//	A 16-bit unsigned integer (subrange)
 
-		static constexpr DWORD INDEXED =			40;	//	Can use [n] operator to read
-		static constexpr DWORD MUTABLE_INDEXED =	41;	//	Can use [n] operator to write
-		static constexpr DWORD ABSTRACT_DICTIONARY =			42;	//	Can use [key] operator to read
-		static constexpr DWORD ABSTRACT_MUTABLE_DICTIONARY =	43;	//	Can use [key] operator to write
+		static constexpr DWORD NEVER =				40;	//	A type that never occurs (e.g., type of error())
+		static constexpr DWORD INDEXED =			41;	//	Can use [n] operator to read
+		static constexpr DWORD MUTABLE_INDEXED =	42;	//	Can use [n] operator to write
+		static constexpr DWORD ABSTRACT_DICTIONARY =			43;	//	Can use [key] operator to read
+		static constexpr DWORD ABSTRACT_MUTABLE_DICTIONARY =	44;	//	Can use [key] operator to write
 
-		static constexpr DWORD ARRAY_INT_32 =		44;
-		static constexpr DWORD ARRAY_FLOAT_64 =		45;
-		static constexpr DWORD ARRAY_STRING =		46;
-		static constexpr DWORD ARRAY_DATE_TIME =	47;
-		static constexpr DWORD ARRAY_INT_64 =		48;
-		static constexpr DWORD ARRAY_INT_IP =		49;
-		static constexpr DWORD ARRAY_NUMBER =		50;
+		static constexpr DWORD ARRAY_INT_32 =		45;
+		static constexpr DWORD ARRAY_FLOAT_64 =		46;
+		static constexpr DWORD ARRAY_STRING =		47;
+		static constexpr DWORD ARRAY_DATE_TIME =	48;
+		static constexpr DWORD ARRAY_INT_64 =		49;
+		static constexpr DWORD ARRAY_INT_IP =		50;
+		static constexpr DWORD ARRAY_NUMBER =		51;
+		static constexpr DWORD ARRAY_VECTOR_2D =	52;
+		static constexpr DWORD ARRAY_VECTOR_3D =	53;
 
-		static constexpr DWORD SCHEMA_TABLE_SCHEMA =51;	//	The schema for a schema table
-		static constexpr DWORD SCHEMA_TABLE =		52;	//	A table describing a schema
-		static constexpr DWORD MEMBER_TYPE_ENUM =	53;	//	An enumeration of member types
-		static constexpr DWORD MEMBER_TABLE_SCHEMA = 54;	//	The schema for the members table
-		static constexpr DWORD MEMBER_TABLE =		55;	//	A table describing members of a type
+		static constexpr DWORD SCHEMA_TABLE_SCHEMA =54;	//	The schema for a schema table
+		static constexpr DWORD SCHEMA_TABLE =		55;	//	A table describing a schema
+		static constexpr DWORD MEMBER_TYPE_ENUM =	56;	//	An enumeration of member types
+		static constexpr DWORD MEMBER_TABLE_SCHEMA = 57;	//	The schema for the members table
+		static constexpr DWORD MEMBER_TABLE =		58;	//	A table describing members of a type
 
-		static constexpr DWORD MATRIX_F64 =			56;	//	LATER: Any matrix (abstract)
-		static constexpr DWORD MATRIX_3X3_F64 =		57;	//	LATER: A 3x3 matrix
-		static constexpr DWORD MATRIX_4X4_F64 =		58;	//	LATER: A 4x4 matrix
+		static constexpr DWORD MATRIX_F64 =			59;	//	LATER: Any matrix (abstract)
+		static constexpr DWORD MATRIX_3X3_F64 =		60;	//	LATER: A 3x3 matrix
+		static constexpr DWORD MATRIX_4X4_F64 =		61;	//	LATER: A 4x4 matrix
 
-		static constexpr DWORD CANVAS =				59;	//	A canvas object (concrete)
-		static constexpr DWORD BITMAP_RGBA8 =		60;	//	A 32-bit per pixel bitmap (concrete)
-		static constexpr DWORD TEXT_LINES =			61;	//	CAEONLines datastructure
-		static constexpr DWORD SAS_DATE_TIME =		62;	//	SAS encoded float.
-		static constexpr DWORD SAS_DATE =			63;	//	SAS encoded float.
-		static constexpr DWORD SAS_TIME =			64;	//	SAS encoded float.
-		static constexpr DWORD DAY_OF_WEEK_ENUM =	65;	//	Day of week enumeration
+		static constexpr DWORD CANVAS =				62;	//	A canvas object (concrete)
+		static constexpr DWORD BITMAP_RGBA8 =		63;	//	A 32-bit per pixel bitmap (concrete)
+		static constexpr DWORD TEXT_LINES =			64;	//	CAEONLines datastructure
+		static constexpr DWORD SAS_DATE_TIME =		65;	//	SAS encoded float.
+		static constexpr DWORD SAS_DATE =			66;	//	SAS encoded float.
+		static constexpr DWORD SAS_TIME =			67;	//	SAS encoded float.
+		static constexpr DWORD DAY_OF_WEEK_ENUM =	68;	//	Day of week enumeration
 
-		static constexpr DWORD GRID_NAME_TYPE =		66;
-		static constexpr DWORD STRING_FORMAT_TYPE =	67;	//	A string format type
-		static constexpr DWORD MAP_COLUMN_EXPRESSION =	68;	//	A map column expression type
+		static constexpr DWORD GRID_NAME_TYPE =		69;
+		static constexpr DWORD STRING_FORMAT_TYPE =	70;	//	A string format type
+		static constexpr DWORD MAP_COLUMN_EXPRESSION =	71;	//	A map column expression type
+		static constexpr DWORD ENCODING_TYPE_ENUM =	72;	//	String-to-string encoding types
+		static constexpr DWORD CHAR_SET_TYPE_ENUM =	73;	//	String-to-binary character set types
+		static constexpr DWORD VOID_T =				74;	//	No value
 
-		static constexpr DWORD MAX_CORE_TYPE =		68;
+		static constexpr DWORD MAX_CORE_TYPE =		74;
 
 		static constexpr DWORD ORDINAL_MEMBER_TYPE_DEF =		0;
 		static constexpr DWORD ORDINAL_MEMBER_TYPE_PROPERTY =	1;
@@ -120,6 +128,7 @@ class IDatatype
 			Range,							//	A range type
 			Schema,							//	A struct definition
 			Table,							//	A table
+			LiteralStruct,					//	A literal schema (e.g., from a literal struct)
 			};
 
 		enum class EImplementation
@@ -131,13 +140,15 @@ class IDatatype
 			Class,
 			Enum,
 			Function,
-			Tensor,
+			GenericFunction,
+			LiteralStruct,
 			Null,
 			Nullable,
 			Number,
 			Range,
 			Schema,
 			Simple,
+			Tensor,
 			};
 
 		enum class EMemberType
@@ -221,7 +232,9 @@ class IDatatype
 			int iSubRangeMax = 0;			//	Max value for subrange
 			};
 
-		IDatatype (const CString &sFullyQualifiedName, DWORD dwCoreType = 0, bool bForceAnonymous = false);
+		static constexpr DWORD QUALIFIER_LITERAL_SOURCE = 0x00000001;	//	Type is from a literal value (e.g., "hello" is a string literal)
+
+		IDatatype (bool bBuiltIn, const CString &sFullyQualifiedName, DWORD dwCoreType = 0, bool bForceAnonymous = false);
 
 		IDatatype (const IDatatype &Src) = delete;
 		IDatatype (IDatatype &&Src) = delete;
@@ -234,12 +247,14 @@ class IDatatype
 		bool operator == (const IDatatype &Src) const;
 		bool operator != (const IDatatype &Src) const { return !(*this == Src); }
 
+		void AccumulateTypesUsed (TSortMap<CString, CDatum>& retTypes) const { OnAccumulateTypesUsed(retTypes); }
 		bool AddImplementation (CDatum dType) { return OnAddImplementation(dType); }
 		bool AddMember (const SMemberDesc& Desc, CString *retsError = NULL) { return OnAddMember(Desc, retsError); }
 		CDatum ApplyKeyToRow (CDatum dKey, CDatum dRow) const;
 		bool CanBeCalledWith (CDatum dThisType, const TArray<CDatum>& ArgTypes, const TArray<CDatum>& ArgLiteralTypes, CDatum* retdReturnType = NULL, CString* retsError = NULL) const { return OnCanBeCalledWith(dThisType, ArgTypes, ArgLiteralTypes, retdReturnType, retsError); }
 		bool CanBeCalledWithArgCount (CDatum dThisType, int iArgCount, CDatum* retdReturnType = NULL, CString* retsError = NULL) const { return OnCanBeCalledWithArgCount(dThisType, iArgCount, retdReturnType, retsError); }
 		bool CanBeConstructedFrom (CDatum dType) const { return OnCanBeConstructedFrom(dType); }
+		bool CanBeConstructedExplicitlyFrom (CDatum dType) const { return OnCanBeConstructedExplicitlyFrom(dType); }
 		bool CanBeNull () const { return OnCanBeNull(); }
 		CDatum CreateAsType (CDatum dValue) const { return OnCreateAsType(dValue); }
 		static TUniquePtr<IDatatype> Deserialize (CDatum::EFormat iFormat, DWORD dwType, IByteStream &Stream);
@@ -263,6 +278,7 @@ class IDatatype
 		SMemberDesc GetMember (int iIndex) const { return OnGetMember(iIndex); }
 		CDatum GetMembersAsTable () const;
 		int GetMemberCount () const { return OnGetMemberCount(); }
+		CDatum GetMemberType (int iIndex) const { return OnGetMemberType(iIndex); }
 		CString GetName () const { return OnGetName(); }
 		SNumberDesc GetNumberDesc () const { return OnGetNumberDesc(); }
 		CDatum GetRangeType () const { return OnGetRangeType(); }
@@ -270,19 +286,24 @@ class IDatatype
 		CDatum GetVariantType () const { return OnGetVariantType(); }
 		bool HasMember (EMemberType iType, CDatum *retdType = NULL, int* retiOrdinal = NULL) const;
 		EMemberType HasMember (CStringView sName, CDatum* retdType = NULL, int* retiOrdinal = NULL) const { return OnHasMember(sName, retdType, retiOrdinal); }
+		bool HasQualifier (DWORD dwQualifier) const { return (OnGetQualifierFlags() & dwQualifier); }
 		bool IsA (const IDatatype &Type) const;
 		bool IsA (CDatum dType) const { return IsA((const IDatatype &)dType); }
 		bool IsA (DWORD dwType) const;
+		bool IsA (const CDatatypeList& Types) const;
 		bool IsAEx (const IDatatype& Type) const;
 		bool IsAbstract () const { return OnIsAbstract(); }
 		bool IsAnonymous () const { return m_fAnonymous; }
 		bool IsAny () const { return OnIsAny(); }
+		bool IsBuiltIn () const { return m_fBuiltIn; }
 		bool IsCoreType () const { return (m_dwCoreType != 0 && m_dwCoreType <= MAX_CORE_TYPE); }
 		bool IsEqualEx(const IDatatype& Src) const;
 		bool IsEnum (const TArray<IDatatype::SMemberDesc>& Values) const { return OnIsEnum(Values); }
-		bool IsErrorType () const { return IsA(IDatatype::ERROR_T); }
+		bool IsErrorType () const { return GetCoreType() == IDatatype::ERROR_T; }
 		bool IsNullable () const { return GetClass() == ECategory::Nullable; }
 		bool IsNullType () const { return GetCoreType() == IDatatype::NULL_T; }
+		bool IsVoidType () const { return GetCoreType() == IDatatype::VOID_T; }
+		bool IsSavedFromBuiltIn () const { return m_fSavedFromBuiltIn; }
 		bool IsSupersetOf (const IDatatype& Type) const { return OnIsSupersetOf(Type); }
 		CDatum IteratorBegin () const { return OnIteratorBegin(); }
 		CDatum IteratorGetKey (CDatum dThisType, CDatum dIterator) const { return OnIteratorGetKey(dThisType, dIterator); }
@@ -296,10 +317,13 @@ class IDatatype
 		static CString GetID (EDisplay iDisplay);
 		static bool FindMember (const TArray<SMemberDesc>& Members, CStringView sName, EMemberType iType = EMemberType::None, int* retiPos = NULL);
 		static EDisplay ParseDisplay (CDatum dValue);
+		static CDatum StripQualifiers (CDatum dType);
 
 	protected:
 
 		CString DefaultGetName () const;
+
+		static void AccumulateType (CDatum dType, TSortMap<CString, CDatum>& retTypes);
 
 	private:
 
@@ -307,11 +331,13 @@ class IDatatype
 
 		//	IDatatype virtuals
 
+		virtual void OnAccumulateTypesUsed (TSortMap<CString, CDatum>& retTypes) const { }
 		virtual bool OnAddImplementation (CDatum dType) { throw CException(errFail); }
 		virtual bool OnAddMember (const SMemberDesc& Desc, CString *retsError = NULL) { throw CException(errFail); }
 		virtual bool OnCanBeCalledWith (CDatum dThisType, const TArray<CDatum>& ArgTypes, const TArray<CDatum>& ArgLiteralTypes, CDatum* retdReturnType = NULL, CString* retsError = NULL) const { return false; }
 		virtual bool OnCanBeCalledWithArgCount (CDatum dThisType, int iArgCount, CDatum* retdReturnType = NULL, CString* retsError = NULL) const { return false; }
 		virtual bool OnCanBeConstructedFrom (CDatum dType) const { const IDatatype& Type = dType; return (Type.IsAny() || Type.IsA(*this)); }
+		virtual bool OnCanBeConstructedExplicitlyFrom (CDatum dType) const { return true; }
 		virtual bool OnCanBeNull () const { return false; }
 		virtual CDatum OnCreateAsType (CDatum dValue) const { return dValue; }
 		virtual bool OnDeserialize (CDatum::EFormat iFormat, IByteStream &Stream, DWORD dwVersion) = 0;
@@ -327,8 +353,10 @@ class IDatatype
 		virtual CDatum OnGetKeyType () const;
 		virtual SMemberDesc OnGetMember (int iIndex) const { throw CException(errFail); }
 		virtual int OnGetMemberCount () const { return 0; }
+		virtual CDatum OnGetMemberType (int iIndex) const { return OnGetMember(iIndex).dType; }
 		virtual CString OnGetName () const { return DefaultGetName(); }
 		virtual SNumberDesc OnGetNumberDesc () const { return SNumberDesc(); }
+		virtual DWORD OnGetQualifierFlags () const { return 0; }
 		virtual CDatum OnGetRangeType () const;
 		virtual CDatum OnGetSliceType () const { return CDatum(); }
 		virtual CDatum OnGetVariantType () const { return CDatum(); }
@@ -344,13 +372,16 @@ class IDatatype
 		virtual void OnMark () { }
 		virtual void OnSerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const = 0;
 		virtual void OnSetMemberType (const CString& sName, CDatum dType, DWORD dwFlags) { throw CException(errFail); }
+		virtual CDatum OnStripQualifiers () const { return CDatum(); }
 		
 		static CString AsIndexKeyFromValue (CDatum dValue);
 
 		CString m_sFullyQualifiedName;
 		DWORD m_dwCoreType = 0;								//	If non-zero, then we're registered with CAEONTypes
 
+		DWORD m_fBuiltIn:1 = false;							//	If TRUE, this is a built-in type registered by C++ code.
 		DWORD m_fAnonymous:1 = false;						//	If TRUE, then this is an anonymous type
+		DWORD m_fSavedFromBuiltIn:1 = false;				//	If TRUE, then this is a built-in type that was saved (e.g., in a struct) and should be restored on load.
 	};
 
 class CDatatypeList
@@ -366,6 +397,8 @@ class CDatatypeList
 		void DebugDump () const;
 		static bool Deserialize (CDatum::EFormat iFormat, IByteStream &Stream, CDatatypeList &retList);
 		static bool DeserializeAEON (IByteStream& Stream, CAEONSerializedMap &Serialized, CDatatypeList& retList);
+		int GetCount () const { return m_Types.GetCount(); }
+		CDatum GetType (int iIndex) const { return m_Types[iIndex]; }
 		bool IsA (const IDatatype &Type) const;
 		void Mark ();
 		void SerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const;
@@ -384,19 +417,13 @@ class CAEONTypeSystem
 		CDatum AddAnonymousDictionary (CDatum dKeyType, CDatum dElementType);
 		CDatum AddAnonymousRange (int iMin, int iMax);
 		CDatum AddAnonymousSchema (const TArray<IDatatype::SMemberDesc> &Columns);
-		CDatum AddAnonymousTensor (CDatum dElementType, const TArray<CDatum>& Dimensions);
+		CDatum AddAnonymousTensor (CDatum dElementType, TArray<CDatum>&& Dimensions);
 		bool AddType (CDatum dType);
 		DWORD Atomize (CStringView sFullyQualifiedName);
 
-		static CDatum CreateDatatypeClass (const CString& sFullyQualifiedName, IDatatype** retpNewType = NULL);
-		static CDatum CreateDatatypeEnum (const CString& sFullyQualifiedName, const TArray<IDatatype::SMemberDesc>& Values, IDatatype** retpNewType = NULL, CString* retsError = NULL);
-		static CDatum CreateDatatypeFunction (const CString& sFullyQualifiedName, const IDatatype::SReturnTypeDesc& Return, const TArray<IDatatype::SArgDesc>& Args, IDatatype** retpNewType = NULL, CString* retsError = NULL);
-		static CDatum CreateDatatypeSchema (const CString& sFullyQualifiedName, IDatatype** retpNewType = NULL);
-		static CDatum FindCoreType (const CString& sFullyQualifiedName, const IDatatype** retpDatatype = NULL);
 		CDatum FindType (const CString& sFullyQualifiedName, const IDatatype** retpDatatype = NULL) const;
 		CDatum FindType (CDatum dType) const;
 		CDatum Get (DWORD dwAtom) const { return (dwAtom < (DWORD)m_Types.GetCount() ? m_Types[dwAtom] : CDatum()); }
-		static CDatum GetCoreType (DWORD dwType);
 		CDatum GetTypeList () const;
 		bool InitFrom (CDatum dSerialized, CString *retsError = NULL);
 		bool IsEmpty () const { return m_Types.GetCount() == 0; }
@@ -406,11 +433,6 @@ class CAEONTypeSystem
 		CDatum ResolveType (CDatum dType) const;
 		CDatum Serialize () const;
 
-		static CDatum CreateAnonymousArray (const CString& sFullyQualifiedName, CDatum dElementType);
-		static CDatum CreateAnonymousDictionary (const CString& sFullyQualifiedName, CDatum dKeyType, CDatum dElementType);
-		static CDatum CreateAnonymousSchema (const TArray<IDatatype::SMemberDesc>& Columns);
-		static CDatum CreateAnonymousTable (const CString& sFullyQualifiedName, CDatum dSchema);
-		static CDatum CreateNullableType (const CString& sFullyQualifiedName, CDatum dVariantType);
 		static CAEONTypeSystem& Null () { return m_Null; }
 
 	private:
@@ -427,19 +449,23 @@ class CAEONTypes
 	public:
 
 		static void AccumulateCoreTypes (TSortMap<CString, CDatum>& retTypes);
-		static DWORD AddCoreAEON (CStringView sName, const CDatatypeList& Implement, CStringView sDatumTypename, TArray<IDatatype::SMemberDesc>&& Members, bool bCore = false);
-		static DWORD AddCoreEnum (const CString& sName, const TArray<IDatatype::SMemberDesc>& Values);
-		static DWORD AddCoreSchema (const CString& sName, const TArray<IDatatype::SMemberDesc>& Columns);
-		static DWORD AddCoreSimple (const CString& sName, const CDatatypeList& Implements, bool bAbstract);
-		static DWORD AddEnum (const CString& sFullyQualifiedName, const TArray<IDatatype::SMemberDesc>& Values, bool bCore = false);
-		static DWORD AddSchema (const CString& sFullyQualifiedName, const TArray<IDatatype::SMemberDesc>& Columns, bool bCore = false);
-		static DWORD AddSimple (const CString& sFullyQualifiedName, const CDatatypeList& Implements, bool bAbstract, bool bCore = false);
-		static CDatum CreateFunctionType (const CString& sArgCode);
+		static DWORD AddEnum (CStringView sFullyQualifiedName, const TArray<IDatatype::SMemberDesc>& Values, CString* retsError = NULL);
+		static CDatum CreateArray (CStringView sFullyQualifiedName, CDatum dElementType);
+		static CDatum CreateClassStub (CStringView sFullyQualifiedName, IDatatype** retpNewType = NULL);
+		static CDatum CreateDictionary (CStringView sFullyQualifiedName, CDatum dKeyType, CDatum dElementType);
+		static CDatum CreateFunction (CStringView sFullyQualifiedName, const IDatatype::SReturnTypeDesc& Return, TArray<IDatatype::SArgDesc>&& Args);
+		static CDatum CreateFunctionFromArgs (CStringView sArgCode);
+		static CDatum CreateGenericFunctionFromArgs (CStringView sArgCode);
+		static CDatum CreateLiteralStruct (CDatum dSchema);
+		static CDatum CreateNullableType (CStringView sFullyQualifiedName, CDatum dVariantType);
 		static CDatum CreatePropertyType (const char* pPos);
-		static CDatum CreateInt32SubRange (const CString& sFullyQualifiedName, int iMin, int iMax, DWORD dwCoreType = 0);
-		static CDatum CreateTensor (CStringView sFullyQualifiedName, CDatum dElementType, const TArray<CDatum>& Dimensions, DWORD dwCoreType = 0);
-		static CDatum CreateSchema (const CString& sFullyQualifiedName, const TArray<IDatatype::SMemberDesc>& Columns, DWORD dwCoreType);
-		static CDatum FindCoreType (const CString& sFullyQualifiedName, const IDatatype** retpDatatype = NULL);
+		static CDatum CreateInt32SubRange (CStringView sFullyQualifiedName, int iMin, int iMax);
+		static CDatum CreateQualified (CDatum dType, DWORD dwQualifier);
+		static CDatum CreateTable (CStringView sFullyQualifiedName, CDatum dSchema);
+		static CDatum CreateTensor (CStringView sFullyQualifiedName, CDatum dElementType, TArray<CDatum>&& Dimensions);
+		static CDatum CreateSchema (CStringView sFullyQualifiedName, const TArray<IDatatype::SMemberDesc>& Columns);
+		static CDatum CreateSchemaStub (CStringView sFullyQualifiedName, IDatatype** retpNewType = NULL);
+		static CDatum FindBuiltInType (CStringView sFullyQualifiedName, const IDatatype** retpDatatype = NULL);
 		static CDatum FindEnum (const TArray<IDatatype::SMemberDesc>& Values);
 		static CDatum FindEnumOrAdd (CDatum dType);
 		static CDatum FindTableOrAdd (CDatum dSchema);
@@ -455,35 +481,47 @@ class CAEONTypes
 		static CString MakeFullyQualifiedName (const CString &sFullyQualifiedScope, const CString &sName);
 		static void MarkAndSweep ();
 		static CString ParseNameFromFullyQualifiedName (const CString &sValue, bool bAbsolute = false);
+		static DWORD RegisterAEON (CStringView sTypename, CDatatypeList&& Implement, CStringView sDatumTypename, TArray<IDatatype::SMemberDesc>&& Members);
+		static DWORD RegisterAEON (CStringView sTypename, CDatatypeList&& Implement, CStringView sDatumTypename, std::function<TArray<IDatatype::SMemberDesc>()> fnMembers);
+		static DWORD RegisterEnum (CStringView sTypename, const TArray<IDatatype::SMemberDesc>& Values);
+		static DWORD RegisterSchema (CStringView sTypename, const TArray<IDatatype::SMemberDesc>& Columns);
+		static DWORD RegisterSimple (CStringView sTypename, CDatatypeList&& Implements, bool bAbstract);
 
 	private:
 
 		static DWORD Alloc ();
-		static CDatum CreateAny ();
-		static CDatum CreateArray (const CString& sFullyQualifiedName, CDatum dElementType, DWORD dwCoreType, bool bForceAnonymous = false);
-		static CDatum CreateDayOfWeekEnum ();
-		static CDatum CreateDictionary (const CString& sFullyQualifiedName, CDatum dKeyType, CDatum dElementType, DWORD dwCoreType);
-		static CDatum CreateEnum (const CString& sFullyQualifiedName, const TArray<IDatatype::SMemberDesc>& Values, DWORD dwCoreType);
-		static CDatum CreateMemberTableType ();
-		static CDatum CreateMemberTableSchema ();
-		static CDatum CreateMemberTypeEnum ();
-		static CDatum CreateNull ();
-		static CDatum CreateNumber (const CString& sFullyQualifiedName, const CDatatypeList& Implements, int iBits, bool bFloat, bool bUnsigned, DWORD dwCoreType, bool bAbstract = false, bool bCanBeNull = false);
-		static CDatum CreateSimple (const CString& sFullyQualifiedName, const CDatatypeList& Implements, bool bAbstract, bool bCanBeNull, DWORD dwCoreType, bool bNoMembers = false);
-		static CDatum CreateSchemaTable ();
-		static CDatum CreateSchemaTableSchema ();
-		static CDatum CreateStringType (const CString& sFullyQualifiedName);
-		static CDatum CreateTensor (const CString& sFullyQualifiedName, CDatum dElementType, int iRows, int iCols, DWORD dwCoreType);
+		static CDatum CreateEnum (DWORD dwCoreType, CStringView sFullyQualifiedName, const TArray<IDatatype::SMemberDesc>& Values, bool bBuiltIn, CString* retsError = NULL);
+		static CDatum CreateSchema (DWORD dwCoreType, CStringView sFullyQualifiedName, const TArray<IDatatype::SMemberDesc>& Columns, bool bBuiltIn);
+		static CDatum CreateTable (DWORD dwCoreType, CStringView sFullyQualifiedName, CDatum dSchema, bool bBuiltIn);
 		static void InitCoreTypes ();
 		static void InitGridNameType ();
 		static CDatum ParseTypeFromArgCode (const char*& pPos);
-		static void SetCoreType (DWORD dwCoreType, CDatum dType) { SetType(dwCoreType, dType, true); }
-		static void SetCoreAEONType (DWORD dwCoreType, CStringView sTypename, CStringView sDatumTypename, std::function<TArray<IDatatype::SMemberDesc>()> fnMembers);
-		static void SetType (DWORD dwID, CDatum dType, bool bCore);
+		static void RegisterAEONType (DWORD dwCoreType, CStringView sFullyQualifiedName, CStringView sDatumTypename, std::function<TArray<IDatatype::SMemberDesc>()> fnMembers);
+		static void RegisterAny ();
+		static void RegisterCharSetTypeEnum ();
+		static void RegisterArray (DWORD dwCoreType, CStringView sFullyQualifiedName, CDatum dElementType, bool bForceAnonymous = false);
+		static void RegisterDayOfWeekEnum ();
+		static void RegisterDictionary (DWORD dwCoreType, CStringView sFullyQualifiedName, CDatum dKeyType, CDatum dElementType, bool bForceAnonymous = false);
+		static void RegisterEncodingTypeEnum ();
+		static void RegisterInt32SubRange (DWORD dwCoreType, CStringView sFullyQualifiedName, int iMin, int iMax);
+		static void RegisterMemberTableSchema ();
+		static void RegisterMemberTableType ();
+		static void RegisterMemberTypeEnum ();
+		static void RegisterNever ();
+		static void RegisterNull ();
+		static void RegisterNumber (DWORD dwCoreType, CStringView sFullyQualifiedName, CDatatypeList&& Implements, int iBits, bool bFloat, bool bUnsigned, bool bAbstract = false, bool bCanBeNull = false);
+		static void RegisterSchemaTableSchema ();
+		static void RegisterSchemaTableType ();
+		static void RegisterSimple (DWORD dwCoreType, CStringView sFullyQualifiedName, CDatatypeList&& Implements, bool bAbstract, bool bCanBeNull, bool bNoMembers = false);
+		static void RegisterSimpleEx (DWORD dwCoreType, CStringView sFullyQualifiedName, CDatatypeList&& Implements, CDatatypeList&& ContructFrom, bool bAbstract, bool bCanBeNull, bool bNoMembers = false);
+		static void RegisterStringType ();
+		static void RegisterTensor (DWORD dwCoreType, CStringView sFullyQualifiedName, CDatum dElementType, int iRows, int iCols);
+		static void RegisterVoid ();
+		static void SetType (CDatum dType);
 
 		static CCriticalSection m_cs;
 		static TArray<CDatum> m_Types;
-		static TSortMap<CString, DWORD> m_CoreTypes;
+		static TSortMap<CString, DWORD> m_BuiltInTypes;
 		static TArray<int> m_FreeTypes;
 		static bool m_bInitDone;
 		static DWORD m_dwNextAnonymousID;

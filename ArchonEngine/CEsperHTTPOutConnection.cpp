@@ -21,6 +21,7 @@ DECLARE_CONST_STRING(PROTOCOL_HTTPS,					"https");
 DECLARE_CONST_STRING(STR_BEGIN_HTTP,					"BeginHTTPRequest: Need to connect.");
 DECLARE_CONST_STRING(STR_BEGIN_HTTP_REUSE,				"BeginHTTPRequest: Already connected.");
 
+DECLARE_CONST_STRING(ERR_LOST_CONNECTION,				"HTTP connection lost.");
 DECLARE_CONST_STRING(ERR_LOST_CONNECTION_TRANS_FAILED,	"HTTP connection lost: Transmission failed in state: %d.");
 DECLARE_CONST_STRING(ERR_LOST_CONNECTION_SSL_ERROR,		"HTTP connection lost: SSL Error: %s");
 DECLARE_CONST_STRING(ERR_INVALID_STATE,					"Invalid state for CEsperHTTPOutConnection: %x.");
@@ -551,6 +552,16 @@ bool CEsperHTTPOutConnection::OpProcessSSL (void)
 			m_pSSL->ProcessSendData(Buffer);
 			OpWrite(Buffer, stateWaitToSendSSLData);
 			return true;
+			}
+
+		case CSSLAsyncEngine::resDisconnect:
+			{
+			if (m_bReconnect)
+				return OpConnect(true);
+
+			m_Manager.SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, ERR_LOST_CONNECTION, m_Msg);
+			DeleteConnection();
+			return false;
 			}
 
 		case CSSLAsyncEngine::resError:

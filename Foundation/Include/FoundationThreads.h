@@ -150,11 +150,35 @@ class CCriticalSection
 		CCriticalSection (void) { ::InitializeCriticalSection(&m_cs); }
 		~CCriticalSection (void) { ::DeleteCriticalSection(&m_cs); }
 
-		void Lock (void) const { ::EnterCriticalSection(&m_cs); }
-		void Unlock (void) const { ::LeaveCriticalSection(&m_cs); }
+		void Lock (void) const 
+			{
+			::EnterCriticalSection(&m_cs);
+#ifdef DEBUG
+			m_dwOwnerThreadID = ::GetCurrentThreadId();
+			m_iLockCount++;
+#endif
+			}
+
+		void Unlock (void) const
+			{
+#ifdef DEBUG
+			m_iLockCount--;
+			if (m_iLockCount == 0)
+				m_dwOwnerThreadID = 0;
+#endif
+			::LeaveCriticalSection(&m_cs);
+			}
+
+#ifdef DEBUG
+		bool IsLockedByCurrentThread (void) const { return (m_dwOwnerThreadID == ::GetCurrentThreadId()); }
+#endif
 
 	private:
 		mutable CRITICAL_SECTION m_cs;
+#ifdef DEBUG
+		mutable DWORD m_dwOwnerThreadID = 0;
+		mutable int m_iLockCount = 0;
+#endif
 	};
 
 template <typename T> class TSmartLock
@@ -211,6 +235,7 @@ class CProcess : public COSObject
 			HANDLE hStdIn = INVALID_HANDLE_VALUE;
 			HANDLE hStdOut = INVALID_HANDLE_VALUE;
 			HANDLE hStdError = INVALID_HANDLE_VALUE;
+			HANDLE hJobObject = NULL;
 			TSortMap<CString, CString> EnvironmentVars;
 			};
 

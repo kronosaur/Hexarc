@@ -18,6 +18,7 @@ TArray<ILuminousObj2D::SPropertyDesc> ILuminousObj2D::m_Properties = std::initia
 	{	Obj2DProp::Height,					ObjPropType::Scalar,		"height"	},
 	{	Obj2DProp::Radius,					ObjPropType::Scalar,		"radius"	},
 	{	Obj2DProp::Width,					ObjPropType::Scalar,		"width"	},
+	{	Obj2DProp::MaxPoints,				ObjPropType::Scalar,		"maxPoints"	},
 
 	{	Obj2DProp::CornerRadius,			ObjPropType::Scalar,		"cornerRadius"	},
 	{	Obj2DProp::CornerRadiusBottomLeft,	ObjPropType::Scalar,		"cornerRadiusBL"	},
@@ -27,29 +28,23 @@ TArray<ILuminousObj2D::SPropertyDesc> ILuminousObj2D::m_Properties = std::initia
 	{	Obj2DProp::FillColor,				ObjPropType::Color,			"fillColor"	},
 	{	Obj2DProp::LineColor,				ObjPropType::Color,			"lineColor"	},
 	{	Obj2DProp::LineWidth,				ObjPropType::Scalar,		"lineWidth"	},
+	{	Obj2DProp::Points,					ObjPropType::VectorQueue,	"points"	},
+	{	Obj2DProp::LinePoints,				ObjPropType::VectorList,	"linePoints"	},
 };
 
 TSortMap<CString, Obj2DProp> ILuminousObj2D::m_PropLookup;
+TArray<CVector2D> ILuminousObj2D::m_NullVectorQueueValue;
 
 bool ILuminousObj2D::AnimateBoolConstant (Obj2DProp iProp, int iFrame, bool bValue)
-
-//	AnimateBoolConstant
-//
-//	Animate the property.
-
 	{
 	if (GetPropertyDesc(iProp).iType != ObjPropType::Bool)
 		return false;
 
 	if (iFrame == 0 && !m_Animators.FindAnimator(iProp))
-		{
-		//	This will add a constant animator if we don't already have one.
-		IAnimator2D& Animator = m_Animators.GetAnimatorBool(iProp, bValue);
-		}
+		m_Animators.GetAnimatorBool(iProp, bValue);
 	else
 		{
 		IAnimator2D& Animator = m_Animators.GetAnimatorBool(iProp, GetPropertyBool(iProp));
-
 		IAnimator2D::SKeyframeDesc Desc;
 		Desc.iFrame = iFrame;
 		Desc.iType = IAnimator2D::Type::Constant;
@@ -61,24 +56,15 @@ bool ILuminousObj2D::AnimateBoolConstant (Obj2DProp iProp, int iFrame, bool bVal
 	}
 
 bool ILuminousObj2D::AnimateColorConstant (Obj2DProp iProp, int iFrame, const CLuminousColor& Value)
-
-//	AnimateColorConstant
-//
-//	Animate the property.
-
 	{
 	if (GetPropertyDesc(iProp).iType != ObjPropType::Color)
 		return false;
 
 	if (iFrame == 0 && !m_Animators.FindAnimator(iProp))
-		{
-		//	This will add a constant animator if we don't already have one.
-		IAnimator2D& Animator = m_Animators.GetAnimatorColor(iProp, Value);
-		}
+		m_Animators.GetAnimatorColor(iProp, Value);
 	else
 		{
 		IAnimator2D& Animator = m_Animators.GetAnimatorColor(iProp, GetPropertyColor(iProp));
-
 		IAnimator2D::SKeyframeDesc Desc;
 		Desc.iFrame = iFrame;
 		Desc.iType = IAnimator2D::Type::Constant;
@@ -90,24 +76,15 @@ bool ILuminousObj2D::AnimateColorConstant (Obj2DProp iProp, int iFrame, const CL
 	}
 
 bool ILuminousObj2D::AnimateScalarConstant (Obj2DProp iProp, int iFrame, double rValue)
-
-//	AnimateScalarConstant
-//
-//	Animate the property.
-
 	{
 	if (GetPropertyDesc(iProp).iType != ObjPropType::Scalar)
 		return false;
 
 	if (iFrame == 0 && !m_Animators.FindAnimator(iProp))
-		{
-		//	This will add a constant animator if we don't already have one.
-		IAnimator2D& Animator = m_Animators.GetAnimatorScalar(iProp, rValue);
-		}
+		m_Animators.GetAnimatorScalar(iProp, rValue);
 	else
 		{
 		IAnimator2D& Animator = m_Animators.GetAnimatorScalar(iProp, GetPropertyScalar(iProp));
-
 		IAnimator2D::SKeyframeDesc Desc;
 		Desc.iFrame = iFrame;
 		Desc.iType = IAnimator2D::Type::Constant;
@@ -119,17 +96,11 @@ bool ILuminousObj2D::AnimateScalarConstant (Obj2DProp iProp, int iFrame, double 
 	}
 
 bool ILuminousObj2D::AnimateScalarLinear (Obj2DProp iProp, int iFrame, double rValue)
-
-//	AnimateScalarLinear
-//
-//	Animate the property.
-
 	{
 	if (GetPropertyDesc(iProp).iType != ObjPropType::Scalar)
 		return false;
 
 	IAnimator2D& Animator = m_Animators.GetAnimatorScalar(iProp, GetPropertyScalar(iProp));
-
 	IAnimator2D::SKeyframeDesc Desc;
 	Desc.iFrame = iFrame;
 	Desc.iType = IAnimator2D::Type::Linear;
@@ -140,24 +111,15 @@ bool ILuminousObj2D::AnimateScalarLinear (Obj2DProp iProp, int iFrame, double rV
 	}
 
 bool ILuminousObj2D::AnimateStringConstant (Obj2DProp iProp, int iFrame, const CString& sValue)
-
-//	AnimateStringConstant
-//
-//	Animate the property.
-
 	{
 	if (GetPropertyDesc(iProp).iType != ObjPropType::String)
 		return false;
 
 	if (iFrame == 0 && !m_Animators.FindAnimator(iProp))
-		{
-		//	This will add a constant animator if we don't already have one.
-		IAnimator2D& Animator = m_Animators.GetAnimatorString(iProp, sValue);
-		}
+		m_Animators.GetAnimatorString(iProp, sValue);
 	else
 		{
 		IAnimator2D& Animator = m_Animators.GetAnimatorString(iProp, GetPropertyString(iProp));
-
 		IAnimator2D::SKeyframeDesc Desc;
 		Desc.iFrame = iFrame;
 		Desc.iType = IAnimator2D::Type::Linear;
@@ -169,24 +131,15 @@ bool ILuminousObj2D::AnimateStringConstant (Obj2DProp iProp, int iFrame, const C
 	}
 
 bool ILuminousObj2D::AnimateVectorConstant (Obj2DProp iProp, int iFrame, const CVector2D& Value)
-
-//	AnimateVectorConstant
-//
-//	Animate the property.
-
 	{
 	if (GetPropertyDesc(iProp).iType != ObjPropType::Vector)
 		return false;
 
 	if (iFrame == 0 && !m_Animators.FindAnimator(iProp))
-		{
-		//	This will add a constant animator if we don't already have one.
-		IAnimator2D& Animator = m_Animators.GetAnimatorVector(iProp, Value);
-		}
+		m_Animators.GetAnimatorVector(iProp, Value);
 	else
 		{
 		IAnimator2D& Animator = m_Animators.GetAnimatorVector(iProp, GetPropertyVector(iProp));
-
 		IAnimator2D::SKeyframeDesc Desc;
 		Desc.iFrame = iFrame;
 		Desc.iType = IAnimator2D::Type::Constant;
@@ -198,17 +151,11 @@ bool ILuminousObj2D::AnimateVectorConstant (Obj2DProp iProp, int iFrame, const C
 	}
 
 bool ILuminousObj2D::AnimateVectorLinear (Obj2DProp iProp, int iFrame, const CVector2D& Value)
-
-//	AnimateVectorLinear
-//
-//	Animate the property.
-
 	{
 	if (GetPropertyDesc(iProp).iType != ObjPropType::Vector)
 		return false;
 
 	IAnimator2D& Animator = m_Animators.GetAnimatorVector(iProp, GetPropertyVector(iProp));
-
 	IAnimator2D::SKeyframeDesc Desc;
 	Desc.iFrame = iFrame;
 	Desc.iType = IAnimator2D::Type::Linear;
@@ -218,12 +165,44 @@ bool ILuminousObj2D::AnimateVectorLinear (Obj2DProp iProp, int iFrame, const CVe
 	return true;
 	}
 
+bool ILuminousObj2D::AnimateVectorQueueConstant (Obj2DProp iProp, int iFrame, const TArray<CVector2D>& Value)
+	{
+	ObjPropType iType = GetPropertyDesc(iProp).iType;
+	if (iType != ObjPropType::VectorQueue && iType != ObjPropType::VectorList)
+		return false;
+
+	if (iFrame == 0 && !m_Animators.FindAnimator(iProp))
+		m_Animators.GetAnimatorVectorQueue(iProp, Value);
+	else
+		{
+		IAnimator2D& Animator = m_Animators.GetAnimatorVectorQueue(iProp, GetPropertyVectorQueue(iProp));
+		IAnimator2D::SKeyframeDesc Desc;
+		Desc.iFrame = iFrame;
+		Desc.iType = IAnimator2D::Type::Constant;
+		Animator.AddKeyframeVectorQueue(Desc, Value);
+		}
+
+	m_Scene.OnObjModified(*this);
+	return true;
+	}
+
+
+bool ILuminousObj2D::AnimateVectorQueueLinear (Obj2DProp iProp, int iFrame, const TArray<CVector2D>& Value)
+	{
+	ObjPropType iType = GetPropertyDesc(iProp).iType;
+	if (iType != ObjPropType::VectorQueue && iType != ObjPropType::VectorList)
+		return false;
+
+	IAnimator2D& Animator = m_Animators.GetAnimatorVectorQueue(iProp, GetPropertyVectorQueue(iProp));
+	IAnimator2D::SKeyframeDesc Desc;
+	Desc.iFrame = iFrame;
+	Desc.iType = IAnimator2D::Type::Linear;
+	Animator.AddKeyframeVectorQueue(Desc, Value);
+
+	m_Scene.OnObjModified(*this);
+	return true;
+	}
 TUniquePtr<ILuminousObj2D> ILuminousObj2D::CreateFromStream (CLuminousScene2D& Scene, IByteStream& Stream, TSortMap<DWORD, DWORD> &retParents)
-
-//	CreateFromStream
-//
-//	Creates an object from a stream.
-
 	{
 	DWORD dwImpl = Stream.ReadDWORD();
 	DWORD dwID = Stream.ReadDWORD();
@@ -235,8 +214,20 @@ TUniquePtr<ILuminousObj2D> ILuminousObj2D::CreateFromStream (CLuminousScene2D& S
 	TUniquePtr<ILuminousObj2D> pObj;
 	switch (dwImpl)
 		{
+		case IMPL_CIRCLE:
+			pObj.Set(new CObj2DCircle(Scene, dwID, NULL));
+			break;
+
 		case IMPL_RECTANGLE:
 			pObj.Set(new CObj2DRectangle(Scene, dwID, NULL));
+			break;
+
+		case IMPL_TRAIL:
+			pObj.Set(new CObj2DTrail(Scene, dwID, NULL));
+			break;
+
+		case IMPL_LINE:
+			pObj.Set(new CObj2DLine(Scene, dwID, NULL));
 			break;
 
 		default:
@@ -255,59 +246,37 @@ TUniquePtr<ILuminousObj2D> ILuminousObj2D::CreateFromStream (CLuminousScene2D& S
 	pObj->m_rOpacity = Stream.ReadDouble();
 
 	pObj->m_Animators = CAnimatorSet2D::CreateFromStream(Stream);
-
 	pObj->OnRead(Stream);
 
 	return pObj;
 	}
 
 TArray<ILuminousObj2D::SPropertyRenderCtx> ILuminousObj2D::GetPropertiesToRender () const
-
-//	GetPropertiesToRender
-//
-//	Returns an array of properties for this object that are need to render.
-//	This excludes any default properties.
-
 	{
 	TArray<SPropertyRenderCtx> Result;
-
 	const IAnimator2D* pAnimator = NULL;
-
-	//	If this object is not visible, then we don't need to render it.
 
 	if (!m_bVisible && !(pAnimator = GetPropertyAnimator(Obj2DProp::Visible)))
 		return Result;
 
-	//	If default opacity, then no need to include it.
+	if ((pAnimator = GetPropertyAnimator(Obj2DProp::Visible)) || !m_bVisible)
+		AccumulatePropertyToRender(GetPropertyDesc(Obj2DProp::Visible), pAnimator, Result);
 
 	if ((pAnimator = GetPropertyAnimator(Obj2DProp::Opacity)) || m_rOpacity != 1.0)
 		AccumulatePropertyToRender(GetPropertyDesc(Obj2DProp::Opacity), pAnimator, Result);
 
-	//	Always add position.
-
 	AccumulatePropertyToRender(GetPropertyDesc(Obj2DProp::Pos), GetPropertyAnimator(Obj2DProp::Pos), Result);
-
-	//	Add scale if it is not the default.
 
 	if ((pAnimator = GetPropertyAnimator(Obj2DProp::Scale)) || m_vScale != CVector2D(1.0, 1.0))
 		AccumulatePropertyToRender(GetPropertyDesc(Obj2DProp::Scale), pAnimator, Result);
 
-	//	Add rotation if it is not the default.
-
 	if ((pAnimator = GetPropertyAnimator(Obj2DProp::Rot)) || m_rRotation != 0.0)
 		AccumulatePropertyToRender(GetPropertyDesc(Obj2DProp::Rot), pAnimator, Result);
-
-	//	Add rotation center if it is not the default.
 
 	if ((pAnimator = GetPropertyAnimator(Obj2DProp::RotCenter)) || m_vRotCenter != CVector2D(0.0, 0.0))
 		AccumulatePropertyToRender(GetPropertyDesc(Obj2DProp::RotCenter), pAnimator, Result);
 
-	//	Now add object-specific properties
-
 	OnAccumulatePropertiesToRender(Result);
-
-	//	Done
-
 	return Result;
 	}
 
@@ -325,23 +294,10 @@ bool ILuminousObj2D::GetPropertyBool (Obj2DProp iProp) const
 
 CLuminousColor ILuminousObj2D::GetPropertyColor (Obj2DProp iProp) const
 	{
-#if 0
-	switch (iProp)
-		{
-		default:
-			return OnGetPropertyColor(iProp);
-		}
-#else
 	return OnGetPropertyColor(iProp);
-#endif
 	}
 
 const ILuminousObj2D::SPropertyDesc& ILuminousObj2D::GetPropertyDesc (Obj2DProp iProp)
-
-//	GetPropertyDesc
-//
-//	Returns the property descriptor for the given property.
-
 	{
 	int iIndex = (int)iProp;
 	if (iIndex < 1 || iIndex >= m_Properties.GetCount())
@@ -388,12 +344,12 @@ CVector2D ILuminousObj2D::GetPropertyVector (Obj2DProp iProp) const
 		}
 	}
 
+const TArray<CVector2D>& ILuminousObj2D::GetPropertyVectorQueue (Obj2DProp iProp) const
+	{
+	return OnGetPropertyVectorQueue(iProp);
+	}
+
 Obj2DProp ILuminousObj2D::ParseProperty (const CString& sProperty)
-
-//	ParseProperty
-//
-//	Parses the given property.
-
 	{
 	if (m_PropLookup.GetCount() == 0)
 		{
@@ -410,42 +366,62 @@ Obj2DProp ILuminousObj2D::ParseProperty (const CString& sProperty)
 
 bool ILuminousObj2D::SetPropertyBool (Obj2DProp iProp, bool bValue)
 	{
+	bool bSuccess;
 	switch (iProp)
 		{
 		case Obj2DProp::Visible:
 			m_bVisible = bValue;
-			return true;
+			bSuccess = true;
+			break;
 
 		default:
-			return OnSetPropertyBool(iProp, bValue);
+			bSuccess = OnSetPropertyBool(iProp, bValue);
+			break;
 		}
+
+	if (bSuccess && m_Scene.IsStreamMode())
+		MarkPropertyDirty(iProp);
+
+	return bSuccess;
 	}
 
 bool ILuminousObj2D::SetPropertyColor (Obj2DProp iProp, const CLuminousColor& Value)
 	{
-	return OnSetPropertyColor(iProp, Value);
+	bool bSuccess = OnSetPropertyColor(iProp, Value);
+	if (bSuccess && m_Scene.IsStreamMode())
+		MarkPropertyDirty(iProp);
+	return bSuccess;
 	}
 
 bool ILuminousObj2D::SetPropertyScalar (Obj2DProp iProp, double rValue)
 	{
+	bool bSuccess;
 	switch (iProp)
 		{
 		case Obj2DProp::Opacity:
 			if (rValue >= 0.0 && rValue <= 1.0)
 				{
 				m_rOpacity = rValue;
-				return true;
+				bSuccess = true;
 				}
 			else
-				return false;
+				bSuccess = false;
+			break;
 
 		case Obj2DProp::Rot:
 			m_rRotation = rValue;
-			return true;
+			bSuccess = true;
+			break;
 
 		default:
-			return OnSetPropertyScalar(iProp, rValue);
+			bSuccess = OnSetPropertyScalar(iProp, rValue);
+			break;
 		}
+
+	if (bSuccess && m_Scene.IsStreamMode())
+		MarkPropertyDirty(iProp);
+
+	return bSuccess;
 	}
 
 bool ILuminousObj2D::SetPropertyString (Obj2DProp iProp, const CString& sValue)
@@ -455,31 +431,44 @@ bool ILuminousObj2D::SetPropertyString (Obj2DProp iProp, const CString& sValue)
 
 bool ILuminousObj2D::SetPropertyVector (Obj2DProp iProp, const CVector2D& Value)
 	{
+	bool bSuccess;
 	switch (iProp)
 		{
 		case Obj2DProp::Pos:
 			m_vPos = Value;
-			return true;
+			bSuccess = true;
+			break;
 
 		case Obj2DProp::RotCenter:
 			m_vRotCenter = Value;
-			return true;
+			bSuccess = true;
+			break;
 
 		case Obj2DProp::Scale:
 			m_vScale = Value;
-			return true;
+			bSuccess = true;
+			break;
 
 		default:
-			return OnSetPropertyVector(iProp, Value);
+			bSuccess = OnSetPropertyVector(iProp, Value);
+			break;
 		}
+
+	if (bSuccess && m_Scene.IsStreamMode())
+		MarkPropertyDirty(iProp);
+
+	return bSuccess;
+	}
+
+bool ILuminousObj2D::SetPropertyVectorQueue (Obj2DProp iProp, const TArray<CVector2D>& Value)
+	{
+	bool bSuccess = OnSetPropertyVectorQueue(iProp, Value);
+	if (bSuccess && m_Scene.IsStreamMode())
+		MarkPropertyDirty(iProp);
+	return bSuccess;
 	}
 
 void ILuminousObj2D::Write (IByteStream& Stream) const
-
-//	Write
-//
-//	Write to stream.
-
 	{
 	Stream.Write(GetImpl());
 	Stream.Write(GetID());
@@ -498,8 +487,6 @@ void ILuminousObj2D::Write (IByteStream& Stream) const
 	m_vRotCenter.Write(Stream);
 	Stream.Write(m_rRotation);
 	Stream.Write(m_rOpacity);
-
 	m_Animators.Write(Stream);
-
 	OnWrite(Stream);
 	}
