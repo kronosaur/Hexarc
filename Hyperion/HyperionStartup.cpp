@@ -22,6 +22,10 @@
 
 #include "stdafx.h"
 
+#ifndef HYPERION_DISABLE_ARC_HOSTS
+#define HYPERION_DISABLE_ARC_HOSTS 0
+#endif
+
 DECLARE_CONST_STRING(PORT_HYPERION_COMMAND,				"Hyperion.command")
 DECLARE_CONST_STRING(ADDR_AEON,							"Aeon.command")
 
@@ -947,10 +951,16 @@ bool CLoadServicesSession::RequestProcessRoutes (void)
 
 //	RequestProcessRoutes
 //
-//	Load Arc.hosts if it exists, otherwise create and seed it.
+//	Load Arc.hosts if it exists, otherwise create and seed it. If Arc.hosts
+//	is disabled, continue using the bindings in the service documents.
 
 	{
+#if HYPERION_DISABLE_ARC_HOSTS
+	m_pEngine->LoadServices();
+	return ReplyOK();
+#else
 	return RequestLoadRoutes(stateCheckRoutes);
+#endif
 	}
 
 bool CLoadServicesSession::RequestSeedRoute (CDatum dRoute)
