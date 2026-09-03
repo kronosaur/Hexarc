@@ -675,6 +675,8 @@ void CDatatypeFunction::OnMark ()
 //	Mark data in use.
 
 	{
+	DEBUG_TRY
+
 	for (int i = 0; i < m_Signatures.GetCount(); i++)
 		{
 		auto &Signature = m_Signatures[i];
@@ -684,6 +686,8 @@ void CDatatypeFunction::OnMark ()
 		for (int j = 0; j < Signature.Args.GetCount(); j++)
 			Signature.Args[j].dType.Mark();
 		}
+
+	DEBUG_CATCH
 	}
 
 void CDatatypeFunction::OnSerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const

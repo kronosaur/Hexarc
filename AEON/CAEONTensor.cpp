@@ -17,6 +17,115 @@ DECLARE_CONST_STRING(ERR_TENSOR_DOT_MISMATCH,			"Tensors must have the same numb
 DECLARE_CONST_STRING(ERR_TENSOR_MATMUL_MISMATCH,		"Left tensor must have the same number of columns as right tensor rows.");
 DECLARE_CONST_STRING(ERR_TENSOR_MATMUL_CANT_BROADCAST,	"Unable to broadcast higher dimensions for matmul.");
 DECLARE_CONST_STRING(ERR_TENSOR_MATMUL_ORIGIN,			"matmul is not supported for tensors with dimensions that do not start at 0.");
+DECLARE_CONST_STRING(ERR_TENSOR_MATRIX_RANK_FINITE,		"matrixRank requires finite tensor values and finite intermediate results.");
+DECLARE_CONST_STRING(ERR_TENSOR_MATRIX_RANK_NUMERIC,	"matrixRank requires a numeric tensor.");
+DECLARE_CONST_STRING(ERR_TENSOR_MATRIX_RANK_RANK,		"matrixRank is not supported for tensors with no dimensions.");
+DECLARE_CONST_STRING(ERR_TENSOR_MATRIX_RANK_TOLERANCE,	"matrixRank tolerance must be a finite, non-negative number.");
+DECLARE_CONST_STRING(ERR_TENSOR_BINARY_DIMENSIONS,		"Tensor operands must have identical dimensions.");
+DECLARE_CONST_STRING(ERR_TENSOR_BINARY_ARRAY_SHAPE,		"Array operand must exactly match the tensor shape.");
+DECLARE_CONST_STRING(ERR_TENSOR_TRANSPOSE_RANK,			"Unable to transpose a tensor with no dimensions.");
+
+static CDatum CreateTensorSliceValue (CDatum dType, CDatum dValue)
+	{
+	//	Slice assignment has historically clipped extra values and default-filled
+	//	missing values. This is intentionally separate from whole-tensor
+	//	construction, which rejects overflow to avoid silently discarding data.
+
+	return CDatum(new CAEONTensor(dType, dValue));
+	}
+
+static bool CalcMatrixRank (TArray<double>& Matrix, int iRows, int iCols, bool bDefaultTolerance, double rTolerance, int& retiRank)
+
+//	CalcMatrixRank
+//
+//	Computes rank by Gaussian elimination with complete pivoting. We scale the
+//	matrix before elimination to keep finite inputs away from overflow and to
+//	make the default relative tolerance easy to apply.
+
+	{
+	retiRank = 0;
+	if (iRows == 0 || iCols == 0)
+		return true;
+
+	double rMaxValue = 0.0;
+	for (int i = 0; i < Matrix.GetCount(); i++)
+		{
+		if (!std::isfinite(Matrix[i]))
+			return false;
+
+		rMaxValue = Max(rMaxValue, abs(Matrix[i]));
+		}
+
+	if (rMaxValue == 0.0)
+		return true;
+
+	//	After scaling, all values are in [-1, 1]. Scale an explicit tolerance
+	//	to the same units. If it already covers the largest value, the rank is 0.
+
+	if (!bDefaultTolerance && rTolerance >= rMaxValue)
+		return true;
+
+	for (int i = 0; i < Matrix.GetCount(); i++)
+		Matrix[i] /= rMaxValue;
+
+	const double rScaledTolerance = (bDefaultTolerance
+			? std::numeric_limits<double>::epsilon() * Max(iRows, iCols)
+			: rTolerance / rMaxValue);
+	const int iMaxRank = Min(iRows, iCols);
+
+	for (int iPivot = 0; iPivot < iMaxRank; iPivot++)
+		{
+		int iBestRow = iPivot;
+		int iBestCol = iPivot;
+		double rBestValue = 0.0;
+
+		for (int iRow = iPivot; iRow < iRows; iRow++)
+			for (int iCol = iPivot; iCol < iCols; iCol++)
+				{
+				double rValue = abs(Matrix[(iRow * iCols) + iCol]);
+				if (rValue > rBestValue)
+					{
+					rBestValue = rValue;
+					iBestRow = iRow;
+					iBestCol = iCol;
+					}
+				}
+
+		//	This is the largest value in the remaining submatrix, so if it is
+		//	below tolerance there cannot be another acceptable pivot.
+
+		if (rBestValue <= rScaledTolerance)
+			break;
+
+		if (iBestRow != iPivot)
+			for (int iCol = 0; iCol < iCols; iCol++)
+				Swap(Matrix[(iPivot * iCols) + iCol], Matrix[(iBestRow * iCols) + iCol]);
+
+		if (iBestCol != iPivot)
+			for (int iRow = 0; iRow < iRows; iRow++)
+				Swap(Matrix[(iRow * iCols) + iPivot], Matrix[(iRow * iCols) + iBestCol]);
+
+		const double rPivot = Matrix[(iPivot * iCols) + iPivot];
+		for (int iRow = iPivot + 1; iRow < iRows; iRow++)
+			{
+			const double rFactor = Matrix[(iRow * iCols) + iPivot] / rPivot;
+			Matrix[(iRow * iCols) + iPivot] = 0.0;
+
+			for (int iCol = iPivot + 1; iCol < iCols; iCol++)
+				{
+				double rValue = Matrix[(iRow * iCols) + iCol] - (rFactor * Matrix[(iPivot * iCols) + iCol]);
+				if (!std::isfinite(rValue))
+					return false;
+
+				Matrix[(iRow * iCols) + iCol] = rValue;
+				}
+			}
+
+		retiRank++;
+		}
+
+	return true;
+	}
 
 TDatumPropertyHandler<CAEONTensor> CAEONTensor::m_Properties = {
 	{
@@ -145,14 +254,29 @@ const CString &CAEONTensor::GetTypename (void) const
 
 bool CAEONTensor::AddDim (TArray<CDatum>& ResultDims, int iDim, CDatum dDim) const
 	{
+	const IDatatype& DimType = m_Dims[iDim].dType;
+	auto IsValidCoordinate = [&DimType](CDatum dIndex)
+		{
+		if (dIndex.IsNumber())
+			return DimType.IsA(IDatatype::INTEGER);
+		else if (dIndex.GetBasicType() == CDatum::typeEnum)
+			return (DimType.GetClass() == IDatatype::ECategory::Enum
+					&& ((const IDatatype&)dIndex.GetDatatype()).IsA(DimType));
+		else
+			return false;
+		};
+
 	if (dDim.IsNil())
 		return false;
 
-	else if (dDim.IsIdenticalToTrue())
+	else if (dDim.IsIdenticalToWildcard() || dDim.IsIdenticalToTrue())
 		ResultDims.Insert(m_Dims[iDim].dType);
 
 	else if (dDim.GetBasicType() == CDatum::typeRange)
 		{
+		if (!DimType.IsA(IDatatype::INTEGER))
+			return false;
+
 		const IAEONRange* pRange = dDim.GetRangeInterface();
 		if (pRange == NULL || pRange->GetLength() == 0)
 			return false;
@@ -162,8 +286,17 @@ bool CAEONTensor::AddDim (TArray<CDatum>& ResultDims, int iDim, CDatum dDim) con
 
 	else if (dDim.IsArray())
 		{
+		for (int i = 0; i < dDim.GetCount(); i++)
+			{
+			CDatum dIndex = dDim.GetElement(i);
+			if (!IsValidCoordinate(dIndex))
+				return false;
+			}
+
 		ResultDims.Insert(CAEONTypes::CreateInt32SubRange(NULL_STR, 0, dDim.GetCount() - 1));
 		}
+	else if (!IsValidCoordinate(dDim))
+		return false;
 
 	return true;
 	}
@@ -212,6 +345,136 @@ const CAEONTensor& CAEONTensor::AsTensor (CDatum dTensor)
 
 	ASSERT(dTensor.GetBasicType() == CDatum::typeTensor);
 	return *(CAEONTensor*)dTensor.GetComplex();
+	}
+
+CDatum CAEONTensor::ConcatenateScalar (IInvokeCtx& Ctx, CDatum dTensor, CDatum dScalar, bool bPrepend)
+	{
+	return AsTensor(dTensor).OpConcatenatedScalar(Ctx, dScalar, bPrepend);
+	}
+
+CDatum CAEONTensor::ExecuteBinaryOp (EBinaryOp iOp, CDatum dLeft, CDatum dRight, IAEONOperatorCtx& Ctx)
+	{
+	switch (iOp)
+		{
+		case EBinaryOp::Add:
+			return CAEONOp::Add(dLeft, dRight, Ctx);
+
+		case EBinaryOp::Divide:
+			return CAEONOp::Divide(dLeft, dRight, Ctx);
+
+		case EBinaryOp::Mod:
+			return CAEONOp::Mod(dLeft, dRight, Ctx);
+
+		case EBinaryOp::Multiply:
+			return CAEONOp::Multiply(dLeft, dRight, Ctx);
+
+		case EBinaryOp::Power:
+			return CAEONOp::Power(dLeft, dRight, Ctx);
+
+		case EBinaryOp::Subtract:
+			return CAEONOp::Subtract(dLeft, dRight, Ctx);
+
+		default:
+			throw CException(errFail);
+		}
+	}
+
+bool CAEONTensor::FlattenOperand (CDatum dOperand, const TArray<SDimDesc>& Dims, CDatum dTensorElementType, int iDim, TArray<CDatum>& retValues)
+	{
+	if (iDim == Dims.GetCount())
+		{
+		const IDatatype& OperandType = dOperand.GetDatatype();
+		const IDatatype& TensorElementType = dTensorElementType;
+		if (OperandType.IsA(IDatatype::ARRAY)
+				&& !TensorElementType.IsAny()
+				&& !TensorElementType.IsA(IDatatype::ARRAY))
+			return false;
+
+		retValues.Insert(dOperand);
+		return true;
+		}
+
+	const IDatatype& OperandType = dOperand.GetDatatype();
+	if (dOperand.GetBasicType() == CDatum::typeTensor
+			|| OperandType.GetClass() != IDatatype::ECategory::Array
+			|| dOperand.GetCount() != Dims[iDim].iLength)
+		return false;
+
+	for (int i = 0; i < dOperand.GetCount(); i++)
+		if (!FlattenOperand(dOperand.GetElement(i), Dims, dTensorElementType, iDim + 1, retValues))
+			return false;
+
+	return true;
+	}
+
+CDatum CAEONTensor::MathBinaryOp (CDatum dLeft, CDatum dRight, CDatum dResultType, EBinaryOp iOp, IAEONOperatorCtx& Ctx)
+	{
+	const bool bLeftTensor = (dLeft.GetBasicType() == CDatum::typeTensor);
+	const bool bRightTensor = (dRight.GetBasicType() == CDatum::typeTensor);
+	if (!bLeftTensor && !bRightTensor)
+		throw CException(errFail);
+
+	const IDatatype& ResultType = dResultType;
+	if (ResultType.IsErrorType() || ResultType.GetClass() != IDatatype::ECategory::Tensor)
+		return CDatum::CreateError(ERR_TENSOR_BINARY_DIMENSIONS);
+
+	const CAEONTensor& Tensor = AsTensor(bLeftTensor ? dLeft : dRight);
+	if (bLeftTensor && bRightTensor)
+		{
+		const CAEONTensor& RightTensor = AsTensor(dRight);
+		if (Tensor.m_Dims.GetCount() != RightTensor.m_Dims.GetCount())
+			return CDatum::CreateError(ERR_TENSOR_BINARY_DIMENSIONS);
+
+		for (int i = 0; i < Tensor.m_Dims.GetCount(); i++)
+			{
+			const IDatatype& LeftDim = Tensor.m_Dims[i].dType;
+			const IDatatype& RightDim = RightTensor.m_Dims[i].dType;
+			if (!LeftDim.IsA(RightDim) || !RightDim.IsA(LeftDim))
+				return CDatum::CreateError(ERR_TENSOR_BINARY_DIMENSIONS);
+			}
+		}
+
+	TArray<CDatum> LeftValues;
+	TArray<CDatum> RightValues;
+	if (bLeftTensor)
+		{
+		const CAEONTensor& LeftTensor = AsTensor(dLeft);
+		for (Iterator i = LeftTensor.begin(); i != LeftTensor.end(); ++i)
+			LeftValues.Insert(*i);
+		}
+	else if (((const IDatatype&)dLeft.GetDatatype()).GetClass() == IDatatype::ECategory::Array)
+		{
+		if (!FlattenOperand(dLeft, Tensor.m_Dims, Tensor.m_dElementType, 0, LeftValues))
+			return CDatum::CreateError(ERR_TENSOR_BINARY_ARRAY_SHAPE);
+		}
+
+	if (bRightTensor)
+		{
+		const CAEONTensor& RightTensor = AsTensor(dRight);
+		for (Iterator i = RightTensor.begin(); i != RightTensor.end(); ++i)
+			RightValues.Insert(*i);
+		}
+	else if (((const IDatatype&)dRight.GetDatatype()).GetClass() == IDatatype::ECategory::Array)
+		{
+		if (!FlattenOperand(dRight, Tensor.m_Dims, Tensor.m_dElementType, 0, RightValues))
+			return CDatum::CreateError(ERR_TENSOR_BINARY_ARRAY_SHAPE);
+		}
+
+	const int iCellCount = Tensor.CalcDataCount();
+	if ((LeftValues.GetCount() > 0 && LeftValues.GetCount() != iCellCount)
+			|| (RightValues.GetCount() > 0 && RightValues.GetCount() != iCellCount))
+		return CDatum::CreateError(ERR_TENSOR_BINARY_ARRAY_SHAPE);
+
+	CDatum dValues = CDatum::CreateArrayAsTypeOfElement(ResultType.GetElementType());
+	dValues.GrowToFit(iCellCount);
+	for (int i = 0; i < iCellCount; i++)
+		{
+		CDatum dLeftValue = (LeftValues.GetCount() == 0 ? dLeft : LeftValues[i]);
+		CDatum dRightValue = (RightValues.GetCount() == 0 ? dRight : RightValues[i]);
+		dValues.Append(ExecuteBinaryOp(iOp, dLeftValue, dRightValue, Ctx));
+		}
+
+	return CDatum(new CAEONTensor(dResultType, dValues));
 	}
 
 TArray<int> CAEONTensor::CalcBroadcastDims (const TArray<int>& Dims1, const TArray<int>& Dims2)
@@ -702,7 +965,8 @@ CAEONTensor::SSliceDesc CAEONTensor::CalcSlice (CDatum dIndex) const
 	else if (m_Dims.GetCount() == 1)
 		{
 		int iIndex;
-		if (dIndex.IsNumberInt32(&iIndex))
+		if (((const IDatatype&)m_Dims[0].dType).IsA(IDatatype::INTEGER)
+				&& dIndex.IsNumberInt32(&iIndex))
 			{
 			Slice.iPos = CalcIndex1D(iIndex);
 			if (Slice.iPos == -1)
@@ -824,7 +1088,9 @@ CAEONTensor::SSliceDesc CAEONTensor::CalcSlice2D (CDatum dIndex1, CDatum dIndex2
 	int iIndex1;
 	int iIndex2;
 
-	if (m_Dims.GetCount() == 2 
+	if (m_Dims.GetCount() == 2
+			&& ((const IDatatype&)m_Dims[0].dType).IsA(IDatatype::INTEGER)
+			&& ((const IDatatype&)m_Dims[1].dType).IsA(IDatatype::INTEGER)
 			&& dIndex1.IsNumberInt32(&iIndex1) && dIndex2.IsNumberInt32(&iIndex2))
 		{
 		Slice.iPos = CalcIndex2D(iIndex1, iIndex2);
@@ -898,7 +1164,10 @@ CAEONTensor::SSliceDesc CAEONTensor::CalcSlice3D (CDatum dIndex1, CDatum dIndex2
 	int iIndex2;
 	int iIndex3;
 
-	if (m_Dims.GetCount() == 3 
+	if (m_Dims.GetCount() == 3
+			&& ((const IDatatype&)m_Dims[0].dType).IsA(IDatatype::INTEGER)
+			&& ((const IDatatype&)m_Dims[1].dType).IsA(IDatatype::INTEGER)
+			&& ((const IDatatype&)m_Dims[2].dType).IsA(IDatatype::INTEGER)
 			&& dIndex1.IsNumberInt32(&iIndex1) && dIndex2.IsNumberInt32(&iIndex2) && dIndex3.IsNumberInt32(&iIndex3))
 		{
 		Slice.iPos = CalcIndex3D(iIndex1, iIndex2, iIndex3);
@@ -1112,7 +1381,7 @@ int CAEONTensor::CompareTensorExact (const TArray<SDimDesc>& Dims1, int iDataSta
 		int iCount = Min(Dims1[iDim].iLength, Dims2[iDim].iLength);
 		for (int i = 0; i < iCount; i++)
 			{
-			int iCompare = CompareTensor(Dims1, iPos1, dData1, Dims2, iPos2, dData2, iDim + 1);
+			int iCompare = CompareTensorExact(Dims1, iPos1, dData1, Dims2, iPos2, dData2, iDim + 1);
 			if (iCompare != 0)
 				return iCompare;
 
@@ -1139,6 +1408,27 @@ CDatum CAEONTensor::Create2DTensor (int iRows, int iCols, CDatum dElementType, C
 	Dims[1] = iCols;
 
 	return CreateNTensor(Dims, dElementType, dData);
+	}
+
+CDatum CAEONTensor::CreateFromNormalizedData (CDatum dDatatype, CDatum dData)
+
+//	CreateFromNormalizedData
+//
+//	Creates a tensor from a fully converted, row-major data vector. The caller
+//	must guarantee that the data count exactly matches the concrete datatype.
+
+	{
+	CAEONTensor* pTensor = new CAEONTensor;
+	CDatum dResult(pTensor);
+
+	pTensor->m_dDatatype = dDatatype;
+	pTensor->m_Dims = CalcDims(dDatatype);
+	pTensor->m_dElementType = CalcElementType(dDatatype);
+	pTensor->m_bStandardDims = pTensor->CalcIsStandardDims();
+	ASSERT(dData.GetCount() == pTensor->CalcDataSize());
+	pTensor->m_dData = dData;
+
+	return dResult;
 	}
 
 CDatum CAEONTensor::CreateNTensor (const TArray<int>& Dims, CDatum dElementType, CDatum dData)
@@ -1796,6 +2086,86 @@ CDatum CAEONTensor::MathInvert () const
 	return dResult;
 	}
 
+CDatum CAEONTensor::MathMatrixRank (CAEONTypeSystem& TypeSystem, CDatum dTolerance) const
+
+//	MathMatrixRank
+//
+//	Returns the matrix rank of a vector or matrix. For tensors with more than
+//	two dimensions, we treat the final two dimensions as matrices and return a
+//	tensor of ranks over the leading batch dimensions.
+
+	{
+	const int iTensorRank = m_Dims.GetCount();
+	if (iTensorRank == 0)
+		return CDatum::CreateError(ERR_TENSOR_MATRIX_RANK_RANK);
+
+	if (!((const IDatatype&)m_dElementType).IsA(IDatatype::NUMBER))
+		return CDatum::CreateError(ERR_TENSOR_MATRIX_RANK_NUMERIC);
+
+	const bool bDefaultTolerance = dTolerance.IsNil();
+	double rTolerance = 0.0;
+	if (!bDefaultTolerance)
+		{
+		if (!((const IDatatype&)dTolerance.GetDatatype()).IsA(IDatatype::NUMBER))
+			return CDatum::CreateError(ERR_TENSOR_MATRIX_RANK_TOLERANCE);
+
+		rTolerance = (double)dTolerance;
+		if (!std::isfinite(rTolerance) || rTolerance < 0.0)
+			return CDatum::CreateError(ERR_TENSOR_MATRIX_RANK_TOLERANCE);
+		}
+
+	const int iRows = (iTensorRank == 1 ? 1 : m_Dims[iTensorRank - 2].iLength);
+	const int iCols = m_Dims[iTensorRank - 1].iLength;
+	const int iMatrixSize = iRows * iCols;
+	int iBatchCount = 1;
+	for (int i = 0; i < iTensorRank - 2; i++)
+		iBatchCount *= m_Dims[i].iLength;
+
+	TArray<double> Matrix;
+	Matrix.InsertEmpty(iMatrixSize);
+	Iterator Src = begin();
+
+	//	Vectors and matrices return a scalar rank.
+
+	if (iTensorRank <= 2)
+		{
+		for (int i = 0; i < iMatrixSize; i++, ++Src)
+			Matrix[i] = (double)*Src;
+
+		int iResult;
+		if (!CalcMatrixRank(Matrix, iRows, iCols, bDefaultTolerance, rTolerance, iResult))
+			return CDatum::CreateError(ERR_TENSOR_MATRIX_RANK_FINITE);
+
+		return CDatum(iResult);
+		}
+
+	//	Preserve the complete leading dimension descriptors for batched results.
+
+	TArray<CDatum> ResultDims;
+	ResultDims.InsertEmpty(iTensorRank - 2);
+	for (int i = 0; i < ResultDims.GetCount(); i++)
+		ResultDims[i] = m_Dims[i].dType;
+
+	CDatum dInt32Type = CAEONTypes::Get(IDatatype::INT_32);
+	CDatum dResultType = TypeSystem.AddAnonymousTensor(dInt32Type, std::move(ResultDims));
+	CDatum dResultData = CDatum::CreateArrayAsTypeOfElement(dInt32Type);
+	dResultData.InsertEmpty(iBatchCount);
+
+	for (int iBatch = 0; iBatch < iBatchCount; iBatch++)
+		{
+		for (int i = 0; i < iMatrixSize; i++, ++Src)
+			Matrix[i] = (double)*Src;
+
+		int iResult;
+		if (!CalcMatrixRank(Matrix, iRows, iCols, bDefaultTolerance, rTolerance, iResult))
+			return CDatum::CreateError(ERR_TENSOR_MATRIX_RANK_FINITE);
+
+		dResultData.SetElement(iBatch, iResult);
+		}
+
+	return CreateFromNormalizedData(dResultType, dResultData);
+	}
+
 CDatum CAEONTensor::MathMatMul (CDatum dValue) const
 	{
 	//	Argument must be a tensor
@@ -2170,9 +2540,17 @@ CDatum CAEONTensor::MathMultiplyElements (CDatum dValue) const
 
 CDatum CAEONTensor::MathNegateElements () const
 	{
-	CAEONTensor* pResult = new CAEONTensor(*this);
-	pResult->m_dData = m_dData.MathNegateElements();
-	return CDatum(pResult);
+	CDatum dResultType = CAEONOp::CalcNegateType(m_dDatatype);
+	const IDatatype& ResultType = dResultType;
+	if (ResultType.IsErrorType() || ResultType.GetClass() != IDatatype::ECategory::Tensor)
+		return CDatum::CreateError(ERR_TENSOR_BINARY_DIMENSIONS);
+
+	CDatum dValues = CDatum::CreateArrayAsTypeOfElement(ResultType.GetElementType());
+	dValues.GrowToFit(CalcDataCount());
+	for (Iterator i = begin(); i != end(); ++i)
+		dValues.Append(CAEONOp::Negate(*i));
+
+	return CDatum(new CAEONTensor(dResultType, dValues));
 	}
 
 CDatum CAEONTensor::MathSubtractFromElements (CDatum dValue) const
@@ -2239,19 +2617,15 @@ int CAEONTensor::OpCompare (CDatum::Types iValueType, CDatum dValue) const
 
 		case CDatum::typeArray:
 			{
-			//	Must have only one dimension
-
 			if (m_Dims.GetCount() < 1)
 				return -1;
-			else if (m_Dims.GetCount() > 1)
-				return 1;
 
-			//	Compare the elements in sequence
+			//	Compare the nested array representation in sequence.
 
 			int iCount = Min(m_Dims[0].iLength, dValue.GetCount());
 			for (int i = 0; i < iCount; i++)
 				{
-				int iCompare = GetElementAt(i).OpCompare(dValue.GetElement(i));
+				int iCompare = GetElementAt(m_Dims[0].iOrigin + i).OpCompare(dValue.GetElement(i));
 				if (iCompare != 0)
 					return iCompare;
 				}
@@ -2307,19 +2681,15 @@ int CAEONTensor::OpCompareExact (CDatum::Types iValueType, CDatum dValue) const
 
 		case CDatum::typeArray:
 			{
-			//	Must have only one dimension
-
 			if (m_Dims.GetCount() < 1)
 				return -1;
-			else if (m_Dims.GetCount() > 1)
-				return 1;
 
-			//	Compare the elements in sequence
+			//	Compare the nested array representation in sequence.
 
 			int iCount = Min(m_Dims[0].iLength, dValue.GetCount());
 			for (int i = 0; i < iCount; i++)
 				{
-				int iCompare = GetElementAt(i).OpCompareExact(dValue.GetElement(i));
+				int iCompare = GetElementAt(m_Dims[0].iOrigin + i).OpCompareExact(dValue.GetElement(i));
 				if (iCompare != 0)
 					return iCompare;
 				}
@@ -2342,10 +2712,43 @@ int CAEONTensor::OpCompareExact (CDatum::Types iValueType, CDatum dValue) const
 		}
 	}
 
+static CDatum CalcTensorConcatElementType (CDatum dLeftType, CDatum dRightType)
+	{
+	const IDatatype& LeftType = dLeftType;
+	const IDatatype& RightType = dRightType;
+	if (RightType.IsA(LeftType))
+		return dLeftType;
+	else if (LeftType.IsA(RightType))
+		return dRightType;
+	else
+		return CAEONTypes::Get(IDatatype::ANY);
+	}
+
+static CDatum CalcTensorConcatSourceElementType (CDatum dSrc, int iRank)
+	{
+	CDatum dType = dSrc.GetDatatype();
+	const IDatatype& SrcType = dType;
+	if (SrcType.GetClass() == IDatatype::ECategory::Tensor)
+		return SrcType.GetElementType();
+
+	for (int i = 0; i < iRank; i++)
+		{
+		const IDatatype& Type = dType;
+		if (Type.GetClass() != IDatatype::ECategory::Array)
+			return CAEONTypes::Get(IDatatype::ANY);
+
+		dType = Type.GetElementType();
+		}
+
+	return dType;
+	}
+
 CDatum CAEONTensor::OpConcatenated (IInvokeCtx& Ctx, CDatum dSrc, int iAxis) const
 	{
 	if (iAxis < 0 || iAxis >= m_Dims.GetCount())
 		return CDatum::CreateError(ERR_INVALID_AXIS);
+	else if (!((const IDatatype&)dSrc.GetDatatype()).IsA(IDatatype::ARRAY))
+		return OpConcatenatedScalar(Ctx, dSrc, false);
 
 	CDatum dSrcShape = dSrc.GetProperty(FIELD_SHAPE);
 	if (dSrcShape.GetCount() >= 1 && dSrcShape.GetCount() == m_Dims.GetCount() - 1)
@@ -2371,7 +2774,8 @@ CDatum CAEONTensor::OpConcatenated (IInvokeCtx& Ctx, CDatum dSrc, int iAxis) con
 
 	//	Create the resulting tensor
 
-	CDatum dResultType = Ctx.GetTypeSystem().AddAnonymousTensor(m_dElementType, std::move(ResultDims));
+	CDatum dResultElementType = CalcTensorConcatElementType(m_dElementType, CalcTensorConcatSourceElementType(dSrc, m_Dims.GetCount()));
+	CDatum dResultType = Ctx.GetTypeSystem().AddAnonymousTensor(dResultElementType, std::move(ResultDims));
 	CAEONTensor* pResult = new CAEONTensor(dResultType);
 
 	//	Copy the original tensor to the result.
@@ -2379,7 +2783,9 @@ CDatum CAEONTensor::OpConcatenated (IInvokeCtx& Ctx, CDatum dSrc, int iAxis) con
 	Iterator src = begin();
 	while (src != end())
 		{
-		Iterator dest = Iterator(*pResult, src.AsIndices());
+		TArray<int> DestIndices = src.AsIndices();
+		DestIndices[iAxis] -= m_Dims[iAxis].iOrigin;
+		Iterator dest = Iterator(*pResult, DestIndices);
 
 		pResult->m_dData.SetElement(dest.GetDataIndex(), *src);
 		++src;
@@ -2387,20 +2793,35 @@ CDatum CAEONTensor::OpConcatenated (IInvokeCtx& Ctx, CDatum dSrc, int iAxis) con
 
 	//	Copy the source tensor to the result.
 
-	CDatum dSrcPos = dSrc.IteratorBegin();
-	Iterator dest = Iterator(*pResult);
-	while (!dSrcPos.IsNil())
+	if (dSrc.GetBasicType() == CDatum::typeTensor)
 		{
-		for (int i = 0; i < dSrcPos.GetCount(); i++)
+		const CAEONTensor& SrcTensor = AsTensor(dSrc);
+		for (Iterator SrcPos = SrcTensor.begin(); SrcPos != SrcTensor.end(); ++SrcPos)
 			{
-			if (i == iAxis)
-				dest.SetDim(i, m_Dims[i].iLength + (int)dSrcPos.GetElement(i));
-			else
-				dest.SetDim(i, dSrcPos.GetElement(i));
-			}
+			TArray<int> DestIndices;
+			for (int i = 0; i < m_Dims.GetCount(); i++)
+				{
+				const int iSrcOffset = SrcPos.AsIndices()[i] - SrcTensor.m_Dims[i].iOrigin;
+				DestIndices.Insert(i == iAxis ? m_Dims[i].iLength + iSrcOffset : m_Dims[i].iOrigin + iSrcOffset);
+				}
 
-		pResult->m_dData.SetElement(dest.GetDataIndex(), dSrc.GetElementAt(Ctx.GetTypeSystem(), dSrcPos));
-		dSrcPos = dSrc.IteratorNext(dSrcPos);
+			Iterator DestPos(*pResult, DestIndices);
+			pResult->m_dData.SetElement(DestPos.GetDataIndex(), *SrcPos);
+			}
+		}
+	else
+		{
+		CDatum dSrcPos = dSrc.IteratorBegin();
+		while (!dSrcPos.IsNil())
+			{
+			TArray<int> DestIndices;
+			for (int i = 0; i < m_Dims.GetCount(); i++)
+				DestIndices.Insert(i == iAxis ? m_Dims[i].iLength + (int)dSrcPos.GetElement(i) : m_Dims[i].iOrigin + (int)dSrcPos.GetElement(i));
+
+			Iterator DestPos(*pResult, DestIndices);
+			pResult->m_dData.SetElement(DestPos.GetDataIndex(), dSrc.GetElementAt(Ctx.GetTypeSystem(), dSrcPos));
+			dSrcPos = dSrc.IteratorNext(dSrcPos);
+			}
 		}
 
 	return CDatum(pResult);
@@ -2424,7 +2845,7 @@ CDatum CAEONTensor::OpConcatenatedMinus1 (IInvokeCtx& Ctx, CDatum dSrc, int iAxi
 			{
 			ResultDims.Insert(m_Dims[i].dType);
 			if ((int)dSrcShape.GetElement(iSrcDim) != m_Dims[i].iLength)
-				return CDatum::CreateError(strPattern(ERR_CONCAT_INVALID_DIMENSION_SIZE, i, m_Dims[i].iLength, (int)dSrcShape.GetElement(i)));
+				return CDatum::CreateError(strPattern(ERR_CONCAT_INVALID_DIMENSION_SIZE, i, m_Dims[i].iLength, (int)dSrcShape.GetElement(iSrcDim)));
 
 			iSrcDim++;
 			}
@@ -2432,7 +2853,8 @@ CDatum CAEONTensor::OpConcatenatedMinus1 (IInvokeCtx& Ctx, CDatum dSrc, int iAxi
 
 	//	Create the resulting tensor
 
-	CDatum dResultType = Ctx.GetTypeSystem().AddAnonymousTensor(m_dElementType, std::move(ResultDims));
+	CDatum dResultElementType = CalcTensorConcatElementType(m_dElementType, CalcTensorConcatSourceElementType(dSrc, m_Dims.GetCount() - 1));
+	CDatum dResultType = Ctx.GetTypeSystem().AddAnonymousTensor(dResultElementType, std::move(ResultDims));
 	CAEONTensor* pResult = new CAEONTensor(dResultType);
 
 	//	Copy the original tensor to the result.
@@ -2440,7 +2862,9 @@ CDatum CAEONTensor::OpConcatenatedMinus1 (IInvokeCtx& Ctx, CDatum dSrc, int iAxi
 	Iterator src = begin();
 	while (src != end())
 		{
-		Iterator dest = Iterator(*pResult, src.AsIndices());
+		TArray<int> DestIndices = src.AsIndices();
+		DestIndices[iAxis] -= m_Dims[iAxis].iOrigin;
+		Iterator dest = Iterator(*pResult, DestIndices);
 
 		pResult->m_dData.SetElement(dest.GetDataIndex(), *src);
 		++src;
@@ -2448,27 +2872,75 @@ CDatum CAEONTensor::OpConcatenatedMinus1 (IInvokeCtx& Ctx, CDatum dSrc, int iAxi
 
 	//	Copy the source tensor to the result.
 
-	CDatum dSrcPos = dSrc.IteratorBegin();
-	Iterator dest = Iterator(*pResult);
-	while (!dSrcPos.IsNil())
+	if (dSrc.GetBasicType() == CDatum::typeTensor)
 		{
-		int iSrcDim = 0;
-		for (int i = 0; i < pResult->m_Dims.GetCount(); i++)
+		const CAEONTensor& SrcTensor = AsTensor(dSrc);
+		for (Iterator SrcPos = SrcTensor.begin(); SrcPos != SrcTensor.end(); ++SrcPos)
 			{
-			if (i == iAxis)
-				dest.SetDim(i, m_Dims[i].iLength);
-			else
+			TArray<int> DestIndices;
+			int iSrcDim = 0;
+			for (int i = 0; i < m_Dims.GetCount(); i++)
 				{
-				dest.SetDim(i, dSrcPos.GetElement(iSrcDim));
-				iSrcDim++;
+				if (i == iAxis)
+					DestIndices.Insert(m_Dims[i].iLength);
+				else
+					{
+					const int iSrcOffset = SrcPos.AsIndices()[iSrcDim] - SrcTensor.m_Dims[iSrcDim].iOrigin;
+					DestIndices.Insert(m_Dims[i].iOrigin + iSrcOffset);
+					iSrcDim++;
+					}
 				}
-			}
 
-		pResult->m_dData.SetElement(dest.GetDataIndex(), dSrc.GetElementAt(Ctx.GetTypeSystem(), dSrcPos));
-		dSrcPos = dSrc.IteratorNext(dSrcPos);
+			Iterator DestPos(*pResult, DestIndices);
+			pResult->m_dData.SetElement(DestPos.GetDataIndex(), *SrcPos);
+			}
+		}
+	else
+		{
+		CDatum dSrcPos = dSrc.IteratorBegin();
+		while (!dSrcPos.IsNil())
+			{
+			TArray<int> DestIndices;
+			int iSrcDim = 0;
+			for (int i = 0; i < m_Dims.GetCount(); i++)
+				{
+				if (i == iAxis)
+					DestIndices.Insert(m_Dims[i].iLength);
+				else
+					DestIndices.Insert(m_Dims[i].iOrigin + (int)dSrcPos.GetElement(iSrcDim++));
+				}
+
+			Iterator DestPos(*pResult, DestIndices);
+			pResult->m_dData.SetElement(DestPos.GetDataIndex(), dSrc.GetElementAt(Ctx.GetTypeSystem(), dSrcPos));
+			dSrcPos = dSrc.IteratorNext(dSrcPos);
+			}
 		}
 
 	return CDatum(pResult);
+	}
+
+CDatum CAEONTensor::OpConcatenatedScalar (IInvokeCtx& Ctx, CDatum dScalar, bool bPrepend) const
+	{
+	if (m_Dims.GetCount() != 1)
+		return CDatum::CreateError(strPattern(ERR_CONCAT_INVALID_DIMENSIONS, 0, m_Dims.GetCount()));
+
+	CDatum dResultElementType = CalcTensorConcatElementType(m_dElementType, dScalar.GetDatatype());
+	TArray<CDatum> ResultDims;
+	ResultDims.Insert(CAEONTypes::CreateInt32SubRange(NULL_STR, 0, m_Dims[0].iLength));
+	CDatum dResultType = Ctx.GetTypeSystem().AddAnonymousTensor(dResultElementType, std::move(ResultDims));
+
+	CDatum dValues = CDatum::CreateArrayAsTypeOfElement(dResultElementType);
+	dValues.GrowToFit(m_Dims[0].iLength + 1);
+	if (bPrepend)
+		dValues.Append(dScalar);
+
+	for (Iterator i = begin(); i != end(); ++i)
+		dValues.Append(*i);
+
+	if (!bPrepend)
+		dValues.Append(dScalar);
+
+	return CDatum(new CAEONTensor(dResultType, dValues));
 	}
 
 CDatum CAEONTensor::OpIdentity () const
@@ -2554,16 +3026,14 @@ bool CAEONTensor::OpIsEqual (CDatum::Types iValueType, CDatum dValue) const
 
 		case CDatum::typeArray:
 			{
-			//	Must have only one dimension and be the same size
-
-			if (m_Dims.GetCount() != 1 || m_Dims[0].iLength != dValue.GetCount())
+			if (m_Dims.GetCount() < 1 || m_Dims[0].iLength != dValue.GetCount())
 				return false;
 
-			//	Compare the elements in sequence
+			//	Compare the nested array representation in sequence.
 
 			for (int i = 0; i < m_Dims[0].iLength; i++)
 				{
-				if (!GetElementAt(i).OpIsEqual(dValue.GetElement(i)))
+				if (!GetElementAt(m_Dims[0].iOrigin + i).OpIsEqual(dValue.GetElement(i)))
 					return false;
 				}
 
@@ -2612,16 +3082,14 @@ bool CAEONTensor::OpIsIdentical (CDatum::Types iValueType, CDatum dValue) const
 
 		case CDatum::typeArray:
 			{
-			//	Must have only one dimension and be the same size
-
-			if (m_Dims.GetCount() != 1 || m_Dims[0].iLength != dValue.GetCount())
+			if (m_Dims.GetCount() < 1 || m_Dims[0].iLength != dValue.GetCount())
 				return false;
 
-			//	Compare the elements in sequence
+			//	Compare the nested array representation in sequence.
 
 			for (int i = 0; i < m_Dims[0].iLength; i++)
 				{
-				if (!GetElementAt(i).OpIsIdentical(dValue.GetElement(i)))
+				if (!GetElementAt(m_Dims[0].iOrigin + i).OpIsIdentical(dValue.GetElement(i)))
 					return false;
 				}
 
@@ -2802,23 +3270,30 @@ void CAEONTensor::SetElement (int iIndex, CDatum dDatum)
 			
 void CAEONTensor::SetElementAt (CDatum dIndex, CDatum dDatum)
 	{
+	SetElementAtChecked(dIndex, dDatum);
+	}
+
+bool CAEONTensor::SetElementAtChecked (CDatum dIndex, CDatum dDatum)
+	{
 	SSliceDesc Slice = CalcSlice(dIndex);
 	if (Slice.IsEmpty())
-		return;
+		return false;
 	else if (Slice.IsSingle())
 		{
 		m_dData.raw_SetArrayElement(Slice.iPos, dDatum);
+		return true;
 		}
 	else
 		{
 		//	Convert the value to a slice of the appropriate type.
 
-		CDatum dNewValue = CDatum::CreateAsType(Slice.dSliceType, dDatum);
+		CDatum dNewValue = CreateTensorSliceValue(Slice.dSliceType, dDatum);
 		if (dNewValue.IsNil())
-			return;
+			return false;
 
 		const CAEONTensor& Src = AsTensor(dNewValue);
 		SetSliceElements(Src, 0, Src.begin(), Slice.SliceIndex, 0, begin());
+		return true;
 		}
 	}
 
@@ -2835,7 +3310,7 @@ void CAEONTensor::SetElementAt2DA (CDatum dIndex1, CDatum dIndex2, CDatum dValue
 		{
 		//	Convert the value to a slice of the appropriate type.
 
-		CDatum dNewValue = CDatum::CreateAsType(Slice.dSliceType, dValue);
+		CDatum dNewValue = CreateTensorSliceValue(Slice.dSliceType, dValue);
 		if (dNewValue.IsNil())
 			return;
 
@@ -2880,7 +3355,7 @@ void CAEONTensor::SetElementAt3DA (CDatum dIndex1, CDatum dIndex2, CDatum dIndex
 		{
 		//	Convert the value to a slice of the appropriate type.
 
-		CDatum dNewValue = CDatum::CreateAsType(Slice.dSliceType, dValue);
+		CDatum dNewValue = CreateTensorSliceValue(Slice.dSliceType, dValue);
 		if (dNewValue.IsNil())
 			return;
 
@@ -2919,11 +3394,11 @@ void CAEONTensor::GetSliceElements (CAEONTensor& Dest, const TArray<CDatum>& Src
 		{
 		CDatum dSrcDimIndex = (iSrcLevel < SrcIndex.GetCount() ? SrcIndex[iSrcLevel] : CDatum());
 
-		//	True (*) means that we take the entire dimension.
+		//	Wildcard (or legacy true) means that we take the entire dimension.
 		//	Nil means we did not supply enough indices and again we take the 
 		//	entire dimension.
 
-		if (dSrcDimIndex.IsNil() || dSrcDimIndex.IsIdenticalToTrue())
+		if (dSrcDimIndex.IsNil() || dSrcDimIndex.IsIdenticalToWildcard() || dSrcDimIndex.IsIdenticalToTrue())
 			{
 			Iterator Dst = DestPos;
 			for (Iterator Src = SrcPos; Src != end(); Src.IncDim(iSrcLevel), Dst.IncDim(iDestLevel))
@@ -3005,11 +3480,11 @@ void CAEONTensor::SetSliceElements (const CAEONTensor& Src, int iSrcLevel, const
 		{
 		CDatum dDestDimIndex = (iDestLevel < DestIndex.GetCount() ? DestIndex[iDestLevel] : CDatum());
 
-		//	True (*) means that we take the entire dimension.
+		//	Wildcard (or legacy true) means that we take the entire dimension.
 		//	Nil means we did not supply enough indices and again we take the 
 		//	entire dimension.
 
-		if (dDestDimIndex.IsNil() || dDestDimIndex.IsIdenticalToTrue())
+		if (dDestDimIndex.IsNil() || dDestDimIndex.IsIdenticalToWildcard() || dDestDimIndex.IsIdenticalToTrue())
 			{
 			Iterator Sr = SrcPos;
 			for (Iterator Dst = DestPos; Dst != end(); Sr.IncDim(iSrcLevel), Dst.IncDim(iDestLevel))
@@ -3057,7 +3532,7 @@ void CAEONTensor::SetSliceElements (const CAEONTensor& Src, int iSrcLevel, const
 				if (Dst != end())
 					SetSliceElements(Src, iSrcLevel + 1, Sr, DestIndex, iDestLevel + 1, Dst);
 
-				Sr.IncDim(iDestLevel);
+				Sr.IncDim(iSrcLevel);
 				}
 			}
 		else
@@ -3066,7 +3541,7 @@ void CAEONTensor::SetSliceElements (const CAEONTensor& Src, int iSrcLevel, const
 			Iterator Dst = DestPos;
 			Dst.SetDim(iDestLevel, iDestIndex);
 
-			SetSliceElements(Src, iSrcLevel + 1, SrcPos, DestIndex, iDestLevel + 1, Dst);
+			SetSliceElements(Src, iSrcLevel, SrcPos, DestIndex, iDestLevel + 1, Dst);
 			}
 		}
 	}
@@ -3130,4 +3605,52 @@ CDatum CAEONTensor::SqueezeTrailingDims () const
 		NewDims.Insert(m_Dims[i].iLength);
 
 	return CreateNTensor(NewDims, m_dElementType, m_dData);
+	}
+
+CDatum CAEONTensor::OpTransposed (CAEONTypeSystem& TypeSystem) const
+
+//	OpTransposed
+//
+//	Returns a new tensor with the final two dimensions swapped. A rank-1 tensor
+//	is cloned without changing its shape.
+
+	{
+	const int iRank = m_Dims.GetCount();
+	if (iRank == 0)
+		return CDatum::CreateError(ERR_TENSOR_TRANSPOSE_RANK);
+	else if (iRank == 1)
+		return CDatum(Clone(CDatum::EClone::ShallowCopy));
+
+	TArray<CDatum> ResultDims;
+	ResultDims.InsertEmpty(iRank);
+	for (int i = 0; i < iRank; i++)
+		ResultDims[i] = m_Dims[i].dType;
+
+	CDatum dLastDim = ResultDims[iRank - 1];
+	ResultDims[iRank - 1] = ResultDims[iRank - 2];
+	ResultDims[iRank - 2] = dLastDim;
+
+	CDatum dResultType = TypeSystem.AddAnonymousTensor(m_dElementType, std::move(ResultDims));
+	const int iDataCount = CalcDataCount();
+	CDatum dResultData = CDatum::CreateArrayAsTypeOfElement(m_dElementType);
+	dResultData.InsertEmpty(iDataCount);
+
+	if (iDataCount > 0)
+		{
+		const int iRows = m_Dims[iRank - 2].iLength;
+		const int iCols = m_Dims[iRank - 1].iLength;
+		const int iMatrixSize = iRows * iCols;
+
+		int iSrcIndex = 0;
+		for (Iterator Src = begin(); Src != end(); ++Src, iSrcIndex++)
+			{
+			const int iMatrixOffset = iSrcIndex % iMatrixSize;
+			const int iRow = iMatrixOffset / iCols;
+			const int iCol = iMatrixOffset % iCols;
+			const int iDestIndex = (iSrcIndex - iMatrixOffset) + (iCol * iRows) + iRow;
+			dResultData.SetElement(iDestIndex, *Src);
+			}
+		}
+
+	return CreateFromNormalizedData(dResultType, dResultData);
 	}

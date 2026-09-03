@@ -109,6 +109,8 @@ void CHexeLocalEnvPointer::Mark ()
 //	Mark data in use.
 
 	{
+	DEBUG_TRY
+
 	if (TrackedByGC())
 		m_dEnv.Mark();
 	else if (m_pEnv)
@@ -119,4 +121,6 @@ void CHexeLocalEnvPointer::Mark ()
 		m_pEnv->ClearMark();
 		m_pEnv->Mark();
 		}
+
+	DEBUG_CATCH
 	}

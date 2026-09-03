@@ -359,6 +359,7 @@
     <ClCompile Include="CIOCPSocket.cpp" />
     <ClCompile Include="CIODiagnostics.cpp" />
     <ClCompile Include="CIPInteger.cpp" />
+    <ClCompile Include="CBMP.cpp" />
     <ClCompile Include="CJPEG.cpp" />
     <ClCompile Include="CLargeSet.cpp" />
     <ClCompile Include="CLine2D.cpp" />
@@ -547,6 +548,7 @@
     <ClInclude Include="Include\FoundationExceptions.h" />
     <ClInclude Include="Include\FoundationFileIO.h" />
     <ClInclude Include="Include\FoundationGitHubMarkdown.h" />
+    <ClInclude Include="Include\FoundationGraphicsBMP.h" />
     <ClInclude Include="Include\FoundationGraphicsCore.h" />
     <ClInclude Include="Include\FoundationGraphicsDraw.h" />
     <ClInclude Include="Include\FoundationGraphicsImage32.h" />

@@ -256,6 +256,7 @@ class IASTNode
 		IASTNode *AddRef (void) { m_dwRefCount++; return this; }
 		void Delete (void) { if (--m_dwRefCount == 0) delete this; }
 
+		CDatum CalcInferredTypeForVar (SResolveTypeCtx& Ctx) const;
 		static CDatum CalcInferredTypeForLoopVar (SResolveTypeCtx& Ctx, CDatum dType, CString* retsError = NULL);
 		static CDatum CalcInferredTypeForVar (SResolveTypeCtx& Ctx, CDatum dType);
 		static const CString& GetTypeName (EASTType iType);

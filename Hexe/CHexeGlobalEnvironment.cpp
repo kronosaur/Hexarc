@@ -54,10 +54,14 @@ void CHexeGlobalEnvironment::OnMarked (void)
 //	Mark
 
 	{
+	DEBUG_TRY
+
 	int i;
 
 	for (i = 0; i < m_Data.GetCount(); i++)
 		m_Data[i].Mark();
+
+	DEBUG_CATCH
 	}
 
 void CHexeGlobalEnvironment::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const

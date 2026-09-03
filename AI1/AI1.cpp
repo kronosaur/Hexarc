@@ -517,6 +517,33 @@ CString GetInputLine (const CString &sPrompt)
 	return CString(szBuffer);
 	}
 
+CString GetPasswordLine (const CString &sPrompt)
+	{
+	char szBuffer[1024] = { 0 };
+	printf((LPSTR)sPrompt);
+	fflush(stdout);
+
+	//	If stdin is a console, turn off echo while reading the password. If
+	//	stdin has been redirected, GetConsoleMode fails and we read it normally.
+
+	HANDLE hInput = GetStdHandle(STD_INPUT_HANDLE);
+	DWORD dwOriginalMode;
+	bool bEchoDisabled = (hInput != INVALID_HANDLE_VALUE
+			&& hInput != NULL
+			&& GetConsoleMode(hInput, &dwOriginalMode)
+			&& SetConsoleMode(hInput, dwOriginalMode & ~ENABLE_ECHO_INPUT));
+
+	gets_s(szBuffer, sizeof(szBuffer)-1);
+
+	if (bEchoDisabled)
+		{
+		SetConsoleMode(hInput, dwOriginalMode);
+		printf("\n");
+		}
+
+	return CString(szBuffer);
+	}
+
 void ParseCommandLine (int argc, char *argv[], SOptions *retOptions)
 	{
 	int i;

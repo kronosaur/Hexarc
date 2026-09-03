@@ -40,9 +40,11 @@ DECLARE_CONST_STRING(TYPENAME_ENUM,						"enum");
 DECLARE_CONST_STRING(TYPENAME_HEXE_ERROR,				"hexeError")
 DECLARE_CONST_STRING(TYPENAME_IP_INTEGER,				"ipInteger");
 DECLARE_CONST_STRING(TYPENAME_TABLE_REF,				"tableRef");
+DECLARE_CONST_STRING(TYPENAME_WILDCARD,				"wildcard");
 
 DECLARE_CONST_STRING(STR_INFINITY,						"\"Infinity\"");
 DECLARE_CONST_STRING(STR_NAN,							"[\"AEON2011:NaN\"]");
+DECLARE_CONST_STRING(STR_WILDCARD,						"[\"AEON2011:wildcard:v1\"]");
 
 DECLARE_CONST_STRING(ERR_INVALID_LITERAL,				"Invalid literal.");
 
@@ -86,6 +88,13 @@ void CDatum::SerializeJSON (EFormat iFormat, IByteStream &Stream) const
 
 				case VALUE_TRUE:
 					Stream.Write("true", 4);
+					break;
+
+				case VALUE_WILDCARD:
+					if (iFormat == EFormat::AEONJSON)
+						Stream.Write(STR_WILDCARD);
+					else
+						Stream.Write("null", 4);
 					break;
 
 				default:
@@ -236,7 +245,15 @@ CJSONParser::ETokens CJSONParser::ParseArray (CDatum *retDatum)
 					//	Lookup the typename and create the proper complex datum
 
 					IComplexDatum *pDatum = NULL;
-					if (strEquals(sTypename, TYPENAME_HEXE_ERROR))
+					if (strEquals(sTypename, TYPENAME_WILDCARD))
+						{
+						if (Serialized.GetCount() != 0)
+							return tkError;
+
+						*retDatum = CDatum::CreateWildcard();
+						return tkDatum;
+						}
+					else if (strEquals(sTypename, TYPENAME_HEXE_ERROR))
 						pDatum = new CAEONError;
 					else if (strEquals(sTypename, TYPENAME_IP_INTEGER))
 						pDatum = new CComplexInteger;

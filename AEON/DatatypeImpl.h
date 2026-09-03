@@ -273,6 +273,7 @@ class CDatatypeGenericFunction : public IDatatype
 			Concrete,
 			TypeVar,
 			ArrayOf,
+			TensorOf,
 			TableOf,
 			DictionaryOf,
 			Nullable,
@@ -412,6 +413,7 @@ class CDatatypeTensor : public IDatatype
 		//	IDatatype virtuals
 
 		virtual bool OnCanBeCalledWith (CDatum dThisType, const TArray<CDatum>& ArgTypes, const TArray<CDatum>& ArgLiteralTypes, CDatum* retdReturnType = NULL, CString* retsError = NULL) const override;
+		virtual bool OnCanBeConstructedExplicitlyFrom (CDatum dType) const override;
 		virtual bool OnCanBeConstructedFrom (CDatum dType) const override;
 		virtual bool OnCanBeNull () const override { return true; }
 		virtual bool OnDeserialize (CDatum::EFormat iFormat, IByteStream &Stream, DWORD dwVersion) override;
@@ -420,8 +422,10 @@ class CDatatypeTensor : public IDatatype
 		virtual ECategory OnGetClass () const override { return IDatatype::ECategory::Tensor; }
 		virtual TArray<CDatum> OnGetDimensionTypes () const override;
 		virtual EImplementation OnGetImplementation () const override { return IDatatype::EImplementation::Tensor; }
-		virtual SMemberDesc OnGetMember (int iIndex) const override { if (iIndex != 0) throw CException(errFail); return SMemberDesc({ EMemberType::ArrayElement, NULL_STR, m_dElementType }); }
-		virtual int OnGetMemberCount () const override { return 1; }
+		virtual SMemberDesc OnGetMember (int iIndex) const override;
+		virtual int OnGetMemberCount () const override;
+		virtual DWORD OnGetMemberFlags (CStringView sName) const override;
+		virtual EMemberType OnHasMember (CStringView sName, CDatum* retdType = NULL, int* retiOrdinal = NULL) const override;
 		virtual CString OnGetName () const override;
 		virtual CDatum OnGetSliceType () const override { return m_dSliceType; }
 		virtual bool OnIsA (const IDatatype &Type) const override;

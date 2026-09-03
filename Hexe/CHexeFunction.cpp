@@ -227,6 +227,8 @@ void CHexeFunction::OnMarked (void)
 //	Mark data in use.
 
 	{
+	DEBUG_TRY
+
 	m_dHexeCode.Mark();
 	m_dGlobalEnv.Mark();
 	m_dLocalEnv.Mark();
@@ -235,6 +237,8 @@ void CHexeFunction::OnMarked (void)
 
 	for (int i = 0; i < m_Cache.GetCount(); i++)
 		m_Cache[i].Mark();
+
+	DEBUG_CATCH
 	}
 
 void CHexeFunction::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const

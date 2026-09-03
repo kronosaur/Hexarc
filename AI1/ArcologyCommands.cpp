@@ -227,8 +227,8 @@ bool HandleConnectResponse (CSocket &theSocket, const CString &sFirstCommand, CD
 				CString sPasswordConfirm;
 				do
 					{
-					sPassword = GetInputLine(STR_PROMPT_PASSWORD);
-					sPasswordConfirm = GetInputLine(STR_PROMPT_PASSWORD_CONFIRM);
+					sPassword = GetPasswordLine(STR_PROMPT_PASSWORD);
+					sPasswordConfirm = GetPasswordLine(STR_PROMPT_PASSWORD_CONFIRM);
 					}
 				while (!strEquals(sPassword, sPasswordConfirm));
 				}
@@ -280,7 +280,7 @@ bool HandleConnectResponse (CSocket &theSocket, const CString &sFirstCommand, CD
 
 			CString sPassword = Options.sPassword;
 			if (sPassword.IsEmpty())
-				sPassword = GetInputLine(STR_PROMPT_PASSWORD);
+				sPassword = GetPasswordLine(STR_PROMPT_PASSWORD);
 
 			//	Generate the response to the challenge
 

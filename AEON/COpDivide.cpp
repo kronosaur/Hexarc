@@ -160,6 +160,9 @@ CDatum COpDivide::CalcType (CDatum dLeftType, CDatum dRightType)
 		return CAEONTypes::Get(IDatatype::EXPRESSION);
 	else if (!RightType.IsNullType() && RightType.IsA(IDatatype::EXPRESSION))
 		return CAEONTypes::Get(IDatatype::EXPRESSION);
+	else if (LeftType.GetClass() == IDatatype::ECategory::Tensor
+			|| RightType.GetClass() == IDatatype::ECategory::Tensor)
+		return CAEONOp::CalcTensorBinaryType(dLeftType, dRightType, CalcType);
 
 	else if (LeftType.IsA(IDatatype::ARRAY))
 		{
@@ -303,16 +306,25 @@ CDatum COpDivide::CalcType (CDatum dLeftType, CDatum dRightType)
 
 CDatum COpDivide::ExecAny_Array (CDatum dLeft, CDatum dRight, IAEONOperatorCtx& Ctx)
 	{
+	if (dRight.GetBasicType() == CDatum::typeTensor)
+		return CAEONTensor::MathBinaryOp(dLeft, dRight, CalcType(dLeft.GetDatatype(), dRight.GetDatatype()), CAEONTensor::EBinaryOp::Divide, Ctx);
+
 	return dRight.MathDivideByElements(dLeft);
 	}
 
 CDatum COpDivide::ExecArray_Any (CDatum dLeft, CDatum dRight, IAEONOperatorCtx& Ctx)
 	{
+	if (dLeft.GetBasicType() == CDatum::typeTensor)
+		return CAEONTensor::MathBinaryOp(dLeft, dRight, CalcType(dLeft.GetDatatype(), dRight.GetDatatype()), CAEONTensor::EBinaryOp::Divide, Ctx);
+
 	return dLeft.MathDivideElementsBy(dRight);
 	}
 
 CDatum COpDivide::ExecArray_Array (CDatum dLeft, CDatum dRight, IAEONOperatorCtx& Ctx)
 	{
+	if (dLeft.GetBasicType() == CDatum::typeTensor || dRight.GetBasicType() == CDatum::typeTensor)
+		return CAEONTensor::MathBinaryOp(dLeft, dRight, CalcType(dLeft.GetDatatype(), dRight.GetDatatype()), CAEONTensor::EBinaryOp::Divide, Ctx);
+
 	int iCount = Min(dLeft.GetCount(), dRight.GetCount());
 	int iResultCount = Max(dLeft.GetCount(), dRight.GetCount());
 

@@ -93,7 +93,12 @@ IDatatype::SMemberDesc CDatatypeLiteralStruct::OnGetMember (int iIndex) const
 
 	iIndex -= CComplexStruct::GetPropertyCount();
 	if (iIndex < CComplexStruct::GetMethodCount())
-		return SMemberDesc({ EMemberType::InstanceMethod, CComplexStruct::GetMethodKey(iIndex), CComplexStruct::GetMethodType(iIndex) });
+		{
+		SMemberDesc Member({ EMemberType::InstanceMethod, CComplexStruct::GetMethodKey(iIndex), CComplexStruct::GetMethodType(iIndex) });
+		if (CComplexStruct::GetMethodFlags(iIndex) & IInvokeCtx::EXEC_FLAG_CONST)
+			Member.dwFlags |= MEMBER_FLAG_CONST;
+		return Member;
+		}
 
 	throw CException(errFail);
 	}

@@ -274,8 +274,10 @@
     <ClCompile Include="CVectorAnimator3D.cpp" />
     <ClCompile Include="IAnimator2D.cpp" />
     <ClCompile Include="IAnimator3D.cpp" />
+    <ClCompile Include="ILuminousMaterial3D.cpp" />
     <ClCompile Include="ILuminousObj2D.cpp" />
     <ClCompile Include="ILuminousObj3D.cpp" />
+    <ClCompile Include="ILuminousTexture3D.cpp" />
     <ClCompile Include="LuminousCore.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

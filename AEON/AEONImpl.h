@@ -573,6 +573,7 @@ class CAEONDictionary : public IComplexDatum
 		static int GetMethodCount () { return (m_pMethodsExt ? m_pMethodsExt->GetCount() : 0); }
 		static CString GetMethodKey (int iIndex) { return (m_pMethodsExt ? m_pMethodsExt->GetMethodName(iIndex) : NULL_STR); }
 		static CDatum GetMethodType (int iIndex) { return (m_pMethodsExt ? m_pMethodsExt->GetMethodType(iIndex) : CAEONTypes::Get(IDatatype::FUNCTION)); }
+		static DWORD GetMethodFlags (int iIndex) { return (m_pMethodsExt ? m_pMethodsExt->GetMethodFlags(iIndex) : 0); }
 		static void SetMethodsExt (TDatumMethodHandler<IComplexDatum>& MethodsExt) { m_pMethodsExt = &MethodsExt; }
 
 	protected:
@@ -1157,6 +1158,16 @@ class CAEONStringFormat : public TExternalDatum<CAEONStringFormat>
 class CAEONTensor : public IComplexDatum
 	{
 	public:
+		enum class EBinaryOp
+			{
+			Add,
+			Divide,
+			Mod,
+			Multiply,
+			Power,
+			Subtract,
+			};
+
 		CAEONTensor (CDatum dDatatype, CDatum dInitialData = CDatum()) : 
 				m_dDatatype(dDatatype),
 				m_Dims(CalcDims(dDatatype)),
@@ -1214,6 +1225,7 @@ class CAEONTensor : public IComplexDatum
 		virtual CDatum MathExpElementsTo (CDatum dValue) const override;
 		virtual CDatum MathExpToElements (CDatum dValue) const override;
 		virtual CDatum MathInvert () const override;
+		virtual CDatum MathMatrixRank (CAEONTypeSystem& TypeSystem, CDatum dTolerance) const override;
 		virtual CDatum MathMatMul (CDatum dValue) const override;
 		virtual CDatum MathModElementsBy (CDatum dValue) const override;
 		virtual CDatum MathModByElements (CDatum dValue) const override;
@@ -1226,15 +1238,20 @@ class CAEONTensor : public IComplexDatum
 		virtual CDatum OpConcatenated (IInvokeCtx& Ctx, CDatum dSrc, int iAxis) const override;
 		virtual bool OpIsEqual (CDatum::Types iValueType, CDatum dValue) const override;
 		virtual bool OpIsIdentical (CDatum::Types iValueType, CDatum dValue) const override;
+		virtual CDatum OpTransposed (CAEONTypeSystem& TypeSystem) const override;
 		virtual void Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const override;
 		virtual void SerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const override;
 		virtual void SetElement (int iIndex, CDatum dDatum) override;
 		virtual void SetElement (const CString &sKey, CDatum dDatum) override { m_Properties.SetProperty(*this, sKey, dDatum, NULL); }
 		virtual void SetElementAt (CDatum dIndex, CDatum dDatum) override;
+		virtual bool SetElementAtChecked (CDatum dIndex, CDatum dDatum) override;
 		virtual void SetElementAt2DA (CDatum dIndex1, CDatum dIndex2, CDatum dValue) override;
 		virtual void SetElementAt2DI (int iIndex1, int iIndex2, CDatum dValue) override;
 		virtual void SetElementAt3DA (CDatum dIndex1, CDatum dIndex2, CDatum dIndex3, CDatum dValue) override;
 		virtual void SetElementAt3DI (int iIndex1, int iIndex2, int iIndex3, CDatum dValue) override;
+
+		static CDatum ConcatenateScalar (IInvokeCtx& Ctx, CDatum dTensor, CDatum dScalar, bool bPrepend);
+		static CDatum MathBinaryOp (CDatum dLeft, CDatum dRight, CDatum dResultType, EBinaryOp iOp, IAEONOperatorCtx& Ctx);
 
 		virtual CDatum raw_IteratorGetElement (CBuffer& Buffer) const override;
 		virtual CDatum raw_IteratorGetKey (CBuffer& Buffer) const override;
@@ -1244,8 +1261,14 @@ class CAEONTensor : public IComplexDatum
 		virtual CBuffer raw_IteratorStart () const override;
 
 		static CDatum Create2DTensor (int iRows, int iCols, CDatum dElementType, CDatum dData = CDatum());
+		static CDatum CreateFromNormalizedData (CDatum dDatatype, CDatum dData);
 		static CDatum CreateNTensor (const TArray<int>& Dims, CDatum dElementType, CDatum dData = CDatum());
 		static CDatum DeserializeAEON (IByteStream& Stream, DWORD dwID, CAEONSerializedMap &Serialized);
+		static int FindMethodByKey (CStringView sKey) { return (m_pMethodsExt ? m_pMethodsExt->FindMethod(CString(sKey)) : -1); }
+		static int GetMethodCount () { return (m_pMethodsExt ? m_pMethodsExt->GetCount() : 0); }
+		static CString GetMethodKey (int iIndex) { return (m_pMethodsExt ? m_pMethodsExt->GetMethodName(iIndex) : NULL_STR); }
+		static CDatum GetMethodType (int iIndex) { return (m_pMethodsExt ? m_pMethodsExt->GetMethodType(iIndex) : CAEONTypes::Get(IDatatype::FUNCTION)); }
+		static DWORD GetMethodFlags (int iIndex) { return (m_pMethodsExt ? m_pMethodsExt->GetMethodFlags(iIndex) : 0); }
 		static void SetMethodsExt (TDatumMethodHandler<IComplexDatum> &MethodsExt) { m_pMethodsExt = &MethodsExt; }
 		static CDatum ExpandIndexRange (CDatum dArray);
 
@@ -1472,6 +1495,8 @@ class CAEONTensor : public IComplexDatum
 		bool AddDim (TArray<CDatum>& ResultDims, int iDim, CDatum dDim) const;
 		static void ApplyBatchIndices (Iterator& Pos, const TArray<int>& Indices, int iLowerDims = 2);
 		static const CAEONTensor& AsTensor (CDatum dTensor);
+		static bool FlattenOperand (CDatum dOperand, const TArray<SDimDesc>& Dims, CDatum dTensorElementType, int iDim, TArray<CDatum>& retValues);
+		static CDatum ExecuteBinaryOp (EBinaryOp iOp, CDatum dLeft, CDatum dRight, IAEONOperatorCtx& Ctx);
 		CDatum CalcData (CDatum dInitialData) const;
 		CDatum CalcDataFromArray (CDatum dArray) const;
 		int CalcDataCount () const;
@@ -1500,6 +1525,7 @@ class CAEONTensor : public IComplexDatum
 		bool IsSquareMatrix () const;
 		CDatum MakeNullElement () const { return FromDatum(CDatum()); }
 		CDatum OpConcatenatedMinus1 (IInvokeCtx& Ctx, CDatum dSrc, int iAxis) const;
+		CDatum OpConcatenatedScalar (IInvokeCtx& Ctx, CDatum dScalar, bool bPrepend) const;
 		CDatum OpIdentity () const;
 		void SetSliceElements (const CAEONTensor& Src, int iSrcLevel, const Iterator& SrcPos, const TArray<CDatum>& DestIndex, int iDestLevel, const Iterator& DestPos);
 		CDatum SqueezeLeadingDims () const;

@@ -39,6 +39,10 @@ void CDatum::SerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized)
 					Stream.Write(SERIALIZE_TYPE_TRUE);
 					break;
 
+				case VALUE_WILDCARD:
+					Stream.Write(SERIALIZE_TYPE_WILDCARD);
+					break;
+
 				default:
 					ASSERT(false);
 					break;
@@ -165,6 +169,9 @@ CDatum CDatum::DeserializeAEON (IByteStream& Stream, CAEONSerializedMap& Seriali
 
 		case SERIALIZE_TYPE_TRUE:
 			return CDatum(true);
+
+		case SERIALIZE_TYPE_WILDCARD:
+			return CDatum::CreateWildcard();
 
 		case SERIALIZE_TYPE_NAN:
 			return CDatum::CreateNaN();

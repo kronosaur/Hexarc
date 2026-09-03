@@ -416,6 +416,8 @@ void CHexeLocalEnvironment::OnMarked (void)
 //	Marks data in use
 
 	{
+	DEBUG_TRY
+
 #ifdef DEBUG_PROC_ENV
 	if (GetAllocSize() < GetArgumentCount())
 		throw CException(errFail);
@@ -425,6 +427,8 @@ void CHexeLocalEnvironment::OnMarked (void)
 		m_pArray[i].dValue.Mark();
 
 	m_ParentEnv.Mark();
+
+	DEBUG_CATCH
 	}
 
 void CHexeLocalEnvironment::OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const

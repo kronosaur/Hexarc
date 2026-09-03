@@ -129,8 +129,12 @@ CDatum COpConcatenate::CalcType (CDatum dLeftType, CDatum dRightType)
 
 	//	If either side is an array, then we return an array.
 
+	else if (LeftType.GetClass() == IDatatype::ECategory::Tensor)
+		return CalcTensorType(dLeftType, dRightType);
 	else if (LeftType.IsA(IDatatype::ARRAY))
 		return dLeftType;
+	else if (RightType.GetClass() == IDatatype::ECategory::Tensor)
+		return CalcTensorType(dLeftType, dRightType);
 	else if (RightType.IsA(IDatatype::ARRAY))
 		return dRightType;
 
@@ -273,6 +277,9 @@ CDatum COpConcatenate::ExecArray_Object (IInvokeCtx& Ctx, CDatum dLeft, CDatum d
 
 CDatum COpConcatenate::ExecArray_Scalar (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight)
 	{
+	if (dLeft.GetBasicType() == CDatum::typeTensor)
+		return CAEONTensor::ConcatenateScalar(Ctx, dLeft, dRight, false);
+
 	int iArrayCount = dLeft.GetCount();
 	int iResultCount = iArrayCount + 1;
 	if (iResultCount > Ctx.GetLimits().iMaxArrayLen)
@@ -365,6 +372,9 @@ CDatum COpConcatenate::ExecObject_String (IInvokeCtx& Ctx, CDatum dLeft, CDatum 
 
 CDatum COpConcatenate::ExecScalar_Array (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight)
 	{
+	if (dRight.GetBasicType() == CDatum::typeTensor)
+		return CAEONTensor::ConcatenateScalar(Ctx, dRight, dLeft, true);
+
 	int iArrayCount = dRight.GetCount();
 	int iResultCount = iArrayCount + 1;
 	if (iResultCount > Ctx.GetLimits().iMaxArrayLen)
@@ -533,5 +543,142 @@ CDatum COpConcatenate::CalcDatatypeArray_Scalar (CDatum dArrayType, CDatum dScal
 
 	else
 		return CAEONTypes::Get(IDatatype::ARRAY);
+	}
+
+CDatum COpConcatenate::CalcCompatibleElementType (CDatum dLeftType, CDatum dRightType)
+	{
+	const IDatatype& LeftType = dLeftType;
+	const IDatatype& RightType = dRightType;
+
+	if (RightType.IsA(LeftType))
+		return dLeftType;
+	else if (LeftType.IsA(RightType))
+		return dRightType;
+	else
+		return CAEONTypes::Get(IDatatype::ANY);
+	}
+
+static bool GetConcatDimensionLength (CDatum dType, int& retiLength)
+	{
+	const IDatatype& Type = dType;
+	auto NumberDesc = Type.GetNumberDesc();
+	if (NumberDesc.bNumber && NumberDesc.bSubRange)
+		{
+		LONGLONG iLength = (LONGLONG)NumberDesc.iSubRangeMax - (LONGLONG)NumberDesc.iSubRangeMin + 1;
+		if (iLength < 0 || iLength > INT_MAX)
+			return false;
+
+		retiLength = (int)iLength;
+		return true;
+		}
+	else if (Type.GetClass() == IDatatype::ECategory::Enum)
+		{
+		retiLength = Type.GetMemberCount();
+		return true;
+		}
+	else
+		return false;
+	}
+
+static bool GetConcatArrayLeafType (CDatum dType, int iRank, CDatum& retdLeafType)
+	{
+	for (int i = 0; i < iRank; i++)
+		{
+		const IDatatype& Type = dType;
+		if (Type.IsAny())
+			{
+			retdLeafType = dType;
+			return true;
+			}
+		else if (Type.GetClass() != IDatatype::ECategory::Array)
+			return false;
+
+		dType = Type.GetElementType();
+		}
+
+	retdLeafType = dType;
+	return true;
+	}
+
+CDatum COpConcatenate::CalcTensorType (CDatum dLeftType, CDatum dRightType)
+	{
+	const IDatatype& LeftType = dLeftType;
+	const IDatatype& RightType = dRightType;
+	const bool bLeftTensor = (LeftType.GetClass() == IDatatype::ECategory::Tensor);
+	const bool bRightTensor = (RightType.GetClass() == IDatatype::ECategory::Tensor);
+	CDatum dTensorType = (bLeftTensor ? dLeftType : dRightType);
+	const IDatatype& TensorType = dTensorType;
+	TArray<CDatum> ResultDims = TensorType.GetDimensionTypes();
+	const int iRank = ResultDims.GetCount();
+
+	CDatum dOtherType = (bLeftTensor ? dRightType : dLeftType);
+	const IDatatype& OtherType = dOtherType;
+	CDatum dOtherElementType;
+	int iAddedLength = 0;
+	bool bUnknownAddedLength = false;
+
+	if (bLeftTensor && bRightTensor)
+		{
+		TArray<CDatum> OtherDims = OtherType.GetDimensionTypes();
+		if (OtherDims.GetCount() == iRank)
+			{
+			for (int i = 1; i < iRank; i++)
+				{
+				int iTensorLength;
+				int iOtherLength;
+				if (!GetConcatDimensionLength(ResultDims[i], iTensorLength)
+						|| !GetConcatDimensionLength(OtherDims[i], iOtherLength)
+						|| iTensorLength != iOtherLength)
+					return CAEONTypes::Get(IDatatype::ERROR_T);
+				}
+
+			if (!GetConcatDimensionLength(OtherDims[0], iAddedLength))
+				bUnknownAddedLength = true;
+			}
+		else if (iRank > 1 && OtherDims.GetCount() == iRank - 1)
+			{
+			for (int i = 1; i < iRank; i++)
+				{
+				int iTensorLength;
+				int iOtherLength;
+				if (!GetConcatDimensionLength(ResultDims[i], iTensorLength)
+						|| !GetConcatDimensionLength(OtherDims[i - 1], iOtherLength)
+						|| iTensorLength != iOtherLength)
+					return CAEONTypes::Get(IDatatype::ERROR_T);
+				}
+
+			iAddedLength = 1;
+			}
+		else
+			return CAEONTypes::Get(IDatatype::ERROR_T);
+
+		dOtherElementType = OtherType.GetElementType();
+		}
+	else if (OtherType.GetClass() == IDatatype::ECategory::Array)
+		{
+		if (GetConcatArrayLeafType(dOtherType, iRank, dOtherElementType))
+			bUnknownAddedLength = true;
+		else if (iRank > 1 && GetConcatArrayLeafType(dOtherType, iRank - 1, dOtherElementType))
+			iAddedLength = 1;
+		else
+			return CAEONTypes::Get(IDatatype::ERROR_T);
+		}
+	else
+		{
+		if (iRank != 1)
+			return CAEONTypes::Get(IDatatype::ERROR_T);
+
+		iAddedLength = 1;
+		dOtherElementType = dOtherType;
+		}
+
+	CDatum dResultElementType = CalcCompatibleElementType(TensorType.GetElementType(), dOtherElementType);
+	int iTensorLength;
+	if (bUnknownAddedLength || !GetConcatDimensionLength(ResultDims[0], iTensorLength))
+		ResultDims[0] = CAEONTypes::Get(IDatatype::INTEGER);
+	else
+		ResultDims[0] = CAEONTypes::CreateInt32SubRange(NULL_STR, 0, iTensorLength + iAddedLength - 1);
+
+	return CAEONTypes::CreateTensor(NULL_STR, dResultElementType, std::move(ResultDims));
 	}
 

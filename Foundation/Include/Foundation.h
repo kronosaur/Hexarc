@@ -109,6 +109,7 @@ struct IUnknown;
 #include "FoundationGraphicsCore.h"
 #include "FoundationGraphicsImage8.h"
 #include "FoundationGraphicsImage32.h"
+#include "FoundationGraphicsBMP.h"
 #include "FoundationGraphicsJPEG.h"
 #include "FoundationGraphicsPNG.h"
 #include "FoundationGraphicsDraw.h"

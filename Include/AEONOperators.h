@@ -109,6 +109,8 @@ class CAEONUnaryOpTable
 class CAEONOp
 	{
 	public:
+		using CalcBinaryTypeFunc = CDatum (*) (CDatum dLeftType, CDatum dRightType);
+		using CalcUnaryTypeFunc = CDatum (*) (CDatum dType);
 
 		static CDatum Add (CDatum dLeft, CDatum dRight, IAEONOperatorCtx& Ctx = IAEONOperatorCtx::Default) { return m_Add.GetOp(dLeft.GetBasicDatatype(), dRight.GetBasicDatatype())(dLeft, dRight, Ctx); }
 		static CDatum CompEqual (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight) { return m_CompEqual.GetOp(dLeft.GetBasicDatatypeEx(), dRight.GetBasicDatatypeEx())(Ctx, dLeft, dRight); }
@@ -141,6 +143,8 @@ class CAEONOp
 		static CDatum CalcNegateType (CDatum dType);
 		static CDatum CalcPowerType (CDatum dLeftType, CDatum dRightType);
 		static CDatum CalcSubtractType (CDatum dLeftType, CDatum dRightType);
+		static CDatum CalcTensorBinaryType (CDatum dLeftType, CDatum dRightType, CalcBinaryTypeFunc pfCalcType);
+		static CDatum CalcTensorUnaryType (CDatum dType, CalcUnaryTypeFunc pfCalcType);
 
 		static void CalcSliceParams (CDatum dStart, CDatum dEnd, int iLength, int& retStart, int& retLen);
 

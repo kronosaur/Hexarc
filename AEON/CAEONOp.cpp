@@ -293,7 +293,7 @@ void CAEONOp::CalcSliceParams (CDatum dStart, CDatum dEnd, int iLength, int& ret
 		retStart = 0;
 		retLen = 0;
 		}
-	else if (dStart.IsIdenticalToTrue())
+	else if (dStart.IsIdenticalToWildcard() || dStart.IsIdenticalToTrue())
 		{
 		retStart = 0;
 		retLen = iLength;
@@ -327,6 +327,102 @@ void CAEONOp::CalcSliceParams (CDatum dStart, CDatum dEnd, int iLength, int& ret
 CDatum CAEONOp::CalcSubtractType (CDatum dLeftType, CDatum dRightType)
 	{
 	return COpSubtract::CalcType(dLeftType, dRightType);
+	}
+
+static bool CalcTensorOperandElementType (CDatum dOperandType, int iTensorRank, CDatum& retdElementType)
+	{
+	const IDatatype* pType = &((const IDatatype&)dOperandType);
+	CDatum dType = dOperandType;
+
+	if (pType->IsAny())
+		{
+		retdElementType = dOperandType;
+		return true;
+		}
+
+	if (pType->GetClass() == IDatatype::ECategory::Tensor)
+		{
+		retdElementType = pType->GetElementType();
+		return true;
+		}
+
+	if (pType->GetClass() != IDatatype::ECategory::Array)
+		{
+		retdElementType = dOperandType;
+		return true;
+		}
+
+	for (int i = 0; i < iTensorRank; i++)
+		{
+		pType = &((const IDatatype&)dType);
+		if (pType->IsAny())
+			{
+			retdElementType = dType;
+			return true;
+			}
+		else if (pType->GetClass() != IDatatype::ECategory::Array)
+			return false;
+
+		dType = pType->GetElementType();
+		}
+
+	retdElementType = dType;
+	return true;
+	}
+
+CDatum CAEONOp::CalcTensorBinaryType (CDatum dLeftType, CDatum dRightType, CalcBinaryTypeFunc pfCalcType)
+	{
+	const IDatatype& LeftType = dLeftType;
+	const IDatatype& RightType = dRightType;
+	const bool bLeftTensor = (LeftType.GetClass() == IDatatype::ECategory::Tensor);
+	const bool bRightTensor = (RightType.GetClass() == IDatatype::ECategory::Tensor);
+
+	if (!bLeftTensor && !bRightTensor)
+		return CAEONTypes::Get(IDatatype::ERROR_T);
+
+	CDatum dTensorType = (bLeftTensor ? dLeftType : dRightType);
+	const IDatatype& TensorType = dTensorType;
+	TArray<CDatum> TensorDims = TensorType.GetDimensionTypes();
+
+	if (bLeftTensor && bRightTensor)
+		{
+		TArray<CDatum> RightDims = RightType.GetDimensionTypes();
+		if (TensorDims.GetCount() != RightDims.GetCount())
+			return CAEONTypes::Get(IDatatype::ERROR_T);
+
+		for (int i = 0; i < TensorDims.GetCount(); i++)
+			{
+			const IDatatype& LeftDim = TensorDims[i];
+			const IDatatype& RightDim = RightDims[i];
+			if (!LeftDim.IsA(RightDim) || !RightDim.IsA(LeftDim))
+				return CAEONTypes::Get(IDatatype::ERROR_T);
+			}
+		}
+
+	CDatum dLeftElementType;
+	CDatum dRightElementType;
+	if (!CalcTensorOperandElementType(dLeftType, TensorDims.GetCount(), dLeftElementType)
+			|| !CalcTensorOperandElementType(dRightType, TensorDims.GetCount(), dRightElementType))
+		return CAEONTypes::Get(IDatatype::ERROR_T);
+
+	CDatum dResultElementType = pfCalcType(dLeftElementType, dRightElementType);
+	if (((const IDatatype&)dResultElementType).IsErrorType())
+		return dResultElementType;
+
+	return CAEONTypes::CreateTensor(NULL_STR, dResultElementType, std::move(TensorDims));
+	}
+
+CDatum CAEONOp::CalcTensorUnaryType (CDatum dType, CalcUnaryTypeFunc pfCalcType)
+	{
+	const IDatatype& Type = dType;
+	if (Type.GetClass() != IDatatype::ECategory::Tensor)
+		return CAEONTypes::Get(IDatatype::ERROR_T);
+
+	CDatum dResultElementType = pfCalcType(Type.GetElementType());
+	if (((const IDatatype&)dResultElementType).IsErrorType())
+		return dResultElementType;
+
+	return CAEONTypes::CreateTensor(NULL_STR, dResultElementType, Type.GetDimensionTypes());
 	}
 
 CDatum CAEONOp::ErrorTooBig (IInvokeCtx& Ctx)

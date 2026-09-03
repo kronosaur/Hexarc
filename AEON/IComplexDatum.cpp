@@ -645,8 +645,6 @@ CString IComplexDatum::StructAsString () const
 
 	CStringBuffer Output;
 
-	m_bMarked = true;
-
 	Output.Write("{", 1);
 
 	for (int i = 0; i < GetCount(); i++)

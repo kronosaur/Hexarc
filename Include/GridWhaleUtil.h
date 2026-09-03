@@ -89,6 +89,7 @@ class CProgramExecIPC
 #include "GridWhaleLicensing.h"
 #include "GridWhaleNotifications.h"
 
+#include "AEON3DSObject.h"
 #include "AEONGridConnection.h"
 #include "ProgramDef.h"
 
@@ -125,6 +126,8 @@ class CGridUtil
 		static CString Symbolize (const CString &sValue);
 
 		static DWORD ACL_TYPE;
+		static DWORD A3DS_OBJECT_TYPE;
+		static DWORD A3DS_RESOURCE_SCHEMA;
 		static DWORD ACL_USER_PERMISSION_SCHEMA;
 		static DWORD ACL_PROGRAM_PERMISSION_SCHEMA;
 		static DWORD FOLDER_SCHEMA;

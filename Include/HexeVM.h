@@ -220,6 +220,9 @@ enum EOpCodes
 	opCodeCount =			256,
 	};
 
+constexpr DWORD OP_FLAG_MAKE_TENSOR_CONSTRUCT = 0x00800000;
+constexpr DWORD OP_MASK_MAKE_TENSOR_DIMS = 0x007fffff;
+
 //	CHexeCodeIntermediate ------------------------------------------------------
 
 class CHexeCodeIntermediate

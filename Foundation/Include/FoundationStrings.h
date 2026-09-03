@@ -36,6 +36,7 @@ enum class ECharSetType
 	UTF32LE,
 	ASCII,
 	Latin1,
+	Windows1252,
 	};
 
 enum class EStringEncodingType

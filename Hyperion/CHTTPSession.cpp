@@ -482,7 +482,7 @@ bool CHTTPSession::ProcessStateResponseSent (const SArchonMessage &Msg)
 		//	If this is a 1.0 server or we were asked to close the connection, 
 		//	then we're done.
 
-		if (!m_Ctx.Request.IsHTTP11() || IsConnectionClose(m_Ctx.Request))
+		if (m_bCloseAfterResponse || !m_Ctx.Request.IsHTTP11() || IsConnectionClose(m_Ctx.Request))
 			return Disconnect(Msg);
 
 		//	Otherwise, read more.
@@ -543,7 +543,7 @@ bool CHTTPSession::ProcessStateResponseSentPartial (const SArchonMessage &Msg)
 
 		if (m_dwPartialSend >= m_Ctx.Response.GetBodySize())
 			{
-			if (!m_Ctx.Request.IsHTTP11() || IsConnectionClose(m_Ctx.Request))
+			if (m_bCloseAfterResponse || !m_Ctx.Request.IsHTTP11() || IsConnectionClose(m_Ctx.Request))
 				return Disconnect(Msg);
 			else
 				return GetRequest(Msg);
@@ -831,6 +831,11 @@ bool CHTTPSession::ProcessStateWaitingForRPCResult (const SArchonMessage &Msg)
 		}
 	else if (strEquals(Msg.sMsg, MSG_ERROR_TIMEOUT))
 		{
+		//	The original RPC may still reply after this timeout. Do not reuse the
+		//	HTTP connection for another request because replies carry only the
+		//	session ticket and could otherwise be mistaken for the new operation.
+
+		m_bCloseAfterResponse = true;
 		m_Ctx.Response.InitResponse(http_INTERNAL_SERVER_ERROR, ERR_RPC_TIMEOUT);
 		return SendResponse(m_Ctx, Msg);
 		}
@@ -851,6 +856,24 @@ bool CHTTPSession::OnProcessMessage (const SArchonMessage &Msg)
 	{
 	try 
 		{
+		//	After an RPC timeout we send the error response and close the HTTP
+		//	connection. The original RPC may still reply while we are waiting for
+		//	Esper to finish the write or disconnect. Ignore that stale message, but
+		//	restore the timeout for the current Esper operation because
+		//	ISessionHandler cleared it before dispatching this message.
+
+		if (m_bCloseAfterResponse
+				&& (((m_iState == State::responseSent || m_iState == State::responseSentPartial)
+						&& !strEquals(Msg.sMsg, MSG_ESPER_ON_WRITE)
+						&& !strEquals(Msg.sMsg, MSG_ESPER_ON_DISCONNECT))
+					|| (m_iState == State::disconnected
+						&& !strEquals(Msg.sMsg, MSG_ESPER_ON_DISCONNECT))))
+			{
+			m_pEngine->LogSessionState(strPattern("[%x:%x] Ignoring message while closing after RPC timeout: %s.", CEsperInterface::ConnectionToFriendlyID(m_dSocket), GetTicket(), (LPSTR)Msg.sMsg));
+			ResetTimeout(GenerateAddress(PORT_HYPERION_COMMAND), DEFAULT_TIMEOUT);
+			return true;
+			}
+
 		switch (m_iState)
 			{
 			case State::waitingForRequest:
@@ -886,6 +909,27 @@ bool CHTTPSession::OnProcessMessage (const SArchonMessage &Msg)
 		m_Ctx.Response.InitResponse(http_INTERNAL_SERVER_ERROR, strPattern(ERR_CRASH_PROCESS_MSG, m_iState, Msg.sMsg));
 		return SendResponse(m_Ctx, Msg);
 		}
+	}
+
+bool CHTTPSession::OnTimeout (const SArchonMessage &Msg)
+
+//	OnTimeout
+//
+//	Process a timeout for the operation that the HTTP session is currently
+//	waiting on.
+
+	{
+	//	OnProcessMessage ignores stale RPC replies while we finish closing after
+	//	an RPC timeout. A timeout delivered through this callback belongs to the
+	//	current Esper write/disconnect operation, however, and must end the session.
+
+	if (m_bCloseAfterResponse
+			&& (m_iState == State::responseSent
+				|| m_iState == State::responseSentPartial
+				|| m_iState == State::disconnected))
+		return false;
+
+	return OnProcessMessage(Msg);
 	}
 
 bool CHTTPSession::OnStartSession (const SArchonMessage &Msg, DWORD dwTicket)
@@ -1383,7 +1427,7 @@ bool CHTTPSession::SendResponse (SHTTPRequestCtx &Ctx, const SArchonMessage &Msg
 
 		//	For HTTP 1.0 we always close the connection after a response
 
-		if (!Ctx.Request.IsHTTP11() || IsConnectionClose(Ctx.Request))
+		if (m_bCloseAfterResponse || !Ctx.Request.IsHTTP11() || IsConnectionClose(Ctx.Request))
 			Ctx.Response.AddHeader(HEADER_CONNECTION, STR_CLOSE);
 		}
 

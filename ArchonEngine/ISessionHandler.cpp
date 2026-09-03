@@ -74,11 +74,11 @@ bool ISessionHandler::ProcessMessage (const SArchonMessage &Msg)
 		m_dwTimeoutID = 0;
 		}
 
-	//	We can unlock because all we are trying to protect is m_dwTimeoutID.
-
-	Lock.Unlock();
-
-	//	Let our derived class handle the message
+	//	Keep the session locked while the derived handler processes the message.
+	//	Multiple engine threads may dispatch messages for the same session at the
+	//	same time, and derived handlers assume that their state is serialized.
+	//	CCriticalSection is recursive, so the handler may call session helpers that
+	//	reacquire this lock.
 
 	return OnProcessMessage(Msg);
 	}
@@ -98,9 +98,9 @@ bool ISessionHandler::ProcessTimeout (const SArchonMessage &Msg)
 		{
 		m_dwTimeoutID = 0;
 
-		//	We can unlock because all we are trying to protect is m_dwTimeoutID.
-
-		Lock.Unlock();
+		//	Keep the session locked while the derived handler processes the timeout.
+		//	A reply may arrive on another engine thread at the same time, and only
+		//	one callback may mutate the derived session state at a time.
 
 		return OnTimeout(Msg);
 		}

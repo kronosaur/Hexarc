@@ -188,7 +188,13 @@
     <ClCompile Include="IAnimator3D.cpp">
       <Filter>Source Files\Scene3D</Filter>
     </ClCompile>
+    <ClCompile Include="ILuminousMaterial3D.cpp">
+      <Filter>Source Files\Scene3D</Filter>
+    </ClCompile>
     <ClCompile Include="ILuminousObj3D.cpp">
+      <Filter>Source Files\Scene3D</Filter>
+    </ClCompile>
+    <ClCompile Include="ILuminousTexture3D.cpp">
       <Filter>Source Files\Scene3D</Filter>
     </ClCompile>
     <ClCompile Include="CAEONReanimator3D.cpp">

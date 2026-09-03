@@ -101,6 +101,8 @@ DECLARE_CONST_STRING(TYPENAME_TEXT_LINES,				"textLines");
 DECLARE_CONST_STRING(TYPENAME_TIME_SPAN,				"timeSpan")
 DECLARE_CONST_STRING(TYPENAME_VECTOR_2D,				"vector2D")
 
+DECLARE_CONST_STRING(STR_WILDCARD,						"*")
+
 DECLARE_CONST_STRING(ERR_COLON_EXPECTED,				"Colon expected in struct: %s.")
 DECLARE_CONST_STRING(ERR_UNEXPECTED_TOKEN_IN_STRUCT,	"Unexpected token in struct: %s.")
 
@@ -133,6 +135,9 @@ size_t CDatum::CalcSerializeSizeAEONScript (EFormat iFormat) const
 
 				case VALUE_TRUE:
 					return 4;	//	"true"
+
+				case VALUE_WILDCARD:
+					return 1;	//	"*"
 
 				default:
 					ASSERT(false);
@@ -220,6 +225,10 @@ void CDatum::SerializeAEONScript (EFormat iFormat, IByteStream &Stream) const
 
 				case VALUE_TRUE:
 					Stream.Write("true", 4);
+					break;
+
+				case VALUE_WILDCARD:
+					Stream.Write("*", 1);
 					break;
 
 				default:
@@ -819,6 +828,8 @@ CAEONScriptParser::ETokens CAEONScriptParser::ParseLiteral (CDatum *retDatum)
 		*retDatum = CDatum::CreateNaN();
 	else if (strEquals(strToLower(sLiteral), STR_TRUE))
 		*retDatum = CDatum(true);
+	else if (strEquals(sLiteral, STR_WILDCARD))
+		*retDatum = CDatum::CreateWildcard();
 	else
 		*retDatum = CDatum(sLiteral);
 

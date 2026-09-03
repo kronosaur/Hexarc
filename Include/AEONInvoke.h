@@ -19,6 +19,7 @@ class IInvokeCtx
 		static constexpr DWORD EXEC_RIGHT_INVOKE =				0x00000002;
 
 		static constexpr DWORD EXEC_FLAG_CONSTRUCTOR =			0x00010000;
+		static constexpr DWORD EXEC_FLAG_CONST =				0x00020000;	//	Does not modify the receiver.
 
 		struct SInputOptions
 			{

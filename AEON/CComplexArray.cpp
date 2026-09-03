@@ -532,7 +532,7 @@ int CComplexArray::FindMinElementInArray (const TArray<CDatum>& Array)
 	CDatum dMin;
 	for (int i = 0; i < Array.GetCount(); i++)
 		{
-		CDatum dValue = Array[i].MathMax();
+		CDatum dValue = Array[i].MathMin();
 		if (dValue.IsNil())
 			continue;
 
@@ -1094,4 +1094,3 @@ void CComplexArray::SerializeAEON (IByteStream& Stream, CAEONSerializedMap& Seri
 		m_Array[i].SerializeAEON(Stream, Serialized);
 		}
 	}
-

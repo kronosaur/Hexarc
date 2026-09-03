@@ -273,7 +273,22 @@ DECLARE_CONST_STRING(STR_URL_DECODE_NAME,				"urlDecode")
 DECLARE_CONST_STRING(STR_URL_DECODE_ARGS,				"*")
 DECLARE_CONST_STRING(STR_URL_DECODE_HELP,				"(urlDecode string) -> string")
 
-const DWORD STR_URL_PARAM =								18;
+const DWORD STR_URL_DECODE_FORM_COMPONENT =				18;
+DECLARE_CONST_STRING(STR_URL_DECODE_FORM_COMPONENT_NAME,	"urlDecodeFormComponent")
+DECLARE_CONST_STRING(STR_URL_DECODE_FORM_COMPONENT_ARGS,	"*")
+DECLARE_CONST_STRING(STR_URL_DECODE_FORM_COMPONENT_HELP,	"(urlDecodeFormComponent string) -> string/nil")
+
+const DWORD STR_URL_DECODE_PATH_SEGMENT =				19;
+DECLARE_CONST_STRING(STR_URL_DECODE_PATH_SEGMENT_NAME,	"urlDecodePathSegment")
+DECLARE_CONST_STRING(STR_URL_DECODE_PATH_SEGMENT_ARGS,	"*")
+DECLARE_CONST_STRING(STR_URL_DECODE_PATH_SEGMENT_HELP,	"(urlDecodePathSegment string) -> string/nil")
+
+const DWORD STR_URL_ENCODE_PATH_SEGMENT =				20;
+DECLARE_CONST_STRING(STR_URL_ENCODE_PATH_SEGMENT_NAME,	"urlEncodePathSegment")
+DECLARE_CONST_STRING(STR_URL_ENCODE_PATH_SEGMENT_ARGS,	"*")
+DECLARE_CONST_STRING(STR_URL_ENCODE_PATH_SEGMENT_HELP,	"(urlEncodePathSegment string) -> string")
+
+const DWORD STR_URL_PARAM =								21;
 DECLARE_CONST_STRING(STR_URL_PARAM_NAME,				"urlParam")
 DECLARE_CONST_STRING(STR_URL_PARAM_ARGS,				"*")
 DECLARE_CONST_STRING(STR_URL_PARAM_HELP,				"(urlParam string) -> string")
@@ -411,6 +426,9 @@ SLibraryFuncDef g_CoreLibraryDef[] =
 	DECLARE_DEF_LIBRARY_FUNC(STR_TYPE_OF, coreStrings, 0),
 	DECLARE_DEF_LIBRARY_FUNC(STR_UPPERCASE, coreStrings, 0),
 	DECLARE_DEF_LIBRARY_FUNC(STR_URL_DECODE, coreStrings, 0),
+	DECLARE_DEF_LIBRARY_FUNC(STR_URL_DECODE_FORM_COMPONENT, coreStrings, 0),
+	DECLARE_DEF_LIBRARY_FUNC(STR_URL_DECODE_PATH_SEGMENT, coreStrings, 0),
+	DECLARE_DEF_LIBRARY_FUNC(STR_URL_ENCODE_PATH_SEGMENT, coreStrings, 0),
 	DECLARE_DEF_LIBRARY_FUNC(STR_URL_PARAM, coreStrings, 0),
 
 	DECLARE_DEF_LIBRARY_FUNC(SYS_TICKS, coreSystem, 0),
@@ -1881,6 +1899,34 @@ bool coreStrings (IInvokeCtx *pCtx, DWORD dwData, CHexeStackEnv& LocalEnv, CDatu
 		case STR_URL_DECODE:
 			{
 			retResult.dResult = urlDecode(LocalEnv.GetArgument(0).AsString());
+			return true;
+			}
+
+		case STR_URL_DECODE_FORM_COMPONENT:
+			{
+			CString sResult;
+			if (!strDecodeFrom(LocalEnv.GetArgument(0).AsString(), EStringEncodingType::formComponent, &sResult))
+				retResult.dResult = CDatum();
+			else
+				retResult.dResult = sResult;
+
+			return true;
+			}
+
+		case STR_URL_DECODE_PATH_SEGMENT:
+			{
+			CString sResult;
+			if (!strDecodeFrom(LocalEnv.GetArgument(0).AsString(), EStringEncodingType::urlPathSegment, &sResult))
+				retResult.dResult = CDatum();
+			else
+				retResult.dResult = sResult;
+
+			return true;
+			}
+
+		case STR_URL_ENCODE_PATH_SEGMENT:
+			{
+			retResult.dResult = urlEncodePathSegment(LocalEnv.GetArgument(0).AsString());
 			return true;
 			}
 

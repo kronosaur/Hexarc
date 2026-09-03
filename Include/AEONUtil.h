@@ -269,18 +269,28 @@ class TDatumMethodHandler
 		void AccumulateMembers (TArray<IDatatype::SMemberDesc>& retMembers) const
 			{
 			for (int i = 0; i < m_Table.GetCount(); i++)
-				retMembers.Insert(IDatatype::SMemberDesc({ IDatatype::EMemberType::InstanceMethod, GetMethodName(i), GetMethodType(i) }));
+				{
+				IDatatype::SMemberDesc Member({ IDatatype::EMemberType::InstanceMethod, GetMethodName(i), GetMethodType(i) });
+				if (GetMethodFlags(i) & IInvokeCtx::EXEC_FLAG_CONST)
+					Member.dwFlags |= IDatatype::MEMBER_FLAG_CONST;
+
+				retMembers.Insert(Member);
+				}
 			}
 
 		void AccumulateMembersMerge (TArray<IDatatype::SMemberDesc>& retMembers) const
 			{
 			for (int i = 0; i < m_Table.GetCount(); i++)
 				{
+				IDatatype::SMemberDesc Member({ IDatatype::EMemberType::InstanceMethod, GetMethodName(i), GetMethodType(i) });
+				if (GetMethodFlags(i) & IInvokeCtx::EXEC_FLAG_CONST)
+					Member.dwFlags |= IDatatype::MEMBER_FLAG_CONST;
+
 				int iPos;
 				if (IDatatype::FindMember(retMembers, GetMethodName(i), IDatatype::EMemberType::InstanceMethod, &iPos))
-					retMembers[iPos] = IDatatype::SMemberDesc({ IDatatype::EMemberType::InstanceMethod, GetMethodName(i), GetMethodType(i) });
+					retMembers[iPos] = Member;
 				else
-					retMembers.Insert(IDatatype::SMemberDesc({ IDatatype::EMemberType::InstanceMethod, GetMethodName(i), GetMethodType(i) }));
+					retMembers.Insert(Member);
 				}
 			}
 
@@ -376,6 +386,12 @@ class TDatumMethodHandler
 			{
 			ASSERT(iIndex >= 0 && iIndex < m_Table.GetCount());
 			return m_Methods[iIndex].sName;
+			}
+
+		DWORD GetMethodFlags (int iIndex) const
+			{
+			ASSERT(iIndex >= 0 && iIndex < m_Table.GetCount());
+			return m_Methods[iIndex].dwExecFlags;
 			}
 
 		CDatum GetMethodType (int iIndex) const

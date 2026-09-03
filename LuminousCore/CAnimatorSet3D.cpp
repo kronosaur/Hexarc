@@ -158,6 +158,12 @@ int CAnimatorSet3D::GetFrameCount () const
 	return iMaxFrame;
 	}
 
+void CAnimatorSet3D::TrimAllBefore (int iFrame)
+	{
+	for (int i = 0; i < m_Animators.GetCount(); i++)
+		m_Animators[i]->TrimBefore(iFrame);
+	}
+
 bool CAnimatorSet3D::RemoveAnimation (Obj3DProp iProp)
 
 //	RemoveAnimation

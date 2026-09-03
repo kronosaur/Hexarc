@@ -324,6 +324,9 @@
     <ClCompile Include="CImagePlane.cpp">
       <Filter>Source Files\Graphics</Filter>
     </ClCompile>
+    <ClCompile Include="CBMP.cpp">
+      <Filter>Source Files\Graphics</Filter>
+    </ClCompile>
     <ClCompile Include="CJPEG.cpp">
       <Filter>Source Files\Graphics</Filter>
     </ClCompile>
@@ -598,6 +601,9 @@
     </ClInclude>
     <ClInclude Include="Include\FoundationXML.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\FoundationGraphicsBMP.h">
+      <Filter>Header Files\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="Include\FoundationGraphicsCore.h">
       <Filter>Header Files</Filter>

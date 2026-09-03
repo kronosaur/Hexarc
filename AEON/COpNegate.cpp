@@ -51,6 +51,8 @@ CDatum COpNegate::CalcType (CDatum dType)
 
 	else if (Type.IsA(IDatatype::EXPRESSION))
 		return CAEONTypes::Get(IDatatype::EXPRESSION);
+	else if (Type.GetClass() == IDatatype::ECategory::Tensor)
+		return CAEONOp::CalcTensorUnaryType(dType, CalcType);
 
 	else if (Type.IsA(IDatatype::ARRAY))
 		{

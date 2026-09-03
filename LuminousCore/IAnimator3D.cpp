@@ -136,6 +136,33 @@ DWORD IAnimator3D::GetImplID () const
 		}
 	}
 
+void IAnimator3D::TrimBefore (int iFrame)
+
+//	TrimBefore
+//
+//	Keep the last value before the trim point as the new initial value.
+
+	{
+	if (m_Keyframes.GetCount() <= 1)
+		return;
+
+	int iLastBefore = -1;
+	for (int i = 0; i < m_Keyframes.GetCount(); i++)
+		{
+		if (m_Keyframes[i].iFrame < iFrame)
+			iLastBefore = i;
+		else
+			break;
+		}
+
+	int iDeleteCount = iLastBefore;
+	if (iDeleteCount <= 0)
+		return;
+
+	OnTrimValues(0, iDeleteCount);
+	m_Keyframes.Delete(0, iDeleteCount);
+	}
+
 void IAnimator3D::Write (IByteStream& Stream) const
 
 //	Write

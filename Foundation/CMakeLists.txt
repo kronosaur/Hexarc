@@ -53,6 +53,7 @@ set(SRC
     CIOCPSocket.cpp
     CIODiagnostics.cpp
     CIPInteger.cpp
+    CBMP.cpp
     CJPEG.cpp
     CLargeSet.cpp
     CLine2D.cpp

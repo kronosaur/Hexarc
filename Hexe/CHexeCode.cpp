@@ -417,8 +417,12 @@ void CHexeCode::OnMarked (void)
 //	Mark data in use
 
 	{
+	DEBUG_TRY
+
 	for (int i = 0; i < m_DataCache.GetCount(); i++)
 		m_DataCache[i].Mark();
+
+	DEBUG_CATCH
 	}
 
 bool CHexeCode::OnDeserialize (CDatum::EFormat iFormat, const CString &sTypename, IByteStream &Stream)

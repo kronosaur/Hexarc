@@ -9,6 +9,8 @@ DECLARE_CONST_STRING(ENCODING_GZIP,						"gzip")
 DECLARE_CONST_STRING(ENCODING_IDENTITY,					"identity")
 
 DECLARE_CONST_STRING(EXTENSION_BIN,						".bin")
+DECLARE_CONST_STRING(EXTENSION_BMP,						".bmp")
+DECLARE_CONST_STRING(EXTENSION_DIB,						".dib")
 DECLARE_CONST_STRING(EXTENSION_CSS,						".css")
 DECLARE_CONST_STRING(EXTENSION_CSV,						".csv")
 DECLARE_CONST_STRING(EXTENSION_DLL,						".dll")
@@ -32,6 +34,7 @@ DECLARE_CONST_STRING(MEDIA_TYPE_CSS,					"text/css")
 DECLARE_CONST_STRING(MEDIA_TYPE_CSV,					"text/csv")
 DECLARE_CONST_STRING(MEDIA_TYPE_HTML,					"text/html")
 DECLARE_CONST_STRING(MEDIA_TYPE_JAVASCRIPT,				"application/javascript")
+DECLARE_CONST_STRING(MEDIA_TYPE_BMP,					"image/bmp")
 DECLARE_CONST_STRING(MEDIA_TYPE_JPG,					"image/jpeg")
 DECLARE_CONST_STRING(MEDIA_TYPE_JSON,					"application/json")
 DECLARE_CONST_STRING(MEDIA_TYPE_JSON_REQUEST,			"application/jsonrequest")
@@ -51,6 +54,8 @@ struct SMediaTypeMapEntry
 SMediaTypeMapEntry g_MediaTypeMap[] =
 	{
 		{	EXTENSION_BIN,			MEDIA_TYPE_BINARY,		},
+		{	EXTENSION_BMP,			MEDIA_TYPE_BMP,			},
+		{	EXTENSION_DIB,			MEDIA_TYPE_BMP,			},
 		{	EXTENSION_CSS,			MEDIA_TYPE_CSS,			},
 		{	EXTENSION_CSV,			MEDIA_TYPE_CSV,			},
 		{	EXTENSION_DLL,			MEDIA_TYPE_BINARY,		},
@@ -84,6 +89,7 @@ SMediaTypeData g_MediaTypeData[] =
 		{	MEDIA_TYPE_CSS,				http_encodingGzip },
 		{	MEDIA_TYPE_HTML,			http_encodingGzip },
 		{	MEDIA_TYPE_JAVASCRIPT,		http_encodingGzip },
+		{	MEDIA_TYPE_BMP,				http_encodingIdentity },
 		{	MEDIA_TYPE_JPG,				http_encodingIdentity },
 		{	MEDIA_TYPE_JSON,			http_encodingGzip },
 		{	MEDIA_TYPE_JSON_REQUEST,	http_encodingGzip },

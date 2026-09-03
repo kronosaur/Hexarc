@@ -39,6 +39,9 @@ CDatum CDatum::MathAbs () const
 				case VALUE_TRUE:
 					return *this;
 
+				case VALUE_WILDCARD:
+					return CDatum::CreateNaN();
+
 				default:
 					ASSERT(false);
 					return *this;
@@ -187,6 +190,9 @@ CDatum CDatum::MathCeil () const
 				case VALUE_TRUE:
 					return *this;
 
+				case VALUE_WILDCARD:
+					return CDatum::CreateNaN();
+
 				default:
 					ASSERT(false);
 					return *this;
@@ -242,6 +248,9 @@ CDatum CDatum::MathFloor () const
 				case VALUE_FALSE:
 				case VALUE_TRUE:
 					return *this;
+
+				case VALUE_WILDCARD:
+					return CDatum::CreateNaN();
 
 				default:
 					ASSERT(false);
@@ -349,6 +358,9 @@ CDatum CDatum::MathRound () const
 				case VALUE_TRUE:
 					return *this;
 
+				case VALUE_WILDCARD:
+					return CDatum::CreateNaN();
+
 				default:
 					ASSERT(false);
 					return *this;
@@ -414,6 +426,9 @@ CDatum CDatum::MathSign () const
 
 				case VALUE_TRUE:
 					return CDatum(1);
+
+				case VALUE_WILDCARD:
+					return CDatum::CreateNaN();
 
 				default:
 					ASSERT(false);
@@ -612,12 +627,33 @@ CDatum CDatum::MathInvert () const
 		}
 	}
 
+static CDatum PromoteMatMulOperand (CDatum dValue)
+	{
+	if (dValue.GetBasicType() != CDatum::typeArray)
+		return dValue;
+
+	const IDatatype& ArrayType = dValue.GetDatatype();
+	TArray<CDatum> Dimensions;
+	Dimensions.Insert(CAEONTypes::CreateInt32SubRange(NULL_STR, 0, dValue.GetCount() - 1));
+
+	CDatum dTensorType = CAEONTypes::CreateTensor(NULL_STR, ArrayType.GetElementType(), std::move(Dimensions));
+	return CDatum::CreateTensorAsType(dTensorType, dValue);
+	}
+
 CDatum CDatum::MathMatMul (CDatum dValue) const
 	{
-	switch (DecodeType(m_dwData))
+	CDatum dLeft = PromoteMatMulOperand(*this);
+	if (dLeft.IsError())
+		return dLeft;
+
+	CDatum dRight = PromoteMatMulOperand(dValue);
+	if (dRight.IsError())
+		return dRight;
+
+	switch (DecodeType(dLeft.m_dwData))
 		{
 		case TYPE_COMPLEX:
-			return DecodeComplex(m_dwData).MathMatMul(dValue);
+			return DecodeComplex(dLeft.m_dwData).MathMatMul(dRight);
 
 		default:
 			return CDatum();
@@ -711,6 +747,9 @@ template<class FUNC> CDatum CDatum::MathArrayOp () const
 				case VALUE_FALSE:
 				case VALUE_TRUE:
 					return *this;
+
+				case VALUE_WILDCARD:
+					return CreateNaN();
 
 				default:
 					ASSERT(false);

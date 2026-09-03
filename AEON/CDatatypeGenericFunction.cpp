@@ -15,6 +15,7 @@ DECLARE_CONST_STRING(STR_CDATATYPE_GENERIC_FUNCTION_THIS,	"this");
 DECLARE_CONST_STRING(STR_CDATATYPE_GENERIC_FUNCTION_IS_ASSIGNABLE_TO,	"isAssignableTo");
 DECLARE_CONST_STRING(STR_CDATATYPE_GENERIC_FUNCTION_ISA,	"isa");
 DECLARE_CONST_STRING(STR_CDATATYPE_GENERIC_FUNCTION_ARRAY_OF,	"array of ");
+DECLARE_CONST_STRING(STR_CDATATYPE_GENERIC_FUNCTION_TENSOR_OF,	"array[*] of ");
 DECLARE_CONST_STRING(STR_CDATATYPE_GENERIC_FUNCTION_TABLE_OF,	"table of ");
 DECLARE_CONST_STRING(STR_CDATATYPE_GENERIC_FUNCTION_DICTIONARY,	"dictionary[");
 DECLARE_CONST_STRING(STR_CDATATYPE_GENERIC_FUNCTION_OF,	"of ");
@@ -394,6 +395,12 @@ namespace
 					return false;
 				return MatchTypeExpr(Pattern.Args[0], ActualType.GetElementType(), Ctx);
 
+			case CDatatypeGenericFunction::ETypeExpr::TensorOf:
+				if (ActualType.GetClass() != IDatatype::ECategory::Tensor
+						|| ActualType.GetDimensionTypes().GetCount() != 1)
+					return false;
+				return MatchTypeExpr(Pattern.Args[0], ActualType.GetElementType(), Ctx);
+
 			case CDatatypeGenericFunction::ETypeExpr::TableOf:
 				if (ActualType.GetClass() != IDatatype::ECategory::Table)
 					return false;
@@ -508,6 +515,18 @@ namespace
 					return false;
 
 				*retdType = CAEONTypes::CreateArray(NULL_STR, dElementType);
+				return true;
+				}
+
+			case CDatatypeGenericFunction::ETypeExpr::TensorOf:
+				{
+				CDatum dElementType;
+				if (!EvalTypeExpr(Expr.Args[0], Ctx, &dElementType, retsError))
+					return false;
+
+				TArray<CDatum> Dimensions;
+				Dimensions.Insert(CAEONTypes::Get(IDatatype::INTEGER));
+				*retdType = CAEONTypes::CreateTensor(NULL_STR, dElementType, std::move(Dimensions));
 				return true;
 				}
 
@@ -1037,7 +1056,13 @@ namespace
 					return true;
 					}
 
-				if (StartsWithNoCase(sTrimmed, STR_CDATATYPE_GENERIC_FUNCTION_ARRAY_OF))
+				if (StartsWithNoCase(sTrimmed, STR_CDATATYPE_GENERIC_FUNCTION_TENSOR_OF))
+					{
+					retExpr.iType = CDatatypeGenericFunction::ETypeExpr::TensorOf;
+					retExpr.Args.Insert();
+					return ParseTypeExpr(strSubString(sTrimmed, STR_CDATATYPE_GENERIC_FUNCTION_TENSOR_OF.GetLength()), retExpr.Args[0], retsError);
+					}
+				else if (StartsWithNoCase(sTrimmed, STR_CDATATYPE_GENERIC_FUNCTION_ARRAY_OF))
 					{
 					retExpr.iType = CDatatypeGenericFunction::ETypeExpr::ArrayOf;
 					retExpr.Args.Insert();

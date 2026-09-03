@@ -47,6 +47,7 @@ void RegisterAI1Library (void);
 int ExecuteDebugPEMFile (const CString &sFilespec);
 
 CString GetInputLine (const CString &sPrompt);
+CString GetPasswordLine (const CString &sPrompt);
 void PrintUTF8 (const CString sString);
 
 

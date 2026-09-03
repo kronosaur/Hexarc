@@ -291,7 +291,7 @@ class CDBFormatCSV
 	public:
 		struct SOptions
 			{
-			bool bUseUTF8 = false;
+			ECharSetType iCharSet = ECharSetType::Unknown;	//	Auto-detect UTF-8 or Windows-1252
 			bool bAllowShortRows = false;
 			char chDelimiter = ',';
 

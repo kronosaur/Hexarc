@@ -124,7 +124,7 @@ class CCSVFormat
 			{
 			CAEONTypeSystem *pTypeSystem = NULL;
 
-			bool bUseUTF8 = false;
+			ECharSetType iCharSet = ECharSetType::Unknown;	//	Auto-detect UTF-8 or Windows-1252
 			bool bAllowShortRows = false;
 			char chDelimiter = '\0';		//	Detect delimiter if '\0'
 
@@ -175,6 +175,7 @@ enum class EFileContentType
 	XLSX,									//	Excel XLSX.
 	XML,									//	XML.
 	Zip,									//	Zip archive
+	ThreeDS,								//	3D Studio model.
 	};
 
 class CGridFS
@@ -236,7 +237,7 @@ class CGridFS
 			EFileContentType iType;
 			};
 
-		static CString DetectStdHeaders (const IMemoryBlock64& Data);
+		static CString DetectStdHeaders (const IMemoryBlock64& Data, bool bPartial = false);
 		static CString DetectZipFile (const IMemoryBlock64& Data);
 		static void SetRow (IAEONTable& Table, int iDestRow, const SFolderSchema& Schema, CDatum dEntry);
 

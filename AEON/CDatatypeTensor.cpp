@@ -181,7 +181,7 @@ bool CDatatypeTensor::OnCanBeCalledWith (CDatum dThisType, const TArray<CDatum>&
 		return false;
 		}
 
-	//	Make sure all the types match.
+	//	Make sure all the types match and compute the shape of the result.
 
 	bool bAnyResult = false;
 	TArray<CDatum> SliceDims;
@@ -189,47 +189,105 @@ bool CDatatypeTensor::OnCanBeCalledWith (CDatum dThisType, const TArray<CDatum>&
 		{
 		const IDatatype& DimType = m_Dims[i].dType;
 		const IDatatype& IndexType = ArgTypes[i];
+		CDatum dLiteral = (i < ArgLiteralTypes.GetCount() ? ArgLiteralTypes[i] : CDatum());
 
-		//	If the index is an integer, then we skip.
+		//	Any might be either a scalar coordinate or a slice, so we cannot know
+		//	the static result rank.
 
-		if (IndexType.IsA(IDatatype::NUMBER))
-			{ }
-
-		//	Or if it is an enum
-
-		else if (IndexType.GetClass() == IDatatype::ECategory::Enum)
+		if (IndexType.IsAny())
 			{
-			if (!DimType.IsA(IDatatype::ENUM))
+			bAnyResult = true;
+			continue;
+			}
+
+		//	A wildcard selects the complete dimension.
+
+		else if (IndexType.IsA(IDatatype::WILDCARD))
+			{
+			SliceDims.Insert(m_Dims[i].dType);
+			continue;
+			}
+
+		//	For compatibility, literal true also selects the complete dimension. A
+		//	general Bool is ambiguous because false is not a tensor coordinate.
+
+		else if (IndexType.IsA(IDatatype::BOOL))
+			{
+			if (!dLiteral.IsIdenticalToTrue())
+				{
+				if (retsError) *retsError = ERR_EXPECT_INTEGER_INDEX;
+				return false;
+				}
+
+			SliceDims.Insert(m_Dims[i].dType);
+			continue;
+			}
+
+		//	A range produces one result dimension. Preserve its exact length when
+		//	we have a literal; otherwise use an unspecified fixed dimension.
+
+		else if (IndexType.IsA(IDatatype::RANGE))
+			{
+			if (!DimType.IsA(IDatatype::INTEGER))
 				{
 				if (retsError) *retsError = strPattern(ERR_INVALID_DIM_TYPES, DimType.GetName());
 				return false;
 				}
+
+			const IAEONRange* pRange = (dLiteral.GetBasicType() == CDatum::typeRange ? dLiteral.GetRangeInterface() : NULL);
+			if (pRange && pRange->GetLength() > 0)
+				SliceDims.Insert(CAEONTypes::CreateInt32SubRange(NULL_STR, 0, pRange->GetLength() - 1));
+			else
+				SliceDims.Insert(CAEONTypes::Get(IDatatype::INTEGER));
+
+			continue;
 			}
 
-		//	If the index type is * then we add this entire dimension to the slice type.
+		//	An array of coordinates also produces one result dimension.
 
-		else if (IndexType.IsA(IDatatype::BOOL))
-			SliceDims.Insert(m_Dims[i].dType);
-
-		//	Otherwise, we don't know what it is so we assume a dimensions of any size.
-
-		else
+		else if (IndexType.IsA(IDatatype::ARRAY))
 			{
-			bAnyResult = true;
-			SliceDims.Insert(CAEONTypes::Get(IDatatype::INTEGER));
+			const IDatatype& IndexElementType = IndexType.GetElementType();
+			if (DimType.IsA(IDatatype::INTEGER))
+				{
+				if (!IndexElementType.IsAny()
+						&& !IndexElementType.IsA(IDatatype::NUMBER)
+						&& !IndexElementType.IsA(IDatatype::RANGE))
+					{
+					if (retsError) *retsError = ERR_EXPECT_INTEGER_INDEX;
+					return false;
+					}
+				}
+			else if (DimType.GetClass() == IDatatype::ECategory::Enum)
+				{
+				if (!IndexElementType.IsAny() && !IndexElementType.IsA(DimType))
+					{
+					if (retsError) *retsError = strPattern(ERR_INVALID_DIM_TYPES, DimType.GetName());
+					return false;
+					}
+				}
+			else
+				{
+				if (retsError) *retsError = strPattern(ERR_INVALID_DIM_TYPES, DimType.GetName());
+				return false;
+				}
+
+			if (dLiteral.IsArray())
+				{
+				CDatum dExpanded = CAEONTensor::ExpandIndexRange(dLiteral);
+				SliceDims.Insert(CAEONTypes::CreateInt32SubRange(NULL_STR, 0, dExpanded.GetCount() - 1));
+				}
+			else
+				SliceDims.Insert(CAEONTypes::Get(IDatatype::INTEGER));
+
+			continue;
 			}
 
-		//	If we expect an integer of some kind, then we accept any number or range (or Any).
+		//	A scalar coordinate removes this dimension from the result.
 
-		if (DimType.IsA(IDatatype::INTEGER))
+		else if (DimType.IsA(IDatatype::INTEGER))
 			{
-			//	We expect a number, a range, or a boolean (true means everything), or Any.
-
-			if (!IndexType.IsA(IDatatype::NUMBER) 
-					&& !IndexType.IsA(IDatatype::RANGE) 
-					&& !IndexType.IsA(IDatatype::BOOL) 
-					&& !IndexType.IsA(IDatatype::ARRAY)
-					&& !IndexType.IsAny())
+			if (!IndexType.IsA(IDatatype::NUMBER))
 				{
 				if (retsError) *retsError = ERR_EXPECT_INTEGER_INDEX;
 				return false;
@@ -237,33 +295,10 @@ bool CDatatypeTensor::OnCanBeCalledWith (CDatum dThisType, const TArray<CDatum>&
 
 			continue;
 			}
-
-		//	If the types match, the OK.
-
-		else if (IndexType.IsA(DimType))
-			{
+		else if (DimType.GetClass() == IDatatype::ECategory::Enum && IndexType.IsA(DimType))
 			continue;
-			}
 
-		//	Otherwise, we compose an error.
-
-		if (retsError)
-			{
-			//	Compose a string of the input argument types.
-
-			CString sArgTypes;
-			for (int j = 0; j < m_Dims.GetCount(); j++)
-				{
-				CString sType = ((const IDatatype&)m_Dims[j].dType).GetName();
-				if (j == 0)
-					sArgTypes = sType;
-				else
-					sArgTypes = strPattern("%s, %s", sArgTypes, sType);
-				}
-
-			*retsError = strPattern(ERR_INVALID_DIM_TYPES, sArgTypes);
-			}
-
+		if (retsError) *retsError = strPattern(ERR_INVALID_DIM_TYPES, DimType.GetName());
 		return false;
 		}
 
@@ -295,42 +330,132 @@ bool CDatatypeTensor::OnCanBeCalledWith (CDatum dThisType, const TArray<CDatum>&
 	return true;
 	}
 
-bool CDatatypeTensor::OnCanBeConstructedFrom (CDatum dType) const
+static bool GetTensorDimensionLength (CDatum dType, int* retiLength)
 	{
-	const IDatatype& OtherType = dType;
+	const IDatatype& Type = dType;
+	auto NumberDesc = Type.GetNumberDesc();
+	if (NumberDesc.bNumber && NumberDesc.bSubRange)
+		{
+		LONGLONG iLength = (LONGLONG)NumberDesc.iSubRangeMax - (LONGLONG)NumberDesc.iSubRangeMin + 1;
+		if (iLength < 0 || iLength > INT_MAX)
+			return false;
 
-	//	We always support construction from Any. This allows us to have type
-	//	annotations be optional.
+		if (retiLength) *retiLength = (int)iLength;
+		return true;
+		}
+	else if (Type.GetClass() == IDatatype::ECategory::Enum)
+		{
+		if (retiLength) *retiLength = Type.GetMemberCount();
+		return true;
+		}
+	else
+		return false;
+	}
 
-	if (OtherType.IsAny())
+static bool CanConstructTensorFrom (const IDatatype& TargetType, CDatum dSourceType, bool bExplicit)
+	{
+	const IDatatype& SourceType = dSourceType;
+
+	if (SourceType.IsAny() || SourceType.IsA(TargetType))
 		return true;
 
-	if (IsA(dType))
-		return true;
-
-	//	The other type must be an array or tensor.
-
-	if (OtherType.GetClass() != IDatatype::ECategory::Tensor
-			&& OtherType.GetClass() != IDatatype::ECategory::Array)
+	if (SourceType.GetClass() != IDatatype::ECategory::Tensor
+			&& SourceType.GetClass() != IDatatype::ECategory::Array)
 		return false;
 
-	if (OtherType.GetClass() == IDatatype::ECategory::Array)
-		return true;
+	TArray<CDatum> TargetDims = TargetType.GetDimensionTypes();
+	int iTargetRank = TargetDims.GetCount();
+	CDatum dTargetElementType = TargetType.GetElementType();
+	const IDatatype& TargetElementType = dTargetElementType;
 
-	//	If our element types are not compatible, then we can't be constructed from it.
+	if (SourceType.GetClass() == IDatatype::ECategory::Array)
+		{
+		CDatum dLeafType = dSourceType;
+		int iSourceRank = 0;
+		while (((const IDatatype&)dLeafType).GetClass() == IDatatype::ECategory::Array
+				&& iSourceRank < iTargetRank)
+			{
+			dLeafType = ((const IDatatype&)dLeafType).GetElementType();
+			iSourceRank++;
+			}
 
-	const IDatatype& ElementType = GetElementType();
-	if (!OtherType.IsAny() && !ElementType.CanBeConstructedFrom(OtherType.GetElementType()))
+		if (iSourceRank == 0)
+			return false;
+
+		const IDatatype& LeafType = dLeafType;
+		if (LeafType.IsAny() || LeafType.IsA(TargetElementType))
+			return true;
+
+		return (bExplicit
+				? TargetElementType.CanBeConstructedExplicitlyFrom(dLeafType)
+				: TargetElementType.CanBeConstructedFrom(dLeafType));
+		}
+
+	CDatum dSourceElementType = SourceType.GetElementType();
+	const IDatatype& SourceElementType = dSourceElementType;
+	if (!SourceElementType.IsAny() && !SourceElementType.IsA(TargetElementType))
+		{
+		bool bCanConstructElement = (bExplicit
+				? TargetElementType.CanBeConstructedExplicitlyFrom(dSourceElementType)
+				: TargetElementType.CanBeConstructedFrom(dSourceElementType));
+		if (!bCanConstructElement)
+			return false;
+		}
+
+	TArray<CDatum> SourceDims = SourceType.GetDimensionTypes();
+	int iSourceRank = SourceDims.GetCount();
+	if (iSourceRank > iTargetRank)
 		return false;
 
-	//	If different number of dimensions, then we can't be constructed from it.
+	bool bTargetConcrete = true;
+	LONGLONG iTargetCount = 1;
+	for (int i = 0; i < iTargetRank; i++)
+		{
+		int iLength;
+		if (!GetTensorDimensionLength(TargetDims[i], &iLength))
+			{
+			bTargetConcrete = false;
+			break;
+			}
 
-	if (m_Dims.GetCount() != OtherType.GetDimensionTypes().GetCount())
-		return false;
+		if (iLength == 0)
+			iTargetCount = 0;
+		else if (iTargetCount > INT_MAX / iLength)
+			return false;
+		else
+			iTargetCount *= iLength;
+		}
 
-	//	Otherwise, we can be constructed from it.
+	//	A rank-1 tensor may linearly initialize a fully concrete target.
+
+	if (bTargetConcrete && iTargetRank > 1 && iSourceRank == 1)
+		{
+		int iSourceLength;
+		return (!GetTensorDimensionLength(SourceDims[0], &iSourceLength) || iSourceLength <= iTargetCount);
+		}
+
+	int iLeadingDims = iTargetRank - iSourceRank;
+	for (int i = 0; i < iSourceRank; i++)
+		{
+		int iTargetLength;
+		int iSourceLength;
+		if (GetTensorDimensionLength(TargetDims[iLeadingDims + i], &iTargetLength)
+				&& GetTensorDimensionLength(SourceDims[i], &iSourceLength)
+				&& iSourceLength > iTargetLength)
+			return false;
+		}
 
 	return true;
+	}
+
+bool CDatatypeTensor::OnCanBeConstructedExplicitlyFrom (CDatum dType) const
+	{
+	return CanConstructTensorFrom(*this, dType, true);
+	}
+
+bool CDatatypeTensor::OnCanBeConstructedFrom (CDatum dType) const
+	{
+	return CanConstructTensorFrom(*this, dType, false);
 	}
 
 bool CDatatypeTensor::OnDeserialize (CDatum::EFormat iFormat, IByteStream &Stream, DWORD dwVersion)
@@ -451,6 +576,58 @@ CString CDatatypeTensor::OnGetName () const
 		return DefaultGetName();
 	}
 
+IDatatype::EMemberType CDatatypeTensor::OnHasMember (CStringView sName, CDatum* retdType, int* retiOrdinal) const
+
+//	OnHasMember
+//
+//	Returns static type information for tensor methods.
+
+	{
+	int iIndex = CAEONTensor::FindMethodByKey(sName);
+	if (iIndex != -1)
+		{
+		CDatum dMethodType = CAEONTensor::GetMethodType(iIndex);
+		if (retdType)
+			*retdType = dMethodType;
+		if (retiOrdinal)
+			*retiOrdinal = iIndex + 1;
+
+		return EMemberType::InstanceMethod;
+		}
+
+	return EMemberType::DynamicMember;
+	}
+
+IDatatype::SMemberDesc CDatatypeTensor::OnGetMember (int iIndex) const
+	{
+	if (iIndex == 0)
+		return SMemberDesc({ EMemberType::ArrayElement, NULL_STR, m_dElementType });
+
+	iIndex--;
+	if (iIndex >= CAEONTensor::GetMethodCount())
+		throw CException(errFail);
+
+	SMemberDesc Member({ EMemberType::InstanceMethod, CAEONTensor::GetMethodKey(iIndex), CAEONTensor::GetMethodType(iIndex) });
+	if (CAEONTensor::GetMethodFlags(iIndex) & IInvokeCtx::EXEC_FLAG_CONST)
+		Member.dwFlags |= MEMBER_FLAG_CONST;
+
+	return Member;
+	}
+
+DWORD CDatatypeTensor::OnGetMemberFlags (CStringView sName) const
+	{
+	int iIndex = CAEONTensor::FindMethodByKey(sName);
+	if (iIndex == -1)
+		return 0;
+
+	return ((CAEONTensor::GetMethodFlags(iIndex) & IInvokeCtx::EXEC_FLAG_CONST) ? MEMBER_FLAG_CONST : 0);
+	}
+
+int CDatatypeTensor::OnGetMemberCount () const
+	{
+	return 1 + CAEONTensor::GetMethodCount();
+	}
+
 bool CDatatypeTensor::OnIsA (const IDatatype &Type) const
 	{
 	//	We implement the following abstract types
@@ -485,7 +662,20 @@ bool CDatatypeTensor::OnIsA (const IDatatype &Type) const
 			for (int i = 0; i < m_Dims.GetCount(); i++)
 				{
 				const IDatatype& DimType = m_Dims[i].dType;
-				if (!DimType.IsA(OtherDims[i]))
+				const IDatatype& OtherDimType = OtherDims[i];
+
+				//	Concrete dimensions are part of a tensor's substitutable shape,
+				//	so they must match exactly. A narrower integer subrange is a
+				//	subtype as a scalar value, but it cannot supply all indices of a
+				//	wider tensor dimension. Abstract dimensions retain normal subtype
+				//	matching so that concrete tensors implement array[*,...].
+
+				if (GetTensorDimensionLength(OtherDims[i], NULL))
+					{
+					if (DimType != OtherDimType)
+						return false;
+					}
+				else if (!DimType.IsA(OtherDimType))
 					return false;
 				}
 

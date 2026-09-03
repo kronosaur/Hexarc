@@ -217,28 +217,46 @@ class CGridDataset
 			CString sFragment;
 			};
 
+		struct SProgramURL
+			{
+			CString sCanonicalURL;
+			CString sProgramID;
+			CString sFileID;
+			CString sSession;
+			CString sView;
+			bool bViewSwitch = false;
+			};
+
 		static CDatum ComposeAddInvitationKeyMutationValue (const CGridID& DatasetID, const CGridName& UserToChange, const CGridName& InvitedBy);
 		static CDatum ComposeDatasetPropertiesError (CStringView sError);
 		static CDatum ComposeDatasetPropertiesFromFileDesc (CGridID DatasetID, CDatum dFileDesc);
+		static CString ComposeDownloadURL (const CGridID& DatasetID, CStringView sFormat = NULL_STR);
+		static CString ComposeResourceURL (const CGridID& DatasetID);
 		static CDatum ComposeInviteMutationValue (const CGridID& DatasetID, const CGridName& Invitee, const CGridName& InvitedBy, const CEmailAddress& Email = CEmailAddress(), const CString& sDisplayName = NULL_STR);
 		static CString ComposeInviteURL (const CString& sKey, const CString& sDomain = NULL_STR);
 		static CString ComposeProgramURL (const CString& sProgramID, CDatum dParams, const SProgramURLOptions& Options = SProgramURLOptions());
+		static bool ComposeProgramURL (const CString& sProgramID, CDatum dParams, const SProgramURLOptions& Options, CString* retsURL, CString* retsError = NULL);
 		static CDatum ComposeSetUserStatusMutationValue (const CGridID& DatasetID, const CGridName& UserToChange, const CString& sNewStatus);
+		static bool ParseProgramURL (CStringView sURL, SProgramURL* retURL, CString* retsError = NULL);
 	};
 
 class CGridDataExport
 	{
 	public:
+		enum class EConvertResult
+			{
+			OK,
+			Unsupported,
+			Error,
+			};
 
 		struct SOptions
 			{
-			CString sValueMediaType;			//	Original media type of value
-
 			TArray<CString> StyleSheets;
 			};
 
 		static CString MapFileTypeToExportType (const CString& sMediaType);
-		static CDatum ToMediaType (CDatum dValue, const CString& sMediaType, const SOptions& Options = SOptions());
+		static EConvertResult ToMediaType (CDatum dValue, const CString& sSourceMediaType, const CString& sDestMediaType, CDatum& retdData, const SOptions& Options = SOptions());
 
 		static CStringBuffer ToHTML (CDatum dValue);
 		static CStringBuffer ToHTMLDiv (CDatum dValue);
@@ -246,6 +264,7 @@ class CGridDataExport
 		static CStringBuffer MarkdownToHTMLDiv (CDatum dValue, const SOptions& Options = SOptions());
 
 		static CStringBuffer ToCSV (CDatum dValue);
+		static CStringBuffer ToBMP (CDatum dValue);
 		static CStringBuffer ToJPEG (CDatum dValue);
 		static CStringBuffer ToJSON (CDatum dValue);
 		static CStringBuffer ToPNG (CDatum dValue);

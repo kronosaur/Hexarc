@@ -144,8 +144,9 @@ class CDatum
 			typeRange =			31,
 			typeFalse =			32,
 			typeRowRef =		33,
+			typeWildcard =		34,
 
-			typeCount =			34,			//	Number of types
+			typeCount =			35,			//	Number of types
 
 			typeCustom =		100,
 			};
@@ -316,6 +317,7 @@ class CDatum
 		static bool CreateTableFromDesc (CAEONTypeSystem &TypeSystem, CDatum dDesc, CDatum &retdDatum);
 		static CDatum CreateTensorAsType (CDatum dType, CDatum dValue = CDatum(), bool bConstruct = false);
 		static CDatum CreateTextLines (CDatum dValue = CDatum());
+		static CDatum CreateWildcard () { return CDatum(typeWildcard); }
 		static CDatum Deserialize (IByteStream& Stream, EFormat iFormat, CAEONSerializedMap& Serialized);
 		static CDatum DeserializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized);
 		static bool Deserialize (EFormat iFormat, IByteStream &Stream, IAEONParseExtension *pExtension, CDatum *retDatum);
@@ -445,6 +447,7 @@ class CDatum
 		bool IsIdenticalToNil () const { return (m_dwData == VALUE_NULL); }
 		bool IsIdenticalToBlank () const { return (m_dwData == VALUE_BLANK); }
 		bool IsIdenticalToTrue () const { return (m_dwData == VALUE_TRUE); }
+		bool IsIdenticalToWildcard () const { return (m_dwData == VALUE_WILDCARD); }
 		bool IsNaN () const { return (m_dwData == VALUE_NAN) || !std::isfinite((double)(*this)); }
 		bool IsNil () const;
 		bool IsStruct () const;
@@ -627,6 +630,7 @@ class CDatum
 		static constexpr DWORD SERIALIZE_TYPE_VECTOR_VECTOR2D =	0x28000000;
 		static constexpr DWORD SERIALIZE_TYPE_VECTOR_VECTOR3D =	0x29000000;
 		static constexpr DWORD SERIALIZE_TYPE_TABLE_V3 =			0x2a000000;
+		static constexpr DWORD SERIALIZE_TYPE_WILDCARD =			0x2b000000;
 
 		static constexpr DWORD SERIALIZE_TYPE_REF =				0x80000000;
 		static constexpr DWORD SERIALIZE_TYPE_MASK =			0xff000000;
@@ -668,6 +672,7 @@ class CDatum
 		static constexpr DWORDLONG VALUE_FALSE =			0x7FF1000000000000;
 		static constexpr DWORDLONG VALUE_TRUE =				0x7FF1000000000001;
 		static constexpr DWORDLONG VALUE_BLANK =			0x7FF1000000000002;
+		static constexpr DWORDLONG VALUE_WILDCARD =		0x7FF1000000000003;
 		static constexpr DWORDLONG VALUE_NAN =				0x7FF8000000000000;
 		static constexpr DWORDLONG VALUE_INFINITY_N =		0xFFF0000000000000;
 		static constexpr DWORDLONG VALUE_NULL =				0xFFFFFFFFFFFFFFFF;
@@ -951,6 +956,7 @@ class IComplexDatum
 		virtual bool OpContains (CDatum dValue) const { return Find(dValue); }
 		virtual bool OpIsEqual (CDatum::Types iValueType, CDatum dValue) const { return OpCompare(iValueType, dValue) == 0; }
 		virtual bool OpIsIdentical (CDatum::Types iValueType, CDatum dValue) const { return OpCompareExact(iValueType, dValue) == 0; }
+		virtual CDatum OpTransposed (CAEONTypeSystem& TypeSystem) const { return CDatum(); }
 		virtual CDatum MathAbs () const { return CDatum::CreateNaN(); }
 		virtual void MathAccumulateStats (CDatum::SStatsCtx& Stats) const { if (IsNil()) Stats.iNullCount++; else Stats.iNaNCount++; }
 		virtual CDatum MathAddToElements (CDatum dValue) const;
@@ -962,6 +968,7 @@ class IComplexDatum
 		virtual CDatum MathExpToElements (CDatum dValue) const;
 		virtual CDatum MathFloor () const { return CDatum::CreateNaN(); }
 		virtual CDatum MathInvert () const { return CDatum(); }
+		virtual CDatum MathMatrixRank (CAEONTypeSystem& TypeSystem, CDatum dTolerance) const { return CDatum(); }
 		virtual CDatum MathMatMul (CDatum dValue) const { return CDatum(); }
 		virtual CDatum MathModElementsBy (CDatum dValue) const;
 		virtual CDatum MathModByElements (CDatum dValue) const;
@@ -986,6 +993,7 @@ class IComplexDatum
 		virtual void SetElement (const CString &sKey, CDatum dDatum) { }
 		virtual void SetElement (int iIndex, CDatum dDatum) { }
 		virtual void SetElementAt (CDatum dIndex, CDatum dDatum);
+		virtual bool SetElementAtChecked (CDatum dIndex, CDatum dDatum) { SetElementAt(dIndex, dDatum); return true; }
 		virtual void SetElementAt2DA (CDatum dIndex1, CDatum dIndex2, CDatum dValue) { }
 		virtual void SetElementAt2DI (int iIndex1, int iIndex2, CDatum dValue) { }
 		virtual void SetElementAt3DA (CDatum dIndex1, CDatum dIndex2, CDatum dIndex3, CDatum dValue) { }
@@ -1241,6 +1249,7 @@ class CComplexArray : public IComplexDatum
 		static int GetMethodCount () { return (m_pMethodsExt ? m_pMethodsExt->GetCount() : 0); }
 		static CString GetMethodKey (int iIndex) { return (m_pMethodsExt ? m_pMethodsExt->GetMethodName(iIndex) : NULL_STR); }
 		static CDatum GetMethodType (int iIndex) { return (m_pMethodsExt ? m_pMethodsExt->GetMethodType(iIndex) : CAEONTypes::Get(IDatatype::FUNCTION)); }
+		static DWORD GetMethodFlags (int iIndex) { return (m_pMethodsExt ? m_pMethodsExt->GetMethodFlags(iIndex) : 0); }
 		static int GetPropertyCount () { return m_Properties.GetCount(); }
 		static CString GetPropertyKey (int iIndex) { return m_Properties.GetPropertyName(iIndex); }
 		static CDatum GetPropertyType (int iIndex) { return m_Properties.GetPropertyType(iIndex); }
@@ -1377,6 +1386,7 @@ class CComplexStruct : public IComplexDatum
 		static int GetMethodCount () { return (m_pMethodsExt ? m_pMethodsExt->GetCount() : 0); }
 		static CString GetMethodKey (int iIndex) { return (m_pMethodsExt ? m_pMethodsExt->GetMethodName(iIndex) : NULL_STR); }
 		static CDatum GetMethodType (int iIndex) { return (m_pMethodsExt ? m_pMethodsExt->GetMethodType(iIndex) : CAEONTypes::Get(IDatatype::FUNCTION)); }
+		static DWORD GetMethodFlags (int iIndex) { return (m_pMethodsExt ? m_pMethodsExt->GetMethodFlags(iIndex) : 0); }
 		static int GetPropertyCount () { return m_Properties.GetCount(); }
 		static CString GetPropertyKey (int iIndex) { return m_Properties.GetPropertyName(iIndex); }
 		static CDatum GetPropertyType (int iIndex) { return m_Properties.GetPropertyType(iIndex); }

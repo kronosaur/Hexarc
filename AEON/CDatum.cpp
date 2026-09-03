@@ -61,6 +61,19 @@ DECLARE_CONST_STRING(ERR_INVALID_TABLE_DESC,			"Invalid table descriptor.");
 DECLARE_CONST_STRING(ERR_EXPECTED_INT32,				"Expected Int32 value: %s.");
 DECLARE_CONST_STRING(ERR_NOT_SUPPORTED,					"Operation not supported.");
 DECLARE_CONST_STRING(ERR_INVALID_PARAMS,				"Invalid parameters.");
+DECLARE_CONST_STRING(ERR_TENSOR_ABSTRACT_SHAPE,		"Unable to infer concrete tensor dimensions.");
+DECLARE_CONST_STRING(ERR_TENSOR_BAD_DIMENSION,		"Invalid tensor dimension: %s.");
+DECLARE_CONST_STRING(ERR_TENSOR_DEFAULT,				"Tensor element type %s does not have a valid default value.");
+DECLARE_CONST_STRING(ERR_TENSOR_ELEMENT,				"Unable to convert tensor element of type %s to %s.");
+DECLARE_CONST_STRING(ERR_TENSOR_EXPECTED_ARRAY,		"Tensor initializer must be an array or tensor.");
+DECLARE_CONST_STRING(ERR_TENSOR_FIXED_OVERFLOW,		"Tensor initializer dimension %d has length %d, which exceeds target length %d.");
+DECLARE_CONST_STRING(ERR_TENSOR_LINEAR_OVERFLOW,		"Tensor initializer has %d values, which exceeds target capacity %d.");
+DECLARE_CONST_STRING(ERR_TENSOR_RANK_OVERFLOW,		"Tensor initializer has %d dimensions, which exceeds target rank %d.");
+DECLARE_CONST_STRING(ERR_TENSOR_RECURSIVE_ARRAY,		"Recursive arrays cannot be used as tensor initializers.");
+DECLARE_CONST_STRING(ERR_TENSOR_SIZE_OVERFLOW,		"Tensor dimensions exceed implementation limits.");
+
+DECLARE_CONST_STRING(TYPENAME_WILDCARD, "wildcard");
+DECLARE_CONST_STRING(STR_WILDCARD, "*");
 
 static CAEONFactoryList *g_pFactories = NULL;
 static int g_iUnalignedLiteralCount = 0;
@@ -100,7 +113,8 @@ static int g_iUnalignedLiteralCount = 0;
 	X(typeAnnotated,    31)           \
 	X(typeForeign,      32)           \
 	X(typeDatatype,     33)           \
-	X(typeError,        34)
+	X(typeError,        34)           \
+	X(typeWildcard,     35)
 
 const CDatum::SCompareOrderEntry CDatum::m_COMPARE_ORDER[typeCount] = {
 #define X(t,r) { t, r },
@@ -135,6 +149,10 @@ CDatum::CDatum (Types iType)
 
 		case typeTrue:
 			m_dwData = VALUE_TRUE;
+			break;
+
+		case typeWildcard:
+			m_dwData = VALUE_WILDCARD;
 			break;
 
 		case typeInteger32:
@@ -500,6 +518,9 @@ CDatum::operator int () const
 				case VALUE_TRUE:
 					return 1;
 
+				case VALUE_WILDCARD:
+					return 0;
+
 				default:
 					ASSERT(false);
 					return 0;
@@ -551,6 +572,9 @@ CDatum::operator DWORD () const
 
 				case VALUE_TRUE:
 					return 1;
+
+				case VALUE_WILDCARD:
+					return 0;
 
 				default:
 					ASSERT(false);
@@ -604,6 +628,9 @@ CDatum::operator DWORDLONG () const
 				case VALUE_TRUE:
 					return 1;
 
+				case VALUE_WILDCARD:
+					return 0;
+
 				default:
 					ASSERT(false);
 					return 0;
@@ -655,6 +682,9 @@ CDatum::operator double () const
 
 				case VALUE_TRUE:
 					return 1.0;
+
+				case VALUE_WILDCARD:
+					return 0.0;
 
 				default:
 					ASSERT(false);
@@ -797,6 +827,9 @@ CDatum::operator CStringView () const
 				case VALUE_TRUE:
 					return STR_TRUE;
 
+				case VALUE_WILDCARD:
+					return STR_WILDCARD;
+
 				default:
 					ASSERT(false);
 					return CStringView();
@@ -933,6 +966,7 @@ int CDatum::AsArrayIndex (int iArrayLen, bool* retbFromEnd) const
 				case VALUE_BLANK:
 				case VALUE_FALSE:
 				case VALUE_TRUE:
+				case VALUE_WILDCARD:
 					return -1;
 
 				default:
@@ -1240,6 +1274,9 @@ CIPInteger CDatum::AsIPInteger () const
 				case VALUE_TRUE:
 					return CIPInteger(1);
 
+				case VALUE_WILDCARD:
+					return CIPInteger(0);
+
 				default:
 					ASSERT(false);
 					return CIPInteger(0);
@@ -1478,6 +1515,9 @@ CString CDatum::AsString (void) const
 
 				case VALUE_TRUE:
 					return STR_TRUE;
+
+				case VALUE_WILDCARD:
+					return STR_WILDCARD;
 
 				default:
 					ASSERT(false);
@@ -2333,44 +2373,508 @@ CDatum CDatum::CreateString (CDatum dValue, CDatum dFormat)
 		}
 	}
 
+namespace
+	{
+	struct STensorInitValue
+		{
+		TArray<int> Pos;
+		CDatum dValue;
+		int iDestPos = -1;
+		};
+
+	bool CalcTensorDimLength (CDatum dDimType, int* retiLength, bool* retbConcrete, CString* retsError)
+		{
+		const IDatatype& DimType = dDimType;
+		auto NumberDesc = DimType.GetNumberDesc();
+		if (NumberDesc.bNumber && NumberDesc.bSubRange)
+			{
+			LONGLONG iLength = (LONGLONG)NumberDesc.iSubRangeMax - (LONGLONG)NumberDesc.iSubRangeMin + 1;
+			if (iLength < 0 || iLength > INT_MAX)
+				{
+				if (retsError) *retsError = ERR_TENSOR_SIZE_OVERFLOW;
+				return false;
+				}
+
+			if (retiLength) *retiLength = (int)iLength;
+			if (retbConcrete) *retbConcrete = true;
+			return true;
+			}
+		else if (DimType.GetClass() == IDatatype::ECategory::Enum)
+			{
+			if (retiLength) *retiLength = DimType.GetMemberCount();
+			if (retbConcrete) *retbConcrete = true;
+			return true;
+			}
+		else if (DimType.GetCoreType() == IDatatype::INTEGER)
+			{
+			if (retiLength) *retiLength = 0;
+			if (retbConcrete) *retbConcrete = false;
+			return true;
+			}
+		else
+			{
+			if (retsError) *retsError = strPattern(ERR_TENSOR_BAD_DIMENSION, DimType.GetName());
+			return false;
+			}
+		}
+
+	bool CalcTensorElementCount (const TArray<int>& Dims, int* retiCount, CString* retsError)
+		{
+		LONGLONG iTotal = 1;
+		for (int i = 0; i < Dims.GetCount(); i++)
+			{
+			if (Dims[i] == 0)
+				{
+				iTotal = 0;
+				break;
+				}
+
+			if (Dims[i] < 0 || iTotal > INT_MAX / Dims[i])
+				{
+				if (retsError) *retsError = ERR_TENSOR_SIZE_OVERFLOW;
+				return false;
+				}
+
+			iTotal *= Dims[i];
+			}
+
+		if (retiCount) *retiCount = (int)iTotal;
+		return true;
+		}
+
+	bool CalcArrayTensorRank (CDatum dArray, int iMaxRank, int* retiRank, CString* retsError)
+		{
+		if (dArray.GetBasicType() != CDatum::typeArray)
+			{
+			if (retsError) *retsError = ERR_TENSOR_EXPECTED_ARRAY;
+			return false;
+			}
+
+		IComplexDatum::CRecursionGuard Guard(*dArray.raw_GetComplex());
+		if (Guard.InRecursion())
+			{
+			if (retsError) *retsError = ERR_TENSOR_RECURSIVE_ARRAY;
+			return false;
+			}
+
+		int iRank = 1;
+		if (iMaxRank > 1)
+			{
+			for (int i = 0; i < dArray.GetCount(); i++)
+				{
+				CDatum dElement = dArray.GetElement(i);
+				if (dElement.GetBasicType() != CDatum::typeArray)
+					continue;
+
+				int iChildRank;
+				if (!CalcArrayTensorRank(dElement, iMaxRank - 1, &iChildRank, retsError))
+					return false;
+
+				iRank = Max(iRank, 1 + iChildRank);
+				if (iRank == iMaxRank)
+					break;
+				}
+			}
+
+		if (retiRank) *retiRank = iRank;
+		return true;
+		}
+
+	bool CollectArrayTensorValues (CDatum dArray, int iSourceDim, int iSourceRank, int iLeadingDims, TArray<int>& ioShape, TArray<int>& ioPos, TArray<STensorInitValue>& retValues, CString* retsError)
+		{
+		IComplexDatum::CRecursionGuard Guard(*dArray.raw_GetComplex());
+		if (Guard.InRecursion())
+			{
+			if (retsError) *retsError = ERR_TENSOR_RECURSIVE_ARRAY;
+			return false;
+			}
+
+		int iTargetDim = iLeadingDims + iSourceDim;
+		ioShape[iTargetDim] = Max(ioShape[iTargetDim], dArray.GetCount());
+
+		for (int i = 0; i < dArray.GetCount(); i++)
+			{
+			ioPos[iTargetDim] = i;
+			CDatum dElement = dArray.GetElement(i);
+
+			if (iSourceDim + 1 < iSourceRank)
+				{
+				if (dElement.GetBasicType() == CDatum::typeArray)
+					{
+					if (!CollectArrayTensorValues(dElement, iSourceDim + 1, iSourceRank, iLeadingDims, ioShape, ioPos, retValues, retsError))
+						return false;
+					}
+				else
+					{
+					for (int j = iSourceDim + 1; j < iSourceRank; j++)
+						{
+						int iRemainingTargetDim = iLeadingDims + j;
+						ioShape[iRemainingTargetDim] = Max(ioShape[iRemainingTargetDim], 1);
+						ioPos[iRemainingTargetDim] = 0;
+						}
+
+					STensorInitValue Value;
+					Value.Pos = ioPos;
+					Value.dValue = dElement;
+					retValues.Insert(Value);
+					}
+				}
+			else
+				{
+				STensorInitValue Value;
+				Value.Pos = ioPos;
+				Value.dValue = dElement;
+				retValues.Insert(Value);
+				}
+			}
+
+		return true;
+		}
+
+	bool CollectTensorValues (CDatum dTensor, int iTargetRank, TArray<int>& retShape, TArray<CDatum>& retSourceDims, TArray<STensorInitValue>& retValues, CString* retsError)
+		{
+		const IDatatype& SourceType = dTensor.GetDatatype();
+		TArray<CDatum> SourceDims = SourceType.GetDimensionTypes();
+		int iSourceRank = SourceDims.GetCount();
+		if (iSourceRank > iTargetRank)
+			{
+			if (retsError) *retsError = strPattern(ERR_TENSOR_RANK_OVERFLOW, iSourceRank, iTargetRank);
+			return false;
+			}
+
+		int iLeadingDims = iTargetRank - iSourceRank;
+		for (int i = 0; i < iLeadingDims; i++)
+			retShape[i] = 1;
+
+		TArray<int> SourceLengths;
+		SourceLengths.InsertEmpty(iSourceRank);
+		for (int i = 0; i < iSourceRank; i++)
+			{
+			bool bConcrete;
+			if (!CalcTensorDimLength(SourceDims[i], &SourceLengths[i], &bConcrete, retsError))
+				return false;
+			else if (!bConcrete)
+				{
+				if (retsError) *retsError = ERR_TENSOR_ABSTRACT_SHAPE;
+				return false;
+				}
+
+			retShape[iLeadingDims + i] = SourceLengths[i];
+			retSourceDims[iLeadingDims + i] = SourceDims[i];
+			}
+
+		int iSourceCount;
+		if (!CalcTensorElementCount(SourceLengths, &iSourceCount, retsError))
+			return false;
+
+		if (iSourceCount == 0)
+			return true;
+
+		CBuffer Iter = dTensor.raw_IteratorStart();
+		int iValueIndex = 0;
+		while (dTensor.raw_IteratorHasMore(Iter))
+			{
+			if (iValueIndex >= iSourceCount)
+				{
+				if (retsError) *retsError = ERR_TENSOR_SIZE_OVERFLOW;
+				return false;
+				}
+
+			STensorInitValue Value;
+			Value.Pos.InsertEmpty(iTargetRank);
+			for (int i = 0; i < iTargetRank; i++)
+				Value.Pos[i] = 0;
+
+			int iRemainder = iValueIndex;
+			for (int i = iSourceRank - 1; i >= 0; i--)
+				{
+				Value.Pos[iLeadingDims + i] = iRemainder % SourceLengths[i];
+				iRemainder /= SourceLengths[i];
+				}
+
+			Value.dValue = dTensor.raw_IteratorGetElement(Iter);
+			retValues.Insert(Value);
+			dTensor.raw_IteratorNext(Iter);
+			iValueIndex++;
+			}
+
+		if (iValueIndex != iSourceCount)
+			{
+			if (retsError) *retsError = ERR_TENSOR_SIZE_OVERFLOW;
+			return false;
+			}
+
+		return true;
+		}
+
+	bool ConvertTensorElement (CDatum dElementType, CDatum dValue, bool bConstruct, CDatum* retdValue, CString* retsError)
+		{
+		const IDatatype& ElementType = dElementType;
+		CDatum dValueType = dValue.GetDatatype();
+		const IDatatype& ValueType = dValueType;
+
+		//	Arrays that remain after consuming the target rank are leaf values. Like
+		//	all other leaves, they are valid only if the element type accepts the
+		//	appropriate implicit or explicit construction relationship.
+
+		if (!ValueType.IsA(ElementType))
+			{
+			bool bCanConstruct = (bConstruct
+					? ElementType.CanBeConstructedExplicitlyFrom(dValueType)
+					: ElementType.CanBeConstructedFrom(dValueType));
+			if (!bCanConstruct)
+				{
+				if (retsError) *retsError = strPattern(ERR_TENSOR_ELEMENT, ValueType.GetName(), ElementType.GetName());
+				return false;
+				}
+			}
+
+		CDatum dConverted = (ValueType.IsA(ElementType) && !bConstruct ? dValue : CDatum::CreateAsType(dElementType, dValue, bConstruct));
+		if ((dConverted.IsError() && ElementType.GetCoreType() != IDatatype::ERROR_T)
+				|| (dConverted.GetBasicType() == CDatum::typeNil && !ElementType.CanBeNull()))
+			{
+			if (retsError) *retsError = strPattern(ERR_TENSOR_ELEMENT, ValueType.GetName(), ElementType.GetName());
+			return false;
+			}
+
+		if (retdValue) *retdValue = dConverted;
+		return true;
+		}
+
+	bool CreateTensorDefault (CDatum dElementType, CDatum* retdValue, CString* retsError)
+		{
+		const IDatatype& ElementType = dElementType;
+		if (ElementType.CanBeNull())
+			{
+			if (retdValue) *retdValue = CDatum();
+			return true;
+			}
+
+		CDatum dDefault = CDatum::CreateAsType(dElementType, CDatum(), true);
+		if ((dDefault.IsError() && ElementType.GetCoreType() != IDatatype::ERROR_T)
+				|| dDefault.GetBasicType() == CDatum::typeNil)
+			{
+			if (retsError) *retsError = strPattern(ERR_TENSOR_DEFAULT, ElementType.GetName());
+			return false;
+			}
+
+		if (retdValue) *retdValue = dDefault;
+		return true;
+		}
+	}
+
 CDatum CDatum::CreateTensorAsType (CDatum dType, CDatum dValue, bool bConstruct)
 
 //	CreateTensorAsType
 //
-//	Creates a new tensor object.
+//	Creates a new tensor object. All tensor construction paths come through
+//	here so that wildcard inference, rank promotion, padding, and element
+//	conversion have identical semantics.
 
 	{
 	const IDatatype& Type = dType;
+	if (Type.GetClass() != IDatatype::ECategory::Tensor)
+		return CDatum::CreateError(ERR_TENSOR_EXPECTED_ARRAY);
 
-	//	If we're already this type, then we're done.
+	//	If we're already a subtype of the requested type, assignment can keep
+	//	the value unchanged. This preserves concrete range and enum dimensions.
 
 	const IDatatype& ValueType = dValue.GetDatatype();
 	if (!bConstruct && ValueType.IsA(Type) && !ValueType.IsNullType())
 		return dValue;
 
-	//	Make sure this is a tensor type.
+	TArray<CDatum> TargetDims = Type.GetDimensionTypes();
+	int iTargetRank = TargetDims.GetCount();
+	if (iTargetRank == 0)
+		return CDatum::CreateError(ERR_TENSOR_ABSTRACT_SHAPE);
 
-	TArray<CDatum> Dims = Type.GetDimensionTypes();
-	if (Dims.GetCount() == 0)
-		return CDatum();
-
-	//	Dimensions must be numeric ranges.
-
-	for (int i = 0; i < Dims.GetCount(); i++)
+	TArray<int> TargetLengths;
+	TargetLengths.InsertEmpty(iTargetRank);
+	TArray<BYTE> TargetConcrete;
+	TargetConcrete.InsertEmpty(iTargetRank);
+	bool bAllConcrete = true;
+	CString sError;
+	for (int i = 0; i < iTargetRank; i++)
 		{
-		const IDatatype& DimType = Dims[i];
-		IDatatype::SNumberDesc NumberDesc = DimType.GetNumberDesc();
-		if (NumberDesc.bNumber && NumberDesc.bSubRange)
-			{ }
-		else if (DimType.GetClass() == IDatatype::ECategory::Enum)
-			{ }
-		else
-			return CDatum();
+		bool bConcrete;
+		if (!CalcTensorDimLength(TargetDims[i], &TargetLengths[i], &bConcrete, &sError))
+			return CDatum::CreateError(sError);
+
+		TargetConcrete[i] = (bConcrete ? 1 : 0);
+		bAllConcrete = (bAllConcrete && bConcrete);
 		}
 
-	//	Now create the tensor.
+	//	Nil means a default-filled concrete tensor. An uninitialized abstract
+	//	variable stays nil, while an explicit abstract constructor is invalid.
 
-	return CDatum(new CAEONTensor(dType, dValue));
+	bool bNilInitializer = (dValue.GetBasicType() == CDatum::typeNil);
+	if (bNilInitializer && !bAllConcrete)
+		return (bConstruct ? CDatum::CreateError(ERR_TENSOR_ABSTRACT_SHAPE) : CDatum());
+
+	if (!bNilInitializer
+			&& dValue.GetBasicType() != CDatum::typeArray
+			&& dValue.GetBasicType() != CDatum::typeTensor)
+		return CDatum::CreateError(ERR_TENSOR_EXPECTED_ARRAY);
+
+	TArray<int> SourceShape;
+	SourceShape.InsertEmpty(iTargetRank);
+	TArray<CDatum> SourceDimTypes;
+	SourceDimTypes.InsertEmpty(iTargetRank);
+	for (int i = 0; i < iTargetRank; i++)
+		SourceShape[i] = 0;
+
+	TArray<STensorInitValue> Values;
+	bool bLinearInitializer = false;
+	if (!bNilInitializer)
+		{
+		if (dValue.GetBasicType() == CDatum::typeTensor)
+			{
+			int iSourceRank = ValueType.GetDimensionTypes().GetCount();
+			if (iSourceRank > iTargetRank)
+				return CDatum::CreateError(strPattern(ERR_TENSOR_RANK_OVERFLOW, iSourceRank, iTargetRank));
+
+			bLinearInitializer = (bAllConcrete && iTargetRank > 1 && iSourceRank == 1);
+			if (bLinearInitializer)
+				{
+				CBuffer Iter = dValue.raw_IteratorStart();
+				while (dValue.raw_IteratorHasMore(Iter))
+					{
+					STensorInitValue Value;
+					Value.dValue = dValue.raw_IteratorGetElement(Iter);
+					Value.iDestPos = Values.GetCount();
+					Values.Insert(Value);
+					dValue.raw_IteratorNext(Iter);
+					}
+				}
+			else if (!CollectTensorValues(dValue, iTargetRank, SourceShape, SourceDimTypes, Values, &sError))
+				return CDatum::CreateError(sError);
+			}
+		else
+			{
+			int iSourceRank;
+			if (!CalcArrayTensorRank(dValue, iTargetRank, &iSourceRank, &sError))
+				return CDatum::CreateError(sError);
+
+			bLinearInitializer = (bAllConcrete && iTargetRank > 1 && iSourceRank == 1);
+			if (bLinearInitializer)
+				{
+				for (int i = 0; i < dValue.GetCount(); i++)
+					{
+					STensorInitValue Value;
+					Value.dValue = dValue.GetElement(i);
+					Value.iDestPos = i;
+					Values.Insert(Value);
+					}
+				}
+			else
+				{
+				int iLeadingDims = iTargetRank - iSourceRank;
+				for (int i = 0; i < iLeadingDims; i++)
+					SourceShape[i] = 1;
+
+				TArray<int> Pos;
+				Pos.InsertEmpty(iTargetRank);
+				for (int i = 0; i < iTargetRank; i++)
+					Pos[i] = 0;
+
+				if (!CollectArrayTensorValues(dValue, 0, iSourceRank, iLeadingDims, SourceShape, Pos, Values, &sError))
+					return CDatum::CreateError(sError);
+				}
+			}
+		}
+
+	TArray<CDatum> ConcreteDims = TargetDims;
+	if (!bLinearInitializer && !bNilInitializer)
+		{
+		for (int i = 0; i < iTargetRank; i++)
+			{
+			if (TargetConcrete[i])
+				{
+				if (SourceShape[i] > TargetLengths[i])
+					return CDatum::CreateError(strPattern(ERR_TENSOR_FIXED_OVERFLOW, i + 1, SourceShape[i], TargetLengths[i]));
+				}
+			else
+				{
+				TargetLengths[i] = SourceShape[i];
+				if (!SourceDimTypes[i].IsNil())
+					ConcreteDims[i] = SourceDimTypes[i];
+				else
+					ConcreteDims[i] = CAEONTypes::CreateInt32SubRange(NULL_STR, 0, TargetLengths[i] - 1);
+				}
+			}
+		}
+
+	int iTargetCount;
+	if (!CalcTensorElementCount(TargetLengths, &iTargetCount, &sError))
+		return CDatum::CreateError(sError);
+
+	if (bLinearInitializer && Values.GetCount() > iTargetCount)
+		return CDatum::CreateError(strPattern(ERR_TENSOR_LINEAR_OVERFLOW, Values.GetCount(), iTargetCount));
+
+	//	Map coordinate-based values into row-major target positions.
+
+	if (!bLinearInitializer)
+		{
+		for (int i = 0; i < Values.GetCount(); i++)
+			{
+			int iDestPos = 0;
+			for (int j = 0; j < iTargetRank; j++)
+				{
+				if (Values[i].Pos[j] < 0 || Values[i].Pos[j] >= TargetLengths[j])
+					return CDatum::CreateError(strPattern(ERR_TENSOR_FIXED_OVERFLOW, j + 1, Values[i].Pos[j] + 1, TargetLengths[j]));
+
+				iDestPos = (iDestPos * TargetLengths[j]) + Values[i].Pos[j];
+				}
+
+			Values[i].iDestPos = iDestPos;
+			}
+		}
+
+	//	Convert every supplied leaf before allocating the final tensor.
+
+	CDatum dElementType = Type.GetElementType();
+	for (int i = 0; i < Values.GetCount(); i++)
+		{
+		CDatum dConverted;
+		if (!ConvertTensorElement(dElementType, Values[i].dValue, bConstruct, &dConverted, &sError))
+			return CDatum::CreateError(sError);
+
+		Values[i].dValue = dConverted;
+		}
+
+	bool bNeedsDefault = (Values.GetCount() < iTargetCount);
+	if (bNeedsDefault && !CreateTensorDefault(dElementType, NULL, &sError))
+		return CDatum::CreateError(sError);
+
+	CDatum dData = CDatum::CreateArrayAsTypeOfElement(dElementType);
+	dData.InsertEmpty(iTargetCount);
+
+	TArray<BYTE> Filled;
+	Filled.InsertEmpty(iTargetCount);
+	for (int i = 0; i < iTargetCount; i++)
+		Filled[i] = 0;
+
+	for (int i = 0; i < Values.GetCount(); i++)
+		{
+		dData.SetElement(Values[i].iDestPos, Values[i].dValue);
+		Filled[Values[i].iDestPos] = 1;
+		}
+
+	if (bNeedsDefault)
+		{
+		for (int i = 0; i < iTargetCount; i++)
+			if (!Filled[i])
+				{
+				CDatum dCellDefault;
+				if (!CreateTensorDefault(dElementType, &dCellDefault, &sError))
+					return CDatum::CreateError(sError);
+
+				dData.SetElement(i, dCellDefault);
+				}
+		}
+
+	CDatum dConcreteType = (bAllConcrete ? dType : CAEONTypes::CreateTensor(NULL_STR, dElementType, std::move(ConcreteDims)));
+	return CAEONTensor::CreateFromNormalizedData(dConcreteType, dData);
 	}
 
 CDatum CDatum::CreateAsType (CDatum dType, CDatum dValue, bool bConstruct)
@@ -3743,6 +4247,9 @@ CString CDatum::Format (const CStringFormat& Format) const
 				case VALUE_TRUE:
 					return STR_TRUE;
 
+				case VALUE_WILDCARD:
+					return STR_WILDCARD;
+
 				default:
 					ASSERT(false);
 					return NULL_STR;
@@ -3863,6 +4370,9 @@ CDatum::Types CDatum::GetBasicType (void) const
 				case VALUE_TRUE:
 					return typeTrue;
 
+				case VALUE_WILDCARD:
+					return typeWildcard;
+
 				default:
 					ASSERT(false);
 					return typeUnknown;
@@ -3980,6 +4490,9 @@ CDatum CDatum::GetDatatype () const
 				case VALUE_FALSE:
 				case VALUE_TRUE:
 					return CAEONTypes::Get(IDatatype::BOOL);
+
+				case VALUE_WILDCARD:
+					return CAEONTypes::Get(IDatatype::WILDCARD);
 
 				default:
 					ASSERT(false);
@@ -4300,6 +4813,9 @@ size_t CDatum::Hash () const
 
 				case VALUE_TRUE:
 					return 1;
+
+				case VALUE_WILDCARD:
+					return 0x9e3779b9;
 
 				default:
 					ASSERT(false);
@@ -5051,6 +5567,9 @@ CDatum::Types CDatum::GetNumberType (int *retiValue, CDatum *retdConverted) cons
 						*retiValue = 1;
 					return typeInteger32;
 
+				case VALUE_WILDCARD:
+					return typeNaN;
+
 				default:
 					ASSERT(false);
 					return typeNaN;
@@ -5377,6 +5896,9 @@ const CString &CDatum::GetTypename (void) const
 
 				case VALUE_TRUE:
 					return TYPENAME_TRUE;
+
+				case VALUE_WILDCARD:
+					return TYPENAME_WILDCARD;
 
 				default:
 					ASSERT(false);
@@ -5716,6 +6238,7 @@ bool CDatum::IsAtom () const
 		case typeNil:
 		case typeFalse:
 		case typeTrue:
+		case typeWildcard:
 		case typeNaN:
 		case typeEnum:
 		case typeError:
@@ -5771,6 +6294,9 @@ bool CDatum::IsEqualCompatible (CDatum dValue) const
 
 		case typeTrue:
 			return !dValue.IsNil();
+
+		case typeWildcard:
+			return dValue.GetBasicType() == typeWildcard;
 
 		case typeInteger32:
 		case typeInteger64:
@@ -6073,6 +6599,7 @@ int CDatum::OpCompare (CDatum dValue) const
 			case CDatum::typeNil:
 			case CDatum::typeFalse:
 			case CDatum::typeTrue:
+			case CDatum::typeWildcard:
 			case CDatum::typeNaN:
 				return 0;
 
@@ -6095,7 +6622,7 @@ int CDatum::OpCompare (CDatum dValue) const
 				return KeyCompare((const CDateTime &)*this,  (const CDateTime &)dValue);
 
 			case CDatum::typeTimeSpan:
-				return KeyCompare((const CDateTime &)*this,  (const CDateTime &)dValue);
+				return KeyCompare((const CTimeSpan &)*this,  (const CTimeSpan &)dValue);
 
 			case CDatum::typeEnum:
 				{
@@ -6273,6 +6800,7 @@ int CDatum::OpCompareExact (CDatum dValue) const
 			case CDatum::typeNil:
 			case CDatum::typeFalse:
 			case CDatum::typeTrue:
+			case CDatum::typeWildcard:
 			case CDatum::typeNaN:
 				return 0;
 
@@ -6295,7 +6823,7 @@ int CDatum::OpCompareExact (CDatum dValue) const
 				return KeyCompare((const CDateTime &)*this,  (const CDateTime &)dValue);
 
 			case CDatum::typeTimeSpan:
-				return KeyCompare((const CDateTime &)*this,  (const CDateTime &)dValue);
+				return KeyCompare((const CTimeSpan &)*this,  (const CTimeSpan &)dValue);
 
 			case CDatum::typeEnum:
 				{
@@ -6521,6 +7049,7 @@ bool CDatum::OpIsEqual (CDatum dValue) const
 			case CDatum::typeNil:
 			case CDatum::typeFalse:
 			case CDatum::typeTrue:
+			case CDatum::typeWildcard:
 			case CDatum::typeNaN:
 				return true;
 
@@ -6775,6 +7304,7 @@ bool CDatum::OpIsIdentical (CDatum dValue) const
 			case CDatum::typeNil:
 			case CDatum::typeFalse:
 			case CDatum::typeTrue:
+			case CDatum::typeWildcard:
 			case CDatum::typeNaN:
 				return true;
 

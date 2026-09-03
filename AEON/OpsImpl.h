@@ -362,6 +362,8 @@ class COpConcatenate
 		static CDatum ExecTable_Table (IInvokeCtx& Ctx, CDatum dLeft, CDatum dRight);
 
 		static CDatum CalcDatatypeArray_Scalar (CDatum dArrayType, CDatum dScalarType);
+		static CDatum CalcTensorType (CDatum dLeftType, CDatum dRightType);
+		static CDatum CalcCompatibleElementType (CDatum dLeftType, CDatum dRightType);
 	};
 
 class COpDivide

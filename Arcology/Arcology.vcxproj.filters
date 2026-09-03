@@ -128,5 +128,8 @@
     <None Include="..\Docs\reanimator.md">
       <Filter>Docs</Filter>
     </None>
+    <None Include="..\Docs\backlog.md">
+      <Filter>Docs</Filter>
+    </None>
   </ItemGroup>
 </Project>

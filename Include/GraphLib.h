@@ -93,7 +93,7 @@ class CGraphSource
 
 class CGraphAxisDesc
 	{
-	public:
+public:
 
 		enum class EType
 			{
@@ -127,23 +127,54 @@ class CGraphAxisDesc
 			TArray<SRowRef> Rows;			//	For bar-graphs, this is the rows at this entry.
 			};
 
+		enum class ETicks
+			{
+			Auto,
+			Values,
+			Continuation,
+			};
+
+		struct SScaleDesc
+			{
+			bool bFixedMin = false;
+			double rMin = 0.0;
+			bool bFixedMax = false;
+			double rMax = 0.0;
+			CString sFormat;
+			bool bReverse = false;
+			bool bLog = false;
+			bool bHasWidth = false;
+			double rWidth = 0.0;
+
+			ETicks iTicks = ETicks::Auto;
+			TArray<double> TickValues;
+			bool bHasTickStart = false;
+			double rTickStart = 0.0;
+			bool bHasTickInterval = false;
+			double rTickInterval = 0.0;
+			};
+
 		CGraphAxisDesc () { }
 
-		void Accumulate (const CGraphAxisDesc &Axis);
-		CDatum AsEChartsDesc (bool bIncludeResolvedRange = false, int iSplitNumber = 0) const;
+		bool Accumulate (const CGraphAxisDesc &Axis);
+		CDatum AsEChartsDesc (bool bIncludeResolvedRange = false, int iSplitNumber = 0, bool bIncludeLabel = true) const;
 		CDatum AsRenderDesc () const;
 		const SCategoryEntry& GetCategory (int iIndex) const { return m_Categories[m_SortedCategories[iIndex]]; }
 		int GetCategoryCount () const { return m_Categories.GetCount(); }
 		const CGraphSource& GetData () const { return m_Value; }
+		CStringView GetLabel () const { return m_sLabel; }
 		double GetMax () const { return (m_iResolvedType != EType::Unknown ? m_rResolvedMax : GetFixedMax()); }
 		double GetMin () const { return (m_iResolvedType != EType::Unknown ? m_rResolvedMin : GetFixedMin()); }
 		bool GetPos (CDatum dValue, double& retrPos) const;
 		EType GetType () const { return m_iResolvedType; }
 		bool InitFromDesc (CDatum dDesc, CString *retsError = NULL);
 		bool InRange (double rValue) const;
+		bool IsBrokenScale () const { return m_Scales.GetCount() > 1; }
+		bool IsLogScale () const { return m_bLogScale; }
 		bool IsMaxFixed () const { return m_bFixedMax; }
 		bool IsMinFixed () const { return m_bFixedMin; }
 		bool IsCompatible (const CGraphAxisDesc &Axis) const;
+		bool IsScaleCompatible (const CGraphAxisDesc& Axis) const;
 		bool ResolveSources (const CString &sSourceName, CDatum dData, CString *retsError = NULL);
 		void ResolveType (std::function<bool(int)> fnInclude = nullptr);
 		void SetBarDistance (double rValue) { m_rBarDistance = rValue; }
@@ -161,18 +192,29 @@ class CGraphAxisDesc
 
 		double GetFixedMax () const { return m_rFixedMax; }
 		double GetFixedMin () const { return m_rFixedMin; }
+		CDatum AsEChartsScaleDesc (const SScaleDesc& Scale, double rMin, double rMax, bool bEmitMin, bool bEmitMax, int iSplitNumber) const;
+		CDatum BuildTicks (const SScaleDesc& Scale, double rMin, double rMax, int iSplitNumber, double* retrInterval = NULL) const;
+		bool HasExplicitScale () const { return m_bExplicitScale; }
 		void InitCategoryOrder ();
+		bool InitScale (CDatum dAxisDesc, CString* retsError = NULL);
+		bool InitScaleDesc (CDatum dDesc, SScaleDesc& retScale, bool bMerge, CString* retsError = NULL);
+		bool InitTicks (CDatum dDesc, SScaleDesc& retScale, CString* retsError = NULL);
+		void SetScaleFromDesc (const SScaleDesc& Scale);
 
 		CGraphSource m_Value;
 		EType m_iType = EType::None;
 
 		ECategoryOrder m_iCategoryOrder = ECategoryOrder::None;
+		CString m_sLabel;
 		CString m_sFormat;
 		double m_rFixedMax = 0.0;
 		double m_rFixedMin = 0.0;
 		bool m_bFixedMin = false;
 		bool m_bFixedMax = false;
 		bool m_bLogScale = false;
+		bool m_bReverse = false;
+		bool m_bExplicitScale = false;
+		TArray<SScaleDesc> m_Scales;
 
 		//	The following fields are only valid after we've resolved the source.
 

@@ -22,6 +22,7 @@ DECLARE_CONST_STRING(STR_STRING_ENCODING_UNKNOWN_CHARACTER_SET,	"Unknown charact
 DECLARE_CONST_STRING(STR_STRING_ENCODING_INVALID_UTF_8_STRING,	"Invalid UTF-8 string.");
 DECLARE_CONST_STRING(STR_STRING_ENCODING_CHARACTER_CANNOT_BE_ENCODED_AS_ASCII,	"Character cannot be encoded as ASCII.");
 DECLARE_CONST_STRING(STR_STRING_ENCODING_CHARACTER_CANNOT_BE_ENCODED_AS_LATIN1,	"Character cannot be encoded as Latin1.");
+DECLARE_CONST_STRING(STR_STRING_ENCODING_CHARACTER_CANNOT_BE_ENCODED_AS_WINDOWS_1252,	"Character cannot be encoded as Windows1252.");
 DECLARE_CONST_STRING(STR_STRING_ENCODING_UTF8,	"UTF8");
 DECLARE_CONST_STRING(STR_STRING_ENCODING_UTF16_BE,	"UTF16BE");
 DECLARE_CONST_STRING(STR_STRING_ENCODING_UTF16_LE,	"UTF16LE");
@@ -29,6 +30,7 @@ DECLARE_CONST_STRING(STR_STRING_ENCODING_UTF32_BE,	"UTF32BE");
 DECLARE_CONST_STRING(STR_STRING_ENCODING_UTF32_LE,	"UTF32LE");
 DECLARE_CONST_STRING(STR_STRING_ENCODING_ASCII,	"ASCII");
 DECLARE_CONST_STRING(STR_STRING_ENCODING_LATIN1,	"Latin1");
+DECLARE_CONST_STRING(STR_STRING_ENCODING_WINDOWS_1252,	"Windows1252");
 DECLARE_CONST_STRING(STR_STRING_ENCODING_URL_COMPONENT,	"urlComponent");
 DECLARE_CONST_STRING(STR_STRING_ENCODING_URL_PATH_SEGMENT,	"urlPathSegment");
 DECLARE_CONST_STRING(STR_STRING_ENCODING_URL_QUERY_VALUE,	"urlQueryValue");
@@ -45,6 +47,43 @@ DECLARE_CONST_STRING(STR_STRING_ENCODING_HEX,	"hex");
 
 namespace
 	{
+	//	Undefined Windows-1252 bytes map to U+FFFD so decoded strings always
+	//	satisfy Foundation's UTF-8 invariant.
+
+	constexpr UTF32 WINDOWS_1252_HIGH[] =
+		{
+		0x20ac, 0xfffd, 0x201a, 0x0192, 0x201e, 0x2026, 0x2020, 0x2021,
+		0x02c6, 0x2030, 0x0160, 0x2039, 0x0152, 0xfffd, 0x017d, 0xfffd,
+		0xfffd, 0x2018, 0x2019, 0x201c, 0x201d, 0x2022, 0x2013, 0x2014,
+		0x02dc, 0x2122, 0x0161, 0x203a, 0x0153, 0xfffd, 0x017e, 0x0178,
+		};
+
+	UTF32 DecodeWindows1252 (BYTE byValue)
+		{
+		if (byValue >= 0x80 && byValue <= 0x9f)
+			return WINDOWS_1252_HIGH[byValue - 0x80];
+		else
+			return byValue;
+		}
+
+	bool EncodeWindows1252 (UTF32 dwCodePoint, BYTE *retbyValue)
+		{
+		if (dwCodePoint <= 0x7f || (dwCodePoint >= 0xa0 && dwCodePoint <= 0xff))
+			{
+			if (retbyValue) *retbyValue = (BYTE)dwCodePoint;
+			return true;
+			}
+
+		for (int i = 0; i < SIZEOF_STATIC_ARRAY(WINDOWS_1252_HIGH); i++)
+			if (WINDOWS_1252_HIGH[i] != 0xfffd && WINDOWS_1252_HIGH[i] == dwCodePoint)
+				{
+				if (retbyValue) *retbyValue = (BYTE)(0x80 + i);
+				return true;
+				}
+
+		return false;
+		}
+
 	bool DecodeUTF8CharStrict (const char *&pPos, const char *pEndPos, UTF32 *retdwCodePoint)
 		{
 		if (pPos >= pEndPos)
@@ -846,6 +885,13 @@ bool strDecodeToString (const void *pData, int iLength, ECharSetType iCharSet, C
 			if (retsResult) *retsResult = CString::CreateFromHandoff(Output);
 			return true;
 
+		case ECharSetType::Windows1252:
+			while (pPos < pEndPos)
+				strEncodeUTF8Char(DecodeWindows1252(*pPos++), Output);
+
+			if (retsResult) *retsResult = CString::CreateFromHandoff(Output);
+			return true;
+
 		default:
 			if (retsError) *retsError = STR_STRING_ENCODING_UNKNOWN_CHARACTER_SET;
 			return false;
@@ -1013,6 +1059,28 @@ bool strEncodeToBinary (const CString &sValue, ECharSetType iCharSet, CStringBuf
 
 			return true;
 
+		case ECharSetType::Windows1252:
+			while (pPos < pEndPos)
+				{
+				UTF32 dwCodePoint;
+				if (!DecodeUTF8CharStrict(pPos, pEndPos, &dwCodePoint))
+					{
+					if (retsError) *retsError = STR_STRING_ENCODING_INVALID_UTF_8_STRING;
+					return false;
+					}
+
+				BYTE byValue;
+				if (!EncodeWindows1252(dwCodePoint, &byValue))
+					{
+					if (retsError) *retsError = STR_STRING_ENCODING_CHARACTER_CANNOT_BE_ENCODED_AS_WINDOWS_1252;
+					return false;
+					}
+
+				retBuffer->WriteChar((char)byValue);
+				}
+
+			return true;
+
 		default:
 			if (retsError) *retsError = STR_STRING_ENCODING_UNKNOWN_CHARACTER_SET;
 			return false;
@@ -1036,6 +1104,8 @@ bool strParseCharSetType (CStringView sValue, ECharSetType *retiType)
 		iType = ECharSetType::ASCII;
 	else if (strEqualsNoCase(sValue, STR_STRING_ENCODING_LATIN1))
 		iType = ECharSetType::Latin1;
+	else if (strEqualsNoCase(sValue, STR_STRING_ENCODING_WINDOWS_1252))
+		iType = ECharSetType::Windows1252;
 	else
 		return false;
 

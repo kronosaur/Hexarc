@@ -179,7 +179,7 @@ class CTimeSpan
 			{ return (m_Days == Other.m_Days) && (m_Milliseconds == Other.m_Milliseconds) && (m_bNegative == Other.m_bNegative); }
 
 		bool operator!= (const CTimeSpan &Other) const 
-			{ return (m_Days != Other.m_Days) || (m_Milliseconds != Other.m_Milliseconds) || (m_bNegative == Other.m_bNegative); }
+			{ return (m_Days != Other.m_Days) || (m_Milliseconds != Other.m_Milliseconds) || (m_bNegative != Other.m_bNegative); }
 
 		bool operator> (const CTimeSpan &Other) const { return (Compare(Other) == 1); }
 		bool operator< (const CTimeSpan &Other) const { return (Compare(Other) == -1); }

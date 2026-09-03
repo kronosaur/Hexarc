@@ -198,6 +198,7 @@ class CHTTPSession : public CHyperionSession
 		virtual void OnMark (void) override;
 		virtual bool OnProcessMessage (const SArchonMessage &Msg) override;
 		virtual bool OnStartSession (const SArchonMessage &Msg, DWORD dwTicket) override;
+		virtual bool OnTimeout (const SArchonMessage &Msg) override;
 
 		//	CHyperionSession virtuals
 
@@ -251,6 +252,7 @@ class CHTTPSession : public CHyperionSession
 
 		DWORDLONG m_dwStartRequest = 0;			//	Tick when we started a request
 		DWORD m_dwPartialSend = 0;				//	Total bytes already sent on a partial response
+		bool m_bCloseAfterResponse = false;		//	Close instead of reusing the connection after the response
 
 		//	We store some status information here. These variables are accessed
 		//	by OnGetHyperionStatusReport and should be protected by the main

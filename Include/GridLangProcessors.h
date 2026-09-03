@@ -101,6 +101,7 @@ class CGLFilterProcessor : public TExternalDatum<CGLFilterProcessor>
 
 		TArray<int> m_Cols;		//	Optional
 		int m_iIndex = -1;
+		CBuffer m_TensorPos;
 		TArray<int> m_Elements;
 		TArray<TArray<int>> m_GroupIndex;
 	};
@@ -120,6 +121,7 @@ class CGLGroupByProcessor : public TExternalDatum<CGLGroupByProcessor>
 			{
 			EResultType iResultType = EResultType::array;
 			CString sKeyCol;
+			bool bTensorResult = false;
 			};
 
 		CGLGroupByProcessor (CAEONTypeSystem &TypeSystem, CDatum dList, CDatum dFunc, const SOptions& Options) :
@@ -145,6 +147,7 @@ class CGLGroupByProcessor : public TExternalDatum<CGLGroupByProcessor>
 		CDatum CreateResult ();
 		CDatum CreateResultArray ();
 		CDatum CreateResultDictionary ();
+		CDatum CreateTensorGroup (const TArray<int>& Group);
 		bool IsColumnValue () const { return m_iListType == CDatum::typeTable && !m_Options.sKeyCol.IsEmpty() && m_dFunc.IsNil(); }
 		bool ProcessTableByColumnValue (const CString& sColName, CDatum& retResult);
 		bool ProcessTableByExpression (const CAEONExpression& Expr, CDatum& retResult);

@@ -54,6 +54,7 @@ inline DWORD CDatum::GetBasicDatatype () const
 //	TABLE
 //	TIME_SPAN
 //	VECTOR_2D_F64
+//	WILDCARD
 
 	{
 	switch (DecodeType(m_dwData))
@@ -71,6 +72,9 @@ inline DWORD CDatum::GetBasicDatatype () const
 
 				case VALUE_BLANK:
 					return IDatatype::STRING;
+
+				case VALUE_WILDCARD:
+					return IDatatype::WILDCARD;
 
 				default:
 					ASSERT(false);
@@ -205,6 +209,9 @@ inline DWORD CDatum::GetBasicDatatypeEx () const
 
 				case VALUE_BLANK:
 					return IDatatype::NULL_T;
+
+				case VALUE_WILDCARD:
+					return IDatatype::WILDCARD;
 
 				default:
 					ASSERT(false);

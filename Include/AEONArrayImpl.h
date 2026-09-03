@@ -15,7 +15,7 @@ class TArrayImpl
 			if (dIndex.IsIdenticalToNil())
 				return pObj->MakeNullElement();
 
-			else if (dIndex.IsIdenticalToTrue())
+			else if (dIndex.IsIdenticalToWildcard() || dIndex.IsIdenticalToTrue())
 				return CDatum::raw_AsComplex(pObj).GetElementsAtRange(CDatum::CreateRange(0, Array.GetCount() - 1, 1));
 
 			else if (dIndex.GetBasicType() == CDatum::typeRange)
@@ -39,7 +39,7 @@ class TArrayImpl
 			if (dIndex.IsIdenticalToNil())
 				{ }
 
-			else if (dIndex.IsIdenticalToTrue())
+			else if (dIndex.IsIdenticalToWildcard() || dIndex.IsIdenticalToTrue())
 				CDatum::raw_AsComplex(pObj).SetElementsAtRange(CDatum::CreateRange(0, Array.GetCount() - 1, 1), dValue);
 
 			else if (dIndex.GetBasicType() == CDatum::typeRange)

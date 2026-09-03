@@ -9,6 +9,7 @@
 DECLARE_CONST_STRING(TYPENAME_LUMINOUS_BITMAP,		"luminousBitmap");
 
 DECLARE_CONST_STRING(ERR_UNABLE_TO_CREATE_IMAGE,	"Unable to create image.");
+DECLARE_CONST_STRING(ERR_VALUE_NOT_IMAGE,			"Value is not an image.");
 
 TDatumPropertyHandler<CAEONLuminousBitmap> CAEONLuminousBitmap::m_Properties = {
 	{
@@ -321,6 +322,25 @@ TDatumMethodHandler<CAEONLuminousBitmap> CAEONLuminousBitmap::m_Methods = {
 			},
 		},
 	{
+		"toBMP",
+		"v:|options=?",
+		".toBMP() -> Binary",
+		0,
+		[](CAEONLuminousBitmap& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
+			{
+			CStringBuffer Buffer;
+			CString sError;
+			if (!CBMP::Save(Obj.m_Image, Buffer, &sError))
+				{
+				retResult.dResult = CDatum::CreateError(sError);
+				return false;
+				}
+
+			retResult.dResult = CDatum::CreateBinary(std::move(Buffer));
+			return true;
+			},
+		},
+	{
 		"toJPEG",
 		"v:|options=?",
 		".toJPEG() -> Binary",
@@ -435,6 +455,38 @@ CDatum CAEONLuminousBitmap::Create (int cxWidth, int cyHeight, CRGBA32 rgbBackgr
 	pBitmap->m_rgbBackground = rgbBackground;
 
 	return CDatum(pBitmap);
+	}
+
+bool CAEONLuminousBitmap::DecodeImage (IMemoryBlock &Data, CImageLoader::EFormats iFormat, CDatum &retdValue, CString *retsError)
+
+//	DecodeImage
+//
+//	Decodes an image and wraps it in a Luminous bitmap datum.
+
+	{
+	CRGBA32Image Image;
+	if (!CImageLoader::Load(Data, iFormat, Image, retsError))
+		return false;
+
+	retdValue = Create(std::move(Image));
+	return true;
+	}
+
+bool CAEONLuminousBitmap::EncodeImage (CDatum dValue, CImageLoader::EFormats iFormat, IByteStream &Output, CString *retsError, int iJPEGQuality)
+
+//	EncodeImage
+//
+//	Encodes a Luminous bitmap datum as an image file.
+
+	{
+	if (dValue.GetBasicType() != CDatum::typeImage32)
+		{
+		if (retsError) *retsError = ERR_VALUE_NOT_IMAGE;
+		return false;
+		}
+
+	const CRGBA32Image &Image = dValue;
+	return CImageLoader::Save(Image, iFormat, Output, iJPEGQuality, retsError);
 	}
 
 CDatum CAEONLuminousBitmap::GetDatatype () const

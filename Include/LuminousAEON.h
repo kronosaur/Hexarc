@@ -20,6 +20,8 @@ class CAEONLuminousBitmap : public TExternalDatum<CAEONLuminousBitmap>, public I
 		static CDatum Create (CRGBA32Image&& Src);
 		static CDatum Create (int cxWidth, int cyHeight);
 		static CDatum Create (int cxWidth, int cyHeight, CRGBA32 rgbBackground);
+		static bool DecodeImage (IMemoryBlock &Data, CImageLoader::EFormats iFormat, CDatum &retdValue, CString *retsError = NULL);
+		static bool EncodeImage (CDatum dValue, CImageLoader::EFormats iFormat, IByteStream &Output, CString *retsError = NULL, int iJPEGQuality = 80);
 		static const CString &StaticGetTypename (void);
 
 		//	IComplexDatum
@@ -489,6 +491,10 @@ class CAEONLuminous
 		static DWORD LINE2D_TYPE;
 		static DWORD TRAIL2D_TYPE;
 		static DWORD SCENE2D_TYPE;
+		static DWORD TEXTURE3D_TYPE;
+		static DWORD MATERIAL3D_TYPE;
+		static DWORD PHYSICAL_MATERIAL3D_TYPE;
+		static DWORD OBJECT3D_TYPE;
 		static DWORD SCENE3D_TYPE;
 
 	private:

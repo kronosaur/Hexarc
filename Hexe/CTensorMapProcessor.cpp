@@ -18,6 +18,12 @@ DECLARE_CONST_STRING(ERR_INVALID_MAP_FUNC,				"Invalid map function.");
 DECLARE_CONST_STRING(ERR_INVALID_MAP_CONTINUE,			"Invalid map continue ctx.");
 DECLARE_CONST_STRING(ERR_INVALID_OPTION,				"Invalid map function option: %s.");
 
+static CDatum GetTensorMapKey (CDatum dTensor, CBuffer& Pos)
+	{
+	CDatum dKey = dTensor.raw_IteratorGetKey(Pos);
+	return (dTensor.GetDimensions() == 1 ? dKey.GetElement(0) : dKey);
+	}
+
 CTensorMapProcessor::CTensorMapProcessor (CDatum dTensor, CDatum dOptions, CDatum dMapFunc, int iFuncArgs, CDatum dResultType) :
 		m_dTensor(dTensor),
 		m_dOptions(dOptions),
@@ -189,20 +195,19 @@ bool CTensorMapProcessor::Process (CDatum dSelf, SAEONInvokeResult &retResult)
 		retResult.dResult = CDatum();
 		return true;
 		}
-	else if (m_dTensor.GetCount() == 0)
+	m_Pos = m_dTensor.raw_IteratorStart();
+	if (!m_dTensor.raw_IteratorHasMore(m_Pos))
 		{
 		retResult.dResult = m_dResult;
 		return true;
 		}
-
-	m_Pos = m_dTensor.raw_IteratorStart();
 
 	//	Run the mapping function
 
 	if (m_iFuncArgs == 1)
 		return CHexe::RunFunction1Arg(m_dMapFunc, m_dTensor.raw_IteratorGetElement(m_Pos), dSelf, retResult);
 	else
-		return CHexe::RunFunction2Args(m_dMapFunc, m_dTensor.raw_IteratorGetKey(m_Pos), m_dTensor.raw_IteratorGetElement(m_Pos), dSelf, retResult);
+		return CHexe::RunFunction2Args(m_dMapFunc, m_dTensor.raw_IteratorGetElement(m_Pos), GetTensorMapKey(m_dTensor, m_Pos), dSelf, retResult);
 	}
 
 bool CTensorMapProcessor::ProcessContinues (CDatum dSelf, CDatum dResult, SAEONInvokeResult &retResult)
@@ -242,7 +247,7 @@ bool CTensorMapProcessor::ProcessContinues (CDatum dSelf, CDatum dResult, SAEONI
 	if (m_iFuncArgs == 1)
 		return CHexe::RunFunction1Arg(m_dMapFunc, m_dTensor.raw_IteratorGetElement(m_Pos), dSelf, retResult);
 	else
-		return CHexe::RunFunction2Args(m_dMapFunc, m_dTensor.raw_IteratorGetKey(m_Pos), m_dTensor.raw_IteratorGetElement(m_Pos), dSelf, retResult);
+		return CHexe::RunFunction2Args(m_dMapFunc, m_dTensor.raw_IteratorGetElement(m_Pos), GetTensorMapKey(m_dTensor, m_Pos), dSelf, retResult);
 	}
 
 CTensorMapProcessor::EResultType CTensorMapProcessor::ParseResultType (CStringView sType)
@@ -252,10 +257,10 @@ CTensorMapProcessor::EResultType CTensorMapProcessor::ParseResultType (CStringVi
 //	Parse a result type string.
 
 	{
-	if (sType.IsEmpty() || strEqualsNoCase(sType, TYPE_ARRAY))
-		return EResultType::Array;
-	else if (strEqualsNoCase(sType, TYPE_TENSOR))
+	if (sType.IsEmpty() || strEqualsNoCase(sType, TYPE_TENSOR))
 		return EResultType::Tensor;
+	else if (strEqualsNoCase(sType, TYPE_ARRAY))
+		return EResultType::Array;
 	else
 		return EResultType::Unknown;
 	}

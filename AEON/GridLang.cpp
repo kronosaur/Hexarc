@@ -36,6 +36,10 @@ void CDatum::SerializeGridLang (IByteStream &Stream) const
 					Stream.Write("true", 4);
 					break;
 
+				case VALUE_WILDCARD:
+					Stream.Write("*", 1);
+					break;
+
 				default:
 					ASSERT(false);
 					break;

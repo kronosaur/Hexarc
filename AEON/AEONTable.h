@@ -182,6 +182,7 @@ class CAEONTable : public IComplexDatum, public IAEONTable
 		static int GetMethodCount () { return (m_pMethodsExt ? m_pMethodsExt->GetCount() : 0); }
 		static CString GetMethodKey (int iIndex) { return (m_pMethodsExt ? m_pMethodsExt->GetMethodName(iIndex) : NULL_STR);}
 		static CDatum GetMethodType (int iIndex) { return (m_pMethodsExt ? m_pMethodsExt->GetMethodType(iIndex) : CAEONTypes::Get(IDatatype::FUNCTION)); }
+		static DWORD GetMethodFlags (int iIndex) { return (m_pMethodsExt ? m_pMethodsExt->GetMethodFlags(iIndex) : 0); }
 		static int GetPropertyCount () { return m_Properties.GetCount(); }
 		static CString GetPropertyKey (int iIndex) { return m_Properties.GetPropertyName(iIndex); }
 		static CDatum GetPropertyType (int iIndex) { return m_Properties.GetPropertyType(iIndex); }

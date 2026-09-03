@@ -25,13 +25,9 @@ DECLARE_CONST_STRING(MSG_LOG_DEBUG,						"Log.debug")
 DECLARE_CONST_STRING(PORT_HYPERION_COMMAND,				"Hyperion.command");
 
 DECLARE_CONST_STRING(ERR_BAD_PARAMS,					"Invalid parameters.");
-DECLARE_CONST_STRING(ERR_UNKNOWN_IMAGE_FORMAT,			"%s: Unable to determine image format from extension.");
-DECLARE_CONST_STRING(ERR_UNSUPPORTED_IMAGE_FORMAT,		"%s: Unsupported image format.");
-DECLARE_CONST_STRING(ERR_CANT_LOAD_JPEG,				"%s: Unable to load JPEG: %s");
-DECLARE_CONST_STRING(ERR_CANT_LOAD_PNG,					"%s: Unable to load PNG: %s");
+DECLARE_CONST_STRING(ERR_CANT_LOAD_IMAGE,				"%s: Unable to load image: %s");
 DECLARE_CONST_STRING(ERR_CANT_RESIZE,					"%s: Unable to resize image.");
-DECLARE_CONST_STRING(ERR_CANT_SAVE_JPEG,				"%s: Unable to save JPEG image.");
-DECLARE_CONST_STRING(ERR_CANT_SAVE_PNG,					"%s: Unable to save PNG image.");
+DECLARE_CONST_STRING(ERR_CANT_SAVE_IMAGE,				"%s: Unable to save image: %s");
 
 static constexpr DWORD MAX_RESIZE_SIZE = 16384;
 
@@ -162,7 +158,9 @@ void CResizeImageSession::OnFileDownloaded (CDatum dFileDesc, CDatum dData)
 	//	If we don't support the format, then we just send it out unchanged.
 
 	CImageLoader::EFormats iFormat = CalcFormat(GetFilePath(), dFileDesc);
-	if (iFormat != CImageLoader::formatJPEG && iFormat != CImageLoader::formatPNG)
+	if (iFormat != CImageLoader::formatBMP
+			&& iFormat != CImageLoader::formatJPEG
+			&& iFormat != CImageLoader::formatPNG)
 		{
 		CDatum dResult(CDatum::typeStruct);
 		dResult.SetElement(FIELD_FILE_DESC, dFileDesc);
@@ -180,27 +178,10 @@ void CResizeImageSession::OnFileDownloaded (CDatum dFileDesc, CDatum dData)
 	CRGBA32Image FullSizeImage;
 	CString sError;
 	CBuffer Buffer(dData.AsStringView());
-	switch (iFormat)
+	if (!CImageLoader::Load(Buffer, iFormat, FullSizeImage, &sError))
 		{
-		case CImageLoader::formatJPEG:
-			if (!CJPEG::Load(Buffer, FullSizeImage, &sError))
-				{
-				SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_CANT_LOAD_JPEG, fileGetFilename(GetFilePath()), sError));
-				return;
-				}
-			break;
-
-		case CImageLoader::formatPNG:
-			if (!CPNG::Load(Buffer, FullSizeImage, &sError))
-				{
-				SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_CANT_LOAD_PNG, fileGetFilename(GetFilePath()), sError));
-				return;
-				}
-			break;
-
-		default:
-			SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_UNSUPPORTED_IMAGE_FORMAT, fileGetFilename(GetFilePath())));
-			return;
+		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_CANT_LOAD_IMAGE, fileGetFilename(GetFilePath()), sError));
+		return;
 		}
 
 	//	Resize the image
@@ -215,27 +196,10 @@ void CResizeImageSession::OnFileDownloaded (CDatum dFileDesc, CDatum dData)
 	//	Save the image
 
 	CStringBuffer SaveBuffer;
-	switch (iFormat)
+	if (!CImageLoader::Save(ResizedImage, iFormat, SaveBuffer, 80, &sError))
 		{
-		case CImageLoader::formatJPEG:
-			if (!CJPEG::Save(ResizedImage, SaveBuffer, 80, &sError))
-				{
-				SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_CANT_SAVE_JPEG, fileGetFilename(GetFilePath()), sError));
-				return;
-				}
-			break;
-
-		case CImageLoader::formatPNG:
-			if (!CPNG::Save(ResizedImage, SaveBuffer, &sError))
-				{
-				SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_CANT_SAVE_PNG, fileGetFilename(GetFilePath()), sError));
-				return;
-				}
-			break;
-
-		default:
-			SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_UNSUPPORTED_IMAGE_FORMAT, fileGetFilename(GetFilePath())));
-			return;
+		SendMessageReplyError(MSG_ERROR_UNABLE_TO_COMPLY, strPattern(ERR_CANT_SAVE_IMAGE, fileGetFilename(GetFilePath()), sError));
+		return;
 		}
 
 	//	Now store as a datum

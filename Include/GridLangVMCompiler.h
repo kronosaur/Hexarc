@@ -53,13 +53,20 @@ class CGridLangVMCompiler : public IMacroCompilerImpl
 			IASTNode* pStackFrameFunction = NULL;
 			};
 
+		enum class ECoercion
+			{
+			Implicit,
+			ConstructIfNeeded,
+			Construct,
+			};
+
 		static constexpr DWORD INVALID_VAR_ID = 0xffffffff;
 
 		bool CompileProgram (CGridLangAST& AST, CHexeProgram& retOutput, CGridLangResult& Result);
 
 		bool CompileArrayConstructor (SCtx& Ctx, IASTNode& ArrayDef, IASTNode& Call, CString* retsError = NULL);
 		bool CompileArrayDynamicConstructor (SCtx &Ctx, IASTNode& ArrayDef, IASTNode &AST, CString *retsError = NULL);
-		bool CompileArrayDynamicDef (SCtx &Ctx, IASTNode &AST, EOpCodes iOpCode, CString *retsError = NULL);
+		bool CompileArrayDynamicDef (SCtx &Ctx, IASTNode &AST, EOpCodes iOpCode, bool bConstruct, CString *retsError = NULL);
 		bool CompileAssignment (SCtx &Ctx, IASTNode &AST, CString *retsError = NULL);
 		bool CompileAssignmentArrayLValue (SCtx &Ctx, IASTNode &ArrayOp, IASTNode &Scope, IASTNode &Pos, int iLevel, CString *retsError = NULL);
 		bool CompileAssignmentStructLValue (SCtx &Ctx, IASTNode &StructOp, IASTNode &Scope, IASTNode &Pos, int iLevel, CString *retsError = NULL);
@@ -68,7 +75,7 @@ class CGridLangVMCompiler : public IMacroCompilerImpl
 		bool CompileBinaryOp (SCtx &Ctx, IASTNode &AST, EOpCodes iOpCode, CString *retsError = NULL);
 		bool CompileClassDefinition (SCtx &Ctx, IASTNode &AST, CString *retsError = NULL);
 		bool CompileConstructor (SCtx &Ctx, IASTNode &ClassDef, IASTNode &Call, CString *retsError = NULL);
-		bool CompileCoercedExpression (SCtx &Ctx, IASTNode &Value, CDatum dRequiredType, bool bAlwaysCoerce, CString *retsError = NULL);
+		bool CompileCoercedExpression (SCtx &Ctx, IASTNode &Value, CDatum dRequiredType, ECoercion iCoercion, CString *retsError = NULL);
 		bool CompileMemberInit (SCtx &Ctx, const IASTNode &ClassDef, CString *retsError = NULL);
 		bool CompileDatatypeRef (SCtx &Ctx, const IDatatype &Type, CString *retsError = NULL);
 		bool CompileDictionaryConstructor (SCtx& Ctx, IASTNode& DictionaryDef, IASTNode& Call, CString* retsError = NULL);

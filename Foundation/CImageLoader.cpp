@@ -6,15 +6,18 @@
 #include "stdafx.h"
 
 DECLARE_CONST_STRING(EXTENSION_BMP,						".bmp");
+DECLARE_CONST_STRING(EXTENSION_DIB,						".dib");
 DECLARE_CONST_STRING(EXTENSION_JPEG,					".jpeg");
 DECLARE_CONST_STRING(EXTENSION_JPG,						".jpg");
 DECLARE_CONST_STRING(EXTENSION_PNG,						".png");
 
+DECLARE_CONST_STRING(MEDIATYPE_BMP,						"image/bmp");
 DECLARE_CONST_STRING(MEDIATYPE_GIF,						"image/gif");
 DECLARE_CONST_STRING(MEDIATYPE_JPEG,					"image/jpeg");
 DECLARE_CONST_STRING(MEDIATYPE_PNG,						"image/png");
 
-DECLARE_CONST_STRING(ERR_CRASH,							"Crash loading image.");
+DECLARE_CONST_STRING(ERR_CRASH_LOADING_IMAGE,			"Crash loading image.");
+DECLARE_CONST_STRING(ERR_CRASH_SAVING_IMAGE,			"Crash saving image.");
 DECLARE_CONST_STRING(ERR_UNKNOWN_IMAGE_FORMAT,			"Unknown image format.");
 
 CImageLoader::EFormats CImageLoader::GetFormatFromExtension (const CString &sFilespec)
@@ -31,7 +34,7 @@ CImageLoader::EFormats CImageLoader::GetFormatFromExtension (const CString &sFil
 
 	//	Handle it based on the extension
 
-	if (strEquals(sExtension, EXTENSION_BMP))
+	if (strEquals(sExtension, EXTENSION_BMP) || strEquals(sExtension, EXTENSION_DIB))
 		return formatBMP;
 
 	else if (strEquals(sExtension, EXTENSION_JPEG) || strEquals(sExtension, EXTENSION_JPG))
@@ -51,6 +54,7 @@ CImageLoader::EFormats CImageLoader::GetFormatFromString (const CString& sValue)
 //	Returns the given format from a string. The string can be either a media 
 //	type, or a file name extension.
 //
+//	image/bmp
 //	image/jpeg
 //	image.jpeg
 //	image.jpg
@@ -61,6 +65,8 @@ CImageLoader::EFormats CImageLoader::GetFormatFromString (const CString& sValue)
 	if (strEqualsNoCase(sValue, MEDIATYPE_GIF))
 		//	Not yet supported
 		return formatUnknown;
+	else if (strEqualsNoCase(sValue, MEDIATYPE_BMP))
+		return formatBMP;
 	else if (strEqualsNoCase(sValue, MEDIATYPE_JPEG))
 		return formatJPEG;
 	else if (strEqualsNoCase(sValue, MEDIATYPE_PNG))
@@ -83,7 +89,7 @@ CImageLoader::EFormats CImageLoader::GetFormatFromString (const CString& sValue)
 
 		//	Map
 
-		if (strEqualsNoCase(sExtension, EXTENSION_BMP))
+		if (strEqualsNoCase(sExtension, EXTENSION_BMP) || strEqualsNoCase(sExtension, EXTENSION_DIB))
 			return formatBMP;
 
 		else if (strEqualsNoCase(sExtension, EXTENSION_JPEG) || strEqualsNoCase(sExtension, EXTENSION_JPG))
@@ -108,6 +114,9 @@ bool CImageLoader::Load (IMemoryBlock &Data, EFormats iFormat, CRGBA32Image &Ima
 		{
 		switch (iFormat)
 			{
+			case formatBMP:
+				return CBMP::Load(Data, Image, retsError);
+
 			case formatJPEG:
 				return CJPEG::Load(Data, Image, retsError);
 
@@ -123,7 +132,39 @@ bool CImageLoader::Load (IMemoryBlock &Data, EFormats iFormat, CRGBA32Image &Ima
 		}
 	catch (...)
 		{
-		if (retsError) *retsError = ERR_CRASH;
+		if (retsError) *retsError = ERR_CRASH_LOADING_IMAGE;
+		return false;
+		}
+	}
+
+bool CImageLoader::Save (const CRGBA32Image &Image, EFormats iFormat, IByteStream &Output, int iJPEGQuality, CString *retsError)
+
+//	Save
+//
+//	Saves an image.
+
+	{
+	try
+		{
+		switch (iFormat)
+			{
+			case formatBMP:
+				return CBMP::Save(Image, Output, retsError);
+
+			case formatJPEG:
+				return CJPEG::Save(Image, Output, iJPEGQuality, retsError);
+
+			case formatPNG:
+				return CPNG::Save(Image, Output, retsError);
+
+			default:
+				if (retsError) *retsError = ERR_UNKNOWN_IMAGE_FORMAT;
+				return false;
+			}
+		}
+	catch (...)
+		{
+		if (retsError) *retsError = ERR_CRASH_SAVING_IMAGE;
 		return false;
 		}
 	}

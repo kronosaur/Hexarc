@@ -298,8 +298,8 @@ bool CFileDownloadSession::ProcessResize (CDatum dFileDesc, CDatum dData, int cx
 
 	int cxNewWidth;
 	int cyNewHeight;
-	Metric rScaleX = (Metric)(cxWidth / Image.GetWidth());
-	Metric rScaleY = (Metric)(cyHeight / Image.GetHeight());
+	Metric rScaleX = (Metric)cxWidth / (Metric)Image.GetWidth();
+	Metric rScaleY = (Metric)cyHeight / (Metric)Image.GetHeight();
 	if (rScaleX < rScaleY)
 		{
 		cxNewWidth = cxWidth;
@@ -317,9 +317,14 @@ bool CFileDownloadSession::ProcessResize (CDatum dFileDesc, CDatum dData, int cx
 
 	//	Save back to the proper format
 
+	CStringBuffer SaveBuffer;
+	if (!CImageLoader::Save(ScaledImage, iFormat, SaveBuffer, 80, retsError))
+		return false;
 
 	//	Done
 
+	*retdFileDesc = dFileDesc;
+	CDatum::CreateBinaryFromHandoff(SaveBuffer, retdData);
 	return true;
 	}
 

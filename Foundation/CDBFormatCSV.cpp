@@ -8,6 +8,8 @@
 DECLARE_CONST_STRING(ERR_BAD_HEADER,					"Unable to add %s column.");
 DECLARE_CONST_STRING(ERR_BAD_FIELD_INDEX,				"Bad field index.");
 DECLARE_CONST_STRING(ERR_NOT_ENOUGH_COLS_IN_ROW,		"Not enough columns in row.");
+DECLARE_CONST_STRING(ERR_INVALID_UTF8,					"CSV file is not valid UTF-8.");
+DECLARE_CONST_STRING(ERR_UNSUPPORTED_CHARSET,			"Unsupported CSV character set.");
 
 constexpr int CDBFormatCSV::EstimateRowCount (DWORDLONG dwStreamSize)
 
@@ -28,12 +30,27 @@ bool CDBFormatCSV::Load (IByteStream64 &Stream, const SOptions &Options, CDBTabl
 	{
 	constexpr int PROGRESS_GRANULARITY = 1000;
 	const DWORDLONG dwStreamSize = Stream.GetStreamLength();
+	ECharSetType iCharSet = Options.iCharSet;
+	if (iCharSet == ECharSetType::Unknown)
+		iCharSet = CCSVParser::DetectCharSet(Stream);
+	else if (iCharSet == ECharSetType::UTF8
+			&& CCSVParser::DetectCharSet(Stream) != ECharSetType::UTF8)
+		{
+		if (retsError) *retsError = ERR_INVALID_UTF8;
+		return false;
+		}
+	else if (iCharSet == ECharSetType::UTF16BE
+			|| iCharSet == ECharSetType::UTF16LE
+			|| iCharSet == ECharSetType::UTF32BE
+			|| iCharSet == ECharSetType::UTF32LE)
+		{
+		if (retsError) *retsError = ERR_UNSUPPORTED_CHARSET;
+		return false;
+		}
 
 	CCSVParser Parser(Stream);
+	Parser.SetCharSet(iCharSet);
 	Parser.SetDelimiter(Options.chDelimiter);
-
-	if (Options.bUseUTF8)
-		Parser.SetUTF8Format();
 
 	//	Parse the header
 

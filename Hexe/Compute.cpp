@@ -2723,15 +2723,17 @@ CHexeProcess::ERun CHexeProcess::ExecuteLoopIncLocalAndJump (CDatum& retResult)
 
 CHexeProcess::ERun CHexeProcess::ExecuteMakeApplyEnv (CDatum& retResult)
 	{
-	m_Env.PushNewFrame();
-
 	//	The top of the stack is a list of arguments
 
 	CDatum dArgList = m_Stack.Pop();
 
-	//	Add the remaining args to the environment
+	//	Grow the frame to the right size
 
 	int iFixedArgCount = GetOperand(*m_pIP) - 1;
+	m_Env.PushNewFrame(iFixedArgCount + dArgList.GetCount());
+
+	//	Add the remaining args to the environment
+
 	for (int i = 0; i < iFixedArgCount; i++)
 		m_Env.GetLocalEnv().SetArgumentValue(0, (iFixedArgCount - 1) - i, m_Stack.Pop());
 
@@ -2767,6 +2769,11 @@ CHexeProcess::ERun CHexeProcess::ExecuteMakeAsType (CDatum& retResult)
 	CDatum dType = m_Stack.Pop();
 	CDatum dValue = m_Stack.Pop();
 	CDatum dNewValue = CDatum::CreateAsType(dType, dValue);
+	if (dNewValue.IsError()
+			&& dType.GetBasicType() == CDatum::typeDatatype
+			&& ((const IDatatype&)dType).GetClass() == IDatatype::ECategory::Tensor)
+		return RuntimeError(dNewValue.AsString(), retResult);
+
 	m_Stack.Push(dNewValue);
 	m_pIP++;
 
@@ -2778,6 +2785,11 @@ CHexeProcess::ERun CHexeProcess::ExecuteMakeAsTypeCons (CDatum& retResult)
 	CDatum dType = m_Stack.Pop();
 	CDatum dValue = m_Stack.Pop();
 	CDatum dNewValue = CDatum::CreateAsType(dType, dValue, true);
+	if (dNewValue.IsError()
+			&& dType.GetBasicType() == CDatum::typeDatatype
+			&& ((const IDatatype&)dType).GetClass() == IDatatype::ECategory::Tensor)
+		return RuntimeError(dNewValue.AsString(), retResult);
+
 	m_Stack.Push(dNewValue);
 	m_pIP++;
 
@@ -3162,6 +3174,8 @@ CHexeProcess::ERun CHexeProcess::ExecuteMakeStruct (CDatum& retResult)
 
 CHexeProcess::ERun CHexeProcess::ExecuteMakeTensor (CDatum& retResult)
 	{
+	bool bConstruct = ((GetOperand(*m_pIP) & OP_FLAG_MAKE_TENSOR_CONSTRUCT) != 0);
+
 	CDatum dType;
 	ERun iRun = ExecuteMakeTensorTypeFromStack(dType);
 	if (iRun != ERun::Continue)
@@ -3169,7 +3183,10 @@ CHexeProcess::ERun CHexeProcess::ExecuteMakeTensor (CDatum& retResult)
 
 	CDatum dInitValue = m_Stack.Pop();
 
-	CDatum dTensor = CDatum::CreateTensorAsType(dType, dInitValue);
+	CDatum dTensor = CDatum::CreateTensorAsType(dType, dInitValue, bConstruct);
+	if (dTensor.IsError())
+		return RuntimeError(dTensor.AsString(), retResult);
+
 	m_Stack.Push(dTensor);
 
 	m_pIP++;
@@ -3181,7 +3198,7 @@ CHexeProcess::ERun CHexeProcess::ExecuteMakeTensorTypeFromStack (CDatum& retResu
 	{
 	CDatum dElementType = m_Stack.Pop();
 
-	int iCount = GetOperand(*m_pIP);	//	Number of dimensions
+	int iCount = GetOperand(*m_pIP) & OP_MASK_MAKE_TENSOR_DIMS;	//	Number of dimensions
 	TArray<CDatum> Dims;
 	Dims.InsertEmpty(iCount);
 	LONGLONG iTotalElements = 1;
@@ -3868,13 +3885,13 @@ CHexeProcess::ERun CHexeProcess::ExecuteMutateTensorItemAdd (CDatum& retResult)
 
 		case 2:
 			{
-			int iIndex1 = m_Stack.Pop();
-			int iIndex2 = m_Stack.Pop();
+			CDatum dIndex1 = m_Stack.Pop();
+			CDatum dIndex2 = m_Stack.Pop();
 			CDatum dTensor = m_Stack.Pop();
 			CDatum dValue = m_Stack.Pop();
-			CDatum dElement = dTensor.GetElementAt2DI(iIndex1, iIndex2);
+			CDatum dElement = dTensor.GetElementAt2DA(dIndex1, dIndex2);
 			CDatum dResult = CAEONOp::Add(dElement, dValue);
-			dTensor.SetElementAt2DI(iIndex1, iIndex2, dResult);
+			dTensor.SetElementAt2DA(dIndex1, dIndex2, dResult);
 			m_Stack.Push(dResult);
 			break;
 			}
@@ -3886,9 +3903,9 @@ CHexeProcess::ERun CHexeProcess::ExecuteMutateTensorItemAdd (CDatum& retResult)
 			CDatum dIndex3 = m_Stack.Pop();
 			CDatum dTensor = m_Stack.Pop();
 			CDatum dValue = m_Stack.Pop();
-			CDatum dElement = dTensor.GetElementAt3DI(dIndex1, dIndex2, dIndex3);
+			CDatum dElement = dTensor.GetElementAt3DA(dIndex1, dIndex2, dIndex3);
 			CDatum dResult = CAEONOp::Add(dElement, dValue);
-			dTensor.SetElementAt3DI(dIndex1, dIndex2, dIndex3, dResult);
+			dTensor.SetElementAt3DA(dIndex1, dIndex2, dIndex3, dResult);
 			m_Stack.Push(dResult);
 			break;
 			}
@@ -3915,8 +3932,71 @@ CHexeProcess::ERun CHexeProcess::ExecuteMutateTensorItemAdd (CDatum& retResult)
 
 CHexeProcess::ERun CHexeProcess::ExecuteMutateTensorItemConcat (CDatum& retResult)
 	{
-	//	Not yet implemented
-	throw CException(errFail);
+	int iCount = GetOperand(*m_pIP);
+	switch (iCount)
+		{
+		case 0:
+			m_Stack.Pop();	//	Tensor
+			m_Stack.Push(CDatum());
+			break;
+
+		case 1:
+			{
+			CDatum dIndex = m_Stack.Pop();
+			CDatum dTensor = m_Stack.Pop();
+			CDatum dValue = m_Stack.Pop();
+			CDatum dElement = dTensor.GetElementAt(m_Types, dIndex);
+			CDatum dResult = CAEONOp::Concatenate(*this, dElement, dValue);
+			dTensor.SetElementAt(dIndex, dResult);
+			m_Stack.Push(dResult);
+			break;
+			}
+
+		case 2:
+			{
+			CDatum dIndex1 = m_Stack.Pop();
+			CDatum dIndex2 = m_Stack.Pop();
+			CDatum dTensor = m_Stack.Pop();
+			CDatum dValue = m_Stack.Pop();
+			CDatum dElement = dTensor.GetElementAt2DA(dIndex1, dIndex2);
+			CDatum dResult = CAEONOp::Concatenate(*this, dElement, dValue);
+			dTensor.SetElementAt2DA(dIndex1, dIndex2, dResult);
+			m_Stack.Push(dResult);
+			break;
+			}
+
+		case 3:
+			{
+			CDatum dIndex1 = m_Stack.Pop();
+			CDatum dIndex2 = m_Stack.Pop();
+			CDatum dIndex3 = m_Stack.Pop();
+			CDatum dTensor = m_Stack.Pop();
+			CDatum dValue = m_Stack.Pop();
+			CDatum dElement = dTensor.GetElementAt3DA(dIndex1, dIndex2, dIndex3);
+			CDatum dResult = CAEONOp::Concatenate(*this, dElement, dValue);
+			dTensor.SetElementAt3DA(dIndex1, dIndex2, dIndex3, dResult);
+			m_Stack.Push(dResult);
+			break;
+			}
+
+		default:
+			{
+			CDatum dIndices(CDatum::typeArray);
+			for (int i = 0; i < iCount; i++)
+				dIndices.Append(m_Stack.Pop());
+
+			CDatum dTensor = m_Stack.Pop();
+			CDatum dValue = m_Stack.Pop();
+			CDatum dElement = dTensor.GetElementAt(m_Types, dIndices);
+			CDatum dResult = CAEONOp::Concatenate(*this, dElement, dValue);
+			dTensor.SetElementAt(dIndices, dResult);
+			m_Stack.Push(dResult);
+			break;
+			}
+		}
+
+	m_pIP++;
+	return ERun::Continue;
 	}
 
 CHexeProcess::ERun CHexeProcess::ExecuteMutateTensorItemDivide (CDatum& retResult)
@@ -3943,13 +4023,13 @@ CHexeProcess::ERun CHexeProcess::ExecuteMutateTensorItemDivide (CDatum& retResul
 
 		case 2:
 			{
-			int iIndex1 = m_Stack.Pop();
-			int iIndex2 = m_Stack.Pop();
+			CDatum dIndex1 = m_Stack.Pop();
+			CDatum dIndex2 = m_Stack.Pop();
 			CDatum dTensor = m_Stack.Pop();
 			CDatum dValue = m_Stack.Pop();
-			CDatum dElement = dTensor.GetElementAt2DI(iIndex1, iIndex2);
+			CDatum dElement = dTensor.GetElementAt2DA(dIndex1, dIndex2);
 			CDatum dResult = CAEONOp::Divide(dElement, dValue);
-			dTensor.SetElementAt2DI(iIndex1, iIndex2, dResult);
+			dTensor.SetElementAt2DA(dIndex1, dIndex2, dResult);
 			m_Stack.Push(dResult);
 			break;
 			}
@@ -3961,9 +4041,9 @@ CHexeProcess::ERun CHexeProcess::ExecuteMutateTensorItemDivide (CDatum& retResul
 			CDatum dIndex3 = m_Stack.Pop();
 			CDatum dTensor = m_Stack.Pop();
 			CDatum dValue = m_Stack.Pop();
-			CDatum dElement = dTensor.GetElementAt3DI(dIndex1, dIndex2, dIndex3);
+			CDatum dElement = dTensor.GetElementAt3DA(dIndex1, dIndex2, dIndex3);
 			CDatum dResult = CAEONOp::Divide(dElement, dValue);
-			dTensor.SetElementAt3DI(dIndex1, dIndex2, dIndex3, dResult);
+			dTensor.SetElementAt3DA(dIndex1, dIndex2, dIndex3, dResult);
 			m_Stack.Push(dResult);
 			break;
 			}
@@ -4013,13 +4093,13 @@ CHexeProcess::ERun CHexeProcess::ExecuteMutateTensorItemMod (CDatum& retResult)
 
 		case 2:
 			{
-			int iIndex1 = m_Stack.Pop();
-			int iIndex2 = m_Stack.Pop();
+			CDatum dIndex1 = m_Stack.Pop();
+			CDatum dIndex2 = m_Stack.Pop();
 			CDatum dTensor = m_Stack.Pop();
 			CDatum dValue = m_Stack.Pop();
-			CDatum dElement = dTensor.GetElementAt2DI(iIndex1, iIndex2);
+			CDatum dElement = dTensor.GetElementAt2DA(dIndex1, dIndex2);
 			CDatum dResult = CAEONOp::Mod(dElement, dValue);
-			dTensor.SetElementAt2DI(iIndex1, iIndex2, dResult);
+			dTensor.SetElementAt2DA(dIndex1, dIndex2, dResult);
 			m_Stack.Push(dResult);
 			break;
 			}
@@ -4031,9 +4111,9 @@ CHexeProcess::ERun CHexeProcess::ExecuteMutateTensorItemMod (CDatum& retResult)
 			CDatum dIndex3 = m_Stack.Pop();
 			CDatum dTensor = m_Stack.Pop();
 			CDatum dValue = m_Stack.Pop();
-			CDatum dElement = dTensor.GetElementAt3DI(dIndex1, dIndex2, dIndex3);
+			CDatum dElement = dTensor.GetElementAt3DA(dIndex1, dIndex2, dIndex3);
 			CDatum dResult = CAEONOp::Mod(dElement, dValue);
-			dTensor.SetElementAt3DI(dIndex1, dIndex2, dIndex3, dResult);
+			dTensor.SetElementAt3DA(dIndex1, dIndex2, dIndex3, dResult);
 			m_Stack.Push(dResult);
 			break;
 			}
@@ -4083,13 +4163,13 @@ CHexeProcess::ERun CHexeProcess::ExecuteMutateTensorItemMultiply (CDatum& retRes
 
 		case 2:
 			{
-			int iIndex1 = m_Stack.Pop();
-			int iIndex2 = m_Stack.Pop();
+			CDatum dIndex1 = m_Stack.Pop();
+			CDatum dIndex2 = m_Stack.Pop();
 			CDatum dTensor = m_Stack.Pop();
 			CDatum dValue = m_Stack.Pop();
-			CDatum dElement = dTensor.GetElementAt2DI(iIndex1, iIndex2);
+			CDatum dElement = dTensor.GetElementAt2DA(dIndex1, dIndex2);
 			CDatum dResult = CAEONOp::Multiply(dElement, dValue);
-			dTensor.SetElementAt2DI(iIndex1, iIndex2, dResult);
+			dTensor.SetElementAt2DA(dIndex1, dIndex2, dResult);
 			m_Stack.Push(dResult);
 			break;
 			}
@@ -4101,9 +4181,9 @@ CHexeProcess::ERun CHexeProcess::ExecuteMutateTensorItemMultiply (CDatum& retRes
 			CDatum dIndex3 = m_Stack.Pop();
 			CDatum dTensor = m_Stack.Pop();
 			CDatum dValue = m_Stack.Pop();
-			CDatum dElement = dTensor.GetElementAt3DI(dIndex1, dIndex2, dIndex3);
+			CDatum dElement = dTensor.GetElementAt3DA(dIndex1, dIndex2, dIndex3);
 			CDatum dResult = CAEONOp::Multiply(dElement, dValue);
-			dTensor.SetElementAt3DI(dIndex1, dIndex2, dIndex3, dResult);
+			dTensor.SetElementAt3DA(dIndex1, dIndex2, dIndex3, dResult);
 			m_Stack.Push(dResult);
 			break;
 			}
@@ -4153,13 +4233,13 @@ CHexeProcess::ERun CHexeProcess::ExecuteMutateTensorItemPower (CDatum& retResult
 
 		case 2:
 			{
-			int iIndex1 = m_Stack.Pop();
-			int iIndex2 = m_Stack.Pop();
+			CDatum dIndex1 = m_Stack.Pop();
+			CDatum dIndex2 = m_Stack.Pop();
 			CDatum dTensor = m_Stack.Pop();
 			CDatum dValue = m_Stack.Pop();
-			CDatum dElement = dTensor.GetElementAt2DI(iIndex1, iIndex2);
+			CDatum dElement = dTensor.GetElementAt2DA(dIndex1, dIndex2);
 			CDatum dResult = CAEONOp::Power(dElement, dValue);
-			dTensor.SetElementAt2DI(iIndex1, iIndex2, dResult);
+			dTensor.SetElementAt2DA(dIndex1, dIndex2, dResult);
 			m_Stack.Push(dResult);
 			break;
 			}
@@ -4171,9 +4251,9 @@ CHexeProcess::ERun CHexeProcess::ExecuteMutateTensorItemPower (CDatum& retResult
 			CDatum dIndex3 = m_Stack.Pop();
 			CDatum dTensor = m_Stack.Pop();
 			CDatum dValue = m_Stack.Pop();
-			CDatum dElement = dTensor.GetElementAt3DI(dIndex1, dIndex2, dIndex3);
+			CDatum dElement = dTensor.GetElementAt3DA(dIndex1, dIndex2, dIndex3);
 			CDatum dResult = CAEONOp::Power(dElement, dValue);
-			dTensor.SetElementAt3DI(dIndex1, dIndex2, dIndex3, dResult);
+			dTensor.SetElementAt3DA(dIndex1, dIndex2, dIndex3, dResult);
 			m_Stack.Push(dResult);
 			break;
 			}
@@ -4223,13 +4303,13 @@ CHexeProcess::ERun CHexeProcess::ExecuteMutateTensorItemSubtract (CDatum& retRes
 
 		case 2:
 			{
-			int iIndex1 = m_Stack.Pop();
-			int iIndex2 = m_Stack.Pop();
+			CDatum dIndex1 = m_Stack.Pop();
+			CDatum dIndex2 = m_Stack.Pop();
 			CDatum dTensor = m_Stack.Pop();
 			CDatum dValue = m_Stack.Pop();
-			CDatum dElement = dTensor.GetElementAt2DI(iIndex1, iIndex2);
+			CDatum dElement = dTensor.GetElementAt2DA(dIndex1, dIndex2);
 			CDatum dResult = CAEONOp::Subtract(dElement, dValue);
-			dTensor.SetElementAt2DI(iIndex1, iIndex2, dResult);
+			dTensor.SetElementAt2DA(dIndex1, dIndex2, dResult);
 			m_Stack.Push(dResult);
 			break;
 			}
@@ -4241,9 +4321,9 @@ CHexeProcess::ERun CHexeProcess::ExecuteMutateTensorItemSubtract (CDatum& retRes
 			CDatum dIndex3 = m_Stack.Pop();
 			CDatum dTensor = m_Stack.Pop();
 			CDatum dValue = m_Stack.Pop();
-			CDatum dElement = dTensor.GetElementAt3DI(dIndex1, dIndex2, dIndex3);
+			CDatum dElement = dTensor.GetElementAt3DA(dIndex1, dIndex2, dIndex3);
 			CDatum dResult = CAEONOp::Subtract(dElement, dValue);
-			dTensor.SetElementAt3DI(dIndex1, dIndex2, dIndex3, dResult);
+			dTensor.SetElementAt3DA(dIndex1, dIndex2, dIndex3, dResult);
 			m_Stack.Push(dResult);
 			break;
 			}

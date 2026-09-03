@@ -17,7 +17,8 @@ class IDatatype
 		static constexpr DWORD UNKNOWN =			0;
 
 		//	These are basic concrete types that are returned by GetBasicDatatype().
-		//	We use these numbers as indices into a table, so they must be contiguous.
+		//	We use these numbers as indices into a table, so they must be less than
+		//	LAST_BASIC_TYPE.
 
 		static constexpr DWORD ANY =				1;	//	Any type (a CDatum)
 
@@ -48,7 +49,7 @@ class IDatatype
 		static constexpr DWORD VECTOR_2D_F64 =		26;	//	A 2D vector (concrete)
 		static constexpr DWORD VECTOR_3D_F64 =		27;	//	A 3D vector
 
-		static constexpr DWORD LAST_BASIC_TYPE =	28;	//	Technically not the last, but the last+1 because we use in allocating the array
+		static constexpr DWORD LAST_BASIC_TYPE =	76;	//	Technically not the last, but the last+1 because we use in allocating the array
 		
 		static constexpr DWORD NUMBER =				28;	//	Any number (abstract)
 		static constexpr DWORD REAL =				29;	//	A real number (abstract)
@@ -103,8 +104,9 @@ class IDatatype
 		static constexpr DWORD ENCODING_TYPE_ENUM =	72;	//	String-to-string encoding types
 		static constexpr DWORD CHAR_SET_TYPE_ENUM =	73;	//	String-to-binary character set types
 		static constexpr DWORD VOID_T =				74;	//	No value
+		static constexpr DWORD WILDCARD =			75;	//	The singleton WildcardType value (*)
 
-		static constexpr DWORD MAX_CORE_TYPE =		74;
+		static constexpr DWORD MAX_CORE_TYPE =		75;
 
 		static constexpr DWORD ORDINAL_MEMBER_TYPE_DEF =		0;
 		static constexpr DWORD ORDINAL_MEMBER_TYPE_PROPERTY =	1;
@@ -208,6 +210,7 @@ class IDatatype
 			};
 
 		static constexpr DWORD MEMBER_FLAG_INFERRED = 0x00000001;	//	Inferred member
+		static constexpr DWORD MEMBER_FLAG_CONST = 0x00000002;		//	Method does not modify the receiver.
 
 		struct SMemberDesc
 			{
@@ -278,6 +281,7 @@ class IDatatype
 		SMemberDesc GetMember (int iIndex) const { return OnGetMember(iIndex); }
 		CDatum GetMembersAsTable () const;
 		int GetMemberCount () const { return OnGetMemberCount(); }
+		DWORD GetMemberFlags (CStringView sName) const { return OnGetMemberFlags(sName); }
 		CDatum GetMemberType (int iIndex) const { return OnGetMemberType(iIndex); }
 		CString GetName () const { return OnGetName(); }
 		SNumberDesc GetNumberDesc () const { return OnGetNumberDesc(); }
@@ -353,6 +357,7 @@ class IDatatype
 		virtual CDatum OnGetKeyType () const;
 		virtual SMemberDesc OnGetMember (int iIndex) const { throw CException(errFail); }
 		virtual int OnGetMemberCount () const { return 0; }
+		virtual DWORD OnGetMemberFlags (CStringView sName) const { int iIndex = OnFindMember(sName); return (iIndex == -1 ? 0 : OnGetMember(iIndex).dwFlags); }
 		virtual CDatum OnGetMemberType (int iIndex) const { return OnGetMember(iIndex).dType; }
 		virtual CString OnGetName () const { return DefaultGetName(); }
 		virtual SNumberDesc OnGetNumberDesc () const { return SNumberDesc(); }

@@ -81,5 +81,6 @@ class CImageLoader
 		static EFormats GetFormatFromExtension (const CString& sFilespec);
 		static EFormats GetFormatFromString (const CString& sValue);
 		static bool Load (IMemoryBlock &Data, EFormats iFormat, CRGBA32Image &Image, CString *retsError = NULL);
+		static bool Save (const CRGBA32Image &Image, EFormats iFormat, IByteStream &Output, int iJPEGQuality = 80, CString *retsError = NULL);
 	};
 

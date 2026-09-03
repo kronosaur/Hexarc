@@ -9,7 +9,7 @@ class CAEONArrayAlgorithm
 	{
 	public:
 
-		static CDatum Except (CDatum dArray, CDatum dExclude, CDatum dOptions);
-		static CDatum Intersect (CDatum dArray, CDatum dIntersect, CDatum dOptions);
-		static CDatum Union (CDatum dArray, CDatum dUnion, CDatum dOptions);
+		static CDatum Except (CAEONTypeSystem& TypeSystem, CDatum dArray, CDatum dExclude, CDatum dOptions);
+		static CDatum Intersect (CAEONTypeSystem& TypeSystem, CDatum dArray, CDatum dIntersect, CDatum dOptions);
+		static CDatum Union (CAEONTypeSystem& TypeSystem, CDatum dArray, CDatum dUnion, CDatum dOptions);
 	};

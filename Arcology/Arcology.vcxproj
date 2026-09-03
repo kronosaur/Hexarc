@@ -371,6 +371,7 @@
     <None Include="..\Docs\aeondb-diagnostics-notes.md" />
     <None Include="..\Docs\aeondb-overview.md" />
     <None Include="..\Docs\architecture.md" />
+    <None Include="..\Docs\backlog.md" />
     <None Include="..\Docs\cdatum.md" />
     <None Include="..\Docs\column-expressions.md" />
     <None Include="..\Docs\core-library.md" />

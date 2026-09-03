@@ -296,7 +296,12 @@ IDatatype::SMemberDesc CDatatypeArray::OnGetMember (int iIndex) const
 				iIndex -= CAEONTable::GetPropertyCount();
 
 				if (iIndex < CAEONTable::GetMethodCount())
-					return SMemberDesc({ EMemberType::InstanceMethod, CAEONTable::GetMethodKey(iIndex), CAEONTable::GetMethodType(iIndex) });
+					{
+					SMemberDesc Member({ EMemberType::InstanceMethod, CAEONTable::GetMethodKey(iIndex), CAEONTable::GetMethodType(iIndex) });
+					if (CAEONTable::GetMethodFlags(iIndex) & IInvokeCtx::EXEC_FLAG_CONST)
+						Member.dwFlags |= MEMBER_FLAG_CONST;
+					return Member;
+					}
 				else
 					throw CException(errFail);
 				}
@@ -315,7 +320,12 @@ IDatatype::SMemberDesc CDatatypeArray::OnGetMember (int iIndex) const
 				iIndex -= CAEONDictionary::GetPropertyCount();
 
 				if (iIndex < CAEONDictionary::GetMethodCount())
-					return SMemberDesc({ EMemberType::InstanceMethod, CAEONDictionary::GetMethodKey(iIndex), CAEONDictionary::GetMethodType(iIndex) });
+					{
+					SMemberDesc Member({ EMemberType::InstanceMethod, CAEONDictionary::GetMethodKey(iIndex), CAEONDictionary::GetMethodType(iIndex) });
+					if (CAEONDictionary::GetMethodFlags(iIndex) & IInvokeCtx::EXEC_FLAG_CONST)
+						Member.dwFlags |= MEMBER_FLAG_CONST;
+					return Member;
+					}
 				else
 					throw CException(errFail);
 				}
@@ -329,7 +339,12 @@ IDatatype::SMemberDesc CDatatypeArray::OnGetMember (int iIndex) const
 				iIndex -= CComplexArray::GetPropertyCount();
 
 				if (iIndex < CComplexArray::GetMethodCount())
-					return SMemberDesc({ EMemberType::InstanceMethod, CComplexArray::GetMethodKey(iIndex), CComplexArray::GetMethodType(iIndex) });
+					{
+					SMemberDesc Member({ EMemberType::InstanceMethod, CComplexArray::GetMethodKey(iIndex), CComplexArray::GetMethodType(iIndex) });
+					if (CComplexArray::GetMethodFlags(iIndex) & IInvokeCtx::EXEC_FLAG_CONST)
+						Member.dwFlags |= MEMBER_FLAG_CONST;
+					return Member;
+					}
 				else
 					throw CException(errFail);
 				}
