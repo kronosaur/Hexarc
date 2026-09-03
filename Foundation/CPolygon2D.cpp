@@ -634,7 +634,8 @@ void CPolygon2D::Simplify (double rMinSegment, CPolygon2D *retResult) const
 
 	for (i = 0; i < retResult->GetVertexCount(); i++)
 		{
-		int iB = (i + 1) % retResult->GetVertexCount();
+		//	Avoid modulo because MSVC LTCG emits C4724 despite the loop condition guaranteeing a non-zero divisor.
+		int iB = (i + 1 == retResult->GetVertexCount() ? 0 : i + 1);
 		const CVector2D &vA = retResult->m_vPoints[i];
 		const CVector2D &vB = retResult->m_vPoints[iB];
 
