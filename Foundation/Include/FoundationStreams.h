@@ -56,6 +56,7 @@ class IByteStream
 		int Write (const void *pData, std::ptrdiff_t iLength) { ASSERT(iLength < MAXINT); return this->Write(pData, (int)iLength); }
 		int Write (IByteStream &Stream, int iLength) { return WriteStream(Stream, iLength); }
 		int WriteChar (char chChar, int iCount = 1);
+		int WriteIntString (int iValue, const char* pFormat = NULL);
 		int WriteStreamDefault (IByteStream &Stream, int iLength);
 		int WriteWithProgress (IByteStream &Stream, int iLength, IProgressEvents *pProgress);
 	};

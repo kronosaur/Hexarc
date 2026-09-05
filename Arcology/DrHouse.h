@@ -30,6 +30,7 @@ class CDrHouseEngine : public TSimpleEngine<CDrHouseEngine>
 		void MsgCreateLogSearch (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgCreateTestTable (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgGetLogSearch (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
+		void MsgLogFileDump (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgPortCacheDump (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgProcessLogSearch (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);
 		void MsgUnitTest (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx);

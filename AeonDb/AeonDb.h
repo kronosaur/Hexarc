@@ -484,6 +484,7 @@ class CAeonUploadSessions
 			int iFileSize = 0;				//	Total size of file
 			bool bNewFile = false;			//	New file created
 			CString sFilespec;				//	Uploaded file
+			CString sBackupFailureFilespec;	//	Backup file which failed, if any
 			};
 
 		CAeonUploadSessions (void) { }
@@ -819,6 +820,7 @@ class CAeonTable
 		bool SaveDesc (void);
 		bool SaveDesc (CDatum dDesc, const CString &sFilespec, CString *retsError);
 		bool ValidateVolume (const CString &sVolume, TArray<CString> &retUnused, CString *retsError) const;
+		bool ValidateVolumeFiles (const CString &sVolumeToValidate, TArray<CString> &retExtraFiles, CString *retsError) const;
 
 		static CDatum GetDimensionPathElement (EKeyTypes iKeyType, const char **iopPos, const char *pPosEnd);
 		static void SetDimensionDesc (CComplexStruct *pDesc, const SDimensionDesc &Dim);

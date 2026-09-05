@@ -91,6 +91,7 @@ class CIPInteger
 		bool FitsAsDouble (void) const;
 		bool FitsAsInteger32Signed (void) const;
 		bool FitsAsInteger64Unsigned (void) const;
+		bool FitsAsJavaScriptInteger (void) const;
 		DWORD GetSize (void) const;
 		void InitFromBytes (const IMemoryBlock &Data);
 		void InitFromString (const CString &sString);

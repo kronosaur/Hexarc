@@ -473,6 +473,8 @@ bool CAeonUploadSessions::ProcessUpload (CMsgProcessCtx &Ctx,
 		bSuccess = false;
 		}
 
+	CString sBackupFailureFilespec = TempFile.GetMirrorFailureFilespec();
+
 	//	After writing we need to reacquire the lock and look up session
 	//	again (since it could have been trashed).
 
@@ -575,7 +577,17 @@ bool CAeonUploadSessions::ProcessUpload (CMsgProcessCtx &Ctx,
 		{
 		//	Make sure we flush the temp file before we return.
 
-		TempFile.Flush();
+		if (!TempFile.Flush())
+			{
+			DeleteTempFile(pSession, &TempFile);
+			Delete(sSessionID);
+			retReceipt->iComplete = 0;
+			retReceipt->sError = strPattern(STR_ERROR_WRITING_TEMP_FILE, sFilePath);
+			return false;
+			}
+
+		if (sBackupFailureFilespec.IsEmpty())
+			sBackupFailureFilespec = TempFile.GetMirrorFailureFilespec();
 
 		//	Return the result
 
@@ -587,6 +599,7 @@ bool CAeonUploadSessions::ProcessUpload (CMsgProcessCtx &Ctx,
 		retReceipt->iFileSize = pSession->iTempFileSize;
 		retReceipt->bNewFile = pSession->bTempFileCreated;
 		retReceipt->sFilespec = sTempFilespec;
+		retReceipt->sBackupFailureFilespec = sBackupFailureFilespec;
 
 		//	We no longer need the session
 
@@ -600,6 +613,7 @@ bool CAeonUploadSessions::ProcessUpload (CMsgProcessCtx &Ctx,
 		*retReceipt = SReceipt();
 		retReceipt->iComplete = CalcUploadCompletion(pSession);
 		retReceipt->sFilePath = sFilePath;
+		retReceipt->sBackupFailureFilespec = sBackupFailureFilespec;
 		pSession->dwLastActivity = sysGetTickCount();
 		}
 

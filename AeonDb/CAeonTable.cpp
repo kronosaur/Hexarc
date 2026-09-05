@@ -159,6 +159,7 @@ DECLARE_CONST_STRING(MUTATE_WRITE_NEW,					"writeNew");
 DECLARE_CONST_STRING(OP_CREATE_CORE_DIRECTORIES,		"creating core directories");
 DECLARE_CONST_STRING(OP_INSERT,							"inserting a row");
 DECLARE_CONST_STRING(OP_MUTATE,							"mutating a row");
+DECLARE_CONST_STRING(OP_UPLOAD_FILE,						"uploading a file");
 
 DECLARE_CONST_STRING(OPTION_RECURSIVE,					"recursive");
 
@@ -214,6 +215,7 @@ DECLARE_CONST_STRING(STR_ERROR_NO_TABLE_IN_PATH,		"Table name expected.");
 DECLARE_CONST_STRING(ERR_CANNOT_ADD_ROW,				"Unable to add a row to table: %s.");
 DECLARE_CONST_STRING(ERR_PRIMARY_OFFLINE,				"Unable to access primary volume for table: %s.");
 DECLARE_CONST_STRING(ERR_CANNOT_COPY_FILE,				"Unable to copy from %s to %s.");
+DECLARE_CONST_STRING(ERR_MISSING_BACKUP_FILE,			"Table %s: Backup volume %s is missing file: %s. Copying from primary.");
 DECLARE_CONST_STRING(ERR_SEGMENT_BACKUP_FAILED,			"Unable to create backup for new segment: %s.");
 DECLARE_CONST_STRING(ERR_CANT_CREATE_DIRECTORY,			"Unable to create directory: %s.");
 DECLARE_CONST_STRING(STR_ERROR_BAD_ITERATOR,			"Unable to create iterator for table: %s.");
@@ -4880,6 +4882,21 @@ AEONERR CAeonTable::UploadFile (CMsgProcessCtx &Ctx, const CString &sSessionID, 
 		return AEONERR_FAIL;
 		}
 
+	//	If the primary write succeeded but the mirror failed, report the bad
+	//	volume and schedule a fresh backup. The primary upload remains
+	//	authoritative.
+
+	if (!Receipt.sBackupFailureFilespec.IsEmpty())
+		{
+		m_pProcess->ReportVolumeFailure(Receipt.sBackupFailureFilespec, OP_UPLOAD_FILE);
+		if (!RecoveryBackup())
+			{
+			if (retsError)
+				*retsError = strPattern(ERR_PRIMARY_OFFLINE, m_sName);
+			return AEONERR_FAIL;
+			}
+		}
+
 	//	If we're not yet complete, we're done; wait until more data comes in
 
 	if (Receipt.iComplete != 100)
@@ -5110,8 +5127,9 @@ bool CAeonTable::ValidateVolume (const CString &sVolume, TArray<CString> &retUnu
 
 			//	Check to see if the file exists. If not, then validation fails
 
-			bool *pMarked = Existing.SetAt(sSegFile);
-			if (pMarked == NULL)
+			bool bInserted;
+			bool *pMarked = Existing.SetAt(sSegFile, &bInserted);
+			if (bInserted)
 				{
 				if (retsError) *retsError = strPattern(ERR_MISSING_FILE, sSegFile);
 				return false;
@@ -5133,6 +5151,134 @@ bool CAeonTable::ValidateVolume (const CString &sVolume, TArray<CString> &retUnu
 			}
 
 	//	If we get this far, then the volume is valid.
+
+	return true;
+	}
+
+bool CAeonTable::ValidateVolumeFiles (const CString &sVolumeToValidate, TArray<CString> &retExtraFiles, CString *retsError) const
+
+//	ValidateVolumeFiles
+//
+//	Compares the files directory on the primary volume against the same
+//	directory on the given volume. We repair missing files and return any extra
+//	files for the caller to delete.
+
+	{
+	CSmartLock Lock(m_cs);
+
+	retExtraFiles.DeleteAll();
+
+	//	Get the files paths on the primary and target volumes.
+
+	CString sPrimaryVolumePath = m_pStorage->GetPath(m_sPrimaryVolume);
+	if (sPrimaryVolumePath.IsEmpty())
+		{
+		if (retsError) *retsError = strPattern(ERR_INVALID_VOLUME, m_sPrimaryVolume);
+		return false;
+		}
+
+	CString sTargetVolumePath = m_pStorage->GetPath(sVolumeToValidate);
+	if (sTargetVolumePath.IsEmpty())
+		{
+		if (retsError) *retsError = strPattern(ERR_INVALID_VOLUME, sVolumeToValidate);
+		return false;
+		}
+
+	CString sPrimaryFilesPath = fileAppend(fileAppend(sPrimaryVolumePath, m_sName), FILESPEC_FILES_DIR);
+	CString sTargetFilesPath = fileAppend(fileAppend(sTargetVolumePath, m_sName), FILESPEC_FILES_DIR);
+
+	//	List all files on the primary volume.
+
+	TArray<CString> PrimaryFiles;
+	if (!fileGetFileList(sPrimaryFilesPath, NULL_STR, FILESPEC_ALL, FFL_FLAG_RELATIVE_FILESPEC, &PrimaryFiles))
+		{
+		if (retsError) *retsError = strPattern(ERR_UNABLE_TO_LIST_FILES, sPrimaryFilesPath);
+		return false;
+		}
+
+	//	The target files directory might itself be missing. Recreate it so that
+	//	we can repair all its missing files below.
+
+	if (!fileExists(sTargetFilesPath) && !filePathCreate(sTargetFilesPath))
+		{
+		if (retsError) *retsError = strPattern(ERR_CANT_CREATE_DIRECTORY, sTargetFilesPath);
+		return false;
+		}
+
+	TArray<CString> TargetFiles;
+	if (!fileGetFileList(sTargetFilesPath, NULL_STR, FILESPEC_ALL, FFL_FLAG_RELATIVE_FILESPEC, &TargetFiles))
+		{
+		if (retsError) *retsError = strPattern(ERR_UNABLE_TO_LIST_FILES, sTargetFilesPath);
+		return false;
+		}
+
+	//	Create a map of all target files. We mark each one if it also exists on
+	//	the primary volume.
+
+	TSortMap<CString, bool> Existing;
+	for (int i = 0; i < TargetFiles.GetCount(); i++)
+		Existing.SetAt(TargetFiles[i], false);
+
+	bool bSuccess = true;
+	CString sFirstError;
+	for (int i = 0; i < PrimaryFiles.GetCount(); i++)
+		{
+		bool bInserted;
+		bool *pMarked = Existing.SetAt(PrimaryFiles[i], &bInserted);
+
+		//	If the file is missing, repair it from the primary. We keep going so
+		//	that a single failure does not prevent us from finding other problems.
+
+		if (bInserted)
+			{
+			CString sSourceFilespec = fileAppend(sPrimaryFilesPath, PrimaryFiles[i]);
+			CString sTargetFilespec = fileAppend(sTargetFilesPath, PrimaryFiles[i]);
+
+			//	A concurrent upload might have created the target after we listed
+			//	the directory. Only repair it if it is still missing.
+
+			if (!fileExists(sTargetFilespec))
+				{
+				m_pProcess->Log(MSG_LOG_ERROR, strPattern(ERR_MISSING_BACKUP_FILE, m_sName, sVolumeToValidate, sTargetFilespec));
+
+				CString sCopyError;
+				if (!fileCopy(sSourceFilespec, sTargetFilespec, &sCopyError))
+					{
+					CString sError = strPattern(ERR_CANNOT_COPY_FILE, sSourceFilespec, sTargetFilespec);
+					m_pProcess->Log(MSG_LOG_ERROR, (sCopyError.IsEmpty() ? sError : strPattern("%s %s", sError, sCopyError)));
+
+					if (sFirstError.IsEmpty())
+						sFirstError = sError;
+
+					bSuccess = false;
+					}
+				}
+			}
+
+		//	The file is expected on the target, whether it already existed or we
+		//	just attempted to repair it.
+
+		*pMarked = true;
+		}
+
+	//	Return all files that exist only on the target volume.
+
+	for (int i = 0; i < Existing.GetCount(); i++)
+		if (!Existing[i])
+			{
+			//	A concurrent upload might have created the primary after we listed
+			//	it. Do not classify the corresponding target as extra in that case.
+
+			CString sPrimaryFilespec = fileAppend(sPrimaryFilesPath, Existing.GetKey(i));
+			if (!fileExists(sPrimaryFilespec))
+				retExtraFiles.Insert(fileAppend(sTargetFilesPath, Existing.GetKey(i)));
+			}
+
+	if (!bSuccess)
+		{
+		if (retsError) *retsError = sFirstError;
+		return false;
+		}
 
 	return true;
 	}

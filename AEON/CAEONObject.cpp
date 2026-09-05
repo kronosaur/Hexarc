@@ -778,6 +778,7 @@ void CAEONObject::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const
 		//	the datatype in the special __datatype__ field.
 
 		case CDatum::EFormat::AEONJSON:
+		case CDatum::EFormat::AEONJSONJavaScript:
 		case CDatum::EFormat::JSON:
 			{
 			Stream.Write("{\"", 2);

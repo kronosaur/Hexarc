@@ -169,6 +169,16 @@ void CDrHouseEngine::MsgGetLogSearch (const SArchonMessage &Msg, const CHexeSecu
 	SendMessageReply(MSG_REPLY_DATA, dResponse, Msg);
 	}
 
+void CDrHouseEngine::MsgLogFileDump (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)
+
+//	MsgLogFileDump
+//
+//	Diagnostics.logFileDump
+
+	{
+	SendMessageReply(MSG_REPLY_DATA, m_BlackBoxProcessor.GetLogFileList(), Msg);
+	}
+
 void CDrHouseEngine::MsgProcessLogSearch (const SArchonMessage &Msg, const CHexeSecurityCtx *pSecurityCtx)
 
 //	MsgProcessLogSearch

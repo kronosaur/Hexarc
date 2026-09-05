@@ -18,6 +18,7 @@ DECLARE_CONST_STRING(FIELD_FILE_PATH,					"filePath");
 DECLARE_CONST_STRING(FIELD_HEADERS,						"headers");
 DECLARE_CONST_STRING(FIELD_ID,							"id");
 DECLARE_CONST_STRING(FIELD_JSON_RPC,					"jsonrpc");
+DECLARE_CONST_STRING(FIELD_JSON_FORMAT,				"jsonFormat");
 DECLARE_CONST_STRING(FIELD_MESSAGE,						"message");
 DECLARE_CONST_STRING(FIELD_OUTPUT,						"output");
 DECLARE_CONST_STRING(FIELD_RPC_MODE,					"rpcMode");
@@ -48,6 +49,9 @@ DECLARE_CONST_STRING(METHOD_POST,						"POST");
 
 DECLARE_CONST_STRING(MODE_JSON_RPC,						"jsonrpc");
 
+DECLARE_CONST_STRING(JSON_FORMAT_AEON,					"aeon");
+DECLARE_CONST_STRING(JSON_FORMAT_JAVASCRIPT,			"javascript");
+
 DECLARE_CONST_STRING(MSG_ERROR_INVALID_AUTH,			"Error.invalidAuth");
 DECLARE_CONST_STRING(MSG_ERROR_NOT_ALLOWED,				"Error.notAllowed");
 
@@ -73,6 +77,7 @@ DECLARE_CONST_STRING(ERR_INVALID_URL_PATH,				"Invalid urlPath: %s.");
 DECLARE_CONST_STRING(ERR_404_NOT_FOUND,					"Not Found");
 DECLARE_CONST_STRING(ERR_UNSUPPORTED_MEDIA_TYPE,		"Unsupported media type: %s.");
 DECLARE_CONST_STRING(ERR_JSON_SERIALIZE_TIME_WARNING,	"Serialized JSON response.");
+DECLARE_CONST_STRING(ERR_INVALID_JSON_FORMAT,			"Invalid jsonFormat: %s");
 
 bool CHexeCodeRPCService::ComposeCustomResponse (SHTTPRequestCtx& Ctx, CHexeProcess::ERun iRun, CDatum dResult)
 	{
@@ -264,7 +269,7 @@ bool CHexeCodeRPCService::ComposeJSONResponse (SHTTPRequestCtx& Ctx, CHexeProces
 		//	Serialize as JSON
 
 		CStringBuffer Buffer;
-		dRPCResult.Serialize(CDatum::EFormat::AEONJSON, Buffer);
+		dRPCResult.Serialize(GetJSONSerializationFormat(), Buffer);
 
 		IMediaTypePtr pBody = IMediaTypePtr(new CRawMediaType);
 		pBody->DecodeFromBuffer(MEDIA_TYPE_JSON, Buffer);
@@ -290,7 +295,7 @@ bool CHexeCodeRPCService::ComposeJSONResponse (SHTTPRequestCtx& Ctx, CHexeProces
 
 		CArchonTimer Timer;
 		CStringBuffer Buffer;
-		dResult.Serialize(CDatum::EFormat::AEONJSON, Buffer);
+		dResult.Serialize(GetJSONSerializationFormat(), Buffer);
 
 #ifdef DEBUG_PERF
 		printf("DebugPerf: JSON serialize %d bytes.\n", Buffer.GetLength());
@@ -591,6 +596,19 @@ bool CHexeCodeRPCService::OnHTTPInit (CDatum dServiceDef, const CHexeDocument &P
 	m_sOutputContentType = dServiceDef.GetElement(FIELD_OUTPUT).AsStringView();
 	if (m_sOutputContentType.IsEmpty())
 		m_sOutputContentType = MEDIA_TYPE_HTML;
+
+	//	Parse JSON format
+
+	CStringView sJSONFormat = dServiceDef.GetElement(FIELD_JSON_FORMAT).AsStringView();
+	if (sJSONFormat.IsEmpty() || strEquals(sJSONFormat, JSON_FORMAT_AEON))
+		m_iJSONFormat = EJSONFormat::AEON;
+	else if (strEquals(sJSONFormat, JSON_FORMAT_JAVASCRIPT))
+		m_iJSONFormat = EJSONFormat::JavaScript;
+	else
+		{
+		if (retsError) *retsError = strPattern(ERR_INVALID_JSON_FORMAT, sJSONFormat);
+		return false;
+		}
 
 	//	Parse RPC Mode
 

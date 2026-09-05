@@ -47,6 +47,7 @@ bool CComplexImage32::OnDeserialize (CDatum::EFormat iFormat, const CString &sTy
 	switch (iFormat)
 		{
 		case CDatum::EFormat::AEONJSON:
+		case CDatum::EFormat::AEONJSONJavaScript:
 		case CDatum::EFormat::JSON:
 			{
 			CBuffer Buffer;
@@ -102,6 +103,7 @@ void CComplexImage32::OnSerialize (CDatum::EFormat iFormat, IByteStream &Stream)
 
 		case CDatum::EFormat::GridLang:
 		case CDatum::EFormat::AEONJSON:
+		case CDatum::EFormat::AEONJSONJavaScript:
 		case CDatum::EFormat::JSON:
 			CPNG::Save(m_Image, Stream);
 			break;

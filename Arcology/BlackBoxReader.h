@@ -26,6 +26,7 @@ class CBBRLogFiles
 		CBBRLogFiles (void);
 
 		void CloseIfUnused (void);
+		CDatum GetFileList (void) const;
 		CDatum GetLine (const SCursor &Cursor) const;
 		CDateTime GetLineDate (const SCursor &Cursor) const;
 		bool Init (const CString &sPath, CString *retsError);
@@ -94,6 +95,7 @@ class CBlackBoxProcessor
 		~CBlackBoxProcessor (void);
 
 		bool CreateSession (const CString &sSearch, const SOptions &Options, DWORD *retdwID, CString *retsError);
+		CDatum GetLogFileList (void) const { return m_LogFiles.GetFileList(); }
 		bool GetResults (DWORD dwID, DWORD *retdwLinesSearched, CDatum *retdResult, CString *retsError);
 		bool Init (const CString &sPath, CString *retsError);
 		void Mark (void);

@@ -367,6 +367,7 @@ void IComplexDatum::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) con
 			break;
 
 		case CDatum::EFormat::AEONJSON:
+		case CDatum::EFormat::AEONJSONJavaScript:
 			{
 			if (!(dwFlags & FLAG_SERIALIZE_NO_TYPENAME))
 				{
@@ -582,6 +583,7 @@ void IComplexDatum::SerializeAsStruct (CDatum::EFormat iFormat, IByteStream &Str
 			}
 
 		case CDatum::EFormat::AEONJSON:
+		case CDatum::EFormat::AEONJSONJavaScript:
 		case CDatum::EFormat::JSON:
 			{
 			Stream.Write("{", 1);

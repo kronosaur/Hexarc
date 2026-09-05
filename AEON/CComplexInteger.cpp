@@ -146,6 +146,13 @@ void CComplexInteger::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) c
 				}
 			break;
 
+		case CDatum::EFormat::AEONJSONJavaScript:
+			if (m_Value.FitsAsJavaScriptInteger())
+				Stream.Write(m_Value.AsString());
+			else
+				IComplexDatum::Serialize(CDatum::EFormat::AEONJSON, Stream);
+			break;
+
 		default:
 			IComplexDatum::Serialize(iFormat, Stream);
 			break;

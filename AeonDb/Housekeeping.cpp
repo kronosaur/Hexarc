@@ -14,7 +14,9 @@ DECLARE_CONST_STRING(OP_UPDATING_VIEW,					"updating a view");
 
 DECLARE_CONST_STRING(STR_BACKING_UP,					"Table %s: Backing up to: %s.");
 DECLARE_CONST_STRING(STR_BACKUP_COMPLETE,				"Table %s: Backup complete.");
+DECLARE_CONST_STRING(STR_BACKUP_VALIDATION_COMPLETE,	"Table %s: Backup validation complete in %d ms.");
 DECLARE_CONST_STRING(STR_COMPACTING_OLD_TOMBSTONES,	"Table %s: Compacting old tombstones from view %x segment %s (%d rows).");
+DECLARE_CONST_STRING(STR_EXTRA_FILES_DELETED,			"Table %s: Deleted %d extraneous files from backup volume %s.");
 DECLARE_CONST_STRING(STR_TOMBSTONE_COMPACT_COMPLETE,	"Table %s: Old tombstone compaction complete.");
 DECLARE_CONST_STRING(STR_MERGE_COMPLETE,				"Table %s: Segment merge complete.");
 DECLARE_CONST_STRING(STR_UPDATING_VIEW,					"Updating view %s in table %s.");
@@ -577,24 +579,33 @@ void CAeonTable::HousekeepingValidateBackup (void)
 	{
 	int i;
 	CString sError;
+	DWORDLONG dwStart = ::sysGetTickCount64();
+
+	//	Validate all segments.
+
+	TArray<CString> ExtraSegments;
+	bool bValid = ValidateVolume(m_sBackupVolume, ExtraSegments, &sError);
+
+	//	File tables also need to validate and repair their payload files.
+
+	TArray<CString> ExtraFiles;
+	if (GetType() == typeFile)
+		{
+		CString sFilesError;
+		bool bFilesValid = ValidateVolumeFiles(m_sBackupVolume, ExtraFiles, &sFilesError);
+		if (!bFilesValid && bValid)
+			sError = sFilesError;
+
+		bValid = (bValid && bFilesValid);
+		}
 
 	//	If we validate, log it.
 
-	TArray<CString> Extra;
-	if (ValidateVolume(m_sBackupVolume, Extra, &sError))
+	if (bValid)
 		{
 #ifdef DEBUG_VERBOSE
 		m_pProcess->Log(MSG_LOG_INFO, strPattern(STR_BACKUP_OK, m_sName, m_sBackupVolume));
 #endif
-
-		//	If we have extra segment files, we need to delete them
-
-		for (i = 0; i < Extra.GetCount(); i++)
-			{
-			m_pProcess->Log(MSG_LOG_INFO, strPattern(ERR_DELETING_EXTRA_SEGMENT_FILE, m_sName, Extra[i]));
-			if (!fileDelete(Extra[i]))
-				m_pProcess->Log(MSG_LOG_ERROR, strPattern(ERR_CANT_DELETE_FILE, Extra[i]));
-			}
 		}
 
 	//	Otherwise, we log an error and force a new backup
@@ -610,7 +621,40 @@ void CAeonTable::HousekeepingValidateBackup (void)
 		m_bBackupNeeded = true;
 		}
 
+	//	If we have extra segment files, delete them.
+
+	for (i = 0; i < ExtraSegments.GetCount(); i++)
+		{
+		m_pProcess->Log(MSG_LOG_INFO, strPattern(ERR_DELETING_EXTRA_SEGMENT_FILE, m_sName, ExtraSegments[i]));
+		if (!fileDelete(ExtraSegments[i]))
+			m_pProcess->Log(MSG_LOG_ERROR, strPattern(ERR_CANT_DELETE_FILE, ExtraSegments[i]));
+		}
+
+	//	Delete extra file payloads, logging failures individually and a single
+	//	summary for all successful deletions.
+
+	if (ExtraFiles.GetCount() > 0)
+		{
+		int iDeleted = 0;
+		for (i = 0; i < ExtraFiles.GetCount(); i++)
+			{
+			if (fileDelete(ExtraFiles[i]))
+				iDeleted++;
+			else
+				m_pProcess->Log(MSG_LOG_ERROR, strPattern(ERR_CANT_DELETE_FILE, ExtraFiles[i]));
+			}
+
+		m_pProcess->Log(MSG_LOG_INFO, strPattern(STR_EXTRA_FILES_DELETED, m_sName, iDeleted, m_sBackupVolume));
+		}
+
 	//	Either way, no need to validate backup again until next random check.
 
 	m_bValidateBackup = false;
+
+	//	Report the total cost of checking this table, including any repairs and
+	//	cleanup performed above.
+
+#ifdef DEBUG_VERBOSE
+	m_pProcess->Log(MSG_LOG_INFO, strPattern(STR_BACKUP_VALIDATION_COMPLETE, m_sName, (DWORD)::sysGetTicksElapsed(dwStart)));
+#endif
 	}

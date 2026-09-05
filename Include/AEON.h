@@ -182,6 +182,7 @@ class CDatum
 			AEONBinaryLocal =	6,			//	AEON binary serialized to a local machine
 			GridLang =			7,			//	GridLang literal
 			JSON =				8,			//	Plain JSON (without AEON extensions)
+			AEONJSONJavaScript = 9,			//	AEON JSON with JavaScript-safe IP integers as numbers.
 			};
 
 		enum class InvokeResult

@@ -350,6 +350,11 @@ class CHexeCodeRPCService : public CHTTPService
 		virtual void OnHTTPMark (void) override;
 
 	private:
+		enum class EJSONFormat
+			{
+			AEON,
+			JavaScript,
+			};
 
 		enum class ERPCMode
 			{
@@ -366,9 +371,11 @@ class CHexeCodeRPCService : public CHTTPService
 		bool ComposeJSONResponse (SHTTPRequestCtx& Ctx, CHexeProcess::ERun iRun, CDatum dResult);
 
 		bool ComposeOKResponse (SHTTPRequestCtx& Ctx, IMediaTypePtr pBody);
+		CDatum::EFormat GetJSONSerializationFormat () const { return (m_iJSONFormat == EJSONFormat::JavaScript ? CDatum::EFormat::AEONJSONJavaScript : CDatum::EFormat::AEONJSON); }
 
 		CHexeProcess m_ProcessTemplate;
 		CString m_sOutputContentType;
+		EJSONFormat m_iJSONFormat = EJSONFormat::AEON;
 		ERPCMode m_iRPCMode = ERPCMode::None;
 	};
 

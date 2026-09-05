@@ -10,6 +10,17 @@ DECLARE_CONST_STRING(STR_CBBRLOG_FILES_FIXUP_LOG,	"Fixup.log");
 
 DECLARE_CONST_STRING(FILESPEC_DOT_LOG,					"BlackBox*.log")
 
+DECLARE_CONST_STRING(FIELD_FILE_LENGTH,				"fileLength")
+DECLARE_CONST_STRING(FIELD_FILESPEC,					"filespec")
+DECLARE_CONST_STRING(FIELD_INDEX,						"index")
+DECLARE_CONST_STRING(FIELD_MAPPED_LENGTH,			"mappedLength")
+DECLARE_CONST_STRING(FIELD_SEARCH_LENGTH,			"searchLength")
+DECLARE_CONST_STRING(FIELD_STATUS,					"status")
+
+DECLARE_CONST_STRING(STATUS_CLOSED,					"closed")
+DECLARE_CONST_STRING(STATUS_ERROR,					"error")
+DECLARE_CONST_STRING(STATUS_OPEN,						"open")
+
 DECLARE_CONST_STRING(ERR_DIRECTORY_FAILED,				"Unable to find log files at: %s.")
 DECLARE_CONST_STRING(ERR_CRASH_GET_LINE,				"Crash in CBBRLogFiles::GetLine on file: %s.")
 DECLARE_CONST_STRING(ERR_CRASH_MOVE_BACKWARDS,			"Crash in CBBRLogFiles::MoveBackwards.")
@@ -65,6 +76,51 @@ void CBBRLogFiles::CloseIfUnused (void)
 		}
 	}
 
+CDatum CBBRLogFiles::GetFileList (void) const
+
+//	GetFileList
+//
+//	Returns the log files in search order, along with the cached length used by
+//	the search cursor and the current length on disk.
+
+	{
+	CSmartLock Lock(m_cs);
+
+	CDatum dResult(CDatum::typeArray);
+	dResult.GrowToFit(m_Files.GetCount());
+
+	for (int i = 0; i < m_Files.GetCount(); i++)
+		{
+		const SFile &FileData = m_Files[i];
+
+		CDatum dFile(CDatum::typeStruct);
+		dFile.SetElement(FIELD_INDEX, i);
+		dFile.SetElement(FIELD_FILESPEC, FileData.sFilename);
+		dFile.SetElement(FIELD_SEARCH_LENGTH, CDatum(FileData.dwLength));
+		dFile.SetElement(FIELD_FILE_LENGTH, CDatum(fileGetSize(FileData.sFilename)));
+
+		switch (FileData.iStatus)
+			{
+			case statusClosed:
+				dFile.SetElement(FIELD_STATUS, STATUS_CLOSED);
+				break;
+
+			case statusReady:
+				dFile.SetElement(FIELD_STATUS, STATUS_OPEN);
+				dFile.SetElement(FIELD_MAPPED_LENGTH, CDatum(FileData.File.GetLength()));
+				break;
+
+			case statusError:
+				dFile.SetElement(FIELD_STATUS, STATUS_ERROR);
+				break;
+			}
+
+		dResult.Append(dFile);
+		}
+
+	return dResult;
+	}
+
 char *CBBRLogFiles::FindLineStart (char *pPos, char *pFileStart) const
 
 //	FindLineStart
@@ -72,6 +128,8 @@ char *CBBRLogFiles::FindLineStart (char *pPos, char *pFileStart) const
 //	Returns the start of the line.
 
 	{
+	char *pEntryEnd = pPos;
+
 	while (pPos > pFileStart)
 		{
 		//	Look for an LF
@@ -96,11 +154,12 @@ char *CBBRLogFiles::FindLineStart (char *pPos, char *pFileStart) const
 		if (pPos[-1] != '\r')
 			continue;
 
-		//	Otherwise, check to see if the line starts with a date.
+		//	A physical line is the start of a log entry only if it begins with a
+		//	valid BlackBox timestamp. Otherwise it is a continuation of the same
+		//	entry and we keep searching backwards.
 
-		//	Found it.
-
-		return pLineStart;
+		if (CBlackBox::ParseLogLineDate(pLineStart, pEntryEnd))
+			return pLineStart;
 		}
 
 	return pPos;
@@ -149,7 +208,7 @@ CDateTime CBBRLogFiles::GetLineDate (const SCursor &Cursor) const
 		char *pPosEnd = pPos + Cursor.dwLength;
 
 		CDateTime Value;
-		if (!CDateTime::Parse(CDateTime::formatAuto, pPos, pPosEnd, &Value))
+		if (!CBlackBox::ParseLogLineDate(pPos, pPosEnd, &Value))
 			return CDateTime();
 
 		return Value;

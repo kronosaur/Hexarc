@@ -91,9 +91,13 @@ function diag.view
 
 						"topic:\n\n"
 
+						"logFiles\n"
 						"netUsage\n"
 						"portCache"
 						)
+
+				(= topic 'logfiles)
+					(invoke 'Diagnostics.logFileDump)
 
 				(= topic 'netUsage)
 					(map (invoke 'Esper.getUsageHistory) 'excludeNil theRecord {

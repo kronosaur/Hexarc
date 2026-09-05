@@ -903,6 +903,20 @@ bool CIPInteger::FitsAsInteger64Unsigned (void) const
 	return true;
 	}
 
+bool CIPInteger::FitsAsJavaScriptInteger (void) const
+
+//	FitsAsJavaScriptInteger
+//
+//	Returns TRUE if JavaScript can represent this integer without loss of
+//	precision. JavaScript integers are safe through 2^53 - 1 in magnitude.
+
+	{
+	if (!m_Value)
+		return true;
+
+	return (bdBitLength((BIGD)m_Value) <= DBL_MANT_DIG);
+	}
+
 DWORD CIPInteger::GetSize (void) const
 
 //	GetSize

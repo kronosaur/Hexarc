@@ -1769,6 +1769,7 @@ size_t CDatum::CalcSerializeSize (EFormat iFormat) const
 			return CalcSerializeSizeAEONScript(iFormat);
 
 		case EFormat::AEONJSON:
+		case EFormat::AEONJSONJavaScript:
 		case EFormat::JSON:
 			ASSERT(false);	//	Not Yet Implemented
 			return 0;
@@ -3907,6 +3908,7 @@ bool CDatum::Deserialize (EFormat iFormat, IByteStream &Stream, IAEONParseExtens
 				return CDatum::CreateBinary(Stream, Stream.GetStreamLength() - Stream.GetPos(), retDatum);
 
 			case EFormat::AEONJSON:
+			case EFormat::AEONJSONJavaScript:
 			case EFormat::JSON:
 				return DeserializeJSON(Stream, retDatum);
 
@@ -7702,6 +7704,7 @@ void CDatum::Serialize (EFormat iFormat, IByteStream &Stream) const
 			break;
 
 		case EFormat::AEONJSON:
+		case EFormat::AEONJSONJavaScript:
 		case EFormat::JSON:
 			SerializeJSON(iFormat, Stream);
 			break;

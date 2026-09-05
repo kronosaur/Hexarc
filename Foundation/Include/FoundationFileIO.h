@@ -199,6 +199,7 @@ class CFileMultiplexer : public IByteStream
 		bool CreateMirror (const CString &sFilespec, CString *retsError = NULL);
 		bool Delete (void);
 		bool Flush (void);
+		const CString &GetMirrorFailureFilespec (void) const { return m_sMirrorFailureFilespec; }
 		bool OpenMirror (const CString &sFilespec, CString *retsError = NULL);
 
 		//	IByteStream virtuals
@@ -216,6 +217,7 @@ class CFileMultiplexer : public IByteStream
 	private:
 		CFile m_Primary;
 		TArray<CFile> m_Mirrors;
+		CString m_sMirrorFailureFilespec;
 	};
 
 class CModuleResource : public CMemoryBlockImpl
@@ -315,6 +317,7 @@ class CBlackBox : public ILogService
 		void SetConsoleOutput (bool bEnabled = true) { ::SetConsoleOutputCP(65001); m_bConsoleOut = bEnabled; }
 		void Shutdown (void);
 
+		static bool ParseLogLineDate (const char *pPos, const char *pPosEnd, CDateTime *retDate = NULL);
 		static bool ReadRecent (const CString &sPath, const CString &sFind, int iLines, TArray<CString> *retLines);
 
 		//	ILogService

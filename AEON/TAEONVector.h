@@ -312,6 +312,7 @@ template <class VALUE, class IMPL> class TAEONVector : public IComplexDatum
 					}
 
 				case CDatum::EFormat::AEONJSON:
+				case CDatum::EFormat::AEONJSONJavaScript:
 				case CDatum::EFormat::JSON:
 					{
 					Stream.Write("[", 1);

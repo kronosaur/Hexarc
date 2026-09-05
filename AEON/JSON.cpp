@@ -91,7 +91,7 @@ void CDatum::SerializeJSON (EFormat iFormat, IByteStream &Stream) const
 					break;
 
 				case VALUE_WILDCARD:
-					if (iFormat == EFormat::AEONJSON)
+					if (iFormat == EFormat::AEONJSON || iFormat == EFormat::AEONJSONJavaScript)
 						Stream.Write(STR_WILDCARD);
 					else
 						Stream.Write("null", 4);
@@ -132,7 +132,7 @@ void CDatum::SerializeJSON (EFormat iFormat, IByteStream &Stream) const
 			break;
 
 		case TYPE_NAN:
-			if (iFormat == EFormat::AEONJSON)
+			if (iFormat == EFormat::AEONJSON || iFormat == EFormat::AEONJSONJavaScript)
 				Stream.Write(STR_NAN);
 			else
 				Stream.Write("null", 4);

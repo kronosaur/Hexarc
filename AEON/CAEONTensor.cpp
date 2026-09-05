@@ -3167,6 +3167,7 @@ void CAEONTensor::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const
 			}
 
 		case CDatum::EFormat::AEONJSON:
+		case CDatum::EFormat::AEONJSONJavaScript:
 		case CDatum::EFormat::JSON:
 			{
 			m_dData.Serialize(iFormat, Stream);

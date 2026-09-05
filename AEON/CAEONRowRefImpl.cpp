@@ -638,6 +638,7 @@ void CAEONRowRefImpl::Serialize (DWORDLONG dwData, CDatum::EFormat iFormat, IByt
 			}
 
 		case CDatum::EFormat::AEONJSON:
+		case CDatum::EFormat::AEONJSONJavaScript:
 		case CDatum::EFormat::JSON:
 			{
 			Stream.Write("{", 1);

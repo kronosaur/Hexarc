@@ -102,6 +102,23 @@ int IByteStream::WriteChar (char chChar, int iCount)
 		}
 	}
 
+int IByteStream::WriteIntString (int iValue, const char* pFormat)
+
+//	WriteIntString
+//
+//	Writes an integer to the stream.
+
+	{
+	char szBuffer[256];
+	int iLen;
+	if (pFormat)
+		iLen = sprintf_s(szBuffer, sizeof(szBuffer), pFormat, iValue);
+	else
+		iLen = sprintf_s(szBuffer, sizeof(szBuffer), "%d", iValue);
+
+	return Write(szBuffer, iLen);
+	}
+
 int IByteStream::WriteWithProgress (IByteStream &Stream, int iLength, IProgressEvents *pProgress)
 
 //  WriteWithProgress

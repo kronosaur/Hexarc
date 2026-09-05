@@ -339,6 +339,7 @@ void CDatum::SerializeEnum (EFormat iFormat, IByteStream &Stream) const
 			}
 
 		case CDatum::EFormat::AEONJSON:
+		case CDatum::EFormat::AEONJSONJavaScript:
 			{
 			Stream.Write("[\"AEON2011:enum:v1\",", 20);
 

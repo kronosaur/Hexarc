@@ -632,6 +632,7 @@ void CAEONRecord::Serialize (CDatum::EFormat iFormat, IByteStream& Stream) const
 			break;
 
 		case CDatum::EFormat::AEONJSON:
+		case CDatum::EFormat::AEONJSONJavaScript:
 		case CDatum::EFormat::JSON:
 			{
 			Stream.Write("{\"", 2);

@@ -35,6 +35,7 @@ bool CFileMultiplexer::Create (const CString &sFilespec, DWORD dwFlags, CString 
 	//	Clear out all mirrors
 
 	m_Mirrors.DeleteAll();
+	m_sMirrorFailureFilespec = NULL_STR;
 
 	//	Create the primary file
 
@@ -52,6 +53,8 @@ bool CFileMultiplexer::CreateMirror (const CString &sFilespec, CString *retsErro
 
 	if (strEquals(sFilespec, m_Primary.GetFilespec()))
 		{
+		m_sMirrorFailureFilespec = sFilespec;
+
 		if (retsError)
 			*retsError = strPattern(ERR_MIRROR_SAME_AS_PRIMARY, sFilespec);
 		return false;
@@ -62,6 +65,7 @@ bool CFileMultiplexer::CreateMirror (const CString &sFilespec, CString *retsErro
 	CFile *pMirror = m_Mirrors.Insert();
 	if (!pMirror->Create(sFilespec, CFile::FLAG_OPEN_ALWAYS, retsError))
 		{
+		m_sMirrorFailureFilespec = sFilespec;
 		m_Mirrors.Delete(m_Mirrors.GetCount() - 1);
 		return false;
 		}
@@ -118,6 +122,8 @@ bool CFileMultiplexer::CreateMirror (const CString &sFilespec, CString *retsErro
 		catch (...)
 			{
 			delete [] pBuffer;
+			m_sMirrorFailureFilespec = sFilespec;
+			m_Mirrors.Delete(m_Mirrors.GetCount() - 1);
 
 			if (retsError)
 				*retsError = strPattern(ERR_CANT_CREATE_MIRROR, sFilespec);
@@ -137,6 +143,9 @@ bool CFileMultiplexer::CreateMirror (const CString &sFilespec, CString *retsErro
 		}
 	catch (...)
 		{
+		m_sMirrorFailureFilespec = sFilespec;
+		m_Mirrors.Delete(m_Mirrors.GetCount() - 1);
+
 		if (retsError)
 			*retsError = strPattern(ERR_CANT_CREATE_MIRROR, sFilespec);
 		return false;
@@ -178,7 +187,8 @@ bool CFileMultiplexer::Flush (void)
 
 //	Flush
 //
-//	Flush all files
+//	Flush all files. We return the primary result and record any mirror failure
+//	for the caller to handle separately.
 
 	{
 	int i;
@@ -190,7 +200,8 @@ bool CFileMultiplexer::Flush (void)
 	//	Flush all mirrors
 
 	for (i = 0; i < m_Mirrors.GetCount(); i++)
-		m_Mirrors[i].Flush();
+		if (!m_Mirrors[i].Flush() && m_sMirrorFailureFilespec.IsEmpty())
+			m_sMirrorFailureFilespec = m_Mirrors[i].GetFilespec();
 
 	//	Done
 
@@ -220,7 +231,8 @@ int CFileMultiplexer::Read (void *pData, int iLength)
 			}
 		catch (...)
 			{
-			//	LATER: Figure out what to do with the error.
+			if (m_sMirrorFailureFilespec.IsEmpty())
+				m_sMirrorFailureFilespec = m_Mirrors[i].GetFilespec();
 			}
 		}
 
@@ -252,7 +264,8 @@ void CFileMultiplexer::Seek (int iPos, bool bFromEnd)
 			}
 		catch (...)
 			{
-			//	LATER: Figure out what to do with the error.
+			if (m_sMirrorFailureFilespec.IsEmpty())
+				m_sMirrorFailureFilespec = m_Mirrors[i].GetFilespec();
 			}
 		}
 	}
@@ -280,7 +293,8 @@ int CFileMultiplexer::Write (const void *pData, int iLength)
 			}
 		catch (...)
 			{
-			//	LATER: Figure out what to do with the error.
+			if (m_sMirrorFailureFilespec.IsEmpty())
+				m_sMirrorFailureFilespec = m_Mirrors[i].GetFilespec();
 			}
 		}
 

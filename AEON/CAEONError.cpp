@@ -57,6 +57,7 @@ void CAEONError::Serialize (CDatum::EFormat iFormat, IByteStream &Stream) const
 			break;
 
 		case CDatum::EFormat::AEONJSON:
+		case CDatum::EFormat::AEONJSONJavaScript:
 			{
 			//	For backwards compatibility we write this as a hexeError.
 
