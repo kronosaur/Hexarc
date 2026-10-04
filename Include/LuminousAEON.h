@@ -186,6 +186,56 @@ class CAEONCircle2D : public TExternalDatum<CAEONCircle2D>
 		static TDatumMethodHandler<CAEONCircle2D> m_Methods;
 	};
 
+class CAEONText2D : public TExternalDatum<CAEONText2D>
+	{
+	public:
+
+		CAEONText2D () { }
+		CAEONText2D (CDatum dScene, DWORD dwID) :
+				m_dScene(dScene),
+				m_dwID(dwID)
+			{ }
+
+		DWORD GetID () const { return m_dwID; }
+		CDatum GetScene () const { return m_dScene; }
+
+		static CDatum Create (CDatum dScene, DWORD dwID);
+		static const CString &StaticGetTypename (void);
+
+		//	IComplexDatum
+
+		virtual IComplexDatum *Clone (CDatum::EClone iMode) const override { return new CAEONText2D(*this); }
+		virtual DWORD GetBasicDatatype () const override { return IDatatype::OBJECT; }
+		virtual CDatum::Types GetBasicType (void) const override { return CDatum::typeAEONObject; }
+		virtual CDatum GetDatatype () const override;
+		virtual CDatum GetElement (const CString &sKey) const override { return m_Properties.GetProperty(*this, sKey); }
+		virtual CDatum GetMethod (const CString &sMethod) const override { return m_Methods.GetMethod(sMethod); }
+		virtual bool InvokeMethodImpl(CDatum dObj, const CString &sMethod, IInvokeCtx &Ctx, CHexeStackEnv& LocalEnv, SAEONInvokeResult& retResult) override
+			{ return m_Methods.InvokeMethod(dObj, sMethod, Ctx, LocalEnv, CDatum(), CDatum(), retResult); }
+		virtual void SetElement (const CString &sKey, CDatum dDatum) override { m_Properties.SetProperty(*this, sKey, dDatum, NULL); }
+
+		static TArray<IDatatype::SMemberDesc> GetMembers ();
+
+	protected:
+
+		virtual size_t OnCalcSerializeSizeAEONScript (CDatum::EFormat iFormat) const override;
+		virtual bool OnDeserialize (CDatum::EFormat iFormat, CDatum dStruct) override;
+		virtual DWORD OnGetSerializeFlags (void) const override { return FLAG_SERIALIZE_AS_STRUCT; }
+		virtual void OnMarked (void) override;
+		virtual void OnSerialize (CDatum::EFormat iFormat, CComplexStruct *pStruct) const override;
+
+	private:
+
+		virtual void DeserializeAEONExternal (IByteStream& Stream, CAEONSerializedMap &Serialized) override;
+		virtual void SerializeAEONExternal (IByteStream& Stream, CAEONSerializedMap &Serialized) const override;
+
+		CDatum m_dScene;
+		DWORD m_dwID = 0;
+
+		static TDatumPropertyHandler<CAEONText2D> m_Properties;
+		static TDatumMethodHandler<CAEONText2D> m_Methods;
+	};
+
 class CAEONRect2D : public TExternalDatum<CAEONRect2D>
 	{
 	public:
@@ -372,6 +422,7 @@ class CAEONReanimator : public TExternalDatum<CAEONReanimator>, public IAEONRean
 
 		bool AnimateObjProperty (DWORD dwID, Obj2DProp iProp, int iFrame, CDatum dDesc) { return AnimateProperty(dwID, iProp, iFrame, dDesc); }
 		CDatum CreateCircleObj (CDatum dSelf, CDatum dDesc = CDatum());
+		CDatum CreateTextObj (CDatum dSelf, CDatum dDesc = CDatum());
 		CDatum CreateRectangleObj (CDatum dSelf, CDatum dDesc = CDatum());
 		CDatum CreateLineObj (CDatum dSelf, CDatum dDesc = CDatum());
 		CDatum CreateTrailObj (CDatum dSelf, CDatum dDesc = CDatum());
@@ -487,6 +538,7 @@ class CAEONLuminous
 		static DWORD BITMAP_RGBA8_TYPE;
 		static DWORD PIXEL_FORMAT_ENUM;
 		static DWORD CIRCLE2D_TYPE;
+		static DWORD TEXT2D_TYPE;
 		static DWORD RECT2D_TYPE;
 		static DWORD LINE2D_TYPE;
 		static DWORD TRAIL2D_TYPE;

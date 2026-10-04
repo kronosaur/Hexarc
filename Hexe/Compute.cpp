@@ -2771,7 +2771,9 @@ CHexeProcess::ERun CHexeProcess::ExecuteMakeAsType (CDatum& retResult)
 	CDatum dNewValue = CDatum::CreateAsType(dType, dValue);
 	if (dNewValue.IsError()
 			&& dType.GetBasicType() == CDatum::typeDatatype
-			&& ((const IDatatype&)dType).GetClass() == IDatatype::ECategory::Tensor)
+			&& (((const IDatatype&)dType).GetClass() == IDatatype::ECategory::Tensor
+				|| ((const IDatatype&)dType).GetCoreType() == IDatatype::VECTOR_2D_F64
+				|| ((const IDatatype&)dType).GetCoreType() == IDatatype::VECTOR_3D_F64))
 		return RuntimeError(dNewValue.AsString(), retResult);
 
 	m_Stack.Push(dNewValue);
@@ -2787,7 +2789,9 @@ CHexeProcess::ERun CHexeProcess::ExecuteMakeAsTypeCons (CDatum& retResult)
 	CDatum dNewValue = CDatum::CreateAsType(dType, dValue, true);
 	if (dNewValue.IsError()
 			&& dType.GetBasicType() == CDatum::typeDatatype
-			&& ((const IDatatype&)dType).GetClass() == IDatatype::ECategory::Tensor)
+			&& (((const IDatatype&)dType).GetClass() == IDatatype::ECategory::Tensor
+				|| ((const IDatatype&)dType).GetCoreType() == IDatatype::VECTOR_2D_F64
+				|| ((const IDatatype&)dType).GetCoreType() == IDatatype::VECTOR_3D_F64))
 		return RuntimeError(dNewValue.AsString(), retResult);
 
 	m_Stack.Push(dNewValue);

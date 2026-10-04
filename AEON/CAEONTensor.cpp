@@ -418,63 +418,87 @@ CDatum CAEONTensor::MathBinaryOp (CDatum dLeft, CDatum dRight, CDatum dResultTyp
 	if (ResultType.IsErrorType() || ResultType.GetClass() != IDatatype::ECategory::Tensor)
 		return CDatum::CreateError(ERR_TENSOR_BINARY_DIMENSIONS);
 
-	const CAEONTensor& Tensor = AsTensor(bLeftTensor ? dLeft : dRight);
 	if (bLeftTensor && bRightTensor)
+		return MathBinaryOpTensorTensor(AsTensor(dLeft), AsTensor(dRight), dResultType, iOp, Ctx);
+
+	const CAEONTensor& Tensor = AsTensor(bLeftTensor ? dLeft : dRight);
+	CDatum dOperand = (bLeftTensor ? dRight : dLeft);
+	if (((const IDatatype&)dOperand.GetDatatype()).GetClass() == IDatatype::ECategory::Array)
+		return MathBinaryOpTensorArray(Tensor, dOperand, !bLeftTensor, dResultType, iOp, Ctx);
+	else
+		return MathBinaryOpTensorScalar(Tensor, dOperand, !bLeftTensor, dResultType, iOp, Ctx);
+	}
+
+CDatum CAEONTensor::MathBinaryOpTensorTensor (const CAEONTensor& Left, const CAEONTensor& Right, CDatum dResultType, EBinaryOp iOp, IAEONOperatorCtx& Ctx)
+	{
+	if (Left.m_Dims.GetCount() != Right.m_Dims.GetCount())
+		return CDatum::CreateError(ERR_TENSOR_BINARY_DIMENSIONS);
+
+	for (int i = 0; i < Left.m_Dims.GetCount(); i++)
 		{
-		const CAEONTensor& RightTensor = AsTensor(dRight);
-		if (Tensor.m_Dims.GetCount() != RightTensor.m_Dims.GetCount())
+		const IDatatype& LeftDim = Left.m_Dims[i].dType;
+		const IDatatype& RightDim = Right.m_Dims[i].dType;
+		if (!LeftDim.IsA(RightDim) || !RightDim.IsA(LeftDim))
 			return CDatum::CreateError(ERR_TENSOR_BINARY_DIMENSIONS);
-
-		for (int i = 0; i < Tensor.m_Dims.GetCount(); i++)
-			{
-			const IDatatype& LeftDim = Tensor.m_Dims[i].dType;
-			const IDatatype& RightDim = RightTensor.m_Dims[i].dType;
-			if (!LeftDim.IsA(RightDim) || !RightDim.IsA(LeftDim))
-				return CDatum::CreateError(ERR_TENSOR_BINARY_DIMENSIONS);
-			}
 		}
 
-	TArray<CDatum> LeftValues;
-	TArray<CDatum> RightValues;
-	if (bLeftTensor)
+	// Traverse logical coordinates directly, including transposed/strided
+	// tensors. Only the row-major result needs a new data vector.
+
+	const IDatatype& ResultType = dResultType;
+	CDatum dValues = CDatum::CreateArrayAsTypeOfElement(ResultType.GetElementType());
+	const int iCellCount = Left.CalcDataCount();
+	dValues.GrowToFit(iCellCount);
+	Iterator LeftPos = Left.begin();
+	Iterator RightPos = Right.begin();
+	for (int i = 0; i < iCellCount; i++, ++LeftPos, ++RightPos)
+		dValues.Append(ExecuteBinaryOp(iOp, *LeftPos, *RightPos, Ctx));
+
+	return CreateFromNormalizedData(dResultType, dValues);
+	}
+
+CDatum CAEONTensor::MathBinaryOpTensorScalar (const CAEONTensor& Tensor, CDatum dScalar, bool bScalarLeft, CDatum dResultType, EBinaryOp iOp, IAEONOperatorCtx& Ctx)
+	{
+	const IDatatype& ResultType = dResultType;
+	CDatum dValues = CDatum::CreateArrayAsTypeOfElement(ResultType.GetElementType());
+	const int iCellCount = Tensor.CalcDataCount();
+	dValues.GrowToFit(iCellCount);
+	Iterator Pos = Tensor.begin();
+	for (int i = 0; i < iCellCount; i++, ++Pos)
 		{
-		const CAEONTensor& LeftTensor = AsTensor(dLeft);
-		for (Iterator i = LeftTensor.begin(); i != LeftTensor.end(); ++i)
-			LeftValues.Insert(*i);
-		}
-	else if (((const IDatatype&)dLeft.GetDatatype()).GetClass() == IDatatype::ECategory::Array)
-		{
-		if (!FlattenOperand(dLeft, Tensor.m_Dims, Tensor.m_dElementType, 0, LeftValues))
-			return CDatum::CreateError(ERR_TENSOR_BINARY_ARRAY_SHAPE);
+		CDatum dElement = *Pos;
+		dValues.Append(bScalarLeft
+				? ExecuteBinaryOp(iOp, dScalar, dElement, Ctx)
+				: ExecuteBinaryOp(iOp, dElement, dScalar, Ctx));
 		}
 
-	if (bRightTensor)
-		{
-		const CAEONTensor& RightTensor = AsTensor(dRight);
-		for (Iterator i = RightTensor.begin(); i != RightTensor.end(); ++i)
-			RightValues.Insert(*i);
-		}
-	else if (((const IDatatype&)dRight.GetDatatype()).GetClass() == IDatatype::ECategory::Array)
-		{
-		if (!FlattenOperand(dRight, Tensor.m_Dims, Tensor.m_dElementType, 0, RightValues))
-			return CDatum::CreateError(ERR_TENSOR_BINARY_ARRAY_SHAPE);
-		}
+	return CreateFromNormalizedData(dResultType, dValues);
+	}
+
+CDatum CAEONTensor::MathBinaryOpTensorArray (const CAEONTensor& Tensor, CDatum dArray, bool bArrayLeft, CDatum dResultType, EBinaryOp iOp, IAEONOperatorCtx& Ctx)
+	{
+	// Validate the entire array shape before evaluating any cells. Only the
+	// array operand is flattened; the tensor is traversed in logical order.
 
 	const int iCellCount = Tensor.CalcDataCount();
-	if ((LeftValues.GetCount() > 0 && LeftValues.GetCount() != iCellCount)
-			|| (RightValues.GetCount() > 0 && RightValues.GetCount() != iCellCount))
+	TArray<CDatum> ArrayValues;
+	if (!FlattenOperand(dArray, Tensor.m_Dims, Tensor.m_dElementType, 0, ArrayValues)
+			|| ArrayValues.GetCount() != iCellCount)
 		return CDatum::CreateError(ERR_TENSOR_BINARY_ARRAY_SHAPE);
 
+	const IDatatype& ResultType = dResultType;
 	CDatum dValues = CDatum::CreateArrayAsTypeOfElement(ResultType.GetElementType());
 	dValues.GrowToFit(iCellCount);
-	for (int i = 0; i < iCellCount; i++)
+	Iterator Pos = Tensor.begin();
+	for (int i = 0; i < iCellCount; i++, ++Pos)
 		{
-		CDatum dLeftValue = (LeftValues.GetCount() == 0 ? dLeft : LeftValues[i]);
-		CDatum dRightValue = (RightValues.GetCount() == 0 ? dRight : RightValues[i]);
-		dValues.Append(ExecuteBinaryOp(iOp, dLeftValue, dRightValue, Ctx));
+		CDatum dElement = *Pos;
+		dValues.Append(bArrayLeft
+				? ExecuteBinaryOp(iOp, ArrayValues[i], dElement, Ctx)
+				: ExecuteBinaryOp(iOp, dElement, ArrayValues[i], Ctx));
 		}
 
-	return CDatum(new CAEONTensor(dResultType, dValues));
+	return CreateFromNormalizedData(dResultType, dValues);
 	}
 
 TArray<int> CAEONTensor::CalcBroadcastDims (const TArray<int>& Dims1, const TArray<int>& Dims2)
@@ -2198,9 +2222,15 @@ CDatum CAEONTensor::MathMatMul (CDatum dValue) const
 		if (Left.m_Dims[0].iLength != Right.m_Dims[0].iLength)
 			return CDatum::CreateError(ERR_TENSOR_DOT_MISMATCH);
 
+		// The 1D cursors track storage offsets and strides without allocating
+		// dimension arrays or resolving tensor indices for every element.
+
+		Iterator1D LeftPos(Left);
+		Iterator1D RightPos(Right);
+		const int iCount = Left.m_Dims[0].iLength;
 		double rResult = 0.0;
-		for (int i = 0; i < Left.GetCount(); i++)
-			rResult += (double)Left.GetElement(i) * (double)Right.GetElement(i);
+		for (int i = 0; i < iCount; i++, ++LeftPos, ++RightPos)
+			rResult += (double)*LeftPos * (double)*RightPos;
 
 		return CDatum(rResult);
 		}

@@ -31,6 +31,51 @@ void CDatatypeAEON::OnAccumulateTypesUsed (TSortMap<CString, CDatum>& retTypes) 
 		AccumulateType(m_Members[i].dType, retTypes);
 	}
 
+bool CDatatypeAEON::OnCanBeConstructedFrom (CDatum dType) const
+	{
+	const IDatatype& SourceType = dType;
+	if (SourceType.IsAny() || SourceType.IsA(*this))
+		return true;
+
+	if (GetCoreType() != IDatatype::VECTOR_2D_F64 && GetCoreType() != IDatatype::VECTOR_3D_F64)
+		return false;
+
+	//	Dynamic arrays use permissive, component-wise runtime conversion.
+
+	if (SourceType.GetClass() == ECategory::Array)
+		return true;
+
+	if (SourceType.GetClass() == ECategory::Tensor)
+		{
+		const IDatatype& ElementType = SourceType.GetElementType();
+		if (!ElementType.IsAny() && !ElementType.IsA(IDatatype::NUMBER))
+			return false;
+		}
+	else if (SourceType.GetCoreType() != IDatatype::VECTOR_2D_F64 && SourceType.GetCoreType() != IDatatype::VECTOR_3D_F64)
+		return false;
+
+	//	Reuse tensor shape checks, including padding of shorter sources.
+
+	int iLength = (GetCoreType() == IDatatype::VECTOR_2D_F64 ? 2 : 3);
+	TArray<CDatum> Dims;
+	Dims.Insert(CAEONTypes::CreateInt32SubRange(NULL_STR, 0, iLength - 1));
+	CDatum dTensorType = CAEONTypes::CreateTensor(NULL_STR, CAEONTypes::Get(IDatatype::FLOAT_64), std::move(Dims));
+	return ((const IDatatype&)dTensorType).CanBeConstructedFrom(dType);
+	}
+
+bool CDatatypeAEON::OnCanBeConstructedExplicitlyFrom (CDatum dType) const
+	{
+	const IDatatype& SourceType = dType;
+	if ((GetCoreType() == IDatatype::VECTOR_2D_F64 || GetCoreType() == IDatatype::VECTOR_3D_F64)
+			&& (SourceType.GetClass() == ECategory::Tensor
+				|| SourceType.GetCoreType() == IDatatype::VECTOR_2D_F64
+				|| SourceType.GetCoreType() == IDatatype::VECTOR_3D_F64))
+		return OnCanBeConstructedFrom(dType);
+
+	//	Preserve the default explicit-construction policy for other sources.
+	return true;
+	}
+
 CDatum CDatatypeAEON::OnCreateAsType (CDatum dValue) const
 
 //	OnCreateAsType

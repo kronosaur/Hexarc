@@ -836,6 +836,8 @@ class CDatatypeAEON : public IDatatype
 		//	IDatatype virtuals
 
 		virtual void OnAccumulateTypesUsed (TSortMap<CString, CDatum>& retTypes) const;
+		virtual bool OnCanBeConstructedFrom (CDatum dType) const override;
+		virtual bool OnCanBeConstructedExplicitlyFrom (CDatum dType) const override;
 		virtual bool OnCanBeNull () const override { return m_bCanBeNull; }
 		virtual CDatum OnCreateAsType (CDatum dValue) const override;
 		virtual bool OnDeserialize (CDatum::EFormat iFormat, IByteStream &Stream, DWORD dwVersion) override { return true; }

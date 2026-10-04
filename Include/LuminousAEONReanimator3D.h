@@ -125,9 +125,13 @@ class CAEONObj3D : public TExternalDatum<CAEONObj3D>
 class CAEONReanimator3D : public TExternalDatum<CAEONReanimator3D>, public IAEONReanimator
 	{
 	public:
-		CAEONReanimator3D () { }
+		CAEONReanimator3D (bool bDefaultObjects = true) : m_Model(bDefaultObjects) { }
 
 		static CDatum Create ();
+		static CDatum CreateStandaloneCamera ();
+		CDatum GetCameraView (DWORD dwID) const;
+		bool SetCameraView (DWORD dwID, CDatum dView, CString* retsError = NULL);
+		bool IsKeyframeMode () const { return m_Model.IsKeyframeMode(); }
 		static TArray<IDatatype::SMemberDesc> GetMembers ();
 		static const CString& StaticGetTypename (void);
 
@@ -156,7 +160,10 @@ class CAEONReanimator3D : public TExternalDatum<CAEONReanimator3D>, public IAEON
 		bool AnimateObjProperty (DWORD dwID, Obj3DProp iProp, int iFrame, CDatum dDesc) { return AnimateProperty(dwID, iProp, iFrame, dDesc); }
 		CDatum Create3DSObj (CDatum dSelf, const CString& sGridID, CDatum dDesc = CDatum());
 		CDatum CreateCameraObj (CDatum dSelf, CDatum dDesc = CDatum());
-		CDatum CreateCubeObj (CDatum dSelf, CDatum dDesc = CDatum(), CString* retsError = NULL);
+		CDatum CreateCubeObj (CDatum dSelf, CDatum dDesc = CDatum(), CString* retsError = NULL, bool bPlane = false);
+		bool SetPlaneSize (DWORD dwID, CDatum dValue);
+		CDatum GetObjBounds (DWORD dwID) const;
+		bool SetModelBounds (DWORD dwID, CDatum dBounds);
 		CDatum CreateGLTFObj (CDatum dSelf, const CString& sGridID, CDatum dDesc = CDatum());
 		CDatum CreateImageTexture (CDatum dSelf, const CString& sGridID, CDatum dOptions = CDatum());
 		CDatum CreatePhysicalMaterial (CDatum dSelf, CDatum dDesc = CDatum(), CString* retsError = NULL);

@@ -2,8 +2,9 @@
 
 This directory contains the static Assimp dependency used by LuminousArc.
 
-- Assimp source revision: `92f7c7c5e66ac2ed3969b7395a755faf56fb36c7`,
-  plus GridWhale's COB `ShBx V0.04` texture-import
+- Assimp source revision: `af2c02c5794d5ad5e7f8f91f3c3144a4229cb7b5`,
+  plus the COB Y-up and Local Axes pivot-frame changes. The fork includes
+  GridWhale's COB `ShBx V0.04` texture-import
   and material-property changes, a COB absolute-to-relative hierarchy transform
   fix, a glTF2 mesh-merge reference-stability fix, geometric glTF2 buffer
   growth, shared-path texture-embedding reuse, and glTF2

@@ -10,8 +10,9 @@ DECLARE_CONST_STRING(MODE_LOOP, "loop");
 DECLARE_CONST_STRING(MODE_REALTIME, "realtime");
 DECLARE_CONST_STRING(MODE_STREAM, "stream");
 
-CLuminousScene3D::CLuminousScene3D ()
+CLuminousScene3D::CLuminousScene3D (bool bDefaultObjects)
 	{
+	if (!bDefaultObjects) return;
 	ILuminousObj3D& Camera = CreatePerspectiveCamera();
 	Camera.SetPropertyVector(Obj3DProp::Pos, CVector3D(0.0, 0.0, 5.0));
 	m_dwActiveCameraID = Camera.GetID();
@@ -153,6 +154,16 @@ ILuminousObj3D& CLuminousScene3D::CreateCube (DWORD dwParentID)
 	{
 	DWORD dwID = m_dwNextID++;
 	ILuminousObj3D* pObj = new CObj3DCube(*this, dwID, (dwParentID ? FindObj(dwParentID) : NULL));
+	pObj->SetSeq(IncSeq());
+	m_Objs.SetAt(dwID, TUniquePtr<ILuminousObj3D>(pObj));
+	RecalcAnimation();
+	return *pObj;
+	}
+
+ILuminousObj3D& CLuminousScene3D::CreatePlane (DWORD dwParentID)
+	{
+	DWORD dwID = m_dwNextID++;
+	ILuminousObj3D* pObj = new CObj3DPlane(*this, dwID, (dwParentID ? FindObj(dwParentID) : NULL));
 	pObj->SetSeq(IncSeq());
 	m_Objs.SetAt(dwID, TUniquePtr<ILuminousObj3D>(pObj));
 	RecalcAnimation();

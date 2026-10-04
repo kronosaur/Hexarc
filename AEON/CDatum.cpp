@@ -2168,6 +2168,19 @@ CDatum CDatum::CreateDateTime (CDatum dValue, CDatum dOptions)
 		}
 	}
 
+static CDatum NormalizeVectorTensor (CDatum dValue, int iLength)
+	{
+	const IDatatype& SourceType = dValue.GetDatatype();
+	const IDatatype& ElementType = SourceType.GetElementType();
+	if (!ElementType.IsAny() && !ElementType.IsA(IDatatype::NUMBER))
+		return CDatum::CreateError(strPattern(ERR_TENSOR_ELEMENT, ElementType.GetName(), ((const IDatatype&)CAEONTypes::Get(IDatatype::FLOAT_64)).GetName()));
+
+	TArray<CDatum> Dims;
+	Dims.Insert(CAEONTypes::CreateInt32SubRange(NULL_STR, 0, iLength - 1));
+	CDatum dTensorType = CAEONTypes::CreateTensor(NULL_STR, CAEONTypes::Get(IDatatype::FLOAT_64), std::move(Dims));
+	return CDatum::CreateTensorAsType(dTensorType, dValue);
+	}
+
 CDatum CDatum::CreateVector2D (CDatum dValue)
 	{
 	switch (dValue.GetBasicType())
@@ -2188,12 +2201,15 @@ CDatum CDatum::CreateVector2D (CDatum dValue)
 			return CDatum(CVector2D::Null);
 
 		case CDatum::typeArray:
+			return CDatum(CVector2D(dValue.GetElement(0), dValue.GetElement(1)));
+
 		case CDatum::typeTensor:
 			{
-			if (dValue.GetCount() == 2)
-				return CDatum(CVector2D(dValue.GetElement(0), dValue.GetElement(1)));
-			else
-				return CDatum(CVector2D::Null);
+			CDatum dTensor = NormalizeVectorTensor(dValue, 2);
+			if (dTensor.IsError())
+				return dTensor;
+
+			return CDatum(CVector2D(dTensor.GetElement(0), dTensor.GetElement(1)));
 			}
 
 		case CDatum::typeStruct:
@@ -2237,12 +2253,15 @@ CDatum CDatum::CreateVector3D (CDatum dValue)
 			return CDatum(CVector3D::Null);
 
 		case CDatum::typeArray:
+			return CDatum(CVector3D(dValue.GetElement(0), dValue.GetElement(1), dValue.GetElement(2)));
+
 		case CDatum::typeTensor:
 			{
-			if (dValue.GetCount() == 3)
-				return CDatum(CVector3D(dValue.GetElement(0), dValue.GetElement(1), dValue.GetElement(2)));
-			else
-				return CDatum(CVector3D::Null);
+			CDatum dTensor = NormalizeVectorTensor(dValue, 3);
+			if (dTensor.IsError())
+				return dTensor;
+
+			return CDatum(CVector3D(dTensor.GetElement(0), dTensor.GetElement(1), dTensor.GetElement(2)));
 			}
 
 		case CDatum::typeStruct:
@@ -2677,6 +2696,18 @@ CDatum CDatum::CreateTensorAsType (CDatum dType, CDatum dValue, bool bConstruct)
 	if (Type.GetClass() != IDatatype::ECategory::Tensor)
 		return CDatum::CreateError(ERR_TENSOR_EXPECTED_ARRAY);
 
+	//	Materialize vectors as rank-1 numeric input. The normal tensor path
+	//	then handles shape inference, padding, and numeric element conversion.
+
+	if (dValue.GetBasicType() == CDatum::typeVector2D || dValue.GetBasicType() == CDatum::typeVector3D)
+		{
+		const IDatatype& ElementType = Type.GetElementType();
+		if (!ElementType.IsAny() && !ElementType.IsA(IDatatype::NUMBER))
+			return CDatum::CreateError(strPattern(ERR_TENSOR_ELEMENT, ((const IDatatype&)CAEONTypes::Get(IDatatype::FLOAT_64)).GetName(), ElementType.GetName()));
+
+		dValue = CreateArrayAsTypeOfElement(CAEONTypes::Get(IDatatype::FLOAT_64), dValue);
+		}
+
 	//	If we're already a subtype of the requested type, assignment can keep
 	//	the value unchanged. This preserves concrete range and enum dimensions.
 
@@ -3030,6 +3061,15 @@ CDatum CDatum::CreateAsType (CDatum dType, CDatum dValue, bool bConstruct)
 				return dValue;
 			else
 				return dValue.AsTimeSpan();
+
+		case IDatatype::VECTOR_2D_F64:
+			if (dValue.GetBasicType() == CDatum::typeVector3D)
+				return CDatum::CreateError(strPattern(ERR_TENSOR_FIXED_OVERFLOW, 1, 3, 2));
+
+			return CreateVector2D(dValue);
+
+		case IDatatype::VECTOR_3D_F64:
+			return CreateVector3D(dValue);
 
 		default:
 			//	Not handled.

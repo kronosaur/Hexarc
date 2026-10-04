@@ -124,3 +124,41 @@ class CObj2DLine : public ILuminousObj2D
 		TArray<CVector2D> m_Points;
 		CLuminousLineStyle m_OutlineStyle;
 	};
+
+// Single-line, browser-shaped text. Font syntax is preserved for Canvas.
+class CObj2DText : public ILuminousObj2D
+	{
+	public:
+		CObj2DText (CLuminousScene2D& Scene, DWORD dwID, ILuminousObj2D* pParent) : ILuminousObj2D(Scene, dwID, pParent) { }
+		virtual DWORD GetImpl () const override { return IMPL_TEXT; }
+
+	private:
+		virtual void OnAccumulatePropertiesToRender (TArray<SPropertyRenderCtx>& Result) const override;
+		virtual TUniquePtr<ILuminousObj2D> OnClone () const override { return TUniquePtr<ILuminousObj2D>(new CObj2DText(*this)); }
+		virtual const CString& OnGetObjType () const override;
+		virtual CLuminousColor OnGetPropertyColor (Obj2DProp iProp) const override;
+		virtual double OnGetPropertyScalar (Obj2DProp iProp) const override;
+		virtual CString OnGetPropertyString (Obj2DProp iProp) const override;
+		virtual bool OnSetPropertyColor (Obj2DProp iProp, const CLuminousColor& Value) override;
+		virtual bool OnSetPropertyScalar (Obj2DProp iProp, double rValue) override;
+		virtual bool OnSetPropertyString (Obj2DProp iProp, const CString& sValue) override;
+		virtual void OnRead (IByteStream& Stream) override;
+		virtual void OnWrite (IByteStream& Stream) const override;
+
+		CString m_sText;
+		CString m_sFont = CString("10px sans-serif");
+		CString m_sTextAlign = CString("start");
+		CString m_sTextBaseline = CString("alphabetic");
+		CString m_sDirection = CString("ltr");
+		CString m_sTextFit = CString("canvas");
+		double m_rMaxWidth = -1.0;
+		double m_rMinFontSize = -1.0;
+		double m_rMaxFontSize = -1.0;
+		double m_rLineWidth = 1.0;
+		double m_rShadowBlur = 0.0;
+		double m_rShadowOffsetX = 0.0;
+		double m_rShadowOffsetY = 0.0;
+		CLuminousColor m_FillColor = CLuminousColor(CRGBA32(0, 0, 0));
+		CLuminousColor m_LineColor;
+		CLuminousColor m_ShadowColor;
+	};

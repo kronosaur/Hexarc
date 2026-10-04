@@ -236,6 +236,7 @@
     <ClCompile Include="CAEONLuminousCanvas.cpp" />
     <ClCompile Include="CAEONLuminousSprite.cpp" />
     <ClCompile Include="CAEONCircle2D.cpp" />
+    <ClCompile Include="CAEONText2D.cpp" />
     <ClCompile Include="CAEONRect2D.cpp" />
     <ClCompile Include="CAEONLine2D.cpp" />
     <ClCompile Include="CAEONTrail2D.cpp" />
@@ -262,6 +263,7 @@
     <ClCompile Include="CLuminousShadowStyle.cpp" />
     <ClCompile Include="CLuminousTextAlign.cpp" />
     <ClCompile Include="CObj2DCircle.cpp" />
+    <ClCompile Include="CObj2DText.cpp" />
     <ClCompile Include="CObj2DRectangle.cpp" />
     <ClCompile Include="CObj2DLine.cpp" />
     <ClCompile Include="CObj2DTrail.cpp" />

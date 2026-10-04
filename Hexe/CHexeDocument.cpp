@@ -159,6 +159,21 @@ void CHexeDocument::CreateFunctionCall (const CString &sFunction, const TArray<C
 	CHexeCode::CreateFunctionCall(sFunction, Args, retdEntryPoint);
 	}
 
+// Creates a returning thunk whose local arguments are [function, arg1, ...].
+// Native continuations require bytecode as their callee; this also permits
+// calling a library primitive through the normal VM permission/async path.
+void CHexeDocument::CreateFunctionInvoker (int iArgCount, CDatum& retdEntryPoint)
+	{
+	CHexeCodeIntermediate CodeBlocks;
+	int iBlock = CodeBlocks.CreateCodeBlock();
+	for (int i = 0; i <= iArgCount; i++) CodeBlocks.WriteShortOpCode(iBlock, opPushLocal, i);
+	CodeBlocks.WriteShortOpCode(iBlock, opMakeEnv, iArgCount);
+	CodeBlocks.WriteShortOpCode(iBlock, opCall);
+	CodeBlocks.WriteShortOpCode(iBlock, opExitEnv);
+	CodeBlocks.WriteShortOpCode(iBlock, opReturn);
+	CHexeCode::Create(CodeBlocks, iBlock, &retdEntryPoint);
+	}
+
 bool CHexeDocument::FindEntry (const CString &sName, CString *retsType, CDatum *retdData) const
 
 //	FindEntry

@@ -5,6 +5,7 @@
 
 #include "stdafx.h"
 
+DECLARE_CONST_STRING(FIELD_ALLOW_NULL,					"allowNull");
 DECLARE_CONST_STRING(FIELD_INITIALIZE,					"initialize");
 DECLARE_CONST_STRING(FIELD_X,							"x");
 DECLARE_CONST_STRING(FIELD_Y,							"y");
@@ -16,7 +17,7 @@ const CString &CAEONVector2D::StaticGetTypename (void) { return TYPENAME_VECTOR_
 TDatumPropertyHandler<CAEONVector2D> CAEONVector2D::m_Properties = {
 	{
 		"angle",
-		"f",
+		"F",
 		"Returns the vector angle in radians.",
 		[](const CAEONVector2D& Obj, const CString &sProperty)
 			{
@@ -25,8 +26,58 @@ TDatumPropertyHandler<CAEONVector2D> CAEONVector2D::m_Properties = {
 		NULL,
 		},
 	{
-		"length",
+		"datatype",
+		"%",
+		"Returns the vector type.",
+		[](const CAEONVector2D& Obj, const CString &sProperty)
+			{
+			return Obj.GetDatatype();
+			},
+		NULL,
+		},
+	{
+		"dimensions",
 		"I",
+		"Returns the tensor rank (one for both vector types).",
+		[](const CAEONVector2D& Obj, const CString &sProperty)
+			{
+			return CDatum(1);
+			},
+		NULL,
+		},
+	{
+		"elementtype",
+		"%",
+		"Returns the component type (Float64).",
+		[](const CAEONVector2D& Obj, const CString &sProperty)
+			{
+			return CAEONTypes::Get(IDatatype::FLOAT_64);
+			},
+		NULL,
+		},
+	{
+		"keytype",
+		"%",
+		"Returns the bounded zero-based index type.",
+		[](const CAEONVector2D& Obj, const CString &sProperty)
+			{
+			return CAEONTypes::CreateInt32SubRange(NULL_STR, 0, Obj.GetCount() - 1);
+			},
+		NULL,
+		},
+	{
+		"keys",
+		"$ArrayOfInt32",
+		"Returns an array of valid indices.",
+		[](const CAEONVector2D& Obj, const CString &sProperty)
+			{
+			return CComplexArray::GetIndices(CDatum::raw_AsComplex(&Obj));
+			},
+		NULL,
+		},
+	{
+		"length",
+		"F",
 		"Returns the length of the vector.",
 		[](const CAEONVector2D& Obj, const CString &sProperty)
 			{
@@ -36,7 +87,7 @@ TDatumPropertyHandler<CAEONVector2D> CAEONVector2D::m_Properties = {
 		},
 	{
 		"length2",
-		"f",
+		"F",
 		"Returns the squared length of the vector.",
 		[](const CAEONVector2D& Obj, const CString &sProperty)
 			{
@@ -55,6 +106,18 @@ TDatumPropertyHandler<CAEONVector2D> CAEONVector2D::m_Properties = {
 		NULL,
 		},
 	{
+		"shape",
+		"$ArrayOfInt32",
+		"Returns an array containing the component count.",
+		[](const CAEONVector2D& Obj, const CString &sProperty)
+			{
+			CDatum dResult(CDatum::typeArray);
+			dResult.Append(Obj.GetCount());
+			return dResult;
+			},
+		NULL,
+		},
+	{
 		"size",
 		"I",
 		"Returns the number of elements in the vector.",
@@ -67,7 +130,7 @@ TDatumPropertyHandler<CAEONVector2D> CAEONVector2D::m_Properties = {
 	{
 		"unit",
 		"V2",
-		"Returns the a unit vector in the same direction.",
+		"Returns a unit vector in the same direction.",
 		[](const CAEONVector2D& Obj, const CString &sProperty)
 			{
 			return CDatum(Obj.m_vVector.Unit());
@@ -76,7 +139,7 @@ TDatumPropertyHandler<CAEONVector2D> CAEONVector2D::m_Properties = {
 		},
 	{
 		"x",
-		"f",
+		"F",
 		"Returns the x element.",
 		[](const CAEONVector2D& Obj, const CString &sProperty)
 			{
@@ -86,7 +149,7 @@ TDatumPropertyHandler<CAEONVector2D> CAEONVector2D::m_Properties = {
 		},
 	{
 		"y",
-		"f",
+		"F",
 		"Returns the y element.",
 		[](const CAEONVector2D& Obj, const CString &sProperty)
 			{
@@ -98,10 +161,21 @@ TDatumPropertyHandler<CAEONVector2D> CAEONVector2D::m_Properties = {
 
 TDatumMethodHandler<CAEONVector2D> CAEONVector2D::m_Methods = {
 	{
+		"average",
+		"F:",
+		".average() -> arithmetic mean of the components.",
+		IInvokeCtx::EXEC_FLAG_CONST,
+		[](CAEONVector2D& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
+			{
+			retResult.dResult = Obj.MathAverage();
+			return true;
+			},
+		},
+	{
 		"cross",
-		"V2:v=V2",
+		"F:v=V2",
 		".cross(v) -> cross product",
-		0,
+		IInvokeCtx::EXEC_FLAG_CONST,
 		[](CAEONVector2D& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
 			retResult.dResult = CDatum(Obj.m_vVector.Cross(LocalEnv.GetArgument(1)));
@@ -112,10 +186,71 @@ TDatumMethodHandler<CAEONVector2D> CAEONVector2D::m_Methods = {
 		"dot",
 		"F:v=V2",
 		".dot(v) -> dot product",
-		0,
+		IInvokeCtx::EXEC_FLAG_CONST,
 		[](CAEONVector2D& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
 			{
 			retResult.dResult = CDatum(Obj.m_vVector.Dot(LocalEnv.GetArgument(1)));
+			return true;
+			},
+		},
+	{
+		"joined",
+		"s:|separator=?|separator=?,lastSeparator=?|separator=?,lastSeparator=?,options=?",
+		".joined([separator, [lastSeparator], [options]]) -> string.",
+		IInvokeCtx::EXEC_FLAG_CONST,
+		[](CAEONVector2D& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
+			{
+			int iArg = 1;
+			CString sSeparator = LocalEnv.GetArgument(iArg++).AsString();
+			CString sLastSeparator;
+			DWORD dwFlags = 0;
+
+			if (LocalEnv.GetArgument(iArg).GetBasicType() == CDatum::typeString)
+				sLastSeparator = LocalEnv.GetArgument(iArg++).AsString();
+
+			if (LocalEnv.GetArgument(iArg).GetBasicType() == CDatum::typeStruct)
+				{
+				CDatum dOptions = LocalEnv.GetArgument(iArg++);
+				if (dOptions.GetElement(FIELD_ALLOW_NULL).AsBool())
+					dwFlags |= CDatum::FLAG_ALLOW_NULLS;
+				}
+			else if (sSeparator.IsEmpty() || sSeparator.Find('\n') != -1)
+				dwFlags |= CDatum::FLAG_ALLOW_NULLS;
+
+			retResult.dResult = CDatum::raw_AsComplex(&Obj).Join(sSeparator, sLastSeparator, dwFlags);
+			return true;
+			},
+		},
+	{
+		"max",
+		"F:",
+		".max() -> largest component.",
+		IInvokeCtx::EXEC_FLAG_CONST,
+		[](CAEONVector2D& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
+			{
+			retResult.dResult = Obj.MathMax();
+			return true;
+			},
+		},
+	{
+		"min",
+		"F:",
+		".min() -> smallest component.",
+		IInvokeCtx::EXEC_FLAG_CONST,
+		[](CAEONVector2D& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
+			{
+			retResult.dResult = Obj.MathMin();
+			return true;
+			},
+		},
+	{
+		"sum",
+		"F:",
+		".sum() -> sum of the components.",
+		IInvokeCtx::EXEC_FLAG_CONST,
+		[](CAEONVector2D& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
+			{
+			retResult.dResult = Obj.MathSum();
 			return true;
 			},
 		},

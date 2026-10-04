@@ -71,6 +71,10 @@ bool CDatatypeArray::OnCanBeConstructedFrom (CDatum dType) const
 	if ((Type.IsAny() || Type.IsA(*this)))
 		return true;
 
+	if (!m_bTable && !m_bDictionary
+			&& (Type.GetCoreType() == IDatatype::VECTOR_2D_F64 || Type.GetCoreType() == IDatatype::VECTOR_3D_F64))
+		return true;
+
 	if (m_bTable && Type.IsNullType())
 		return true;
 

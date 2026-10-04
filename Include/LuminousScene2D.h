@@ -41,7 +41,21 @@ enum class Obj2DProp
 	LinePoints =			20,		//	Line points (array of CVector2D)
 	PointCount =				21,		//	Polyline size
 
-	Count =					22,
+	Text = 22,
+	Font = 23,
+	TextAlign = 24,
+	TextBaseline = 25,
+	Direction = 26,
+	MaxWidth = 27,
+	TextFit = 28,
+	MinFontSize = 29,
+	MaxFontSize = 30,
+	ShadowColor = 31,
+	ShadowBlur = 32,
+	ShadowOffsetX = 33,
+	ShadowOffsetY = 34,
+
+	Count = 35,
 	};
 
 enum class ObjPropType
@@ -324,7 +338,7 @@ class ILuminousObj2D
 			const IAnimator2D* pAnimator = NULL;
 			};
 
-		ILuminousObj2D (CLuminousScene2D& Scene, DWORD dwID, ILuminousObj2D* pParent) : m_Scene(Scene), m_dwID(dwID), m_pParent(pParent) { }
+		ILuminousObj2D (CLuminousScene2D& Scene, DWORD dwID, ILuminousObj2D* pParent) : m_pScene(&Scene), m_dwID(dwID), m_pParent(pParent) { }
 		virtual ~ILuminousObj2D () { }
 
 		static TUniquePtr<ILuminousObj2D> CreateFromStream (CLuminousScene2D& Scene, IByteStream& Stream, TSortMap<DWORD, DWORD> &retParents);
@@ -356,6 +370,7 @@ class ILuminousObj2D
 		static Obj2DProp ParseProperty (const CString& sProperty);
 		bool RemoveAnimation (Obj2DProp iProp) { return m_Animators.RemoveAnimation(iProp); }
 		void SetParent (ILuminousObj2D* pParent) { m_pParent = pParent; }
+		void RebindScene (CLuminousScene2D& Scene) { m_pScene = &Scene; }
 		void TrimKeyframesBefore (int iFrame) { m_Animators.TrimAllBefore(iFrame); }
 		bool SetPropertyBool (Obj2DProp iProp, bool bValue);
 		bool SetPropertyColor (Obj2DProp iProp, const CLuminousColor& Value);
@@ -366,8 +381,8 @@ class ILuminousObj2D
 		void SetSeq (SequenceNumber Seq) { m_Seq = Seq; }
 		void Write (IByteStream& Stream) const;
 
-		void MarkPropertyDirty (Obj2DProp iProp) { m_dwDirtyProps |= (1 << (int)iProp); }
-		DWORD GetDirtyProps () const { return m_dwDirtyProps; }
+		void MarkPropertyDirty (Obj2DProp iProp) { m_dwDirtyProps |= (DWORDLONG(1) << (int)iProp); }
+		DWORDLONG GetDirtyProps () const { return m_dwDirtyProps; }
 		void ClearDirtyProps () { m_dwDirtyProps = 0; }
 
 		static const SPropertyDesc& GetPropertyDesc (Obj2DProp iProp);
@@ -378,13 +393,15 @@ class ILuminousObj2D
 		static constexpr DWORD IMPL_CIRCLE = 0x00000002;
 		static constexpr DWORD IMPL_TRAIL = 0x00000003;
 		static constexpr DWORD IMPL_LINE = 0x00000004;
+		static constexpr DWORD IMPL_TEXT = 0x00000005;
+		static_assert((int)Obj2DProp::Count <= 64, "Scene2D property mask is too small.");
 
 		static void AccumulatePropertyToRender (const SPropertyDesc& Desc, const IAnimator2D* pAnimator, TArray<SPropertyRenderCtx>& Result)
 			{ Result.Insert({ Desc.iProp, Desc.iType, Desc.sID, pAnimator }); }
 
 	
-		CLuminousScene2D& GetScene () { return m_Scene; }
-		const CLuminousScene2D& GetScene () const { return m_Scene; }
+		CLuminousScene2D& GetScene () { return *m_pScene; }
+		const CLuminousScene2D& GetScene () const { return *m_pScene; }
 		static const TArray<CVector2D>& GetNullVectorQueueValue () { return m_NullVectorQueueValue; }
 
 private:
@@ -407,7 +424,7 @@ private:
 		virtual bool OnSetPropertyVectorQueue (Obj2DProp iProp, const TArray<CVector2D>& Value) { return false; }
 		virtual void OnWrite (IByteStream& Stream) const { }
 
-		CLuminousScene2D& m_Scene;
+		CLuminousScene2D* m_pScene;
 		ILuminousObj2D* m_pParent = NULL;
 		DWORD m_dwID = 0;
 		CVector2D m_vPos;					//	Position relative to parent origin
@@ -418,7 +435,7 @@ private:
 		bool m_bVisible = true;
 
 		CAnimatorSet2D m_Animators;
-		DWORD m_dwDirtyProps = 0;
+		DWORDLONG m_dwDirtyProps = 0;
 
 		SequenceNumber m_Seq = 0;
 
@@ -454,14 +471,15 @@ class CLuminousScene2D
 
 		CLuminousScene2D () { }
 		CLuminousScene2D (const CLuminousScene2D& Src) { Copy(Src); }
-		CLuminousScene2D (CLuminousScene2D&& Src) noexcept = default;
+		CLuminousScene2D (CLuminousScene2D&& Src) noexcept { Move(std::move(Src)); }
 
-		CLuminousScene2D& operator= (const CLuminousScene2D& Src) { CleanUp(); Copy(Src); return *this; }
-		CLuminousScene2D& operator= (CLuminousScene2D&& Src) noexcept = default;
+		CLuminousScene2D& operator= (const CLuminousScene2D& Src) { if (this != &Src) { CleanUp(); Copy(Src); } return *this; }
+		CLuminousScene2D& operator= (CLuminousScene2D&& Src) noexcept { if (this != &Src) { CleanUp(); Move(std::move(Src)); } return *this; }
 
 		static const CString& AsID (EMode iMode);
 		static EMode AsMode (const CString& sValue);
 		ILuminousObj2D& CreateCircle (DWORD dwParentID);
+		ILuminousObj2D& CreateText (DWORD dwParentID);
 		ILuminousObj2D& CreateRectangle (DWORD dwParentID);
 		ILuminousObj2D& CreateTrail (DWORD dwParentID);
 		ILuminousObj2D& CreateLine (DWORD dwParentID);
@@ -507,6 +525,8 @@ class CLuminousScene2D
 
 		void CleanUp () { m_Objs.DeleteAll(); }
 		void Copy (const CLuminousScene2D& Src);
+		void Move (CLuminousScene2D&& Src);
+		void RebindObjects ();
 		void RecalcAnimation ();
 
 		int m_iFPS = DEFAULT_FPS;

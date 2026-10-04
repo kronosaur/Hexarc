@@ -295,6 +295,7 @@ class CXLSWorksheet
 		SCellView GetCellView (int iRowIndex, int iCellIndex) const;
 		const CXLSRange& GetExtent () const { return m_Extent; }
 		int GetID () const { return m_iID; }
+		CDatum GetInfo () const;
 		const CString& GetName () const { return m_sName; }
 		TArray<CDatum> GetRow (const CXLSRange& Range) const;
 		int GetRowCount () const { return m_Rows.GetCount(); }
@@ -399,6 +400,7 @@ class CXLSWorkbook
 		CDatum GetCellValue (int iSheet, const SXLSCellRef& Addr) const { return GetSheet(iSheet).GetCellValue(Addr);}
 		const CXLSWorksheet& GetSheet (int iSheet) const;
 		int GetSheetCount () const;
+		CDatum GetSheetInfo (int iSheet) const;
 		CXLSStyles& GetStyles () { return m_Styles; }
 		const CXLSStyles& GetStyles () const { return m_Styles; }
 		CDatum GetTable (const CXLSRange& Range = CXLSRange()) const;

@@ -1290,6 +1290,8 @@ class CAEONTensor : public IComplexDatum
 			{
 			public:
 
+				struct EndSentinel { };
+
 				Iterator (const CAEONTensor& Tensor) :
 						m_Tensor(Tensor)
 					{
@@ -1336,18 +1338,13 @@ class CAEONTensor : public IComplexDatum
 				CDatum operator* () const { return m_Tensor.m_dData.GetElement(m_iPos); }
 				bool operator== (const Iterator& other) const { return m_iPos == other.m_iPos; }
 				bool operator!= (const Iterator& other) const { return m_iPos != other.m_iPos; }
+				bool operator== (EndSentinel) const { return m_iPos == -1; }
+				bool operator!= (EndSentinel) const { return m_iPos != -1; }
 				Iterator& operator= (const Iterator& other)
 					{
 					m_Cursor = other.m_Cursor;
 					m_iPos = other.m_iPos;
 					return *this;
-					}
-
-				static Iterator end (const CAEONTensor& Tensor)
-					{
-					Iterator result(Tensor);
-					result.m_iPos = -1;
-					return result;
 					}
 
 				int AsFlatIndex () const { return m_Tensor.CalcFlatIndex(m_Cursor); }
@@ -1398,7 +1395,7 @@ class CAEONTensor : public IComplexDatum
 						}
 					else
 						{
-						*this = m_Tensor.end();
+						SetEnd();
 						}
 					}
 				void SetDim (int iDim, int iIndex)
@@ -1407,7 +1404,7 @@ class CAEONTensor : public IComplexDatum
 						throw CException(errFail);
 
 					if (iIndex < m_Tensor.m_Dims[iDim].iOrigin || iIndex >= m_Tensor.m_Dims[iDim].iOrigin + m_Tensor.m_Dims[iDim].iLength)
-						*this = m_Tensor.end();
+						SetEnd();
 					else
 						{
 						m_Cursor[iDim] = iIndex;
@@ -1416,6 +1413,16 @@ class CAEONTensor : public IComplexDatum
 					}
 
 			private:
+
+				void SetEnd ()
+					{
+					//	Retain the origin coordinates for subsequent SetDim calls,
+					//	reusing the cursor instead of constructing an end iterator.
+					for (int i = 0; i < m_Tensor.m_Dims.GetCount(); i++)
+						m_Cursor[i] = m_Tensor.m_Dims[i].iOrigin;
+
+					m_iPos = -1;
+					}
 
 				const CAEONTensor& m_Tensor;
 				TArray<int> m_Cursor;
@@ -1497,6 +1504,9 @@ class CAEONTensor : public IComplexDatum
 		static const CAEONTensor& AsTensor (CDatum dTensor);
 		static bool FlattenOperand (CDatum dOperand, const TArray<SDimDesc>& Dims, CDatum dTensorElementType, int iDim, TArray<CDatum>& retValues);
 		static CDatum ExecuteBinaryOp (EBinaryOp iOp, CDatum dLeft, CDatum dRight, IAEONOperatorCtx& Ctx);
+		static CDatum MathBinaryOpTensorTensor (const CAEONTensor& Left, const CAEONTensor& Right, CDatum dResultType, EBinaryOp iOp, IAEONOperatorCtx& Ctx);
+		static CDatum MathBinaryOpTensorScalar (const CAEONTensor& Tensor, CDatum dScalar, bool bScalarLeft, CDatum dResultType, EBinaryOp iOp, IAEONOperatorCtx& Ctx);
+		static CDatum MathBinaryOpTensorArray (const CAEONTensor& Tensor, CDatum dArray, bool bArrayLeft, CDatum dResultType, EBinaryOp iOp, IAEONOperatorCtx& Ctx);
 		CDatum CalcData (CDatum dInitialData) const;
 		CDatum CalcDataFromArray (CDatum dArray) const;
 		int CalcDataCount () const;
@@ -1536,7 +1546,7 @@ class CAEONTensor : public IComplexDatum
 		virtual void OnMarked (void) override;
 
 		Iterator begin() const { return Iterator(*this); }
-	    Iterator end() const { return Iterator::end(*this); }
+		Iterator::EndSentinel end() const { return {}; }
 
 		CDatum m_dData;
 		int m_iDataStart = 0;
@@ -2091,6 +2101,8 @@ class CAEONVector2D : public TExternalDatum<CAEONVector2D>
 		virtual bool IsArray (void) const override { return true; }
 		virtual bool IsContainer (void) const override { return true; }
 		virtual bool IsImmutable () const { return true; }
+		virtual CDatum MathMax () const override { return CComplexArray::CalcMax({ m_vVector.X(), m_vVector.Y() }); }
+		virtual CDatum MathMin () const override { return CComplexArray::CalcMin({ m_vVector.X(), m_vVector.Y() }); }
 		virtual void SerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const override;
 
 		static CDatum DeserializeAEON (IByteStream& Stream, DWORD dwID, CAEONSerializedMap &Serialized);
@@ -2137,6 +2149,8 @@ class CAEONVector3D : public TExternalDatum<CAEONVector3D>
 		virtual bool IsArray (void) const override { return true; }
 		virtual bool IsContainer (void) const override { return true; }
 		virtual bool IsImmutable () const { return true; }
+		virtual CDatum MathMax () const override { return CComplexArray::CalcMax({ m_vVector.X(), m_vVector.Y(), m_vVector.Z() }); }
+		virtual CDatum MathMin () const override { return CComplexArray::CalcMin({ m_vVector.X(), m_vVector.Y(), m_vVector.Z() }); }
 		virtual void SerializeAEON (IByteStream& Stream, CAEONSerializedMap& Serialized) const override;
 
 		static CDatum DeserializeAEON (IByteStream& Stream, DWORD dwID, CAEONSerializedMap &Serialized);

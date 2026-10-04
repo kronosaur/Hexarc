@@ -95,6 +95,9 @@
     <ClCompile Include="CAEONCircle2D.cpp">
       <Filter>Source Files\Scene2D</Filter>
     </ClCompile>
+    <ClCompile Include="CAEONText2D.cpp">
+      <Filter>Source Files\Scene2D</Filter>
+    </ClCompile>
     <ClCompile Include="CAEONRect2D.cpp">
       <Filter>Source Files\Scene2D</Filter>
     </ClCompile>
@@ -129,6 +132,9 @@
       <Filter>Source Files\Scene2D</Filter>
     </ClCompile>
     <ClCompile Include="CObj2DCircle.cpp">
+      <Filter>Source Files\Scene2D</Filter>
+    </ClCompile>
+    <ClCompile Include="CObj2DText.cpp">
       <Filter>Source Files\Scene2D</Filter>
     </ClCompile>
     <ClCompile Include="CObj2DRectangle.cpp">

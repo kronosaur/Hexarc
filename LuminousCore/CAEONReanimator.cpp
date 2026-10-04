@@ -5,6 +5,7 @@
 
 #include "pch.h"
 #include "LuminousAEON.h"
+#include <cmath>
 
 DECLARE_CONST_STRING(STR_CAEONREANIMATOR_POINTS,	"points");
 
@@ -41,6 +42,7 @@ DECLARE_CONST_STRING(ANIM_TRAIL_POINTS,				"trailPoints");
 
 DECLARE_CONST_STRING(TYPENAME_REANIMATOR,			"reanimator");
 
+DECLARE_CONST_STRING(OBJ_TYPE_TEXT, "text");
 DECLARE_CONST_STRING(OBJ_TYPE_CIRCLE,				"circle");
 DECLARE_CONST_STRING(OBJ_TYPE_RECTANGLE,			"rectangle");
 DECLARE_CONST_STRING(OBJ_TYPE_LINE,				"line");
@@ -57,6 +59,38 @@ static constexpr double DEFAULT_TRAIL_LINE_WIDTH = 1.0;
 static constexpr double CENTI_PIXELS_PER_PIXEL = 100.0;
 
 static Obj2DProp ParseObjProperty (const ILuminousObj2D* pObj, const CString& sProperty);
+
+static bool IsOptionalTextScalar (Obj2DProp iProp)
+	{
+	return iProp == Obj2DProp::MaxWidth || iProp == Obj2DProp::MinFontSize || iProp == Obj2DProp::MaxFontSize;
+	}
+
+// Validate on a detached object before replacing a value or removing its track.
+static bool ValidateTextValue (Obj2DProp iProp, CDatum dValue)
+	{
+	CLuminousScene2D ValidationScene;
+	CObj2DText Candidate(ValidationScene, 0, NULL);
+	switch (ILuminousObj2D::GetPropertyDesc(iProp).iType)
+		{
+		case ObjPropType::String:
+			if (dValue.GetBasicType() != CDatum::typeString && !(iProp == Obj2DProp::Text && dValue.IsNil())) return false;
+			return Candidate.SetPropertyString(iProp, dValue.AsString());
+		case ObjPropType::Scalar:
+			{
+			double rValue = (IsOptionalTextScalar(iProp) && dValue.IsNil()) ? -1.0 : (double)dValue;
+			if (!dValue.IsNil() && !dValue.IsNumber()) return false;
+			if (!std::isfinite(rValue) || (!dValue.IsNil() && IsOptionalTextScalar(iProp) && rValue < 0.0)) return false;
+			return Candidate.SetPropertyScalar(iProp, rValue);
+			}
+		case ObjPropType::Color: return Candidate.SetPropertyColor(iProp, CAEONLuminous::AsColor(dValue));
+		case ObjPropType::Bool: return iProp == Obj2DProp::Visible;
+		case ObjPropType::Vector:
+			if (dValue.GetCount() != 2 || !dValue.GetElement(0).IsNumber() || !dValue.GetElement(1).IsNumber()) return false;
+			if (!std::isfinite((double)dValue.GetElement(0)) || !std::isfinite((double)dValue.GetElement(1))) return false;
+			return Candidate.SetPropertyVector(iProp, CVector2D(dValue.GetElement(0), dValue.GetElement(1)));
+		default: return false;
+		}
+	}
 
 TDatumPropertyHandler<CAEONReanimator> CAEONReanimator::m_Properties = {
 	{
@@ -139,7 +173,9 @@ TDatumPropertyHandler<CAEONReanimator> CAEONReanimator::m_Properties = {
 			for (int i = 0; i < Obj.m_Model.GetObjCount(); i++)
 				{
 				const ILuminousObj2D& ObjRef = Obj.m_Model.GetObj(i);
-				if (strEquals(ObjRef.GetObjType(), OBJ_TYPE_RECTANGLE))
+				if (strEquals(ObjRef.GetObjType(), OBJ_TYPE_TEXT))
+					dResult.Append(CAEONText2D::Create(dSelf, ObjRef.GetID()));
+				else if (strEquals(ObjRef.GetObjType(), OBJ_TYPE_RECTANGLE))
 					dResult.Append(CAEONRect2D::Create(dSelf, ObjRef.GetID()));
 				else if (strEquals(ObjRef.GetObjType(), OBJ_TYPE_CIRCLE))
 					dResult.Append(CAEONCircle2D::Create(dSelf, ObjRef.GetID()));
@@ -180,6 +216,22 @@ TDatumPropertyHandler<CAEONReanimator> CAEONReanimator::m_Properties = {
 	};
 
 TDatumMethodHandler<CAEONReanimator> CAEONReanimator::m_Methods = {
+	{
+		"createText",
+		"$Text2DType:|desc=?",
+		".createText(desc) -> Text2DType",
+		0,
+		[](CAEONReanimator& Obj, IInvokeCtx& Ctx, const CString& sMethod, CHexeStackEnv& LocalEnv, CDatum dContinueCtx, CDatum dContinueResult, SAEONInvokeResult& retResult)
+			{
+			retResult.dResult = Obj.CreateTextObj(LocalEnv.GetArgument(0), LocalEnv.GetArgument(1));
+			if (retResult.dResult.IsError())
+				{
+				retResult.iResult = CDatum::InvokeResult::error;
+				return false;
+				}
+			return true;
+			},
+		},
 	{
 		"addKeyframe",
 		"*",
@@ -454,6 +506,8 @@ bool CAEONReanimator::AnimateProperty (ILuminousObj2D& Obj, Obj2DProp iProp, int
 //	Adds an animation for the given property.
 
 	{
+	if (strEquals(Obj.GetObjType(), OBJ_TYPE_TEXT) && !ValidateTextValue(iProp, dDesc.GetElement(FIELD_VALUE))) return false;
+
 	if (iFrame < 0)
 		return false;
 
@@ -495,11 +549,11 @@ bool CAEONReanimator::AnimateProperty (ILuminousObj2D& Obj, Obj2DProp iProp, int
 			switch (iAnimationType)
 				{
 				case IAnimator2D::Type::Constant:
-					Obj.AnimateScalarConstant(iProp, iFrame, dDesc.GetElement(FIELD_VALUE));
+					Obj.AnimateScalarConstant(iProp, iFrame, (IsOptionalTextScalar(iProp) && dDesc.GetElement(FIELD_VALUE).IsNil()) ? -1.0 : (double)dDesc.GetElement(FIELD_VALUE));
 					break;
 
 				case IAnimator2D::Type::Linear:
-					Obj.AnimateScalarLinear(iProp, iFrame, dDesc.GetElement(FIELD_VALUE));
+					Obj.AnimateScalarLinear(iProp, iFrame, (IsOptionalTextScalar(iProp) && dDesc.GetElement(FIELD_VALUE).IsNil()) ? -1.0 : (double)dDesc.GetElement(FIELD_VALUE));
 					break;
 
 				default:
@@ -605,6 +659,31 @@ CDatum CAEONReanimator::CreateCircleObj (CDatum dSelf, CDatum dDesc)
 	return CAEONCircle2D::Create(dSelf, Obj.GetID());
 	}
 
+CDatum CAEONReanimator::CreateTextObj (CDatum dSelf, CDatum dDesc)
+	{
+	if (!dDesc.IsNil() && dDesc.GetBasicType() != CDatum::typeStruct)
+		return CDatum::CreateError(CString("Text descriptor must be a structure."));
+
+	DWORD dwParentID = ParseID(dDesc.GetElement(FIELD_PARENT_ID));
+	if (dwParentID && !m_Model.FindObj(dwParentID))
+		return CDatum::CreateError(CString("Unknown text parent."));
+
+	ILuminousObj2D& Obj = m_Model.CreateText(dwParentID);
+	for (int i = 0; i < dDesc.GetCount(); i++)
+		{
+		CString sKey = dDesc.GetKey(i);
+		if (strEquals(sKey, FIELD_PARENT_ID)) continue;
+		if (strEquals(sKey, CString("data"))) { SetObjData(Obj.GetID(), dDesc.GetElement(i)); continue; }
+		Obj2DProp iProp = ILuminousObj2D::ParseProperty(sKey);
+		if (iProp == Obj2DProp::Unknown || !SetObjProperty(Obj, iProp, dDesc.GetElement(i)))
+			{
+			RemoveObj(Obj.GetID());
+			return CDatum::CreateError(strPattern("Invalid text property: %s.", sKey));
+			}
+		}
+	return CAEONText2D::Create(dSelf, Obj.GetID());
+	}
+
 CDatum CAEONReanimator::CreateRectangleObj (CDatum dSelf, CDatum dDesc)
 
 //	CreateRectangleObj
@@ -704,6 +783,7 @@ CDatum CAEONReanimator::RenderConstProperty (const ILuminousObj2D& Obj, Obj2DPro
 			return CAEONLuminous::AsDatum(Obj.GetPropertyColor(iProp));
 
 		case ObjPropType::Scalar:
+			if (IsOptionalTextScalar(iProp) && Obj.GetPropertyScalar(iProp) < 0.0) return CDatum();
 			return CDatum(Obj.GetPropertyScalar(iProp));
 
 		case ObjPropType::String:
@@ -973,6 +1053,7 @@ CDatum CAEONReanimator::RenderAnimatedProperty (const ILuminousObj2D& Obj, const
 				return CompactValue(iPropType, CAEONLuminous::AsDatum(Animator.GetKeyframesColor()[iIndex]));
 
 			case ObjPropType::Scalar:
+				if (IsOptionalTextScalar(Animator.GetProperty()) && Animator.GetKeyframesScalar()[iIndex] < 0.0) return CDatum();
 				return CompactValue(iPropType, CDatum(Animator.GetKeyframesScalar()[iIndex]));
 
 			case ObjPropType::String:
@@ -1150,7 +1231,9 @@ DWORD CAEONReanimator::ParseID (CDatum dValue)
 //	Returns an ID from either an integer or an object reference.
 
 	{
-	if (auto* pCircle = CAEONCircle2D::Upconvert(dValue))
+	if (auto* pText = CAEONText2D::Upconvert(dValue))
+		return pText->GetID();
+	else if (auto* pCircle = CAEONCircle2D::Upconvert(dValue))
 		return pCircle->GetID();
 	else if (auto* pRect = CAEONRect2D::Upconvert(dValue))
 		return pRect->GetID();
@@ -1204,7 +1287,11 @@ bool CAEONReanimator::SetObjProperty (DWORD dwID, Obj2DProp iProp, CDatum dValue
 	if (!pObj)
 		return false;
 
-	return SetObjProperty(*pObj, iProp, dValue);
+	SequenceNumber Seq = m_Model.GetSeq();
+	bool bSuccess = SetObjProperty(*pObj, iProp, dValue);
+	if (bSuccess && strEquals(pObj->GetObjType(), OBJ_TYPE_TEXT) && m_Model.GetSeq() == Seq)
+		m_Model.OnObjModified(*pObj);
+	return bSuccess;
 	}
 
 bool CAEONReanimator::SetObjProperty (ILuminousObj2D& Obj, Obj2DProp iProp, CDatum dValue)
@@ -1223,6 +1310,16 @@ bool CAEONReanimator::SetObjProperty (ILuminousObj2D& Obj, Obj2DProp iProp, CDat
 
 	if (!m_Model.IsStreamMode() && IsKeyframeArrayValue(iPropType, dValue))
 		{
+		if (strEquals(Obj.GetObjType(), OBJ_TYPE_TEXT))
+			{
+			for (int j = 0; j < dValue.GetCount(); j++)
+				{
+				CDatum dFrame = dValue.GetElement(j);
+				auto iType = IAnimator2D::AsType(dFrame.GetElement(FIELD_TYPE).AsString());
+				if ((int)dFrame.GetElement(FIELD_FRAME) < 0 || !ValidateTextValue(iProp, dFrame.GetElement(FIELD_VALUE))) return false;
+				if (iType != IAnimator2D::Type::Constant && !(iType == IAnimator2D::Type::Linear && (iPropType == ObjPropType::Scalar || iPropType == ObjPropType::Vector))) return false;
+				}
+			}
 		Obj.RemoveAnimation(iProp);
 
 		for (int j = 0; j < dValue.GetCount(); j++)
@@ -1240,7 +1337,7 @@ bool CAEONReanimator::SetObjProperty (ILuminousObj2D& Obj, Obj2DProp iProp, CDat
 	else if (m_Model.IsKeyframeMode())
 		{
 		CDatum dDesc(CDatum::typeStruct);
-		dDesc.SetElement(FIELD_TYPE, IAnimator2D::AsID(m_Model.GetKeyframeType()));
+		dDesc.SetElement(FIELD_TYPE, IAnimator2D::AsID(iPropType == ObjPropType::String ? IAnimator2D::Type::Constant : m_Model.GetKeyframeType()));
 		dDesc.SetElement(FIELD_VALUE, dValue);
 
 		return AnimateProperty(Obj, iProp, m_Model.GetKeyframeFrame(), dDesc);
@@ -1250,6 +1347,7 @@ bool CAEONReanimator::SetObjProperty (ILuminousObj2D& Obj, Obj2DProp iProp, CDat
 
 	else
 		{
+		if (strEquals(Obj.GetObjType(), OBJ_TYPE_TEXT) && !ValidateTextValue(iProp, dValue)) return false;
 		if (!m_Model.IsStreamMode())
 			Obj.RemoveAnimation(iProp);
 
@@ -1261,8 +1359,11 @@ bool CAEONReanimator::SetObjProperty (ILuminousObj2D& Obj, Obj2DProp iProp, CDat
 			case ObjPropType::Color:
 				return Obj.SetPropertyColor(iProp, CAEONLuminous::AsColor(dValue));
 
+			case ObjPropType::String:
+				return Obj.SetPropertyString(iProp, dValue.AsString());
+
 			case ObjPropType::Scalar:
-				return Obj.SetPropertyScalar(iProp, dValue);
+				return Obj.SetPropertyScalar(iProp, (IsOptionalTextScalar(iProp) && dValue.IsNil()) ? -1.0 : (double)dValue);
 
 			case ObjPropType::Vector:
 				return Obj.SetPropertyVector(iProp, CVector2D(dValue.GetElement(0), dValue.GetElement(1)));

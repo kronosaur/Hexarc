@@ -89,6 +89,9 @@ void CLuminousScene2D::Copy (const CLuminousScene2D& Src)
 	m_Background = Src.m_Background;
 	m_dwNextID = Src.m_dwNextID;
 	m_Seq = Src.m_Seq;
+	m_iKeyframeFrame = Src.m_iKeyframeFrame;
+	m_iKeyframeType = Src.m_iKeyframeType;
+	m_iStreamFrame = Src.m_iStreamFrame;
 
 	//	Copy objects
 
@@ -97,6 +100,36 @@ void CLuminousScene2D::Copy (const CLuminousScene2D& Src)
 		const TUniquePtr<ILuminousObj2D>& pSrcObj = Src.m_Objs[i];
 		TUniquePtr<ILuminousObj2D> pNewObj = pSrcObj->Clone();
 		m_Objs.SetAt(pNewObj->GetID(), std::move(pNewObj));
+		}
+	RebindObjects();
+	}
+
+void CLuminousScene2D::Move (CLuminousScene2D&& Src)
+	{
+	m_iFPS = Src.m_iFPS;
+	m_iFrameCount = Src.m_iFrameCount;
+	m_iOrigin = Src.m_iOrigin;
+	m_vExtents = Src.m_vExtents;
+	m_iMode = Src.m_iMode;
+	m_Background = Src.m_Background;
+	m_dwNextID = Src.m_dwNextID;
+	m_Seq = Src.m_Seq;
+	m_iKeyframeFrame = Src.m_iKeyframeFrame;
+	m_iKeyframeType = Src.m_iKeyframeType;
+	m_iStreamFrame = Src.m_iStreamFrame;
+
+	m_Objs = std::move(Src.m_Objs);
+	RebindObjects();
+	}
+
+void CLuminousScene2D::RebindObjects ()
+	{
+	// Copies and deserialization moves must point at the receiving scene.
+	for (int i = 0; i < m_Objs.GetCount(); i++)
+		{
+		auto& Obj = *m_Objs[i];
+		Obj.RebindScene(*this);
+		if (Obj.GetParent()) Obj.SetParent(FindObj(Obj.GetParent()->GetID()));
 		}
 	}
 
@@ -213,6 +246,25 @@ ILuminousObj2D& CLuminousScene2D::CreateCircle (DWORD dwParentID)
 	return *pObj;
 	}
 
+ILuminousObj2D& CLuminousScene2D::CreateText (DWORD dwParentID)
+
+//	CreateText
+//
+//	Adds a text object.
+
+	{
+	DWORD dwID = m_dwNextID++;
+
+	ILuminousObj2D* pParent = (dwParentID ? FindObj(dwParentID) : NULL);
+	ILuminousObj2D *pObj = new CObj2DText(*this, dwID, pParent);
+	pObj->SetSeq(IncSeq());
+	m_Objs.SetAt(dwID, TUniquePtr<ILuminousObj2D>(pObj));
+
+	RecalcAnimation();
+
+	return *pObj;
+	}
+
 ILuminousObj2D& CLuminousScene2D::CreateRectangle (DWORD dwParentID)
 
 //	CreateRectangle
@@ -286,8 +338,11 @@ bool CLuminousScene2D::RemoveObj (DWORD dwID)
 //	Removes an object from the scene by ID. Returns true if successful.
 
 	{
-	if (!m_Objs.DeleteAt(dwID))
-		return false;
+	ILuminousObj2D* pRemoved = FindObj(dwID);
+	if (!pRemoved) return false;
+	for (int i = 0; i < m_Objs.GetCount(); i++)
+		if (m_Objs[i]->GetParent() == pRemoved) m_Objs[i]->SetParent(NULL);
+	m_Objs.DeleteAt(dwID);
 
 	RecalcAnimation();
 	IncSeq();
@@ -321,13 +376,13 @@ void CLuminousScene2D::AdvanceFrame (int iCount)
 	for (int i = 0; i < m_Objs.GetCount(); i++)
 		{
 		ILuminousObj2D& Obj = *m_Objs[i];
-		DWORD dwDirty = Obj.GetDirtyProps();
+		DWORDLONG dwDirty = Obj.GetDirtyProps();
 		if (dwDirty == 0)
 			continue;
 
 		for (int j = 1; j < (int)Obj2DProp::Count; j++)
 			{
-			if (!(dwDirty & (1 << j)))
+			if (!(dwDirty & (DWORDLONG(1) << j)))
 				continue;
 
 			Obj2DProp iProp = (Obj2DProp)j;
@@ -341,6 +396,10 @@ void CLuminousScene2D::AdvanceFrame (int iCount)
 
 				case ObjPropType::Color:
 					Obj.AnimateColorConstant(iProp, m_iStreamFrame, Obj.GetPropertyColor(iProp));
+					break;
+
+				case ObjPropType::String:
+					Obj.AnimateStringConstant(iProp, m_iStreamFrame, Obj.GetPropertyString(iProp));
 					break;
 
 				case ObjPropType::Scalar:

@@ -1134,7 +1134,7 @@ void CAEONTypes::InitCoreTypes ()
 	RegisterArray(IDatatype::ARRAY_INT_IP, MakeFullyQualifiedName(NULL_STR, TYPENAME_ARRAY_INT_IP), Get(IDatatype::INT_IP), true);
 	RegisterArray(IDatatype::ARRAY_NUMBER, MakeFullyQualifiedName(NULL_STR, TYPENAME_ARRAY_NUMBER), Get(IDatatype::NUMBER), true);
 	RegisterAEONType(IDatatype::VECTOR_2D_F64, MakeFullyQualifiedName(NULL_STR, TYPENAME_VECTOR_2D), DATUM_TYPENAME_VECTOR_2D, CAEONVector2D::GetMembers);
-	RegisterAEONType(IDatatype::VECTOR_3D_F64, MakeFullyQualifiedName(NULL_STR, TYPENAME_VECTOR_3D), DATUM_TYPENAME_VECTOR_2D, CAEONVector3D::GetMembers);
+	RegisterAEONType(IDatatype::VECTOR_3D_F64, MakeFullyQualifiedName(NULL_STR, TYPENAME_VECTOR_3D), DATUM_TYPENAME_VECTOR_3D, CAEONVector3D::GetMembers);
 	RegisterArray(IDatatype::ARRAY_VECTOR_2D, MakeFullyQualifiedName(NULL_STR, TYPENAME_ARRAY_VECTOR_2D), Get(IDatatype::VECTOR_2D_F64), true);
 	RegisterArray(IDatatype::ARRAY_VECTOR_3D, MakeFullyQualifiedName(NULL_STR, TYPENAME_ARRAY_VECTOR_3D), Get(IDatatype::VECTOR_3D_F64), true);
 	RegisterMemberTypeEnum();

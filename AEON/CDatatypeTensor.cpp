@@ -359,6 +359,23 @@ static bool CanConstructTensorFrom (const IDatatype& TargetType, CDatum dSourceT
 	if (SourceType.IsAny() || SourceType.IsA(TargetType))
 		return true;
 
+	//	Vectors have a known rank-1 numeric shape, but require conversion to
+	//	tensor storage. This is a construction rule, not an IsA relationship.
+
+	if (SourceType.GetCoreType() == IDatatype::VECTOR_2D_F64
+			|| SourceType.GetCoreType() == IDatatype::VECTOR_3D_F64)
+		{
+		const IDatatype& ElementType = TargetType.GetElementType();
+		if (!ElementType.IsAny() && !ElementType.IsA(IDatatype::NUMBER))
+			return false;
+
+		int iLength = (SourceType.GetCoreType() == IDatatype::VECTOR_2D_F64 ? 2 : 3);
+		TArray<CDatum> Dims;
+		Dims.Insert(CAEONTypes::CreateInt32SubRange(NULL_STR, 0, iLength - 1));
+		CDatum dTensorType = CAEONTypes::CreateTensor(NULL_STR, CAEONTypes::Get(IDatatype::FLOAT_64), std::move(Dims));
+		return CanConstructTensorFrom(TargetType, dTensorType, bExplicit);
+		}
+
 	if (SourceType.GetClass() != IDatatype::ECategory::Tensor
 			&& SourceType.GetClass() != IDatatype::ECategory::Array)
 		return false;

@@ -378,11 +378,51 @@ TDatumPropertyHandler<CAEONObj3D> CAEONObj3D::m_Properties = {
 			},
 		NULL,
 	},
+	OBJ3D_PROPERTY_VECTOR("orbitTarget", Obj3DProp::OrbitTarget, "Camera orbit pivot in parent-local coordinates; assigning it aims the camera."),
 	OBJ3D_PROPERTY_VECTOR("pos", Obj3DProp::Pos, "Gets/sets position."),
+	OBJ3D_PROPERTY_VECTOR("modelOrigin", Obj3DProp::ModelOrigin, "Geometry origin in model-root coordinates; defaults to zero."),
+	OBJ3D_PROPERTY_VECTOR("modelRotation", Obj3DProp::ModelRotation, "Geometry alignment as XYZ Euler radians, before ordinary scale and rotation."),
 	OBJ3D_PROPERTY_VECTOR("rotation", Obj3DProp::Rot, "Gets/sets XYZ Euler rotation in radians."),
 	OBJ3D_PROPERTY_VECTOR("scale", Obj3DProp::Scale, "Gets/sets scale."),
 	OBJ3D_PROPERTY_VECTOR("visible", Obj3DProp::Visible, "Gets/sets visibility."),
 	OBJ3D_PROPERTY_SCALAR("opacity", Obj3DProp::Opacity, "Gets/sets opacity."),
+	OBJ3D_PROPERTY_VECTOR("castShadow", Obj3DProp::CastShadow, "Gets/sets shadow casting; point lights default to false."),
+	OBJ3D_PROPERTY_VECTOR("receiveShadow", Obj3DProp::ReceiveShadow, "Gets/sets shadow reception."),
+	OBJ3D_PROPERTY_STRING("shadowSide", Obj3DProp::ShadowSide, "Selects shadow-casting faces: auto, front, back, or both."),
+	OBJ3D_PROPERTY_SCALAR("shadowBias", Obj3DProp::ShadowBias, "Additional signed point-light shadow depth bias; zero by default."),
+	OBJ3D_PROPERTY_SCALAR("shadowNormalBias", Obj3DProp::ShadowNormalBias, "Signed point-light receiver normal offset in scene units; zero by default."),
+	OBJ3D_PROPERTY_SCALAR("shadowSoftness", Obj3DProp::ShadowSoftness, "Gets/sets nonnegative point-light shadow filter radius; defaults to zero."),
+	{
+		"bounds", "?", "Read-only model-coordinate bounds: min/max Vector3D snapshots, or null when infinite or unavailable.",
+		[](const CAEONObj3D& Obj, const CString&)
+			{
+			auto* pScene = CAEONReanimator3D::Upconvert(Obj.m_dScene);
+			return pScene ? pScene->GetObjBounds(Obj.m_dwID) : CDatum();
+			}, NULL,
+	},
+	{
+		"size", "?", "Intrinsic dimensions before transforms. Planes: writable Vector2D or null. Models/cubes: read-only Vector3D or null.",
+		[](const CAEONObj3D& Obj, const CString&)
+			{
+			auto* pScene = CAEONReanimator3D::Upconvert(Obj.m_dScene);
+			const auto* pObj = (pScene ? pScene->FindObj(Obj.m_dwID) : NULL);
+			if (!pObj) return CDatum();
+			if (strEquals(pObj->GetObjType(), CString("plane")))
+				{
+				CVector2D Size = pObj->GetPlaneSize();
+				return Size.X() > 0 ? CDatum(Size) : CDatum();
+				}
+			CVector3D vMin, vMax;
+			return pObj->GetBounds(vMin, vMax) ? CDatum(vMax - vMin) : CDatum();
+			},
+		[](CAEONObj3D& Obj, const CString&, CDatum dValue, CString* retsError)
+			{
+			auto* pScene = CAEONReanimator3D::Upconvert(Obj.m_dScene);
+			if (pScene && pScene->SetPlaneSize(Obj.m_dwID, dValue)) return true;
+			if (retsError) *retsError = CString("Size is read-only except on planes, which accept null or two positive finite numbers.");
+			return false;
+			},
+	},
 	{
 		"material", "?", "Gets/sets the material for a compatible object.",
 		[](const CAEONObj3D& Obj, const CString&)
@@ -433,6 +473,30 @@ TDatumPropertyHandler<CAEONObj3D> CAEONObj3D::m_Properties = {
 #undef OBJ3D_PROPERTY_STRING
 
 TDatumMethodHandler<CAEONObj3D> CAEONObj3D::m_Methods = {
+	{
+		"getCameraView", "?:", ".getCameraView() -> camera settings", 0,
+		[](CAEONObj3D& Obj, IInvokeCtx&, const CString&, CHexeStackEnv&, CDatum, CDatum, SAEONInvokeResult& Result)
+			{
+			auto* pScene = CAEONReanimator3D::Upconvert(Obj.GetScene());
+			Result.dResult = (pScene ? pScene->GetCameraView(Obj.GetID()) : CDatum());
+			if (!Result.dResult.IsNil()) return true;
+			Result.iResult = CDatum::InvokeResult::error;
+			Result.dResult = CDatum::CreateError(CString("Object is not a live perspective camera."));
+			return false;
+			},
+	},
+	{
+		"setCameraView", "b:view=?", ".setCameraView(view) -> true/error", 0,
+		[](CAEONObj3D& Obj, IInvokeCtx&, const CString&, CHexeStackEnv& Env, CDatum, CDatum, SAEONInvokeResult& Result)
+			{
+			auto* pScene = CAEONReanimator3D::Upconvert(Obj.GetScene());
+			CString sError;
+			if (pScene && pScene->SetCameraView(Obj.GetID(), Env.GetArgument(1), &sError)) { Result.dResult = CDatum(true); return true; }
+			Result.iResult = CDatum::InvokeResult::error;
+			Result.dResult = CDatum::CreateError(sError.IsEmpty() ? CString("Object is not a live perspective camera.") : sError);
+			return false;
+			},
+	},
 	{
 		"addKeyframe", "*", ".addKeyframe(prop, frame, desc) -> true/false", 0,
 		[](CAEONObj3D& Obj, IInvokeCtx&, const CString&, CHexeStackEnv& LocalEnv, CDatum, CDatum, SAEONInvokeResult& retResult)
@@ -574,6 +638,49 @@ TDatumPropertyHandler<CAEONReanimator3D> CAEONReanimator3D::m_Properties = {
 	},
 };
 
+static bool LoadModelBounds (IInvokeCtx& Ctx, CDatum dObject, SAEONInvokeResult& Result)
+	{
+	// The host's optional Data library owns routing and access checks. Scene3D
+	// remains usable without it, and geometry can supply missing bounds later.
+	CDatum dGetInfo = g_HexeLibrarian.FindFunction(CString("Data"), CString("Data.getInfo"));
+	if (dGetInfo.IsNil() || dObject.GetElement("gridID").IsNil())
+		{
+		Result.dResult = dObject;
+		return true;
+		}
+	CDatum dOptions(CDatum::typeStruct);
+	dOptions.SetElement("noExceptions", true);
+	if (Ctx.InDiagnosticsMode()) dOptions.SetElement("debugSim", true);
+	TArray<CDatum> Args;
+	Args.Insert(dGetInfo);
+	Args.Insert(dObject.GetElement("gridID"));
+	Args.Insert(dOptions);
+	CDatum dInvoker;
+	CHexeDocument::CreateFunctionInvoker(2, dInvoker);
+	CDatum dContext(CDatum::typeStruct);
+	dContext.SetElement("object", dObject);
+	dContext.SetElement("gridID", dObject.GetElement("gridID"));
+	auto* pObject = CAEONObj3D::Upconvert(dObject);
+	auto* pScene = CAEONReanimator3D::Upconvert(pObject->GetScene());
+	dContext.SetElement("modelRevision", pScene->FindObj(pObject->GetID())->GetModelRevision());
+	return CHexe::RunFunction(dInvoker, std::move(Args), dContext, Result);
+	}
+
+static bool OnModelInfo (CDatum dContext, CDatum dInfo, IInvokeCtx&, const CString&, SAEONInvokeResult& Result)
+	{
+	// Missing/inaccessible metadata does not prevent the existing browser load.
+	CDatum dObject = dContext.GetElement("object");
+	auto* pObject = CAEONObj3D::Upconvert(dObject);
+	auto* pScene = pObject ? CAEONReanimator3D::Upconvert(pObject->GetScene()) : NULL;
+	CDatum dBounds = dInfo.GetElement("info").GetElement("model").GetElement("bounds");
+	auto* pModel = pScene ? pScene->FindObj(pObject->GetID()) : NULL;
+	if (pModel && pModel->GetModelRevision() == (DWORD)dContext.GetElement("modelRevision")
+			&& strEquals(pModel->GetPropertyString(Obj3DProp::GridID), dContext.GetElement("gridID").AsString())
+			&& !dBounds.IsNil()) pScene->SetModelBounds(pObject->GetID(), dBounds);
+	Result.dResult = dObject;
+	return true;
+	}
+
 TDatumMethodHandler<CAEONReanimator3D> CAEONReanimator3D::m_Methods = {
 	{
 		"addKeyframe", "*", ".addKeyframe(id, prop, frame, desc) -> true/false", 0,
@@ -601,14 +708,15 @@ TDatumMethodHandler<CAEONReanimator3D> CAEONReanimator3D::m_Methods = {
 	},
 	{
 		"create3DS", "$Object3DType:gridID=?|gridID=?,desc=?", ".create3DS(gridID, desc?) -> Object3DType", 0,
-		[](CAEONReanimator3D& Obj, IInvokeCtx&, const CString&, CHexeStackEnv& LocalEnv, CDatum, CDatum, SAEONInvokeResult& retResult)
+		[](CAEONReanimator3D& Obj, IInvokeCtx& Ctx, const CString&, CHexeStackEnv& LocalEnv, CDatum, CDatum, SAEONInvokeResult& retResult)
 			{
 			retResult.dResult = Obj.Create3DSObj(
 				LocalEnv.GetArgument(0),
 				LocalEnv.GetArgument(1).AsString(),
 				LocalEnv.GetCount() > 2 ? LocalEnv.GetArgument(2) : CDatum());
-			return true;
+			return LoadModelBounds(Ctx, retResult.dResult, retResult);
 			},
+		OnModelInfo,
 	},
 	{
 		"createCamera", "$Object3DType:|desc=?", ".createCamera(desc?) -> Object3DType", 0,
@@ -633,15 +741,31 @@ TDatumMethodHandler<CAEONReanimator3D> CAEONReanimator3D::m_Methods = {
 			},
 	},
 	{
-		"createGLTF", "$Object3DType:gridID=?|gridID=?,desc=?", ".createGLTF(gridID, desc?) -> Object3DType", 0,
+		"createPlane", "$Object3DType:|desc=?", ".createPlane(desc?) -> Object3DType", 0,
 		[](CAEONReanimator3D& Obj, IInvokeCtx&, const CString&, CHexeStackEnv& LocalEnv, CDatum, CDatum, SAEONInvokeResult& retResult)
+			{
+			CString sError;
+			retResult.dResult = Obj.CreateCubeObj(LocalEnv.GetArgument(0), LocalEnv.GetCount() > 1 ? LocalEnv.GetArgument(1) : CDatum(), &sError, true);
+			if (!sError.IsEmpty())
+				{
+				retResult.iResult = CDatum::InvokeResult::error;
+				retResult.dResult = CDatum::CreateError(sError);
+				return false;
+				}
+			return true;
+			},
+	},
+	{
+		"createGLTF", "$Object3DType:gridID=?|gridID=?,desc=?", ".createGLTF(gridID, desc?) -> Object3DType", 0,
+		[](CAEONReanimator3D& Obj, IInvokeCtx& Ctx, const CString&, CHexeStackEnv& LocalEnv, CDatum, CDatum, SAEONInvokeResult& retResult)
 			{
 			retResult.dResult = Obj.CreateGLTFObj(
 				LocalEnv.GetArgument(0),
 				LocalEnv.GetArgument(1).AsString(),
 				LocalEnv.GetCount() > 2 ? LocalEnv.GetArgument(2) : CDatum());
-			return true;
+			return LoadModelBounds(Ctx, retResult.dResult, retResult);
 			},
+		OnModelInfo,
 		},
 	{
 		"createImageTexture", "$Texture3DType:gridID=?|gridID=?,options=?", ".createImageTexture(gridID, options?) -> Texture3DType", 0,
@@ -785,7 +909,57 @@ CDatum CAEONReanimator3D::CreateCameraObj (CDatum dSelf, CDatum dDesc)
 	return CAEONObj3D::Create(dSelf, Obj.GetID());
 	}
 
-CDatum CAEONReanimator3D::CreateCubeObj (CDatum dSelf, CDatum dDesc, CString* retsError)
+CDatum CAEONReanimator3D::GetObjBounds (DWORD dwID) const
+	{
+	const auto* pObj = FindObj(dwID);
+	CVector3D vMin, vMax;
+	if (!pObj || !pObj->GetBounds(vMin, vMax)) return CDatum();
+	CDatum dResult(CDatum::typeStruct);
+	dResult.SetElement("min", CDatum(vMin));
+	dResult.SetElement("max", CDatum(vMax));
+	return dResult;
+	}
+
+bool CAEONReanimator3D::SetModelBounds (DWORD dwID, CDatum dBounds)
+	{
+	auto* pObj = FindObj(dwID);
+	if (!pObj || !pObj->IsImportedModel()) return false;
+	if (dBounds.IsNil()) return pObj->SetModelBounds(false);
+	if (dBounds.GetBasicType() != CDatum::typeStruct) return false;
+	CVector3D Corners[2];
+	for (int i = 0; i < 2; i++)
+		{
+		CDatum dVector = dBounds.GetElement(i == 0 ? "min" : "max");
+		if (dVector.GetCount() != 3) return false;
+		double Values[3];
+		for (int j = 0; j < 3; j++)
+			{
+			CDatum dValue = dVector.GetBasicType() == CDatum::typeStruct ? dVector.GetElement(j == 0 ? "x" : j == 1 ? "y" : "z") : dVector.GetElement(j);
+			if (!dValue.IsNumber() || !std::isfinite((double)dValue)) return false;
+			Values[j] = dValue;
+			}
+		Corners[i] = CVector3D(Values[0], Values[1], Values[2]);
+		}
+	return pObj->SetModelBounds(true, Corners[0], Corners[1]);
+	}
+
+bool CAEONReanimator3D::SetPlaneSize (DWORD dwID, CDatum dValue)
+	{
+	auto* pObj = m_Model.FindObj(dwID);
+	if (!pObj || !strEquals(pObj->GetObjType(), CString("plane"))) return false;
+	CVector2D Size;
+	if (!dValue.IsNil())
+		{
+		if (dValue.GetCount() != 2 || !dValue.GetElement(0).IsNumber() || !dValue.GetElement(1).IsNumber()) return false;
+		Size = CVector2D(dValue.GetElement(0), dValue.GetElement(1));
+		if (!(Size.X() > 0 && Size.Y() > 0) || !std::isfinite(Size.X()) || !std::isfinite(Size.Y())) return false;
+		}
+	pObj->SetPlaneSize(Size);
+	m_Model.OnObjModified(*pObj);
+	return true;
+	}
+
+CDatum CAEONReanimator3D::CreateCubeObj (CDatum dSelf, CDatum dDesc, CString* retsError, bool bPlane)
 	{
 	CDatum dMaterial = dDesc.GetElement(FIELD_MATERIAL);
 	if (!dMaterial.IsNil() && !dDesc.GetElement(FIELD_COLOR).IsNil())
@@ -808,8 +982,19 @@ CDatum CAEONReanimator3D::CreateCubeObj (CDatum dSelf, CDatum dDesc, CString* re
 		}
 
 	DWORD dwParentID = ParseID(dDesc.GetElement(FIELD_PARENT_ID));
-	ILuminousObj3D& Obj = m_Model.CreateCube(dwParentID);
-	if (!dDesc.IsNil()) SetObjProperties(Obj, dDesc);
+	ILuminousObj3D& Obj = (bPlane ? m_Model.CreatePlane(dwParentID) : m_Model.CreateCube(dwParentID));
+	if (bPlane && !SetPlaneSize(Obj.GetID(), dDesc.GetElement("size")))
+		{
+		m_Model.RemoveObj(Obj.GetID());
+		if (retsError) *retsError = CString("Plane size must be null or two positive finite numbers.");
+		return CDatum();
+		}
+	if (!dDesc.IsNil() && !SetObjProperties(Obj, dDesc) && bPlane)
+		{
+		m_Model.RemoveObj(Obj.GetID());
+		if (retsError) *retsError = CString("Invalid plane properties or resource references.");
+		return CDatum();
+		}
 	if (dwMaterialID) m_Model.SetObjMaterial(Obj.GetID(), dwMaterialID);
 	return CAEONObj3D::Create(dSelf, Obj.GetID());
 	}
@@ -868,6 +1053,12 @@ bool CAEONReanimator3D::AnimateProperty (ILuminousObj3D& Obj, Obj3DProp iProp, i
 	if (iProp == Obj3DProp::GridID || iProp == Obj3DProp::ResourcePath) return false;
 	auto iType = IAnimator3D::AsType(dDesc.GetElement(FIELD_TYPE).AsStringView());
 	CDatum dValue = dDesc.GetElement(FIELD_VALUE);
+	if (iProp == Obj3DProp::ModelOrigin || iProp == Obj3DProp::ModelRotation)
+		{
+		if (!Obj.HasGeometry() || dValue.GetCount() != 3) return false;
+		for (int i = 0; i < 3; i++)
+			if (!dValue.GetElement(i).IsNumber() || !std::isfinite((double)dValue.GetElement(i))) return false;
+		}
 
 	switch (ILuminousObj3D::GetPropertyDesc(iProp).iType)
 		{
@@ -940,10 +1131,30 @@ bool CAEONReanimator3D::SetObjMaterial (DWORD dwID, CDatum dValue)
 
 bool CAEONReanimator3D::SetObjProperty (ILuminousObj3D& Obj, Obj3DProp iProp, CDatum dValue)
 	{
+	if (iProp == Obj3DProp::OrbitTarget)
+		{
+		CDatum dView(CDatum::typeStruct); dView.SetElement("orbitTarget", dValue);
+		return SetCameraView(Obj.GetID(), dView);
+		}
 	Obj3DPropType iPropType = ILuminousObj3D::GetPropertyDesc(iProp).iType;
 	bool bKeyframeArray = false;
 	if (!m_Model.IsStreamMode() && (dValue.GetBasicType() == CDatum::typeArray || dValue.GetBasicType() == CDatum::typeTensor) && dValue.GetCount() > 0)
 		bKeyframeArray = !dValue.GetElement(0).GetElement(FIELD_FRAME).IsNil();
+
+	if (!bKeyframeArray && (iProp == Obj3DProp::ModelOrigin || iProp == Obj3DProp::ModelRotation))
+		{
+		if (!Obj.HasGeometry() || dValue.GetCount() != 3) return false;
+		for (int i = 0; i < 3; i++)
+			if (!dValue.GetElement(i).IsNumber() || !std::isfinite((double)dValue.GetElement(i))) return false;
+		}
+
+	if (!bKeyframeArray && (iProp == Obj3DProp::ShadowBias || iProp == Obj3DProp::ShadowNormalBias) && (!dValue.IsNumber() || !std::isfinite((double)dValue))) return false;
+
+	if (!bKeyframeArray && iProp == Obj3DProp::ShadowSide)
+		{
+		CString sSide = dValue.AsString();
+		if (!(strEquals(sSide, CString("auto")) || strEquals(sSide, CString("front")) || strEquals(sSide, CString("back")) || strEquals(sSide, CString("both")))) return false;
+		}
 
 	if (bKeyframeArray)
 		{
@@ -977,12 +1188,15 @@ bool CAEONReanimator3D::SetObjProperties (ILuminousObj3D& Obj, CDatum dData)
 	for (int i = 0; i < dData.GetCount(); i++)
 		{
 		CString sKey = dData.GetKey(i);
-		if (strEquals(sKey, FIELD_PARENT_ID)) continue;
+		if (strEquals(sKey, FIELD_PARENT_ID) || strEqualsNoCase(sKey, CString("orbitTarget"))) continue;
 		Obj3DProp iProp = ILuminousObj3D::ParseProperty(sKey);
 		if (iProp != Obj3DProp::Unknown
 				&& !(iProp == Obj3DProp::Color ? SetObjColor(Obj.GetID(), dData.GetElement(i)) : SetObjProperty(Obj, iProp, dData.GetElement(i))))
 			return false;
 		}
+	CDatum dTarget;
+	if (dData.FindElement("orbitTarget", &dTarget))
+		return SetObjProperty(Obj, Obj3DProp::OrbitTarget, dTarget);
 	return true;
 	}
 
@@ -1065,6 +1279,20 @@ CDatum CAEONReanimator3D::RenderObj (const ILuminousObj3D& Obj) const
 	dResult.SetElement(FIELD_TYPE, Obj.GetObjType());
 	if (Obj.GetMaterialID()) dResult.SetElement(FIELD_MATERIAL_ID, Obj.GetMaterialID());
 	else if (Obj.GetColorTextureID()) dResult.SetElement(FIELD_COLOR_TEXTURE_ID, Obj.GetColorTextureID());
+
+	if (strEquals(Obj.GetObjType(), CString("plane")))
+		{
+		CVector2D Size = Obj.GetPlaneSize();
+		CDatum dSize;
+		if (Size.X() > 0) { dSize = CDatum(CDatum::typeArray); dSize.Append(Size.X()); dSize.Append(Size.Y()); }
+		dResult.SetElement("size", dSize);
+		}
+
+	if (Obj.IsImportedModel())
+		{
+		dResult.SetElement("modelRevision", Obj.GetModelRevision());
+		dResult.SetElement("modelBoundsReady", Obj.AreModelBoundsReady());
+		}
 
 	auto Props = Obj.GetPropertiesToRender();
 	for (int i = 0; i < Props.GetCount(); i++)
@@ -1160,4 +1388,94 @@ CDatum CAEONReanimator3D::RenderAsHTMLCanvasCommands (SequenceNumber Seq) const
 	for (int i = 0; i < m_Model.GetObjCount(); i++) dObjects.Append(RenderObj(m_Model.GetObj(i)));
 	dResult.SetElement(FIELD_OBJECTS, dObjects);
 	return dResult;
+	}
+
+CDatum CAEONReanimator3D::CreateStandaloneCamera ()
+	{
+	auto* pScene = new CAEONReanimator3D(false);
+	CDatum dScene(pScene);
+	return pScene->CreateCameraObj(dScene);
+	}
+
+CDatum CAEONReanimator3D::GetCameraView (DWORD dwID) const
+	{
+	const auto* pObj = FindObj(dwID);
+	if (!pObj || !pObj->IsCamera()) return CDatum();
+	CDatum dResult(CDatum::typeStruct);
+	for (auto iProp : { Obj3DProp::Pos, Obj3DProp::Rot, Obj3DProp::OrbitTarget, Obj3DProp::FOV, Obj3DProp::Near, Obj3DProp::Far })
+		dResult.SetElement(ILuminousObj3D::GetPropertyDesc(iProp).sID,
+			RenderConstProperty(*pObj, iProp, ILuminousObj3D::GetPropertyDesc(iProp).iType));
+	return dResult;
+	}
+
+bool CAEONReanimator3D::SetCameraView (DWORD dwID, CDatum dView, CString* retsError)
+	{
+	auto Fail = [&](const char* sError) { if (retsError) *retsError = CString(sError); return false; };
+	auto* pObj = FindObj(dwID);
+	if (!pObj || !pObj->IsCamera()) return Fail("Object is not a live perspective camera.");
+	if (dView.GetBasicType() != CDatum::typeStruct) return Fail("Camera view must be a settings record.");
+	if (m_Model.IsKeyframeMode() || m_Model.IsStreamMode() || pObj->HasCameraAnimation())
+		return Fail("Camera views cannot replace camera or parent animation tracks; use an unanimated camera.");
+
+	if (pObj->HasUnsupportedCameraScale()) return Fail("Camera views require positive uniform scale on the camera and its parents.");
+
+	CVector3D Pos = pObj->GetPropertyVector(Obj3DProp::Pos), Rot = pObj->GetPropertyVector(Obj3DProp::Rot), Target;
+	double fov = pObj->GetPropertyScalar(Obj3DProp::FOV), nearPlane = pObj->GetPropertyScalar(Obj3DProp::Near), farPlane = pObj->GetPropertyScalar(Obj3DProp::Far);
+	double distance = pObj->GetOrbitDistance();
+	bool hasTarget = false, hasRotation = false;
+	for (int i = 0; i < dView.GetCount(); i++)
+		{
+		const auto prop = ILuminousObj3D::ParseProperty(dView.GetKey(i));
+		CDatum value = dView.GetElement(i);
+		if (prop == Obj3DProp::Pos || prop == Obj3DProp::Rot || prop == Obj3DProp::OrbitTarget)
+			{
+			if (value.IsStruct() || (!value.IsArray() && value.GetBasicType() != CDatum::typeVector3D) || value.GetCount() != 3) return Fail("Camera vectors must have three finite components.");
+			for (int j = 0; j < 3; j++) if (!value.GetElement(j).IsNumber() || !std::isfinite((double)value.GetElement(j))) return Fail("Camera vectors must have three finite components.");
+			CVector3D v((double)value.GetElement(0), (double)value.GetElement(1), (double)value.GetElement(2));
+			if (prop == Obj3DProp::Pos) Pos = v;
+			else if (prop == Obj3DProp::Rot) { Rot = v; hasRotation = true; }
+			else { Target = v; hasTarget = true; }
+			}
+		else if (prop == Obj3DProp::FOV || prop == Obj3DProp::Near || prop == Obj3DProp::Far)
+			{
+			if (!value.IsNumber() || !std::isfinite((double)value)) return Fail("Camera lens settings must be finite numbers.");
+			if (prop == Obj3DProp::FOV) fov = value; else if (prop == Obj3DProp::Near) nearPlane = value; else farPlane = value;
+			}
+		else return Fail("Unknown or unsupported camera view property.");
+		}
+	if (!std::isfinite(Pos.X()) || !std::isfinite(Pos.Y()) || !std::isfinite(Pos.Z())
+			|| !std::isfinite(Rot.X()) || !std::isfinite(Rot.Y()) || !std::isfinite(Rot.Z())
+			|| !std::isfinite(fov) || !std::isfinite(nearPlane) || !std::isfinite(farPlane))
+		return Fail("Camera settings must be finite.");
+	if (!(fov > 0 && fov < 180 && nearPlane > 0 && farPlane > nearPlane)) return Fail("Camera requires 0 < fov < 180 and 0 < near < far.");
+	if (hasTarget)
+		{
+		double dx = Target.X() - Pos.X(), dy = Target.Y() - Pos.Y(), dz = Target.Z() - Pos.Z();
+		distance = sqrt(dx * dx + dy * dy + dz * dz);
+		if (!std::isfinite(distance) || distance < 1e-9) return Fail("Orbit target must be distinct from camera position.");
+		dx /= distance; dy /= distance; dz /= distance;
+		if (hasRotation)
+			{
+			double ex = dx + sin(Rot.Y()), ey = dy - sin(Rot.X()) * cos(Rot.Y()), ez = dz + cos(Rot.X()) * cos(Rot.Y());
+			if (ex * ex + ey * ey + ez * ez > 1e-10) return Fail("Camera rotation must face the supplied orbit target.");
+			}
+		else
+			{
+			// XYZ Euler angles of a look-at matrix using parent-local +Y up.
+			const double horizontal = sqrt(dx * dx + dz * dz);
+			const double xx = (horizontal > 1e-12 ? -dz / horizontal : 1.0);
+			const double yx = (horizontal > 1e-12 ? -dx * dy / horizontal : 0.0);
+			Rot = CVector3D(atan2(dy, -dz), atan2(-dx, sqrt(dy * dy + dz * dz)), atan2(-yx, xx));
+			}
+		}
+	// All checks precede mutation. Order near/far writes to keep both valid even
+	// when the new clipping interval is disjoint from the old interval.
+	if (nearPlane >= pObj->GetPropertyScalar(Obj3DProp::Far)) pObj->SetPropertyScalar(Obj3DProp::Far, farPlane);
+	pObj->SetPropertyScalar(Obj3DProp::Near, nearPlane);
+	pObj->SetPropertyScalar(Obj3DProp::Far, farPlane);
+	pObj->SetPropertyScalar(Obj3DProp::FOV, fov);
+	pObj->SetPropertyVector(Obj3DProp::Pos, Pos);
+	pObj->SetPropertyVector(Obj3DProp::Rot, Rot);
+	pObj->SetOrbitDistance(distance);
+	return true;
 	}

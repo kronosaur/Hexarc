@@ -268,6 +268,15 @@ enum class Obj3DProp
 	Far,
 	GridID,
 	ResourcePath,
+	CastShadow,
+	ReceiveShadow,
+	ShadowSoftness,
+	ShadowSide,
+	ShadowBias,
+	ShadowNormalBias,
+	OrbitTarget,
+	ModelOrigin,
+	ModelRotation,
 	Count,
 	};
 
@@ -467,7 +476,7 @@ class ILuminousObj3D
 			const IAnimator3D* pAnimator = NULL;
 			};
 
-		ILuminousObj3D (CLuminousScene3D& Scene, DWORD dwID, ILuminousObj3D* pParent) : m_pScene(&Scene), m_dwID(dwID), m_pParent(pParent) { }
+		ILuminousObj3D (CLuminousScene3D& Scene, DWORD dwID, ILuminousObj3D* pParent, bool bCastShadow = true) : m_pScene(&Scene), m_dwID(dwID), m_pParent(pParent), m_bCastShadow(bCastShadow) { }
 		virtual ~ILuminousObj3D () { }
 		static TUniquePtr<ILuminousObj3D> CreateFromStream (CLuminousScene3D& Scene, IByteStream& Stream, TSortMap<DWORD, DWORD>& retParents);
 		bool AnimateBoolConstant (Obj3DProp iProp, int iFrame, bool bValue);
@@ -481,6 +490,13 @@ class ILuminousObj3D
 		DWORD GetColorTextureID () const { return OnGetColorTextureID(); }
 		DWORD GetID () const { return m_dwID; }
 		virtual DWORD GetImpl () const = 0;
+		bool GetBounds (CVector3D& retMin, CVector3D& retMax) const;
+		bool IsImportedModel () const { return GetImpl() == IMPL_MODEL_3DS || GetImpl() == IMPL_MODEL_GLTF; }
+		bool AreModelBoundsReady () const { return m_bModelBoundsReady; }
+		DWORD GetModelRevision () const { return m_dwModelRevision; }
+		bool SetModelBounds (bool bHasBounds, const CVector3D& vMin = CVector3D(), const CVector3D& vMax = CVector3D());
+		virtual CVector2D GetPlaneSize () const { return CVector2D(); }
+		virtual bool SetPlaneSize (const CVector2D& Size) { return false; }
 		DWORD GetMaterialID () const { return OnGetMaterialID(); }
 		const CString& GetObjType () const { return OnGetObjType(); }
 		const ILuminousObj3D* GetParent () const { return m_pParent; }
@@ -491,6 +507,13 @@ class ILuminousObj3D
 		double GetPropertyScalar (Obj3DProp iProp) const;
 		CString GetPropertyString (Obj3DProp iProp) const;
 		CVector3D GetPropertyVector (Obj3DProp iProp) const;
+		bool HasGeometry () const { return GetImpl() == IMPL_CUBE || GetImpl() == IMPL_PLANE || GetImpl() == IMPL_MODEL_3DS || GetImpl() == IMPL_MODEL_GLTF; }
+		bool IsCamera () const { return GetImpl() == IMPL_PERSPECTIVE_CAMERA; }
+		bool HasCameraAnimation () const;
+		bool HasUnsupportedCameraScale () const;
+		double GetOrbitDistance () const { return m_rOrbitDistance; }
+		void SetOrbitDistance (double rValue);
+		CVector3D GetOrbitTarget () const;
 		SequenceNumber GetSeq () const { return m_Seq; }
 		DWORD GetDirtyProps () const { return m_dwDirtyProps; }
 		static const SPropertyDesc& GetPropertyDesc (Obj3DProp iProp);
@@ -517,6 +540,7 @@ class ILuminousObj3D
 		static constexpr DWORD IMPL_PERSPECTIVE_CAMERA = 0x00000003;
 		static constexpr DWORD IMPL_MODEL_3DS = 0x00000004;
 		static constexpr DWORD IMPL_MODEL_GLTF = 0x00000005;
+		static constexpr DWORD IMPL_PLANE = 0x00000006;
 		static void AccumulatePropertyToRender (const SPropertyDesc& Desc, const IAnimator3D* pAnimator, TArray<SPropertyRenderCtx>& Result)
 			{ Result.Insert({ Desc.iProp, Desc.iType, Desc.sID, pAnimator }); }
 
@@ -546,8 +570,22 @@ class ILuminousObj3D
 		CVector3D m_vPos;
 		CVector3D m_vScale = CVector3D(1.0, 1.0, 1.0);
 		CVector3D m_vRotation;
+		CVector3D m_vModelOrigin;
+		CVector3D m_vModelRotation;
+		CVector3D m_vBoundsMin;
+		CVector3D m_vBoundsMax;
+		bool m_bHasModelBounds = false;
+		bool m_bModelBoundsReady = false;
+		DWORD m_dwModelRevision = 1;
 		double m_rOpacity = 1.0;
 		bool m_bVisible = true;
+		bool m_bCastShadow = true;
+		bool m_bReceiveShadow = true;
+		double m_rShadowSoftness = 0.0;
+		CString m_sShadowSide = CString("auto");
+		double m_rShadowBias = 0.0;
+		double m_rShadowNormalBias = 0.0;
+		double m_rOrbitDistance = 1.0;
 		CAnimatorSet3D m_Animators;
 		DWORD m_dwDirtyProps = 0;
 		SequenceNumber m_Seq = 0;
@@ -595,7 +633,7 @@ class CObj3DCube : public ILuminousObj3D
 	public:
 		CObj3DCube (CLuminousScene3D& Scene, DWORD dwID, ILuminousObj3D* pParent) : ILuminousObj3D(Scene, dwID, pParent) { }
 		virtual DWORD GetImpl () const override { return IMPL_CUBE; }
-	private:
+	protected:
 		virtual void OnAccumulatePropertiesToRender (TArray<SPropertyRenderCtx>& Result) const override;
 		virtual DWORD OnGetColorTextureID () const override { return m_dwColorTextureID; }
 		virtual DWORD OnGetMaterialID () const override { return m_dwMaterialID; }
@@ -611,10 +649,24 @@ class CObj3DCube : public ILuminousObj3D
 		DWORD m_dwMaterialID = 0;
 	};
 
+class CObj3DPlane : public CObj3DCube
+	{
+	public:
+		CObj3DPlane (CLuminousScene3D& Scene, DWORD dwID, ILuminousObj3D* pParent) : CObj3DCube(Scene, dwID, pParent) { m_Color = CLuminousColor(CRGBA32(0xff, 0xff, 0xff)); }
+		virtual DWORD GetImpl () const override { return IMPL_PLANE; }
+		virtual CVector2D GetPlaneSize () const override { return m_Size; }
+		virtual bool SetPlaneSize (const CVector2D& Size) override { m_Size = Size; return true; }
+	private:
+		virtual const CString& OnGetObjType () const override;
+		virtual void OnRead (IByteStream& Stream) override { CObj3DCube::OnRead(Stream); m_Size.Read(Stream); }
+		virtual void OnWrite (IByteStream& Stream) const override { CObj3DCube::OnWrite(Stream); m_Size.Write(Stream); }
+		CVector2D m_Size;
+	};
+
 class CObj3DPointLight : public ILuminousObj3D
 	{
 	public:
-		CObj3DPointLight (CLuminousScene3D& Scene, DWORD dwID, ILuminousObj3D* pParent) : ILuminousObj3D(Scene, dwID, pParent) { }
+		CObj3DPointLight (CLuminousScene3D& Scene, DWORD dwID, ILuminousObj3D* pParent) : ILuminousObj3D(Scene, dwID, pParent, false) { }
 		virtual DWORD GetImpl () const override { return IMPL_POINT_LIGHT; }
 	private:
 		virtual void OnAccumulatePropertiesToRender (TArray<SPropertyRenderCtx>& Result) const override;
@@ -660,7 +712,7 @@ class CLuminousScene3D
 			Stream,
 			};
 
-		CLuminousScene3D ();
+		CLuminousScene3D (bool bDefaultObjects = true);
 		CLuminousScene3D (CLuminousScene3D&& Src) noexcept { Move(std::move(Src)); }
 		CLuminousScene3D& operator= (CLuminousScene3D&& Src) noexcept { if (this != &Src) Move(std::move(Src)); return *this; }
 		static CLuminousScene3D CreateFromStream (IByteStream& Stream);
@@ -670,6 +722,7 @@ class CLuminousScene3D
 		void ClearKeyframe () { m_iKeyframeFrame = -1; m_iKeyframeType = IAnimator3D::Type::Unknown; }
 		ILuminousObj3D& Create3DS (const CString& sGridID, DWORD dwParentID = 0);
 		ILuminousObj3D& CreateCube (DWORD dwParentID = 0);
+		ILuminousObj3D& CreatePlane (DWORD dwParentID = 0);
 		ILuminousObj3D& CreateGLTF (const CString& sGridID, DWORD dwParentID = 0);
 		ILuminousTexture3D& CreateImageTexture (const CString& sGridID, const CString& sFormat = NULL_STR, bool bFlipY = true);
 		ILuminousMaterial3D& CreatePhysicalMaterial ();
@@ -720,7 +773,7 @@ class CLuminousScene3D
 		void Write (IByteStream& Stream) const;
 
 	private:
-		static constexpr DWORD SERIALIZED_VERSION = 5;
+		static constexpr DWORD SERIALIZED_VERSION = 7;
 		static constexpr DWORD SERIALIZED_VERSION_ENVIRONMENT = 2;
 		static constexpr DWORD SERIALIZED_VERSION_MATERIALS = 3;
 		static constexpr DWORD SERIALIZED_VERSION_TEXTURES = 4;

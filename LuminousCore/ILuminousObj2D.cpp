@@ -30,6 +30,20 @@ TArray<ILuminousObj2D::SPropertyDesc> ILuminousObj2D::m_Properties = std::initia
 	{	Obj2DProp::LineWidth,				ObjPropType::Scalar,		"lineWidth"	},
 	{	Obj2DProp::Points,					ObjPropType::VectorQueue,	"points"	},
 	{	Obj2DProp::LinePoints,				ObjPropType::VectorList,	"linePoints"	},
+	{ Obj2DProp::PointCount, ObjPropType::Scalar, "pointCount" },
+	{ Obj2DProp::Text, ObjPropType::String, "text" },
+	{ Obj2DProp::Font, ObjPropType::String, "font" },
+	{ Obj2DProp::TextAlign, ObjPropType::String, "textAlign" },
+	{ Obj2DProp::TextBaseline, ObjPropType::String, "textBaseline" },
+	{ Obj2DProp::Direction, ObjPropType::String, "direction" },
+	{ Obj2DProp::MaxWidth, ObjPropType::Scalar, "maxWidth" },
+	{ Obj2DProp::TextFit, ObjPropType::String, "textFit" },
+	{ Obj2DProp::MinFontSize, ObjPropType::Scalar, "minFontSize" },
+	{ Obj2DProp::MaxFontSize, ObjPropType::Scalar, "maxFontSize" },
+	{ Obj2DProp::ShadowColor, ObjPropType::Color, "shadowColor" },
+	{ Obj2DProp::ShadowBlur, ObjPropType::Scalar, "shadowBlur" },
+	{ Obj2DProp::ShadowOffsetX, ObjPropType::Scalar, "shadowOffsetX" },
+	{ Obj2DProp::ShadowOffsetY, ObjPropType::Scalar, "shadowOffsetY" },
 };
 
 TSortMap<CString, Obj2DProp> ILuminousObj2D::m_PropLookup;
@@ -51,7 +65,7 @@ bool ILuminousObj2D::AnimateBoolConstant (Obj2DProp iProp, int iFrame, bool bVal
 		Animator.AddKeyframeBool(Desc, bValue);
 		}
 
-	m_Scene.OnObjModified(*this);
+	m_pScene->OnObjModified(*this);
 	return true;
 	}
 
@@ -71,7 +85,7 @@ bool ILuminousObj2D::AnimateColorConstant (Obj2DProp iProp, int iFrame, const CL
 		Animator.AddKeyframeColor(Desc, Value);
 		}
 
-	m_Scene.OnObjModified(*this);
+	m_pScene->OnObjModified(*this);
 	return true;
 	}
 
@@ -91,7 +105,7 @@ bool ILuminousObj2D::AnimateScalarConstant (Obj2DProp iProp, int iFrame, double 
 		Animator.AddKeyframeScalar(Desc, rValue);
 		}
 
-	m_Scene.OnObjModified(*this);
+	m_pScene->OnObjModified(*this);
 	return true;
 	}
 
@@ -106,7 +120,7 @@ bool ILuminousObj2D::AnimateScalarLinear (Obj2DProp iProp, int iFrame, double rV
 	Desc.iType = IAnimator2D::Type::Linear;
 	Animator.AddKeyframeScalar(Desc, rValue);
 
-	m_Scene.OnObjModified(*this);
+	m_pScene->OnObjModified(*this);
 	return true;
 	}
 
@@ -122,11 +136,11 @@ bool ILuminousObj2D::AnimateStringConstant (Obj2DProp iProp, int iFrame, const C
 		IAnimator2D& Animator = m_Animators.GetAnimatorString(iProp, GetPropertyString(iProp));
 		IAnimator2D::SKeyframeDesc Desc;
 		Desc.iFrame = iFrame;
-		Desc.iType = IAnimator2D::Type::Linear;
+		Desc.iType = IAnimator2D::Type::Constant;
 		Animator.AddKeyframeString(Desc, sValue);
 		}
 
-	m_Scene.OnObjModified(*this);
+	m_pScene->OnObjModified(*this);
 	return true;
 	}
 
@@ -146,7 +160,7 @@ bool ILuminousObj2D::AnimateVectorConstant (Obj2DProp iProp, int iFrame, const C
 		Animator.AddKeyframeVector(Desc, Value);
 		}
 
-	m_Scene.OnObjModified(*this);
+	m_pScene->OnObjModified(*this);
 	return true;
 	}
 
@@ -161,7 +175,7 @@ bool ILuminousObj2D::AnimateVectorLinear (Obj2DProp iProp, int iFrame, const CVe
 	Desc.iType = IAnimator2D::Type::Linear;
 	Animator.AddKeyframeVector(Desc, Value);
 
-	m_Scene.OnObjModified(*this);
+	m_pScene->OnObjModified(*this);
 	return true;
 	}
 
@@ -182,7 +196,7 @@ bool ILuminousObj2D::AnimateVectorQueueConstant (Obj2DProp iProp, int iFrame, co
 		Animator.AddKeyframeVectorQueue(Desc, Value);
 		}
 
-	m_Scene.OnObjModified(*this);
+	m_pScene->OnObjModified(*this);
 	return true;
 	}
 
@@ -199,7 +213,7 @@ bool ILuminousObj2D::AnimateVectorQueueLinear (Obj2DProp iProp, int iFrame, cons
 	Desc.iType = IAnimator2D::Type::Linear;
 	Animator.AddKeyframeVectorQueue(Desc, Value);
 
-	m_Scene.OnObjModified(*this);
+	m_pScene->OnObjModified(*this);
 	return true;
 	}
 TUniquePtr<ILuminousObj2D> ILuminousObj2D::CreateFromStream (CLuminousScene2D& Scene, IByteStream& Stream, TSortMap<DWORD, DWORD> &retParents)
@@ -228,6 +242,10 @@ TUniquePtr<ILuminousObj2D> ILuminousObj2D::CreateFromStream (CLuminousScene2D& S
 
 		case IMPL_LINE:
 			pObj.Set(new CObj2DLine(Scene, dwID, NULL));
+			break;
+
+		case IMPL_TEXT:
+			pObj.Set(new CObj2DText(Scene, dwID, NULL));
 			break;
 
 		default:
@@ -379,7 +397,7 @@ bool ILuminousObj2D::SetPropertyBool (Obj2DProp iProp, bool bValue)
 			break;
 		}
 
-	if (bSuccess && m_Scene.IsStreamMode())
+	if (bSuccess && m_pScene->IsStreamMode())
 		MarkPropertyDirty(iProp);
 
 	return bSuccess;
@@ -388,7 +406,7 @@ bool ILuminousObj2D::SetPropertyBool (Obj2DProp iProp, bool bValue)
 bool ILuminousObj2D::SetPropertyColor (Obj2DProp iProp, const CLuminousColor& Value)
 	{
 	bool bSuccess = OnSetPropertyColor(iProp, Value);
-	if (bSuccess && m_Scene.IsStreamMode())
+	if (bSuccess && m_pScene->IsStreamMode())
 		MarkPropertyDirty(iProp);
 	return bSuccess;
 	}
@@ -418,7 +436,7 @@ bool ILuminousObj2D::SetPropertyScalar (Obj2DProp iProp, double rValue)
 			break;
 		}
 
-	if (bSuccess && m_Scene.IsStreamMode())
+	if (bSuccess && m_pScene->IsStreamMode())
 		MarkPropertyDirty(iProp);
 
 	return bSuccess;
@@ -426,7 +444,10 @@ bool ILuminousObj2D::SetPropertyScalar (Obj2DProp iProp, double rValue)
 
 bool ILuminousObj2D::SetPropertyString (Obj2DProp iProp, const CString& sValue)
 	{
-	return OnSetPropertyString(iProp, sValue);
+	bool bSuccess = OnSetPropertyString(iProp, sValue);
+	if (bSuccess && m_pScene->IsStreamMode())
+		MarkPropertyDirty(iProp);
+	return bSuccess;
 	}
 
 bool ILuminousObj2D::SetPropertyVector (Obj2DProp iProp, const CVector2D& Value)
@@ -454,7 +475,7 @@ bool ILuminousObj2D::SetPropertyVector (Obj2DProp iProp, const CVector2D& Value)
 			break;
 		}
 
-	if (bSuccess && m_Scene.IsStreamMode())
+	if (bSuccess && m_pScene->IsStreamMode())
 		MarkPropertyDirty(iProp);
 
 	return bSuccess;
@@ -463,7 +484,7 @@ bool ILuminousObj2D::SetPropertyVector (Obj2DProp iProp, const CVector2D& Value)
 bool ILuminousObj2D::SetPropertyVectorQueue (Obj2DProp iProp, const TArray<CVector2D>& Value)
 	{
 	bool bSuccess = OnSetPropertyVectorQueue(iProp, Value);
-	if (bSuccess && m_Scene.IsStreamMode())
+	if (bSuccess && m_pScene->IsStreamMode())
 		MarkPropertyDirty(iProp);
 	return bSuccess;
 	}

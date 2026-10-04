@@ -22,6 +22,7 @@ class CHexeDocument
 		~CHexeDocument (void);
 
 		static void CreateFunctionCall (const CString &sFunction, const TArray<CDatum> &Args, CDatum *retdEntryPoint);
+		static void CreateFunctionInvoker (int iArgCount, CDatum& retdEntryPoint);
 		static bool IsValidIdentifier (const CString &sIdentifier);
 		static bool ParseData (IByteStream &Stream, CDatum *retdData);
 		static bool ParseLispExpression (const CString &sExpression, CDatum *retdExpression, CString *retsError);
